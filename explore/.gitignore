@@ -1,0 +1,63 @@
+*.class
+*.log
+logs/
+
+# sbt specific
+.cache
+.history
+.lib/
+logs/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+sbt-launch.jar
+
+# Exclude everything in !project/project/ except for Versions.scala (which should be a symlink)
+!project/project/
+project/project/*
+!project/project/Versions.scala
+
+# IDE specific
+.scala_dependencies
+.worksheet
+.idea/
+out/
+.bloop/
+.metals/
+metals.sbt
+.bsp/
+
+# Mac OS
+.DS_Store
+._.DS_Store
+**/.DS_Store
+**/._.DS_Store
+
+# Hydra
+.hydra/
+
+node_modules/
+vars.css
+static/
+common/src/main/publicdev/
+
+# vite
+server.cert
+server.key
+stats.html
+
+# Firebase
+.firebase/
+.direnv
+.jvmopts
+
+# Local development environment
+local.conf.json*
+
+*.worksheet.sc
+
+# SOPS secrets - private keys only
+explore-keys.txt

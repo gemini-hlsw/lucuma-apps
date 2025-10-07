@@ -1,0 +1,412 @@
+@use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
+@use 'explore-common.scss' as exploreCommon;
+@use '/lucuma-css/visualization.scss';
+@use 'sass:string';
+
+:root {
+  --aladin-image-saturation: 1;
+  --aladin-image-brightness: 1;
+}
+
+$saturation: var(--aladin-image-saturation);
+$brightness: var(--aladin-image-brightness);
+
+.dark-theme,
+.light-theme {
+  /* stylelint-disable-next-line selector-class-pattern */
+  .aladin-imageCanvas {
+    filter: #{saturate }(string.unquote($saturation)) brightness(string.unquote($brightness));
+  }
+
+  .aladin-container {
+    overflow: hidden; // Needed to keep the visualization svg inside the component
+    outline: none;
+    pointer-events: none;
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      pointer-events: initial;
+    }
+  }
+
+  .aladin-container-body {
+    grid-area: aladin;
+    position: relative;
+  }
+
+  .viz-guides {
+    display: none;
+  }
+
+  .visualization-overlay-svg {
+    .gmos-fpu,
+    .gmos-probe-arm,
+    .gmos-candidates-area {
+      display: inline;
+    }
+
+    .flamingos2-science-ccd,
+    .flamingos2-probe-arm,
+    .flamingos2-candidates-area {
+      display: inline;
+    }
+  }
+
+  .p-menu.p-component.explore-aladin-settings-menu {
+    background: var(--button-background-color-semi);
+    border-color: var(--site-border-color);
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    font-size: var(--pl-mini-font-size);
+    width: 14em;
+
+    .p-menuitem-link {
+      padding: 0.6em;
+
+      // otherwise, the slider handle can stick out too far.
+      &:has(.aladin-range-control) {
+        padding-right: 1rem;
+      }
+
+      .aladin-range-control {
+        width: 100%;
+
+        .p-slider {
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  .p-button.p-button-icon-only.explore-aladin-button,
+  .p-button.explore-aladin-button {
+    background: var(--button-background-color-semi);
+    border-color: var(--gray-500);
+    padding: 0.3em;
+    margin-right: 0;
+    aspect-ratio: 1;
+    max-width: 30px;
+    max-height: 30px;
+
+    &:enabled:focus-visible,
+    &:enabled:hover {
+      background: var(--gray-700);
+      border-color: var(--gray-200);
+      box-shadow: 0 0 0 0.5px var(--gray-200);
+    }
+  }
+
+  @mixin aladin-button-mixin {
+    position: absolute;
+    z-index: 120;
+    padding: 0.3em;
+    aspect-ratio: 1;
+  }
+
+  .aladin-help-icon {
+    @include aladin-button-mixin;
+
+    right: 5px;
+    top: 40px;
+  }
+
+  .aladin-survey {
+    @include aladin-button-mixin;
+
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    font-size: var(--pl-mini-font-size);
+    color: var(--hud-color);
+    left: 50px;
+    top: 8px;
+  }
+
+  .explore-aladin-zoom-control {
+    @include aladin-button-mixin;
+
+    right: 10px;
+    top: 50%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .explore-aladin-search-zoom-control {
+    top: 40%;
+  }
+
+  .p-button.explore-aladin-fullscreen-button {
+    margin: 0;
+
+    /* stylelint-disable-next-line selector-class-pattern */
+    svg.svg-inline--fa {
+      width: auto;
+    }
+  }
+
+  .explore-aladin-fullscreen-button {
+    @include aladin-button-mixin;
+
+    right: 5px;
+    top: 10px;
+  }
+
+  .explore-aladin-toolbox-button {
+    @include aladin-button-mixin;
+
+    top: 10px;
+    left: 10px;
+
+    .p-button.p-button-icon-only.explore-aladin-button,
+    .p-button.explore-aladin-button {
+      position: absolute;
+    }
+  }
+
+  @mixin hud {
+    position: absolute;
+    z-index: 120;
+    padding: 0.3em 1em;
+    margin: 1em;
+    color: var(--hud-color);
+    border: 1px solid var(--hud-color);
+    border-radius: 3px;
+    background: var(--hud-background-color);
+  }
+
+  .ags-overlay {
+    @include hud;
+
+    bottom: 30px;
+    font-size: smaller;
+    user-select: none;
+
+    .fa-bahai {
+      color: var(--ags-icon-color);
+      padding-top: 0.3em;
+    }
+
+    .ags-description {
+      @include lucumaUICommon.text-ellipsis;
+
+      display: flex;
+      gap: 0.1em;
+      align-items: baseline;
+
+      .ags-navigation {
+        margin-left: 0.3em;
+      }
+
+      .ags-navigation-button {
+        cursor: pointer;
+        padding: {
+          left: 0.2em !important;
+          right: 0.2em !important;
+        }
+
+        /* stylelint-disable-next-line selector-class-pattern */
+        svg.svg-inline--fa {
+          color: var(--gray-50);
+          width: auto;
+          margin-right: 0;
+        }
+      }
+
+      .ags-guide-speed {
+        text-transform: capitalize;
+      }
+
+      .ags-g-brightness {
+        margin-left: 0.3em;
+      }
+
+      .ags-coordinates {
+        margin-left: 0.3em;
+        font-weight: bold;
+      }
+
+      /* stylelint-disable-next-line selector-class-pattern */
+      .svg-inline--fa {
+        margin-right: 0.3em;
+        align-self: center;
+        padding-top: 0;
+      }
+    }
+
+    .ags-not-found,
+    .ags-medium-color,
+    .ags-fast-color,
+    .ags-slow-color {
+      padding-top: 0.3em;
+    }
+
+    .ags-fast-color {
+      color: var(--ags-fast-guide-speed-color);
+    }
+
+    .ags-not-found {
+      color: var(--negative-background-color);
+    }
+
+    .ags-medium-color {
+      color: var(--ags-medium-guide-speed-color);
+    }
+
+    .ags-slow-color {
+      color: var(--ags-slow-guide-speed-color);
+    }
+  }
+
+  .targets-overlay-svg {
+    isolation: isolate;
+  }
+
+  .targets-overlay-svg .arrow-between-targets {
+    stroke: white;
+    mix-blend-mode: difference;
+    background-blend-mode: difference;
+  }
+
+  .finder-charts-tile {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--hud-background-color),
+      var(--hud-background-color) 10px,
+      var(--hud-stripe-color) 10px,
+      var(--hud-stripe-color) 11px
+    );
+  }
+
+  .finder-charts-tools {
+    display: grid;
+    user-select: none;
+    grid-template-columns: min-content 1fr min-content 6ch;
+    grid-template-rows:
+      [header] min-content
+      [divider] min-content
+      [zoom] min-content
+      [rotate] min-content
+      [flip] min-content
+      [rotate-pa] min-content
+      [reset] min-content
+      [invert] min-content;
+    justify-items: center;
+    color: var(--text-color);
+    left: 0;
+
+    // pa row
+    :nth-child(14) {
+      grid-row-start: rotate-pa;
+      grid-column-end: span 4;
+      place-self: baseline start;
+    }
+
+    // reset row
+    :nth-child(15),
+    :nth-child(16) {
+      grid-row-start: reset;
+    }
+
+    // invert row
+    :nth-child(17),
+    :nth-child(18) {
+      grid-row-start: invert;
+    }
+
+    .finder-charts-button-pa {
+      display: flex;
+    }
+  }
+
+  .finder-charts-attachments,
+  .finder-charts-tools {
+    @include hud;
+
+    padding: 0.3em 0.5em;
+
+    .finder-charts-button {
+      cursor: pointer;
+
+      .fa-border {
+        border-color: var(--hud-background-color);
+
+        &:hover {
+          border-color: var(--text-color);
+        }
+      }
+    }
+
+    .p-divider.p-divider-horizontal {
+      margin: 0.3rem 0;
+    }
+
+    .p-divider,
+    span:first-child {
+      grid-column: 1 / -1;
+      justify-self: stretch;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: center;
+    }
+  }
+
+  .finder-charts-attachments {
+    right: 0;
+    top: exploreCommon.$tile-title-height;
+    width: min(45%, 400px);
+    height: max(30%, 200px);
+    display: flex;
+    flex-direction: column;
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      width: min(60%, 450px);
+    }
+
+    span:first-child {
+      justify-content: space-between;
+    }
+
+    .finder-charts-table-header {
+      display: none;
+    }
+
+    .finder-charts-table-filename {
+      width: 100%;
+      text-align: right;
+    }
+
+    .finder-charts-table {
+      .p-datatable-tbody > tr {
+        opacity: 0.7;
+      }
+    }
+
+    .finder-charts-table-disabled {
+      pointer-events: none;
+
+      .p-datatable-tbody > tr {
+        opacity: 0.4;
+      }
+    }
+  }
+
+  .finder-charts-body {
+    display: flex;
+    position: relative;
+    justify-content: center;
+  }
+
+  .finder-charts-image {
+    transition:
+      transform 0.2s ease,
+      filter 0.85s ease;
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+  }
+
+  .finder-charts-image-inverted {
+    filter: invert(1);
+  }
+}

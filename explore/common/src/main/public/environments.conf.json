@@ -1,0 +1,53 @@
+[
+  {
+    "hostName": "*",
+    "environment": "DEVELOPMENT",
+    "odbURI": "wss://lucuma-postgres-odb-dev.herokuapp.com/ws",
+    "odbRestURI": "https://lucuma-postgres-odb-dev.herokuapp.com",
+    "preferencesDBURI": "wss://gpp-prefs-dev.lucuma.xyz/v1/graphql",
+    "itcURI": "https://itc-dev.lucuma.xyz/itc",
+    "sso": {
+      "uri": "https://sso-dev.gpp.lucuma.xyz",
+      "readTimeoutSeconds": 10,
+      "expirationAnticipationSeconds": 10
+    },
+    "tracing": {
+      "key": "hcaik_01k0q44ydek334b262pbe7t74yt534vyvq3qge8fb3myt1dfpw8d9aqye1",
+      "serviceName": "explore-dev"
+    }
+  },
+  {
+    "hostName": "explore-test.gemini.edu",
+    "environment": "STAGING",
+    "odbURI": "wss://lucuma-postgres-odb-staging.herokuapp.com/ws",
+    "odbRestURI": "https://lucuma-postgres-odb-staging.herokuapp.com",
+    "preferencesDBURI": "wss://prefs-test.gpp.gemini.edu/v1/graphql",
+    "itcURI": "https://itc-staging.lucuma.xyz/itc",
+    "sso": {
+      "uri": "https://sso-test.gpp.gemini.edu",
+      "readTimeoutSeconds": 10,
+      "expirationAnticipationSeconds": 10
+    },
+    "tracing": {
+      "key": "hcaik_01k0q4c39fxfka1rdfk1yhgmkg4922b53z9abywz7pqam6tcsr825vba5g",
+      "serviceName": "explore-staging"
+    }
+  },
+  {
+    "hostName": "explore.gemini.edu",
+    "environment": "PRODUCTION",
+    "odbURI": "wss://lucuma-postgres-odb-production.herokuapp.com/ws",
+    "odbRestURI": "https://lucuma-postgres-odb-production.herokuapp.com",
+    "preferencesDBURI": "wss://prefs.gpp.gemini.edu/v1/graphql",
+    "itcURI": "https://itc.gpp.gemini.edu/itc",
+    "sso": {
+      "uri": "https://sso.gpp.gemini.edu",
+      "readTimeoutSeconds": 10,
+      "expirationAnticipationSeconds": 10
+    },
+    "tracing": {
+      "key": "hcaik_01j94x9ckgc61kzsyjk2xjm4nkn23hn1f3baeqjnbr4n1hywhezrzqcxdj",
+      "serviceName": "explore-production"
+    }
+  }
+]

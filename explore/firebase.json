@@ -1,0 +1,37 @@
+{
+  "hosting": [
+    {
+      "target": "dev",
+      "public": "heroku/static",
+      "ignore": ["/*.conf.json"],
+      "rewrites": [
+        {
+          "source": "!(/uninstall.html)",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "staging",
+      "public": "heroku/static",
+      "ignore": ["/*.conf.json"],
+      "rewrites": [
+        {
+          "source": "!(/uninstall.html)",
+          "destination": "/index.html"
+        }
+      ]
+    },
+    {
+      "target": "production",
+      "public": "heroku/static",
+      "ignore": ["/*.conf.json"],
+      "rewrites": [
+        {
+          "source": "!(/uninstall.html)",
+          "destination": "/index.html"
+        }
+      ]
+    }
+  ]
+}

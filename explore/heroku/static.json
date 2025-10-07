@@ -1,0 +1,32 @@
+{
+  "https_only": true,
+  "root": "static/",
+  "clean_urls": false,
+  "brotli": "on",
+  "redirects": {
+    "/conf.json": {
+      "url": "\" /${ENVIRONMENT}.conf.json\""
+    }
+  },
+  "routes": {
+    "/*.csv": "/",
+    "/**": "index.html"
+  },
+  "headers": {
+    "/": {
+      "Cache-Control": "no-store, no-cache"
+    },
+    "/sw.js": {
+      "Cache-Control": "no-store, no-cache"
+    },
+    "/index.html": {
+      "Cache-Control": "no-store, no-cache"
+    },
+    "/manifest.webmanifest": {
+      "Cache-Control": "no-store, no-cache"
+    },
+    "/assets/**": {
+      "Cache-Control": "public, max-age=31536000"
+    }
+  }
+}

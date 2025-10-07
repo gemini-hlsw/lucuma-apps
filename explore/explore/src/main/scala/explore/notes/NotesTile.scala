@@ -1,0 +1,36 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package explore.tabs
+
+import cats.syntax.all.*
+import crystal.react.*
+import eu.timepit.refined.types.string.NonEmptyString
+import explore.components.HelpIcon
+import explore.components.MarkdownEditor
+import explore.components.Tile
+import explore.components.ui.ExploreStyles
+import explore.model.ObsTabTileIds
+import explore.model.enums.TileSizeState
+import explore.utils.showCount
+import explore.utils.wordCount
+import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.react.common.*
+import lucuma.refined.*
+
+object NotesTile:
+  def apply(notes: View[Option[NonEmptyString]], hidden: Boolean): Tile[Unit] =
+    val wc = notes.get.fold(0)(n => wordCount(n.value))
+
+    Tile(
+      ObsTabTileIds.NotesId.id,
+      s"Note for Observer (${showCount(wc, "word")})",
+      bodyClass = ExploreStyles.NotesTile,
+      hidden = hidden
+    )(_ => MarkdownEditor(notes),
+      (_, tileSize) =>
+        Option.unless(tileSize === TileSizeState.Minimized)(
+          HelpIcon("observer-notes.md".refined)
+        )
+    )

@@ -1,0 +1,3856 @@
+@use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
+@use 'explore-common.scss' as exploreCommon;
+
+// Scrollbar
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-background) !important;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-background-thumb) !important;
+  border: 1px solid var(--scrollbar-background);
+
+  &:active,
+  &:hover {
+    background: var(--scrollbar-background-thumb-hover) !important;
+  }
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--control-background-color);
+}
+
+// React-datepicker shows Aria messages without this.
+// https://github.com/Hacker0x01/react-datepicker/issues/3924#issuecomment-1430907381
+/* stylelint-disable selector-class-pattern */
+.react-datepicker__aria-live {
+  position: absolute;
+  clip-path: circle(0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  width: 1px;
+  white-space: nowrap;
+}
+
+.react-datepicker__day--disabled {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+/* stylelint-enable selector-class-pattern */
+
+:root {
+  color-scheme: dark;
+}
+
+// Full viewport settings taken from https://dev.to/lennythedev/css-gotcha-how-to-fill-page-with-a-div-270j
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  scrollbar-width: thin;
+
+  // set font from primereact
+  font-family: var(--font-family);
+
+  // these were taken from SUI
+  font-size: 14px;
+  line-height: 1.4285em;
+}
+
+a {
+  color: var(--site-link-color);
+}
+
+body {
+  overflow: hidden;
+  position: fixed;
+  min-height: 100dvh;
+
+  /* mobile viewport bug fix */
+  /* stylelint-disable-next-line value-no-vendor-prefix */
+  min-height: -webkit-fill-available;
+  width: 100dvw;
+}
+
+// Reusability overlays.
+body.hide-reusability {
+  & > div:not(#root)[title^='Last update reason'] {
+    display: none;
+  }
+}
+
+// Classes
+
+.explore-accented {
+  color: var(--explore-accent-color);
+}
+
+.explore-text-plain {
+  text-transform: none;
+}
+
+tfoot {
+  background-color: var(--table-footer-background);
+}
+
+// ----------
+// Main title
+// ----------
+.react-aladin {
+  margin: 2px;
+}
+
+.explore-empty-tree-content {
+  border: 1px solid var(--under-tab-border-color);
+
+  div {
+    font-size: 2em;
+    padding-bottom: 0.3em;
+    border-bottom: var(--explore-accent-color) solid 2px;
+  }
+}
+
+.maingrid {
+  height: 100%;
+}
+
+.main-title-program-id {
+  font-size: 0.85em;
+  letter-spacing: 0.1em;
+}
+
+.p-toolbar-group-start.p-toolbar-group-left {
+  align-items: baseline;
+}
+
+.obs-tree {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  justify-content: center;
+  flex-grow: 1;
+  overflow: hidden;
+}
+
+.obs-unassigned {
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+
+  &.dragging-over {
+    .obs-tree-header {
+      background-color: rgb(0 0 0 / 0%); // transparent
+    }
+  }
+}
+
+.obs-item {
+  margin: 0;
+  padding: 0;
+}
+
+.obs-count {
+  white-space: nowrap;
+  font-weight: 100;
+}
+
+.obs-tree-item {
+  margin-left: 25px;
+  padding: 5px;
+}
+
+.obs-tree-group-header {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  padding: 0.5em !important;
+  align-content: center;
+
+  .fa-thumbtack {
+    margin-right: 1em;
+    margin-left: 0.5em;
+  }
+}
+
+.selected-obs-tree-group {
+  background-color: var(--tile-background);
+}
+
+.dragging-over .selected-obs-tree-group {
+  background-color: rgb(0 0 0 / 0%);
+}
+
+/*** iPhone and iOS Form Input Zoom Fixes ***/
+@media screen and (device-aspect-ratio <= 2/3) {
+  select,
+  textarea,
+  input[type='text'],
+  input[type='password'],
+  input[type='datetime'],
+  input[type='datetime-local'],
+  input[type='date'],
+  input[type='month'],
+  input[type='time'],
+  input[type='week'],
+  input[type='number'],
+  input[type='email'],
+  input[type='url'] {
+    font-size: 16px;
+  }
+}
+
+@media screen and (device-aspect-ratio <= 40/71) {
+  select,
+  textarea,
+  input[type='text'],
+  input[type='password'],
+  input[type='datetime'],
+  input[type='datetime-local'],
+  input[type='date'],
+  input[type='month'],
+  input[type='time'],
+  input[type='week'],
+  input[type='number'],
+  input[type='email'],
+  input[type='url'] {
+    font-size: 16px;
+  }
+}
+
+@media screen and (device-aspect-ratio <= 375/667) {
+  select,
+  textarea,
+  input[type='text'],
+  input[type='password'],
+  input[type='datetime'],
+  input[type='datetime-local'],
+  input[type='date'],
+  input[type='month'],
+  input[type='time'],
+  input[type='week'],
+  input[type='number'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='url'] {
+    font-size: 16px;
+  }
+}
+
+@media screen and (device-aspect-ratio <= 9/16) {
+  select,
+  textarea,
+  input[type='text'],
+  input[type='password'],
+  input[type='datetime'],
+  input[type='datetime-local'],
+  input[type='date'],
+  input[type='month'],
+  input[type='time'],
+  input[type='week'],
+  input[type='number'],
+  input[type='email'],
+  input[type='tel'],
+  input[type='url'] {
+    font-size: 16px;
+  }
+}
+
+.unselected-obs-tree-group:hover {
+  background-color: var(--explore-group-hover);
+
+  & .obs-tree-group-header {
+    text-decoration: underline;
+  }
+}
+
+.obs-tree-group {
+  display: block;
+  color: var(--primary-color-text);
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-right: 5px;
+  user-select: none;
+}
+
+.eraser-icon,
+.trash-icon {
+  color: var(--negative-icon-color);
+}
+
+.dragging-over {
+  background-color: var(--explore-group-dragging) !important;
+}
+
+.moon-phase {
+  position: absolute;
+  top: 5px;
+  right: 1rem;
+}
+
+.wip {
+  position: relative;
+  display: inline-block;
+}
+
+.full-height-width {
+  height: 100%;
+  width: 100%;
+}
+
+.wip .wip-warning {
+  visibility: hidden;
+  width: 120px;
+  background-color: yellow;
+  color: black;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 3;
+  top: 30px;
+  left: calc(50% - 60px);
+}
+
+.wip:hover .wip-warning {
+  visibility: visible;
+}
+
+.edit-warning {
+  padding: 5px !important; // important to override SUI's style.
+  position: absolute !important; // important to override SUI's style.
+  z-index: 2000;
+  width: 100%;
+}
+
+.target-brightness-cell {
+  .form {
+    height: 100%;
+  }
+}
+
+.target-asterism-editor {
+  align-self: stretch;
+  outline: 3px solid pink !important;
+}
+
+.catalogue-form {
+  height: max-content; // keep it from expanding to fill cell
+}
+
+.explore-table-units-label {
+  margin-left: 0.25em;
+  font-size: x-small;
+}
+
+.explore-units-label {
+  margin-left: 0.25em;
+}
+
+@mixin explore-input-error-mixin {
+  left: 30%;
+  z-index: 3;
+}
+
+.explore-input-error-tooltip {
+  @include explore-input-error-mixin;
+
+  transform: translate(0, -33px);
+}
+
+.explore-input-error-tooltip-below {
+  @include explore-input-error-mixin;
+
+  transform: translate(0, 20px);
+}
+
+span.fa-layers-text.required-for-itc-text {
+  font-weight: 900;
+  transform: scale(0.6) translate(-1em, -2.4em) rotate(30deg);
+}
+
+textarea.p-inputtextarea.explore-warning-input,
+label.explore-warning-label,
+div.p-dropdown.explore-warning-input,
+div.p-form-field.explore-warning-input,
+div.field.explore-warning-input,
+div.inline.field.explore-warning-input {
+  box-shadow: -0 0 2px 1px var(--warning-background-color);
+}
+
+label.explore-indent-label {
+  text-indent: 2em;
+}
+
+// https://zellwk.com/blog/creating-focus-style/
+i.icon.explore-button-icon:hover,
+i.icon.explore-button-icon:focus {
+  outline: none;
+  opacity: 1;
+  box-shadow:
+    0 0 0 0.1rem var(--focus-inner-color),
+    0 0 0 0.2rem var(--focus-outer-color);
+}
+
+html {
+  // Required for iOS to work with 100vh
+  // https://css-tricks.com/css-fix-for-100vh-in-mobile-webkit/
+  /* stylelint-disable-next-line value-no-vendor-prefix */
+  height: -webkit-fill-available;
+}
+
+.crash-message {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.block.header.obs-tree-header {
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-right: 5px;
+  user-select: none;
+  margin-top: 2px;
+  margin-bottom: 0;
+  display: flex;
+  justify-content: space-between;
+}
+
+.explore-button-copy {
+  border: 0 !important; // important to override SUI's style.
+}
+
+.explore-button-summary {
+  width: 100%;
+  justify-content: center;
+}
+
+.explore-target-summary-subrow-cell {
+  padding-left: 10px;
+}
+
+/* stylelint-disable-next-line selector-class-pattern */
+svg.padded-right-icon.svg-inline--fa {
+  margin-right: 3px;
+}
+
+// Remove the focus on icons
+svg[focusable='false']:focus {
+  outline: none;
+}
+
+.modal-close-button {
+  z-index: 1;
+  position: absolute;
+  top: -1rem;
+  right: -1rem;
+  opacity: 0.8;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.explore-modes-header {
+  top: 0;
+  white-space: nowrap;
+}
+
+.explore-modes-table-itc-cell {
+  display: flex;
+  justify-content: center;
+}
+
+tbody tr td.sticky-column {
+  position: sticky;
+  background: inherit;
+  clip-path: inset(2px 0); // Avoids overwriting the box-shadow.
+}
+
+thead tr th.sticky-column {
+  position: sticky;
+
+  &.sticky-header {
+    z-index: 15;
+  }
+}
+
+thead tr th.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.explore-modes-table-itc-header-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.explore-modes-table-itc-circular-progressbar {
+  height: 16px;
+  padding-left: 4px;
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .CircularProgressbar-trail {
+    stroke: none !important;
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .CircularProgressbar-path {
+    stroke: var(--site-text-color) !important;
+  }
+}
+
+.input-replacement-icon {
+  /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+  line-height: var(--pl-input-line-height);
+  border: 1px dashed transparent; // the border makes the sizing work.
+  /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+  padding: var(--pl-input-padding);
+}
+
+// -------
+// Tile
+// -------
+@mixin small-tile-title {
+  display: flex;
+  gap: 1em;
+  font-size: 0.92em;
+  align-items: baseline;
+
+  label {
+    font-weight: bold;
+  }
+}
+
+.explore-tile-body {
+  flex-grow: 1;
+  overflow-y: auto;
+  background-color: var(--tile-background);
+}
+
+.explore-tile {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--tile-background);
+  container-name: tile;
+  container-type: size;
+}
+
+@container tile (min-width > #{exploreCommon.$tile-xtra-small-cutoff}) {
+  // For very small tiles make the undo buttons remove the text
+  .explore-buttons-undo .p-button-label {
+    display: none;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s;
+}
+
+/* stylelint-disable-next-line keyframes-name-pattern */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+.p-component.p-button.tile-back-button {
+  margin-right: 0;
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    display: none;
+  }
+}
+
+.explore-tile-title {
+  background-color: var(--tile-title-background);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: exploreCommon.$tile-title-height;
+
+  .explore-tile-title-text {
+    @include lucumaUICommon.text-ellipsis;
+
+    flex-shrink: 1;
+  }
+
+  & > * {
+    flex: 1 1 0;
+  }
+
+  .explore-tile-title-menu {
+    cursor: move;
+    min-width: 100px;
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+}
+
+.finder-charts-tile-title,
+.explore-tile-title-menu {
+  @include lucumaUICommon.text-ellipsis;
+
+  padding: 0.5em;
+  letter-spacing: 2px;
+}
+
+.explore-tile-control-buttons {
+  justify-self: end;
+  flex: 0;
+}
+
+.explore-tile-title-constraint-selector {
+  display: flex;
+  justify-content: center;
+}
+
+@container tile (max-width: #{exploreCommon.$tile-small-cutoff}) {
+  .explore-tile-title-constraint-selector {
+    span.p-dropdown-label {
+      width: 8em;
+    }
+  }
+}
+
+.explore-tile-title-config-selector {
+  display: flex;
+  justify-content: center;
+
+  .p-component.p-dropdown {
+    width: 30em;
+  }
+}
+
+.p-button.p-button-text.explore-tile-state-button {
+  color: var(--site-text-color);
+  filter: brightness(70%);
+  margin-right: 0.5em;
+  transform-origin: center center;
+  transition:
+    transform 0.25s,
+    filter 0.25s ease-in;
+
+  &:enabled:focus,
+  &:enabled:focus-visible {
+    border: none;
+    box-shadow: none;
+  }
+
+  &:enabled:hover {
+    color: var(--site-text-color);
+    filter: brightness(100%);
+  }
+}
+
+// -------
+// Undo
+// -------
+.explore-buttons-undo {
+  .p-component.p-button {
+    color: var(--site-text-color);
+  }
+}
+
+.explore-title-undo-buttons {
+  text-align: right;
+}
+
+// There is still an analog to this in style.less
+@mixin warning-label-mixin {
+  color: var(--warning-text-color);
+  background-color: var(--warning-background-color);
+}
+
+.target-sed-type-dropdown.explore-warning-input,
+.p-inputgroup.explore-warning-input {
+  box-shadow: -0 0 2px 1px var(--warning-background-color);
+}
+
+// -----
+// Table toolbar
+// -----
+.explore-table-selection-toolbar {
+  justify-content: center;
+  display: flex;
+  gap: 0.5em;
+  align-items: baseline;
+
+  .p-button.pl-compact {
+    padding: 0.3929em;
+    margin-right: 0.25em;
+    line-height: normal; // to match that of actual buttons
+  }
+
+  .p-button.p-button-sm {
+    & svg.p-button-icon:not(.fa-trash-can) {
+      margin-right: 0.2rem;
+    }
+  }
+}
+
+// -------------
+// Itc tile title
+// -------------
+.explore-itc-tile-target-selector {
+  .p-dropdown-label {
+    padding: 0 0.25rem;
+  }
+
+  .p-inputtext {
+    font-size: smaller;
+    white-space: nowrap;
+  }
+}
+
+.explore-itc-imaging-tile-body,
+.explore-itc-tile-body {
+  display: flex;
+
+  &:has(.p-inline-message) {
+    justify-content: center;
+    flex-grow: 0;
+  }
+}
+
+.explore-itc-imaging-tile-body {
+  flex-grow: 0;
+}
+
+.explore-itc-tile-title {
+  display: grid;
+  justify-content: center;
+  gap: 0 0.5em;
+  font-size: smaller;
+  grid-template-columns: repeat(3, minmax(min-content, 1fr));
+  grid-template-rows: repeat(2, min-content);
+
+  & *:nth-child(2n) {
+    grid-row: 2;
+  }
+
+  label {
+    @include lucumaUICommon.text-ellipsis;
+  }
+
+  span {
+    @include lucumaUICommon.text-ellipsis;
+  }
+}
+
+@container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+  .explore-itc-tile-title {
+    grid-template-rows: 1fr;
+    grid-template-columns: repeat(6, min-content);
+
+    @include small-tile-title;
+
+    *,
+    *:nth-child(2n) {
+      grid-row: 1;
+    }
+  }
+}
+
+// ------
+// Obs time editor
+// ------
+@mixin react-datepicker-wrapper {
+  & .react-datepicker-wrapper {
+    width: unset;
+    padding-left: 0.3em;
+    padding-right: 0.3em;
+  }
+}
+
+@mixin react-datepicker-input {
+  /* stylelint-disable-next-line selector-class-pattern */
+  & .react-datepicker__input-container input {
+    text-shadow: unset;
+    font-weight: unset;
+  }
+}
+
+.explore-datepicker {
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__input-time-container {
+    text-align: center;
+    margin: 5px 0 0;
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__children-container {
+    text-align: center;
+    margin: 5px 0 0;
+    width: 100%;
+
+    .p-button {
+      display: inline-block;
+      width: 100%;
+      padding-top: 5px;
+      padding-bottom: 5px;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      font-size: 0.944rem;
+    }
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__input-time-container .explore-datepicker-time-editor {
+    input {
+      width: 7ch;
+    }
+  }
+}
+
+.asterism-editor-tile-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+
+  > * {
+    flex: 0 0 min-content;
+  }
+
+  .explore-obs-instant-tile-title {
+    flex: 1 1 max-content;
+    justify-content: center;
+    font-size: smaller;
+
+    @include small-tile-title;
+    @include react-datepicker-input;
+    @include react-datepicker-wrapper;
+
+    label:first-child {
+      @include lucumaUICommon.text-ellipsis;
+
+      max-width: 5ch;
+    }
+
+    label:nth-last-child(2) {
+      display: none;
+    }
+
+    label[data-abbrv]::after {
+      content: attr(data-abbrv);
+    }
+
+    label[data-abbrv] {
+      display: none;
+    }
+
+    /* stylelint-disable selector-class-pattern */
+    .react-datepicker__input-container {
+      input {
+        font-size: small;
+        width: 16ch; // the date/time format is 15 ch
+      }
+    }
+
+    .target-tile-obs-duration {
+      display: none;
+      justify-content: baseline;
+
+      > svg.fa-spinner {
+        margin-left: 0.5em;
+      }
+    }
+  }
+
+  @container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+    .explore-obs-instant-tile-title {
+      label:first-child {
+        max-width: unset;
+        display: unset;
+      }
+
+      label[data-abbrv]::after {
+        content: '';
+      }
+
+      label[data-abbrv] > span {
+        display: unset;
+      }
+
+      label:nth-last-child(2) {
+        display: inline;
+      }
+
+      .target-tile-obs-duration {
+        display: flex;
+        align-items: baseline;
+      }
+    }
+  }
+}
+
+// ------
+// Sidereal Target Editor
+// ------
+.explore-brightnesses-wrapper {
+  grid-column: 1 / -1;
+  place-self: stretch stretch;
+  grid-row-start: 4;
+
+  .p-panel.p-panel-toggleable {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .p-panel-header {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    .p-toggleable-content {
+      height: 100%;
+
+      .p-panel-content {
+        height: 100%;
+        padding: 0;
+      }
+    }
+  }
+}
+
+.explore-brightnesses-container {
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .p-datatable-tfoot {
+    position: sticky;
+    inset-block-end: 0;
+
+    > tr > td {
+      padding: 0 !important; // Reset default padding
+    }
+  }
+}
+
+.explore-brightnesses-units-dropdown.p-dropdown {
+  white-space: nowrap;
+  width: 100%;
+}
+
+.explore-brightnesses-delete-button-wrapper {
+  display: flex;
+  justify-content: center;
+
+  .p-button.delete-button {
+    padding: 0;
+    flex-shrink: 0;
+  }
+}
+
+.target-grid {
+  display: grid;
+  grid-gap: 0.5em;
+  grid-row-gap: 0.3em;
+  padding: 0.5em;
+  height: 100%;
+  overflow: hidden;
+
+  .explore-title-undo-buttons {
+    grid-area: undo;
+  }
+
+  .target-aladin-cell {
+    grid-area: aladin;
+  }
+
+  .target-form {
+    grid-area: coordinates;
+  }
+
+  .pl-form-column.target-proper-motion-form {
+    grid-area: proper-motion;
+    grid-template-columns: [label] auto [field] 1fr;
+  }
+
+  .target-source-profile-editor {
+    grid-area: source-profile;
+  }
+}
+
+.target-rv-controls {
+  justify-self: stretch;
+
+  .explore-grow-1 {
+    margin-left: 0.3em !important;
+  }
+}
+
+.target-sed-type-dropdown {
+  display: flex;
+  justify-self: stretch;
+
+  .p-dropdown {
+    flex-grow: 1;
+  }
+}
+
+@mixin hide-hidden-target-cells($all) {
+  @if $all {
+    .explore-title-undo-buttons {
+      display: none;
+    }
+
+    .target-form {
+      display: none;
+    }
+  }
+
+  .target-proper-motion-form {
+    display: none;
+  }
+
+  .target-source-profile-editor {
+    display: none;
+  }
+}
+
+// simpler target view for small tile
+@container tile (max-width: #{exploreCommon.$tile-small-cutoff}) {
+  .target-grid {
+    grid-template:
+      'undo' min-content
+      'coordinates' min-content
+      'aladin' 1fr / 1fr;
+
+    @include hide-hidden-target-cells(false);
+  }
+}
+
+// full target view for larger tile
+@container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+  .target-grid {
+    grid-template:
+      'undo           aladin' min-content
+      'coordinates    aladin' min-content
+      'proper-motion  aladin' min-content
+      'source-profile aladin' 1fr / 1fr 2fr;
+  }
+
+  .target-aladin-cell {
+    grid-row: span 4;
+  }
+}
+
+.target-tile-controller {
+  // Container size queries provoke new stacking contexts at the tile controller level.
+  // In the observation tile, the target tile controller's z-index must be greater than
+  // the z-index of the other tiles' controllers for the obs time picker to be visible over them.
+  z-index: 20;
+
+  .explore-tile-title-control-area {
+    min-width: 60%;
+
+    .explore-title-select-columns {
+      display: none;
+    }
+  }
+}
+
+@container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+  .target-tile-controller {
+    .explore-tile-title-control-area {
+      .explore-title-select-columns {
+        display: flex;
+        color: red;
+      }
+    }
+  }
+}
+
+.target-tile-body {
+  display: flex;
+  flex-direction: column;
+
+  > div {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.target-tile-editor {
+  flex-grow: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.target-asterism-table {
+  max-height: 250px;
+}
+
+.aladin-full-screen {
+  .explore-shared-edit-warning,
+  .target-asterism-table {
+    display: none;
+  }
+
+  > div .target-grid {
+    grid-template:
+      'aladin' 1fr
+      / 1fr;
+
+    @include hide-hidden-target-cells(true);
+  }
+}
+
+.pl-form-column.target-source-profile-editor {
+  --brightness-wrapper-start: 5;
+
+  align-self: stretch;
+  grid-template-rows: repeat(3, auto) 1fr;
+
+  &.with-gaussian,
+  &.with-catalog-info {
+    grid-template-rows: repeat(4, auto) 1fr;
+
+    > .explore-brightnesses-wrapper {
+      grid-row-start: var(--brightness-wrapper-start);
+    }
+  }
+
+  &.with-gaussian.with-catalog-info {
+    grid-template-rows: repeat(5, auto) 1fr;
+
+    > .explore-brightnesses-wrapper {
+      grid-row-start: calc(var(--brightness-wrapper-start) + 1);
+    }
+  }
+}
+
+.explore-brightnesses-footer {
+  padding: 0.2em;
+  outline: 0.2px solid var(--under-tab-border-color);
+  background-color: var(--table-footer-background);
+
+  .pl-form-field-label {
+    flex-shrink: 0;
+  }
+
+  .pl-form-field {
+    margin-left: 5px;
+    width: 15em;
+  }
+
+  .p-button {
+    margin-left: 5px;
+    margin-bottom: 1px;
+    flex-shrink: 0;
+  }
+}
+
+// ------
+// Asterism Editor
+// ------
+
+.explore-shared-edit-warning {
+  @include warning-label-mixin;
+
+  padding: 0.4em;
+
+  .pl-radiobutton-with-label {
+    padding-left: 2em;
+
+    .p-radiobutton .p-radiobutton-box.p-highlight {
+      border-color: black;
+      background-color: black;
+    }
+  }
+}
+
+// ------
+// Spectroscopy table
+// ------
+.itc-source-too-bright-icon,
+.itc-error-icon {
+  color: var(--warning-background-color);
+}
+
+.itc-source-too-bright-icon {
+  margin-right: 0.5em;
+}
+
+// ------
+// Target search popup styles
+// ------
+
+.explore-target-search-form {
+  display: grid !important;
+  flex-direction: column;
+  max-height: 85vh; // Don't let the form grow too large
+
+  .p-dialog-footer > div {
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+.add-target-button {
+  .p-button-label {
+    display: none;
+  }
+}
+
+@container tile (min-width: #{exploreCommon.$tile-small-cutoff}) {
+  .add-target-button {
+    margin-left: 1em;
+
+    .p-button-label {
+      display: block;
+    }
+  }
+}
+
+$search-preview-height-mobile: 150px;
+$search-preview-width: 250px;
+$search-preview-margin: 5px;
+
+.explore-target-search-content {
+  position: relative;
+  display: grid !important;
+  min-height: $search-preview-height-mobile;
+  max-height: 80vh; // Don't let the form grow too large
+  gap: 0.3em;
+  align-items: stretch;
+  overflow: auto auto;
+  grid-template-columns: 1fr;
+  grid-auto-rows: fit-content;
+
+  .pl-header {
+    padding: 0.2em;
+    margin: 0;
+    margin-bottom: 0.2em;
+  }
+
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    min-height: calc($search-preview-width + 2 * $search-preview-margin);
+    padding-right: calc($search-preview-width + 3 * $search-preview-margin) !important;
+    padding-bottom: $search-preview-margin;
+    grid-template-rows: min-content min-content;
+  }
+}
+
+.explore-target-search-top {
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    gap: 0.3em;
+  }
+}
+
+.explore-target-search-input {
+  margin-bottom: 0.5em;
+}
+
+@mixin target-search-preview {
+  min-width: $search-preview-width;
+  min-height: $search-preview-height-mobile;
+
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    position: absolute;
+    right: 0;
+    margin-right: $search-preview-margin;
+    height: calc($search-preview-width + $search-preview-margin);
+  }
+}
+
+.explore-target-search-preview {
+  @include target-search-preview;
+
+  .aladin-container {
+    border: 1px solid var(--site-border-color);
+    border-radius: 0.28rem;
+  }
+}
+
+.explore-target-search-preview-placeholder {
+  display: flex;
+  border: 1px solid var(--site-border-color);
+  border-radius: 0.28rem;
+  justify-content: center;
+  align-items: center;
+  background: repeating-linear-gradient(
+    -45deg,
+    black,
+    black 10px,
+    var(--site-border-color) 10px,
+    var(--site-border-color) 11px
+  );
+
+  @include target-search-preview;
+}
+
+.explore-target-search-results {
+  border: 1px solid var(--site-border-color);
+  border-radius: 0.28rem;
+  overflow: auto auto;
+}
+
+.explore-sequences-panel {
+  padding: 0.5em;
+  overflow-x: auto;
+
+  h3 {
+    margin-top: 0.2em;
+    margin-bottom: 0.5em;
+  }
+}
+
+.explore-sequences-panel-error {
+  display: flex;
+  justify-content: center;
+  padding-top: 1em;
+}
+
+.explore-sequence-tile-controller {
+  margin-top: 5px;
+}
+
+.explore-sequence-tile-title {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+
+  .explore-sequence-tile-title-item {
+    font-weight: bold;
+  }
+}
+
+@container tile (min-width: #{exploreCommon.$tile-xtra-small-cutoff}) {
+  .explore-sequence-tile-title {
+    > :first-child {
+      display: inline;
+    }
+  }
+}
+
+.pl-react-table.pl-celled-table {
+  .p-datatable-thead > tr > th {
+    z-index: 55;
+  }
+
+  .p-datatable-tbody > tr.explore-sequence-row-done {
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    color: var(--disabled-row-color);
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    background: var(--disabled-row-background);
+  }
+
+  .p-datatable-tbody > tr.explore-sequence-row-first-in-atom,
+  tr.explore-sequence-row-header {
+    box-shadow: inset 0 2px;
+
+    &:hover {
+      box-shadow:
+        inset 0 2px var(--green-500),
+        inset 0 -1px var(--green-500) !important;
+    }
+  }
+}
+
+// -------------
+// Toolbar of the aladin display
+// -------------
+@mixin aladin-toolbar-labels {
+  padding: 0 0.6em;
+  background-color: var(--surface-100);
+  border-radius: 0.2em;
+  outline: solid 1px var(--surface-200);
+}
+
+.aladin-status-fov {
+  @include aladin-toolbar-labels;
+
+  grid-area: fov;
+  place-self: center stretch;
+  display: flex;
+  gap: 0.3em;
+  align-items: center;
+}
+
+@mixin aladin-gs-status {
+  display: none;
+  margin-left: 0.5em;
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    display: flex;
+  }
+}
+
+.aladin-status-gs {
+  grid-area: guidestar;
+  font-size: smaller;
+  align-items: center;
+
+  @include lucumaUICommon.text-ellipsis;
+  @include aladin-gs-status;
+}
+
+.aladin-status-gs-loading {
+  grid-area: agsstatus;
+  align-self: center;
+
+  @include aladin-gs-status;
+
+  svg.fa-circle-small.explore-warning-icon {
+    --fa-beat-scale: 1.2;
+
+    color: var(--warning-background-color);
+  }
+
+  svg.fa-circle-small.explore-error-icon {
+    color: var(--error-background-color);
+  }
+}
+
+svg.fa-triangle-exclamation.explore-error-icon {
+  color: var(--negative-icon-color);
+}
+
+svg.fa-check.explore-success-icon {
+  // taken from the primereact success button color where it is #4caf50. Move to lucuma-ui?
+  color: hsl(122deg 39% 49%);
+}
+
+.aladin-status-current-coordinates {
+  @include aladin-toolbar-labels;
+
+  grid-area: curr;
+  place-self: center end;
+  white-space: nowrap;
+}
+
+.aladin-status-center-button {
+  grid-area: center;
+  align-self: center;
+}
+
+.aladin-detail-text {
+  color: white;
+  white-space: nowrap;
+  font-size: smaller;
+  margin-left: 0.4em;
+}
+
+.aladin-container-column {
+  height: 100%;
+  display: grid;
+  align-content: stretch;
+  position: relative;
+  row-gap: 0.1em;
+  grid-template:
+    'aladin aladin    aladin    aladin aladin' 1fr
+    'fov    agsstatus guidestar curr   center' min-content / max-content min-content 1fr 1fr min-content;
+}
+
+// ------
+// Obs badge
+// ------
+.obs-badge {
+  padding: 0.7em;
+  background-color: var(--obs-badge-background);
+  border: solid 1px var(--site-border-color);
+  border-radius: 3px;
+
+  // defined in lucuma-ui.scss. Linting doesn't capture that.
+  /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+  font-size: var(--pl-mini-font-size);
+
+  .p-component.p-button {
+    color: var(--site-text-color) !important;
+
+    &:hover {
+      outline: 1px var(--site-border-color) solid;
+    }
+  }
+
+  &:last-child {
+    margin-bottom: 0.2em;
+  }
+
+  .obs-badge-header,
+  .obs-badge-meta,
+  .obs-badge-description,
+  .obs-badge-extra {
+    color: var(--obs-badge-color);
+  }
+
+  .obs-badge-header {
+    .obs-badge-target-and-id {
+      color: var(--obs-badge-color);
+      display: flex;
+      justify-content: space-between;
+      /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+      font-size: var(--pl-large-font-size);
+      font-weight: 400;
+      word-break: break-all;
+    }
+
+    .p-component.p-button.obs-clone-button,
+    .p-component.p-button.obs-science-band-button,
+    .p-component.p-button.obs-delete-button {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  .obs-badge-id {
+    justify-self: end;
+    display: flex;
+    align-items: start;
+    font-weight: normal;
+    font-size: small;
+    opacity: 0.5;
+    word-break: normal;
+  }
+
+  .obs-badge-description {
+    @include lucumaUICommon.text-ellipsis;
+
+    display: flex;
+    justify-content: space-between;
+    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+    font-size: var(--pl-tiny-font-size);
+  }
+
+  .obs-badge-extra {
+    margin-top: 5px;
+    display: flex;
+    justify-content: space-between;
+    gap: 2em;
+
+    .obs-state-select-wrapper {
+      flex-grow: 2;
+    }
+  }
+
+  .obs-badge-subtitle {
+    font-size: x-small;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    margin-bottom: -1px;
+  }
+
+  .obs-badge-subtitle-input {
+    flex-grow: 2;
+
+    & input {
+      font-size: x-small !important;
+      padding: 1px !important;
+    }
+  }
+
+  .obs-badge-subtitle-add {
+    float: right;
+    font-size: x-small !important;
+  }
+
+  .p-component.p-button.obs-badge-subtitle-edit {
+    margin-left: 0.5em;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .p-component.p-button.obs-badge-subtitle-delete {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .obs-state-select {
+    width: 100%;
+    background-color: var(--obs-selected-badge-background);
+  }
+}
+
+// The panel is not nested in the obs badge
+.obs-state-select-panel.p-dropdown-panel {
+  background-color: var(--obs-selected-badge-background);
+}
+
+.selected-obs-item .obs-badge,
+.obs-tree-item .obs-badge.obs-badge-selected,
+.p-treenode:has(.selected-group-item) {
+  background-color: var(--obs-selected-badge-background);
+  box-shadow: 0 0 0 1.5px var(--site-solid-border-color);
+}
+
+.p-menu.p-component.science-band-popup-menu {
+  .p-menuitem-link {
+    padding: 0.6em;
+  }
+}
+
+.group-edit-title {
+  justify-content: start;
+
+  .explore-tile-control-buttons {
+    margin-left: auto;
+  }
+}
+
+.explore-top-menu {
+  .p-menuitem-icon {
+    width: 1.2rem;
+  }
+}
+
+.group-edit-tile {
+  padding: 16px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  .group-type-select {
+    display: flex;
+    gap: var(--content-padding);
+    flex-flow: row wrap;
+
+    .group-change-buttons {
+      display: flex;
+      flex-direction: row;
+      align-items: baseline;
+      gap: var(--inline-spacing);
+
+      .p-button-group {
+        display: flex;
+        gap: var(--inline-spacing);
+      }
+
+      .p-button {
+        width: max-content;
+      }
+    }
+
+    .group-edit-note {
+      display: flex;
+      max-width: 700px;
+      gap: var(--content-padding);
+      padding: var(--content-padding);
+      border-radius: var(--border-radius);
+      background-color: var(--control-background-color);
+
+      .fa-note {
+        --note-size: 2em;
+
+        padding-top: 3px;
+        width: var(--note-size);
+        height: var(--note-size);
+      }
+
+      @media (max-width: lucumaUICommon.$mobile-responsive-cutoff) {
+        max-width: 100%;
+      }
+    }
+  }
+
+  .p-inputgroup {
+    max-width: fit-content;
+  }
+
+  .group-form {
+    --group-row-count: 3;
+    --group-column-count: 3;
+
+    margin-top: var(--content-padding);
+    margin-bottom: var(--content-padding);
+    display: grid;
+    gap: var(--content-padding);
+    grid-template-rows: repeat(var(--group-row-count), auto); /* 3 rows of equal height */
+    grid-template-columns: repeat(var(--group-column-count), auto); /* 3 columns of equal width */
+    grid-auto-flow: column; /* fill the rows first, then move to the next column */
+
+    // Move to 2 columns on mobile
+    @media (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      --group-row-count: 4;
+      --group-column-count: 2;
+    }
+  }
+
+  .group-delays-form,
+  .group-planned-time {
+    display: grid;
+    column-gap: var(--content-padding);
+    grid-template-columns: repeat(2, auto);
+    align-items: center;
+    margin-right: auto;
+  }
+
+  .group-warnings {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+
+    .p-inline-message {
+      justify-content: left;
+    }
+  }
+}
+
+// ------
+// Configuration Tile
+// ------
+.explore-configuration-grid {
+  padding: 0.5em;
+  width: 100%;
+  gap: 0.3em;
+  display: flex;
+  flex-direction: column;
+}
+
+.explore-configuration-tile-body {
+  display: flex;
+  background-color: var(--surface-card);
+}
+
+// ------
+// Imaging Configuration
+// ------
+.explore-configuration-imaging-filters .p-tooltip-target-wrapper {
+  width: 100%;
+}
+
+// ------
+// Advanced Configuration
+// ------
+
+.explore-advanced-configuration-buttons {
+  grid-area: buttons;
+  justify-self: end;
+}
+
+.explore-advanced-configuration-grid {
+  display: grid;
+  padding: 0.5em;
+  grid-gap: 1em;
+  grid-template:
+    'col1 col2 col3' auto
+    'col1 buttons buttons' auto
+    / 1fr 1fr 1fr;
+}
+
+// on small tiles, we want to stack the form fields
+@container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
+  .explore-advanced-configuration-grid {
+    grid-template:
+      'col1' auto
+      'col2' auto
+      'col3' auto
+      'buttons' auto
+      / auto;
+  }
+}
+
+.explore-advanced-configuration-col1 {
+  grid-area: col1;
+}
+
+.explore-advanced-configuration-col2 {
+  grid-area: col2;
+}
+
+.explore-advanced-configuration-col3 {
+  grid-area: col3;
+}
+
+.explore-advanced-configuration-binning {
+  display: flex;
+  place-items: baseline stretch;
+  grid-gap: 0.5em;
+  width: 100%;
+
+  div:first-child {
+    flex-grow: 1;
+  }
+
+  div:last-child {
+    flex-grow: 1;
+  }
+}
+
+// ------
+// Constraints
+// ------
+
+.constraints-grid {
+  padding: 0.5em;
+  display: grid;
+  align-items: baseline;
+  gap: 0.3em 0.5em;
+
+  --column-wide-span: 2;
+  --addon-width: 6ch;
+
+  .p-inputgroup-addon.constraints-likelihood {
+    display: block;
+    width: var(--addon-width);
+    text-align: right;
+  }
+
+  .constraints-likelihood {
+    text-align: right;
+  }
+
+  grid-template-columns:
+    [label1] max-content
+    [field1] minmax(20ch, 3fr)
+    [label2] max-content
+    [field2] minmax(20ch, 3fr);
+
+  .elevation-range-picker {
+    width: 10em;
+  }
+
+  .elevation-range-entry {
+    width: 8em;
+
+    input {
+      width: 100%;
+    }
+  }
+
+  .constraints-elevation-range {
+    display: flex;
+    gap: 0.3em 0.5em;
+    align-items: baseline;
+    justify-self: stretch;
+    grid-column: 2 / span var(--column-wide-span);
+
+    label {
+      margin-left: 3px;
+    }
+  }
+
+  .constraints-full-likelihood,
+  .constraints-likelihood {
+    align-self: center;
+    opacity: 0.9;
+    color: var(--text-color);
+  }
+
+  .constraints-full-likelihood {
+    place-self: baseline start;
+    margin-left: 2em;
+  }
+
+  .constraints-set-likelihood {
+    display: flex;
+    margin-top: 1em;
+    gap: 0.3em;
+    justify-items: baseline;
+    grid-column: 1;
+  }
+}
+
+// on small tiles, we want to stack the form fields
+@container tile (max-width: #{exploreCommon.$tile-small-cutoff}) {
+  .constraints-grid {
+    --column-wide-span: 1;
+
+    grid-template-columns: 1fr 1fr;
+
+    .elevation-range-picker {
+      grid-column: -1 / 1;
+      margin-right: var(--addon-width);
+    }
+
+    .constraints-elevation-range {
+      flex-direction: column;
+      justify-items: stretch;
+      display: grid;
+      grid-template-columns: max-content 1fr;
+
+      .field {
+        width: 100%;
+      }
+
+      .p-dropdown {
+        justify-self: start;
+      }
+
+      label:last-child {
+        display: none;
+      }
+    }
+  }
+}
+
+// ------
+// Attachment Tables
+// ------
+.explore-attachments-table {
+  .explore-attachment-name {
+    @include lucumaUICommon.text-ellipsis;
+
+    width: 100%;
+  }
+
+  .explore-attachment-name-input {
+    width: 100%;
+  }
+}
+
+.explore-attachments-type-select.p-dropdown {
+  width: 10em;
+}
+
+// ------
+// User Preferences popup
+// ------
+.empty-user-preferences {
+  min-height: 200px;
+  position: relative;
+}
+
+.user-preferences-new-key {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.user-preferences-footer {
+  @include lucumaUICommon.text-ellipsis;
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2em;
+
+  > button {
+    flex: 1;
+    min-width: fit-content;
+  }
+}
+
+.api-keys-popup.p-dialog .p-dialog-content {
+  > div:last-child {
+    padding-bottom: 1em;
+  }
+}
+
+// ------
+// Programs Popup
+// ------
+.programs-popup.p-dialog {
+  $top-bottom-space: 37px; // reuse from lucuma-ui
+
+  height: 90vh;
+  top: $top-bottom-space;
+}
+
+.api-keys-popup.p-dialog,
+.programs-popup.p-dialog {
+  .api-keys-table {
+    height: 200px;
+  }
+
+  .program-name {
+    @include lucumaUICommon.text-ellipsis;
+
+    width: 100%;
+  }
+
+  .program-name-input {
+    width: 100%;
+  }
+
+  .p-dialog-content {
+    padding: 0 0.5rem;
+  }
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    .p-dialog-content {
+      padding: 0 1.5rem;
+    }
+  }
+
+  .p-dialog-footer {
+    padding-top: 1rem;
+    text-align: justify;
+
+    .p-button:first-child {
+      margin-right: 1.5em;
+    }
+
+    .p-button:last-child {
+      float: right;
+    }
+  }
+
+  .p-inline-message {
+    margin-top: 1em;
+  }
+}
+
+// ------
+// Api keys Popup
+// ------
+.api-keys-popup.p-dialog {
+  .api-keys-delete {
+    text-align: right;
+  }
+
+  .api-keys-table-mod {
+    width: 100%;
+  }
+
+  .pl-form-column.user-preferences-new-key {
+    grid-template-columns: min-content 1fr min-content;
+  }
+
+  .pl-form-column.pl-compact.wavelength-units {
+    display: flex;
+    align-items: center;
+  }
+
+  .pl-form-column.pl-compact {
+    div {
+      align-self: center;
+    }
+  }
+
+  .new-api-key-label,
+  .new-api-key {
+    @include lucumaUICommon.text-ellipsis;
+
+    font-size: smaller;
+    max-width: 100%;
+  }
+
+  .new-api-key-label {
+    font-weight: bold;
+    grid-column: 1 / -1;
+  }
+}
+
+.explore-login-title {
+  border-bottom-color: var(--explore-accent-color);
+}
+
+@keyframes show-top-text {
+  0% {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+.explore-orcid-menu {
+  display: flex;
+  flex-direction: row;
+  justify-content: baseline;
+  padding-right: 1em;
+}
+
+.explore-orcid-icon-menu {
+  vertical-align: middle;
+}
+
+// -------
+// Configuration Request Editor Popup
+// -------
+.explore-config-request-editor {
+  textarea {
+    width: 100%;
+    height: 9rem;
+  }
+
+  .p-dialog-footer {
+    .p-button:first-child {
+      float: left;
+    }
+
+    .lucuma-copy-control-icon {
+      float: left;
+      font-size: inherit;
+    }
+  }
+}
+
+// ------
+// Proposals and Partner Splits
+// ------
+
+.explore-abstract-too-long {
+  color: var(--error-background-color);
+}
+
+.partner-splits-grid {
+  --gap: 0.5em;
+
+  display: grid;
+  grid-template-columns: auto 1fr 12ch;
+  gap: var(--gap);
+  width: 100%;
+  font-size: smaller;
+
+  .partner-splits-missing {
+    align-self: center;
+    font-size: initial;
+  }
+
+  .partner-splits-grid-total {
+    width: 3em;
+  }
+
+  & > div {
+    position: relative;
+  }
+
+  & > .partner-splits-grid-min-pct-item {
+    grid-column-start: 3;
+  }
+
+  // only applies to the text field, not the input - pushes text to bottom
+  & > .partner-splits-grid-min-pct {
+    display: flex;
+    justify-self: stretch;
+    flex-direction: column-reverse;
+    text-align: end;
+  }
+
+  & > .explore-flex-container {
+    align-items: flex-end;
+  }
+
+  // align the partner split hours to the end to align with the percents
+  span.partner-split-data {
+    display: inline-block;
+    justify-self: stretch;
+    text-align: end;
+  }
+
+  .partner-split-data {
+    margin-right: 2em;
+    width: 4.5em;
+
+    // The div containing the flag and percent text.
+    data > div {
+      display: flex;
+
+      // The percent text
+      span {
+        flex: 1;
+        text-align: end;
+      }
+    }
+  }
+}
+
+.partner-selector {
+  width: 100%;
+}
+
+.partner-flag-item {
+  display: flex;
+}
+
+img.partner-split-flag {
+  height: 16px;
+  width: 32px;
+  margin-right: 0.5em;
+  margin-left: 0.5em;
+}
+
+.partner-splits-editor-dialog {
+  .pl-react-table.p-component {
+    width: 100%;
+    table-layout: auto;
+
+    th,
+    td {
+      width: 17em !important;
+    }
+
+    th:last-child,
+    td:last-child,
+    td:last-child > span > div {
+      width: 4em !important;
+    }
+
+    tfoot tr th,
+    .p-inputtext {
+      text-align: right;
+      padding: 0.5em;
+    }
+  }
+
+  &.p-dialog.p-component .p-dialog-footer {
+    .p-inline-message {
+      float: left;
+      vertical-align: middle;
+    }
+  }
+}
+
+// Program User create/invite
+.p-overlaypanel.compact-overlay-panel .p-overlaypanel-content {
+  padding: 0;
+}
+
+.add-program-user-button {
+  flex: 1 1 0;
+}
+
+.invite-user-popup {
+  min-width: 40%;
+
+  .p-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5em;
+  }
+}
+
+// ------
+// Icons
+// ------
+.explore-warning-itc-icon,
+.explore-warning-icon {
+  color: var(--warning-background-color);
+}
+
+// ------
+// Generic table
+// ------
+.explore-table {
+  overflow-x: auto;
+  min-width: 100%;
+  position: relative;
+
+  table {
+    min-height: 60px;
+    width: 100%;
+  }
+
+  @mixin row-selected-tag {
+    position: relative;
+
+    td:first-child::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-style: solid;
+      border-width: 0 10px 10px 0;
+      border-color: transparent var(--explore-selected-box-color) transparent transparent;
+      left: 0;
+      top: 0;
+      transform: rotate(-90deg);
+    }
+  }
+
+  @mixin row-selected-background {
+    background: var(--table-selected-background) !important;
+  }
+
+  @mixin row-selected-line-before {
+    @include row-selected-tag;
+
+    box-shadow: inset 0 1px 0 0 var(--explore-selected-box-color) !important; // Important used to override hover.
+  }
+
+  @mixin row-selected-line-after {
+    box-shadow: inset 0 -1px 0 0 var(--explore-selected-box-color) !important; // Important used to override hover.
+  }
+
+  @mixin row-selected-line-both {
+    @include row-selected-tag;
+
+    box-shadow:
+      inset 0 -1px 0 0 var(--explore-selected-box-color),
+      inset 0 1px 0 0 var(--explore-selected-box-color) !important; // Important used to override hover.
+  }
+
+  tr.explore-table-row-selected {
+    @include row-selected-background;
+    @include row-selected-line-both;
+  }
+
+  tr.explore-table-row-selected-start {
+    @include row-selected-background;
+    @include row-selected-line-before;
+  }
+
+  tr.explore-table-row-selected-span {
+    @include row-selected-background;
+  }
+
+  tr.explore-table-row-selected-end {
+    @include row-selected-background;
+    @include row-selected-line-after;
+  }
+
+  .selected-row-ribbon {
+    position: absolute;
+  }
+
+  .scroll-button {
+    position: absolute;
+    right: 2em;
+    border-color: var(--explore-selected-box-color) !important;
+  }
+
+  & .selected-up {
+    top: 3em;
+  }
+
+  & .selected-down {
+    bottom: 2em;
+  }
+}
+
+.explore-cursor-pointer {
+  cursor: pointer;
+}
+
+.explore-border-table,
+table.explore-border-table {
+  border: 1px solid var(--site-border-color);
+  border-radius: var(--border-radius);
+}
+
+.explore-selectable-table {
+  tr {
+    user-select: none;
+  }
+}
+
+// ------
+// Toasts
+// ------
+.lucuma-toast {
+  .p-toast-message-content {
+    .explore-prompt-toast {
+      display: flex;
+      flex-direction: column;
+      align-items: start;
+      width: 100%;
+
+      span {
+        padding-bottom: 0.9em;
+      }
+
+      button {
+        align-self: end;
+      }
+    }
+  }
+}
+
+// -----
+// Toolbar over summary tables
+// ------
+.summary-table-toolbar {
+  padding: 0.25rem;
+}
+
+.p-button.explore-fileupload {
+  + input[type='file'] {
+    display: none;
+  }
+}
+
+input[type='file'].explore-fileupload {
+  display: none;
+}
+
+// ----
+// Target import dialog
+// ----
+.explore-target-import-dialog {
+  width: 500px;
+}
+
+.explore-target-import-form {
+  display: grid;
+  align-items: center;
+  justify-content: space-between;
+  grid-template:
+    'progress msg' 1fr
+    'errors   errors' min-content / 1fr 3fr;
+  row-gap: 0.5rem;
+  min-width: 20vw;
+  max-width: 760px;
+
+  .p-progress-spinner {
+    grid-area: progress;
+    height: 4rem;
+    width: 4rem;
+    margin: 0.5rem 2rem;
+  }
+
+  .explore-target-import-description {
+    grid-area: msg;
+    display: flex;
+    flex-direction: column;
+    justify-self: end;
+    margin-right: 2rem;
+    overflow: hidden;
+  }
+
+  .explore-target-import-errors {
+    grid-area: errors;
+    height: 300px;
+  }
+
+  svg.fa-check {
+    grid-area: progress;
+    color: var(--explore-accent-color);
+  }
+}
+
+// ----------
+// Target table column selector menu
+// ----------
+.explore-title-select-columns {
+  text-align: right;
+  display: none;
+}
+
+@media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+  .explore-title-select-columns {
+    display: inline;
+  }
+}
+
+.explore-select-columns {
+  &.p-component.p-button.p-button-text {
+    color: var(--text-color);
+
+    .p-button-icon-right {
+      margin-left: 0.5rem;
+    }
+
+    &:focus-visible {
+      box-shadow: none;
+    }
+  }
+
+  &.p-menu {
+    max-height: 25rem;
+    overflow-y: scroll;
+
+    .p-menuitem {
+      padding-top: 0;
+      padding-bottom: 0.2rem;
+
+      .p-checkbox {
+        .p-checkbox-box {
+          height: 16px;
+          width: 16px;
+          margin-top: 2px;
+        }
+
+        label {
+          /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+          font-size: var(--pl-tiny-font-size);
+        }
+      }
+    }
+  }
+}
+
+// ------------
+// Two panel pages
+// Area where the grid-layout is placed
+// ------------
+.tree-rgl {
+  overflow: hidden hidden;
+  position: relative;
+  display: flex;
+}
+
+// Section on the left to place the tree
+.tree {
+  display: flex;
+}
+
+// Inner area of the tree
+.tree-body {
+  width: 100vw;
+
+  &.obs-tree-hidden-toolbar {
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      width: unset;
+    }
+  }
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    width: exploreCommon.$tree-section-width;
+  }
+}
+
+.main-body {
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    border: {
+      right: solid 1px var(--under-tab-border-color);
+      left: solid 1px var(--under-tab-border-color);
+    }
+  }
+}
+
+.multi-panel-tile,
+.single-panel-tile {
+  flex-shrink: 1;
+  flex-grow: 1;
+  overflow: auto auto;
+}
+
+.tree-toolbar {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  padding: 5px;
+  background-color: var(--tile-title-background);
+}
+
+// ------
+// Obs-tree
+// -----
+.obs-hide-show-button {
+  display: none;
+
+  &.p-button-secondary.p-button-outlined.p-button {
+    color: var(--site-text-color);
+  }
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    display: flex;
+    justify-self: start;
+  }
+}
+
+.obs-scroll-tree {
+  height: 100%;
+  flex-grow: 1;
+  overflow-y: auto;
+
+  padding: {
+    top: 0.2em;
+    right: 0.2em;
+    left: 0.2em;
+  }
+
+  // margin at the bottom to allow space for the browser link preview
+  // SC-3885
+  & > div:last-child {
+    margin-bottom: 30px;
+  }
+}
+
+.obs-tree-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+
+  // Remove indent on _first_ level tree nodes (observations)
+  .p-tree-container > .p-treenode.p-treenode-leaf {
+    .p-tree-toggler {
+      display: none;
+    }
+  }
+
+  .p-tree-container > .p-treenode.p-tree-empty-message {
+    display: none;
+  }
+
+  .p-tree-container > .p-treenode > .p-treenode-content {
+    > .obs-tree-group-leaf {
+      margin: 8px;
+      text-decoration: none;
+    }
+  }
+
+  .p-treenode-content {
+    width: 100%;
+  }
+
+  .obs-item {
+    width: 100%;
+  }
+
+  .p-tree.p-component {
+    padding: 0;
+    border: none;
+    overflow-y: auto;
+
+    // margin at the bottom to allow space for the browser link preview
+    // SC-3885
+    &:last-child {
+      margin-bottom: 30px;
+    }
+  }
+
+  .obs-tree-group-leaf {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    color: var(--site-text-color);
+
+    .group-badge-left {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .group-badge-right {
+      justify-self: end;
+      display: flex;
+      align-items: center;
+
+      ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .p-button {
+        padding: 0;
+        margin: 0;
+      }
+    }
+  }
+
+  .p-treenode-content.p-treenode-dragover:not(.undroppable-node) {
+    background-color: var(--explore-group-dragging) !important;
+  }
+
+  .p-treenode-droppoint {
+    transition: height 0.2s;
+
+    &.p-treenode-droppoint-active {
+      background-color: var(--explore-group-dragging) !important;
+      height: 32px;
+    }
+  }
+}
+
+// -------
+// Help sidebar
+// -------
+.explore-help-icon {
+  margin-left: 0.5em;
+  cursor: pointer;
+  color: var(--site-text-color);
+}
+
+.explore-help-icon-floating {
+  position: absolute;
+  top: 3px;
+  z-index: 10;
+}
+
+.p-sidebar.explore-help-sidebar {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--help-background-color);
+
+  & .p-sidebar-header {
+    display: none;
+  }
+
+  & .p-sidebar-content {
+    padding: 0;
+    overflow-y: unset;
+
+    & > div {
+      height: 100%;
+    }
+  }
+}
+
+$help-title-height: 40px;
+
+.explore-help-title {
+  display: flex;
+  flex: 0 1 auto;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--control-background-color);
+  height: $help-title-height;
+
+  padding: {
+    left: 0.6em;
+    top: 0.6em;
+    bottom: 0.6em;
+  }
+}
+
+.explore-help-body {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 1em;
+  height: calc(100% - $help-title-height);
+  min-height: calc(100% - $help-title-height);
+  background-color: var(--help-background-color);
+
+  /* stylelint-disable-next-line no-descending-specificity */
+  & * {
+    text-shadow: none;
+    color: black;
+  }
+}
+
+// make it wider on smaller screens
+@media screen and (width <= 64em) {
+  .p-sidebar-left .p-sidebar-md,
+  .p-sidebar-right .p-sidebar-md {
+    width: 30rem;
+  }
+}
+
+.markdown-body {
+  overflow: auto;
+
+  svg.svg-inline--fa {
+    color: hsl(210deg 12.2% 16.1%);
+  }
+}
+
+// --------------
+// Observer-notes
+// --------------
+.observer-notes-tile {
+  width: 100%;
+}
+
+// --------------
+// Elevation plot
+// --------------
+.itc-plot-tile-body,
+.elevation-plot-tile-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.elevation-plot {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--plot-background-color);
+  color: var(--plot-text-color);
+
+  .highcharts-xaxis .highcharts-axis-title {
+    fill: hsl(0deg 87% 66%);
+  }
+
+  > div {
+    flex: 1 1 0;
+  }
+}
+
+.dark-theme .p-selectbutton {
+  .p-button {
+    border-color: var(--site-border-color);
+  }
+}
+
+.elevation-plot-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  align-items: center;
+  background-color: var(--plot-background-color);
+  color: var(--plot-text-color);
+}
+
+// When small, reduce the font size
+@container tile (max-width: #{exploreCommon.$tile-small-cutoff}) or (max-height: #{exploreCommon.$tile-small-height}) {
+  .elevation-plot {
+    .highcharts-plot-band-label {
+      font-size: x-small;
+    }
+
+    .highcharts-title {
+      font-size: small;
+    }
+
+    .moon-phase {
+      transform: scale(0.8);
+    }
+
+    .elevation-plot-controls {
+      .p-button {
+        font-size: smaller;
+      }
+    }
+  }
+}
+
+// When short, hide the controls
+@container tile (max-height: #{exploreCommon.$tile-small-height}) {
+  .elevation-plot-controls {
+    display: none;
+  }
+}
+
+// When very short, show a placeholder
+@container tile (max-height: #{exploreCommon.$tile-tiny-height}) {
+  .elevation-plot {
+    position: relative;
+
+    &::after {
+      height: 100%;
+      text-align: center;
+      z-index: 10;
+      content: 'Elevation plot';
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 1.2rem;
+    }
+
+    .moon-phase {
+      display: none;
+    }
+  }
+}
+
+.elevation-plot-datepicker-controls {
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+.elevation-plot-date-input {
+  width: 100px !important;
+  text-align: center;
+  font-size: small !important;
+  font-weight: normal !important;
+  background: var(--form-input-background) !important;
+  color: var(--form-input-color) !important;
+  text-shadow: 1px 1px 1px rgb(0 0 0 / 30%);
+  margin: 0;
+  outline: none;
+  padding: 0.25em 0.4286em;
+  border: 1px solid var(--site-border-color) !important;
+  border-radius: 0.2857rem;
+  box-shadow: 0 0 0 0 transparent inset;
+  transition:
+    color 0.1s ease,
+    border-color 0.1s ease;
+
+  &:focus {
+    color: var(--form-input-focus-color) !important;
+    border-color: var(--form-input-focus-border-color) !important;
+    box-shadow: var(--form-input-focus-box-shadow);
+  }
+}
+
+.p-button.elevation-plot-date-button {
+  padding: 0;
+  border: 0;
+  background-color: var(--plot-background-color);
+}
+
+// --------------
+// Timing windows
+// --------------
+@mixin timing-window-list {
+  margin-bottom: 0.5em;
+  border: solid 1px var(--under-tab-border-color);
+  grid-area: table;
+}
+
+.timing-windows-body {
+  padding: 0.5em;
+  display: grid;
+  min-height: 100%;
+  border-collapse: collapse;
+  grid-template:
+    'table table' 1fr
+    'editor add' min-content / 1fr min-content;
+
+  .timing-windows-header {
+    display: none;
+    height: 0;
+
+    & tr {
+      height: 0;
+    }
+  }
+
+  .timing-windows-empty {
+    @include timing-window-list;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: large;
+  }
+
+  .timing-windows-table {
+    @include timing-window-list;
+
+    table-layout: auto;
+    overflow: auto;
+  }
+
+  .timing-window-editor {
+    grid-area: editor;
+    padding: 0.5em;
+    font-size: smaller;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em 0;
+
+    @include react-datepicker-input;
+    @include react-datepicker-wrapper;
+
+    .p-inputgroup input {
+      font-size: 96%;
+    }
+
+    span {
+      display: inline-block;
+    }
+
+    .p-radiobutton {
+      margin-right: 0.3em;
+    }
+
+    .timing-window-inclusion-editor {
+      display: inline-flex;
+      flex-direction: row;
+      gap: 0 0.5em;
+
+      @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+        flex-direction: column;
+        gap: 0.5em 0;
+      }
+    }
+
+    .timing-window-through-editor,
+    .timing-window-from-editor {
+      display: flex;
+      align-items: baseline;
+    }
+
+    .timing-window-editor-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.1em 0;
+
+      .timing-window-repeat-editor {
+        margin-left: 1.5em;
+      }
+
+      .timing-window-end-after,
+      .timing-window-repeat-editor,
+      .timing-window-repeat-editor-n-times {
+        display: flex;
+        align-items: baseline;
+
+        label {
+          margin-right: 0.5em;
+        }
+
+        .pl-form-field {
+          margin-right: 0.5em;
+          width: 9ch;
+        }
+      }
+
+      .timing-window-repeat-editor-alternatives {
+        display: flex;
+        flex-direction: column;
+        row-gap: 0.5em;
+        margin-top: 0.5em;
+        margin-left: 3em;
+      }
+    }
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      flex-direction: row;
+      gap: 0 1em;
+    }
+  }
+
+  .p-button {
+    grid-area: add;
+    align-self: start;
+  }
+}
+
+@mixin timing-window-inclusion {
+  font-weight: bold;
+}
+
+.timing-window-include {
+  @include timing-window-inclusion;
+
+  color: var(--green-400);
+}
+
+.timing-window-exclude {
+  @include timing-window-inclusion;
+
+  color: var(--red-400);
+}
+
+// -------------------------
+// Basic configuration forms
+// -------------------------
+.explore-basic-configuration-buttons {
+  grid-area: buttons;
+  display: flex;
+  justify-content: end;
+  gap: 1em;
+
+  .p-inline-message {
+    flex: 0 0 auto;
+  }
+
+  .p-button {
+    flex: 0 0 auto;
+  }
+
+  .p-tag {
+    @include lucumaUICommon.text-ellipsis;
+
+    display: block;
+    background-color: unset;
+    border: solid var(--site-solid-border-color) 1px;
+
+    span {
+      display: block;
+
+      @include lucumaUICommon.text-ellipsis;
+    }
+  }
+}
+
+.explore-basic-configuration-form {
+  grid-area: form;
+  grid-row-end: span 2;
+  display: grid;
+  align-items: baseline;
+  align-self: start;
+  padding: 0.5em;
+  row-gap: 0.5em;
+  grid-template-columns: [label] minmax(130px, 10%) [field] max-content;
+
+  .pl-checkbox-with-label {
+    grid-column: 2;
+  }
+
+  .pl-form-field {
+    justify-self: stretch;
+  }
+
+  #focal-plane-angle {
+    max-width: 11ch;
+  }
+}
+
+.explore-modes-table-count {
+  flex-shrink: 1;
+
+  @include lucumaUICommon.text-ellipsis;
+}
+
+.explore-modes-table-info {
+  flex-grow: 0;
+  overflow: hidden;
+  justify-self: flex-end;
+}
+
+.explore-modes-table-title {
+  grid-area: table-header;
+  display: flex;
+  gap: 0.5em;
+  justify-content: space-between;
+}
+
+.explore-modes-table {
+  grid-area: table;
+
+  .explore-warning-itc-icon {
+    margin-left: 0.4em;
+    margin-bottom: 0.4em;
+  }
+
+  .explore-warning-label {
+    color: var(--warning-background-color);
+  }
+}
+
+.explore-basic-configuration-grid {
+  flex-grow: 1;
+  min-height: 0;
+  display: grid;
+  max-height: 100%;
+  gap: 0.5em;
+  grid-template:
+    'form table-header' auto
+    'form table' 1fr
+    'form buttons' auto / 1fr minmax(0, 4fr);
+}
+
+.explore-basic-configuration-focal-plane {
+  display: flex;
+  gap: 0.5em;
+
+  div:first-child {
+    flex-grow: 2;
+    min-width: unset;
+  }
+}
+
+// -----------------
+// Pos angle form
+// -----------------
+.explore-pa-configuration-form {
+  flex-shrink: 1;
+  align-self: stretch;
+  align-items: baseline;
+  gap: 0.3em;
+  display: flex;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--site-border-color);
+
+  .explore-pa-configuration-angle {
+    input {
+      width: 9ch;
+    }
+  }
+
+  label:last-child {
+    margin-left: 1em;
+  }
+}
+
+.explore-average-pa {
+  display: flex;
+  flex-grow: 1;
+  justify-content: space-between;
+  padding-right: 1em;
+  padding-left: 1em;
+}
+
+// Move to lucuma-ui?
+.explore-table:has(.p-datatable-emptymessage) {
+  tr > td.p-datatable-emptymessage {
+    padding: 0;
+  }
+}
+
+.explore-table:has(.p-datatable-emptymessage):has(.explore-table-emptymessage) {
+  width: 100%;
+}
+
+.p-datatable-emptymessage {
+  div {
+    position: absolute;
+    left: calc(min(50%, 50dvw));
+    top: 100%;
+    transform: translate(calc(min(-50%, 50dvw)), 100%);
+    font-size: 1.3em;
+    border-bottom: var(--explore-accent-color) solid 2px;
+  }
+}
+
+div.spectroscopy-table-emptymessage {
+  left: 10px;
+  transform: unset;
+}
+
+.explore-single-tile-maximized.react-grid-layout {
+  height: 100% !important; // !important overrides element attributes
+
+  .react-grid-item:first-child {
+    height: 100% !important;
+  }
+}
+
+.explore-proposal-tab {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  row-gap: 0.5em;
+
+  > .react-grid-layout {
+    overflow: auto auto;
+    flex: 1 1 1;
+  }
+
+  > .p-toolbar {
+    flex: 0 0 auto;
+  }
+
+  .explore-proposal-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(34em, 1fr));
+    column-gap: 0.5dvw;
+    padding: 0.3em;
+
+    .cfp-data {
+      width: 100%;
+      margin-top: 1rem;
+      border: 1px solid;
+      border-radius: 4px;
+      padding: 0.5rem 1rem;
+      color: var(--primary-color-text);
+      white-space: pre-wrap;
+    }
+  }
+
+  .explore-proposal-submission-line {
+    display: flex;
+    align-items: center;
+  }
+
+  .explore-proposal-deadline {
+    .p-inline-message-text {
+      /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+      font-size: var(--pl-tiny-font-size);
+      line-height: normal;
+    }
+  }
+
+  .explore-proposal-attachments-tile {
+    .explore-tile-title {
+      a {
+        color: var(--site-text-color);
+      }
+    }
+  }
+
+  .explore-proposal-errors-tile {
+    padding: 1rem;
+
+    svg {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+.explore-program-description,
+.explore-proposal-abstract {
+  .pl-form-field {
+    height: 100%;
+    padding: 0.5em;
+
+    textarea {
+      height: 100%;
+      width: 100%;
+      resize: none;
+    }
+  }
+}
+
+// -----
+// Target tables sticky columns
+// ------
+.pl-react-table .p-datatable-tbody {
+  .explore-target-summary-delete {
+    left: 0;
+
+    ~ .explore-target-summary-type {
+      left: 35px;
+
+      ~ .explore-target-summary-name {
+        left: 70px;
+      }
+    }
+
+    ~ .explore-target-summary-name {
+      left: 35px;
+    }
+  }
+
+  .explore-target-summary-select {
+    left: 0;
+
+    .p-button {
+      width: 55px;
+      display: flex;
+      justify-content: space-evenly;
+    }
+
+    ~ .explore-target-summary-type {
+      left: 75px;
+
+      ~ .explore-target-summary-name {
+        left: 109px;
+      }
+    }
+
+    ~ .explore-target-summary-name {
+      left: 75px;
+    }
+  }
+
+  .explore-target-summary-id {
+    left: 0;
+    width: 55px;
+    min-width: 55px;
+
+    ~ .explore-target-summary-type {
+      left: 55px;
+
+      ~ .explore-target-summary-name {
+        left: 89px;
+      }
+    }
+
+    ~ .explore-target-summary-name {
+      left: 55px;
+    }
+  }
+
+  .explore-target-summary-type,
+  .explore-constraints-summary-edit {
+    left: 0;
+  }
+}
+
+// Needed to make sure the PWA update toast is always on top
+.p-toast,
+// has not working properely on FF
+.p-toast:has(.explore-prompt-toast) {
+  z-index: 2000;
+}
+
+a.explore-upgrade-link {
+  /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
+  color: var(--text-secondary-color);
+  text-decoration: underline;
+}
+
+@mixin obs-group-title-mixin {
+  flex-grow: 2;
+  margin-right: 5px;
+}
+
+.obs-group-title {
+  @include obs-group-title-mixin;
+  @include lucumaUICommon.text-ellipsis;
+}
+
+.obs-group-title-with-wrap {
+  @include obs-group-title-mixin;
+
+  white-space: normal;
+  overflow: visible;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.obs-group-title-with-list {
+  @include obs-group-title-mixin;
+
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.finder-charts-background {
+  width: 100%;
+  height: 100%;
+  border: 0.1px dotted var(--under-tab-border-color);
+}
+
+.finder-charts-selector-section {
+  display: flex;
+  justify-content: center;
+
+  .p-dropdown {
+    min-width: 5ch;
+    max-width: 12ch;
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      min-width: 20ch;
+      max-width: 20ch;
+    }
+  }
+}
+
+.observations-summary-table {
+  td.p-datatable-emptymessage {
+    background-color: var(--table-striped-background);
+
+    button.observations-summary-add {
+      margin-top: 1em;
+    }
+  }
+
+  td .observations-summary-index-col {
+    width: 100px;
+    text-align: right;
+  }
+}
+
+// Program Tab
+.program-details-tile {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+
+  .program-details-info-area {
+    flex: 1 1 0;
+    padding: 1em;
+
+    &.program-details-left,
+    .program-details-right {
+      display: grid;
+      grid-template-columns: [label] auto [value] 1fr;
+      gap: 0.25em 3em;
+      grid-auto-rows: max-content;
+    }
+
+    .program-details-right {
+      margin-top: 3rem;
+    }
+
+    label {
+      text-align: right;
+      font-weight: bold;
+    }
+
+    .program-details-users {
+      margin-bottom: 1em;
+
+      label {
+        display: flex;
+        gap: 1em;
+        align-items: center;
+      }
+    }
+  }
+}
+
+.program-notes-tile-body {
+  .program-note-header {
+    display: flex;
+    gap: 0.5em;
+  }
+
+  .program-note-editor {
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr;
+    grid-gap: 1em;
+
+    .program-note-title {
+      display: flex;
+      gap: 1em;
+      align-items: center;
+    }
+  }
+}
+
+.program-notes-tile-title-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1em;
+}
+
+// Markdown Editor
+.markdown-editor {
+  height: 100%;
+
+  .markdown-body {
+    padding: 0.5em;
+    height: 100%;
+    border: 1px solid var(--site-border-color);
+
+    &.markdown-placeholder {
+      opacity: 0.5;
+    }
+  }
+
+  .pl-form-field {
+    height: 100%;
+    width: 100%;
+
+    textarea {
+      height: 100%;
+      width: 100%;
+      resize: none;
+    }
+  }
+}
+
+.p-tabview.full-height-tab-view {
+  height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr;
+
+  .p-tabview-panel {
+    height: 100%;
+  }
+}
+
+.pl-react-table.program-tab-table {
+  width: initial; // undo width: 100% from lucuma-ui
+  border-collapse: collapse;
+  margin: 1em;
+
+  thead,
+  tbody,
+  tfoot {
+    tr {
+      th,
+      td {
+        padding: 0.5em;
+        text-align: right;
+
+        &:first-child:not(:last-child) {
+          font-weight: bold;
+          border-right: 1px solid var(--site-border-color);
+          text-align: left;
+
+          div:has(.partner-split-flag) {
+            display: flex;
+            justify-content: space-between;
+          }
+        }
+
+        &:last-child:not(:first-child) {
+          font-weight: bold;
+          border-left: 1px solid var(--site-border-color);
+        }
+      }
+    }
+  }
+
+  thead {
+    tr {
+      th {
+        border: 0;
+        text-align: center;
+        font-weight: bold;
+      }
+    }
+  }
+
+  tfoot {
+    tr {
+      td {
+        font-weight: bold;
+      }
+    }
+  }
+
+  tbody,
+  tfoot {
+    border-top: 1.5px solid var(--site-border-color);
+    background-color: transparent;
+  }
+}
+
+.explore-focused-info {
+  display: none; // enable for debugging
+  position: fixed;
+  bottom: 40px;
+  left: 120px;
+  font-size: smaller;
+  color: yellow;
+  z-index: 100;
+}
+
+.explore-hidden {
+  visibility: hidden;
+}
+
+// Correctly set styles in input and button groups when they are wrapped in a tooltip-target-wrapper.
+.p-inputgroup,
+.p-button-group {
+  .p-tooltip-target-wrapper:first-child,
+  .p-inputgroup-addon:first-child .p-tooltip-target-wrapper {
+    button,
+    input {
+      border-top-left-radius: 4px;
+      border-bottom-left-radius: 4px;
+    }
+  }
+
+  .p-tooltip-target-wrapper .p-component {
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .p-tooltip-target-wrapper:last-child,
+  .p-inputgroup-addon:last-child .p-tooltip-target-wrapper {
+    button,
+    input {
+      border-top-right-radius: 4px;
+      border-bottom-right-radius: 4px;
+    }
+  }
+}
+
+.ags-selection-dev {
+  display: none; // Comment out to enable AGS selection
+  position: absolute;
+  top: -20px;
+  left: 0;
+}
+
+.stale {
+  opacity: 0.5;
+}
+
+.explore-global-error-dialog {
+  height: 3rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--red-900);
+  border: 0;
+}
+
+// Lighter text color for zero values in astronomical fields
+.explore-zero-value {
+  input {
+    color: var(--text-color-secondary);
+  }
+}
+
+span.explore-offsets-count {
+  opacity: 0.4;
+  margin-top: 0.1em;
+}
+
+.explore-offsets-button {
+  color: var(--highlight-text-color);
+}
+
+// Offset Editor Dialog Styles
+.explore-offsets-dialog {
+  min-width: 90%;
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    min-width: 50%;
+  }
+
+  .p-dialog {
+    background: var(--tile-background);
+    border: 1px solid var(--gray-500);
+  }
+
+  .p-dialog-header {
+    background: var(--tile-background);
+    color: var(--text-color);
+  }
+
+  .p-dialog-header-icon {
+    color: var(--text-color);
+  }
+
+  .p-dialog-content {
+    background: var(--tile-background);
+    color: var(--text-color);
+  }
+
+  .p-dialog-footer {
+    background: var(--tile-background);
+  }
+}
+
+.offset-editor-content-read-only,
+.offset-editor-content {
+  --offset-spacing-large: 20px;
+
+  display: flex;
+  flex-direction: column;
+  min-width: 90%;
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    flex-direction: row;
+    gap: var(--offset-spacing-large);
+    min-width: 50%;
+  }
+
+  .offset-grid-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    min-height: 300px;
+    padding: 0.2em;
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      flex: 3;
+      min-height: 500px;
+      padding: unset;
+    }
+  }
+
+  .offset-grid-controls {
+    display: grid;
+    align-content: start;
+    overflow-y: auto;
+    gap: 0.1em 0;
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      flex: 2;
+    }
+
+    h4 {
+      margin: 0;
+      justify-self: center;
+    }
+
+    label.explore-offsets-count,
+    .explore-offsets-regenerate {
+      justify-self: end;
+    }
+
+    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+      padding: 1em;
+      gap: 0.8em;
+
+      h4 {
+        margin-bottom: 1em;
+      }
+    }
+  }
+
+  .offset-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5em;
+    align-items: center;
+  }
+
+  .offset-grid-container {
+    --offset-border-radius: 4px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--tile-background);
+    border: 1px solid var(--gray-300);
+    border-radius: var(--offset-border-radius);
+    padding: var(--offset-spacing-large);
+    width: 100%;
+    height: 100%;
+    min-height: 250px;
+  }
+
+  .offset-grid-svg {
+    display: block;
+  }
+
+  .offset-grid-background {
+    fill: var(--tile-background);
+  }
+
+  .offset-grid-lines {
+    line {
+      stroke: var(--gray-200);
+      stroke-width: 1;
+    }
+  }
+
+  .offset-grid-axes {
+    line {
+      stroke: var(--gray-100);
+      stroke-width: 2;
+    }
+  }
+
+  .offset-grid-labels {
+    text {
+      fill: var(--muted-color);
+      font-size: 12px;
+    }
+  }
+
+  .offset-grid-points {
+    circle {
+      fill: var(--explore-accent-color);
+      stroke: var(--explore-accent-color);
+      stroke-width: 1;
+    }
+  }
+
+  .offset-grid-crosshair {
+    line {
+      stroke: var(--negative-background-color);
+      stroke-width: 1.5;
+    }
+  }
+
+  .offset-grid-arrows {
+    --arrow-color: rgb(255 165 0 / 90%);
+
+    line {
+      stroke: var(--arrow-color);
+      stroke-width: 0.6;
+    }
+
+    polygon {
+      fill: var(--arrow-color);
+    }
+  }
+}
+
+.offset-editor-content-read-only {
+  flex-direction: column;
+
+  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    flex-direction: column;
+  }
+
+  h4 {
+    margin: 0;
+    justify-self: center;
+  }
+}
+
+.offset-small-checkbox {
+  display: flex;
+  align-content: baseline;
+
+  .p-checkbox {
+    .p-checkbox-icon {
+      font-size: smaller;
+    }
+  }
+
+  label {
+    margin-left: 0.5em;
+    font-size: smaller;
+  }
+}

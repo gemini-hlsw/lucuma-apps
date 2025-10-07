@@ -1,0 +1,14 @@
+@use 'datepicker/datepicker.scss';
+
+.react-datepicker {
+  font-family: inherit;
+}
+
+.react-datepicker-wrapper {
+  font-family: inherit;
+}
+
+/* stylelint-disable-next-line selector-class-pattern */
+.react-datepicker__aria-live {
+  display: none;
+}

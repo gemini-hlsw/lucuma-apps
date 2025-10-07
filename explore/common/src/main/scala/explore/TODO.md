@@ -1,0 +1,7 @@
+- Unify UndoStacks for ProgramSummaries and ObservationList (and SiderealTarget).
+- RESTART CACHE IN CASE OF INTERRUPTED SUBSCRIPTION.
+- Pass UndoContext[ProgramSummaries] everywhere? (instead of a View).
+- UndoContext.mapValue mechanism, or similar.
+- Test all optics.
+- URL storing mechanism in undo history.
+- Check if auto expanding ids on clone works.
