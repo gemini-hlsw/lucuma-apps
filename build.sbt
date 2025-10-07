@@ -1,11 +1,10 @@
 import _root_.cats.effect.kernel.syntax.resource
-import Settings.Libraries._
-import Settings.LibraryVersions
-import Common._
-import sbt.Keys._
-import NativePackagerHelper._
+import Dependencies.*
+import Versions.*
+import sbt.Keys.*
+import NativePackagerHelper.*
 import org.scalajs.linker.interface.ModuleSplitStyle
-import scala.sys.process._
+import scala.sys.process.*
 import sbt.nio.file.FileTreeView
 
 val build = taskKey[File]("Build module for deployment")
@@ -110,7 +109,7 @@ ThisBuild / githubWorkflowAddedJobs +=
 ThisBuild / lucumaCssExts += "svg"
 
 Global / onChangedBuildSource                   := ReloadOnSourceChanges
-ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % LibraryVersions.lucumaUISchemas
+ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % lucumaUiSchemas
 ThisBuild / scalaVersion                        := "3.7.3"
 ThisBuild / crossScalaVersions                  := Seq("3.7.3")
 ThisBuild / scalacOptions ++= Seq(
@@ -138,6 +137,12 @@ ThisBuild / evictionErrorLevel := Level.Info
 // ThisBuild / resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
 enablePlugins(GitBranchPrompt)
+
+lazy val commonSettings = Seq(
+  Compile / packageDoc / mappings := Seq(),
+  Compile / doc / sources         := Seq.empty,
+  testFrameworks += new TestFramework("munit.Framework")
+)
 
 lazy val esModule = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
@@ -167,10 +172,12 @@ lazy val stateengine = project
   .in(file("modules/stateengine"))
   .settings(
     name := "stateengine",
-    libraryDependencies ++= Seq(
-      Mouse.value,
-      Fs2.value
-    ) ++ MUnit.value ++ Cats.value ++ CatsEffect.value
+    libraryDependencies ++=
+      Mouse.value ++
+        Fs2.value ++
+        MUnit.value ++
+        Cats.value ++
+        CatsEffect.value
   )
 
 lazy val observe_web_server = project
@@ -179,15 +186,18 @@ lazy val observe_web_server = project
   .enablePlugins(GitBranchPrompt)
   .settings(commonSettings: _*)
   .settings(
-    libraryDependencies ++= Seq(
-      UnboundId,
-      LucumaSSO.value,
-      JwtCore,
-      JwtCirce,
-      Http4sServer,
-      Log4CatsNoop.value
-    ) ++
-      Http4sJDKClient.value ++ Http4s ++ PureConfig ++ Logging.value,
+    libraryDependencies ++=
+      UnboundId.value ++
+        LucumaSssoBackendClient.value ++
+        JwtCore.value ++
+        JwtCirce.value ++
+        Http4sServer.value ++
+        Log4CatsNoop.value ++
+        Http4sJdkClient.value ++
+        Http4sServer.value ++
+        PureConfig.value ++
+        Logback.value ++
+        JuliSlf4j.value,
     // Supports launching the server in the background
     reStart / mainClass := Some("observe.web.server.http4s.WebServerLauncher")
   )
@@ -219,14 +229,23 @@ lazy val observe_web_client = project
   .settings(
     Test / test      := {},
     coverageEnabled  := false,
-    libraryDependencies ++= Seq(
-      Kittens.value,
-      Clue.value,
-      ClueJs.value,
-      Fs2.value,
-      Http4sClient.value,
-      Http4sDom.value
-    ) ++ Crystal.value ++ LucumaUI.value ++ LucumaSchemas.value ++ ScalaJSReactIO.value ++ Cats.value ++ CatsEffect.value ++ LucumaReact.value ++ Monocle.value ++ LucumaCore.value ++ Log4CatsLogLevel.value,
+    libraryDependencies ++=
+      Kittens.value ++
+        Clue.value ++
+        ClueScalaJs.value ++
+        Fs2.value ++
+        Http4sClient.value ++
+        Http4sDom.value ++
+        Crystal.value ++
+        LucumaUI.value ++
+        LucumaSchemas.value ++
+        ScalaJsReact.value ++
+        Cats.value ++
+        CatsEffect.value ++
+        LucumaReact.value ++
+        Monocle.value ++
+        LucumaCore.value ++
+        Log4CatsLogLevel.value,
     scalacOptions ~= (_.filterNot(Set("-Vtype-diffs"))),
     buildInfoKeys    := Seq[BuildInfoKey](
       scalaVersion,
@@ -256,20 +275,27 @@ lazy val observe_server = project
   .settings(commonSettings: _*)
   .settings(
     libraryDependencies ++=
-      Seq(
-        Http4sCirce.value,
-        Http4sXml,
-        Log4Cats.value,
-        Log4CatsNoop.value,
-        PPrint.value,
-        Clue.value,
-        ClueHttp4s,
-        ClueNatchez,
-        CatsParse.value,
-        ACM,
-        GiapiScala
-      ) ++ Coulomb.value ++ LucumaSchemas.value ++ MUnit.value ++ Http4s ++ Http4sJDKClient.value ++ PureConfig ++ Monocle.value ++
-        Circe.value ++ Natchez ++ CatsEffect.value,
+      Http4sCirce.value ++
+        Http4sXml.value ++
+        Log4Cats.value ++
+        PPrint.value ++
+        Clue.value ++
+        ClueHttp4s.value ++
+        ClueNatchez.value ++
+        CatsParse.value ++
+        Acm.value ++
+        GiapiScala.value ++
+        Coulomb.value ++
+        LucumaSchemas.value ++
+        MUnit.value ++
+        Http4sServer.value ++
+        Http4sJdkClient.value ++
+        PureConfig.value ++
+        Monocle.value ++
+        Circe.value ++
+        Natchez.value ++
+        CatsEffect.value ++
+        In(Test)(Log4CatsNoop.value),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "modules/server_new"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
@@ -299,19 +325,24 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/model"))
   .enablePlugins(GitBranchPrompt)
   .settings(
-    libraryDependencies ++= Seq(
-      Mouse.value,
-      CatsTime.value,
-      Http4sCore.value,
-      Http4sCirce.value,
-      Http4sLaws.value,
-      LucumaODBSchema.value
-    ) ++ Coulomb.value ++ MUnit.value ++ Monocle.value ++ LucumaCore.value ++ Circe.value
+    libraryDependencies ++=
+      Mouse.value ++
+        CatsTime.value ++
+        Http4sCore.value ++
+        Http4sCirce.value ++
+        Http4sLaws.value ++
+        LucumaOdbSchema.value ++
+        Coulomb.value ++
+        MUnit.value ++
+        Monocle.value ++
+        LucumaCore.value ++
+        Circe.value ++
+        In(Test)(CoulombTestkit.value)
   )
   .jvmSettings(commonSettings)
   .jsSettings(
     // And add a custom one
-    libraryDependencies += JavaTimeJS.value,
+    libraryDependencies ++= JavaTimeJs.value,
     coverageEnabled := false
   )
 
