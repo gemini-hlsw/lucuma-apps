@@ -217,7 +217,15 @@ lazy val observe_ui_model = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     coverageEnabled := false,
-    libraryDependencies ++= Crystal.value ++ LucumaUI.value ++ LucumaSchemas.value ++ LucumaCore.value ++ Circe.value ++ MUnit.value
+    libraryDependencies ++=
+      Crystal.value ++
+        LucumaUI.value ++
+        LucumaSchemas.value ++
+        LucumaCore.value ++
+        Circe.value ++
+        MUnit.value ++
+        In(Test)(LucumaUITestkit.value) ++
+        In(Test)(CrystalTestkit.value)
   )
   .dependsOn(observe_model.js)
 
@@ -337,12 +345,17 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
         Monocle.value ++
         LucumaCore.value ++
         Circe.value ++
-        In(Test)(CoulombTestkit.value)
+        In(Test)(CoulombTestkit.value) ++
+        In(Test)(Discipline.value) ++
+        In(Test)(CatsEffectLaws.value) ++
+        In(Test)(CatsEffectTestkit.value)
   )
   .jvmSettings(commonSettings)
   .jsSettings(
     // And add a custom one
-    libraryDependencies ++= JavaTimeJs.value,
+    libraryDependencies ++=
+      JavaTimeJs.value ++
+        In(Test)(LucumaUITestkit.value),
     coverageEnabled := false
   )
 

@@ -34,6 +34,10 @@ object Dependencies {
     deps("org.typelevel" %%% "cats-effect")(catsEffect)
   )
 
+  val CatsEffectLaws = Def.setting(
+    deps("org.typelevel" %%% "cats-effect-laws")(catsEffect)
+  )
+
   val CatsEffectTestkit = Def.setting(
     deps("org.typelevel" %%% "cats-effect-testkit")(catsEffect)
   )
@@ -95,6 +99,10 @@ object Dependencies {
 
   val Crystal = Def.setting(
     deps("edu.gemini" %%% "crystal")(crystal)
+  )
+
+  val CrystalTestkit = Def.setting(
+    deps("edu.gemini" %%% "crystal-testkit")(crystal)
   )
 
   val Discipline = Def.setting(
@@ -222,7 +230,7 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-catalog")(lucumaCore)
   )
 
-  val LucumaCatalogTestKit = Def.setting(
+  val LucumaCatalogTestkit = Def.setting(
     deps("edu.gemini" %%% "lucuma-catalog-testkit")(lucumaCore)
   )
 
@@ -230,7 +238,7 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-core")(lucumaCore)
   )
 
-  val LucumaCoreTestKit = Def.setting(
+  val LucumaCoreTestkit = Def.setting(
     deps("edu.gemini" %%% "lucuma-core-testkit")(lucumaCore)
   )
 
@@ -280,7 +288,7 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-ui")(lucumaUiSchemas)
   )
 
-  val LucumaUITestKit = Def.setting(
+  val LucumaUITestkit = Def.setting(
     deps("edu.gemini" %%% "lucuma-ui-testkit")(lucumaUiSchemas)
   )
 
