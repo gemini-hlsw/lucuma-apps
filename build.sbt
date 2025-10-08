@@ -277,7 +277,7 @@ lazy val explore_modelTestkit = crossProject(JVMPlatform, JSPlatform)
 
 lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("explore_model-tests"))
+  .in(file("explore/model-tests"))
   .dependsOn(explore_modelTestkit)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
@@ -354,18 +354,6 @@ lazy val observeCommonSettings = Seq(
   Compile / doc / sources         := Seq.empty,
   testFrameworks += new TestFramework("munit.Framework")
 )
-
-lazy val stateengine = project
-  .in(file("modules/stateengine"))
-  .settings(
-    name := "stateengine",
-    libraryDependencies ++=
-      Mouse.value ++
-        Fs2.value ++
-        MUnit.value ++
-        Cats.value ++
-        CatsEffect.value
-  )
 
 lazy val observe_web_server = project
   .in(file("modules/web/server"))
