@@ -242,12 +242,12 @@ fixCSS := {
     throw new Exception("Error in CSS fix")
 }
 
-val pushCond                 = "github.event_name == 'push'"
-val prCond                   = "github.event_name == 'pull_request'"
-val mainCond                 = "github.ref == 'refs/heads/main'"
-val notMainCond              = "github.ref != 'refs/heads/main'"
-val geminiRepoCond           = "startsWith(github.repository, 'gemini')"
-val notDependabotCond        = "github.actor != 'dependabot[bot]'"
+val pushCond          = "github.event_name == 'push'"
+val prCond            = "github.event_name == 'pull_request'"
+val mainCond          = "github.ref == 'refs/heads/main'"
+val notMainCond       = "github.ref != 'refs/heads/main'"
+val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
+val notDependabotCond = "github.actor != 'dependabot[bot]'"
 def allConds(conds: String*) = conds.mkString("(", " && ", ")")
 def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
 
@@ -285,9 +285,7 @@ lazy val lucumaCssStep = WorkflowStep.Sbt(List("lucumaCss"), name = Some("Extrac
 lazy val npmBuild = WorkflowStep.Run(
   List("npm run build"),
   name = Some("Build application"),
-  env = Map(
-    "NODE_OPTIONS" -> "--max-old-space-size=8192"
-  )
+  env = Map("NODE_OPTIONS" -> "--max-old-space-size=8192")
 )
 
 // https://frontside.com/blog/2020-05-26-github-actions-pull_request/#how-does-pull_request-affect-actionscheckout
@@ -361,6 +359,7 @@ ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowBuildPreamble ++= setupNodeNpmInstall
 ThisBuild / githubWorkflowEnv += faNpmAuthToken
 
+// TODO
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     "lint",

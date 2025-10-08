@@ -7,129 +7,33 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 import scala.sys.process.*
 import sbt.nio.file.FileTreeView
 
-// Build JS module for deployment, only used for observe web client
-val buildJsModule = taskKey[File]("Build module for deployment")
-
 name := "lucuma-apps"
+
+// Build JS module for deployment, only used for observe web client
+val buildJsModule = taskKey[File]("Build JS module for deployment")
+
+ThisBuild / description                         := "Lucuma Apps"
+Global / onChangedBuildSource                   := ReloadOnSourceChanges
+ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % lucumaUiSchemas
+ThisBuild / scalaVersion                        := "3.7.3"
+ThisBuild / crossScalaVersions                  := Seq("3.7.3")
+ThisBuild / scalacOptions ++= Seq("-language:implicitConversions")
+ThisBuild / scalacOptions ++= Seq(
+  // ScalablyTyped macros introduce deprecated methods, this silences those warnings
+  "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"
+)
 
 // TODO REMOVE ONCE THIS WORKS AGAIN
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlCiScalafixCheck := false
 
-ThisBuild / resolvers := List(Resolver.mavenLocal)
-
-val pushCond          = "github.event_name == 'push'"
-val prCond            = "github.event_name == 'pull_request'"
-val mainCond          = "github.ref == 'refs/heads/main'"
-val notMainCond       = "github.ref != 'refs/heads/main'"
-val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
-val notDependabotCond = "github.actor != 'dependabot[bot]'"
-val isMergedCond      = "github.event.pull_request.merged == true"
-def allConds(conds: String*) = conds.mkString("(", " && ", ")")
-def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
-
-val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
-val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
-
-ThisBuild / githubWorkflowSbtCommand := "sbt -v -J-Xmx6g"
-ThisBuild / githubWorkflowEnv += faNpmAuthToken
-ThisBuild / githubWorkflowEnv += herokuToken
-
-lazy val setupNodeNpmInstall =
-  List(
-    WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v4"),
-      name = Some("Setup Node.js"),
-      params = Map(
-        "node-version"          -> "20",
-        "cache"                 -> "npm",
-        "cache-dependency-path" -> "modules/web/client/package-lock.json"
-      )
-    ),
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v3"),
-      name = Some("Cache node_modules"),
-      id = Some("cache-node_modules"),
-      params = {
-        val prefix = "node_modules"
-        val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
-    WorkflowStep.Run(
-      List("cd modules/web/client", "npm clean-install --verbose"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.cache-node_modules.outputs.cache-hit != 'true'")
-    )
-  )
-
-lazy val dockerHubLogin =
-  WorkflowStep.Run(
-    List(
-      "echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin"
-    ),
-    name = Some("Login to Docker Hub")
-  )
-
-lazy val sbtDockerPublish =
-  WorkflowStep.Sbt(
-    List("clean", "deploy/docker:publish"),
-    name = Some("Build and Publish Docker image")
-  )
-
-lazy val herokuRelease =
-  WorkflowStep.Run(
-    List(
-      "npm install -g heroku",
-      "heroku container:login",
-      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
-      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
-      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }} -v",
-      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
-      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
-      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v"
-    ),
-    name = Some("Deploy and release app in Heroku")
-  )
-
-ThisBuild / githubWorkflowAddedJobs +=
-  WorkflowJob(
-    "deploy",
-    "Build and publish Docker image / Deploy to Heroku",
-    githubWorkflowJobSetup.value.toList :::
-      setupNodeNpmInstall :::
-      dockerHubLogin ::
-      sbtDockerPublish ::
-      herokuRelease ::
-      Nil,
-    scalas = List(scalaVersion.value),
-    javas = githubWorkflowJavaVersions.value.toList.take(1),
-    cond = Some(allConds(mainCond, geminiRepoCond))
-  )
-
 ThisBuild / lucumaCssExts += "svg"
 
-Global / onChangedBuildSource                   := ReloadOnSourceChanges
-ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % lucumaUiSchemas
-ThisBuild / scalaVersion                        := "3.7.3"
-ThisBuild / crossScalaVersions                  := Seq("3.7.3")
-ThisBuild / scalacOptions ++= Seq(
-  "-language:implicitConversions",
-  // ScalablyTyped macros introduce deprecated methods, this silences those warnings
-  "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"
-)
-ThisBuild / scalafixResolvers += coursierapi.MavenRepository.of(
-  "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-)
+ThisBuild / resolvers := List(Resolver.mavenLocal)
 
 // Gemini repository
 ThisBuild / resolvers += "Gemini Repository".at(
   "https://github.com/gemini-hlsw/maven-repo/raw/master/releases"
-)
-
-// TODO Remove once we stop using http4s snapshot
-ThisBuild / resolvers += "s01-oss-sonatype-org-snapshots".at(
-  "https://s01.oss.sonatype.org/content/repositories/snapshots"
 )
 
 ThisBuild / evictionErrorLevel := Level.Info
@@ -344,7 +248,17 @@ lazy val explore_app: Project = project
       .value,
     Compile / fullLinkJS := (Compile / fullLinkJS)
       .dependsOn(explore_workers / Compile / fullLinkJS)
-      .value
+      .value,
+    buildJsModule        := {
+      val jsFiles = (Compile / fullLinkJSOutput).value
+      if (sys.env.getOrElse("POST_STAGE_CLEAN", "false").equals("true")) {
+        println("Cleaning up...")
+        // Remove coursier cache
+        val coursierCacheDir = csrCacheDirectory.value
+        sbt.IO.delete(coursierCacheDir)
+      }
+      jsFiles
+    }
   )
 
 // START OBSERVE
@@ -572,8 +486,8 @@ lazy val observeLinux = Seq(
 /**
  * Project for the observe server app for development
  */
-lazy val deploy = project
-  .in(file("deploy"))
+lazy val observe_deploy = project
+  .in(file("modules/deploy"))
   .enablePlugins(NoPublishPlugin)
   .enablePlugins(LucumaDockerPlugin)
   .enablePlugins(JavaServerAppPackaging)
@@ -592,4 +506,226 @@ lazy val deploy = project
     // Specify a different name for the config file
     bashScriptConfigLocation := Some("${app_home}/../conf/launcher.args"),
     bashScriptExtraDefines += """addJava "-Dlogback.configurationFile=${app_home}/../conf/$SITE/logback.xml""""
+  )
+
+// BEGIN ALIASES
+
+val lintCSS = TaskKey[Unit]("lintCSS", "Lint CSS files")
+lintCSS := {
+  if (("npm run lint-dark" #&& "npm run lint-light" !) != 0)
+    throw new Exception("Error in CSS format")
+}
+
+val fixCSS = TaskKey[Unit]("fixCSS", "Fix CSS files")
+fixCSS := {
+  if (("npm run fix-dark" #&& "npm run fix-light" !) != 0)
+    throw new Exception("Error in CSS fix")
+}
+
+addCommandAlias(
+  "quickTest",
+  "explore_modelTestsJVM/test"
+)
+
+addCommandAlias(
+  "fixImports",
+  "; scalafix OrganizeImports; Test/scalafix OrganizeImports"
+)
+
+addCommandAlias(
+  "fix",
+  "; prePR; fixCSS"
+)
+
+// BEGIN GITHUB ACTIONS
+
+val pushCond          = "github.event_name == 'push'"
+val prCond            = "github.event_name == 'pull_request'"
+val mainCond          = "github.ref == 'refs/heads/main'"
+val notMainCond       = "github.ref != 'refs/heads/main'"
+val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
+val notDependabotCond = "github.actor != 'dependabot[bot]'"
+val isMergedCond      = "github.event.pull_request.merged == true"
+def allConds(conds: String*) = conds.mkString("(", " && ", ")")
+def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
+
+val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
+val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
+
+ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
+ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
+ThisBuild / githubWorkflowEnv += faNpmAuthToken
+ThisBuild / githubWorkflowEnv += herokuToken
+
+// https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
+lazy val setupNodeNpmInstall =
+  List(
+    WorkflowStep.Use(
+      UseRef.Public("actions", "setup-node", "v4"),
+      name = Some("Setup Node.js"),
+      params = Map(
+        "node-version" -> "20",
+        "cache"        -> "npm"
+        // "cache-dependency-path" -> "modules/web/client/package-lock.json"
+      )
+    ),
+    // Observe NPM cache
+    WorkflowStep.Use(
+      UseRef.Public("actions", "cache", "v4"),
+      name = Some("Cache Observe node_modules"),
+      id = Some("observe-cache-node_modules"),
+      params = {
+        val prefix = "node_modules"
+        val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
+        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+      }
+    ),
+    WorkflowStep.Run(
+      List("cd modules/web/client", "npm clean-install --verbose"),
+      name = Some("npm clean-install"),
+      cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
+    ),
+    // Explore NPM cache
+    WorkflowStep.Use(
+      UseRef.Public("actions", "cache", "v4"),
+      name = Some("Cache Explore node_modules"),
+      id = Some("explore-cache-node_modules"),
+      params = {
+        val prefix = "node_modules"
+        val key    = s"$prefix-$${{ hashFiles('explore/package-lock.json') }}"
+        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+      }
+    ),
+    WorkflowStep.Run(
+      List("cd explore", "npm clean-install --verbose"),
+      name = Some("npm clean-install"),
+      cond = Some("steps.explore-cache-node_modules.outputs.cache-hit != 'true'")
+    )
+  )
+
+lazy val dockerHubLogin =
+  WorkflowStep.Run(
+    List(
+      "echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin"
+    ),
+    name = Some("Login to Docker Hub")
+  )
+
+lazy val sbtDockerPublish =
+  WorkflowStep.Sbt(
+    List("clean", "observe_deploy/docker:publish"),
+    name = Some("Build and Publish Docker image")
+  )
+
+lazy val herokuRelease =
+  WorkflowStep.Run(
+    List(
+      "npm install -g heroku",
+      "heroku container:login",
+      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
+      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
+      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }} -v",
+      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
+      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
+      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v"
+    ),
+    name = Some("Deploy and release app in Heroku")
+  )
+
+lazy val exploreSbtLink =
+  WorkflowStep.Sbt(List("explore_app/buildJsModule"), name = Some("Link Explore"))
+
+lazy val exploreNpmBuild = WorkflowStep.Run(
+  List("cd explore", "npm run build"),
+  name = Some("Build Explore"),
+  env = Map("NODE_OPTIONS" -> "--max-old-space-size=8192")
+)
+
+// https://frontside.com/blog/2020-05-26-github-actions-pull_request/#how-does-pull_request-affect-actionscheckout
+lazy val overrideCiCommit = WorkflowStep.Run(
+  List("""echo "CI_COMMIT_SHA=${{ github.event.pull_request.head.sha}}" >> $GITHUB_ENV"""),
+  name = Some("override CI_COMMIT_SHA"),
+  cond = Some(prCond)
+)
+
+// lazy val bundlemon = WorkflowStep.Use(
+//   UseRef.Public("lironer", "bundlemon-action", "v1"),
+//   name = Some("Run BundleMon")
+// )
+
+def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use(
+  UseRef.Public("FirebaseExtended", "action-hosting-deploy", "v0"),
+  name = Some(name),
+  cond = Some(cond),
+  params = Map(
+    "repoToken"              -> "${{ secrets.GITHUB_TOKEN }}",
+    "firebaseServiceAccount" -> "${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}",
+    "projectId"              -> "explore-gemini",
+    "target"                 -> "dev",
+    "entryPoint"             -> "./explore"
+  ) ++ (if (live) Map("channelId" -> "live") else Map.empty)
+)
+
+// lazy val firebaseDeployReview = firebaseDeploy(
+//   "Deploy review app to Firebase",
+//   allConds(
+//     prCond,
+//     notDependabotCond,
+//     "github.event.pull_request.head.repo.full_name == github.repository"
+//   ),
+//   live = false
+// )
+
+lazy val firebaseDeployDev = firebaseDeploy(
+  "Deploy staging app to Firebase",
+  mainCond,
+  live = true
+)
+
+lazy val recordDeploymentMetadata = WorkflowStep.Run(
+  List(
+    "# Create a deployment record with commit SHA for tracking",
+    """echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"""",
+    """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
+  ),
+  name = Some("Record deployment SHA"),
+  cond = Some(mainCond)
+)
+
+ThisBuild / githubWorkflowBuildPreamble ++= setupNodeNpmInstall
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "observe-deploy",
+    "Build and publish Observe Docker image / Deploy to Heroku",
+    githubWorkflowJobSetup.value.toList :::
+      setupNodeNpmInstall :::
+      dockerHubLogin ::
+      sbtDockerPublish ::
+      herokuRelease ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "explore-deploy",
+    "Build and deploy Explore",
+    githubWorkflowJobSetup.value.toList :::
+      setupNodeNpmInstall :::
+      exploreSbtLink ::
+      exploreNpmBuild ::
+      overrideCiCommit ::
+      // bundlemon ::
+      // firebaseDeployReview ::
+      firebaseDeployDev ::
+      recordDeploymentMetadata ::
+      Nil,
+    // Only 1 scalaVersion, so no need for matrix
+    sbtStepPreamble = Nil,
+    scalas = Nil,
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   )

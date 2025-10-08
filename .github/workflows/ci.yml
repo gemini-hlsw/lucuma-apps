@@ -56,6 +56,40 @@ jobs:
         if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
         run: sbt -v -J-Xmx6g +update
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cache Observe node_modules
+        id: observe-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('modules/web/client/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.observe-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd modules/web/client
+          npm clean-install --verbose
+
+      - name: Cache Explore node_modules
+        id: explore-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('explore/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd explore
+          npm clean-install --verbose
+
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
 
@@ -101,8 +135,8 @@ jobs:
 
       - run: scala-steward validate-repo-config .scala-steward.conf
 
-  deploy:
-    name: Build and publish Docker image / Deploy to Heroku
+  observe-deploy:
+    name: Build and publish Observe Docker image / Deploy to Heroku
     if: (github.ref == 'refs/heads/main' && startsWith(github.repository, 'gemini'))
     strategy:
       matrix:
@@ -137,27 +171,40 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: modules/web/client/package-lock.json
 
-      - name: Cache node_modules
-        id: cache-node_modules
-        uses: actions/cache@v3
+      - name: Cache Observe node_modules
+        id: observe-cache-node_modules
+        uses: actions/cache@v4
         with:
           path: node_modules
           key: node_modules-${{ hashFiles('modules/web/client/package-lock.json') }}
           restore-keys: node_modules
 
       - name: npm clean-install
-        if: steps.cache-node_modules.outputs.cache-hit != 'true'
+        if: steps.observe-cache-node_modules.outputs.cache-hit != 'true'
         run: |
           cd modules/web/client
+          npm clean-install --verbose
+
+      - name: Cache Explore node_modules
+        id: explore-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('explore/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd explore
           npm clean-install --verbose
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
 
       - name: Build and Publish Docker image
-        run: 'sbt -v -J-Xmx6g ''++ ${{ matrix.scala }}'' clean deploy/docker:publish'
+        run: 'sbt -v -J-Xmx6g ''++ ${{ matrix.scala }}'' clean observe_deploy/docker:publish'
 
       - name: Deploy and release app in Heroku
         run: |
@@ -169,3 +216,99 @@ jobs:
           docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web
           docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web
           heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v
+
+  explore-deploy:
+    name: Build and deploy Explore
+    if: ((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini'))
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        java: [temurin@17]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Setup Java (temurin@17)
+        id: setup-java-temurin-17
+        if: matrix.java == 'temurin@17'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
+        run: sbt -v -J-Xmx6g +update
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Cache Observe node_modules
+        id: observe-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('modules/web/client/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.observe-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd modules/web/client
+          npm clean-install --verbose
+
+      - name: Cache Explore node_modules
+        id: explore-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('explore/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd explore
+          npm clean-install --verbose
+
+      - name: Link Explore
+        run: sbt -v -J-Xmx6g explore_app/buildJsModule
+
+      - name: Build Explore
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
+        run: |
+          cd explore
+          npm run build
+
+      - name: override CI_COMMIT_SHA
+        if: github.event_name == 'pull_request'
+        run: echo "CI_COMMIT_SHA=${{ github.event.pull_request.head.sha}}" >> $GITHUB_ENV
+
+      - name: Deploy staging app to Firebase
+        if: github.ref == 'refs/heads/main'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}
+          entryPoint: ./explore
+          projectId: explore-gemini
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          target: dev
+          channelId: live
+
+      - name: Record deployment SHA
+        if: github.ref == 'refs/heads/main'
+        run: |
+          # Create a deployment record with commit SHA for tracking
+          echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"
+          curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' 

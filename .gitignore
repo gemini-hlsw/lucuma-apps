@@ -116,4 +116,4 @@ stats.html
 local.conf.json*
 
 # SOPS secrets - private keys only
-explore-keys.txt
+apps-keys.txt

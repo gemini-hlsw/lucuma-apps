@@ -6,7 +6,7 @@
 
 If using nix for development, secrets are managed via SOPS:
 
-1. **Get team key**: Obtain `explore-keys.txt`.
+1. **Get team key**: Obtain `apps-keys.txt`.
 
 Secrets are automatically loaded via direnv integration.
 
