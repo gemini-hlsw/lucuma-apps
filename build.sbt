@@ -7,9 +7,10 @@ import org.scalajs.linker.interface.ModuleSplitStyle
 import scala.sys.process.*
 import sbt.nio.file.FileTreeView
 
-val build = taskKey[File]("Build module for deployment")
+// Build JS module for deployment, only used for observe web client
+val buildJsModule = taskKey[File]("Build module for deployment")
 
-name := "observe"
+name := "lucuma-apps"
 
 // TODO REMOVE ONCE THIS WORKS AGAIN
 ThisBuild / tlCiScalafmtCheck := false
@@ -138,12 +139,6 @@ ThisBuild / evictionErrorLevel := Level.Info
 
 enablePlugins(GitBranchPrompt)
 
-lazy val commonSettings = Seq(
-  Compile / packageDoc / mappings := Seq(),
-  Compile / doc / sources         := Seq.empty,
-  testFrameworks += new TestFramework("munit.Framework")
-)
-
 lazy val esModule = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
   Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
@@ -161,11 +156,203 @@ lazy val esModule = Seq(
 //////////////
 
 lazy val root = tlCrossRootProject.aggregate(
+  explore_model,
+  explore_modelTests,
+  explore_common,
+  explore_app,
+  explore_workers,
   observe_web_server,
   observe_web_client,
   observe_server,
   observe_model,
   observe_ui_model
+)
+
+// START EXPLORE
+
+lazy val exploreCommonSettings = lucumaGlobalSettings ++ Seq(
+  scalacOptions ~= (_.filterNot(Set("-Vtype-diffs")))
+)
+
+lazy val exploreCommonLibSettings = Seq(
+  libraryDependencies ++=
+    Cats.value ++
+      CatsEffect.value ++
+      CatsRetry.value ++
+      Circe.value ++
+      Clue.value ++
+      Crystal.value ++
+      Fs2.value ++
+      Http4sCore.value ++
+      Kittens.value ++
+      LucumaCore.value ++
+      LucumaSchemas.value ++
+      LucumaOdbSchema.value ++
+      LucumaAgs.value ++
+      LucumaITCClient.value ++
+      Monocle.value ++
+      Mouse.value ++
+      Boopickle.value ++
+      In(Test)(
+        MUnit.value ++
+          MUnitScalaCheck.value ++
+          Discipline.value ++
+          CatsTimeTestkit.value ++
+          CatsEffectTestkit.value ++
+          MUnitCatsEffect.value ++
+          MonocleLaw.value
+      ),
+  // temporary? fix for upgrading to Scala 3.7
+  libraryDependencies += "org.scala-lang" %% "scala3-library" % scalaVersion.value,
+  testFrameworks += new TestFramework("munit.Framework")
+)
+
+lazy val exploreTestkitLibSettings = Seq(
+  libraryDependencies ++= Discipline.value ++
+    MonocleLaw.value ++
+    CatsTimeTestkit.value ++
+    CatsEffectTestkit.value ++
+    LucumaCoreTestkit.value ++
+    LucumaCatalogTestkit.value ++
+    LucumaSchemasTestkit.value
+)
+
+lazy val exploreCommonJvmSettings = Seq(
+  libraryDependencies ++=
+    Fs2Io.value
+)
+
+lazy val exploreCommonJsLibSettings =
+  exploreCommonLibSettings ++ Seq(
+    libraryDependencies ++=
+      ClueScalaJs.value ++
+        Http4sDom.value ++
+        Fs2Dom.value ++
+        Log4Cats.value ++
+        Log4CatsLogLevel.value ++
+        ScalaCollectionContrib.value ++
+        ScalaJsReact.value ++
+        ScalaJSDom.value ++
+        LucumaUI.value ++
+        In(Test)(ScalaJsReactTest.value),
+    dependencyOverrides ++= ScalaJsReact.value
+  )
+
+lazy val exploreCommonModuleTest = Seq(
+  Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
+)
+
+lazy val exploreEsModule = Seq(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+  Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withMinify(true) },
+  Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+    // Linking with smaller modules seems to take way longer.
+    // ModuleSplitStyle.SmallModulesFor(List("explore"))
+    ModuleSplitStyle.FewestModules
+  )),
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+    ModuleSplitStyle.FewestModules
+  ))
+)
+
+lazy val explore_model = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore/model"))
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+  .jsSettings(exploreCommonJsLibSettings)
+
+lazy val explore_modelTestkit = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore/model-testkit"))
+  .dependsOn(explore_model)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .settings(exploreTestkitLibSettings: _*)
+  .jsSettings(exploreCommonModuleTest: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+
+lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore_model-tests"))
+  .dependsOn(explore_modelTestkit)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .jsSettings(exploreCommonModuleTest: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+
+lazy val explore_workers = project
+  .in(file("explore/workers"))
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .settings(exploreEsModule: _*)
+  .settings(
+    libraryDependencies ++= LucumaCatalog.value ++
+      Http4sDom.value ++
+      Log4Cats.value,
+    Test / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.OutputPatterns
+      _.withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
+    }
+  )
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(explore_model.js)
+
+lazy val explore_common = project
+  .in(file("explore/common"))
+  .dependsOn(explore_model.js, explore_modelTestkit.js % Test)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonModuleTest: _*)
+  .settings(
+    libraryDependencies ++=
+      LucumaSsoFrontendClient.value ++
+        LucumaCatalog.value ++
+        LucumaSchemas.value ++
+        LucumaReact.value ++
+        In(Test)(LucumaUITestkit.value),
+    buildInfoKeys    := Seq[BuildInfoKey](
+      scalaVersion,
+      sbtVersion,
+      git.gitHeadCommit,
+      "buildDateTime" -> System.currentTimeMillis()
+    ),
+    buildInfoPackage := "explore"
+  )
+  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
+
+lazy val explore_app: Project = project
+  .in(file("explore/app"))
+  .dependsOn(explore_model.js, explore_common)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreEsModule: _*)
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
+  .settings(
+    Test / test          := {},
+    coverageEnabled      := false,
+    libraryDependencies ++=
+      GeminiLocales.value ++
+        LucumaReact.value,
+    // Build workers when you build explore
+    Compile / fastLinkJS := (Compile / fastLinkJS)
+      .dependsOn(explore_workers / Compile / fastLinkJS)
+      .value,
+    Compile / fullLinkJS := (Compile / fullLinkJS)
+      .dependsOn(explore_workers / Compile / fullLinkJS)
+      .value
+  )
+
+// START OBSERVE
+
+lazy val observeCommonSettings = Seq(
+  Compile / packageDoc / mappings := Seq(),
+  Compile / doc / sources         := Seq.empty,
+  testFrameworks += new TestFramework("munit.Framework")
 )
 
 lazy val stateengine = project
@@ -184,11 +371,11 @@ lazy val observe_web_server = project
   .in(file("modules/web/server"))
   .enablePlugins(BuildInfoPlugin)
   .enablePlugins(GitBranchPrompt)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
       UnboundId.value ++
-        LucumaSssoBackendClient.value ++
+        LucumaSsoBackendClient.value ++
         JwtCore.value ++
         JwtCirce.value ++
         Http4sServer.value ++
@@ -265,14 +452,14 @@ lazy val observe_web_client = project
     Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
   )
   .settings(
-    build / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
-    build := {
+    buildJsModule / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
+    buildJsModule := {
       if ((Process("npx" :: "vite" :: "build" :: Nil, baseDirectory.value) !) != 0)
         throw new Exception("Error building web client")
       else
         baseDirectory.value / "deploy" // Must match directory declared in vite.config.js
     },
-    build := build.dependsOn(Compile / fullLinkJS).value
+    buildJsModule := buildJsModule.dependsOn(Compile / fullLinkJS).value
   )
   .dependsOn(observe_model.js, observe_ui_model)
 
@@ -280,7 +467,7 @@ lazy val observe_web_client = project
 lazy val observe_server = project
   .in(file("modules/server_new"))
   .enablePlugins(GitBranchPrompt, BuildInfoPlugin, CluePlugin)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
       Http4sCirce.value ++
@@ -350,7 +537,7 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
         In(Test)(CatsEffectLaws.value) ++
         In(Test)(CatsEffectTestkit.value)
   )
-  .jvmSettings(commonSettings)
+  .jvmSettings(observeCommonSettings)
   .jsSettings(
     // And add a custom one
     libraryDependencies ++=
@@ -364,7 +551,7 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
  */
 lazy val deployedAppMappings = Seq(
   Universal / mappings ++= {
-    val clientDir: File                         = (observe_web_client / build).value
+    val clientDir: File                         = (observe_web_client / buildJsModule).value
     val clientMappings: Seq[(File, String)]     =
       directory(clientDir).flatMap(path =>
         // Don't include environment confs, if present.
@@ -405,7 +592,7 @@ lazy val deploy = project
   .enablePlugins(GitBranchPrompt)
   .dependsOn(observe_web_server)
   .settings(deployedAppMappings: _*)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
     description          := "Observe Server",
     Docker / packageName := "gpp-obs",

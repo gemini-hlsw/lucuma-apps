@@ -276,11 +276,11 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-schemas-testkit")(lucumaUiSchemas)
   )
 
-  val LucumaSssoFrontendClient = Def.setting(
+  val LucumaSsoFrontendClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-sso-frontend-client")(lucumaServers)
   )
 
-  val LucumaSssoBackendClient = Def.setting(
+  val LucumaSsoBackendClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-sso-backend-client")(lucumaServers)
   )
 
