@@ -558,32 +558,16 @@ ThisBuild / githubWorkflowEnv += faNpmAuthToken
 ThisBuild / githubWorkflowEnv += herokuToken
 
 // https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
-lazy val setupNodeNpmInstall =
+lazy val exploreSetupNodeNpmInstall =
   List(
     WorkflowStep.Use(
       UseRef.Public("actions", "setup-node", "v4"),
-      name = Some("Setup Node.js"),
+      name = Some("Explore Setup Node.js"),
       params = Map(
-        "node-version" -> "20",
-        "cache"        -> "npm"
-        // "cache-dependency-path" -> "modules/web/client/package-lock.json"
+        "node-version"          -> "20",
+        "cache"                 -> "npm",
+        "cache-dependency-path" -> "explore/package-lock.json"
       )
-    ),
-    // Observe NPM cache
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v4"),
-      name = Some("Cache Observe node_modules"),
-      id = Some("observe-cache-node_modules"),
-      params = {
-        val prefix = "node_modules"
-        val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
-    WorkflowStep.Run(
-      List("cd modules/web/client", "npm clean-install --verbose"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
     ),
     // Explore NPM cache
     WorkflowStep.Use(
@@ -602,6 +586,35 @@ lazy val setupNodeNpmInstall =
       cond = Some("steps.explore-cache-node_modules.outputs.cache-hit != 'true'")
     )
   )
+
+  lazy val observeSetupNodeNpmInstall =
+    List(
+      WorkflowStep.Use(
+        UseRef.Public("actions", "setup-node", "v4"),
+        name = Some("Setup Node.js"),
+        params = Map(
+          "node-version"          -> "20",
+          "cache"                 -> "npm",
+          "cache-dependency-path" -> "modules/web/client/package-lock.json"
+        )
+      ),
+      // Observe NPM cache
+      WorkflowStep.Use(
+        UseRef.Public("actions", "cache", "v4"),
+        name = Some("Cache Observe node_modules"),
+        id = Some("observe-cache-node_modules"),
+        params = {
+          val prefix = "node_modules"
+          val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
+          Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+        }
+      ),
+      WorkflowStep.Run(
+        List("cd modules/web/client", "npm clean-install --verbose"),
+        name = Some("npm clean-install"),
+        cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
+      )
+    )
 
 lazy val dockerHubLogin =
   WorkflowStep.Run(
@@ -692,14 +705,14 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
   cond = Some(mainCond)
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= setupNodeNpmInstall
+// ThisBuild / githubWorkflowBuildPreamble ++= setupNodeNpmInstall
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     "observe-deploy",
     "Build and publish Observe Docker image / Deploy to Heroku",
     githubWorkflowJobSetup.value.toList :::
-      setupNodeNpmInstall :::
+      observeSetupNodeNpmInstall :::
       dockerHubLogin ::
       sbtDockerPublish ::
       herokuRelease ::
@@ -714,7 +727,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "explore-deploy",
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
-      setupNodeNpmInstall :::
+      exploreSetupNodeNpmInstall :::
       exploreSbtLink ::
       exploreNpmBuild ::
       overrideCiCommit ::
