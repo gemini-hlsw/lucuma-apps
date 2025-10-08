@@ -705,7 +705,7 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
   cond = Some(mainCond)
 )
 
-// ThisBuild / githubWorkflowBuildPreamble ++= setupNodeNpmInstall
+ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(

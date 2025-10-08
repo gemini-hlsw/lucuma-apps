@@ -56,6 +56,27 @@ jobs:
         if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
         run: sbt -v -J-Xmx6g +update
 
+      - name: Explore Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: explore/package-lock.json
+
+      - name: Cache Explore node_modules
+        id: explore-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('explore/package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
+        run: |
+          cd explore
+          npm clean-install --verbose
+
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
 
