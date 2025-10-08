@@ -74,21 +74,21 @@ const pathExists = async (path: PathLike) => {
 export default defineConfig(async ({ mode }) => {
   const _dirname =
     typeof __dirname !== 'undefined' ? __dirname : dirname(fileURLToPath(import.meta.url));
-  const scalaClassesDir = path.resolve(_dirname, `explore/target/scala-${scalaVersion}`);
+  const scalaClassesDir = path.resolve(_dirname, `app/target/scala-${scalaVersion}`);
   const isProduction = mode === 'production';
   const sjs = isProduction
-    ? path.resolve(scalaClassesDir, `explore-opt`)
-    : path.resolve(scalaClassesDir, `explore-fastopt`);
+    ? path.resolve(scalaClassesDir, `explore_app-opt`)
+    : path.resolve(scalaClassesDir, `explore_app-fastopt`);
   const workersScalaClassesDir = path.resolve(_dirname, `workers/target/scala-${scalaVersion}`);
   const workersSjs = isProduction
-    ? path.resolve(workersScalaClassesDir, 'workers-opt')
-    : path.resolve(workersScalaClassesDir, 'workers-fastopt');
+    ? path.resolve(workersScalaClassesDir, 'explore_workers-opt')
+    : path.resolve(workersScalaClassesDir, 'explore_workers-fastopt');
   const common = path.resolve(_dirname, 'common/');
   const webappCommon = path.resolve(common, 'src/main/webapp/');
   const imagesCommon = path.resolve(webappCommon, 'images');
   const publicDirProd = path.resolve(common, 'src/main/public');
   const publicDirDev = path.resolve(common, 'src/main/publicdev');
-  const lucumaCss = path.resolve(_dirname, `explore/target/lucuma-css`);
+  const lucumaCss = path.resolve(_dirname, `app/target/lucuma-css`);
 
   if (!(await pathExists(publicDirDev))) {
     await fs.mkdir(publicDirDev);
@@ -117,7 +117,7 @@ export default defineConfig(async ({ mode }) => {
 
   return {
     // TODO Remove this if we get EnvironmentPlugin to work.
-    root: 'explore/src/main/webapp',
+    root: 'app/src/main/webapp',
     publicDir: publicDir,
     envPrefix: ['VITE_', 'CATS_EFFECT_'],
     resolve: {
