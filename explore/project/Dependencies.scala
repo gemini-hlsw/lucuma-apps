@@ -1,4 +1,4 @@
-import sbt.Def
+import sbt.*
 import org.portablescala.sbtplatformdeps.PlatformDepsGroupArtifactID
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport.*
 import sbt.librarymanagement.*

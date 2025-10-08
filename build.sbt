@@ -1,135 +1,39 @@
 import _root_.cats.effect.kernel.syntax.resource
-import Settings.Libraries._
-import Settings.LibraryVersions
-import Common._
-import sbt.Keys._
-import NativePackagerHelper._
+import Dependencies.*
+import Versions.*
+import sbt.Keys.*
+import NativePackagerHelper.*
 import org.scalajs.linker.interface.ModuleSplitStyle
-import scala.sys.process._
+import scala.sys.process.*
 import sbt.nio.file.FileTreeView
 
-val build = taskKey[File]("Build module for deployment")
+name := "lucuma-apps"
 
-name := "observe"
+// Build JS module for deployment, only used for observe web client
+val buildJsModule = taskKey[File]("Build JS module for deployment")
+
+ThisBuild / description                         := "Lucuma Apps"
+Global / onChangedBuildSource                   := ReloadOnSourceChanges
+ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % lucumaUiSchemas
+ThisBuild / scalaVersion                        := "3.7.3"
+ThisBuild / crossScalaVersions                  := Seq("3.7.3")
+ThisBuild / scalacOptions ++= Seq("-language:implicitConversions")
+ThisBuild / scalacOptions ++= Seq(
+  // ScalablyTyped macros introduce deprecated methods, this silences those warnings
+  "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"
+)
 
 // TODO REMOVE ONCE THIS WORKS AGAIN
 ThisBuild / tlCiScalafmtCheck := false
 ThisBuild / tlCiScalafixCheck := false
 
-ThisBuild / resolvers := List(Resolver.mavenLocal)
-
-val pushCond          = "github.event_name == 'push'"
-val prCond            = "github.event_name == 'pull_request'"
-val mainCond          = "github.ref == 'refs/heads/main'"
-val notMainCond       = "github.ref != 'refs/heads/main'"
-val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
-val notDependabotCond = "github.actor != 'dependabot[bot]'"
-val isMergedCond      = "github.event.pull_request.merged == true"
-def allConds(conds: String*) = conds.mkString("(", " && ", ")")
-def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
-
-val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
-val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
-
-ThisBuild / githubWorkflowSbtCommand := "sbt -v -J-Xmx6g"
-ThisBuild / githubWorkflowEnv += faNpmAuthToken
-ThisBuild / githubWorkflowEnv += herokuToken
-
-lazy val setupNodeNpmInstall =
-  List(
-    WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v4"),
-      name = Some("Setup Node.js"),
-      params = Map(
-        "node-version"          -> "20",
-        "cache"                 -> "npm",
-        "cache-dependency-path" -> "modules/web/client/package-lock.json"
-      )
-    ),
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v3"),
-      name = Some("Cache node_modules"),
-      id = Some("cache-node_modules"),
-      params = {
-        val prefix = "node_modules"
-        val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
-    WorkflowStep.Run(
-      List("cd modules/web/client", "npm clean-install --verbose"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.cache-node_modules.outputs.cache-hit != 'true'")
-    )
-  )
-
-lazy val dockerHubLogin =
-  WorkflowStep.Run(
-    List(
-      "echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin"
-    ),
-    name = Some("Login to Docker Hub")
-  )
-
-lazy val sbtDockerPublish =
-  WorkflowStep.Sbt(
-    List("clean", "deploy/docker:publish"),
-    name = Some("Build and Publish Docker image")
-  )
-
-lazy val herokuRelease =
-  WorkflowStep.Run(
-    List(
-      "npm install -g heroku",
-      "heroku container:login",
-      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
-      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
-      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }} -v",
-      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
-      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
-      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v"
-    ),
-    name = Some("Deploy and release app in Heroku")
-  )
-
-ThisBuild / githubWorkflowAddedJobs +=
-  WorkflowJob(
-    "deploy",
-    "Build and publish Docker image / Deploy to Heroku",
-    githubWorkflowJobSetup.value.toList :::
-      setupNodeNpmInstall :::
-      dockerHubLogin ::
-      sbtDockerPublish ::
-      herokuRelease ::
-      Nil,
-    scalas = List(scalaVersion.value),
-    javas = githubWorkflowJavaVersions.value.toList.take(1),
-    cond = Some(allConds(mainCond, geminiRepoCond))
-  )
-
 ThisBuild / lucumaCssExts += "svg"
 
-Global / onChangedBuildSource                   := ReloadOnSourceChanges
-ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % LibraryVersions.lucumaUISchemas
-ThisBuild / scalaVersion                        := "3.7.3"
-ThisBuild / crossScalaVersions                  := Seq("3.7.3")
-ThisBuild / scalacOptions ++= Seq(
-  "-language:implicitConversions",
-  // ScalablyTyped macros introduce deprecated methods, this silences those warnings
-  "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"
-)
-ThisBuild / scalafixResolvers += coursierapi.MavenRepository.of(
-  "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-)
+ThisBuild / resolvers := List(Resolver.mavenLocal)
 
 // Gemini repository
 ThisBuild / resolvers += "Gemini Repository".at(
   "https://github.com/gemini-hlsw/maven-repo/raw/master/releases"
-)
-
-// TODO Remove once we stop using http4s snapshot
-ThisBuild / resolvers += "s01-oss-sonatype-org-snapshots".at(
-  "https://s01.oss.sonatype.org/content/repositories/snapshots"
 )
 
 ThisBuild / evictionErrorLevel := Level.Info
@@ -156,6 +60,11 @@ lazy val esModule = Seq(
 //////////////
 
 lazy val root = tlCrossRootProject.aggregate(
+  explore_model,
+  explore_modelTests,
+  explore_common,
+  explore_app,
+  explore_workers,
   observe_web_server,
   observe_web_client,
   observe_server,
@@ -163,31 +72,221 @@ lazy val root = tlCrossRootProject.aggregate(
   observe_ui_model
 )
 
-lazy val stateengine = project
-  .in(file("modules/stateengine"))
-  .settings(
-    name := "stateengine",
-    libraryDependencies ++= Seq(
-      Mouse.value,
-      Fs2.value
-    ) ++ MUnit.value ++ Cats.value ++ CatsEffect.value
+// START EXPLORE
+
+lazy val exploreCommonSettings = lucumaGlobalSettings ++ Seq(
+  scalacOptions ~= (_.filterNot(Set("-Vtype-diffs")))
+)
+
+lazy val exploreCommonLibSettings = Seq(
+  libraryDependencies ++=
+    Cats.value ++
+      CatsEffect.value ++
+      CatsRetry.value ++
+      Circe.value ++
+      Clue.value ++
+      Crystal.value ++
+      Fs2.value ++
+      Http4sCore.value ++
+      Kittens.value ++
+      LucumaCore.value ++
+      LucumaSchemas.value ++
+      LucumaOdbSchema.value ++
+      LucumaAgs.value ++
+      LucumaITCClient.value ++
+      Monocle.value ++
+      Mouse.value ++
+      Boopickle.value ++
+      In(Test)(
+        MUnit.value ++
+          MUnitScalaCheck.value ++
+          Discipline.value ++
+          CatsTimeTestkit.value ++
+          CatsEffectTestkit.value ++
+          MUnitCatsEffect.value ++
+          MonocleLaw.value
+      ),
+  // temporary? fix for upgrading to Scala 3.7
+  libraryDependencies += "org.scala-lang" %% "scala3-library" % scalaVersion.value,
+  testFrameworks += new TestFramework("munit.Framework")
+)
+
+lazy val exploreTestkitLibSettings = Seq(
+  libraryDependencies ++= Discipline.value ++
+    MonocleLaw.value ++
+    CatsTimeTestkit.value ++
+    CatsEffectTestkit.value ++
+    LucumaCoreTestkit.value ++
+    LucumaCatalogTestkit.value ++
+    LucumaSchemasTestkit.value
+)
+
+lazy val exploreCommonJvmSettings = Seq(
+  libraryDependencies ++=
+    Fs2Io.value
+)
+
+lazy val exploreCommonJsLibSettings =
+  exploreCommonLibSettings ++ Seq(
+    libraryDependencies ++=
+      ClueScalaJs.value ++
+        Http4sDom.value ++
+        Fs2Dom.value ++
+        Log4Cats.value ++
+        Log4CatsLogLevel.value ++
+        ScalaCollectionContrib.value ++
+        ScalaJsReact.value ++
+        ScalaJSDom.value ++
+        LucumaUI.value ++
+        In(Test)(ScalaJsReactTest.value),
+    dependencyOverrides ++= ScalaJsReact.value
   )
+
+lazy val exploreCommonModuleTest = Seq(
+  Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
+)
+
+lazy val exploreEsModule = Seq(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+  Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withMinify(true) },
+  Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+    // Linking with smaller modules seems to take way longer.
+    // ModuleSplitStyle.SmallModulesFor(List("explore"))
+    ModuleSplitStyle.FewestModules
+  )),
+  Compile / fullLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+    ModuleSplitStyle.FewestModules
+  ))
+)
+
+lazy val explore_model = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore/model"))
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+  .jsSettings(exploreCommonJsLibSettings)
+
+lazy val explore_modelTestkit = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore/model-testkit"))
+  .dependsOn(explore_model)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .settings(exploreTestkitLibSettings: _*)
+  .jsSettings(exploreCommonModuleTest: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+
+lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
+  .crossType(CrossType.Full)
+  .in(file("explore/model-tests"))
+  .dependsOn(explore_modelTestkit)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .jsSettings(exploreCommonModuleTest: _*)
+  .jvmSettings(exploreCommonJvmSettings)
+
+lazy val explore_workers = project
+  .in(file("explore/workers"))
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .settings(exploreEsModule: _*)
+  .settings(
+    libraryDependencies ++= LucumaCatalog.value ++
+      Http4sDom.value ++
+      Log4Cats.value,
+    Test / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.OutputPatterns
+      _.withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
+    }
+  )
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(explore_model.js)
+
+lazy val explore_common = project
+  .in(file("explore/common"))
+  .dependsOn(explore_model.js, explore_modelTestkit.js % Test)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonModuleTest: _*)
+  .settings(
+    libraryDependencies ++=
+      LucumaSsoFrontendClient.value ++
+        LucumaCatalog.value ++
+        LucumaSchemas.value ++
+        LucumaReact.value ++
+        In(Test)(LucumaUITestkit.value),
+    buildInfoKeys    := Seq[BuildInfoKey](
+      scalaVersion,
+      sbtVersion,
+      git.gitHeadCommit,
+      "buildDateTime" -> System.currentTimeMillis()
+    ),
+    buildInfoPackage := "explore"
+  )
+  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
+
+lazy val explore_app: Project = project
+  .in(file("explore/app"))
+  .dependsOn(explore_model.js, explore_common)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreEsModule: _*)
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
+  .settings(
+    Test / test          := {},
+    coverageEnabled      := false,
+    libraryDependencies ++=
+      GeminiLocales.value ++
+        LucumaReact.value,
+    // Build workers when you build explore
+    Compile / fastLinkJS := (Compile / fastLinkJS)
+      .dependsOn(explore_workers / Compile / fastLinkJS)
+      .value,
+    Compile / fullLinkJS := (Compile / fullLinkJS)
+      .dependsOn(explore_workers / Compile / fullLinkJS)
+      .value,
+    buildJsModule        := {
+      val jsFiles = (Compile / fullLinkJSOutput).value
+      if (sys.env.getOrElse("POST_STAGE_CLEAN", "false").equals("true")) {
+        println("Cleaning up...")
+        // Remove coursier cache
+        val coursierCacheDir = csrCacheDirectory.value
+        sbt.IO.delete(coursierCacheDir)
+      }
+      jsFiles
+    }
+  )
+
+// START OBSERVE
+
+lazy val observeCommonSettings = Seq(
+  Compile / packageDoc / mappings := Seq(),
+  Compile / doc / sources         := Seq.empty,
+  testFrameworks += new TestFramework("munit.Framework")
+)
 
 lazy val observe_web_server = project
   .in(file("modules/web/server"))
   .enablePlugins(BuildInfoPlugin)
   .enablePlugins(GitBranchPrompt)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
-    libraryDependencies ++= Seq(
-      UnboundId,
-      LucumaSSO.value,
-      JwtCore,
-      JwtCirce,
-      Http4sServer,
-      Log4CatsNoop.value
-    ) ++
-      Http4sJDKClient.value ++ Http4s ++ PureConfig ++ Logging.value,
+    libraryDependencies ++=
+      UnboundId.value ++
+        LucumaSsoBackendClient.value ++
+        JwtCore.value ++
+        JwtCirce.value ++
+        Http4sServer.value ++
+        Log4CatsNoop.value ++
+        Http4sJdkClient.value ++
+        Http4sServer.value ++
+        PureConfig.value ++
+        Logback.value ++
+        JuliSlf4j.value,
     // Supports launching the server in the background
     reStart / mainClass := Some("observe.web.server.http4s.WebServerLauncher")
   )
@@ -207,7 +306,15 @@ lazy val observe_ui_model = project
   .enablePlugins(ScalaJSPlugin)
   .settings(
     coverageEnabled := false,
-    libraryDependencies ++= Crystal.value ++ LucumaUI.value ++ LucumaSchemas.value ++ LucumaCore.value ++ Circe.value ++ MUnit.value
+    libraryDependencies ++=
+      Crystal.value ++
+        LucumaUI.value ++
+        LucumaSchemas.value ++
+        LucumaCore.value ++
+        Circe.value ++
+        MUnit.value ++
+        In(Test)(LucumaUITestkit.value) ++
+        In(Test)(CrystalTestkit.value)
   )
   .dependsOn(observe_model.js)
 
@@ -219,14 +326,23 @@ lazy val observe_web_client = project
   .settings(
     Test / test      := {},
     coverageEnabled  := false,
-    libraryDependencies ++= Seq(
-      Kittens.value,
-      Clue.value,
-      ClueJs.value,
-      Fs2.value,
-      Http4sClient.value,
-      Http4sDom.value
-    ) ++ Crystal.value ++ LucumaUI.value ++ LucumaSchemas.value ++ ScalaJSReactIO.value ++ Cats.value ++ CatsEffect.value ++ LucumaReact.value ++ Monocle.value ++ LucumaCore.value ++ Log4CatsLogLevel.value,
+    libraryDependencies ++=
+      Kittens.value ++
+        Clue.value ++
+        ClueScalaJs.value ++
+        Fs2.value ++
+        Http4sClient.value ++
+        Http4sDom.value ++
+        Crystal.value ++
+        LucumaUI.value ++
+        LucumaSchemas.value ++
+        ScalaJsReact.value ++
+        Cats.value ++
+        CatsEffect.value ++
+        LucumaReact.value ++
+        Monocle.value ++
+        LucumaCore.value ++
+        Log4CatsLogLevel.value,
     scalacOptions ~= (_.filterNot(Set("-Vtype-diffs"))),
     buildInfoKeys    := Seq[BuildInfoKey](
       scalaVersion,
@@ -238,14 +354,14 @@ lazy val observe_web_client = project
     Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
   )
   .settings(
-    build / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
-    build := {
+    buildJsModule / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
+    buildJsModule := {
       if ((Process("npx" :: "vite" :: "build" :: Nil, baseDirectory.value) !) != 0)
         throw new Exception("Error building web client")
       else
         baseDirectory.value / "deploy" // Must match directory declared in vite.config.js
     },
-    build := build.dependsOn(Compile / fullLinkJS).value
+    buildJsModule := buildJsModule.dependsOn(Compile / fullLinkJS).value
   )
   .dependsOn(observe_model.js, observe_ui_model)
 
@@ -253,23 +369,30 @@ lazy val observe_web_client = project
 lazy val observe_server = project
   .in(file("modules/server_new"))
   .enablePlugins(GitBranchPrompt, BuildInfoPlugin, CluePlugin)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
-      Seq(
-        Http4sCirce.value,
-        Http4sXml,
-        Log4Cats.value,
-        Log4CatsNoop.value,
-        PPrint.value,
-        Clue.value,
-        ClueHttp4s,
-        ClueNatchez,
-        CatsParse.value,
-        ACM,
-        GiapiScala
-      ) ++ Coulomb.value ++ LucumaSchemas.value ++ MUnit.value ++ Http4s ++ Http4sJDKClient.value ++ PureConfig ++ Monocle.value ++
-        Circe.value ++ Natchez ++ CatsEffect.value,
+      Http4sCirce.value ++
+        Http4sXml.value ++
+        Log4Cats.value ++
+        PPrint.value ++
+        Clue.value ++
+        ClueHttp4s.value ++
+        ClueNatchez.value ++
+        CatsParse.value ++
+        Acm.value ++
+        GiapiScala.value ++
+        Coulomb.value ++
+        LucumaSchemas.value ++
+        MUnit.value ++
+        Http4sServer.value ++
+        Http4sJdkClient.value ++
+        PureConfig.value ++
+        Monocle.value ++
+        Circe.value ++
+        Natchez.value ++
+        CatsEffect.value ++
+        In(Test)(Log4CatsNoop.value),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "modules/server_new"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
@@ -299,19 +422,29 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
   .in(file("modules/model"))
   .enablePlugins(GitBranchPrompt)
   .settings(
-    libraryDependencies ++= Seq(
-      Mouse.value,
-      CatsTime.value,
-      Http4sCore.value,
-      Http4sCirce.value,
-      Http4sLaws.value,
-      LucumaODBSchema.value
-    ) ++ Coulomb.value ++ MUnit.value ++ Monocle.value ++ LucumaCore.value ++ Circe.value
+    libraryDependencies ++=
+      Mouse.value ++
+        CatsTime.value ++
+        Http4sCore.value ++
+        Http4sCirce.value ++
+        Http4sLaws.value ++
+        LucumaOdbSchema.value ++
+        Coulomb.value ++
+        MUnit.value ++
+        Monocle.value ++
+        LucumaCore.value ++
+        Circe.value ++
+        In(Test)(CoulombTestkit.value) ++
+        In(Test)(Discipline.value) ++
+        In(Test)(CatsEffectLaws.value) ++
+        In(Test)(CatsEffectTestkit.value)
   )
-  .jvmSettings(commonSettings)
+  .jvmSettings(observeCommonSettings)
   .jsSettings(
     // And add a custom one
-    libraryDependencies += JavaTimeJS.value,
+    libraryDependencies ++=
+      JavaTimeJs.value ++
+        In(Test)(LucumaUITestkit.value),
     coverageEnabled := false
   )
 
@@ -320,7 +453,7 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
  */
 lazy val deployedAppMappings = Seq(
   Universal / mappings ++= {
-    val clientDir: File                         = (observe_web_client / build).value
+    val clientDir: File                         = (observe_web_client / buildJsModule).value
     val clientMappings: Seq[(File, String)]     =
       directory(clientDir).flatMap(path =>
         // Don't include environment confs, if present.
@@ -353,15 +486,15 @@ lazy val observeLinux = Seq(
 /**
  * Project for the observe server app for development
  */
-lazy val deploy = project
-  .in(file("deploy"))
+lazy val observe_deploy = project
+  .in(file("modules/deploy"))
   .enablePlugins(NoPublishPlugin)
   .enablePlugins(LucumaDockerPlugin)
   .enablePlugins(JavaServerAppPackaging)
   .enablePlugins(GitBranchPrompt)
   .dependsOn(observe_web_server)
   .settings(deployedAppMappings: _*)
-  .settings(commonSettings: _*)
+  .settings(observeCommonSettings: _*)
   .settings(
     description          := "Observe Server",
     Docker / packageName := "gpp-obs",
@@ -373,4 +506,239 @@ lazy val deploy = project
     // Specify a different name for the config file
     bashScriptConfigLocation := Some("${app_home}/../conf/launcher.args"),
     bashScriptExtraDefines += """addJava "-Dlogback.configurationFile=${app_home}/../conf/$SITE/logback.xml""""
+  )
+
+// BEGIN ALIASES
+
+val lintCSS = TaskKey[Unit]("lintCSS", "Lint CSS files")
+lintCSS := {
+  if (("npm run lint-dark" #&& "npm run lint-light" !) != 0)
+    throw new Exception("Error in CSS format")
+}
+
+val fixCSS = TaskKey[Unit]("fixCSS", "Fix CSS files")
+fixCSS := {
+  if (("npm run fix-dark" #&& "npm run fix-light" !) != 0)
+    throw new Exception("Error in CSS fix")
+}
+
+addCommandAlias(
+  "quickTest",
+  "explore_modelTestsJVM/test"
+)
+
+addCommandAlias(
+  "fixImports",
+  "; scalafix OrganizeImports; Test/scalafix OrganizeImports"
+)
+
+addCommandAlias(
+  "fix",
+  "; prePR; fixCSS"
+)
+
+// BEGIN GITHUB ACTIONS
+
+val pushCond          = "github.event_name == 'push'"
+val prCond            = "github.event_name == 'pull_request'"
+val mainCond          = "github.ref == 'refs/heads/main'"
+val notMainCond       = "github.ref != 'refs/heads/main'"
+val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
+val notDependabotCond = "github.actor != 'dependabot[bot]'"
+val isMergedCond      = "github.event.pull_request.merged == true"
+def allConds(conds: String*) = conds.mkString("(", " && ", ")")
+def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
+
+val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
+val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
+
+ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
+ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
+ThisBuild / githubWorkflowEnv += faNpmAuthToken
+ThisBuild / githubWorkflowEnv += herokuToken
+
+// https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
+lazy val exploreSetupNodeNpmInstall =
+  List(
+    WorkflowStep.Use(
+      UseRef.Public("actions", "setup-node", "v4"),
+      name = Some("Explore Setup Node.js"),
+      params = Map(
+        "node-version"          -> "20",
+        "cache"                 -> "npm",
+        "cache-dependency-path" -> "explore/package-lock.json"
+      )
+    ),
+    // Explore NPM cache
+    WorkflowStep.Use(
+      UseRef.Public("actions", "cache", "v4"),
+      name = Some("Cache Explore node_modules"),
+      id = Some("explore-cache-node_modules"),
+      params = {
+        val prefix = "node_modules"
+        val key    = s"$prefix-$${{ hashFiles('explore/package-lock.json') }}"
+        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+      }
+    ),
+    WorkflowStep.Run(
+      List("cd explore", "npm clean-install --verbose"),
+      name = Some("npm clean-install"),
+      cond = Some("steps.explore-cache-node_modules.outputs.cache-hit != 'true'")
+    )
+  )
+
+  lazy val observeSetupNodeNpmInstall =
+    List(
+      WorkflowStep.Use(
+        UseRef.Public("actions", "setup-node", "v4"),
+        name = Some("Setup Node.js"),
+        params = Map(
+          "node-version"          -> "20",
+          "cache"                 -> "npm",
+          "cache-dependency-path" -> "modules/web/client/package-lock.json"
+        )
+      ),
+      // Observe NPM cache
+      WorkflowStep.Use(
+        UseRef.Public("actions", "cache", "v4"),
+        name = Some("Cache Observe node_modules"),
+        id = Some("observe-cache-node_modules"),
+        params = {
+          val prefix = "node_modules"
+          val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
+          Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+        }
+      ),
+      WorkflowStep.Run(
+        List("cd modules/web/client", "npm clean-install --verbose"),
+        name = Some("npm clean-install"),
+        cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
+      )
+    )
+
+lazy val dockerHubLogin =
+  WorkflowStep.Run(
+    List(
+      "echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin"
+    ),
+    name = Some("Login to Docker Hub")
+  )
+
+lazy val sbtDockerPublish =
+  WorkflowStep.Sbt(
+    List("clean", "observe_deploy/docker:publish"),
+    name = Some("Build and Publish Docker image")
+  )
+
+lazy val herokuRelease =
+  WorkflowStep.Run(
+    List(
+      "npm install -g heroku",
+      "heroku container:login",
+      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
+      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
+      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }} -v",
+      "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
+      "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }}/web",
+      "heroku container:release web -a ${{ vars.HEROKU_APP_NAME_GS || 'observe-dev-gs' }} -v"
+    ),
+    name = Some("Deploy and release app in Heroku")
+  )
+
+lazy val exploreSbtLink =
+  WorkflowStep.Sbt(List("explore_app/buildJsModule"), name = Some("Link Explore"))
+
+lazy val exploreNpmBuild = WorkflowStep.Run(
+  List("cd explore", "npm run build"),
+  name = Some("Build Explore"),
+  env = Map("NODE_OPTIONS" -> "--max-old-space-size=8192")
+)
+
+// https://frontside.com/blog/2020-05-26-github-actions-pull_request/#how-does-pull_request-affect-actionscheckout
+lazy val overrideCiCommit = WorkflowStep.Run(
+  List("""echo "CI_COMMIT_SHA=${{ github.event.pull_request.head.sha}}" >> $GITHUB_ENV"""),
+  name = Some("override CI_COMMIT_SHA"),
+  cond = Some(prCond)
+)
+
+// lazy val bundlemon = WorkflowStep.Use(
+//   UseRef.Public("lironer", "bundlemon-action", "v1"),
+//   name = Some("Run BundleMon")
+// )
+
+def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use(
+  UseRef.Public("FirebaseExtended", "action-hosting-deploy", "v0"),
+  name = Some(name),
+  cond = Some(cond),
+  params = Map(
+    "repoToken"              -> "${{ secrets.GITHUB_TOKEN }}",
+    "firebaseServiceAccount" -> "${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}",
+    "projectId"              -> "explore-gemini",
+    "target"                 -> "dev",
+    "entryPoint"             -> "./explore"
+  ) ++ (if (live) Map("channelId" -> "live") else Map.empty)
+)
+
+// lazy val firebaseDeployReview = firebaseDeploy(
+//   "Deploy review app to Firebase",
+//   allConds(
+//     prCond,
+//     notDependabotCond,
+//     "github.event.pull_request.head.repo.full_name == github.repository"
+//   ),
+//   live = false
+// )
+
+lazy val firebaseDeployDev = firebaseDeploy(
+  "Deploy staging app to Firebase",
+  mainCond,
+  live = true
+)
+
+lazy val recordDeploymentMetadata = WorkflowStep.Run(
+  List(
+    "# Create a deployment record with commit SHA for tracking",
+    """echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"""",
+    """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
+  ),
+  name = Some("Record deployment SHA"),
+  cond = Some(mainCond)
+)
+
+ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "observe-deploy",
+    "Build and publish Observe Docker image / Deploy to Heroku",
+    githubWorkflowJobSetup.value.toList :::
+      observeSetupNodeNpmInstall :::
+      dockerHubLogin ::
+      sbtDockerPublish ::
+      herokuRelease ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "explore-deploy",
+    "Build and deploy Explore",
+    githubWorkflowJobSetup.value.toList :::
+      exploreSetupNodeNpmInstall :::
+      exploreSbtLink ::
+      exploreNpmBuild ::
+      overrideCiCommit ::
+      // bundlemon ::
+      // firebaseDeployReview ::
+      firebaseDeployDev ::
+      recordDeploymentMetadata ::
+      Nil,
+    // Only 1 scalaVersion, so no need for matrix
+    sbtStepPreamble = Nil,
+    scalas = Nil,
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   )

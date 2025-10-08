@@ -49,6 +49,7 @@ sbt-launch.jar
 .classpath
 .project
 .worksheet/
+*.worksheet.sc
 bin/
 .settings/
 .idea
@@ -98,3 +99,21 @@ modules/web/client/deploy
 modules/web_old/client/package.json
 
 *.todo
+
+explore/common/src/main/publicdev/
+
+# vite
+server.cert
+server.key
+stats.html
+
+# Firebase
+.firebase/
+.direnv
+.jvmopts
+
+# Local development environment
+local.conf.json*
+
+# SOPS secrets - private keys only
+apps-keys.txt

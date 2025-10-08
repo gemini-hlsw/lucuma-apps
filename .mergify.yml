@@ -17,6 +17,22 @@ pull_request_rules:
   - status-success=Test (ubuntu-22.04, 3, temurin@17, rootJVM)
   actions:
     merge: {}
+- name: Label app PRs
+  conditions:
+  - files~=^explore/app/
+  actions:
+    label:
+      add:
+      - app
+      remove: []
+- name: Label app-clue PRs
+  conditions:
+  - files~=^explore/app-clue/
+  actions:
+    label:
+      add:
+      - app-clue
+      remove: []
 - name: Label client PRs
   conditions:
   - files~=^modules/web/client/
@@ -41,9 +57,17 @@ pull_request_rules:
       add:
       - client-model
       remove: []
+- name: Label common PRs
+  conditions:
+  - files~=^explore/common/
+  actions:
+    label:
+      add:
+      - common
+      remove: []
 - name: Label deploy PRs
   conditions:
-  - files~=^deploy/
+  - files~=^modules/deploy/
   actions:
     label:
       add:
@@ -51,11 +75,27 @@ pull_request_rules:
       remove: []
 - name: Label model PRs
   conditions:
-  - files~=^modules/model/
+  - files~=^/
   actions:
     label:
       add:
       - model
+      remove: []
+- name: Label model-testkit PRs
+  conditions:
+  - files~=^explore/model-testkit/
+  actions:
+    label:
+      add:
+      - model-testkit
+      remove: []
+- name: Label model-tests PRs
+  conditions:
+  - files~=^explore/model-tests/
+  actions:
+    label:
+      add:
+      - model-tests
       remove: []
 - name: Label server PRs
   conditions:
@@ -81,11 +121,11 @@ pull_request_rules:
       add:
       - server_new-clue
       remove: []
-- name: Label stateengine PRs
+- name: Label workers PRs
   conditions:
-  - files~=^modules/stateengine/
+  - files~=^explore/workers/
   actions:
     label:
       add:
-      - stateengine
+      - workers
       remove: []
