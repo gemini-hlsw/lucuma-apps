@@ -73,6 +73,14 @@ pull_request_rules:
       add:
       - deploy
       remove: []
+- name: Label lib PRs
+  conditions:
+  - files~=^schemas/lib/
+  actions:
+    label:
+      add:
+      - lib
+      remove: []
 - name: Label model PRs
   conditions:
   - files~=^/
@@ -120,6 +128,22 @@ pull_request_rules:
     label:
       add:
       - server_new-clue
+      remove: []
+- name: Label testkit PRs
+  conditions:
+  - files~=^schemas/testkit/
+  actions:
+    label:
+      add:
+      - testkit
+      remove: []
+- name: Label tests PRs
+  conditions:
+  - files~=^schemas/tests/
+  actions:
+    label:
+      add:
+      - tests
       remove: []
 - name: Label workers PRs
   conditions:

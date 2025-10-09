@@ -66,6 +66,10 @@ object Dependencies {
     )(circe)
   )
 
+  val CirceRefined = Def.setting(
+    deps("io.circe" %%% "circe-refined")(circeRefined)
+  )
+
   val Clue = Def.setting(
     deps("edu.gemini" %%% "clue-core")(clue)
   )
@@ -263,13 +267,6 @@ object Dependencies {
 
   val LucumaOdbSchema = Def.setting(
     deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
-  )
-
-  val LucumaSchemas = Def.setting(
-    deps(
-      "edu.gemini" %%% "lucuma-schemas",
-      "edu.gemini" %%% "lucuma-schemas-model"
-    )(lucumaUiSchemas)
   )
 
   val LucumaSchemasTestkit = Def.setting(
