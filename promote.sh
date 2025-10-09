@@ -421,7 +421,7 @@ declare -A docker_image_shas_object
 declare -A target_sha
 declare -A promote
 
-repo["Explore"]="gemini-hlsw/explore"
+repo["Explore"]="gemini-hlsw/lucuma-apps"
 
 repo["SSO"]="gemini-hlsw/lucuma-odb"
 image_name["SSO"]="lucuma-sso"
