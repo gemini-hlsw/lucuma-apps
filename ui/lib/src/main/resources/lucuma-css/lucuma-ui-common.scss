@@ -1,0 +1,71 @@
+// media queries cutoff
+$tablet-responsive-cutoff: 992px;
+$mobile-responsive-cutoff: 670px;
+
+@mixin text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@mixin full-height-width {
+  height: 100%;
+  width: 100%;
+}
+
+#non-prod-banner {
+  $spacing: 20;
+
+  z-index: 2000;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, 0);
+  text-transform: uppercase;
+  text-indent: $spacing;
+  letter-spacing: $spacing;
+  padding: 0.5em 1em;
+  font-weight: 900;
+  background-color: var(--explore-accent-color);
+}
+
+a,
+a:hover {
+  text-decoration: none;
+}
+
+.lucuma-indicator-ok {
+  color: var(--green-400) !important;
+}
+
+.lucuma-indicator-warning {
+  color: var(--yellow-500) !important;
+}
+
+.lucuma-indicator-fail {
+  color: var(--red-500) !important;
+}
+
+.lucuma-indicator-unknown {
+  color: var(--gray-400) !important;
+}
+
+.lucuma-toast {
+  .p-toast-message-content {
+    align-items: center;
+    font-size: small;
+    justify-content: space-between;
+
+    /* stylelint-disable-next-line selector-class-pattern */
+    span > svg.svg-inline--fa {
+      margin-right: 0.5em;
+    }
+  }
+}
+
+.lucuma-horizontal-vertical-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}

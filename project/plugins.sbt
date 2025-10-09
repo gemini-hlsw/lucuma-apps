@@ -1,3 +1,4 @@
+addSbtPlugin("edu.gemini"   % "sbt-lucuma-lib"    % Versions.sbtLucuma)
 addSbtPlugin("edu.gemini"   % "sbt-lucuma-app"    % Versions.sbtLucuma)
 addSbtPlugin("edu.gemini"   % "sbt-lucuma-css"    % Versions.sbtLucuma)
 addSbtPlugin("edu.gemini"   % "sbt-lucuma-docker" % Versions.sbtLucuma)
