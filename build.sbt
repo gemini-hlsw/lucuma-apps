@@ -9,7 +9,7 @@ import sbt.nio.file.FileTreeView
 
 name := "lucuma-apps"
 
-ThisBuild / tlBaseVersion       := "0.174"
+ThisBuild / tlBaseVersion       := "0.175"
 ThisBuild / tlCiReleaseBranches := Seq("main")
 
 ThisBuild / description        := "Lucuma Apps"
