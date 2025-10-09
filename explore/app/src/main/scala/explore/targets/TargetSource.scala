@@ -6,6 +6,7 @@ package explore.targets
 import cats.Order
 import cats.data.NonEmptyList
 import cats.effect.Async
+import cats.effect.std.Random
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.SimbadSearch
@@ -40,7 +41,8 @@ object TargetSource:
 
     override def toString: String = programId.toString
 
-  case class FromCatalog[F[_]: Async: Logger](catalogName: CatalogName) extends TargetSource[F]:
+  case class FromCatalog[F[_]: Async: Random: Logger](catalogName: CatalogName)
+      extends TargetSource[F]:
     val name: String = Enumerated[CatalogName].tag(catalogName).capitalize
 
     val existing: Boolean = false
@@ -97,12 +99,12 @@ object TargetSource:
 
     override def toString: String = catalogName.toString
 
-  def forAllCatalogs[F[_]: Async: Logger]: NonEmptyList[TargetSource[F]] =
+  def forAllCatalogs[F[_]: Async: Random: Logger]: NonEmptyList[TargetSource[F]] =
     NonEmptyList.fromListUnsafe(
       Enumerated[CatalogName].all.map(source => TargetSource.FromCatalog(source))
     )
 
-  def forAllSiderealCatalogs[F[_]: Async: Logger]: NonEmptyList[TargetSource[F]] =
+  def forAllSiderealCatalogs[F[_]: Async: Random: Logger]: NonEmptyList[TargetSource[F]] =
     NonEmptyList.of(TargetSource.FromCatalog(CatalogName.Simbad))
 
   // TODO Test

@@ -5,6 +5,7 @@ package explore.common
 
 import cats.data.NonEmptyChain
 import cats.effect.*
+import cats.effect.std.Random
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Constants
@@ -22,9 +23,9 @@ import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.*
 
 object SimbadSearch {
-  import RetryHelpers.*
+  import lucuma.ui.utils.RetryHelpers.*
 
-  def search[F[_]](
+  def search[F[_]: Random](
     term:     NonEmptyString,
     wildcard: Boolean = false
   )(implicit F: Async[F], logger: Logger[F]): F[List[CatalogTargetResult]] =
@@ -39,7 +40,7 @@ object SimbadSearch {
         searchSingle[F](uri, term, wildcard)
       .raceAllToSuccess
 
-  private def searchSingle[F[_]](
+  private def searchSingle[F[_]: Random](
     simbadUrl: Uri,
     term:      NonEmptyString,
     wildcard:  Boolean
@@ -56,16 +57,12 @@ object SimbadSearch {
       else
         baseURL
 
-    def isWorthRetrying(e: Throwable): F[Boolean] = e match {
-      case _: TimeoutException => F.pure(!wildcard)
-      case _                   => F.pure(true)
-    }
+    def isWorthRetrying(e: Throwable): Boolean =
+      e match
+        case _: TimeoutException => !wildcard
+        case _                   => true
 
-    retryingOnSomeErrors(
-      retryPolicy[F],
-      isWorthRetrying,
-      logError[F]("Simbad")
-    ) {
+    retryingOnErrors {
       FetchClientBuilder[F]
         .withRequestTimeout(15.seconds)
         .resource
@@ -83,6 +80,9 @@ object SimbadSearch {
           case _                    =>
             Logger[F].error(s"Simbad search failed for term [$term]").as(List.empty)
         }
-    }
+    }(
+      retryPolicy[F],
+      errorHandler = ResultHandler.retryOnSomeErrors(isWorthRetrying, log = logError[F]("Simbad"))
+    )
   }
 }
