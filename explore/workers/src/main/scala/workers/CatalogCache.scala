@@ -80,7 +80,7 @@ trait CatalogCache extends CatalogIDB {
             _.fold(
               // Not found in the db, re request
               client
-                .query(query)
+                .queryGuideStars(query)
                 .map(
                   _.collect { case Right(s) =>
                     GuideStarCandidate.siderealTarget.get(s)
