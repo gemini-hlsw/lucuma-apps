@@ -41,7 +41,7 @@ ThisBuild / evictionErrorLevel := Level.Info
 // Uncomment for local gmp testing
 // ThisBuild / resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
-enablePlugins(GitBranchPrompt, NoPublishPlugin)
+enablePlugins(NoPublishGlobalPlugin, GitBranchPrompt)
 
 // Build JS module for deployment, only used for observe web client
 val buildJsModule = taskKey[File]("Build JS module for deployment")
@@ -110,7 +110,6 @@ lazy val schemas_tests =
     .crossType(CrossType.Full)
     .in(file("schemas/tests"))
     .dependsOn(schemas_testkit)
-    .enablePlugins(NoPublishPlugin, LucumaAppPlugin)
     .settings(
       libraryDependencies ++=
         In(Test)(
@@ -124,7 +123,7 @@ lazy val schemas_lib =
     .crossType(CrossType.Pure)
     .in(file("schemas/lib"))
     .dependsOn(schemas_model)
-    .enablePlugins(CluePlugin) // , LucumaLibPlugin)
+    .enablePlugins(CluePlugin, TypelevelCiReleasePlugin)
     .settings(
       name                          := "lucuma-schemas",
       libraryDependencies ++=
@@ -221,6 +220,7 @@ lazy val ui_tests =
   project
     .in(file("ui/tests"))
     .dependsOn(ui_testkit)
+    .enablePlugins(ScalaJSPlugin)
     .settings(
       libraryDependencies ++=
         In(Test)(
@@ -229,12 +229,11 @@ lazy val ui_tests =
             Discipline.value
         )
     )
-    .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
 
 lazy val ui_css = project
   .in(file("ui/css"))
   .dependsOn(ui_lib)
-  .enablePlugins(LucumaCssPlugin, NoPublishPlugin)
+  .enablePlugins(LucumaCssPlugin)
   .settings(
     createNpmProject := {
       val _      = (Compile / lucumaCss).value
@@ -266,7 +265,7 @@ lazy val ui_css = project
 lazy val ui_demo =
   project
     .in(file("modules/ui/demo"))
-    .enablePlugins(ScalaJSPlugin, NoPublishPlugin, LucumaCssPlugin)
+    .enablePlugins(ScalaJSPlugin, LucumaCssPlugin)
     .dependsOn(ui_lib, ui_css)
     .settings(
       Compile / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
@@ -381,6 +380,8 @@ lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
 
 lazy val explore_workers = project
   .in(file("explore/workers"))
+  .dependsOn(explore_model.js)
+  .enablePlugins(ScalaJSPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(exploreCommonLibSettings: _*)
@@ -394,16 +395,15 @@ lazy val explore_workers = project
       _.withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
     }
   )
-  .enablePlugins(ScalaJSPlugin)
-  .dependsOn(explore_model.js)
 
 lazy val explore_common = project
   .in(file("explore/common"))
-  .dependsOn(explore_model.js,
-             ui_lib,
-             schemas_lib.js,
-             explore_modelTestkit.js % Test,
-             ui_testkit              % Test
+  .dependsOn(
+    explore_model.js,
+    ui_lib,
+    schemas_lib.js,
+    explore_modelTestkit.js % Test,
+    ui_testkit              % Test
   )
   .enablePlugins(ScalaJSPlugin, BuildInfoPlugin, LucumaAppPlugin)
   .settings(exploreCommonSettings: _*)
@@ -426,10 +426,10 @@ lazy val explore_common = project
 lazy val explore_app: Project = project
   .in(file("explore/app"))
   .dependsOn(explore_model.js, explore_common)
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, LucumaAppPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(esModule: _*)
-  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, LucumaAppPlugin)
   .settings(
     Test / test          := {},
     coverageEnabled      := false,
@@ -465,6 +465,8 @@ lazy val observeCommonSettings = Seq(
 
 lazy val observe_web_server = project
   .in(file("modules/web/server"))
+  .dependsOn(observe_server)
+  .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, LucumaAppPlugin)
   .settings(observeCommonSettings: _*)
   .settings(
@@ -490,12 +492,10 @@ lazy val observe_web_server = project
     buildInfoObject           := "OcsBuildInfo",
     buildInfoPackage          := "observe.web.server"
   )
-  .dependsOn(observe_server)
-  .dependsOn(observe_model.jvm % "compile->compile;test->test")
 
 lazy val observe_ui_model = project
   .in(file("modules/web/client-model"))
-  .dependsOn(ui_lib, schemas_lib.js, ui_testkit % Test)
+  .dependsOn(ui_lib, schemas_lib.js, observe_model.js, ui_testkit % Test)
   .enablePlugins(ScalaJSPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(
@@ -507,11 +507,10 @@ lazy val observe_ui_model = project
         MUnit.value ++
         In(Test)(CrystalTestkit.value)
   )
-  .dependsOn(observe_model.js)
 
 lazy val observe_web_client = project
   .in(file("modules/web/client"))
-  .dependsOn(ui_lib, schemas_lib.js)
+  .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, LucumaAppPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(esModule: _*)
@@ -553,12 +552,12 @@ lazy val observe_web_client = project
     },
     buildJsModule := buildJsModule.dependsOn(Compile / fullLinkJS).value
   )
-  .dependsOn(observe_model.js, observe_ui_model)
 
 // List all the modules and their inter dependencies
 lazy val observe_server = project
   .in(file("modules/server_new"))
   .dependsOn(schemas_lib.jvm)
+  .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, CluePlugin, LucumaAppPlugin)
   .settings(observeCommonSettings: _*)
   .settings(
@@ -593,7 +592,6 @@ lazy val observe_server = project
     buildInfoObject           := "OcsBuildInfo",
     buildInfoPackage          := "observe.server"
   )
-  .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .settings(
     unmanagedSources / excludeFilter := (unmanagedSources / excludeFilter).value
       || (Compile / sourceDirectory).value + "/scala/observe/server/flamingos2/*"
@@ -679,8 +677,8 @@ lazy val observeLinux = Seq(
  */
 lazy val observe_deploy = project
   .in(file("modules/deploy"))
-  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
   .dependsOn(observe_web_server)
+  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
   .settings(deployedAppMappings: _*)
   .settings(observeCommonSettings: _*)
   .settings(
