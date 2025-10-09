@@ -60,7 +60,7 @@ jobs:
       - name: Explore Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: explore/package-lock.json
 
@@ -159,6 +159,7 @@ jobs:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
           cache: npm
+          cache-dependency-path: schemas/lib/package-lock.json
 
       - name: Publish
         env:
@@ -232,7 +233,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: modules/web/client/package-lock.json
 
@@ -300,7 +301,7 @@ jobs:
       - name: Explore Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: explore/package-lock.json
 
