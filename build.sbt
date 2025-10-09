@@ -752,7 +752,7 @@ lazy val exploreSetupNodeNpmInstall =
       UseRef.Public("actions", "setup-node", "v4"),
       name = Some("Explore Setup Node.js"),
       params = Map(
-        "node-version"          -> "20",
+        "node-version"          -> "24",
         "cache"                 -> "npm",
         "cache-dependency-path" -> "explore/package-lock.json"
       )
@@ -781,7 +781,7 @@ lazy val exploreSetupNodeNpmInstall =
         UseRef.Public("actions", "setup-node", "v4"),
         name = Some("Setup Node.js"),
         params = Map(
-          "node-version"          -> "20",
+          "node-version"          -> "24",
           "cache"                 -> "npm",
           "cache-dependency-path" -> "modules/web/client/package-lock.json"
         )
@@ -935,9 +935,10 @@ ThisBuild / githubWorkflowPublishPreamble +=
   WorkflowStep.Use(
     UseRef.Public("actions", "setup-node", "v4"),
     Map(
-      "node-version" -> "24",
-      "registry-url" -> "https://registry.npmjs.org",
-      "cache"        -> "npm"
+      "node-version"          -> "24",
+      "registry-url"          -> "https://registry.npmjs.org",
+      "cache"                 -> "npm",
+      "cache-dependency-path" -> "schemas/lib/package-lock.json"
     )
   )
 
