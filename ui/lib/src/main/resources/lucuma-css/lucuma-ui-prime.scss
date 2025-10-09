@@ -1,0 +1,339 @@
+@use 'lucuma-ui-common.scss' as lucumaUICommon;
+
+:root {
+  // unfortunately, primereact uses `scaling factors` to scala the `lg` and `sm` components. It also
+  // seems to apply these to padding, which we don't want. Change the scaling factors seemed inappropriate
+  // because it would affect many more componenents, so I had to copy the padding value for the medium button.
+  --pl-button-padding: 0.78571429em;
+  --pl-compact-button-padding: 0.39285714em;
+  --pl-very-compact-button-padding-top: 0.11em;
+  --pl-very-compact-button-padding-right: 0.5em;
+
+  --pl-mini-font-size: 0.78571429rem;
+  --pl-tiny-font-size: 0.85714286rem;
+  --pl-small-font-size: 0.92857143rem;
+  --pl-large-font-size: 1.14285714rem;
+  --pl-big-font-size: 1.28571429rem;
+  --pl-huge-font-size: 1.42857143rem;
+  --pl-massive-font-size: 1.71428571rem;
+
+  // primereact does not provide a variable for this at all.
+  --pl-input-line-height: 1.15;
+  // This is available as a SASS variable in the primereact designer. Maybe we add our own
+  // CSS variable exports in the designer based on the SASS variables?
+  --pl-input-padding: 0.25rem 0.5rem;
+}
+
+// For laying out controls. The "Form*" compoents utilize this, too.
+.pl-form-column {
+  display: grid;
+  justify-items: start;
+  align-items: baseline;
+  align-self: start;
+  row-gap: 1em;
+  column-gap: 1em;
+
+  &.pl-compact {
+    row-gap: 0.5em;
+  }
+
+  &.pl-very-compact {
+    row-gap: 0.25em;
+  }
+
+  &:not(.pl-linear-column) {
+    grid-template-columns: [label] auto [field] 1fr;
+
+    .pl-form-field-label {
+      grid-column: 1;
+    }
+
+    .pl-form-field {
+      grid-column: 2;
+    }
+  }
+
+  .pl-form-field {
+    justify-self: stretch;
+    margin: 0;
+  }
+}
+
+// Make the dropdown size match the input, and the input group addons, too
+.p-component.p-dropdown .p-dropdown-label.p-inputtext,
+.p-inputgroup .p-inputgroup-addon {
+  line-height: var(--pl-input-line-height);
+}
+
+:not(.p-button-group) > .p-component.p-button {
+  margin-right: 0.25em; // this is what the current css does for SUI. Might want to improve.
+}
+
+// For styling of buttons in primereact for different "compactness" and adjust other sizing
+.p-component.p-button.pl-compact, .p-component.p-button-group.pl-compact > .p-component.p-button {
+  padding: var(--pl-compact-button-padding);
+}
+
+.p-component.p-button.pl-very-compact, .p-component.p-button-group.pl-very-compact > .p-component.p-button {
+  padding: var(--pl-very-compact-button-padding-top) var(--pl-very-compact-button-padding-right);
+}
+
+.p-component.p-button {
+  // Buttons with simple icon
+  & > svg.svg-inline--fa {
+    width: 1.5em;
+  }
+
+  // Buttons with layered icon
+  & > .fa-layers {
+    width: 1.5em;
+  }
+
+  .p-button-icon-left {
+    margin-right: 0.2em;
+  }
+
+  .p-button-icon-right {
+    margin-left: 0.2em;
+  }
+}
+
+// A togglebutton contains a button that needs the padding specified.
+.p-component.p-togglebutton {
+  &.pl-compact .p-component.p-button {
+    padding: var(--pl-compact-button-padding);
+  }
+
+  &.pl-very-compact .p-component.p-button {
+    padding: var(--pl-very-compact-button-padding-top)
+      var(--pl-very-compact-button-padding-right);
+  }
+}
+
+// For different sizes of buttons and text inputs and dropdowns
+.p-component.p-inputtext,
+.p-inputgroup .p-inputgroup-addon,
+.p-component.p-dropdown-panel,
+.pl-form-field-label,
+.p-component.p-togglebutton,
+.p-component.p-button {
+  // default size is Medium
+  &.pl-mini {
+    font-size: var(--pl-mini-font-size);
+  }
+
+  &.pl-tiny {
+    font-size: var(--pl-tiny-font-size);
+  }
+
+  &.p-button-sm,
+  &.pl-small {
+    font-size: var(--pl-small-font-size);
+  }
+
+  &.p-button-lg,
+  &.pl-large {
+    font-size: var(--pl-large-font-size);
+  }
+
+  &.p-button-sm,
+  &.p-button-lg {
+    &:not(.pl-compact) {
+      padding: var(--pl-button-padding);
+    }
+
+    .p-button-icon {
+      font-size: inherit;
+    }
+  }
+
+  &.pl-big {
+    font-size: var(--pl-big-font-size);
+  }
+
+  &.pl-huge {
+    font-size: var(--pl-huge-font-size);
+  }
+
+  &.pl-massive {
+    font-size: var(--pl-massive-font-size);
+  }
+}
+
+// the dropdown label needs different handling
+.p-component.p-dropdown {
+  // default size is Medium
+  &.pl-mini .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-mini-font-size);
+  }
+
+  &.pl-tiny .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-tiny-font-size);
+  }
+
+  &.pl-small .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-small-font-size);
+  }
+
+  &.pl-large .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-large-font-size);
+  }
+
+  &.pl-big .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-big-font-size);
+  }
+
+  &.pl-huge .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-huge-font-size);
+  }
+
+  &.pl-massive .p-dropdown-label.p-inputtext {
+    font-size: var(--pl-massive-font-size);
+  }
+}
+
+.pl-radiobutton-with-label,
+.pl-checkbox-with-label {
+  display: inline-block;
+
+  label {
+    padding-left: 0.5em;
+  }
+}
+
+.p-component.p-tooltip.p-tooltip-active {
+  &.p-tooltip-right .p-tooltip-arrow {
+    border-right-color: var(--text-color);
+  }
+
+  &.p-tooltip-left .p-tooltip-arrow {
+    border-left-color: var(--text-color);
+  }
+
+  &.p-tooltip-top .p-tooltip-arrow {
+    border-top-color: var(--text-color);
+  }
+
+  &.p-tooltip-bottom .p-tooltip-arrow {
+    border-bottom-color: var(--text-color);
+  }
+
+  .p-tooltip-text {
+    font-size: smaller;
+    border: 1px solid var(--text-color);
+  }
+}
+
+.p-component.p-dialog {
+  // if the dialog doesn't have a footer, give the content some bottom padding.
+  // Note: Padding was removed from the bottom of the content because the scroll bars
+  // extend down to the bottom of the padding - which seemed odd in the prescence of a
+  // footer. You can also use an empty div for the footer which probably would look
+  // better with scrolling content.
+  div:last-child.p-dialog-content {
+    padding-bottom: 1rem;
+  }
+  // don't have margin for the last button
+  .p-dialog-footer .p-button:last-child {
+    margin-right: 0;
+  }
+}
+
+// fix precedence problem with the Divider
+.p-divider.p-component {
+  &.p-divider-horizontal {
+    &.p-divider-solid:before {
+      border-top-style: solid;
+    }
+
+    &.p-divider-dashed:before {
+      border-top-style: dashed;
+    }
+
+    &.p-divider-dotted:before {
+      border-top-style: dotted;
+    }
+  }
+
+  &.p-divider-vertical {
+    &.p-divider-solid:before {
+      border-left-style: solid;
+    }
+
+    &.p-divider-dashed:before {
+      border-left-style: dashed;
+    }
+
+    &.p-divider-dotted:before {
+      border-left-style: dotted;
+    }
+  }
+}
+
+// "blended" addons for inputtext groups. Includes units and the clearable icon.
+.p-inputgroup:has(.pl-blended-addon) {
+  .p-inputgroup-addon:has(.pl-blended-addon):has(+ .p-inputgroup-addon),
+  .p-inputtext {
+    border-right: none;
+  }
+
+  .p-inputtext.p-disabled ~ .p-inputgroup-addon:has(.pl-blended-addon) {
+    opacity: 0.5;
+  }
+
+  .p-inputgroup-addon:has(.pl-blended-addon) {
+    border-left: none;
+  }
+
+  .p-inputgroup-addon:has(.pl-blended-addon) {
+    background-color: var(--surface-0);
+  }
+}
+
+.p-progress-spinner.pending-loader {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin: 0;
+  text-align: center;
+  z-index: 1000;
+  width: 4rem;
+  height: 4rem;
+  font-size: 1em;
+}
+
+.p-component.p-dialog {
+  &.pl-dialog-small {
+    width: 95%;
+
+    @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      width: 760px;
+    }
+  }
+
+  &.pl-dialog-large {
+    width: 95%;
+
+    @media (width >=1200px) {
+      width: 1080px;
+    }
+  }
+}
+
+.p-time-span-input {
+  display: flex;
+  gap: 0.5em;
+
+  input {
+    min-width: 2em;
+  }
+}
+
+.pl-react-table.pl-very-compact .p-datatable-tbody > tr > td.p-datatable-emptymessage {
+  padding: 0;
+}
+
+.p-dropdown-label-empty {
+  opacity: 0.5;
+  visibility: visible;
+}

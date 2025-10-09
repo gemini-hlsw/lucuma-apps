@@ -12,12 +12,11 @@ name := "lucuma-apps"
 ThisBuild / tlBaseVersion       := "0.174"
 ThisBuild / tlCiReleaseBranches := Seq("main")
 
-ThisBuild / description                         := "Lucuma Apps"
-Global / onChangedBuildSource                   := ReloadOnSourceChanges
-ThisBuild / scalafixDependencies += "edu.gemini" % "lucuma-schemas_3" % lucumaUiSchemas
-ThisBuild / turbo                               := true
-ThisBuild / scalaVersion                        := "3.7.3"
-ThisBuild / crossScalaVersions                  := Seq("3.7.3")
+ThisBuild / description        := "Lucuma Apps"
+Global / onChangedBuildSource  := ReloadOnSourceChanges
+ThisBuild / turbo              := true
+ThisBuild / scalaVersion       := "3.7.3"
+ThisBuild / crossScalaVersions := Seq("3.7.3")
 ThisBuild / scalacOptions ++= Seq("-language:implicitConversions", "-explain-cyclic")
 ThisBuild / scalacOptions ++= Seq(
   // ScalablyTyped macros introduce deprecated methods, this silences those warnings
@@ -176,7 +175,112 @@ lazy val schemas_lib =
       Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
     )
 
-// START EXPLORE
+// BEGIN UI
+
+lazy val ui_lib =
+  project
+    .in(file("ui/lib"))
+    .dependsOn(schemas_lib.js)
+    .enablePlugins(ScalaJSPlugin)
+    .settings(
+      name := "lucuma-ui",
+      libraryDependencies ++=
+        Cats.value ++
+          CatsTime.value ++
+          Kittens.value ++
+          Mouse.value ++
+          ScalaJsReact.value ++
+          LucumaCore.value ++
+          LucumaAgs.value ++
+          LucumaReact.value ++
+          LucumaPrimeStyles.value ++
+          Monocle.value ++
+          Crystal.value ++
+          PPrint.value ++
+          Fs2Dom.value ++
+          Http4sCore.value ++
+          Http4sCirce.value ++
+          Http4sDom.value ++
+          CatsRetry.value ++
+          Circe.value ++
+          LucumaSsoFrontendClient.value
+    )
+
+lazy val ui_testkit =
+  project
+    .in(file("ui/testkit"))
+    .dependsOn(ui_lib, schemas_testkit.js)
+    .enablePlugins(ScalaJSPlugin)
+    .settings(
+      name := "lucuma-ui-testkit",
+      libraryDependencies ++=
+        LucumaCoreTestkit.value
+    )
+
+lazy val ui_tests =
+  project
+    .in(file("ui/tests"))
+    .dependsOn(ui_testkit)
+    .settings(
+      libraryDependencies ++=
+        In(Test)(
+          LucumaCoreTestkit.value ++
+            MUnit.value ++
+            Discipline.value
+        )
+    )
+    .enablePlugins(ScalaJSPlugin, NoPublishPlugin)
+
+lazy val ui_css = project
+  .in(file("ui/css"))
+  .dependsOn(ui_lib)
+  .enablePlugins(LucumaCssPlugin, NoPublishPlugin)
+  .settings(
+    createNpmProject := {
+      val _      = (Compile / lucumaCss).value
+      val cssDir = target.value / "lucuma-css"
+      IO.write(
+        cssDir / "package.json",
+        s"""|{
+          |  "name": "lucuma-ui-css",
+          |  "version": "${version.value}",
+          |  "license": "${licenses.value.head._1}",
+          |  "repository": {
+          |    "type": "git",
+          |    "url": "git+https://github.com/gemini-hlsw/lucuma-ui.git"
+          |  }
+          |}
+          |""".stripMargin
+      )
+      streams.value.log.info(s"Created NPM project in ${cssDir}")
+    },
+    npmPublish       := {
+      import scala.sys.process._
+      val cssDir = target.value / "lucuma-css"
+
+      val _ = createNpmProject.value
+      Process(List("npm", "publish"), cssDir).!!
+    }
+  )
+
+lazy val ui_demo =
+  project
+    .in(file("modules/ui/demo"))
+    .enablePlugins(ScalaJSPlugin, NoPublishPlugin, LucumaCssPlugin)
+    .dependsOn(ui_lib, ui_css)
+    .settings(
+      Compile / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+      Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
+        ModuleSplitStyle.FewestModules
+      )),
+      libraryDependencies ++=
+        ScalaJsReact.value ++
+          Log4CatsLogLevel.value ++
+          LucumaReact.value,
+      Keys.test := {}
+    )
+
+// BEGIN EXPLORE
 
 lazy val exploreCommonSettings = lucumaGlobalSettings ++ Seq(
   scalacOptions ~= (_.filterNot(Set("-Vtype-diffs")))
@@ -196,7 +300,7 @@ lazy val exploreCommonLibSettings = Seq(
       LucumaCore.value ++
       LucumaOdbSchema.value ++
       LucumaAgs.value ++
-      LucumaITCClient.value ++
+      LucumaItcClient.value ++
       Monocle.value ++
       Mouse.value ++
       Boopickle.value ++
@@ -239,7 +343,6 @@ lazy val exploreCommonJsLibSettings =
         ScalaCollectionContrib.value ++
         ScalaJsReact.value ++
         ScalaJSDom.value ++
-        LucumaUI.value ++
         In(Test)(ScalaJsReactTest.value),
     dependencyOverrides ++= ScalaJsReact.value
   )
@@ -296,7 +399,12 @@ lazy val explore_workers = project
 
 lazy val explore_common = project
   .in(file("explore/common"))
-  .dependsOn(explore_model.js, schemas_lib.js, explore_modelTestkit.js % Test)
+  .dependsOn(explore_model.js,
+             ui_lib,
+             schemas_lib.js,
+             explore_modelTestkit.js % Test,
+             ui_testkit              % Test
+  )
   .enablePlugins(ScalaJSPlugin, BuildInfoPlugin, LucumaAppPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
@@ -305,8 +413,7 @@ lazy val explore_common = project
     libraryDependencies ++=
       LucumaSsoFrontendClient.value ++
         LucumaCatalog.value ++
-        LucumaReact.value ++
-        In(Test)(LucumaUITestkit.value),
+        LucumaReact.value,
     buildInfoKeys    := Seq[BuildInfoKey](
       scalaVersion,
       sbtVersion,
@@ -348,7 +455,7 @@ lazy val explore_app: Project = project
     }
   )
 
-// START OBSERVE
+// BEGIN OBSERVE
 
 lazy val observeCommonSettings = Seq(
   Compile / packageDoc / mappings := Seq(),
@@ -388,27 +495,23 @@ lazy val observe_web_server = project
 
 lazy val observe_ui_model = project
   .in(file("modules/web/client-model"))
-  .dependsOn(schemas_lib.js)
+  .dependsOn(ui_lib, schemas_lib.js, ui_testkit % Test)
   .enablePlugins(ScalaJSPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(
     coverageEnabled := false,
     libraryDependencies ++=
       Crystal.value ++
-        LucumaUI.value ++
         LucumaCore.value ++
         Circe.value ++
         MUnit.value ++
-        In(Test)(
-          LucumaUITestkit.value ++
-            CrystalTestkit.value
-        )
+        In(Test)(CrystalTestkit.value)
   )
   .dependsOn(observe_model.js)
 
 lazy val observe_web_client = project
   .in(file("modules/web/client"))
-  .dependsOn(schemas_lib.js)
+  .dependsOn(ui_lib, schemas_lib.js)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, LucumaAppPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(esModule: _*)
@@ -423,7 +526,6 @@ lazy val observe_web_client = project
         Http4sClient.value ++
         Http4sDom.value ++
         Crystal.value ++
-        LucumaUI.value ++
         ScalaJsReact.value ++
         Cats.value ++
         CatsEffect.value ++
@@ -532,8 +634,8 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(
     // And add a custom one
     libraryDependencies ++=
-      JavaTimeJs.value ++
-        In(Test)(LucumaUITestkit.value),
+      JavaTimeJs.value,
+    // In(Test)(LucumaUITestkit.value),
     coverageEnabled := false
   )
 
@@ -841,8 +943,7 @@ ThisBuild / githubWorkflowPublishPreamble +=
 
 ThisBuild / githubWorkflowPublish ++= Seq(
   WorkflowStep.Sbt(
-    // List("css/npmPublish", "schemas_libJVM/npmPublish"),
-    List("schemas_libJVM/npmPublish"),
+    List("ui_css/npmPublish", "schemas_libJS/npmPublish"),
     name = Some("NPM Publish"),
     env = Map("NODE_AUTH_TOKEN" -> s"$${{ secrets.NPM_REPO_TOKEN }}"),
     cond = Some("startsWith(github.ref, 'refs/tags/v')")

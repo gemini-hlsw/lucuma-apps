@@ -246,6 +246,14 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-core-testkit")(lucumaCore)
   )
 
+  val LucumaOdbSchema = Def.setting(
+    deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
+  )
+
+  val LucumaPrimeStyles = Def.setting(
+    deps("edu.gemini" %%% "lucuma-prime-styles")(lucumaPrimeStyles)
+  )
+
   val LucumaReact = Def.setting(
     deps(
       "edu.gemini" %%% "lucuma-react-common",
@@ -265,14 +273,6 @@ object Dependencies {
     )(lucumaReact)
   )
 
-  val LucumaOdbSchema = Def.setting(
-    deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
-  )
-
-  val LucumaSchemasTestkit = Def.setting(
-    deps("edu.gemini" %%% "lucuma-schemas-testkit")(lucumaUiSchemas)
-  )
-
   val LucumaSsoFrontendClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-sso-frontend-client")(lucumaServers)
   )
@@ -281,15 +281,7 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-sso-backend-client")(lucumaServers)
   )
 
-  val LucumaUI = Def.setting(
-    deps("edu.gemini" %%% "lucuma-ui")(lucumaUiSchemas)
-  )
-
-  val LucumaUITestkit = Def.setting(
-    deps("edu.gemini" %%% "lucuma-ui-testkit")(lucumaUiSchemas)
-  )
-
-  val LucumaITCClient = Def.setting(
+  val LucumaItcClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-itc-client")(lucumaServers)
   )
 

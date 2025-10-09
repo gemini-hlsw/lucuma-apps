@@ -1,0 +1,143 @@
+// ------
+// Sequence tables
+// ------
+
+@use "lucuma-ui-common.scss" as lucumaUICommon;
+
+.pl-react-table.p-datatable.lucuma-sequence-table {
+  .p-datatable-thead > tr > th {
+    text-align: center;
+
+    &.lucuma-sequence-hidden-col-table-header {
+      padding: 0;
+      border: 0;
+    }
+  }
+
+  .p-datatable-tbody > tr {
+    &:not(.lucuma-sequence-row-has-extra) {
+      height: 25px;
+    }
+
+    &.lucuma-sequence-row-has-extra {
+      height: 60px;
+      vertical-align: top;
+    }
+
+    & > td {
+      padding-top: 0;
+      padding-bottom: 0;
+      border-left: 0;
+      text-align: center;
+
+      &.lucuma-sequence-extra-row-shown {
+        display: inline-block;
+        position: relative;
+        top: 24px;
+        padding: 0;
+        border: 0;
+      }
+    }
+  }
+
+  .p-datatable-tbody > tr:last-of-type > td {
+    border-bottom: 1px var(--surface-border) solid;
+  }
+}
+
+.lucuma-sequence-step-guided {
+  color: lightgreen;
+}
+
+.lucuma-sequence-step-type-object {
+  color: var(--green-500);
+}
+
+.lucuma-sequence-step-type-arc {
+  color: var(--purple-600);
+}
+
+.lucuma-sequence-step-type-flat {
+  color: var(--gray-600);
+}
+
+.lucuma-sequence-step-type-bias {
+  color: var(--teal-400);
+}
+
+.lucuma-sequence-step-type-dark {
+  color: var(--gray-900);
+}
+
+.lucuma-sequence-header {
+  display: flex;
+
+  &.lucuma-sequence-header-expandable {
+    cursor: pointer;
+  }
+
+  .lucuma-sequence-header-content {
+    flex-grow: 1;
+    padding: 0 10px;
+    font-size: 15px;
+    font-weight: bolder;
+
+    .lucuma-sequence-current-header {
+      display: flex;
+    }
+  }
+}
+
+.lucuma-sequence-visit-header {
+  display: flex;
+  justify-content: space-between;
+  color: var(--gray-600);
+
+  span {
+    @include lucumaUICommon.text-ellipsis;
+
+    &:first-child {
+      text-align: left;
+    }
+
+    &:not(:last-child) {
+      width: 23%;
+    }
+
+    &:last-child {
+      width: 8%;
+      text-align: right;
+    }
+  }
+}
+
+table tr {
+  .lucuma-sequence-visit-extraRow {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 1dvw;
+    align-items: center;
+    padding-left: 5%;
+
+    .lucuma-sequence-visit-extraRow-status {
+      .p-tag {
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    }
+
+    .lucuma-sequence-visit-extraRow-datasets {
+      flex-grow: 1;
+      text-align: left;
+
+      .lucuma-sequence-visit-extraRow-dataset-item {
+        margin-right: 2.5dvw;
+
+        .lucuma-sequence-visit-extraRow-dataset-qaStatus {
+          margin-left: 0.5dvw;
+        }
+      }
+    }
+  }
+}

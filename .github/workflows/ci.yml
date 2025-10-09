@@ -171,7 +171,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_REPO_TOKEN }}
-        run: sbt -v -J-Xmx6g schemas_libJVM/npmPublish
+        run: sbt -v -J-Xmx6g ui_css/npmPublish schemas_libJS/npmPublish
 
   validate-steward:
     name: Validate Steward Config

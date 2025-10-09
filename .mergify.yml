@@ -65,6 +65,22 @@ pull_request_rules:
       add:
       - common
       remove: []
+- name: Label css PRs
+  conditions:
+  - files~=^ui/css/
+  actions:
+    label:
+      add:
+      - css
+      remove: []
+- name: Label demo PRs
+  conditions:
+  - files~=^modules/ui/demo/
+  actions:
+    label:
+      add:
+      - demo
+      remove: []
 - name: Label deploy PRs
   conditions:
   - files~=^modules/deploy/
@@ -75,7 +91,7 @@ pull_request_rules:
       remove: []
 - name: Label lib PRs
   conditions:
-  - files~=^schemas/lib/
+  - files~=^/
   actions:
     label:
       add:
@@ -131,7 +147,7 @@ pull_request_rules:
       remove: []
 - name: Label testkit PRs
   conditions:
-  - files~=^schemas/testkit/
+  - files~=^/
   actions:
     label:
       add:
@@ -139,7 +155,7 @@ pull_request_rules:
       remove: []
 - name: Label tests PRs
   conditions:
-  - files~=^schemas/tests/
+  - files~=^/
   actions:
     label:
       add:
