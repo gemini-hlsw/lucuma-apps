@@ -950,7 +950,7 @@ ThisBuild / githubWorkflowPublishPreamble +=
       "node-version"          -> "24",
       "registry-url"          -> "https://registry.npmjs.org",
       "cache"                 -> "npm",
-      "cache-dependency-path" -> "schemas/lib/package-lock.json"
+      "cache-dependency-path" -> "schemas/package-lock.json"
     )
   )
 
