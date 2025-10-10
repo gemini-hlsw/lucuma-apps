@@ -9,9 +9,6 @@ import sbt.nio.file.FileTreeView
 
 name := "lucuma-apps"
 
-ThisBuild / tlBaseVersion       := "0.176"
-ThisBuild / tlCiReleaseBranches := Seq("main")
-
 ThisBuild / description        := "Lucuma Apps"
 Global / onChangedBuildSource  := ReloadOnSourceChanges
 ThisBuild / turbo              := true
@@ -473,7 +470,7 @@ lazy val observe_web_server = project
   .in(file("modules/web/server"))
   .dependsOn(observe_server)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
-  .enablePlugins(BuildInfoPlugin, LucumaAppPlugin, NoPublishPlugin)
+  .enablePlugins(BuildInfoPlugin, LucumaAppPlugin)
   .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
