@@ -62,7 +62,7 @@ trait CacheModifierUpdaters {
 
         ifPresentInServerOrLocally(obsUpdate)
       .getOrElse:
-        if (observationEdit.editType === EditType.DeletedCal)
+        if (observationEdit.editType === EditType.HardDelete)
           ProgramSummaries.observations.modify(_ - obsId)
         else identity
 
@@ -103,7 +103,7 @@ trait CacheModifierUpdaters {
                 _.removed(groupId)
               else
                 groupEdit.editType match
-                  case DeletedCal => _ - groupId
+                  case HardDelete => _ - groupId
                   case _          => _ + (groupId -> group)
             mod(groupList)
 
