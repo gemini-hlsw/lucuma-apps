@@ -456,6 +456,19 @@ type Bias implements StepConfig {
   stepType: StepType!
 }
 
+"""
+Whether the blind offset target will be automatically calculated or not.
+"""
+enum BlindOffsetType {
+  """The blind offset target will be automatically calculated."""
+  AUTOMATIC
+
+  """
+  A blind offset has been explictly selected, or an automatically selected one was edited.
+  """
+  MANUAL
+}
+
 """Stopping point in a series of steps"""
 enum Breakpoint {
   """Breakpoint Enabled"""
@@ -1063,8 +1076,10 @@ enum EditType {
   """EditType Updated"""
   UPDATED
 
-  """EditType Deleted. Used for hard deletion of calibrations"""
-  DELETED_CAL
+  """
+  EditType Deleted. Used for hard deletion of calibrations and blind offset targets
+  """
+  HARD_DELETE
 }
 
 """
@@ -2782,9 +2797,6 @@ input ObservationPropertiesInput {
 
   """Set the notes for  thhe observer"""
   observerNotes: NonEmptyString
-
-  """Whether blind offset is enabled for this observation"""
-  useBlindOffset: Boolean
 }
 
 """Observation times properties"""
@@ -4395,8 +4407,17 @@ input TargetEnvironmentInput {
   explicitBase: CoordinatesInput
   asterism: [TargetId!]
 
+  """Whether blind offset is enabled for this observation"""
+  useBlindOffset: Boolean
+
   """The target used for acquisition if a blind offset is needed."""
   blindOffsetTarget: TargetPropertiesInput
+
+  """
+  The type of blind offset (automatic or manual) if a blind offset exists.
+  Default = Manual
+  """
+  blindOffsetType: BlindOffsetType
 }
 
 """Target properties"""
@@ -6384,6 +6405,25 @@ enum Flamingos2Reads {
   READS_16
 }
 
+"""Telluric calibration type"""
+enum TelluricTag {
+  HOT
+  A0V
+  SOLAR
+  MANUAL
+}
+
+"""Telluric calibration type"""
+type TelluricType {
+  tag: TelluricTag!
+  starTypes: [String!]
+}
+
+input TelluricTypeInput {
+  tag: TelluricTag!
+  starTypes: [String!]
+}
+
 """Flamingos2 Long Slit mode"""
 type Flamingos2LongSlit {
   """Flamingos2 Disperser"""
@@ -6452,6 +6492,9 @@ type Flamingos2LongSlit {
   """
   explicitOffsets: [Offset!]
 
+  """Telluric type configuration for this observation."""
+  telluricType: TelluricType!
+
   """
   The disperser as it was initially selected.  See the `disperser` field for the
   disperser that will be used in the observation.
@@ -6512,6 +6555,11 @@ input Flamingos2LongSlitInput {
   The explicitOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
   """
   explicitOffsets: [OffsetInput!]
+
+  """
+  The telluricType field must be either specified or skipped altogether. It cannot be unset with a null value.
+  """
+  telluricType: TelluricTypeInput = {tag: HOT}
 }
 
 """Metadata for `enum FilterType`"""
@@ -8281,9 +8329,6 @@ type Observation {
   whether a pending update is expected.
   """
   workflow: CalculatedObservationWorkflow
-
-  """Whether blind offset is enabled for this observation"""
-  useBlindOffset: Boolean!
 }
 
 enum ExecutionState {
@@ -10717,7 +10762,7 @@ type TargetEnvironment {
   guideEnvironments(
     """The time used for the guide star calculations."""
     observationTime: Timestamp!
-  ): [GuideEnvironment!]!
+  ): [GuideEnvironment!]! @deprecated(reason: "use guideEnvironment instead")
 
   """
   The guide target(s) and related information.
@@ -10751,43 +10796,16 @@ type TargetEnvironment {
   """
   guideTargetName: NonEmptyString
 
+  """Whether blind offset is enabled for this observation"""
+  useBlindOffset: Boolean!
+
   """The target used for blind offset acquisition, if any"""
   blindOffsetTarget: Target
-}
 
-type TargetEnvironmentGroup {
-  """IDs of observations that use the same constraints"""
-  observationIds: [ObservationId!]!
-
-  """Observations associated with the common value"""
-  observations(
-    """Set to true to include deleted values"""
-    includeDeleted: Boolean! = false
-
-    """
-    Starts the result set at (or after if not existent) the given observation id.
-    """
-    OFFSET: ObservationId
-
-    """
-    Limits the result to at most this number of matches (but never more than 1000).
-    """
-    LIMIT: NonNegInt
-  ): ObservationSelectResult!
-
-  """Commonly held value across the observations"""
-  targetEnvironment: TargetEnvironment!
-}
-
-"""
-The matching targetEnvironmentGroup results, limited to a maximum of 1000 entries.
-"""
-type TargetEnvironmentGroupSelectResult {
-  """Matching targetEnvironmentGroups up to the return size limit of 1000"""
-  matches: [TargetEnvironmentGroup!]!
-
-  """`true` when there were additional matches that were not returned."""
-  hasMore: Boolean!
+  """
+  The type of blind offset (automatic or manual) if a blind offset exists.
+  """
+  blindOffsetType: BlindOffsetType!
 }
 
 type TargetGroup {
