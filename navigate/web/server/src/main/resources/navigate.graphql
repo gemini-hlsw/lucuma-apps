@@ -1,0 +1,524 @@
+#import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
+#import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
+#import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site from "lucuma/schemas/ObservationDB.graphql"
+
+"""Target properties input"""
+input TargetPropertiesInput {
+  id: TargetId!
+  name: NonEmptyString!
+  sidereal: SiderealInput
+  nonsidereal: NonsiderealInput
+  azel: AzElTargetInput
+  wavelength: WavelengthInput
+}
+
+input GuideTargetPropertiesInput {
+  name: NonEmptyString!
+  sidereal: SiderealInput
+  nonsidereal: NonsiderealInput
+}
+
+type Distance {
+    micrometers: Long!
+    millimeters: BigDecimal!
+}
+
+input DistanceInput {
+    micrometers: Long
+    millimeters: BigDecimal
+}
+
+input AzElTargetInput {
+    azimuth: AngleInput!
+    elevation: AngleInput!
+}
+
+type PointOrigin {
+    x: Angle!
+    y: Angle!
+}
+
+input PointOriginInput {
+    x: AngleInput!
+    y: AngleInput!
+}
+
+input InstrumentSpecificsInput {
+    iaa: AngleInput!
+    focusOffset: DistanceInput!
+    agName: String!
+    origin: PointOriginInput!
+}
+
+"""Slew Options input"""
+input SlewOptionsInput {
+    zeroChopThrow:            Boolean!
+    zeroSourceOffset:         Boolean!
+    zeroSourceDiffTrack:      Boolean!
+    zeroMountOffset:          Boolean!
+    zeroMountDiffTrack:       Boolean!
+    shortcircuitTargetFilter: Boolean!
+    shortcircuitMountFilter:  Boolean!
+    resetPointing:            Boolean!
+    stopGuide:                Boolean!
+    zeroGuideOffset:          Boolean!
+    zeroInstrumentOffset:     Boolean!
+    autoparkPwfs1:            Boolean!
+    autoparkPwfs2:            Boolean!
+    autoparkOiwfs:            Boolean!
+    autoparkGems:             Boolean!
+    autoparkAowfs:            Boolean!
+}
+
+enum ParkStatus {
+    NOT_PARKED
+    PARKED
+}
+
+enum FollowStatus {
+    NOT_FOLLOWING
+    FOLLOWING
+}
+
+type MechSystemState {
+    parked: ParkStatus!
+    follow: FollowStatus!
+}
+
+type TelescopeState {
+    mount: MechSystemState!
+    scs: MechSystemState!
+    crcs: MechSystemState!
+    pwfs1: MechSystemState!
+    pwfs2: MechSystemState!
+    oiwfs: MechSystemState!
+}
+
+type NavigateState {
+    onSwappedTarget: Boolean!
+}
+
+input GuiderConfig{
+    target: GuideTargetPropertiesInput!
+    tracking: ProbeTrackingInput!
+}
+
+input TcsConfigInput {
+    sourceATarget: TargetPropertiesInput!
+    instParams: InstrumentSpecificsInput!
+    pwfs1: GuiderConfig
+    pwfs2: GuiderConfig
+    oiwfs: GuiderConfig
+    rotator: RotatorTrackingInput!
+    instrument: Instrument!
+}
+
+input SwapConfigInput {
+    guideTarget: TargetPropertiesInput!
+    acParams: InstrumentSpecificsInput!
+    rotator: RotatorTrackingInput!
+}
+
+enum RotatorTrackingMode {
+    TRACKING
+    FIXED
+}
+
+input RotatorTrackingInput {
+    ipa: AngleInput!
+    mode: RotatorTrackingMode!
+}
+
+input ProbeTrackingInput {
+    nodAchopA: Boolean!
+    nodAchopB: Boolean!
+    nodBchopA: Boolean!
+    nodBchopB: Boolean!
+}
+
+type Target {
+  """Target ID"""
+  id: TargetId!
+
+  """Target name."""
+  name: NonEmptyString!
+
+  """Sidereal tracking information, if this is a sidereal target"""
+  sidereal: Sidereal
+
+  """Nonsidereal tracking information, if this is a nonsidereal target"""
+  nonsidereal: Nonsidereal
+}
+
+enum TipTiltSource {
+    PWFS1
+    PWFS2
+    OIWFS
+}
+
+enum M1CorrectionSource {
+    PWFS1
+    PWFS2
+    OIWFS
+}
+
+type GuideConfigurationState {
+    """M2 Tip-Tilt correction sources. An empty array means no corrections"""
+    m2Inputs: [TipTiltSource!]
+    """M2 coma correction enabled. Only valid if m2Inputs and m1Input are defined"""
+    m2Coma: Boolean
+    """M1 correction source. If it is not defined it means no M1 correction"""
+    m1Input: M1CorrectionSource
+    """Tip-tilt offload to the mount enabled"""
+    mountOffload: Boolean!
+    """Is PWFS1 integrating?"""
+    p1Integrating: Boolean!
+    """Is PWFS2 integrating?"""
+    p2Integrating: Boolean!
+    """Is OIWFS integrating?"""
+    oiIntegrating: Boolean!
+    """Is the AC/HRWFS integrating?"""
+    acIntegrating: Boolean!
+}
+
+input GuideConfigurationInput {
+    """M2 Tip-Tilt correction sources. An empty array means no corrections"""
+    m2Inputs: [TipTiltSource!]
+    """M2 coma correction enabled. Only valid if m2Inputs and m1Input are defined"""
+    m2Coma: Boolean
+    """M1 correction source. If it is not defined it means no M1 correction"""
+    m1Input: M1CorrectionSource
+    """Tip-tilt offload to the mount enabled"""
+    mountOffload: Boolean!
+    """Flag for day time tests. It sets all gains to 0"""
+    daytimeMode: Boolean!
+    """Probe names to be used for guiding"""
+    probeGuide: ProbeGuideInput
+}
+
+input ProbeGuideInput {
+    from: GuideProbe
+    to: GuideProbe
+}
+
+enum LogLevel {
+    ERROR
+    WARN
+    INFO
+    DEBUG
+    TRACE
+}
+
+type LogMessage {
+    timestamp: Timestamp!
+    level: LogLevel!
+    thread: String!
+    message: String!
+}
+
+enum OperationResult {
+    SUCCESS
+    FAILURE
+}
+
+type OperationOutcome {
+    result: OperationResult!
+    msg: String
+}
+
+type GuideQuality {
+    flux: Int!
+    centroidDetected: Boolean!
+}
+
+type GuidersQualityValues {
+    pwfs1: GuideQuality!
+    pwfs2: GuideQuality!
+    oiwfs: GuideQuality!
+}
+
+enum LightSource {
+    SKY
+    AO
+    GCAL
+}
+
+enum LightSink {
+    GMOS
+    NIRI_F6
+    NIRI_F14
+    NIRI_F32
+    AC
+    HR
+    GMOS_IFU
+    GNIRS
+    VISITOR
+    F2
+    GSAOI
+    GPI
+    GHOST
+    IGRINS2
+}
+
+enum AcquistionAdjustmentCommand {
+    """ Request the user to confirm the adjustment """
+    ASK_USER
+    """ User confirms to apply the adjustment """
+    USER_CONFIRMS
+    """ User cancels the adjustment """
+    USER_CANCELS
+}
+
+input AcquisitionAdjustmentInput {
+    offset: OffsetInput!
+    ipa: AngleInput
+    iaa: AngleInput
+    command: AcquistionAdjustmentCommand! = ASK_USER
+}
+
+type AcquisitionAdjustmentState {
+    offset: Offset!
+    ipa: Angle
+    iaa: Angle
+    command: AcquistionAdjustmentCommand!
+}
+
+type HorizontalOffset {
+    azimuth: Angle!
+    elevation: Angle!
+}
+
+input HorizontalOffsetInput {
+    azimuth: AngleInput!
+    elevation: AngleInput!
+}
+
+input FocalPlaneOffsetInput {
+    deltaX: AngleInput!
+    deltaY: AngleInput!
+}
+
+type FocalPlaneOffset {
+    deltaX: Angle!
+    deltaY: Angle!
+}
+
+input EquatorialOffsetInput {
+    deltaRA: AngleInput!
+    deltaDec: AngleInput!
+}
+
+input ProbeFrameOffsetInput {
+    probeFrame: GuideProbe!
+    deltaU: AngleInput!
+    deltaV: AngleInput!
+}
+
+input HandsetAdjustmentInput {
+    """ Azimuth/Elevation coordinate system """
+    horizontalAdjustment: HorizontalOffsetInput
+    """ Telescope focal plane coordinate system (X, Y)"""
+    focalPlaneAdjustment: FocalPlaneOffsetInput
+    """ Instrument coordinate system (P, Q) """
+    instrumentAdjustment: OffsetInput
+    """ Right Ascension/Declination coordinate system """
+    equatorialAdjustment: EquatorialOffsetInput
+    """ Offset applied in one of the probe's reference frame """
+    probeFrameAdjustment: ProbeFrameOffsetInput
+}
+
+type PointingCorrections {
+    local: HorizontalOffset!
+    guide: HorizontalOffset!
+}
+
+enum AdjustTarget {
+    SOURCE_A
+    PWFS1
+    PWFS2
+    OIWFS
+}
+
+type TargetOffsets {
+    sourceA: FocalPlaneOffset
+    pwfs1: FocalPlaneOffset
+    pwfs2: FocalPlaneOffset
+    oiwfs: FocalPlaneOffset
+}
+
+type ServerConfiguration {
+    version: String!
+    site: Site!
+    odbUri: String!
+    ssoUri: String!
+}
+
+enum AcLens {
+    AC
+    HRWFS
+}
+
+enum AcNdFilter {
+    OPEN
+    ND1
+    ND2
+    ND3
+    ND100
+    ND1000
+    FILT04
+    FILT06
+    FILT08
+}
+
+enum AcFilter {
+    NEUTRAL
+    U_RED1
+    B_BLUE
+    V_GREEN
+    R_RED2
+    I_RED3
+}
+
+enum AcWindowSize {
+    FULL
+    WINDOW_200X200
+    WINDOW_100X100
+}
+
+input AcWindowCenter {
+    x: Int
+    y: Int
+}
+
+input AcWindowInput {
+    type: AcWindowSize!
+    center: AcWindowCenter
+}
+
+type AcMechs {
+    lens: AcLens
+    filter: AcFilter
+    ndFilter: AcNdFilter
+}
+
+enum PwfsFilter {
+    NEUTRAL
+    BLUE
+    GREEN
+    RED
+    RED04
+    RED1
+}
+
+enum PwfsFieldStop {
+    PRISM
+    FS10
+    FS6_4
+    FS3_2
+    FS1_6
+    OPEN1
+    OPEN2
+    OPEN3
+    OPEN4
+}
+
+type PwfsMechsState {
+    filter: PwfsFilter
+    fieldStop: PwfsFieldStop
+}
+
+type Query {
+    telescopeState: TelescopeState!
+    guideState: GuideConfigurationState!
+    guidersQualityValues: GuidersQualityValues!
+    navigateState: NavigateState!
+    instrumentPort(instrument: Instrument!): Int
+    serverVersion: String
+    targetAdjustmentOffsets: TargetOffsets!
+    originAdjustmentOffset: FocalPlaneOffset!
+    pointingAdjustmentOffset: PointingCorrections!
+    serverConfiguration: ServerConfiguration!
+    acMechsState: AcMechs!
+    pwfs1MechsState: PwfsMechsState!
+    pwfs2MechsState: PwfsMechsState!
+}
+
+type Mutation {
+    mountPark: OperationOutcome!
+    mountFollow(enable: Boolean!): OperationOutcome!
+    rotatorPark: OperationOutcome!
+    rotatorFollow(enable: Boolean!): OperationOutcome!
+    scsFollow(enable: Boolean!): OperationOutcome!
+    slew(slewOptions: SlewOptionsInput!, config: TcsConfigInput!, obsId: ObservationId): OperationOutcome!
+    tcsConfig(config: TcsConfigInput!): OperationOutcome!
+    swapTarget(swapConfig: SwapConfigInput!): OperationOutcome!
+    restoreTarget(config: TcsConfigInput!): OperationOutcome!
+    instrumentSpecifics(instrumentSpecificsParams: InstrumentSpecificsInput!): OperationOutcome!
+    rotatorConfig(config: RotatorTrackingInput!): OperationOutcome!
+    pwfs1Filter(filter: PwfsFilter): OperationOutcome!
+    pwfs1FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
+    pwfs1Target(target: TargetPropertiesInput!): OperationOutcome!
+    pwfs1ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+    pwfs1Park: OperationOutcome!
+    pwfs1Follow(enable: Boolean!): OperationOutcome!
+    pwfs1Observe(period: TimeSpanInput!): OperationOutcome!
+    pwfs1StopObserve: OperationOutcome!
+    pwfs2Filter(filter: PwfsFilter): OperationOutcome!
+    pwfs2FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
+    pwfs2Target(target: TargetPropertiesInput!): OperationOutcome!
+    pwfs2ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+    pwfs2Park: OperationOutcome!
+    pwfs2Follow(enable: Boolean!): OperationOutcome!
+    pwfs2Observe(period: TimeSpanInput!): OperationOutcome!
+    pwfs2StopObserve: OperationOutcome!
+    oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
+    oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
+    oiwfsPark: OperationOutcome!
+    oiwfsFollow(enable: Boolean!): OperationOutcome!
+    oiwfsObserve(period: TimeSpanInput!): OperationOutcome!
+    oiwfsStopObserve: OperationOutcome!
+    acObserve(period: TimeSpanInput!): OperationOutcome!
+    acStopObserve: OperationOutcome!
+    guideEnable(config: GuideConfigurationInput!): OperationOutcome!
+    guideDisable: OperationOutcome!
+    m1Park: OperationOutcome!
+    m1Unpark: OperationOutcome!
+    m1OpenLoopOff: OperationOutcome!
+    m1OpenLoopOn: OperationOutcome!
+    m1ZeroFigure: OperationOutcome!
+    m1LoadAoFigure: OperationOutcome!
+    m1LoadNonAoFigure: OperationOutcome!
+    lightpathConfig(from: LightSource, to: LightSink): OperationOutcome!
+    acquisitionAdjustment(adjustment: AcquisitionAdjustmentInput!): OperationOutcome!
+    wfsSky(wfs: GuideProbe!, period: TimeSpanInput!): OperationOutcome!
+    adjustTarget(target: AdjustTarget!, offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
+    adjustPointing(offset: HandsetAdjustmentInput!): OperationOutcome!
+    adjustOrigin(offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!
+    resetTargetAdjustment(target: AdjustTarget!, openLoops: Boolean!): OperationOutcome!
+    absorbTargetAdjustment(target: AdjustTarget!): OperationOutcome!
+    resetLocalPointingAdjustment: OperationOutcome!
+    resetGuidePointingAdjustment: OperationOutcome!
+    absorbGuidePointingAdjustment: OperationOutcome!
+    resetOriginAdjustment(openLoops: Boolean!): OperationOutcome!
+    absorbOriginAdjustment: OperationOutcome!
+    acLens(lens: AcLens!): OperationOutcome!
+    acNdFilter(ndFilter: AcNdFilter!): OperationOutcome!
+    acFilter(filter: AcFilter!): OperationOutcome!
+    acWindowSize(size: AcWindowInput!): OperationOutcome!
+}
+
+type Subscription {
+    logMessage: LogMessage!
+    guideState: GuideConfigurationState!
+    guidersQualityValues: GuidersQualityValues!
+    telescopeState: TelescopeState!
+    navigateState: NavigateState!
+    acquisitionAdjustmentState: AcquisitionAdjustmentState!
+    targetAdjustmentOffsets: TargetOffsets!
+    originAdjustmentOffset: FocalPlaneOffset!
+    pointingAdjustmentOffset: PointingCorrections!
+    acMechsState: AcMechs!
+    pwfs1MechsState: PwfsMechsState!
+    pwfs2MechsState: PwfsMechsState!
+}
