@@ -168,11 +168,14 @@ object MainApp extends ServerEventHandler:
         wsConnection     <-
           useResourceOnMount: // wsConnection to server (1)
             Reconnect(
-              retryingOnAllErrors[WSConnectionHighLevel[IO]](
+              retryingOnErrors(
+                WebSocketClient[IO].connectHighLevel(WSRequest(EventWsUri))
+              )(
                 policy = WSRetryPolicy,
-                onError =
-                  (_: Throwable, _) => syncStatus.async.set(SyncStatus.OutOfSync.some).toResource
-              )(WebSocketClient[IO].connectHighLevel(WSRequest(EventWsUri))),
+                errorHandler = ResultHandler.retryOnAllErrors(log =
+                  (_, _) => syncStatus.async.set(SyncStatus.OutOfSync.some).toResource
+                )
+              ),
               _ => true.pure[IO]
             ).map(_.some)
         clientConfigPot  <- useStateView(Pot.pending[ClientConfig])

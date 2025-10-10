@@ -13,19 +13,20 @@ import java.util as ju
 import scala.concurrent.duration.*
 
 import ju.concurrent.TimeUnit
+import cats.effect.std.Random
 
 trait RetryHelpers:
-  def retryPolicy[F[_]: Applicative] =
+  def retryPolicy[F[_]: Applicative: Random] =
     capDelay(
       FiniteDuration.apply(5, TimeUnit.SECONDS),
       fullJitter[F](FiniteDuration.apply(10, TimeUnit.MILLISECONDS))
     ).join(limitRetries[F](12))
 
   def logError[F[_]: Logger](msg: String)(err: Throwable, details: RetryDetails): F[Unit] =
-    details match
-      case WillDelayAndRetry(_, retriesSoFar, _) =>
-        Logger[F].warn(err)(s"$msg failed - Will retry. Retries so far: [$retriesSoFar]")
-      case GivingUp(totalRetries, _)             =>
-        Logger[F].error(err)(s"$msg failed - Giving up after [$totalRetries] retries.")
+    details.nextStepIfUnsuccessful match
+      case NextStep.DelayAndRetry(_) =>
+        Logger[F].warn(err)(s"$msg failed - Will retry. Retries so far: [${details.retriesSoFar}]")
+      case NextStep.GiveUp           =>
+        Logger[F].error(err)(s"$msg failed - Giving up after [${details.retriesSoFar}] retries.")
 
 object RetryHelpers extends RetryHelpers

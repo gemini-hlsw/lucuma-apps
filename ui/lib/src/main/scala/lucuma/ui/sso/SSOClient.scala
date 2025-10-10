@@ -5,6 +5,7 @@ package lucuma.ui.sso
 
 import cats.Applicative
 import cats.effect.*
+import cats.effect.std.Random
 import cats.implicits.*
 import eu.timepit.refined.*
 import eu.timepit.refined.collection.NonEmpty
@@ -26,7 +27,7 @@ import java.util as ju
 
 case class JwtOrcidProfile(exp: Long, `lucuma-user`: User) derives Decoder
 
-case class SSOClient[F[_]: Async: Logger](config: SSOConfig):
+case class SSOClient[F[_]: Async: Random: Logger](config: SSOConfig):
   private val client = FetchClientBuilder[F]
     .withRequestTimeout(config.readTimeout)
     .withCredentials(RequestCredentials.include)
@@ -41,7 +42,7 @@ case class SSOClient[F[_]: Async: Logger](config: SSOConfig):
     }
 
   val guest: F[UserVault] =
-    retryingOnAllErrors(retryPolicy[F], logError[F]("Switching to guest")) {
+    retryingOnErrors {
       client.use(
         _.expect[String](Request[F](Method.POST, config.uri / "api" / "v1" / "auth-as-guest"))
           .map(body =>
@@ -57,10 +58,10 @@ case class SSOClient[F[_]: Async: Logger](config: SSOConfig):
               .getOrElse(throw new RuntimeException("Error decoding the token"))
           )
       )
-    }
+    }(retryPolicy[F], ResultHandler.retryOnAllErrors(log = logError[F]("Switching to guest")))
 
   val whoami: F[Option[UserVault]] =
-    retryingOnAllErrors(retryPolicy[F], logError[F]("Calling whoami")) {
+    retryingOnErrors {
       client
         .flatMap(_.run(Request[F](Method.POST, config.uri / "api" / "v1" / "refresh-token")))
         .use {
@@ -86,29 +87,29 @@ case class SSOClient[F[_]: Async: Logger](config: SSOConfig):
           case _                    =>
             Applicative[F].pure(none[UserVault])
         }
-    }
+    }(retryPolicy[F], ResultHandler.retryOnAllErrors(log = logError[F]("Calling whoami")))
       .adaptError { case t =>
         new Exception("Error connecting to authentication server.", t)
       }
 
   def switchRole(roleId: StandardRole.Id): F[Option[UserVault]] =
-    retryingOnAllErrors(retryPolicy[F], logError[F]("Switching role")) {
+    retryingOnErrors {
       client
         .flatMap(
           _.run(
-            Request(Method.GET,
-                    (config.uri / "auth" / "v1" / "set-role").withQueryParam("role", roleId.show)
+            Request(
+              Method.GET,
+              (config.uri / "auth" / "v1" / "set-role").withQueryParam("role", roleId.show)
             )
           )
         )
         .use_ *> whoami
-
-    }
+    }(retryPolicy[F], ResultHandler.retryOnAllErrors(log = logError[F]("Switching role")))
 
   val logout: F[Unit] =
-    retryingOnAllErrors(retryPolicy[F], logError[F]("Calling logout")) {
+    retryingOnErrors {
       client.flatMap(_.run(Request(Method.POST, config.uri / "api" / "v1" / "logout"))).use_
-    }
+    }(retryPolicy[F], ResultHandler.retryOnAllErrors(log = logError[F]("Calling logout")))
 
   val switchToORCID: F[Unit] =
     logout.attempt >> redirectToLogin
