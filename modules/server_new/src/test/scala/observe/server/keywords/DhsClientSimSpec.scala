@@ -28,3 +28,7 @@ class DhsClientSimSpec extends munit.CatsEffectSuite:
       _      <-
         client.setKeywords(id, KeywordBag(Int32Keyword(KeywordName.TELESCOP, 10)), finalFlag = true)
     } yield ()).assert
+
+  test("filter non-ASCII characters from string keywords"):
+    val keyword = StringKeyword(KeywordName.OBJECT, "Café\u0001Test")
+    assertEquals(keyword.stringValue, "CafTest")
