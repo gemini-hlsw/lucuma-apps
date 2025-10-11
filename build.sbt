@@ -765,7 +765,10 @@ lazy val navigate_epics = project
         EpicsCa.value ++
         MUnit.value ++
         LucumaCore.value ++
-        In(Test)(EpicsJca.value),
+        In(Test)(
+          MUnitCatsEffect.value ++
+            EpicsJca.value
+        ),
     Test / parallelExecution := false
   )
 
@@ -780,6 +783,7 @@ lazy val navigate_stateengine = project
         Fs2.value ++
         In(Test)(
           MUnit.value ++
+            MUnitCatsEffect.value ++
             CatsLaws.value
         )
   )
@@ -809,8 +813,11 @@ lazy val navigate_web_server = project
         JuliSlf4j.value ++
         Log4s.value ++
         Logback.value ++
-        MUnit.value ++
-        Grackle.value,
+        Grackle.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        ),
     // Supports launching the server in the background
     reStart / mainClass := Some("navigate.web.server.http4s.WebServerLauncher"),
     // Don't include configuration files in the JAR. We want them outside, so they are editable.
@@ -910,9 +917,12 @@ lazy val navigate_server = project
         Clue.value ++
         ClueHttp4s.value ++
         LucumaSsoBackendClient.value ++
-        MUnit.value ++
         LucumaCore.value ++
-        Http4sClient.value
+        Http4sClient.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        )
   )
 
 // BEGIN ALIASES
