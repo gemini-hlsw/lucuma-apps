@@ -17,8 +17,6 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Constants
-import explore.model.EmptyOpportunityTarget
-import explore.model.EmptySiderealTarget
 import explore.model.PopupState
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -52,11 +50,10 @@ case class TargetSelectionPopup(
   selectExistingIcon:  FontAwesomeIcon,
   selectNewLabel:      String,
   selectNewIcon:       FontAwesomeIcon,
-  trigger:             Button,
+  trigger:             Callback => VdomNode,
   onSelected:          TargetWithOptId => Callback,
   onCancel:            Callback = Callback.empty,
-  initialSearch:       Option[NonEmptyString] = None,
-  showCreateEmpty:     Boolean = true
+  initialSearch:       Option[NonEmptyString] = None
 ) extends ReactFnProps(TargetSelectionPopup.component)
 
 object SearchingState extends NewBoolean { inline def Searching = True; inline def Idle = False }
@@ -216,7 +213,7 @@ object TargetSelectionPopup:
               .orEmpty
 
         React.Fragment(
-          props.trigger.copy(onClick = props.trigger.onClick >> onOpen),
+          props.trigger(onOpen),
           Dialog(
             closable = false,
             clazz = ExploreStyles.TargetSearchForm |+| LucumaPrimeStyles.Dialog.Large,
@@ -227,37 +224,7 @@ object TargetSelectionPopup:
                 icon = Icons.Close,
                 severity = Button.Severity.Danger,
                 onClick = isOpen.setState(PopupState.Closed) >> props.onCancel
-              ).small,
-              <.span(
-                Button(
-                  label = "Create Empty Sidereal Target",
-                  icon = Icons.New,
-                  severity = Button.Severity.Success,
-                  onClick = {
-                    val target = NonEmptyString
-                      .from(inputValue.get)
-                      .toOption
-                      .fold(EmptySiderealTarget)(s => EmptySiderealTarget.copy(name = s))
-                    props
-                      .onSelected(TargetWithOptId(none, target))
-                      .flatTap(_ => isOpen.setState(PopupState.Closed))
-                  }
-                ).small.when(props.showCreateEmpty),
-                Button(
-                  label = "Create Empty Target of Opportunity",
-                  icon = Icons.New,
-                  severity = Button.Severity.Success,
-                  onClick = {
-                    val target = NonEmptyString
-                      .from(inputValue.get)
-                      .toOption
-                      .fold(EmptyOpportunityTarget)(s => EmptyOpportunityTarget.copy(name = s))
-                    props
-                      .onSelected(TargetWithOptId(none, target))
-                      .flatTap(_ => isOpen.setState(PopupState.Closed))
-                  }
-                ).small.when(props.showCreateEmpty)
-              )
+              ).small
             ),
             position = DialogPosition.Top,
             visible = isOpen.value.value,
