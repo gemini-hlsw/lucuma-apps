@@ -513,8 +513,10 @@ lazy val observe_ui_model = project
       Crystal.value ++
         LucumaCore.value ++
         Circe.value ++
-        MUnit.value ++
-        In(Test)(CrystalTestkit.value)
+        In(Test)(
+          MUnit.value ++
+            CrystalTestkit.value
+        )
   )
 
 lazy val observe_web_client = project
@@ -588,7 +590,6 @@ lazy val observe_server = project
         Acm.value ++
         GiapiScala.value ++
         Coulomb.value ++
-        MUnit.value ++
         Http4sServer.value ++
         Http4sJdkClient.value ++
         PureConfig.value ++
@@ -596,7 +597,10 @@ lazy val observe_server = project
         Circe.value ++
         Natchez.value ++
         CatsEffect.value ++
-        In(Test)(Log4CatsNoop.value),
+        In(Test)(
+          MUnit.value ++
+            Log4CatsNoop.value
+        ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "modules/server_new"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
@@ -632,12 +636,12 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
         Http4sLaws.value ++
         LucumaOdbSchema.value ++
         Coulomb.value ++
-        MUnit.value ++
         Monocle.value ++
         LucumaCore.value ++
         Circe.value ++
         In(Test)(
-          CoulombTestkit.value ++
+          MUnit.value ++
+            CoulombTestkit.value ++
             Discipline.value ++
             CatsEffectLaws.value ++
             CatsEffectTestkit.value
@@ -763,10 +767,10 @@ lazy val navigate_epics = project
         Mouse.value ++
         Fs2.value ++
         EpicsCa.value ++
-        MUnit.value ++
         LucumaCore.value ++
         In(Test)(
-          MUnitCatsEffect.value ++
+          MUnit.value ++
+            MUnitCatsEffect.value ++
             EpicsJca.value
         ),
     Test / parallelExecution := false
@@ -878,10 +882,10 @@ lazy val navigate_model = project
       Mouse.value ++
         Http4sCore.value ++
         CatsTime.value ++
-        MUnit.value ++
         Monocle.value ++
         LucumaCore.value ++
-        Circe.value
+        Circe.value ++
+        In(Test)(MUnit.value)
   )
 
 lazy val navigate_schema_util = project
@@ -892,10 +896,10 @@ lazy val navigate_schema_util = project
       CatsEffect.value ++
         Fs2.value ++
         Log4Cats.value ++
-        MUnit.value ++
         LucumaCore.value ++
         Http4sClient.value ++
-        Grackle.value
+        Grackle.value ++
+        In(Test)(MUnit.value)
   )
 
 lazy val navigate_server = project
