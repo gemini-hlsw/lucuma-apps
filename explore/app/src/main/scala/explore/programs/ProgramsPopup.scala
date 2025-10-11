@@ -147,6 +147,15 @@ object ProgramsPopup:
         header = "Programs",
         footer = programInfosViewOpt.map: pis =>
           React.Fragment(
+            props.message.map(msg =>
+              <.div(
+                ExploreStyles.ProgramsPopupWarn,
+                Message(text = msg,
+                        severity = Message.Severity.Warning,
+                        icon = Icons.ExclamationTriangle
+                )
+              )
+            ),
             Button(
               label = "Program",
               icon = Icons.New,
@@ -180,7 +189,4 @@ object ProgramsPopup:
               newProgramId.get,
               virtualizerRef
             ),
-        props.message.map(msg =>
-          Message(text = msg, severity = Message.Severity.Warning, icon = Icons.ExclamationTriangle)
-        )
       )
