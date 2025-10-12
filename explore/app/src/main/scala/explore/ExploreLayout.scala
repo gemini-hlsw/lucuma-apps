@@ -126,7 +126,7 @@ object ExploreLayout:
                     <.a(
                       ExploreStyles.UpgradeLink,
                       "Explore",
-                      ^.href   := s"https://github.com/gemini-hlsw/explore/compare/${utils.gitHash.orEmpty}...HEAD",
+                      ^.href   := s"https://github.com/gemini-hlsw/lucuma-apps/compare/${utils.gitHash.orEmpty}...HEAD",
                       ^.target := "_blank"
                     ),
                     " is available!"
