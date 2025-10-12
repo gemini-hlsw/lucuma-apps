@@ -31,6 +31,7 @@ import lucuma.core.model.Semester
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
+import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.datepicker.*
 import lucuma.react.primereact.Button
@@ -277,7 +278,8 @@ object ElevationPlotTile:
             SelectButtonMultipleEnumView(
               "elevation-plot-visible-series".refined,
               visiblePlotsView,
-              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
+              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
+              itemClass = (seriesType: SeriesType) => Css(s"series-${seriesType.cssClass}")
             ).when: // Only show series selector if it's a night or full dy
               rangeView.get === PlotRange.Night || rangeView.get === PlotRange.FullDay
             ,
