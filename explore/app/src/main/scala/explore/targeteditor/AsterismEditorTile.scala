@@ -343,7 +343,7 @@ object AsterismEditorTile:
                   (props.obsEditInfo, props.obsEditInfo.map(_.unExecuted.getOrElse(props.obsIds)))
                     .mapN: (obsEditInfo, unexecutedObs) =>
                       targetSelectionPopup(
-                        "Add",
+                        "Target",
                         props.programId,
                         unexecutedObs,
                         props.obsAndTargets,

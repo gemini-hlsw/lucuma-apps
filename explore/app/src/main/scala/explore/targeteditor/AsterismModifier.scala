@@ -8,6 +8,8 @@ import cats.syntax.all.*
 import crystal.react.*
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.EmptyOpportunityTarget
+import explore.model.EmptySiderealTarget
 import explore.model.ObsIdSet
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
@@ -21,6 +23,8 @@ import japgolly.scalajs.react.*
 import lucuma.core.model.Program
 import lucuma.react.common.Css
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.MenuItem
+import lucuma.react.primereact.SplitButton
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.ui.primereact.*
@@ -71,6 +75,34 @@ trait AsterismModifier:
   )(using
     Logger[IO]
   ): TargetSelectionPopup =
+    def insertTargetCB(targetWithOptId: TargetWithOptId): Callback =
+      insertTarget(programId, obsIds, obsAndTargets, targetWithOptId, onAsterismUpdate)
+        .switching(adding.async, AreAdding(_))
+        .runAsync
+
+    val menuItems = List(
+      MenuItem.Item("Empty Sidereal Target",
+                    icon = Icons.Star,
+                    command = insertTargetCB(TargetWithOptId(none, EmptySiderealTarget))
+      ),
+      MenuItem.Item("Empty Target of Opportunity",
+                    icon = Icons.HourglassClock,
+                    command = insertTargetCB(TargetWithOptId(none, EmptyOpportunityTarget))
+      )
+    )
+
+    def triggerButton(openPopup: Callback) =
+      SplitButton(
+        model = menuItems,
+        onClick = openPopup,
+        severity = Button.Severity.Success,
+        icon = Icons.New,
+        disabled = readOnly || adding.get.value,
+        loading = adding.get.value,
+        label = label,
+        clazz = buttonClass |+| ExploreStyles.Hidden.when_(readOnly)
+      ).tiny.compact
+
     TargetSelectionPopup(
       "Add Target",
       TargetSource.FromProgram[IO](programId) :: TargetSource.forAllCatalogs[IO],
@@ -78,20 +110,6 @@ trait AsterismModifier:
       selectExistingIcon = Icons.Link,
       selectNewLabel = "Add",
       selectNewIcon = Icons.New,
-      trigger = Button(
-        severity = Button.Severity.Success,
-        icon = Icons.New,
-        disabled = readOnly || adding.get.value,
-        loading = adding.get.value,
-        label = label,
-        clazz = buttonClass |+| ExploreStyles.Hidden.when_(readOnly)
-      ).tiny.compact,
-      onSelected = targetWithOptId =>
-        insertTarget(
-          programId,
-          obsIds,
-          obsAndTargets,
-          targetWithOptId,
-          onAsterismUpdate
-        ).switching(adding.async, AreAdding(_)).runAsync
+      trigger = triggerButton,
+      onSelected = insertTargetCB
     )

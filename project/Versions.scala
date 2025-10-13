@@ -37,7 +37,7 @@ object Versions {
   val lucumaBC               = "0.4.0"
   val lucumaCore             = "0.147.1"
   val lucumaPrimeStyles      = "0.5.0"
-  val lucumaReact            = "0.85.1"
+  val lucumaReact            = "0.85.2"
   val lucumaServers          = "0.51.0"
   val monocle                = "3.3.0"
   val mouse                  = "1.3.2"

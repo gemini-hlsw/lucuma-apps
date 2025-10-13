@@ -48,8 +48,8 @@ object SearchForm:
       .withHooks[Props]
       .useContext(AppContext.ctx)
       .useStateViewBy((props, _) => props.targetName.get) // term
-      .useState(true) // enabled
-      .useState(none[NonEmptyString]) // error
+      .useState(true)                                     // enabled
+      .useState(none[NonEmptyString])                     // error
       .useEffectWithDepsBy((props, _, _, _, _) => props.targetName.get)((_, _, term, enabled, _) =>
         name => term.set(name) >> enabled.setState(true)
       )
@@ -104,18 +104,18 @@ object SearchForm:
               Icons.Ban,
               "Fetch",
               Icons.ArrowDownLeft,
-              trigger = Button(
-                severity = Button.Severity.Success,
-                disabled = props.cloningTarget || props.searching.get.nonEmpty,
-                icon = Icons.Search,
-                loading = props.searching.get.nonEmpty,
-                onClick = onButtonClick,
-                modifiers = List(^.untypedRef := buttonRef)
-              ).tiny.compact,
+              trigger = openPopup =>
+                Button(
+                  severity = Button.Severity.Success,
+                  disabled = props.cloningTarget || props.searching.get.nonEmpty,
+                  icon = Icons.Search,
+                  loading = props.searching.get.nonEmpty,
+                  onClick = onButtonClick >> openPopup,
+                  modifiers = List(^.untypedRef := buttonRef)
+                ).tiny.compact,
               onSelected = targetWithId => props.targetSet(targetWithId.target) >> searchComplete,
               onCancel = updateNameIfNeeded >> searchComplete,
-              initialSearch = term.get.some,
-              showCreateEmpty = false
+              initialSearch = term.get.some
             )
           else Icons.Ban
 
