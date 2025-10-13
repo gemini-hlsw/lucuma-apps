@@ -1967,6 +1967,13 @@ svg.fa-check.explore-success-icon {
     height: 200px;
   }
 
+  .programs-popup-warning {
+    padding-bottom: 0.5em;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
   .program-name {
     @include lucumaUICommon.text-ellipsis;
 
