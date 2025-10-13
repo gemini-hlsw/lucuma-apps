@@ -272,7 +272,7 @@ lazy val ui_css = project
 
 lazy val ui_demo =
   project
-    .in(file("modules/ui/demo"))
+    .in(file("observe/ui/demo"))
     .enablePlugins(ScalaJSPlugin, LucumaCssPlugin)
     .dependsOn(ui_lib, ui_css)
     .settings(
@@ -472,7 +472,7 @@ lazy val observeCommonSettings = Seq(
 )
 
 lazy val observe_web_server = project
-  .in(file("modules/web/server"))
+  .in(file("observe/web/server"))
   .dependsOn(observe_server)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin)
@@ -502,7 +502,7 @@ lazy val observe_web_server = project
   )
 
 lazy val observe_ui_model = project
-  .in(file("modules/web/client-model"))
+  .in(file("observe/web/client-model"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, ui_testkit % Test)
   .enablePlugins(ScalaJSPlugin)
   .settings(lucumaGlobalSettings: _*)
@@ -519,7 +519,7 @@ lazy val observe_ui_model = project
   )
 
 lazy val observe_web_client = project
-  .in(file("modules/web/client"))
+  .in(file("observe/web/client"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, NoPublishPlugin)
   .settings(lucumaGlobalSettings: _*)
@@ -564,7 +564,7 @@ lazy val observe_web_client = project
   )
 
 lazy val observe_server = project
-  .in(file("modules/server_new"))
+  .in(file("observe/server_new"))
   .dependsOn(schemas_lib.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, CluePlugin)
@@ -594,7 +594,7 @@ lazy val observe_server = project
             Log4CatsNoop.value
         ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
-      "modules/server_new"
+      "observe/server_new"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
   )
   .settings(
@@ -618,7 +618,7 @@ lazy val observe_server = project
 // We have to define the project properties at this level
 lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Full)
-  .in(file("modules/model"))
+  .in(file("observe/model"))
   .settings(
     libraryDependencies ++=
       Mouse.value ++
@@ -687,7 +687,7 @@ lazy val observeLinux = Seq(
  * Project for the observe server app for development
  */
 lazy val observe_deploy = project
-  .in(file("modules/deploy"))
+  .in(file("observe/deploy"))
   .dependsOn(observe_web_server)
   .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
   .settings(observeDeployedAppMappings: _*)
@@ -1053,7 +1053,7 @@ lazy val exploreSetupNodeNpmInstall =
         params = Map(
           "node-version"          -> "24",
           "cache"                 -> "npm",
-          "cache-dependency-path" -> "modules/web/client/package-lock.json"
+          "cache-dependency-path" -> "observe/web/client/package-lock.json"
         )
       ),
       // Observe NPM cache
@@ -1063,12 +1063,12 @@ lazy val exploreSetupNodeNpmInstall =
         id = Some("observe-cache-node_modules"),
         params = {
           val prefix = "node_modules"
-          val key    = s"$prefix-$${{ hashFiles('modules/web/client/package-lock.json') }}"
+          val key    = s"$prefix-$${{ hashFiles('observe/web/client/package-lock.json') }}"
           Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
         }
       ),
       WorkflowStep.Run(
-        List("cd modules/web/client", "npm clean-install --verbose"),
+        List("cd observe/web/client", "npm clean-install --verbose"),
         name = Some("npm clean-install"),
         cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
       )

@@ -14,8 +14,6 @@ logs/
 yarn.lock
 .tags*
 .java-version
-!modules/web/package.json
-!modules/web/client/package.json
 calibrations/
 .metals/
 .bloop/

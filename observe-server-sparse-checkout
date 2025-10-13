@@ -1,11 +1,11 @@
 /*
 !/*/
-/modules/
-!/modules/*/
+/observe/
+!/observe/*/
 /schemas/
 !/schemas/*/
-/modules/model/
-/modules/server_new/
+/observe/model/
+/observe/server_new/
 /project/
 /schemas/lib/
 /schemas/model/

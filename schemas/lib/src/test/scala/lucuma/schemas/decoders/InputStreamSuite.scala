@@ -13,7 +13,7 @@ import munit.CatsEffectSuite
 trait InputStreamSuite extends CatsEffectSuite {
 
   def jsonResult(jsonFile: String): IO[Json] = {
-    val path = Path(s"modules/schemas/lucuma-schemas/src/test/resources") / jsonFile
+    val path = Path(s"schemas/lib/src/test/resources") / jsonFile
 
     Files[IO].readUtf8(path).compile.string.flatMap { str =>
       IO.fromEither(parse(str))
