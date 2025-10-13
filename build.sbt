@@ -827,7 +827,7 @@ lazy val navigate_web_server = project
         npmDir / "package.json",
         s"""|{
             |  "name": "navigate-server-schema",
-            |  "version": s"${gitDescribedVersion.value.getOrElse("0.0.0")}",
+            |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
             |  "license": "${licenses.value.head._1}"
             |}
             |""".stripMargin
