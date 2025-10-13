@@ -81,7 +81,6 @@ lazy val root = tlCrossRootProject.aggregate(
   navigate_server,
   navigate_web_server,
   navigate_model
-  // navigate_deploy // TODO REVISE INTEGRATING WITH sbt-lucuma-docker
 )
 
 // BEGIN SCHEMAS
@@ -414,7 +413,7 @@ lazy val explore_common = project
     explore_modelTestkit.js % Test,
     ui_testkit              % Test
   )
-  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin, LucumaAppPlugin)
+  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(exploreCommonModuleTest: _*)
@@ -435,7 +434,7 @@ lazy val explore_common = project
 lazy val explore_app: Project = project
   .in(file("explore/app"))
   .dependsOn(explore_model.js, explore_common)
-  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, LucumaAppPlugin)
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(esModule: _*)
@@ -476,7 +475,7 @@ lazy val observe_web_server = project
   .in(file("modules/web/server"))
   .dependsOn(observe_server)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
-  .enablePlugins(BuildInfoPlugin, LucumaAppPlugin)
+  .enablePlugins(BuildInfoPlugin)
   .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
@@ -522,14 +521,7 @@ lazy val observe_ui_model = project
 lazy val observe_web_client = project
   .in(file("modules/web/client"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
-  .enablePlugins(
-    ScalaJSPlugin,
-    LucumaCssPlugin,
-    CluePlugin,
-    BuildInfoPlugin,
-    LucumaAppPlugin,
-    NoPublishPlugin
-  )
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, NoPublishPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(esModule: _*)
   .settings(
@@ -575,7 +567,7 @@ lazy val observe_server = project
   .in(file("modules/server_new"))
   .dependsOn(schemas_lib.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
-  .enablePlugins(BuildInfoPlugin, CluePlugin, LucumaAppPlugin)
+  .enablePlugins(BuildInfoPlugin, CluePlugin)
   .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
@@ -659,7 +651,7 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
 /**
  * Mappings common to applications, including configurations and web application.
  */
-lazy val deployedAppMappings = Seq(
+lazy val observeDeployedAppMappings = Seq(
   Universal / mappings ++= {
     val clientDir: File                         = (observe_web_client / buildJsModule).value
     val clientMappings: Seq[(File, String)]     =
@@ -697,8 +689,8 @@ lazy val observeLinux = Seq(
 lazy val observe_deploy = project
   .in(file("modules/deploy"))
   .dependsOn(observe_web_server)
-  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging, LucumaAppPlugin)
-  .settings(deployedAppMappings: _*)
+  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
+  .settings(observeDeployedAppMappings: _*)
   .settings(observeCommonSettings: _*)
   .settings(
     description          := "Observe Server",
@@ -929,6 +921,40 @@ lazy val navigate_server = project
         )
   )
 
+lazy val navigateDeployedAppMappings = Seq(
+  // Copy the resource directory, with customized configuration files, but first remove existing mappings.
+  Universal / mappings ++= { // maps =>
+    val siteConfigDir: File                     = (ThisProject / baseDirectory).value / "conf"
+    val siteConfigMappings: Seq[(File, String)] = directory(siteConfigDir).map(path =>
+      path._1 -> ("conf/" + path._1.relativeTo(siteConfigDir).get.getPath)
+    )
+    siteConfigMappings
+  }
+)
+
+/**
+ * Project for the navigate server app for development
+ */
+lazy val navigate_deploy = project
+  .in(file("navigate/deploy"))
+  .dependsOn(navigate_web_server)
+  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
+  .settings(
+    description              := "Navigate server",
+    Docker / packageName     := "gpp-nav-server",
+    // Main class for launching
+    Compile / mainClass      := Some("navigate.web.server.http4s.WebServerLauncher"),
+    // Name of the launch script
+    executableScriptName     := "navigate-server",
+    // Specify a different name for the config file
+    bashScriptConfigLocation := Some("${app_home}/../conf/launcher.args"),
+    bashScriptExtraDefines += """addJava "-Dlogback.configurationFile=${app_home}/../conf/$SITE/logback.xml"""",
+    // Additional launch options, -J params will be added as jvm parameters
+    Universal / javaOptions ++= Seq("-J-Xmx1024m", "-J-Xms256m")
+  )
+  .settings(navigateDeployedAppMappings: _*)
+  .settings(navigateCommonSettings: _*)
+
 // BEGIN ALIASES
 
 val lintCSS = TaskKey[Unit]("lintCSS", "Lint CSS files")
@@ -1056,10 +1082,16 @@ lazy val dockerHubLogin =
     name = Some("Login to Docker Hub")
   )
 
-lazy val sbtDockerPublish =
+lazy val sbtDockerPublishObserve =
   WorkflowStep.Sbt(
     List("clean", "observe_deploy/docker:publish"),
-    name = Some("Build and Publish Docker image")
+    name = Some("Build and Publish Observe Docker image")
+  )
+
+lazy val sbtDockerPublishNavigate =
+  WorkflowStep.Sbt(
+    List("clean", "navigate_deploy/docker:publish"),
+    name = Some("Build and Publish Navigate Docker image")
   )
 
 lazy val herokuRelease =
@@ -1141,21 +1173,6 @@ ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
-    "observe-deploy",
-    "Build and publish Observe Docker image / Deploy to Heroku",
-    githubWorkflowJobSetup.value.toList :::
-      observeSetupNodeNpmInstall :::
-      dockerHubLogin ::
-      sbtDockerPublish ::
-      herokuRelease ::
-      Nil,
-    scalas = List(scalaVersion.value),
-    javas = githubWorkflowJavaVersions.value.toList.take(1),
-    cond = Some(allConds(mainCond, geminiRepoCond))
-  )
-
-ThisBuild / githubWorkflowAddedJobs +=
-  WorkflowJob(
     "explore-deploy",
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
@@ -1175,7 +1192,33 @@ ThisBuild / githubWorkflowAddedJobs +=
     cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   )
 
-// TODO ADD NEW JOB! We are not publishing anymore
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "observe-deploy",
+    "Build and publish Observe Docker image / Deploy to Heroku",
+    githubWorkflowJobSetup.value.toList :::
+      observeSetupNodeNpmInstall :::
+      dockerHubLogin ::
+      sbtDockerPublishObserve ::
+      herokuRelease ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "navigate-deploy",
+    "Build and publish Navigate Docker image",
+    githubWorkflowJobSetup.value.toList :::
+      dockerHubLogin ::
+      sbtDockerPublishNavigate ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
 
 ThisBuild / githubWorkflowPublishPreamble +=
   WorkflowStep.Use(
