@@ -4,10 +4,11 @@ This repository contains the Scala user apps and support libs of GPP:
 
 ## libs
 
-- `lucuma-schemas`: Common code to work with ODB. Contains the ODB schema, `clue`-generated code to work with it, `circe` codecs, commonly used queries and support classes.
+- [`lucuma-schemas`](schemas/README.md): Common code to work with ODB. Contains the ODB schema, `clue`-generated code to work with it, `circe` codecs, commonly used queries and support classes.
 - `lucuma-ui`: Common code to all UIs. Namely, the apps listed below.
 
 ## apps
 
-- `explore`
-- `observe`
+- [`explore`](explore/README.md)
+- [`observe`](modules/README.md)
+- [`navigate-server`](navigate/README.md)
