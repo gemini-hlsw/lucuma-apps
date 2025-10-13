@@ -521,7 +521,15 @@ object SeqTranslate {
                 case ActionState.Paused(c: ObserveContext[F] @unchecked) =>
                   Stream
                     .eval(
-                      Event.actionResume(seqId, i, l(c).handleErrorWith(catchObsErrors[F])).pure[F]
+                      Event
+                        .actionResume(seqId,
+                                      i,
+                                      c
+                                        .progress(ElapsedTime(c.expTime))
+                                        .mergeHaltR(l(c))
+                                        .handleErrorWith(catchObsErrors[F])
+                        )
+                        .pure[F]
                     )
                     .some
                 case _                                                   => none

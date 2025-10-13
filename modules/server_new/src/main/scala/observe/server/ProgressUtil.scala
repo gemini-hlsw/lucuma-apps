@@ -8,6 +8,7 @@ import cats.effect.Temporal
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.util.TimeSpan
+import mouse.boolean.*
 import observe.model.ObserveStage
 
 import scala.concurrent.duration.FiniteDuration
@@ -64,7 +65,10 @@ object ProgressUtil {
    * Simulated countdown with simulated observation stage
    */
   def obsCountdown[F[_]: Temporal](total: TimeSpan, elapsed: TimeSpan): Stream[F, Progress] =
-    Stream.emit(ObsProgress(total, RemainingTime(total), ObserveStage.Preparing)) ++
+    (elapsed === TimeSpan.Zero).fold(
+      Stream.emit(ObsProgress(total, RemainingTime(total), ObserveStage.Preparing)),
+      Stream.empty
+    ) ++
       countdown[F](total, elapsed) ++
       Stream.emit(ObsProgress(total, RemainingTime(TimeSpan.Zero), ObserveStage.ReadingOut))
 
