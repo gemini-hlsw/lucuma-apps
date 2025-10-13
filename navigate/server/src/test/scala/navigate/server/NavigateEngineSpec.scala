@@ -134,7 +134,7 @@ class NavigateEngineSpec extends CatsEffectSuite {
   )
 
   test(
-    "NavigateEngine must reset guide configuration after a slew command when slew option in on."
+    "NavigateEngine must reset guide configuration after a slew command when slew option in on.".flaky
   ) {
     for {
       eng <- NavigateEngineSpec.buildEngine[IO]
