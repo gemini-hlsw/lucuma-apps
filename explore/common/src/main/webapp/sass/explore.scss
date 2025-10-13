@@ -2766,11 +2766,17 @@ $help-title-height: 40px;
 }
 
 .elevation-plot {
+  --moon-phase-scale: 1;
+
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   background-color: var(--plot-background-color);
   color: var(--plot-text-color);
+
+  .moon-phase {
+    transform: scale(var(--moon-phase-scale));
+  }
 
   .highcharts-xaxis .highcharts-axis-title {
     fill: hsl(0deg 87% 66%);
@@ -2788,17 +2794,81 @@ $help-title-height: 40px;
 }
 
 .elevation-plot-controls {
+  --layout-gap: 0.5em;
+
   display: flex;
   flex-wrap: wrap;
+  gap: var(--layout-gap);
   justify-content: space-around;
   align-items: center;
   background-color: var(--plot-background-color);
   color: var(--plot-text-color);
+
+  // Ensure all button groups have consistent height
+  .p-selectbutton,
+  .p-togglebutton,
+  .elevation-plot-datepicker-controls {
+    align-items: center;
+  }
+
+  // Set base line-height for all buttons once
+  .p-button {
+    line-height: 1.2;
+  }
+}
+
+@container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
+  .elevation-plot {
+    --moon-phase-scale: 0.8;
+  }
+
+  .elevation-plot-controls {
+    --layout-gap: 0.3em;
+
+    .p-selectbutton,
+    .p-togglebutton {
+      .p-button {
+        padding: 0.3em 0.5em;
+      }
+    }
+
+    // Abbreviate button labels
+    // https://joyheron.com/css-content-breakpoints
+    #elevation-plot-visible-series .p-button {
+      .p-button-label {
+        font-size: 0;
+        line-height: 0;
+
+        &::after {
+          font-size: var(--pl-tiny-font-size);
+          line-height: 1.2;
+        }
+      }
+
+      &.series-elevation .p-button-label::after {
+        content: 'Elev..';
+      }
+
+      &.series-parallactic-angle .p-button-label::after {
+        content: 'PA';
+      }
+
+      &.series-sky-brightness .p-button-label::after {
+        content: 'Sky';
+      }
+
+      &.series-lunar-elevation .p-button-label::after {
+        content: 'Moon';
+      }
+    }
+  }
 }
 
 // When small, reduce the font size
 @container tile (max-width: #{exploreCommon.$tile-small-cutoff}) or (max-height: #{exploreCommon.$tile-small-height}) {
   .elevation-plot {
+    --moon-phase-scale: 0.6;
+
     .highcharts-plot-band-label {
       font-size: x-small;
     }
@@ -2807,13 +2877,18 @@ $help-title-height: 40px;
       font-size: small;
     }
 
-    .moon-phase {
-      transform: scale(0.8);
-    }
-
     .elevation-plot-controls {
+      --layout-gap: 0.2em;
+
       .p-button {
         font-size: smaller;
+      }
+
+      .p-selectbutton,
+      .p-togglebutton {
+        .p-button {
+          padding: 0.2em 0.3em;
+        }
       }
     }
   }
@@ -2864,7 +2939,8 @@ $help-title-height: 40px;
   text-shadow: 1px 1px 1px rgb(0 0 0 / 30%);
   margin: 0;
   outline: none;
-  padding: 0.25em 0.4286em;
+  padding: 0.1em 0.4286em;
+  line-height: 1.2;
   border: 1px solid var(--site-border-color) !important;
   border-radius: 0.2857rem;
   box-shadow: 0 0 0 0 transparent inset;

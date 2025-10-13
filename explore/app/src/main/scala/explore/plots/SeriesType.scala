@@ -11,6 +11,7 @@ import scalajs.js
 
 enum SeriesType(
   val name:      String,
+  val cssClass:  String,
   val yAxis:     Int,
   val threshold: Int,
   val data:      ObjectPlotData.SeriesData => js.Array[Chart.Data]
@@ -20,6 +21,7 @@ enum SeriesType(
   case Elevation
       extends SeriesType(
         "Elevation",
+        "elevation",
         0,
         90,
         _.targetAltitude.asInstanceOf[js.Array[Chart.Data]]
@@ -27,6 +29,7 @@ enum SeriesType(
   case ParallacticAngle
       extends SeriesType(
         "Parallactic Angle",
+        "parallactic-angle",
         1,
         -180,
         _.parallacticAngle.asInstanceOf[js.Array[Chart.Data]]
@@ -34,6 +37,7 @@ enum SeriesType(
   case SkyBrightness
       extends SeriesType(
         "Sky Brightness",
+        "sky-brightness",
         2,
         22,
         _.skyBrightness.asInstanceOf[js.Array[Chart.Data]]
@@ -41,6 +45,7 @@ enum SeriesType(
   case LunarElevation
       extends SeriesType(
         "Lunar Elevation",
+        "lunar-elevation",
         0,
         90,
         _.moonAltitude.asInstanceOf[js.Array[Chart.Data]]
