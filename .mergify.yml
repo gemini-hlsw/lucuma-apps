@@ -83,11 +83,19 @@ pull_request_rules:
       remove: []
 - name: Label deploy PRs
   conditions:
-  - files~=^modules/deploy/
+  - files~=^/
   actions:
     label:
       add:
       - deploy
+      remove: []
+- name: Label epics PRs
+  conditions:
+  - files~=^navigate/epics/
+  actions:
+    label:
+      add:
+      - epics
       remove: []
 - name: Label lib PRs
   conditions:
@@ -121,13 +129,29 @@ pull_request_rules:
       add:
       - model-tests
       remove: []
+- name: Label schema-util PRs
+  conditions:
+  - files~=^navigate/schema-util/
+  actions:
+    label:
+      add:
+      - schema-util
+      remove: []
 - name: Label server PRs
   conditions:
-  - files~=^modules/web/server/
+  - files~=^/
   actions:
     label:
       add:
       - server
+      remove: []
+- name: Label server-clue PRs
+  conditions:
+  - files~=^navigate/server-clue/
+  actions:
+    label:
+      add:
+      - server-clue
       remove: []
 - name: Label server_new PRs
   conditions:
@@ -144,6 +168,14 @@ pull_request_rules:
     label:
       add:
       - server_new-clue
+      remove: []
+- name: Label stateengine PRs
+  conditions:
+  - files~=^navigate/stateengine/
+  actions:
+    label:
+      add:
+      - stateengine
       remove: []
 - name: Label testkit PRs
   conditions:

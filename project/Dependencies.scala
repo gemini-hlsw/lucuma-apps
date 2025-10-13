@@ -42,12 +42,20 @@ object Dependencies {
     deps("org.typelevel" %%% "cats-effect-testkit")(catsEffect)
   )
 
+  val CatsLaws = Def.setting(
+    deps("org.typelevel" %%% "cats-laws")(cats)
+  )
+
   val CatsParse = Def.setting(
     deps("org.typelevel" %%% "cats-parse")(catsParse)
   )
 
   val CatsRetry = Def.setting(
     deps("com.github.cb372" %%% "cats-retry")(catsRetry)
+  )
+
+  val CatsTestkitScalaTest = Def.setting(
+    deps("org.typelevel" %%% "cats-testkit-scalatest")(catsTestkitScalaTest)
   )
 
   val CatsTime = Def.setting(
@@ -116,6 +124,14 @@ object Dependencies {
     )
   )
 
+  val EpicsCa = Def.setting(
+    depsJVM("org.epics" % "ca")(epicsCa)
+  )
+
+  val EpicsJca = Def.setting(
+    depsJVM("org.epics" % "jca")(epicsJca)
+  )
+
   val Fs2 = Def.setting(
     deps("co.fs2" %%% "fs2-core")(fs2)
   )
@@ -142,6 +158,18 @@ object Dependencies {
 
   val GiapiScala = Def.setting(
     depsJVM("edu.gemini" %% "giapi")(giapiScala)
+  )
+
+  val Grackle = Def.setting(
+    depsJVM(
+      "org.typelevel" %% "grackle-core",
+      "org.typelevel" %% "grackle-generic",
+      "org.typelevel" %% "grackle-circe"
+    )(grackle)
+  )
+
+  val GraphQLRoutes = Def.setting(
+    depsJVM("edu.gemini" %% "lucuma-graphql-routes")(graphQLRoutes)
   )
 
   val Http4sCirce = Def.setting(
@@ -217,6 +245,10 @@ object Dependencies {
 
   val Log4CatsNoop = Def.setting(
     deps("org.typelevel" %%% "log4cats-noop")(log4Cats)
+  )
+
+  val Log4s = Def.setting(
+    deps("org.log4s" %%% "log4s")(log4s)
   )
 
   val Logback = Def.setting(

@@ -1,0 +1,42 @@
+# Publishes the npm package containing the graphql schema.
+# Only runs on the main branch when a `.graphql` file is changed.
+
+name: Publish npm package
+
+on:
+  push:
+    branches:
+      - "main"
+    paths:
+      - "**.graphql"
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+concurrency:
+  group: ${{ github.workflow }} @ ${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Publish Navigate NPM package for schema
+
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: sbt
+      - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_REPO_TOKEN }}" > ~/.npmrc
+      - name: NPM Publish
+        run: sbt navigate_web_server/npmPublish

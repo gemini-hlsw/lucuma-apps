@@ -75,7 +75,12 @@ lazy val root = tlCrossRootProject.aggregate(
   observe_web_client,
   observe_server,
   observe_model,
-  observe_ui_model
+  observe_ui_model,
+  navigate_epics,
+  navigate_stateengine,
+  navigate_server,
+  navigate_web_server,
+  navigate_model
 )
 
 // BEGIN SCHEMAS
@@ -408,7 +413,7 @@ lazy val explore_common = project
     explore_modelTestkit.js % Test,
     ui_testkit              % Test
   )
-  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin, LucumaAppPlugin)
+  .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(exploreCommonModuleTest: _*)
@@ -429,7 +434,7 @@ lazy val explore_common = project
 lazy val explore_app: Project = project
   .in(file("explore/app"))
   .dependsOn(explore_model.js, explore_common)
-  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, LucumaAppPlugin)
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(esModule: _*)
@@ -470,7 +475,7 @@ lazy val observe_web_server = project
   .in(file("modules/web/server"))
   .dependsOn(observe_server)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
-  .enablePlugins(BuildInfoPlugin, LucumaAppPlugin)
+  .enablePlugins(BuildInfoPlugin)
   .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
@@ -507,21 +512,16 @@ lazy val observe_ui_model = project
       Crystal.value ++
         LucumaCore.value ++
         Circe.value ++
-        MUnit.value ++
-        In(Test)(CrystalTestkit.value)
+        In(Test)(
+          MUnit.value ++
+            CrystalTestkit.value
+        )
   )
 
 lazy val observe_web_client = project
   .in(file("modules/web/client"))
   .dependsOn(ui_lib, schemas_lib.js, observe_model.js, observe_ui_model)
-  .enablePlugins(
-    ScalaJSPlugin,
-    LucumaCssPlugin,
-    CluePlugin,
-    BuildInfoPlugin,
-    LucumaAppPlugin,
-    NoPublishPlugin
-  )
+  .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin, BuildInfoPlugin, NoPublishPlugin)
   .settings(lucumaGlobalSettings: _*)
   .settings(esModule: _*)
   .settings(
@@ -563,12 +563,11 @@ lazy val observe_web_client = project
     buildJsModule := buildJsModule.dependsOn(Compile / fullLinkJS).value
   )
 
-// List all the modules and their inter dependencies
 lazy val observe_server = project
   .in(file("modules/server_new"))
   .dependsOn(schemas_lib.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
-  .enablePlugins(BuildInfoPlugin, CluePlugin, LucumaAppPlugin)
+  .enablePlugins(BuildInfoPlugin, CluePlugin)
   .settings(observeCommonSettings: _*)
   .settings(
     libraryDependencies ++=
@@ -583,7 +582,6 @@ lazy val observe_server = project
         Acm.value ++
         GiapiScala.value ++
         Coulomb.value ++
-        MUnit.value ++
         Http4sServer.value ++
         Http4sJdkClient.value ++
         PureConfig.value ++
@@ -591,7 +589,10 @@ lazy val observe_server = project
         Circe.value ++
         Natchez.value ++
         CatsEffect.value ++
-        In(Test)(Log4CatsNoop.value),
+        In(Test)(
+          MUnit.value ++
+            Log4CatsNoop.value
+        ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "modules/server_new"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
@@ -627,12 +628,12 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
         Http4sLaws.value ++
         LucumaOdbSchema.value ++
         Coulomb.value ++
-        MUnit.value ++
         Monocle.value ++
         LucumaCore.value ++
         Circe.value ++
         In(Test)(
-          CoulombTestkit.value ++
+          MUnit.value ++
+            CoulombTestkit.value ++
             Discipline.value ++
             CatsEffectLaws.value ++
             CatsEffectTestkit.value
@@ -650,7 +651,7 @@ lazy val observe_model = crossProject(JVMPlatform, JSPlatform)
 /**
  * Mappings common to applications, including configurations and web application.
  */
-lazy val deployedAppMappings = Seq(
+lazy val observeDeployedAppMappings = Seq(
   Universal / mappings ++= {
     val clientDir: File                         = (observe_web_client / buildJsModule).value
     val clientMappings: Seq[(File, String)]     =
@@ -688,8 +689,8 @@ lazy val observeLinux = Seq(
 lazy val observe_deploy = project
   .in(file("modules/deploy"))
   .dependsOn(observe_web_server)
-  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging, LucumaAppPlugin)
-  .settings(deployedAppMappings: _*)
+  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
+  .settings(observeDeployedAppMappings: _*)
   .settings(observeCommonSettings: _*)
   .settings(
     description          := "Observe Server",
@@ -703,6 +704,256 @@ lazy val observe_deploy = project
     bashScriptConfigLocation := Some("${app_home}/../conf/launcher.args"),
     bashScriptExtraDefines += """addJava "-Dlogback.configurationFile=${app_home}/../conf/$SITE/logback.xml""""
   )
+
+// BEGIN NAVIGATE
+
+lazy val navigateCommonSettings = Seq(
+  // Workaround for https://github.com/sbt/sbt/issues/4109
+  initialCommands += "jline.TerminalFactory.get.init\n",
+  Compile / doc / scalacOptions ++= Seq(
+    "-groups",
+    "-sourcepath",
+    (LocalRootProject / baseDirectory).value.getAbsolutePath,
+    "-skip-packages",
+    "scalaz",
+    "-doc-title",
+    "Gem",
+    "-doc-version",
+    version.value
+  ),
+  // Common libraries
+  libraryDependencies ++= In(Test)(CatsTestkitScalaTest.value),
+  // Don't build javadoc when we're packaging the docker image.
+  Compile / packageDoc / mappings := Seq(),
+  Compile / doc / sources         := Seq.empty,
+
+  // We don't care to see updates about the scala language itself
+  dependencyUpdatesFilter -= moduleFilter(name = "scala-library"),
+  dependencyUpdatesFilter -= moduleFilter(name = "scala-reflect"),
+  // Don't worry about stale deps pulled in by scala-js
+  dependencyUpdatesFilter -= moduleFilter(organization = "org.eclipse.jetty"),
+  // Don't worry about old ocs related dependencies
+  dependencyUpdatesFilter -= moduleFilter(organization = "dom4j"),
+  dependencyUpdatesFilter -= moduleFilter(organization = "net.sf.opencsv"),
+  dependencyUpdatesFilter -= moduleFilter(organization = "commons-httpclient"),
+  Test / testOptions += Tests.Argument(
+    TestFrameworks.ScalaTest,
+    "-l",
+    "gem.test.Tags.RequiresNetwork"
+  ), // by default, ignore network tests
+  // Don't worry about monocle versions that start with the same prefix.
+  dependencyUpdatesFilter -= moduleFilter(
+    organization = "com.github.julien-truffaut",
+    revision = sbt.io.GlobFilter(Versions.monocle.replace("-cats", "*"))
+  ),
+  testFrameworks += new TestFramework("munit.Framework")
+)
+
+lazy val navigate_epics = project
+  .in(file("navigate/epics"))
+  .settings(
+    name                     := "navigate-epics",
+    libraryDependencies ++=
+      Cats.value ++
+        CatsEffect.value ++
+        Mouse.value ++
+        Fs2.value ++
+        EpicsCa.value ++
+        LucumaCore.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value ++
+            EpicsJca.value
+        ),
+    Test / parallelExecution := false
+  )
+
+lazy val navigate_stateengine = project
+  .in(file("navigate/stateengine"))
+  .settings(
+    name := "navigate-stateengine",
+    libraryDependencies ++=
+      Cats.value ++
+        CatsEffect.value ++
+        Mouse.value ++
+        Fs2.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value ++
+            CatsLaws.value
+        )
+  )
+
+lazy val navigate_web_server = project
+  .in(file("navigate/web/server"))
+  .dependsOn(
+    schemas_lib.jvm,
+    navigate_schema_util,
+    navigate_server,
+    navigate_model % "compile->compile;test->test"
+  )
+  .enablePlugins(BuildInfoPlugin, GitBranchPrompt)
+  .settings(navigateCommonSettings: _*)
+  .settings(
+    name                := "navigate_web_server",
+    libraryDependencies ++=
+      Log4CatsNoop.value ++
+        CatsEffect.value ++
+        Log4Cats.value ++
+        Http4sCirce.value ++
+        GraphQLRoutes.value ++
+        Natchez.value ++
+        Http4sJdkClient.value ++
+        Http4sServer.value ++
+        PureConfig.value ++
+        JuliSlf4j.value ++
+        Log4s.value ++
+        Logback.value ++
+        Grackle.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        ),
+    // Supports launching the server in the background
+    reStart / mainClass := Some("navigate.web.server.http4s.WebServerLauncher"),
+    // Don't include configuration files in the JAR. We want them outside, so they are editable.
+    Compile / packageBin / mappings ~= {
+      _.filterNot(f => f._1.getName.endsWith("logback.xml"))
+    },
+    createNpmProject    := {
+      val npmDir = target.value / "npm"
+
+      IO.write(
+        npmDir / "package.json",
+        s"""|{
+            |  "name": "navigate-server-schema",
+            |  "version": s"${gitDescribedVersion.value.getOrElse("0.0.0")}",
+            |  "license": "${licenses.value.head._1}"
+            |}
+            |""".stripMargin
+      )
+
+      // Replace the import path to the schema file to match the NPM package structure
+      val schemaContent = IO
+        .read(
+          (Compile / resourceDirectory).value / "navigate.graphql"
+        )
+        .replace(
+          "from \"lucuma/schemas/ObservationDB.graphql\"",
+          "from \"lucuma-schemas/odb\""
+        )
+      IO.write(
+        npmDir / "navigate.graphql",
+        schemaContent
+      )
+
+      streams.value.log.info(s"Created NPM project in ${npmDir}")
+    },
+    npmPublish          := {
+      import scala.sys.process._
+      val npmDir = target.value / "npm"
+
+      val _ = createNpmProject.value
+      Process(List("npm", "publish"), npmDir).!!
+      streams.value.log.info(s"Published NPM package from ${npmDir}")
+    }
+  )
+  .settings(
+    buildInfoUsePackageAsPath := true,
+    buildInfoKeys ++= Seq[BuildInfoKey](name, version, buildInfoBuildNumber),
+    buildInfoOptions += BuildInfoOption.BuildTime,
+    buildInfoObject           := "OcsBuildInfo",
+    buildInfoPackage          := "navigate.web.server"
+  )
+
+lazy val navigate_model = project
+  .in(file("navigate/model"))
+  .enablePlugins(GitBranchPrompt)
+  .settings(
+    libraryDependencies ++=
+      Mouse.value ++
+        Http4sCore.value ++
+        CatsTime.value ++
+        Monocle.value ++
+        LucumaCore.value ++
+        Circe.value ++
+        In(Test)(MUnit.value)
+  )
+
+lazy val navigate_schema_util = project
+  .in(file("navigate/schema-util"))
+  .settings(navigateCommonSettings: _*)
+  .settings(
+    libraryDependencies ++=
+      CatsEffect.value ++
+        Fs2.value ++
+        Log4Cats.value ++
+        LucumaCore.value ++
+        Http4sClient.value ++
+        Grackle.value ++
+        In(Test)(MUnit.value)
+  )
+
+lazy val navigate_server = project
+  .in(file("navigate/server"))
+  .dependsOn(
+    schemas_lib.jvm,
+    navigate_epics,
+    navigate_stateengine,
+    navigate_model % "compile->compile;test->test"
+  )
+  .enablePlugins(CluePlugin)
+  .settings(navigateCommonSettings: _*)
+  .settings(
+    libraryDependencies ++=
+      CatsEffect.value ++
+        Fs2.value ++
+        Log4Cats.value ++
+        Http4sCirce.value ++
+        Clue.value ++
+        ClueHttp4s.value ++
+        LucumaSsoBackendClient.value ++
+        LucumaCore.value ++
+        Http4sClient.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        )
+  )
+
+lazy val navigateDeployedAppMappings = Seq(
+  // Copy the resource directory, with customized configuration files, but first remove existing mappings.
+  Universal / mappings ++= { // maps =>
+    val siteConfigDir: File                     = (ThisProject / baseDirectory).value / "conf"
+    val siteConfigMappings: Seq[(File, String)] = directory(siteConfigDir).map(path =>
+      path._1 -> ("conf/" + path._1.relativeTo(siteConfigDir).get.getPath)
+    )
+    siteConfigMappings
+  }
+)
+
+/**
+ * Project for the navigate server app for development
+ */
+lazy val navigate_deploy = project
+  .in(file("navigate/deploy"))
+  .dependsOn(navigate_web_server)
+  .enablePlugins(LucumaDockerPlugin, JavaServerAppPackaging)
+  .settings(
+    description              := "Navigate server",
+    Docker / packageName     := "gpp-nav-server",
+    // Main class for launching
+    Compile / mainClass      := Some("navigate.web.server.http4s.WebServerLauncher"),
+    // Name of the launch script
+    executableScriptName     := "navigate-server",
+    // Specify a different name for the config file
+    bashScriptConfigLocation := Some("${app_home}/../conf/launcher.args"),
+    bashScriptExtraDefines += """addJava "-Dlogback.configurationFile=${app_home}/../conf/$SITE/logback.xml"""",
+    // Additional launch options, -J params will be added as jvm parameters
+    Universal / javaOptions ++= Seq("-J-Xmx1024m", "-J-Xms256m")
+  )
+  .settings(navigateDeployedAppMappings: _*)
+  .settings(navigateCommonSettings: _*)
 
 // BEGIN ALIASES
 
@@ -732,6 +983,17 @@ addCommandAlias(
   "fix",
   "; prePR; fixCSS"
 )
+
+// Custom commands to facilitate web development
+val startNavigateAllCommands = List(
+  "navigate_web_server/reStart"
+)
+val stopNavigateAllCommands  = List(
+  "navigate_web_server/reStop"
+)
+
+addCommandAlias("startNavigateAll", startNavigateAllCommands.mkString(";", ";", ""))
+addCommandAlias("stopNavigateAll", stopNavigateAllCommands.mkString(";", ";", ""))
 
 // BEGIN GITHUB ACTIONS
 
@@ -820,10 +1082,16 @@ lazy val dockerHubLogin =
     name = Some("Login to Docker Hub")
   )
 
-lazy val sbtDockerPublish =
+lazy val sbtDockerPublishObserve =
   WorkflowStep.Sbt(
     List("clean", "observe_deploy/docker:publish"),
-    name = Some("Build and Publish Docker image")
+    name = Some("Build and Publish Observe Docker image")
+  )
+
+lazy val sbtDockerPublishNavigate =
+  WorkflowStep.Sbt(
+    List("clean", "navigate_deploy/docker:publish"),
+    name = Some("Build and Publish Navigate Docker image")
   )
 
 lazy val herokuRelease =
@@ -905,21 +1173,6 @@ ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
-    "observe-deploy",
-    "Build and publish Observe Docker image / Deploy to Heroku",
-    githubWorkflowJobSetup.value.toList :::
-      observeSetupNodeNpmInstall :::
-      dockerHubLogin ::
-      sbtDockerPublish ::
-      herokuRelease ::
-      Nil,
-    scalas = List(scalaVersion.value),
-    javas = githubWorkflowJavaVersions.value.toList.take(1),
-    cond = Some(allConds(mainCond, geminiRepoCond))
-  )
-
-ThisBuild / githubWorkflowAddedJobs +=
-  WorkflowJob(
     "explore-deploy",
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
@@ -939,7 +1192,33 @@ ThisBuild / githubWorkflowAddedJobs +=
     cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   )
 
-// TODO ADD NEW JOB! We are not publishing anymore
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "observe-deploy",
+    "Build and publish Observe Docker image / Deploy to Heroku",
+    githubWorkflowJobSetup.value.toList :::
+      observeSetupNodeNpmInstall :::
+      dockerHubLogin ::
+      sbtDockerPublishObserve ::
+      herokuRelease ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "navigate-deploy",
+    "Build and publish Navigate Docker image",
+    githubWorkflowJobSetup.value.toList :::
+      dockerHubLogin ::
+      sbtDockerPublishNavigate ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(mainCond, geminiRepoCond))
+  )
 
 ThisBuild / githubWorkflowPublishPreamble +=
   WorkflowStep.Use(
