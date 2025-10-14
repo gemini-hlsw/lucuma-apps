@@ -45,6 +45,6 @@ jobs:
         with:
           node-version: 24
           registry-url: "https://registry.npmjs.org"
-
+      - run: npm --version
       - name: NPM Publish
         run: sbt schemas_libJS/npmPublish

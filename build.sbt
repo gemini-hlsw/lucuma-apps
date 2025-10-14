@@ -148,7 +148,8 @@ lazy val schemas_lib =
       // Include schema files in jar.
       Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources",
       createNpmProject              := {
-        val npmDir = target.value / "npm"
+        val npmDir  = target.value / "npm"
+        val version = gitDescribedVersion.value.getOrElse("0.0.0")
 
         val odbSchemaFile      =
           (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
@@ -159,7 +160,7 @@ lazy val schemas_lib =
           npmDir / "package.json",
           s"""|{
              |  "name": "lucuma-schemas",
-             |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
+             |  "version": "${version}",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./odb": "./${odbSchemaFile.getName}",
@@ -189,7 +190,7 @@ lazy val schemas_lib =
           navigateSchemaContent
         )
 
-        streams.value.log.info(s"Created NPM project in ${npmDir}")
+        streams.value.log.info(s"Created NPM project in ${npmDir} with version ${version}")
       },
       npmPublish                    := npmPublishForDir("npm").value
     )
