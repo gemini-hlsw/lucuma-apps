@@ -10,5 +10,5 @@ This repository contains the Scala user apps and support libs of GPP:
 ## apps
 
 - [`explore`](explore/README.md)
-- [`observe`](modules/README.md)
+- [`observe`](observe/README.md)
 - [`navigate-server`](navigate/README.md)
