@@ -7,8 +7,10 @@ on:
   push:
     branches:
       - "main"
-    paths:
-      - "**.graphql"
+      # TODO: TESTING ONLY, REMOVE BEFORE MERGING
+      - "npm-publish-navigte"
+    # paths:
+    #   - "**.graphql"
 
 permissions:
   id-token: write # Required for OIDC
