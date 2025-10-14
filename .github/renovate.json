@@ -1,0 +1,59 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:js-app", "group:linters", "group:test"],
+  "configMigration": true,
+  "platformAutomerge": true,
+  "automergeStrategy": "squash",
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "schedule": ["every weekend"],
+  "dockerfile": {
+    "extends": [":preserveSemverRanges"]
+  },
+  "github-actions": {
+    "extends": [":preserveSemverRanges"]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest",
+        "lockFileMaintenance"
+      ],
+      "automerge": true
+    },
+    {
+      "groupName": "GraphQL packages",
+      "matchPackageNames": [
+        "@graphql-codegen/**",
+        "@graphql-typed-document-node/**",
+        "/graphql/",
+        "@apollo/**"
+      ]
+    },
+    {
+      "groupName": "Types",
+      "matchPackageNames": ["@types/**"]
+    },
+    {
+      "groupName": "Vite packages",
+      "matchPackageNames": ["/vite/", "@vitest/**"]
+    },
+    {
+      "groupName": "TSConfig bases",
+      "matchPackageNames": ["@tsconfig/**"]
+    },
+    {
+      "groupName": "Fontawesome",
+      "matchPackageNames": ["@fortawesome/**"]
+    },
+    {
+      "description": "Schedule schema updates to run daily",
+      "matchPackageNames": ["lucuma-schemas"],
+      "schedule": ["* 0-4 * * *"]
+    }
+  ]
+}
