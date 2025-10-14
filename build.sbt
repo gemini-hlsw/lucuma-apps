@@ -1041,6 +1041,34 @@ ThisBuild / githubWorkflowPermissions := Some(
     .withContents(PermissionValue.Read)
 )
 
+lazy val rootSetupNodeNpmInstall =
+  List(
+    WorkflowStep.Use(
+      UseRef.Public("actions", "setup-node", "v6"),
+      name = Some("Explore Setup Node.js"),
+      params = Map(
+        "node-version" -> "24",
+        "cache"        -> "npm"
+      )
+    ),
+    // Explore NPM cache
+    WorkflowStep.Use(
+      UseRef.Public("actions", "cache", "v4"),
+      name = Some("Cache Explore node_modules"),
+      id = Some("root-cache-node_modules"),
+      params = {
+        val prefix = "node_modules"
+        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
+        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+      }
+    ),
+    WorkflowStep.Run(
+      List("npm clean-install --verbose"),
+      name = Some("npm clean-install"),
+      cond = Some("steps.root-cache-node_modules.outputs.cache-hit != 'true'")
+    )
+  )
+
 // https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
 lazy val exploreSetupNodeNpmInstall =
   List(
@@ -1242,6 +1270,27 @@ ThisBuild / githubWorkflowAddedJobs +=
     scalas = List(scalaVersion.value),
     javas = githubWorkflowJavaVersions.value.toList.take(1),
     cond = Some(allConds(mainCond, geminiRepoCond))
+  )
+
+lazy val lucumaCssStep = WorkflowStep.Sbt(List("ui_css/lucumaCss"), name = Some("Import CSS files"))
+
+lazy val lintAllStep = WorkflowStep.Run(
+  allLintCmds(fix = false),
+  name = Some("Run linters")
+)
+
+ThisBuild / githubWorkflowAddedJobs +=
+  WorkflowJob(
+    "lint",
+    "Run linters",
+    githubWorkflowJobSetup.value.toList :::
+      rootSetupNodeNpmInstall :::
+      lucumaCssStep ::
+      lintAllStep ::
+      Nil,
+    scalas = List(scalaVersion.value),
+    javas = githubWorkflowJavaVersions.value.toList.take(1),
+    cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond, notDependabotCond))
   )
 
 ThisBuild / githubWorkflowPublishPreamble +=
