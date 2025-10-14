@@ -37,7 +37,7 @@ object Versions {
   val mouse                  = "1.3.2"
   val mUnit                  = "1.2.1"
   val mUnitCatsEffect        = "2.1.0"
-  val mUnitScalacheck        = "1.2.1"
+  val mUnitScalacheck        = "1.2.0"
   val natchez                = "0.3.8"
   val natchezHttp4s          = "0.6.1"
   val pprint                 = "0.9.4"
