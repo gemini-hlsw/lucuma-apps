@@ -79,6 +79,7 @@ smartgcal
 
 # Node modules
 node_modules/
+vars.css
 
 # Nix
 .direnv/

@@ -11,7 +11,7 @@
     "csstools/value-no-unknown-custom-properties": [
       true,
       {
-        "importFrom": ["ui/lib/src/main/resources/lucuma-css/lucuma-ui-variables-dark.scss", "explore/target/lucuma-css/dark-theme.css"]
+        "importFrom": ["vars.css", "ui/css/target/lucuma-css/dark-theme.css"]
       }
     ],
     "no-descending-specificity": null

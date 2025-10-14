@@ -938,16 +938,55 @@ lazy val navigate_deploy = project
 
 // BEGIN ALIASES
 
-val lintCSS = TaskKey[Unit]("lintCSS", "Lint CSS files")
-lintCSS := {
-  if (("npm run lint-dark" #&& "npm run lint-light" !) != 0)
-    throw new Exception("Error in CSS format")
+def prettierCmd(fix: Boolean): String =
+  s"npx prettier ${if (fix) "--write" else "--check"} ."
+
+def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] = {
+  val stylelintFixFlag = if (fix) " --fix" else ""
+  // Removes all lines that don't define a variable, thus building a viable CSS file for linting
+  (raw"""sed '/^[[:blank:]]*[\\.\\}\\@]/d;/^[[:blank:]]*\..*/d;/^[[:blank:]]*$$/d;/\/\/.*/d' ui/lib/src/main/resources/lucuma-css/lucuma-ui-variables-$mode.scss >vars.css"""
+    +: dirs.map(dir => s"npx stylelint --formatter github $stylelintFixFlag $dir")) :+
+    "rm vars.css"
 }
 
-val fixCSS = TaskKey[Unit]("fixCSS", "Fix CSS files")
-fixCSS := {
-  if (("npm run fix-dark" #&& "npm run fix-light" !) != 0)
-    throw new Exception("Error in CSS fix")
+val cssDirs: List[String] = List(
+  "explore/common/src/main/webapp/sass"
+)
+
+def allStyleLintCmds(fix: Boolean): List[String] =
+  styleLintCmds("dark", fix, cssDirs) ++
+    styleLintCmds("light", fix, cssDirs)
+
+def allLintCmds(fix: Boolean): List[String] =
+  prettierCmd(fix) +: allStyleLintCmds(fix)
+
+def runCmds(cmds: List[String]): Unit = {
+  val batch: List[ProcessBuilder] = cmds.flatMap { cmd =>
+    val fixedCmd: String     =
+      cmd.replaceAll("'", "") // We don't need the quotes when running from here.
+    val echo: ProcessBuilder = Process(s"echo <$fixedCmd>")
+    val split: List[String]  = fixedCmd.split(" >").toList
+    split match {
+      case exec :: fileName :: Nil => List(echo, Process(exec) #> file(fileName))
+      case _                       => List(echo, Process(fixedCmd))
+    }
+  }
+  batch.reduceLeft(_ #&& _) ! match {
+    case 0 => ()
+    case n => throw new Exception(s"Error in CSS format (dark), exit code $n")
+  }
+}
+
+val lint: TaskKey[Unit] = taskKey[Unit]("Lint style files")
+lint := {
+  val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
+  runCmds(allStyleLintCmds(fix = false))
+}
+
+val fix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
+fix := {
+  val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
+  runCmds(allStyleLintCmds(fix = true))
 }
 
 addCommandAlias(
@@ -961,8 +1000,8 @@ addCommandAlias(
 )
 
 addCommandAlias(
-  "fix",
-  "; prePR; fixCSS"
+  "fixAll",
+  "; prePR; fix"
 )
 
 // Custom commands to facilitate web development
