@@ -1,0 +1,42 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:js-app"],
+  "configMigration": true,
+  "platformAutomerge": true,
+  "automergeStrategy": "squash",
+  "schedule": ["every weekend"],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "github-actions": {
+    "extends": [":preserveSemverRanges"]
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest",
+        "lockFileMaintenance"
+      ],
+      "automerge": true
+    },
+    {
+      "groupName": "Vite packages",
+      "matchPackageNames": ["/vite/"]
+    },
+    {
+      "groupName": "Fontawesome",
+      "matchPackageNames": ["@fortawesome/**"]
+    }
+  ],
+  "ignorePaths": [
+    "**/*.sbt",
+    "**/*.scala",
+    "**/build.properties",
+    "**/.scalafmt.conf",
+    ".github/workflows/ci.yml",
+    ".github/workflows/clean.yml"
+  ]
+}

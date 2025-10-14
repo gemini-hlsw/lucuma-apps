@@ -70,11 +70,15 @@
 }
 
 // For styling of buttons in primereact for different "compactness" and adjust other sizing
-.p-component.p-button.pl-compact, .p-component.p-button-group.pl-compact > .p-component.p-button {
+.p-component.p-button.pl-compact,
+.p-component.p-splitbutton.pl-compact > .p-component.p-button,
+.p-component.p-button-group.pl-compact > .p-component.p-button {
   padding: var(--pl-compact-button-padding);
 }
 
-.p-component.p-button.pl-very-compact, .p-component.p-button-group.pl-very-compact > .p-component.p-button {
+.p-component.p-button.pl-very-compact,
+.p-component.p-splitbutton.pl-very-compact > .p-component.p-button,
+.p-component.p-button-group.pl-very-compact > .p-component.p-button {
   padding: var(--pl-very-compact-button-padding-top) var(--pl-very-compact-button-padding-right);
 }
 
@@ -116,6 +120,7 @@
 .p-component.p-dropdown-panel,
 .pl-form-field-label,
 .p-component.p-togglebutton,
+.p-component.p-splitbutton,
 .p-component.p-button {
   // default size is Medium
   &.pl-mini {

@@ -3,6 +3,7 @@
 
 package lucuma.ui.primereact
 
+import cats.syntax.monoid.*
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -25,6 +26,7 @@ case class SelectButtonMultipleEnumView[V[_], A](
   disabled:       js.UndefOr[Boolean] = js.undefined,
   onChange:       List[A] => Callback = (_: List[A]) => Callback.empty,
   filterPred:     A => Boolean = (_: A) => true,
+  itemClass:      A => js.UndefOr[Css] = (_: A) => js.undefined,
   modifiers:      Seq[TagMod] = Seq.empty
 )(using
   val enumerated: Enumerated[A],
@@ -49,9 +51,14 @@ object SelectButtonMultipleEnumView:
             value = value,
             Enumerated[A].all
               .filter(props.filterPred)
-              .map { s =>
-                SelectItem(s, label = props.display.shortName(s), clazz = props.buttonClass)
-              },
+              .map: s =>
+                val itemCss = (props.itemClass(s).toOption, props.buttonClass.toOption) match
+                  case (Some(i), Some(b)) => i |+| b
+                  case (Some(i), None)    => i
+                  case (None, Some(b))    => b
+                  case _                  => Css.Empty
+                SelectItem(s, label = props.display.shortName(s), clazz = itemCss)
+            ,
             id = props.id.value,
             clazz = props.groupClass,
             itemTemplate = props.itemTemplate,

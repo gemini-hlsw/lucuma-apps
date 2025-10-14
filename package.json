@@ -1,0 +1,11 @@
+{
+  "name": "lucuma-apps",
+  "private": true,
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "schemas",
+    "explore",
+    "ui/demo",
+    "observe/web/client"
+  ]
+}
