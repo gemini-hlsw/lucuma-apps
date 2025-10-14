@@ -6,18 +6,18 @@ registries:
     token: ${{secrets.FONTAWESOME_NPM_AUTH_TOKEN}}
     replaces-base: true
 updates:
-  - package-ecosystem: 'github-actions'
-    directory: '/modules/web/client'
+  - package-ecosystem: "github-actions"
+    directory: "/observe/web/client"
     schedule:
-      interval: 'monthly'
-  - package-ecosystem: 'npm'
+      interval: "monthly"
+  - package-ecosystem: "npm"
     registries:
       - fortawesome
-    directory: '/modules/web/client'
+    directory: "/observe/web/client"
     schedule:
-      interval: 'weekly'
+      interval: "weekly"
       # Check for npm updates on Sundays
-      day: 'sunday'
+      day: "sunday"
     # Labels on pull requests for security and version updates
     labels:
-      - 'npm dependencies'
+      - "npm dependencies"

@@ -285,20 +285,20 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: modules/web/client/package-lock.json
+          cache-dependency-path: observe/web/client/package-lock.json
 
       - name: Cache Observe node_modules
         id: observe-cache-node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('modules/web/client/package-lock.json') }}
+          key: node_modules-${{ hashFiles('observe/web/client/package-lock.json') }}
           restore-keys: node_modules
 
       - name: npm clean-install
         if: steps.observe-cache-node_modules.outputs.cache-hit != 'true'
         run: |
-          cd modules/web/client
+          cd observe/web/client
           npm clean-install --verbose
 
       - name: Login to Docker Hub

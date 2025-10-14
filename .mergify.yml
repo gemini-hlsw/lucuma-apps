@@ -35,7 +35,7 @@ pull_request_rules:
       remove: []
 - name: Label client PRs
   conditions:
-  - files~=^modules/web/client/
+  - files~=^observe/web/client/
   actions:
     label:
       add:
@@ -43,7 +43,7 @@ pull_request_rules:
       remove: []
 - name: Label client-clue PRs
   conditions:
-  - files~=^modules/web/client-clue/
+  - files~=^observe/web/client-clue/
   actions:
     label:
       add:
@@ -51,7 +51,7 @@ pull_request_rules:
       remove: []
 - name: Label client-model PRs
   conditions:
-  - files~=^modules/web/client-model/
+  - files~=^observe/web/client-model/
   actions:
     label:
       add:
@@ -75,7 +75,7 @@ pull_request_rules:
       remove: []
 - name: Label demo PRs
   conditions:
-  - files~=^modules/ui/demo/
+  - files~=^observe/ui/demo/
   actions:
     label:
       add:
@@ -155,7 +155,7 @@ pull_request_rules:
       remove: []
 - name: Label server_new PRs
   conditions:
-  - files~=^modules/server_new/
+  - files~=^observe/server_new/
   actions:
     label:
       add:
@@ -163,7 +163,7 @@ pull_request_rules:
       remove: []
 - name: Label server_new-clue PRs
   conditions:
-  - files~=^modules/server_new-clue/
+  - files~=^observe/server_new-clue/
   actions:
     label:
       add:
