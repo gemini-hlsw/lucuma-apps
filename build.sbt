@@ -1222,6 +1222,6 @@ def npmPublishForDir(dir: String) = Def.task {
   val publishDir = target.value / dir
 
   val _ = createNpmProject.value
-  Process(List("npm", "publish"), publishDir).!!
+  Process(List("npm", "publish", "--tag", "latest"), publishDir).!!
   streams.value.log.info(s"Published NPM package from ${publishDir}")
 }
