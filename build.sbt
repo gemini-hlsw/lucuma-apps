@@ -148,7 +148,7 @@ lazy val schemas_lib =
       // Include schema files in jar.
       Compile / unmanagedResourceDirectories += (Compile / clueSourceDirectory).value / "resources",
       createNpmProject              := {
-        val npmDir  = target.value / "npm"
+        val npmDir = target.value / "npm"
 
         val odbSchemaFile      =
           (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
@@ -1000,9 +1000,8 @@ lazy val exploreSetupNodeNpmInstall =
       UseRef.Public("actions", "setup-node", "v6"),
       name = Some("Explore Setup Node.js"),
       params = Map(
-        "node-version"          -> "24",
-        "cache"                 -> "npm",
-        "cache-dependency-path" -> "explore/package-lock.json"
+        "node-version" -> "24",
+        "cache"        -> "npm"
       )
     ),
     // Explore NPM cache
@@ -1012,7 +1011,7 @@ lazy val exploreSetupNodeNpmInstall =
       id = Some("explore-cache-node_modules"),
       params = {
         val prefix = "node_modules"
-        val key    = s"$prefix-$${{ hashFiles('explore/package-lock.json') }}"
+        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
         Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
       }
     ),
@@ -1029,9 +1028,8 @@ lazy val exploreSetupNodeNpmInstall =
         UseRef.Public("actions", "setup-node", "v6"),
         name = Some("Setup Node.js"),
         params = Map(
-          "node-version"          -> "24",
-          "cache"                 -> "npm",
-          "cache-dependency-path" -> "observe/web/client/package-lock.json"
+          "node-version" -> "24",
+          "cache"        -> "npm"
         )
       ),
       // Observe NPM cache
@@ -1041,7 +1039,7 @@ lazy val exploreSetupNodeNpmInstall =
         id = Some("observe-cache-node_modules"),
         params = {
           val prefix = "node_modules"
-          val key    = s"$prefix-$${{ hashFiles('observe/web/client/package-lock.json') }}"
+          val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
           Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
         }
       ),
@@ -1202,10 +1200,9 @@ ThisBuild / githubWorkflowPublishPreamble +=
   WorkflowStep.Use(
     UseRef.Public("actions", "setup-node", "v6"),
     Map(
-      "node-version"          -> "24",
-      "registry-url"          -> "https://registry.npmjs.org",
-      "cache"                 -> "npm",
-      "cache-dependency-path" -> "schemas/package-lock.json"
+      "node-version" -> "24",
+      "registry-url" -> "https://registry.npmjs.org",
+      "cache"        -> "npm"
     )
   )
 
