@@ -1,12 +1,16 @@
 import Dependencies.*
 import Versions.*
-import NativePackagerHelper.*
 import _root_.cats.effect.kernel.syntax.resource
 import com.github.sbt.git.SbtGit.GitKeys.*
 import org.scalajs.linker.interface.ModuleSplitStyle
+import org.typelevel.sbt.gha.PermissionValue
+import org.typelevel.sbt.gha.Permissions
 import sbt.Keys.*
 import sbt.nio.file.FileTreeView
+
 import scala.sys.process.*
+
+import NativePackagerHelper.*
 
 name := "lucuma-apps"
 
@@ -146,8 +150,10 @@ lazy val schemas_lib =
       createNpmProject              := {
         val npmDir = target.value / "npm"
 
-        val schemaFile =
+        val odbSchemaFile      =
           (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
+        val navigateSchemaFile =
+          (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
 
         IO.write(
           npmDir / "package.json",
@@ -156,7 +162,8 @@ lazy val schemas_lib =
              |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
-             |    "./odb": "./${schemaFile.getName}"
+             |    "./odb": "./${odbSchemaFile.getName}",
+             |    "./navigate": "./${navigateSchemaFile.getName}"
              |  },
              |  "repository": {
              |    "type": "git",
@@ -166,17 +173,25 @@ lazy val schemas_lib =
              |""".stripMargin
         )
 
-        IO.copyFile(schemaFile, npmDir / schemaFile.getName)
+        IO.copyFile(odbSchemaFile, npmDir / odbSchemaFile.getName)
+
+        // Replace the import path to the schema file to match the NPM package structure
+        val navigateSchemaContent = IO
+          .read(
+            navigateSchemaFile
+          )
+          .replace(
+            "from \"lucuma/schemas/ObservationDB.graphql\"",
+            "from \"./ObservationDB.graphql\""
+          )
+        IO.write(
+          npmDir / navigateSchemaFile.getName,
+          navigateSchemaContent
+        )
 
         streams.value.log.info(s"Created NPM project in ${npmDir}")
       },
-      npmPublish                    := {
-        import scala.sys.process._
-        val npmDir = target.value / "npm"
-
-        val _ = createNpmProject.value
-        Process(List("npm", "publish"), npmDir).!!
-      }
+      npmPublish                    := npmPublishForDir("npm").value
     )
     .jsSettings(
       Test / scalaJSLinkerConfig ~= (_.withModuleKind(ModuleKind.CommonJSModule))
@@ -261,13 +276,7 @@ lazy val ui_css = project
       )
       streams.value.log.info(s"Created NPM project in ${cssDir}")
     },
-    npmPublish       := {
-      import scala.sys.process._
-      val cssDir = target.value / "lucuma-css"
-
-      val _ = createNpmProject.value
-      Process(List("npm", "publish"), cssDir).!!
-    }
+    npmPublish       := npmPublishForDir("lucuma-css").value
   )
 
 lazy val ui_demo =
@@ -819,43 +828,6 @@ lazy val navigate_web_server = project
     // Don't include configuration files in the JAR. We want them outside, so they are editable.
     Compile / packageBin / mappings ~= {
       _.filterNot(f => f._1.getName.endsWith("logback.xml"))
-    },
-    createNpmProject    := {
-      val npmDir = target.value / "npm"
-
-      IO.write(
-        npmDir / "package.json",
-        s"""|{
-            |  "name": "navigate-server-schema",
-            |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
-            |  "license": "${licenses.value.head._1}"
-            |}
-            |""".stripMargin
-      )
-
-      // Replace the import path to the schema file to match the NPM package structure
-      val schemaContent = IO
-        .read(
-          (Compile / resourceDirectory).value / "navigate.graphql"
-        )
-        .replace(
-          "from \"lucuma/schemas/ObservationDB.graphql\"",
-          "from \"lucuma-schemas/odb\""
-        )
-      IO.write(
-        npmDir / "navigate.graphql",
-        schemaContent
-      )
-
-      streams.value.log.info(s"Created NPM project in ${npmDir}")
-    },
-    npmPublish          := {
-      import scala.sys.process._
-      val npmDir = target.value / "npm"
-
-      val _ = createNpmProject.value
-      Process(List("npm", "publish"), npmDir).!!
-      streams.value.log.info(s"Published NPM package from ${npmDir}")
     }
   )
   .settings(
@@ -1015,11 +987,17 @@ ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowEnv += faNpmAuthToken
 ThisBuild / githubWorkflowEnv += herokuToken
 
+ThisBuild / githubWorkflowPermissions := Some(
+  Permissions.Specify.defaultPermissive
+    .withIdToken(PermissionValue.Write)
+    .withContents(PermissionValue.Read)
+)
+
 // https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
 lazy val exploreSetupNodeNpmInstall =
   List(
     WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v4"),
+      UseRef.Public("actions", "setup-node", "v6"),
       name = Some("Explore Setup Node.js"),
       params = Map(
         "node-version"          -> "24",
@@ -1048,7 +1026,7 @@ lazy val exploreSetupNodeNpmInstall =
   lazy val observeSetupNodeNpmInstall =
     List(
       WorkflowStep.Use(
-        UseRef.Public("actions", "setup-node", "v4"),
+        UseRef.Public("actions", "setup-node", "v6"),
         name = Some("Setup Node.js"),
         params = Map(
           "node-version"          -> "24",
@@ -1222,7 +1200,7 @@ ThisBuild / githubWorkflowAddedJobs +=
 
 ThisBuild / githubWorkflowPublishPreamble +=
   WorkflowStep.Use(
-    UseRef.Public("actions", "setup-node", "v4"),
+    UseRef.Public("actions", "setup-node", "v6"),
     Map(
       "node-version"          -> "24",
       "registry-url"          -> "https://registry.npmjs.org",
@@ -1233,9 +1211,16 @@ ThisBuild / githubWorkflowPublishPreamble +=
 
 ThisBuild / githubWorkflowPublish := Seq(
   WorkflowStep.Sbt(
-    List("ui_css/npmPublish", "schemas_libJS/npmPublish"),
+    List("ui_css/npmPublish"),
     name = Some("NPM Publish"),
-    env = Map("NODE_AUTH_TOKEN" -> s"$${{ secrets.NPM_REPO_TOKEN }}"),
     cond = Some("startsWith(github.ref, 'refs/tags/v')")
   )
 )
+
+def npmPublishForDir(dir: String) = Def.task {
+  val publishDir = target.value / dir
+
+  val _ = createNpmProject.value
+  Process(List("npm", "publish"), publishDir).!!
+  streams.value.log.info(s"Published NPM package from ${publishDir}")
+}

@@ -10,8 +10,9 @@ on:
     paths:
       - "**.graphql"
 
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+permissions:
+  id-token: write # Required for OIDC
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }} @ ${{ github.ref }}
@@ -21,10 +22,10 @@ jobs:
   deploy:
     name: Publish Navigate NPM package for schema
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -32,11 +33,11 @@ jobs:
         uses: sbt/setup-sbt@v1
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
           cache: sbt
-      - run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_REPO_TOKEN }}" > ~/.npmrc
+
       - name: NPM Publish
-        run: sbt navigate_web_server/npmPublish
+        run: sbt schemas_libJS/npmPublish

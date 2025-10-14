@@ -13,6 +13,20 @@ on:
   push:
     branches: ['**', '!update/**', '!pr/**']
 
+permissions:
+  actions: write
+  checks: write
+  contents: read
+  deployments: write
+  id-token: write
+  issues: write
+  packages: write
+  pages: write
+  pull-requests: write
+  repository-projects: write
+  security-events: write
+  statuses: write
+
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}
@@ -57,7 +71,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Explore Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -128,7 +142,7 @@ jobs:
         if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
         run: sbt -v -J-Xmx6g +update
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org'
@@ -137,9 +151,7 @@ jobs:
 
       - name: NPM Publish
         if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_REPO_TOKEN }}
-        run: sbt -v -J-Xmx6g ui_css/npmPublish schemas_libJS/npmPublish
+        run: sbt -v -J-Xmx6g ui_css/npmPublish
 
   validate-steward:
     name: Validate Steward Config
@@ -197,7 +209,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Explore Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
@@ -281,7 +293,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: npm
