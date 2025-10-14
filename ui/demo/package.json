@@ -1,4 +1,6 @@
 {
+  "name": "lucuma-ui-demo",
+  "private": true,
   "devDependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/pro-solid-svg-icons": "^7.1.0",
