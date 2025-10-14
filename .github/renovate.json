@@ -1,15 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:js-app", "group:linters", "group:test"],
+  "extends": ["config:js-app"],
   "configMigration": true,
   "platformAutomerge": true,
   "automergeStrategy": "squash",
+  "schedule": ["every weekend"],
   "lockFileMaintenance": {
     "enabled": true
-  },
-  "schedule": ["every weekend"],
-  "dockerfile": {
-    "extends": [":preserveSemverRanges"]
   },
   "github-actions": {
     "extends": [":preserveSemverRanges"]
@@ -26,34 +23,20 @@
       "automerge": true
     },
     {
-      "groupName": "GraphQL packages",
-      "matchPackageNames": [
-        "@graphql-codegen/**",
-        "@graphql-typed-document-node/**",
-        "/graphql/",
-        "@apollo/**"
-      ]
-    },
-    {
-      "groupName": "Types",
-      "matchPackageNames": ["@types/**"]
-    },
-    {
       "groupName": "Vite packages",
-      "matchPackageNames": ["/vite/", "@vitest/**"]
-    },
-    {
-      "groupName": "TSConfig bases",
-      "matchPackageNames": ["@tsconfig/**"]
+      "matchPackageNames": ["/vite/"]
     },
     {
       "groupName": "Fontawesome",
       "matchPackageNames": ["@fortawesome/**"]
-    },
-    {
-      "description": "Schedule schema updates to run daily",
-      "matchPackageNames": ["lucuma-schemas"],
-      "schedule": ["* 0-4 * * *"]
     }
+  ],
+  "ignorePaths": [
+    "**/*.sbt",
+    "**/*.scala",
+    "**/build.properties",
+    "**/.scalafmt.conf",
+    ".github/workflows/ci.yml",
+    ".github/workflows/clean.yml"
   ]
 }
