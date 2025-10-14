@@ -70,6 +70,15 @@ lazy val esModule = Seq(
 //////////////
 
 lazy val root = tlCrossRootProject.aggregate(
+  schemas_model,
+  schemas_testkit,
+  schemas_tests,
+  schemas_lib,
+  ui_lib,
+  ui_testkit,
+  ui_tests,
+  ui_css,
+  ui_demo,
   explore_model,
   explore_modelTests,
   explore_common,
