@@ -11,7 +11,7 @@
   @include meta.load-css('/lucuma-css/dark-theme');
 }
 
-@import url('/lucuma-css/lucuma-ui-prime');
+@import url('/lucuma-css/lucuma-ui-prime.scss');
 /* stylelint-enable no-invalid-position-at-import-rule */
 
 .dark-theme,
