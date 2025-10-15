@@ -980,14 +980,14 @@ def runCmds(cmds: List[String]): Unit = {
   }
 }
 
-val lint: TaskKey[Unit] = taskKey[Unit]("Lint style files")
-lint := {
+val lintCheck: TaskKey[Unit] = taskKey[Unit]("Lint style files")
+lintCheck := {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
   runCmds(allStyleLintCmds(fix = false))
 }
 
-val fix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
-fix := {
+val lintFix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
+lintFix := {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
   runCmds(allStyleLintCmds(fix = true))
 }

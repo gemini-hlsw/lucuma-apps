@@ -20,7 +20,8 @@
 
 body,
 body .p-component {
-  font-family: var(--font-family) !important;
+  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+  font-family: Lato !important;
 }
 
 .p-button {

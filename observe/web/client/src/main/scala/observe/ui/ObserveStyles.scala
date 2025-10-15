@@ -5,7 +5,7 @@ package observe.ui
 
 import lucuma.react.common.style.Css
 
-object observeStyles:
+object ObserveStyles:
   val OnlySmallScreens = Css("only-small-screens")
   val OnlyLargeScreens = Css("only-large-screens")
 
