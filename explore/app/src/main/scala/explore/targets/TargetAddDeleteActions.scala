@@ -5,29 +5,30 @@ package explore.targets
 
 import cats.effect.IO
 import cats.syntax.all.*
-import explore.model.EmptySiderealTarget
 import explore.model.ProgramSummaries
 import explore.services.OdbTargetApi
 import explore.undo.*
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.schemas.model.TargetWithId
 
 object TargetAddDeleteActions {
-  private def singleTargetGetter(targetId: Target.Id): ProgramSummaries => Option[Target] =
+  private def singleTargetGetter(targetId: Target.Id): ProgramSummaries => Option[TargetWithId] =
     _.targets.get(targetId)
 
   private def targetListGetter(
     targetIds: List[Target.Id]
-  ): ProgramSummaries => List[Option[Target]] =
+  ): ProgramSummaries => List[Option[TargetWithId]] =
     ps => targetIds.map(tid => singleTargetGetter(tid)(ps))
 
   private def singleTargetSetter(targetId: Target.Id)(
-    targetOpt: Option[Target]
+    targetOpt: Option[TargetWithId]
   ): ProgramSummaries => ProgramSummaries =
     ProgramSummaries.targets.modify(_.updatedWith(targetId)(_ => targetOpt))
 
   private def targetListSetter(targetIds: List[Target.Id])(
-    targetOpts: List[Option[Target]]
+    targetOpts: List[Option[TargetWithId]]
   ): ProgramSummaries => ProgramSummaries = ps =>
     targetIds.zip(targetOpts).foldLeft(ps) { case (acc, (tid, targetOpt)) =>
       singleTargetSetter(tid)(targetOpt)(acc)
@@ -35,13 +36,16 @@ object TargetAddDeleteActions {
 
   def insertTarget(
     programId:   Program.Id,
+    target:      Target,
     setPage:     Option[Target.Id] => IO[Unit],
     postMessage: String => IO[Unit]
-  )(using odbApi: OdbTargetApi[IO]): AsyncAction[ProgramSummaries, Target.Id, Option[Target]] =
-    AsyncAction[ProgramSummaries, Target.Id, Option[Target]](
+  )(using
+    odbApi:      OdbTargetApi[IO]
+  ): AsyncAction[ProgramSummaries, Target.Id, Option[TargetWithId]] =
+    AsyncAction[ProgramSummaries, Target.Id, Option[TargetWithId]](
       asyncGet = odbApi
-        .insertTarget(programId, EmptySiderealTarget)
-        .map((_, EmptySiderealTarget.some)),
+        .insertTarget(programId, target) // can only insert science targets via the API
+        .map(id => (id, TargetWithId(id, target, TargetDisposition.Science, none).some)),
       getter = singleTargetGetter,
       setter = singleTargetSetter,
       // DB creation is performed beforehand, in order to get id
@@ -66,7 +70,7 @@ object TargetAddDeleteActions {
     programId:   Program.Id,
     setSummary:  IO[Unit],
     postMessage: String => IO[Unit]
-  )(using odbApi: OdbTargetApi[IO]): Action[ProgramSummaries, List[Option[Target]]] =
+  )(using odbApi: OdbTargetApi[IO]): Action[ProgramSummaries, List[Option[TargetWithId]]] =
     Action(getter = targetListGetter(targetIds), setter = targetListSetter(targetIds))(
       onSet = (_, lotwo) =>
         lotwo.sequence.fold(odbApi.deleteTargets(targetIds, programId))(_ =>

@@ -55,5 +55,7 @@ object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetW
           emissionLines $EmissionLinesIntegratedSubquery
         }
       }
+      disposition
+      calibrationRole
     }
   """

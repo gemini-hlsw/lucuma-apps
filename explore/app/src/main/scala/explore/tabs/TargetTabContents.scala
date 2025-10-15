@@ -126,7 +126,7 @@ object TargetTabContents extends TwoPanels:
             case (Focused(None, None, _), SelectedPanel.Editor) =>
               selectedPanel.set(SelectedPanel.Summary)
             case _                                              => Callback.empty
-      .useStateViewBy((_, _, _) => List.empty[Target.Id]) // Selected targets on table
+      .useStateViewBy((_, _, _) => List.empty[Target.Id])       // Selected targets on table
       .useLayoutEffectWithDepsBy((props, _, _, _) => props.focused.target):
         // If a target enters edit mode, unselect the rows.
         (_, _, _, selTargetIds) => _.foldMap(_ => selTargetIds.set(List.empty))
@@ -139,7 +139,7 @@ object TargetTabContents extends TwoPanels:
                 TargetIdSet.fromTargetIdList(selTargetIds).map(_.asLeft)
       .useState[LocalClipboard](
         LocalClipboard.Empty
-      ) // shadowClipboard (a copy of the clipboard as state)
+      )                                      // shadowClipboard (a copy of the clipboard as state)
       .useEffectOnMountBy: (_, ctx, _, _, _, shadowClipboard) => // initialize shadowClipboard
         import ctx.given
         ExploreClipboard.get.flatMap(shadowClipboard.setStateAsync)
@@ -239,7 +239,7 @@ object TargetTabContents extends TwoPanels:
 
           UseHotkeysProps((GoToSummary :: (CopyKeys ::: PasteKeys)).toHotKeys, callbacks)
       .useStateView(AladinFullScreen.Normal) // full screen aladin
-      .useResizeDetector() // Measure its size
+      .useResizeDetector()                   // Measure its size
       .useStateView[GuideStarSelection](AgsSelection(none)) // required for aladin but not in use
       .render:
         (
@@ -312,7 +312,6 @@ object TargetTabContents extends TwoPanels:
               props.programId,
               props.targets.model,
               props.programSummaries.get.targetObservations,
-              props.programSummaries.get.calibrationObservationIds,
               selectObservationAndTarget(props.expandedIds),
               selectedTargetIds,
               props.focusedSummaryTargetId,
@@ -329,12 +328,12 @@ object TargetTabContents extends TwoPanels:
                 .flatMap: targetId =>
                   props.targets.get
                     .get(targetId)
-                    .flatMap: target =>
+                    .flatMap: targetWithId =>
                       ObjectTracking
-                        .fromTarget(target)
+                        .fromTarget(targetWithId.target)
                         .map: tracking =>
                           ObjectPlotData.Id(targetId.asRight) -> ObjectPlotData(
-                            target.name,
+                            targetWithId.target.name,
                             tracking,
                             props.sitesForTarget(targetId)
                           )
@@ -428,6 +427,7 @@ object TargetTabContents extends TwoPanels:
                           _,
                           _,
                           _,
+                          _,
                           _
                         ) if obsId === id =>
                       (const,
@@ -508,7 +508,7 @@ object TargetTabContents extends TwoPanels:
                   val targetForPage: Option[Target.Id] =
                     if (params.areAddingTarget) params.targetId.some
                     else none // if we're deleting, let UI focus the first one in the asterism
-                  val setPage: Callback                =
+                  val setPage: Callback =
                     if (params.isUndo)
                       setCurrentTarget(idsToEdit.some)(targetForPage, SetRouteVia.HistoryReplace)
                     else
@@ -592,11 +592,10 @@ object TargetTabContents extends TwoPanels:
                 TargetEditorTile.noObsTargetEditorTile(
                   props.programId,
                   props.userId,
-                  targetId,
                   target,
                   props.obsAndTargets,
                   props.searching,
-                  s"Editing Target ${target.get.name.value} [$targetId]",
+                  s"Editing Target ${target.get.target.name.value} [$targetId]",
                   fullScreen,
                   props.userPreferences,
                   guideStarSelection,

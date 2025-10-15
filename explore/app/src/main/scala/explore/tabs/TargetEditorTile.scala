@@ -31,8 +31,7 @@ object TargetEditorTile:
   def noObsTargetEditorTile(
     programId:          Program.Id,
     userId:             Option[User.Id],
-    targetId:           Target.Id,
-    target:             UndoSetter[Target],
+    target:             UndoSetter[TargetWithId],
     obsAndTargets:      UndoSetter[ObservationsAndTargets],
     searching:          View[Set[Target.Id]],
     title:              String,
@@ -60,9 +59,9 @@ object TargetEditorTile:
             TargetEditor(
               programId,
               uid,
-              target,
+              target.zoom(TargetWithId.target),
               obsAndTargets,
-              Asterism.one(TargetWithId(targetId, target.get)),
+              Asterism.one(target.get),
               obsTime = none,
               obsConf = none,
               searching = searching,

@@ -13,13 +13,20 @@ object TargetQueriesGQL:
 
   @GraphQL
   trait TargetNameQuery extends GraphQLOperation[ObservationDB]:
-    // FIXME Change this to an actual name pattern query when it's available in the API
+    // namePrefix should include a `%' at the end
     val document = s"""
-      query($$programId: ProgramId!) {
-        targetGroup(programId: $$programId) {
-          matches {
-            target $TargetWithIdSubquery
+      query($$programId: ProgramId!, $$namePrefix: String!) {
+        targets(
+          WHERE: {
+            program: {id: {EQ: $$programId}}
+            name: {
+              LIKE: $$namePrefix
+              MATCH_CASE: false
+            }
+            disposition: {EQ: SCIENCE}
           }
+        ) {
+          matches $TargetWithIdSubquery
         }
       }
     """

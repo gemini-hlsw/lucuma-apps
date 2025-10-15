@@ -24,7 +24,6 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
-import lucuma.core.model.Target
 import lucuma.core.util.Timestamp
 import queries.schemas.itc.syntax.*
 import workers.WorkerClient

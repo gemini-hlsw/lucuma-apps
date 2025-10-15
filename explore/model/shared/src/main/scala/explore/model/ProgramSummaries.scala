@@ -97,10 +97,10 @@ case class ProgramSummaries(
 
   lazy val targetAttachmentAssignments: TargetAttachmentAssignmentMap =
     targets.toList
-      .map((targetId, target) =>
+      .map((targetId, targetWithId) =>
         SourceProfile.unnormalizedSED.some
           .andThen(UnnormalizedSED.userDefinedAttachment)
-          .getOption(target.sourceProfile)
+          .getOption(targetWithId.target.sourceProfile)
           .map(u => u.attachmentId -> targetId)
       )
       .flattenOption
@@ -111,11 +111,8 @@ case class ProgramSummaries(
 
   lazy val targetsWithObs: TargetWithObsList =
     targets.map((targetId, target) =>
-      targetId -> TargetWithObs(target, targetObservations.get(targetId).orEmpty)
+      targetId -> TargetWithObs(target.target, targetObservations.get(targetId).orEmpty)
     )
-
-  lazy val calibrationObservationIds: Set[Observation.Id] =
-    observations.values.filter(_.isCalibration).map(_.id).toSet
 
   lazy val nonCalibrationObservations: List[Observation] =
     observations.values.filterNot(_.isCalibration).toList
@@ -207,7 +204,7 @@ case class ProgramSummaries(
       val newOrphans =
         if (obs.contains(obsId)) orphans - obsId // shouldn't be there in the first place...
         else orphans.updated(obsId, (workflow, digest))
-      val newObs     = obs.updatedWith(obsId)(
+      val newObs = obs.updatedWith(obsId)(
         _.map(Observation.calculatedValues.replace((workflow, digest)))
       )
       (newObs, newOrphans)
@@ -220,7 +217,7 @@ case class ProgramSummaries(
   ): ProgramSummaries =
     val obs: ObservationList = obsIds.idSet.foldLeft(observations): (map, obsId) =>
       map.updatedWith(obsId)(_.map(Observation.scienceTargetIds.modify(_ - originalId + clone.id)))
-    val ts: TargetList       = targets + (clone.id -> clone.target)
+    val ts: TargetList       = targets + (clone.id -> clone)
     copy(observations = obs, targets = ts)
 
   def unCloneTargetForObservations(
@@ -285,7 +282,7 @@ case class ProgramSummaries(
   lazy val groupWarnings: Map[Group.Id, NonEmptySet[GroupWarning]] =
     extension (b:   Boolean)
       def mkSet(gw: GroupWarning): Set[GroupWarning] = if (b) Set(gw) else Set.empty
-    val ignoreStates: Set[ObservationWorkflowState]  =
+    val ignoreStates: Set[ObservationWorkflowState] =
       Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
 
     allObservationsForGroups
@@ -359,7 +356,7 @@ object ProgramSummaries:
   ): ProgramSummaries =
     ProgramSummaries(
       optProgramDetails,
-      targetList.toSortedMap(_.id, _.target),
+      targetList.toSortedMap(_.id, identity),
       obsList.toSortedMap(_.id),
       groupList.toSortedMap(_.id),
       attachments.toSortedMap(_.id),

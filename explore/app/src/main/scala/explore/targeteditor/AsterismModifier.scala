@@ -25,7 +25,6 @@ import lucuma.react.common.Css
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.SplitButton
-import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.ui.primereact.*
 import org.typelevel.log4cats.Logger
@@ -48,7 +47,7 @@ trait AsterismModifier:
       .flatMap((id, created) =>
         (AsterismActions
           .addTargetToAsterisms(
-            TargetWithId(id, targetWithOptId.target),
+            targetWithOptId.withId(id),
             obsIds,
             created,
             onAsterismUpdate
@@ -83,11 +82,11 @@ trait AsterismModifier:
     val menuItems = List(
       MenuItem.Item("Empty Sidereal Target",
                     icon = Icons.Star,
-                    command = insertTargetCB(TargetWithOptId(none, EmptySiderealTarget))
+                    command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
       ),
       MenuItem.Item("Empty Target of Opportunity",
                     icon = Icons.HourglassClock,
-                    command = insertTargetCB(TargetWithOptId(none, EmptyOpportunityTarget))
+                    command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget))
       )
     )
 

@@ -31,7 +31,7 @@ trait CacheModifierUpdaters {
       .modify: targets =>
         if (targetEdit.meta.exists(_.existence === Existence.Present))
           targetEdit.value
-            .map(t => targets.updated(targetEdit.targetId, t.target))
+            .map(t => targets.updated(targetEdit.targetId, t))
             .getOrElse(targets.removed(targetEdit.targetId))
         else targets.removed(targetEdit.targetId)
 

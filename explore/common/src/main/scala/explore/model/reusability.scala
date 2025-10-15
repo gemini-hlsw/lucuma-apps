@@ -73,7 +73,6 @@ object reusability:
   given Reusability[TargetEditObsInfo]       = Reusability.byEq
   given Reusability[TargetIdSet]             = Reusability.byEq
   given Reusability[TargetWithId]            = Reusability.byEq
-  given Reusability[TargetWithIdAndObs]      = Reusability.byEq
   given Reusability[TargetWithObs]           = Reusability.byEq
   given Reusability[ConstraintGroup]         = Reusability.byEq
   given Reusability[Observation]             = Reusability.byEq

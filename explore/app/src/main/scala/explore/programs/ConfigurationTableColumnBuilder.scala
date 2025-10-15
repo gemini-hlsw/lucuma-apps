@@ -135,7 +135,7 @@ object ConfigurationTableColumnBuilder {
       observations
         .flatMap(_.scienceTargetIds)
         .distinct
-        .map(tid => targets.get(tid).map(_.name.value))
+        .map(tid => targets.get(tid).map(_.target.name.value))
         .flattenOption
         .distinct
     targetNames match

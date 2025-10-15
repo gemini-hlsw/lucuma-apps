@@ -43,6 +43,7 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnVisibility
+import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import monocle.Focus
@@ -267,18 +268,18 @@ object AsterismEditorTile:
             // corrected, but we need to not render the target editor before it is corrected.
             (Asterism.fromIdsAndTargets(asterismIds, props.allTargets.get), props.focusedTargetId)
               .mapN: (asterism, focusedTargetId) =>
-                val selectedTargetOpt: Option[UndoSetter[Target]] =
+                val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
-                val obsInfo                                       = props.obsInfo(focusedTargetId)
+                val obsInfo                                             = props.obsInfo(focusedTargetId)
 
                 selectedTargetOpt
-                  .map: target =>
+                  .map: targetWithId =>
                     <.div(
                       ExploreStyles.TargetTileEditor,
                       TargetEditor(
                         props.programId,
                         props.userId,
-                        target,
+                        targetWithId.zoom(TargetWithId.target),
                         props.obsAndTargets,
                         asterism.focusOn(focusedTargetId),
                         props.obsTime,

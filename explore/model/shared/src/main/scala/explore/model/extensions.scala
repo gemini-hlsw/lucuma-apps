@@ -54,6 +54,10 @@ object extensions:
       case Target.Nonsidereal(_, _, _)        => none
       case Target.Opportunity(_, region, _)   => region.asRight.some
 
+  extension (targetWithId: TargetWithId)
+    def at(i: Instant): TargetWithId =
+      TargetWithId.target.replace(targetWithId.target.at(i))(targetWithId)
+
   extension (targets: NonEmptyList[TargetWithId])
     def baseTracking: Option[ObjectTracking] =
       ObjectTracking.fromAsterism(targets.map(_.target))

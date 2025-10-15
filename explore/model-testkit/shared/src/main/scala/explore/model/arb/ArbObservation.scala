@@ -6,6 +6,7 @@ package explore.model.arb
 import cats.Order.given
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.BlindOffset
 import explore.model.Execution
 import explore.model.Observation
 import explore.model.ScienceRequirements
@@ -52,6 +53,7 @@ import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.scalacheck.numeric.given
 
 trait ArbObservation:
+  import ArbBlindOffset.given
   import ArbExecution.given
   import ArbTime.given
   import ArbScienceRequirements.given
@@ -85,6 +87,7 @@ trait ArbObservation:
         groupId             <- arbitrary[Option[Group.Id]]
         groupIndex          <- arbitrary[NonNegShort]
         execution           <- arbitrary[Execution]
+        blindOffset         <- arbitrary[BlindOffset]
       yield Observation(
         id,
         reference,
@@ -109,7 +112,8 @@ trait ArbObservation:
         workflow,
         groupId,
         groupIndex,
-        execution
+        execution,
+        blindOffset
       )
     )
 
@@ -136,7 +140,7 @@ trait ArbObservation:
        Option[Configuration],
        SortedSet[ConfigurationRequest.Id],
        CalculatedValue[ObservationWorkflow],
-       (Option[Group.Id], Short, Execution)
+       (Option[Group.Id], Short, Execution, BlindOffset)
       )
     ]
       .contramap(o =>
@@ -161,7 +165,7 @@ trait ArbObservation:
          o.configuration,
          o.configurationRequestIds,
          o.workflow,
-         (o.groupId, o.groupIndex.value, o.execution)
+         (o.groupId, o.groupIndex.value, o.execution, o.blindOffset)
         )
       )
 

@@ -53,6 +53,7 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.given
+import lucuma.schemas.model.enums.BlindOffsetType
 import monocle.Focus
 import monocle.Lens
 import org.typelevel.cats.time.*
@@ -84,7 +85,8 @@ case class Observation(
   workflow:                CalculatedValue[ObservationWorkflow],
   groupId:                 Option[Group.Id],
   groupIndex:              NonNegShort,
-  execution:               Execution
+  execution:               Execution,
+  blindOffset:             BlindOffset
 ) derives Eq:
   lazy val basicConfiguration: Option[BasicConfiguration] =
     observingMode.map(_.toBasicConfiguration)
@@ -96,7 +98,7 @@ case class Observation(
 
   private def profiles(targets: TargetList): Option[NonEmptyList[SourceProfile]] =
     NonEmptyList.fromList:
-      scienceTargetIds.toList.map(targets.get).flattenOption.map(_.sourceProfile)
+      scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)
 
   private def applyGmosCcdModesOverrides(
     explicitXBinning:    Option[GmosXBinning],
@@ -290,13 +292,13 @@ case class Observation(
     NonEmptyList
       .fromList:
         scienceTargetIds.toList
-          .map(id => allTargets.get(id))
+          .map(id => allTargets.get(id).map(_.target))
           .flattenOption
       .flatMap(ObjectTracking.fromAsterism(_))
 
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
     scienceTargetIds.toList
-      .map(id => allTargets.get(id).flatMap(Target.opportunity.getOption))
+      .map(id => allTargets.get(id).map(_.target).flatMap(Target.opportunity.getOption))
       .flattenOption
       .nonEmpty
 
@@ -340,6 +342,13 @@ object Observation:
   val execution                = Focus[Observation](_.execution)
   val digest                   = execution.andThen(Execution.digest)
 
+  val blindOffset: Lens[Observation, BlindOffset]               = Focus[Observation](_.blindOffset)
+  val useBlindOffset: Lens[Observation, Boolean]                = blindOffset.andThen(BlindOffset.useBlindOffset)
+  val blindOffsetTargetId: Lens[Observation, Option[Target.Id]] =
+    blindOffset.andThen(BlindOffset.blindOffsetTargetId)
+  val blindOffsetType: Lens[Observation, BlindOffsetType]       =
+    blindOffset.andThen(BlindOffset.blindOffsetType)
+
   val calculatedValues
     : Lens[Observation,
            (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ExecutionDigest]])
@@ -371,10 +380,9 @@ object Observation:
                                .traverse(_.as[Option[ObservationReference]])
       title               <- c.get[String]("title")
       subtitle            <- c.get[Option[NonEmptyString]]("subtitle")
-      scienceTargetIds    <- c.downField("targetEnvironment").get[List[TargetIdWrapper]]("asterism")
-      selectedGSName      <- c.downField("targetEnvironment")
-                               .downField("guideTargetName")
-                               .as[Option[NonEmptyString]]
+      targetEnv            = c.downField("targetEnvironment")
+      scienceTargetIds    <- targetEnv.get[List[TargetIdWrapper]]("asterism")
+      selectedGSName      <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
       constraints         <- c.get[ConstraintSet]("constraintSet")
       timingWindows       <- c.get[List[TimingWindow]]("timingWindows")
       attachmentIds       <- c.get[List[AttachmentIdWrapper]]("attachments")
@@ -392,6 +400,7 @@ object Observation:
       groupId             <- c.get[Option[Group.Id]]("groupId")
       groupIndex          <- c.get[NonNegShort]("groupIndex")
       execution           <- c.get[Execution]("execution")
+      blindOffset         <- targetEnv.as[BlindOffset]
     } yield Observation(
       id,
       reference.flatten,
@@ -419,6 +428,7 @@ object Observation:
       workflow,
       groupId,
       groupIndex,
-      execution
+      execution,
+      blindOffset
     )
   )

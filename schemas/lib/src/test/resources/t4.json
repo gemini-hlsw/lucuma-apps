@@ -76,5 +76,7 @@
       }
     },
     "gaussian": null
-  }
+  },
+  "disposition": "CALIBRATION",
+  "calibrationRole": "PHOTOMETRIC"
 }

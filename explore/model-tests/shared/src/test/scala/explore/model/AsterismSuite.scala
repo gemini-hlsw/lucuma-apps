@@ -6,6 +6,7 @@ package explore.model
 import cats.kernel.laws.discipline.*
 import cats.laws.discipline.arbitrary.*
 import explore.model.arb.all.given
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Target
 import lucuma.core.model.arb.ArbTarget.given
 import lucuma.core.util.arb.ArbGid.given
@@ -27,12 +28,6 @@ class AsterismSuite extends DisciplineSuite:
   checkAll("Asterism.fromTargetsList", IsoTests(Asterism.fromTargetsList))
   checkAll("Asterism.targetsEach", TraversalTests(Asterism.targetsEach))
   checkAll("Asterism.siderealTargetsEach", TraversalTests(Asterism.siderealTargetsEach))
-
-  test("oneTarget") {
-    forAll { (id: Target.Id) =>
-      checkAll("Asterism.oneTarget", IsoTests(Asterism.oneTarget(id)))
-    }
-  }
 
   test("targetOptional") {
     forAll { (id: Target.Id) =>
@@ -63,7 +58,8 @@ class AsterismSuite extends DisciplineSuite:
             arbAsterism.arbitrary,
             for
               ast    <- arbAsterism.arbitrary
-              target <- arbitrary[Target].map(t => TargetWithId(id, t))
+              target <-
+                arbitrary[Target].map(t => TargetWithId(id, t, TargetDisposition.Science, None))
             yield ast.add(target)
           )
         )
