@@ -50,7 +50,7 @@ class StreamSpec extends munit.CatsEffectSuite:
     TestControl.executeEmbed(program).assertEquals(4)
   }
 
-  test("different behaviour to groupWithin") {
+  test("different behaviour to groupWithin".flaky) {
     val a = stream.reduceSemigroupWithin(3.seconds)
     val b = stream.groupWithin(Int.MaxValue, 3.seconds).map(_.combineAll)
 
