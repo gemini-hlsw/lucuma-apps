@@ -159,16 +159,19 @@ lazy val schemas_lib =
       createNpmProject              := {
         val npmDir = target.value / "npm"
 
-        val odbSchemaFile      =
+        val odbSchemaFile: File          =
           (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
-        val navigateSchemaFile =
+        val navigateSchemaFile: File     =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
+        val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
+          gitDescribedVersion.value.getOrElse("0.0.0").takeWhile(c => c != '+' && c != '-') +
+            "-" + version.value
 
         IO.write(
           npmDir / "package.json",
           s"""|{
              |  "name": "lucuma-schemas",
-             |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
+             |  "version": "$semVerWithPrerelease",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./odb": "./${odbSchemaFile.getName}",
