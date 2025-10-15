@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite';
 import path from 'path';
-import fs from 'fs/promises';
+import type { PluginCreator } from 'postcss';
+import Unfonts from 'unplugin-fonts/vite';
+import { defineConfig, UserConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
-import Unfonts from 'unplugin-fonts/vite'
 
-const fixCssRoot = (opts = {}) => {
+const fixCssRoot: PluginCreator<void> = () => {
   return {
     postcssPlugin: 'postcss-fix-nested-root',
-    Once(root, { result }) {
+    Once(root) {
       root.walkRules((rule) => {
         if (rule.selector.includes(' :root')) {
           rule.selector = rule.selector.replace(' :root', '');
@@ -24,25 +24,10 @@ fixCssRoot.postcss = true;
 
 const fontImport = Unfonts({
   fontsource: {
-    families: [
-      'Lato'
-    ],
+    families: ['Lato'],
   },
 });
 
-/**
- * Check if a file or directory exists
- * @param {import('fs').PathLike} path
- * @returns
- */
-const pathExists = async (path) => {
-  try {
-    await fs.access(path, fs.constants.F_OK);
-    return true;
-  } catch (err) {
-    return false;
-  }
-};
 
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
@@ -82,7 +67,7 @@ export default defineConfig(async ({ mode }) => {
         },
         {
           find: '@resources',
-          replacement: resourceDir
+          replacement: resourceDir,
         },
         {
           find: '/lucuma-css',
@@ -98,23 +83,22 @@ export default defineConfig(async ({ mode }) => {
       },
       postcss: {
         plugins: [fixCssRoot],
-      }
+      },
     },
     server: {
       strictPort: true,
-      fsServe: {
+      fs: {
         strict: true,
       },
       host: '0.0.0.0',
       port: 8081,
-      https: true,
       proxy: {
         '/api': {
           target: 'https://127.0.0.1:7070',
           changeOrigin: true,
           secure: false,
-          ws: true
-        }
+          ws: true,
+        },
       },
       watch: {
         ignored: [
@@ -125,18 +109,15 @@ export default defineConfig(async ({ mode }) => {
               _path.includes('/classes') ||
               _path.endsWith('.tmp');
             return sjsIgnored;
-          }
-        ]
-      }
+          },
+        ],
+      },
     },
     build: {
       emptyOutDir: true,
       chunkSizeWarningLimit: 20000,
       outDir: path.resolve(__dirname, 'deploy'),
     },
-    plugins: [
-      mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }),
-      fontImport
-    ],
-  };
+    plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport],
+  } satisfies UserConfig;
 });

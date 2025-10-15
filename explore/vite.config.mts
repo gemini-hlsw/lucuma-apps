@@ -6,10 +6,10 @@ import path from 'path';
 import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, UserConfig } from 'vite';
+import env from 'vite-plugin-env-compatible';
 import mkcert from 'vite-plugin-mkcert';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { RuntimeCaching } from 'workbox-build';
-import env from 'vite-plugin-env-compatible';
 
 const scalaVersion = '3.7.3';
 
@@ -180,7 +180,6 @@ export default defineConfig(async ({ mode }) => {
         ],
       },
       // https://vitejs.dev/guide/performance.html#warm-up-frequently-used-files
-      // @ts-expect-error doesn't exist in type definition, but it's in the docs
       warmup: {
         clientFiles: [
           path.resolve(sjs, '*.js'),
