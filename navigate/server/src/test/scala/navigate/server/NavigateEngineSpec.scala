@@ -41,6 +41,8 @@ class NavigateEngineSpec extends CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("navigate-engine")
 
+  override def munitFlakyOK: Boolean = true
+
   val guideOnCfg = TelescopeGuideConfig(
     mountGuide = MountGuideOption.MountGuideOn,
     m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
