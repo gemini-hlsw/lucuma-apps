@@ -953,8 +953,8 @@ def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] 
 }
 
 val cssDirs: List[String] = List(
-  // "explore/common/src/main/webapp/sass",
-  // "observe/web/client/src/main/webapp/styles",
+  "explore/common/src/main/webapp/sass",
+  "observe/web/client/src/main/webapp/styles",
   "ui/lib/src/main/resources/lucuma-css"
 )
 
