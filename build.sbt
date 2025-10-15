@@ -963,7 +963,7 @@ def allStyleLintCmds(fix: Boolean): List[String] =
     styleLintCmds("light", fix, cssDirs)
 
 def allLintCmds(fix: Boolean): List[String] =
-  prettierCmd(fix) +: allStyleLintCmds(fix)
+  allStyleLintCmds(fix) :+ prettierCmd(fix)
 
 def runCmds(cmds: List[String]): Unit = {
   val batch: List[ProcessBuilder] = cmds.flatMap { cmd =>
