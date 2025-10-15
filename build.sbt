@@ -1017,13 +1017,13 @@ addCommandAlias("stopNavigateAll", stopNavigateAllCommands.mkString(";", ";", ""
 
 // BEGIN GITHUB ACTIONS
 
-val pushCond          = "github.event_name == 'push'"
-val prCond            = "github.event_name == 'pull_request'"
-val mainCond          = "github.ref == 'refs/heads/main'"
-val notMainCond       = "github.ref != 'refs/heads/main'"
-val geminiRepoCond    = "startsWith(github.repository, 'gemini')"
-val notDependabotCond = "github.actor != 'dependabot[bot]'"
-val isMergedCond      = "github.event.pull_request.merged == true"
+val pushCond       = "github.event_name == 'push'"
+val prCond         = "github.event_name == 'pull_request'"
+val mainCond       = "github.ref == 'refs/heads/main'"
+val notMainCond    = "github.ref != 'refs/heads/main'"
+val geminiRepoCond = "startsWith(github.repository, 'gemini')"
+val notBotCond     = "github.actor != 'renovate[bot]'"
+val isMergedCond   = "github.event.pull_request.merged == true"
 def allConds(conds: String*) = conds.mkString("(", " && ", ")")
 def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
 
@@ -1199,7 +1199,7 @@ def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use
 //   "Deploy review app to Firebase",
 //   allConds(
 //     prCond,
-//     notDependabotCond,
+//     notBotCond,
 //     "github.event.pull_request.head.repo.full_name == github.repository"
 //   ),
 //   live = false
@@ -1290,7 +1290,7 @@ ThisBuild / githubWorkflowAddedJobs +=
       Nil,
     scalas = List(scalaVersion.value),
     javas = githubWorkflowJavaVersions.value.toList.take(1),
-    cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond, notDependabotCond))
+    cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond, notBotCond))
   )
 
 ThisBuild / githubWorkflowPublishPreamble +=
