@@ -1,4 +1,4 @@
-@use "/lucuma-css/lucuma-ui-common.scss" as lucumaUICommon;
+@use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
 
 html {
   font-size: 14px;
@@ -98,7 +98,7 @@ body {
 
 .p-accordion.ObserveStyles-logArea {
   margin-top: auto;
-  
+
   .p-accordion-header:not(.p-disabled) {
     .p-accordion-header-link {
       padding: 0.6em 0.8em;
@@ -297,9 +297,7 @@ body {
       &.ObserveStyles-rowActive {
         background-color: var(--active-row-background);
 
-        &:not(.p-highlight):not(.p-datatable-emptymessage):not(
-            .is-subcomponent
-          ):hover {
+        &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
           background-color: var(--active-row-background);
         }
       }
@@ -308,9 +306,7 @@ body {
         background-color: var(--negative-row-background);
         color: var(--negative-row-color);
 
-        &:not(.p-highlight):not(.p-datatable-emptymessage):not(
-            .is-subcomponent
-          ):hover {
+        &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
           background-color: var(--negative-row-background);
           color: var(--negative-row-color);
         }
@@ -374,9 +370,7 @@ body {
       background-color: var(--negative-row-background);
       color: var(--negative-row-color);
 
-      &:not(.p-highlight):not(.p-datatable-emptymessage):not(
-          .is-subcomponent
-        ):hover {
+      &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
         background-color: var(--negative-row-background);
         color: var(--negative-row-color);
       }
@@ -437,9 +431,7 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(
-          .lucuma-sequence-extra-row-shown
-        ) {
+      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($separator-color) !important;
       }
 
@@ -452,9 +444,7 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($hover-color), bottom-line($hover-color) !important;
         }
       }
@@ -469,9 +459,7 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(
-          .lucuma-sequence-extra-row-shown
-        ) {
+      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
         box-shadow: top-line($atom-color), bottom-line($separator-color) !important;
       }
 
@@ -484,11 +472,9 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
-          box-shadow: top-double-line($atom-color, $hover-color),
-            bottom-line($hover-color) !important;
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          box-shadow:
+            top-double-line($atom-color, $hover-color), bottom-line($hover-color) !important;
         }
       }
 
@@ -501,9 +487,7 @@ body {
         //
         //
         // BREAKPOINT-BREAKPOINT-BREAKPO
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($atom-color), bottom-line($breakpoint-color) !important;
         }
 
@@ -516,10 +500,9 @@ body {
           //
           // HOVER-HOVER-HOVER-HOVER-HOVER
           // BREAKPOINT-BREAKPOINT-BREAKPO
-          td:not(.ObserveStyles-breakpointTableCell):not(
-              .lucuma-sequence-extra-row-shown
-            ) {
-            box-shadow: top-double-line($atom-color, $hover-color),
+          td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+            box-shadow:
+              top-double-line($atom-color, $hover-color),
               bottom-double-line($breakpoint-color, $hover-color) !important;
           }
         }
@@ -535,9 +518,7 @@ body {
       //
       //
       // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-      td:not(.ObserveStyles-breakpointTableCell):not(
-          .lucuma-sequence-extra-row-shown
-        ) {
+      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($atom-color) !important;
       }
 
@@ -550,11 +531,9 @@ body {
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
         // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
-          box-shadow: top-line($hover-color),
-            bottom-double-line($atom-color, $hover-color) !important;
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          box-shadow:
+            top-line($hover-color), bottom-double-line($atom-color, $hover-color) !important;
         }
       }
     }
@@ -568,9 +547,7 @@ body {
       //
       //
       // BREAKPOINT-BREAKPOINT-BREAKPO
-      td:not(.ObserveStyles-breakpointTableCell):not(
-          .lucuma-sequence-extra-row-shown
-        ) {
+      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($breakpoint-color) !important;
       }
 
@@ -583,11 +560,9 @@ body {
         //
         // HOVER-HOVER-HOVER-HOVER-HOV
         // BREAKPOINT-BREAKPOINT-BREAK
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
-          box-shadow: top-line($hover-color),
-            bottom-double-line($breakpoint-color, $hover-color) !important;
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          box-shadow:
+            top-line($hover-color), bottom-double-line($breakpoint-color, $hover-color) !important;
         }
       }
     }
@@ -602,16 +577,12 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(
-          .lucuma-sequence-extra-row-shown
-        ) {
+      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
         box-shadow: top-line($breakpoint-color), bottom-line($separator-color) !important;
       }
 
       &:has(+ .ObserveStyles-stepRowWithBreakpoint),
-      &:has(+ .ObserveStyles-stepRowWithBreakpoint):has(
-          + .ObserveStyles-stepRowFirstInAtom
-        ) {
+      &:has(+ .ObserveStyles-stepRowWithBreakpoint):has(+ .ObserveStyles-stepRowFirstInAtom) {
         // Breakpoint row with next row with breakpoint.
         // BREAKPOINT-BREAKPOINT-BREAKPO
         //
@@ -620,11 +591,8 @@ body {
         //
         //
         // BREAKPOINT-BREAKPOINT-BREAKPO
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
-          box-shadow: top-line($breakpoint-color),
-            bottom-line($breakpoint-color) !important;
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          box-shadow: top-line($breakpoint-color), bottom-line($breakpoint-color) !important;
         }
       }
 
@@ -637,9 +605,7 @@ body {
         //
         //
         // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($breakpoint-color), bottom-line($atom-color) !important;
         }
       }
@@ -653,11 +619,9 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(
-            .lucuma-sequence-extra-row-shown
-          ) {
-          box-shadow: top-double-line($breakpoint-color, $hover-color),
-            bottom-line($hover-color) !important;
+        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          box-shadow:
+            top-double-line($breakpoint-color, $hover-color), bottom-line($hover-color) !important;
         }
 
         &:has(+ .ObserveStyles-stepRowWithBreakpoint) {
@@ -669,10 +633,9 @@ body {
           //
           // HOVER-HOVER-HOVER-HOVER-HOVER
           // BREAKPOINT-BREAKPOINT-BREAKPO
-          td:not(.ObserveStyles-breakpointTableCell):not(
-              .lucuma-sequence-extra-row-shown
-            ) {
-            box-shadow: top-double-line($breakpoint-color, $hover-color),
+          td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+            box-shadow:
+              top-double-line($breakpoint-color, $hover-color),
               bottom-double-line($breakpoint-color, $hover-color) !important;
           }
         }

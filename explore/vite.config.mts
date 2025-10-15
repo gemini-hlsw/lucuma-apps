@@ -262,7 +262,7 @@ export default defineConfig(async ({ mode }) => {
           ],
         },
       }),
-      react()
+      react(),
     ],
   } satisfies UserConfig;
 });

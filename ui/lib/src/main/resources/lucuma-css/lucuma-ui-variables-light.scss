@@ -6,8 +6,9 @@
   --color-text-base-s: 0%;
   --color-text-base-l: 0%;
   --color-text-base-a: 0.86;
-  --color-text-base-hsla: var(--color-text-base-h), var(--color-text-base-s),
-    var(--color-text-base-l), var(--color-text-base-a);
+  --color-text-base-hsla:
+    var(--color-text-base-h), var(--color-text-base-s), var(--color-text-base-l),
+    var(--color-text-base-a);
   --color-text-base: hsla(var(--color-text-base-hsla));
   // Light shades
   --color-text-light-45: hsl(

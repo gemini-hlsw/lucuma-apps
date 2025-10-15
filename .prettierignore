@@ -1,10 +1,10 @@
-ui/demo/src/main/webapp
-
 explore/common/src/main/webapp/less/vendor
 explore/common/src/main/webapp/suithemes
 explore/common/src/main/webapp/themes
 explore/hasura/user-prefs/
 explore/heroku/static
+
+ui/demo/src/main/webapp
 
 .github/
 .mergify.yml

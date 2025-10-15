@@ -1,5 +1,5 @@
-import "unfonts.css";
-import "./styles/style.scss";
+import 'unfonts.css';
+import './styles/style.scss';
 import '/lucuma-css/lucuma-ui-layout.scss';
 import '/lucuma-css/lucuma-ui-login.scss';
 import '/lucuma-css/lucuma-ui-sequence.scss';
@@ -8,10 +8,10 @@ import '/lucuma-css/lucuma-ui-table.scss';
 import '/lucuma-css/lucuma-ui-variables-dark.scss';
 import '/lucuma-css/lucuma-ui-variables-light.scss';
 import '/lucuma-css/solar-system.scss';
-import "primereact/resources/primereact.min.css";     // core css
-import "primeicons/primeicons.css";                   // icons
+import 'primereact/resources/primereact.min.css'; // core css
+import 'primeicons/primeicons.css'; // icons
 
-import { Main } from "@sjs/main.js";
+import { Main } from '@sjs/main.js';
 
 // Setting this here shouldn't be necessary if we get `vite-plugin-environment` to work.
 // but for now we can survive setting this only on dev
@@ -21,7 +21,7 @@ if (!process) {
   };
 }
 if (import.meta.env.DEV) {
-  process.env = { CATS_EFFECT_TRACING_MODE: "none" };
+  process.env = { CATS_EFFECT_TRACING_MODE: 'none' };
 }
 
 Main.runIOApp();

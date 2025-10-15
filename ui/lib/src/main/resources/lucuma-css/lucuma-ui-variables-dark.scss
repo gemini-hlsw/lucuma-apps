@@ -7,8 +7,8 @@
   --color-background-base-h: 0;
   --color-background-base-s: 0%;
   --color-background-base-l: 7.06%;
-  --color-background-base-hsl: var(--color-background-base-h), var(--color-background-base-s),
-    var(--color-background-base-l);
+  --color-background-base-hsl:
+    var(--color-background-base-h), var(--color-background-base-s), var(--color-background-base-l);
   --color-background: hsl(var(--color-background-base-hsl));
   // Variations of the background color
   // Light shades
@@ -95,8 +95,9 @@
   --color-text-base-s: 0%;
   --color-text-base-l: 100%;
   --color-text-base-a: 0.87;
-  --color-text-base-hsla: var(--color-background-base-h), var(--color-background-base-s),
-    var(--color-text-base-l), var(--color-text-base-a);
+  --color-text-base-hsla:
+    var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l),
+    var(--color-text-base-a);
   --color-text-base: hsla(var(--color-text-base-hsla));
   // Light shades
   --color-text-light-45: hsl(
@@ -120,15 +121,17 @@
     var(--color-text-base-l),
     1
   );
-  --color-text-alt-hsla: var(--color-background-base-h), var(--color-background-base-s),
-    var(--color-text-base-l), 1;
+  --color-text-alt-hsla:
+    var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l), 1;
   --color-text-alt: hsla(var(--color-text-alt-hsla));
   // dark shades
-  --color-text-dark-8-hsla: var(--color-text-base-h), var(--color-text-base-s),
-    calc(var(--color-text-base-l) - 8%), calc(var(--color-text-base-a) - 0.1);
+  --color-text-dark-8-hsla:
+    var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) - 8%),
+    calc(var(--color-text-base-a) - 0.1);
   --color-text-dark-8: hsla(var(--color-text-dark-8-hsla));
-  --color-text-dark-10-hsla: var(--color-text-base-h), var(--color-text-base-s),
-    calc(var(--color-text-base-l) - 10%), calc(var(--color-text-base-a) - 0.3);
+  --color-text-dark-10-hsla:
+    var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) - 10%),
+    calc(var(--color-text-base-a) - 0.3);
   --color-text-dark-10: hsla(var(--color-text-dark-10-hsla));
   --gray-h: 210;
   --gray-s: 5.7%;
@@ -263,8 +266,8 @@
   --form-input-focus-color: var(--color-text-base);
   --form-input-background: var(--control-background-color);
   --form-input-focus-border-color: transparent;
-  --form-input-focus-box-shadow: 0 0 0 0.1rem var(--focus-inner-color),
-    0 0 0 0.2rem var(--focus-outer-color);
+  --form-input-focus-box-shadow:
+    0 0 0 0.1rem var(--focus-inner-color), 0 0 0 0.2rem var(--focus-outer-color);
   --form-prompt-text-color: var(--negative-text-color);
   --form-prompt-background: var(--negative-background-color);
 }
