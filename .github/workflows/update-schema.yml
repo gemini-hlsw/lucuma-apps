@@ -39,7 +39,7 @@ jobs:
           ODB_API_KEY: ${{ secrets.LUCUMA_DEV_API_KEY }}
       - name: Create Pull Request
         id: cpr
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           title: Update ODB Schema
           commit-message: Update ODB Schema
