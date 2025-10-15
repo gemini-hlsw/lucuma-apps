@@ -946,14 +946,16 @@ def prettierCmd(fix: Boolean): String =
 
 def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] = {
   val stylelintFixFlag = if (fix) " --fix" else ""
-  // Removes all lines that don't define a variable, thus building a viable CSS file for linting
-  (raw"""sed '/^[[:blank:]]*[\\.\\}\\@]/d;/^[[:blank:]]*\..*/d;/^[[:blank:]]*$$/d;/\/\/.*/d' ui/lib/src/main/resources/lucuma-css/lucuma-ui-variables-$mode.scss >vars.css"""
+  // Removes all lines that don't define a variable, thus building a viable CSS file for linting. Thanks ChatGPT.
+  (raw"""find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$$/p' -e '/^[[:space:]]*--[^;]*$$/,/;$$/p' {} + >vars.css"""
     +: dirs.map(dir => s"npx stylelint --formatter github $stylelintFixFlag $dir")) :+
     "rm vars.css"
 }
 
 val cssDirs: List[String] = List(
-  "explore/common/src/main/webapp/sass"
+  "explore/common/src/main/webapp/sass",
+  "observe/web/client/src/main/webapp/styles",
+  "ui/lib/src/main/resources/lucuma-css"
 )
 
 def allStyleLintCmds(fix: Boolean): List[String] =
@@ -961,12 +963,11 @@ def allStyleLintCmds(fix: Boolean): List[String] =
     styleLintCmds("light", fix, cssDirs)
 
 def allLintCmds(fix: Boolean): List[String] =
-  prettierCmd(fix) +: allStyleLintCmds(fix)
+  allStyleLintCmds(fix) :+ prettierCmd(fix)
 
 def runCmds(cmds: List[String]): Unit = {
   val batch: List[ProcessBuilder] = cmds.flatMap { cmd =>
-    val fixedCmd: String     =
-      cmd.replaceAll("'", "") // We don't need the quotes when running from here.
+    val fixedCmd: String     = cmd.replaceAll("'", "") // Quotes not needed when running from here.
     val echo: ProcessBuilder = Process(s"echo <$fixedCmd>")
     val split: List[String]  = fixedCmd.split(" >").toList
     split match {
@@ -980,16 +981,16 @@ def runCmds(cmds: List[String]): Unit = {
   }
 }
 
-val lint: TaskKey[Unit] = taskKey[Unit]("Lint style files")
-lint := {
+val lintCheck: TaskKey[Unit] = taskKey[Unit]("Lint style files")
+lintCheck := {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
-  runCmds(allStyleLintCmds(fix = false))
+  runCmds(allLintCmds(fix = false))
 }
 
-val fix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
-fix := {
+val lintFix: TaskKey[Unit] = taskKey[Unit]("Fix style files")
+lintFix := {
   val _ = (ui_css / Compile / lucumaCss).value // Ensure Prime CSS is imported
-  runCmds(allStyleLintCmds(fix = true))
+  runCmds(allLintCmds(fix = true))
 }
 
 addCommandAlias(
@@ -1004,7 +1005,7 @@ addCommandAlias(
 
 addCommandAlias(
   "fixAll",
-  "; prePR; fix"
+  "; prePR; lintFix"
 )
 
 // Custom commands to facilitate web development

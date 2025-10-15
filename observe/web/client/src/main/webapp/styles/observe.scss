@@ -15,19 +15,19 @@ body {
   color: var(--color-text-alt);
 }
 
-.OnlySmallScreens {
+.only-small-screens {
   @media screen and (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
     display: none;
   }
 }
 
-.OnlyLargeScreens {
+.only-large-screens {
   @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff + 1) {
     display: none;
   }
 }
 
-.ObserveStyles-mainPanel {
+.observe-main-panel {
   display: flex;
   flex-direction: column;
 
@@ -36,17 +36,17 @@ body {
   }
 }
 
-.ObserveStyles-login-title {
+.observe-login-title {
   border-bottom-color: var(--yellow-300);
 }
 
-.p-tabview.ObserveStyles-sequenceTabView .p-tabview-panels {
+.p-tabview.observe-sequence-tab-view .p-tabview-panels {
   height: 100%;
   padding: 0;
 }
 
 .p-splitter {
-  &.ObserveStyles-shrinkable {
+  &.observe-shrinkable {
     flex-grow: 2;
     min-width: 0;
     min-height: 0;
@@ -54,16 +54,16 @@ body {
   }
 }
 
-.p-tabview .p-tabview-panels .ObserveStyles-sequenceTabPanel {
+.p-tabview .p-tabview-panels .observe-sequence-tab-panel {
   height: 100%; // Required for virtualized table within.
 }
 
-.p-tabview .p-tabview-nav li.ObserveStyles-sequenceTabPanel {
+.p-tabview .p-tabview-nav li.observe-sequence-tab-panel {
   min-width: 20%;
 
   & .p-tabview-nav-link {
     justify-content: center;
-    padding: 0.5em 0.5em;
+    padding: 0.5em;
   }
 
   & .p-tabview-title {
@@ -73,30 +73,30 @@ body {
   }
 }
 
-.ObserveStyles-topPanel {
+.observe-top-panel {
   display: flex;
   flex-direction: column;
 }
 
-.ObserveStyles-activeInstrumentLabel {
+.observe-active-instrument-label {
   padding-bottom: 0.5em;
 }
 
 .p-tag {
-  &.ObserveStyles-labelPointer {
+  &.observe-label-pointer {
     padding: 5px 10px;
   }
 
-  &.ObserveStyles-idleTag {
+  &.observe-idle-tag {
     background-color: var(--gray-400);
   }
 
-  &.ObserveStyles-runningTag {
+  &.observe-running-tag {
     background-color: var(--orange-500);
   }
 }
 
-.p-accordion.ObserveStyles-logArea {
+.p-accordion.observe-log-area {
   margin-top: auto;
 
   .p-accordion-header:not(.p-disabled) {
@@ -112,24 +112,23 @@ body {
 }
 
 .p-toolbar {
-  &.ObserveStyles-footer {
+  &.observe-footer {
     border-radius: unset;
     min-height: 3em;
     max-height: 3em;
     padding-top: 0;
     padding-bottom: 0;
-
     background: var(--gray-900);
     color: var(--gray-50);
   }
 }
 
-.ObserveStyles-centered {
+.observe-centered {
   display: flex;
   justify-content: center;
 }
 
-.ObserveStyles-componentLabel {
+.observe-component-label {
   text-overflow: ellipsis;
   overflow: hidden;
   word-wrap: break-word;
@@ -137,7 +136,7 @@ body {
 }
 
 .p-selectbutton {
-  &.ObserveStyles-obsClassSelect {
+  &.observe-obs-class-select {
     border: 1px solid var(--surface-border);
 
     .p-button {
@@ -170,21 +169,22 @@ body {
 .pl-react-table.p-datatable.lucuma-sequence-table {
   tbody {
     tr.lucuma-sequence-row-has-extra {
-      td:not(.ObserveStyles-breakpointTableCell) {
+      td:not(.observe-breakpoint-table-cell) {
         padding-top: 6px;
       }
     }
   }
 }
 
-.ObserveStyles-ConfigSection {
+.observe-config-section {
   display: flex;
   flex-direction: column;
   justify-content: space-evenly;
   align-items: center;
 
-  .ObserveStyles-ConditionsLabel {
+  .observe-conditions-label {
     @include lucumaUICommon.text-ellipsis;
+
     font-weight: bold;
 
     @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
@@ -206,11 +206,12 @@ body {
     font-size: smaller;
   }
 
-  .ObserveStyles-ConditionsSection {
+  .observe-conditions-section {
     display: flex;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
+
     @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
       gap: 2px;
     }
@@ -219,44 +220,44 @@ body {
       width: 7em;
     }
 
-    .ObserveStyles-ImageQualityArea {
+    .observe-image-quality-area {
       display: flex;
       align-items: center;
       gap: 5px;
     }
 
-    .ObserveStyles-CloudExtinctionArea {
+    .observe-cloud-extinction-area {
       display: flex;
       align-items: center;
       gap: 5px;
     }
 
-    .ObserveStyles-WaterVaporArea {
+    .observe-water-vapor-area {
       display: flex;
       align-items: center;
       gap: 5px;
     }
 
-    .ObserveStyles-SkyBackgroundArea {
+    .observe-sky-background-area {
       display: flex;
       align-items: center;
       gap: 5px;
     }
   }
 
-  .ObserveStyles-NamesSection {
+  .observe-names-section {
     display: flex;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
 
-    .ObserveStyles-ObserverArea {
+    .observe-observer-area {
       display: flex;
       align-items: center;
       gap: 5px;
     }
 
-    .ObserveStyles-OperatorArea {
+    .observe-operator-area {
       display: flex;
       align-items: center;
       gap: 5px;
@@ -264,13 +265,13 @@ body {
   }
 }
 
-.ObserveStyles-observationArea {
+.observe-observation-area {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 100%;
 
-  .ObservationArea-sequenceTableExpandButton {
+  .observation-area-sequence-table-expand-button {
     margin: 0 0 15px 10px;
     display: flex;
     flex-direction: row;
@@ -278,14 +279,14 @@ body {
   }
 }
 
-.ObserveStyles-observationAreaError {
+.observe-observation-area-error {
   display: flex;
   flex-direction: column;
   height: 100%;
   justify-content: center;
 }
 
-.ObserveStyles-configuringRow {
+.observe-configuring-row {
   display: flex;
   padding-left: 10px;
   padding-right: 20px;
@@ -294,19 +295,19 @@ body {
 .pl-react-table.p-datatable.p-datatable-hoverable-rows {
   .p-datatable-tbody {
     & > tr {
-      &.ObserveStyles-rowActive {
+      &.observe-row-active {
         background-color: var(--active-row-background);
 
-        &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
+        &:not(.p-highlight, .p-datatable-emptymessage, .is-subcomponent):hover {
           background-color: var(--active-row-background);
         }
       }
 
-      &.ObserveStyles-rowNegative {
+      &.observe-row-negative {
         background-color: var(--negative-row-background);
         color: var(--negative-row-color);
 
-        &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
+        &:not(.p-highlight, .p-datatable-emptymessage, .is-subcomponent):hover {
           background-color: var(--negative-row-background);
           color: var(--negative-row-color);
         }
@@ -314,7 +315,7 @@ body {
     }
   }
 
-  &.ObserveStyles-observeTable {
+  &.observe-observe-table {
     width: 100%;
 
     thead {
@@ -341,36 +342,36 @@ body {
     }
   }
 
-  &.ObserveStyles-obsListTable {
+  &.observe-obs-list-table {
     tr > td {
       padding-top: 0.5em;
       padding-bottom: 0.5em;
     }
 
-    .ObserveStyles-loadButton-cell {
+    .observe-load-button-cell {
       padding: 0;
 
-      .ObserveStyles-loadButton.p-component.p-button {
+      .observe-load-button.p-component.p-button {
         padding: 3px;
       }
     }
   }
 
-  &.ObserveStyles-stepTable {
-    tr.ObserveStyles-stepRowDone {
+  &.observe-step-table {
+    tr.observe-step-row-done {
       color: var(--disabled-row-color);
       background: var(--disabled-row-background);
     }
 
-    tr.ObserveStyles-stepRowWarning {
+    tr.observe-step-row-warning {
       background-color: var(--active-row-background);
     }
 
-    tr.ObserveStyles-stepRowError {
+    tr.observe-step-row-error {
       background-color: var(--negative-row-background);
       color: var(--negative-row-color);
 
-      &:not(.p-highlight):not(.p-datatable-emptymessage):not(.is-subcomponent):hover {
+      &:not(.p-highlight, .p-datatable-emptymessage, .is-subcomponent):hover {
         background-color: var(--negative-row-background);
         color: var(--negative-row-color);
       }
@@ -412,12 +413,14 @@ body {
       @return bottom-line($outer), bottom-thick-line($inner);
     }
 
+    /* stylelint-disable scss/comment-no-empty */
     tr {
       box-shadow: none !important;
 
       td {
         padding-top: 1px;
         padding-bottom: 1px;
+
         // We have some row separators which are split betwen the previous and next row.
         // This is easier to deal with with border 0 and box-shadows.
         border-bottom: 0;
@@ -431,11 +434,11 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+      td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($separator-color) !important;
       }
 
-      &:not(.ObserveStyles-rowHeader):hover {
+      &:not(.observe-row-header):hover {
         // Regular hovering row.
         // HOVER-HOVER-HOVER-HOVER-HOVER
         //
@@ -444,13 +447,13 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($hover-color), bottom-line($hover-color) !important;
         }
       }
     }
 
-    tr.ObserveStyles-stepRowFirstInAtom:not(:first-of-type) {
+    tr.observe-step-row-first-in-atom:not(:first-of-type) {
       // First-in-atom row.
       // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
       //
@@ -459,7 +462,7 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+      td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
         box-shadow: top-line($atom-color), bottom-line($separator-color) !important;
       }
 
@@ -472,13 +475,13 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow:
             top-double-line($atom-color, $hover-color), bottom-line($hover-color) !important;
         }
       }
 
-      &:has(+ .ObserveStyles-stepRowWithBreakpoint) {
+      &:has(+ .observe-step-row-with-breakpoint) {
         // First-in-atom row with next row with breakpoint.
         // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
         //
@@ -487,11 +490,11 @@ body {
         //
         //
         // BREAKPOINT-BREAKPOINT-BREAKPO
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($atom-color), bottom-line($breakpoint-color) !important;
         }
 
-        &:not(.ObserveStyles-rowHeader):hover {
+        &:not(.observe-row-header):hover {
           // First-in-atom hovering row with next row with breakpoint.
           // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
           // HOVER-HOVER-HOVER-HOVER-HOVER
@@ -500,7 +503,7 @@ body {
           //
           // HOVER-HOVER-HOVER-HOVER-HOVER
           // BREAKPOINT-BREAKPOINT-BREAKPO
-          td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
             box-shadow:
               top-double-line($atom-color, $hover-color),
               bottom-double-line($breakpoint-color, $hover-color) !important;
@@ -509,7 +512,7 @@ body {
       }
     }
 
-    tr:has(+ .ObserveStyles-stepRowFirstInAtom) {
+    tr:has(+ .observe-step-row-first-in-atom) {
       // Regular row with next row first-in-atom.
       // -----------------------------
       //
@@ -518,11 +521,11 @@ body {
       //
       //
       // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+      td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($atom-color) !important;
       }
 
-      &:not(.ObserveStyles-rowHeader):hover {
+      &:not(.observe-row-header):hover {
         // Regular hovering row with next row first-in-atom.
         // HOVER-HOVER-HOVER-HOVER-HOVER
         //
@@ -531,14 +534,14 @@ body {
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
         // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow:
             top-line($hover-color), bottom-double-line($atom-color, $hover-color) !important;
         }
       }
     }
 
-    tr:has(+ .ObserveStyles-stepRowWithBreakpoint) {
+    tr:has(+ .observe-step-row-with-breakpoint) {
       // Regular row with next row with breakpoint.
       // -----------------------------
       //
@@ -547,11 +550,11 @@ body {
       //
       //
       // BREAKPOINT-BREAKPOINT-BREAKPO
-      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+      td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
         box-shadow: bottom-line($breakpoint-color) !important;
       }
 
-      &:not(.ObserveStyles-rowHeader):hover {
+      &:not(.observe-row-header):hover {
         // Regular hovering row with next row with breakpoint.
         // HOVER-HOVER-HOVER-HOVER-HOV
         //
@@ -560,15 +563,15 @@ body {
         //
         // HOVER-HOVER-HOVER-HOVER-HOV
         // BREAKPOINT-BREAKPOINT-BREAK
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow:
             top-line($hover-color), bottom-double-line($breakpoint-color, $hover-color) !important;
         }
       }
     }
 
-    tr.ObserveStyles-stepRowWithBreakpoint,
-    tr.ObserveStyles-stepRowWithBreakpoint:not(:first-of-type) {
+    tr.observe-step-row-with-breakpoint,
+    tr.observe-step-row-with-breakpoint:not(:first-of-type) {
       // Breakpoint row.
       // BREAKPOINT-BREAKPOINT-BREAKPO
       //
@@ -577,12 +580,12 @@ body {
       //
       //
       // SEPARATOR-SEPARATOR-SEPARATOR
-      td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+      td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
         box-shadow: top-line($breakpoint-color), bottom-line($separator-color) !important;
       }
 
-      &:has(+ .ObserveStyles-stepRowWithBreakpoint),
-      &:has(+ .ObserveStyles-stepRowWithBreakpoint):has(+ .ObserveStyles-stepRowFirstInAtom) {
+      &:has(+ .observe-step-row-with-breakpoint),
+      &:has(+ .observe-step-row-with-breakpoint):has(+ .observe-step-row-first-in-atom) {
         // Breakpoint row with next row with breakpoint.
         // BREAKPOINT-BREAKPOINT-BREAKPO
         //
@@ -591,12 +594,12 @@ body {
         //
         //
         // BREAKPOINT-BREAKPOINT-BREAKPO
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($breakpoint-color), bottom-line($breakpoint-color) !important;
         }
       }
 
-      &:has(+ .ObserveStyles-stepRowFirstInAtom) {
+      &:has(+ .observe-step-row-first-in-atom) {
         // Breakpoint row with next row first-in-atom.
         // -----------------------------
         // BREAKPOINT-BREAKPOINT-BREAKPO
@@ -605,12 +608,12 @@ body {
         //
         //
         // ATOM-ATOM-ATOM-ATOM-ATOM-ATOM
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow: top-line($breakpoint-color), bottom-line($atom-color) !important;
         }
       }
 
-      &:not(.ObserveStyles-rowHeader):hover {
+      &:not(.observe-row-header):hover {
         // Breakpoint hovering row.
         // BREAKPOINT-BREAKPOINT-BREAKPO
         // HOVER-HOVER-HOVER-HOVER-HOVER
@@ -619,12 +622,12 @@ body {
         //
         //
         // HOVER-HOVER-HOVER-HOVER-HOVER
-        td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+        td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
           box-shadow:
             top-double-line($breakpoint-color, $hover-color), bottom-line($hover-color) !important;
         }
 
-        &:has(+ .ObserveStyles-stepRowWithBreakpoint) {
+        &:has(+ .observe-step-row-with-breakpoint) {
           // Breakpoint hovering row with next row with breakpoint.
           // BREAKPOINT-BREAKPOINT-BREAKPO
           // HOVER-HOVER-HOVER-HOVER-HOVER
@@ -633,7 +636,7 @@ body {
           //
           // HOVER-HOVER-HOVER-HOVER-HOVER
           // BREAKPOINT-BREAKPOINT-BREAKPO
-          td:not(.ObserveStyles-breakpointTableCell):not(.lucuma-sequence-extra-row-shown) {
+          td:not(.observe-breakpoint-table-cell, .lucuma-sequence-extra-row-shown) {
             box-shadow:
               top-double-line($breakpoint-color, $hover-color),
               bottom-double-line($breakpoint-color, $hover-color) !important;
@@ -641,13 +644,14 @@ body {
         }
       }
     }
+    /* stylelint-enable scss/comment-no-empty */
 
-    tr.ObserveStyles-stepRowPossibleFuture {
+    tr.observe-step-row-possible-future {
       opacity: 0.6;
     }
 
     // The actual cell is translated.
-    td.ObserveStyles-breakpointTableCell {
+    td.observe-breakpoint-table-cell {
       vertical-align: top;
       transform: translate(4px, -8px);
       overflow: visible; // This shows the breakpoint markers, even with width 0.
@@ -656,7 +660,7 @@ body {
   }
 }
 
-.ObserveStyles-acquisitionPrompt {
+.observe-acquisition-prompt {
   height: 75px;
   padding: 10px;
   margin-left: -20px;
@@ -666,21 +670,21 @@ body {
   color: var(--gray-800);
   background-color: var(--yellow-400);
 
-  .ObserveStyles-acquisitionPrompt-main {
+  .observe-acquisition-prompt-main {
     display: flex;
     flex-grow: 1;
     flex-direction: column;
     gap: 6px;
   }
 
-  .ObserveStyles-acquisitionPrompt-busy {
+  .observe-acquisition-prompt-busy {
     align-self: center;
     padding-right: 15px;
   }
 }
 
 .p-progressbar {
-  &.ObserveStyles-observationProgressBar {
+  &.observe-observation-progress-bar {
     margin: 0;
     flex-grow: 2;
 
@@ -700,7 +704,7 @@ body {
 }
 
 .p-button-group {
-  &.ObserveStyles-controlButtonStrip {
+  &.observe-control-button-strip {
     height: 21px;
     width: 84px;
     padding-left: 0.2em;
@@ -712,8 +716,8 @@ body {
     }
 
     // Resume and pause buttons don't have a large icon, so we pad them.
-    & > .ObserveStyles-playButton,
-    & > .ObserveStyles-pauseButton {
+    & > .observe-play-button,
+    & > .observe-pause-button {
       & > .p-button-icon {
         padding-left: 2.4px;
         padding-right: 2.4px;
@@ -722,15 +726,16 @@ body {
   }
 }
 
-@mixin controlButton {
+@mixin control-button {
   color: var(--primary-50);
   border: 0;
   padding: 0;
 }
 
 .p-button.p-button-icon-only {
-  &.ObserveStyles-pauseButton {
-    @include controlButton();
+  &.observe-pause-button {
+    @include control-button;
+
     background-color: var(--teal-500);
 
     &:enabled:hover {
@@ -738,8 +743,9 @@ body {
     }
   }
 
-  &.ObserveStyles-cancelPauseButton {
-    @include controlButton();
+  &.observe-cancel-pause-button {
+    @include control-button;
+
     background-color: var(--orange-700);
 
     &:enabled:hover {
@@ -747,8 +753,9 @@ body {
     }
   }
 
-  &.ObserveStyles-stopButton {
-    @include controlButton();
+  &.observe-stop-button {
+    @include control-button;
+
     background-color: var(--orange-500);
 
     &:enabled:hover {
@@ -756,8 +763,9 @@ body {
     }
   }
 
-  &.ObserveStyles-playButton {
-    @include controlButton();
+  &.observe-play-button {
+    @include control-button;
+
     background-color: var(--blue-500);
 
     &:enabled:hover {
@@ -765,8 +773,9 @@ body {
     }
   }
 
-  &.ObserveStyles-reloadButton {
-    @include controlButton();
+  &.observe-reload-button {
+    @include control-button;
+
     background-color: var(--indigo-500);
 
     &:enabled:hover {
@@ -774,8 +783,9 @@ body {
     }
   }
 
-  &.ObserveStyles-abortButton {
-    @include controlButton();
+  &.observe-abort-button {
+    @include control-button;
+
     background-color: var(--red-500);
 
     &:enabled:hover {
@@ -821,50 +831,51 @@ body {
 //   }
 // }
 
-.ObserveStyles-guidingCell {
+.observe-guiding-cell {
   display: flex;
   width: 100%;
   align-items: center;
+
   // padding-left: @table_row_left_padding;
   // padding-right: @table_row_left_padding;
 }
 
-.ObserveStyles-offsetsBlock {
+.observe-offsets-block {
   margin-left: auto;
   display: flex;
   align-items: center;
   text-align: right;
 }
 
-.ObserveStyles-offsetsNodLabel {
+.observe-offsets-nod-label {
   font-weight: bold;
   margin-left: 10px;
   margin-right: 3px;
 }
 
-.ObserveStyles-offsetComponent {
+.observe-offset-component {
   display: flex;
 }
 
-.ObserveStyles-stepSettingsHeader {
+.observe-step-settings-header {
   color: var(--text-color);
 }
 
-.ObserveStyles-stepTypeCell {
+.observe-step-type-cell {
   text-align: center;
 }
 
-.p-tag.ObserveStyles-stepTypeTag {
+.p-tag.observe-step-type-tag {
   .p-tag-value {
-    font-size: 0.78571429rem;
+    font-size: 0.7857rem;
   }
 
-  &.ObserveStyles-stepTypeCompleted {
+  &.observe-step-type-completed {
     background-color: var(--gray-500);
   }
 }
 
-.ObserveStyles-controlCell {
+.observe-control-cell {
   display: flex;
   justify-content: space-around;
   align-items: center;
@@ -875,19 +886,19 @@ body {
   height: 100%;
 }
 
-.ObserveStyles-iconCell {
+.observe-icon-cell {
   justify-content: center;
   height: 100%;
   width: 100%;
   display: flex;
   align-items: center;
 
-  &.ObserveStyles-skippedIconCell {
+  &.observe-skipped-icon-cell {
     padding-right: 10px;
   }
 }
 
-.ObserveStyles-breakpointHandle {
+.observe-breakpoint-handle {
   cursor: pointer;
   transition: all 0.1s ease-in-out;
 
@@ -896,15 +907,15 @@ body {
   }
 }
 
-.ObserveStyles-breakpointIcon {
+.observe-breakpoint-icon {
   color: var(--muted-color);
 
-  &.ObserveStyles-activeBreakpoint {
+  &.observe-active-breakpoint {
     color: var(--red-500);
   }
 }
 
-.ObserveStyles-skipHandle {
+.observe-skip-handle {
   cursor: pointer;
   opacity: 0.8;
   transition: all 0.1s ease-in-out;
@@ -913,26 +924,26 @@ body {
     transform: scale(1.2);
   }
 
-  .ObserveStyles-skipIconSet {
+  .observe-skip-icon-set {
     color: var(--orange-500);
   }
 }
 
-.ObserveStyles-defaultCursor {
+.observe-default-cursor {
   cursor: default !important;
 }
 
-.ObserveStyles-configButtonStrip {
+.observe-config-button-strip {
   padding: 0 0.5em;
 }
 
-.p-component.p-button.p-button-sm.ObserveStyles-configButton {
+.p-component.p-button.p-button-sm.observe-config-button {
   border: 0;
   padding: 0 0.5em;
   height: 100%;
 }
 
-.ObserveStyles-syncingPanel {
+.observe-syncing-panel {
   height: var(--solar-system-size);
   width: var(--solar-system-size);
 
@@ -948,7 +959,7 @@ body {
   }
 }
 
-.ObserveStyles-obsHeader {
+.observe-obs-header {
   display: flex;
   justify-content: space-between;
 
@@ -958,69 +969,69 @@ body {
   }
 }
 
-.ObserveStyles-obsSummary {
+.observe-obs-summary {
   display: flex;
   flex-direction: column;
   gap: 10px;
 
-  .ObserveStyles-obsSummary-title {
+  .observe-obs-summary-title {
     font-size: x-large;
     font-weight: bold;
   }
 
-  .ObserveStyles-obsSummary-details {
+  .observe-obs-summary-details {
     display: flex;
     gap: 3em;
     align-items: center;
   }
 
-  .ObserveStyles-obsSummary-subsystems {
+  .observe-obs-summary-subsystems {
     display: flex;
     gap: 0.8em;
   }
 }
 
-.ObserveStyles-obsLoadSection {
+.observe-obs-load-section {
   flex-grow: 0 !important;
 }
 
-.p-button.p-button-icon-only.ObserveStyles-obsSummary-button {
+.p-button.p-button-icon-only.observe-obs-summary-button {
   font-size: small;
   padding: 6px 4px;
 }
 
-.p-button.p-button-icon-only.ObserveStyles-singleButton {
+.p-button.p-button-icon-only.observe-single-button {
   padding-left: 2px;
   padding-right: 2px;
 }
 
-.ObserveStyles-iconSoft {
+.observe-icon-soft {
   opacity: 0.8;
 }
 
-.ObserveStyles-qaStatusEditable {
+.observe-qa-status-editable {
   cursor: pointer;
 
-  .ObserveStyles-qaStatusSelect {
+  .observe-qa-status-select {
     margin-left: 0.25dvw;
     visibility: hidden;
   }
 
-  &:hover .ObserveStyles-qaStatusSelect {
+  &:hover .observe-qa-status-select {
     visibility: visible;
   }
 }
 
-.ObserveStyles-qaEditorOverlay.p-component.p-overlaypanel {
+.observe-qa-editor-overlay.p-component.p-overlaypanel {
   .p-overlaypanel-content {
     padding: 0.4rem;
 
-    .ObserveStyles-qaEditorPanel {
+    .observe-qa-editor-panel {
       display: flex;
       flex-direction: column;
       gap: 10px;
 
-      .ObserveStyles-qaStatusButtonStrip {
+      .observe-qa-status-button-strip {
         display: flex;
 
         .p-component.p-button {
@@ -1034,7 +1045,7 @@ body {
       }
     }
 
-    .ObserveStyles-qaEditorPanelButtons {
+    .observe-qa-editor-panel-buttons {
       align-self: end;
 
       button {
@@ -1044,31 +1055,31 @@ body {
   }
 }
 
-.ObserveStyles-logTable {
-  .ObserveStyles-logWarningRow {
+.observe-log-table {
+  .observe-log-warning-row {
     background-color: var(--active-row-background);
   }
 
-  .ObserveStyles-logErrorRow {
+  .observe-log-error-row {
     background-color: var(--negative-row-background);
     color: var(--negative-row-color);
   }
 }
 
-.ObserveStyles-externalLink {
+.observe-external-link {
   margin-left: 0.4em;
   font-size: smaller;
   vertical-align: baseline;
 }
 
-.ObserveStyles-obsSummary-title {
-  .ObserveStyles-externalLink {
+.observe-obs-summary-title {
+  .observe-external-link {
     font-size: 12px;
     vertical-align: super;
   }
 }
 
-.ObserveStyles-popup {
+.observe-popup {
   &.p-dialog {
     height: 90vh;
     width: 90vw !important;

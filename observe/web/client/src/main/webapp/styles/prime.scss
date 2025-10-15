@@ -13,12 +13,15 @@
   @include meta.load-css('/lucuma-css/dark-theme');
 }
 
-@import '/lucuma-css/lucuma-ui-prime.scss';
-@import '/lucuma-css/lucuma-ui-table.scss';
+/* stylelint-disable no-invalid-position-at-import-rule */
+@import '/lucuma-css/lucuma-ui-prime';
+@import '/lucuma-css/lucuma-ui-table';
+/* stylelint-enable no-invalid-position-at-import-rule */
 
 body,
 body .p-component {
-  font-family: 'Lato' !important;
+  /* stylelint-disable-next-line font-family-no-missing-generic-family-keyword */
+  font-family: Lato !important;
 }
 
 .p-button {
@@ -43,11 +46,8 @@ body .p-component {
 
   // Invert button rounding
   .p-tabview-nav-link {
-    border-top-right-radius: 0 !important;
-    border-top-left-radius: 0 !important;
-    border-bottom-right-radius: 3px !important;
-    border-bottom-left-radius: 3px !important;
-    margin: -1px 0 0 0 !important;
+    border-radius: 0 0 3px 3px !important;
+    margin: -1px 0 0 !important;
   }
 }
 
@@ -74,7 +74,6 @@ body .p-component {
   border-color: var(--surface-50) !important;
   box-shadow: none !important;
   font-weight: bold !important;
-
   border-right-color: var(--surface-200) !important;
   border-top-color: var(--surface-200) !important;
   border-left-color: var(--surface-200) !important;
@@ -82,7 +81,7 @@ body .p-component {
 
 // Experimental
 .p-splitter-panel {
-  min-width: 0px !important;
+  min-width: 0 !important;
   min-height: 0 !important;
   overflow: auto !important;
 }

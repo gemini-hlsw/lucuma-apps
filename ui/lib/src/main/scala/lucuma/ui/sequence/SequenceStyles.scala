@@ -18,12 +18,12 @@ object SequenceStyles:
   val ExtraRowShown: Css        = Css("lucuma-sequence-extra-row-shown")
 
   val VisitHeader                   = Css("lucuma-sequence-visit-header")
-  val VisitStepExtra                = Css("lucuma-sequence-visit-extraRow")
-  val VisitStepExtraDatetime        = Css("lucuma-sequence-visit-extraRow-datetime")
-  val VisitStepExtraStatus          = Css("lucuma-sequence-visit-extraRow-status")
-  val VisitStepExtraDatasets        = Css("lucuma-sequence-visit-extraRow-datasets")
-  val VisitStepExtraDatasetItem     = Css("lucuma-sequence-visit-extraRow-dataset-item")
-  val VisitStepExtraDatasetQAStatus = Css("lucuma-sequence-visit-extraRow-dataset-qaStatus")
+  val VisitStepExtra                = Css("lucuma-sequence-visit-extra-row")
+  val VisitStepExtraDatetime        = Css("lucuma-sequence-visit-extra-row-datetime")
+  val VisitStepExtraStatus          = Css("lucuma-sequence-visit-extra-row-status")
+  val VisitStepExtraDatasets        = Css("lucuma-sequence-visit-extra-row-datasets")
+  val VisitStepExtraDatasetItem     = Css("lucuma-sequence-visit-extra-row-dataset-item")
+  val VisitStepExtraDatasetQAStatus = Css("lucuma-sequence-visit-extra-row-dataset-qa-status")
 
   val CurrentHeader = Css("lucuma-sequence-current-header")
 
