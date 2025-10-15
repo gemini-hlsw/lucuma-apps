@@ -1,7 +1,7 @@
-import '../../../node_modules/primereact/resources/primereact.min.css';
+import 'primereact/resources/primereact.min.css';
 import './styles.scss';
-import '../../../../ui/src/main/resources/lucuma-css/lucuma-ui-sequence.scss';
-import '../../../../ui/src/main/resources/lucuma-css/lucuma-ui-prime.scss';
+import '@lucuma-css/lucuma-ui-sequence.scss';
+import '@lucuma-css/lucuma-ui-prime.scss';
 
 if (import.meta.env.DEV) {
   process.env = { CATS_EFFECT_TRACING_MODE: 'none' };

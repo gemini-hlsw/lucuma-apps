@@ -1,15 +1,17 @@
+@use 'sass:meta';
+
 @use '/lucuma-css/lucuma-ui-common.scss';
 
 /* stylelint-disable no-invalid-position-at-import-rule */
 .light-theme {
-  @import '/lucuma-css/light-theme';
+  @include meta.load-css('/lucuma-css/light-theme');
 }
 
 .dark-theme {
-  @import '/lucuma-css/dark-theme';
+  @include meta.load-css('/lucuma-css/dark-theme');
 }
 
-@import '/lucuma-css/lucuma-ui-prime';
+@import url('/lucuma-css/lucuma-ui-prime');
 /* stylelint-enable no-invalid-position-at-import-rule */
 
 .dark-theme,
