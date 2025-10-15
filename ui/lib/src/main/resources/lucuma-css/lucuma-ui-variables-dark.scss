@@ -14,81 +14,66 @@
   // Variations of the background color
   // Light shades
   --color-background-light-3: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 3%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 3%)
   );
   --color-background-light-3-a: hsla(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 3%) / 70%
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 3%) / 70%
   );
   --color-background-light-5: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 5%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 5%)
   );
   --color-background-light-6: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 6%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 6%)
   );
   --color-background-light-8: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 8%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 8%)
   );
   --color-background-light-10: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 10%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 10%)
   );
   --color-background-light-12: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 12%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 12%)
   );
   --color-background-light-15: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 15%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 15%)
   );
   --color-background-light-20: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 20%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 20%)
   );
   --color-background-light-25: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 25%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 25%)
   );
   --color-background-light-45: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 45%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 45%)
   );
   --color-background-light-50: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 50%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 50%)
   );
   --color-background-light-75: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) + 75%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) + 75%)
   );
 
   // Dark shades
   --color-background-dark-5: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) - 5%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) - 5%)
   );
   --color-background-dark-10: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) - 10%)
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) - 10%)
   );
 
   // text color
@@ -103,24 +88,16 @@
 
   // Light shades
   --color-text-light-45: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 45%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 45%)
   );
   --color-text-light-55: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 55%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 55%)
   );
   --color-text-light-75: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 75%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 75%)
   );
   --color-text-full: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    var(--color-text-base-l) / 100%
+    var(--color-text-base-h) var(--color-text-base-s) var(--color-text-base-l) / 100%
   );
   --color-text-alt-hsla:
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l), 1;
@@ -192,19 +169,14 @@
   --scrollbar-background-thumb: var(--color-background-light-5);
   --scrollbar-background-thumb-hover: var(--color-background-light-3);
   --hud-color: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 25%) / 90%
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 25%) / 90%
   );
   --hud-stripe-color: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 25%) / 1%
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 25%) / 1%
   );
   --hud-background-color: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) - 5%) / 70%
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) - 5%) / 70%
   );
 
   // AGS colors

@@ -13,19 +13,13 @@
 
   // Light shades
   --color-text-light-45: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) + 45%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) + 45%)
   );
   --color-text-light-55: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) + 55%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) + 55%)
   );
   --color-text-light-75: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) + 75%)
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) + 75%)
   );
   --gray: gray;
   --gray-dark-h: 210;
@@ -76,14 +70,11 @@
   --scrollbar-background-thumb-hover: darken(@lightGrey, 20%);
   /* stylelint-enable scss/no-global-function-names */
   --hud-color: hsl(
-    var(--color-text-base-h)
-    var(--color-text-base-s)
-    calc(var(--color-text-base-l) - 25%) / 90%
+    var(--color-text-base-h) var(--color-text-base-s) calc(var(--color-text-base-l) - 25%) / 90%
   );
   --hud-background-color: hsl(
-    var(--color-background-base-h)
-    var(--color-background-base-s)
-    calc(var(--color-background-base-l) - 5%) / 70%
+    var(--color-background-base-h) var(--color-background-base-s)
+      calc(var(--color-background-base-l) - 5%) / 70%
   );
 
   // AGS colors
