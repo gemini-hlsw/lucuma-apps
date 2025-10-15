@@ -61,9 +61,7 @@ const response = await fetch(new URL(url), {
 });
 
 if (!response.ok) {
-  throw new Error(
-    `Failed to fetch introspection query: ${response.statusText}`
-  );
+  throw new Error(`Failed to fetch introspection query: ${response.statusText}`);
 }
 
 console.log(`Fetched ODB schema from ${url}`);
@@ -72,8 +70,7 @@ const data = (await response.json()).data;
 
 const schema = printSchema(buildClientSchema(data));
 
-const outputFile =
-  'lib/src/clue/resources/lucuma/schemas/ObservationDB.graphql';
+const outputFile = 'lib/src/clue/resources/lucuma/schemas/ObservationDB.graphql';
 
 await writeFile(outputFile, schema);
 console.log(`Wrote ODB schema to ${outputFile}.`);

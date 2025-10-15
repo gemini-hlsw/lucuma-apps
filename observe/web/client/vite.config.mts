@@ -29,7 +29,6 @@ const fontImport = Unfonts({
   },
 });
 
-
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const scalaClassesDir = path.resolve(__dirname, 'target/scala-3.7.3');

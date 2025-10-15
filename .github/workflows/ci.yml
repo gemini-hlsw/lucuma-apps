@@ -362,3 +362,65 @@ jobs:
 
       - name: Build and Publish Navigate Docker image
         run: 'sbt -v -J-Xmx6g ''++ ${{ matrix.scala }}'' clean navigate_deploy/docker:publish'
+
+  lint:
+    name: Run linters
+    if: ((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini') && github.actor != 'renovate[bot]')
+    strategy:
+      matrix:
+        os: [ubuntu-22.04]
+        scala: [3.7.3]
+        java: [temurin@17]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout current branch (full)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup sbt
+        uses: sbt/setup-sbt@v1
+
+      - name: Setup Java (temurin@17)
+        id: setup-java-temurin-17
+        if: matrix.java == 'temurin@17'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: sbt
+
+      - name: sbt update
+        if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
+        run: sbt -v -J-Xmx6g +update
+
+      - name: Explore Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Cache Explore node_modules
+        id: root-cache-node_modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node_modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: node_modules
+
+      - name: npm clean-install
+        if: steps.root-cache-node_modules.outputs.cache-hit != 'true'
+        run: npm clean-install --verbose
+
+      - name: Import CSS files
+        run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
+
+      - name: Run linters
+        run: |
+          npx prettier --check .
+          sed '/^[[:blank:]]*[\\.\\}\\@]/d;/^[[:blank:]]*\..*/d;/^[[:blank:]]*$/d;/\/\/.*/d' ui/lib/src/main/resources/lucuma-css/lucuma-ui-variables-dark.scss >vars.css
+          npx stylelint --formatter github  explore/common/src/main/webapp/sass
+          rm vars.css
+          sed '/^[[:blank:]]*[\\.\\}\\@]/d;/^[[:blank:]]*\..*/d;/^[[:blank:]]*$/d;/\/\/.*/d' ui/lib/src/main/resources/lucuma-css/lucuma-ui-variables-light.scss >vars.css
+          npx stylelint --formatter github  explore/common/src/main/webapp/sass
+          rm vars.css

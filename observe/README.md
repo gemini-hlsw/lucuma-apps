@@ -28,7 +28,6 @@ It can be stopped by executing
    observe_web_server/reStop
 ```
 
-
 # Observe Web Client
 
 This module contains a web-based observe client. It contains a SPA (Single-page application) which communicates to the backend using Ajax-style calls and websockets.
@@ -42,7 +41,7 @@ Fist, you need to install the NPM dependencies. In a terminal window:
     npm i
 ```
 
-Then, from `sbt`, you can build the client with: 
+Then, from `sbt`, you can build the client with:
 
 ```
     ~observe_web_client/fastLinkJS
@@ -71,6 +70,7 @@ The image is automatically pushed to Heroku and to the `nlsoftware` account in D
 The image is not release automatically in these environments.
 
 There are a bunch of shell scripts in `deploy/scripts` that should be copied on the `~/observe` directory on each server. Then the correct site needs to be configured in `config.sh`. These scripts are:
+
 - `update.sh` (will automatically stop and restart a running server).
 - `start.sh`
 - `stop.sh`
@@ -106,4 +106,5 @@ web-server {
 Furthermore, observe will also read a `~/observe/conf/systems.conf`, which should be used to provide frequently changing overrides. The more permanent configurations should be in `site.conf`. In particular all the systems that are to be set to `full` should be done there. Otherwise, they will remain `simulated`.
 
 NOTE:
+
 - To generate a service token, see the [lucuma-sso documentation](https://github.com/gemini-hlsw/lucuma-sso?tab=readme-ov-file#obtaining-a-service-jwt).
