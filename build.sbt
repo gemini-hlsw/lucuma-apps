@@ -1185,7 +1185,7 @@ lazy val exploreBundlemon = WorkflowStep.Use(
   UseRef.Public("lironer", "bundlemon-action", "v1"),
   name = Some("Run BundleMon"),
   params = Map(
-    "bundlemon-args" -> s"""--config explore/bundlemonrc.json --subProject "Explore""""
+    "bundlemon-args" -> s"""--config explore/.bundlemonrc.json --subProject "Explore""""
   )
 )
 
