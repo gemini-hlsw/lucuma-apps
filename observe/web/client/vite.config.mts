@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
@@ -118,6 +119,6 @@ export default defineConfig(async ({ mode }) => {
       chunkSizeWarningLimit: 20000,
       outDir: path.resolve(__dirname, 'deploy'),
     },
-    plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport],
+    plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport, react()],
   } satisfies UserConfig;
 });
