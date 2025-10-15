@@ -32,6 +32,7 @@ project/hydra.sbt
 .lib/
 .bsp
 dist/*
+explore/heroku/static/
 target/
 lib_managed/
 src_managed/

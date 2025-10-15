@@ -1,5 +1,5 @@
 import '@lucuma-css/visualization.scss';
-import '../../../node_modules/primereact/resources/primereact.min.css';
+import 'primereact/resources/primereact.min.css';
 import '@lucuma-css/lucuma-ui-sequence.scss';
 import '@lucuma-css/lucuma-ui-prime.scss';
 import './rgl.scss';

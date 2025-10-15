@@ -33,10 +33,7 @@ object EpicsService {
     def getChannel[T](
       name: String
     )(using tjt: ToJavaType[T]): Resource[F, Channel[F, T]] = Resource
-      .make(
-        Async[F]
-          .delay(ctx.createChannel[tjt.javaType](name, tjt.clazz))
-      )(c => Async[F].delay(c.close()))
+      .fromAutoCloseable(Async[F].delay(ctx.createChannel[tjt.javaType](name, tjt.clazz)))
       .map(x => Channel.build(x)(using Async[F], tjt.convert))
 
     def getChannel[T](top: NonEmptyString, name: String)(using
@@ -55,15 +52,15 @@ object EpicsService {
     serverPort:        Option[Int],
     maxArrayBytes:     Option[Int]
   ) {
-    def withAddressList(l:        List[InetAddress]): Builder   = this.copy(addrList = l.some)
-    def withAutoAddrList(enabled: Boolean): Builder             = this.copy(autoAddrList = enabled.some)
+    def withAddressList(l:        List[InetAddress]): Builder = this.copy(addrList = l.some)
+    def withAutoAddrList(enabled: Boolean): Builder           = this.copy(autoAddrList = enabled.some)
     def withConnectionTimeout(timeout: FiniteDuration): Builder =
       this.copy(connectionTimeout = timeout.some)
     def withEnabledRepeater(enabled: Boolean): Builder          =
       this.copy(enableRepeater = enabled.some)
-    def withRepeaterPort(port:    Int): Builder                 = this.copy(repeaterPort = port.some)
-    def withServerPort(port:      Int): Builder                 = this.copy(serverPort = port.some)
-    def withMaxArrayBytes(limit:  Int): Builder                 = this.copy(maxArrayBytes = limit.some)
+    def withRepeaterPort(port:   Int): Builder = this.copy(repeaterPort = port.some)
+    def withServerPort(port:     Int): Builder = this.copy(serverPort = port.some)
+    def withMaxArrayBytes(limit: Int): Builder = this.copy(maxArrayBytes = limit.some)
 
     def build[F[_]: Async]: Resource[F, EpicsService[F]] = Resource
       .eval {
