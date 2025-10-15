@@ -4,9 +4,7 @@
 package explore.services
 
 import cats.effect.Resource
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.ObsIdSet
-import explore.targets.TargetSearchResult
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.schemas.ObservationDB.Enums.Existence
@@ -35,8 +33,4 @@ trait OdbTargetApi[F[_]]:
   def programTargetsDeltaSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ProgramTargetsDelta.Data.TargetEdit]]
-  def searchTargetsByNamePrefix(
-    programId: Program.Id,
-    name:      NonEmptyString
-  ): F[List[TargetSearchResult]]
   def allProgramTargets(programId: Program.Id): F[List[TargetWithId]]

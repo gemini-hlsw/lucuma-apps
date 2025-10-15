@@ -9,9 +9,7 @@ import cats.syntax.all.*
 import clue.StreamingClient
 import clue.data.syntax.*
 import clue.syntax.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.ObsIdSet
-import explore.targets.TargetSearchResult
 import explore.utils.ToastCtx
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -117,19 +115,6 @@ trait OdbTargetApiImpl[F[_]: Sync](using
       .subscribe[F](programId.toTargetEditInput)
       .processErrors("ProgramTargetsDelta")
       .map(_.map(_.targetEdit))
-
-  def searchTargetsByNamePrefix(
-    programId: Program.Id,
-    name:      NonEmptyString
-  ): F[List[TargetSearchResult]] =
-    val searchPrefix = s"${name.value.toLowerCase}%"
-    TargetNameQuery[F]
-      .query(programId, searchPrefix)
-      .processErrors
-      .map: data =>
-        data.targets.matches
-          .map(mtch => TargetSearchResult(mtch.toOptId, none))
-          .distinct
 
   def allProgramTargets(programId: Program.Id): F[List[TargetWithId]] =
     drain[TargetWithId, Target.Id, AllProgramTargets.Data.Targets](
