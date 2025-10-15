@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.TargetWithId
 import monocle.Focus
 import monocle.Lens
 
@@ -76,7 +77,7 @@ object AsterismIds:
   val empty: AsterismIds = SortedSet.empty[Target.Id]
 
 type AsterismGroupList             = SortedMap[ObsIdSet, AsterismIds]
-type TargetList                    = SortedMap[Target.Id, Target]
+type TargetList                    = SortedMap[Target.Id, TargetWithId]
 type TargetWithObsList             = SortedMap[Target.Id, TargetWithObs]
 type ObservationList               = SortedMap[Observation.Id, Observation]
 type GroupList                     = SortedMap[Group.Id, Group]

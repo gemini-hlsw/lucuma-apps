@@ -6,12 +6,7 @@ package explore.model
 import cats.Eq
 import cats.derived.*
 import cats.implicits.*
-import io.circe.Decoder
-import io.circe.Decoder.*
-import io.circe.generic.semiauto.*
 import lucuma.core.model.Target
-import lucuma.schemas.decoders.given
-import lucuma.schemas.model.*
 import monocle.Focus
 import monocle.Lens
 
@@ -32,41 +27,4 @@ object TargetWithObs {
 
   val obsIds: Lens[TargetWithObs, SortedSet[Observation.Id]] =
     Focus[TargetWithObs](_.obsIds)
-}
-
-case class TargetWithIdAndObs(id: Target.Id, targetWithObs: TargetWithObs) derives Eq {
-  def target: Target                    = targetWithObs.target
-  def obsIds: SortedSet[Observation.Id] = targetWithObs.obsIds
-
-  def toTargetWithId: TargetWithId = TargetWithId(id, targetWithObs.target)
-
-  def addObsIds(ids: ObsIdSet): TargetWithIdAndObs =
-    TargetWithIdAndObs.targetWithObs.modify(_.addObsIds(ids))(this)
-
-  def removeObsIds(ids: ObsIdSet): TargetWithIdAndObs =
-    TargetWithIdAndObs.targetWithObs.modify(_.removeObsIds(ids))(this)
-}
-
-object TargetWithIdAndObs {
-  val id: Lens[TargetWithIdAndObs, Target.Id] =
-    Focus[TargetWithIdAndObs](_.id)
-
-  val targetWithObs: Lens[TargetWithIdAndObs, TargetWithObs] =
-    Focus[TargetWithIdAndObs](_.targetWithObs)
-
-  private case class ObsIdMatch(id: Observation.Id)
-  private given Decoder[ObsIdMatch] = deriveDecoder
-
-  private case class ObsIdMatches(matches: List[ObsIdMatch])
-  private given Decoder[ObsIdMatches] = deriveDecoder
-
-  given Decoder[TargetWithIdAndObs] = Decoder.instance(c =>
-    for {
-      targetWithId <- c.get[TargetWithId]("target")
-      obsIds       <- c.downField("observations").as[ObsIdMatches].map(_.matches.map(_.id))
-    } yield TargetWithIdAndObs(
-      targetWithId.id,
-      TargetWithObs(targetWithId.target, SortedSet.from(obsIds))
-    )
-  )
 }

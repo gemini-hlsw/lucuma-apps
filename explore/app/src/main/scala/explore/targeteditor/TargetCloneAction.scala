@@ -35,7 +35,7 @@ object TargetCloneAction {
           _.map(Observation.scienceTargetIds.modify(_ - originalId + clone.id))
         )
       )
-      val ts  = obsAndTargets._2 + (clone.id -> clone.target)
+      val ts  = obsAndTargets._2 + (clone.id -> clone)
       (obs, ts)
     private def unCloneTargetForObservations(
       originalId: Target.Id,
@@ -55,7 +55,7 @@ object TargetCloneAction {
       (obs, ts)
 
   private def getter(cloneId: Target.Id): ObservationsAndTargets => Option[Target] =
-    _._2.get(cloneId)
+    _._2.get(cloneId).map(_.target)
 
   private def setter(originalId: Target.Id, clone: TargetWithId, obsIds: ObsIdSet)(
     @unused optClone: Option[Target]

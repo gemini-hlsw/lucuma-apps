@@ -26,7 +26,6 @@ import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
-import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -117,7 +116,7 @@ object ObsSummaryTile extends ObsSummaryColumns:
                        .filterNot(_.isCalibration)
                        .map: obs =>
                          obs -> obs.scienceTargetIds.toList
-                           .map(id => allTargets.get(id).map(t => TargetWithId(id, t)))
+                           .map(id => allTargets.get(id))
                            .flattenOption
                        .map: (obs, targets) =>
                          val asterism = Asterism.fromTargets(targets)

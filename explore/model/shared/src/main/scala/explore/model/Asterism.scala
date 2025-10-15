@@ -64,10 +64,6 @@ object Asterism {
       Asterism(Zipper.fromNel(s))
     ).reverse
 
-  // TODO I think this is unlawful. Not all Asterisms have one element.
-  def oneTarget(id: Target.Id): Iso[Asterism, Target] =
-    Iso[Asterism, Target](_.targets.focus.target)(t => Asterism.one(TargetWithId(id, t)))
-
   val targetsEach: Traversal[Asterism, TargetWithId] = isoTargets.reverse.each
 
   val targets: Lens[Asterism, Zipper[TargetWithId]] = Focus[Asterism](_.targets)
@@ -107,6 +103,6 @@ object Asterism {
     )
 
   def fromIdsAndTargets(ids: AsterismIds, targets: TargetList): Option[Asterism] =
-    fromTargets(ids.toList.map(id => targets.get(id).map(t => TargetWithId(id, t))).flattenOption)
+    fromTargets(ids.toList.map(id => targets.get(id)).flattenOption)
 
 }

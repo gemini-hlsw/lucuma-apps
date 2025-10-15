@@ -122,14 +122,13 @@ trait OdbTargetApiImpl[F[_]: Sync](using
     programId: Program.Id,
     name:      NonEmptyString
   ): F[List[TargetSearchResult]] =
+    val searchPrefix = s"${name.value.toLowerCase}%"
     TargetNameQuery[F]
-      .query(programId)
+      .query(programId, searchPrefix)
       .processErrors
       .map: data =>
-        data.targetGroup.matches
-          .map(mtch => TargetSearchResult(mtch.target.toOptId, none))
-          // TODO Remove the filter when the API has a name pattern query
-          .filter(_.target.name.value.toLowerCase.startsWith(name.value.toLowerCase))
+        data.targets.matches
+          .map(mtch => TargetSearchResult(mtch.toOptId, none))
           .distinct
 
   def allProgramTargets(programId: Program.Id): F[List[TargetWithId]] =

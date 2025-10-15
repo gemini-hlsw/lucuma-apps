@@ -8,6 +8,8 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Band
+import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.Epoch
 import lucuma.core.model.SiderealTracking
@@ -23,8 +25,13 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import scala.collection.immutable.SortedMap
 
-case class TargetWithId(id: Target.Id, target: Target) derives Eq {
-  def toOptId: TargetWithOptId = TargetWithOptId(id.some, target)
+case class TargetWithId(
+  id:              Target.Id,
+  target:          Target,
+  disposition:     TargetDisposition,
+  calibrationRole: Option[CalibrationRole]
+) derives Eq {
+  def toOptId: TargetWithOptId = TargetWithOptId(id.some, target, disposition, calibrationRole)
 
   def toSidereal: Option[SiderealTargetWithId] = TargetWithId.sidereal.getOption(this)
 
@@ -45,21 +52,37 @@ object TargetWithId {
 
   val sidereal: Prism[TargetWithId, SiderealTargetWithId] =
     Prism.partial[TargetWithId, SiderealTargetWithId] {
-      case TargetWithId(id, t @ Target.Sidereal(_, _, _, _)) =>
-        SiderealTargetWithId(id, t)
+      case TargetWithId(id, t @ Target.Sidereal(_, _, _, _), disp, role) =>
+        SiderealTargetWithId(id, t, disp, role)
     }(_.toTargetWithId)
 
   val nonsidereal: Prism[TargetWithId, NonsiderealTargetWithId] =
     Prism.partial[TargetWithId, NonsiderealTargetWithId] {
-      case TargetWithId(id, t @ Target.Nonsidereal(_, _, _)) =>
-        NonsiderealTargetWithId(id, t)
+      case TargetWithId(id, t @ Target.Nonsidereal(_, _, _), disp, role) =>
+        NonsiderealTargetWithId(id, t, disp, role)
     }(_.toTargetWithId)
 }
 
-case class TargetWithOptId(optId: Option[Target.Id], target: Target) derives Eq
+case class TargetWithOptId(
+  optId:           Option[Target.Id],
+  target:          Target,
+  disposition:     TargetDisposition,
+  calibrationRole: Option[CalibrationRole]
+) derives Eq:
+  def withId(targetId: Target.Id): TargetWithId =
+    TargetWithId(targetId, target, disposition, calibrationRole)
 
-case class SiderealTargetWithId(id: Target.Id, target: Target.Sidereal) derives Eq {
-  def toTargetWithId = TargetWithId(id, target)
+object TargetWithOptId:
+  def newScience(target: Target): TargetWithOptId =
+    TargetWithOptId(none, target, TargetDisposition.Science, none)
+
+case class SiderealTargetWithId(
+  id:              Target.Id,
+  target:          Target.Sidereal,
+  disposition:     TargetDisposition,
+  calibrationRole: Option[CalibrationRole]
+) derives Eq {
+  def toTargetWithId = TargetWithId(id, target, disposition, calibrationRole)
 
   def at(i: Instant): SiderealTargetWithId = {
     val ldt            = LocalDateTime.ofInstant(i, ZoneOffset.UTC)
@@ -79,6 +102,11 @@ object SiderealTargetWithId:
   val id: Lens[SiderealTargetWithId, Target.Id]           = Focus[SiderealTargetWithId](_.id)
   val target: Lens[SiderealTargetWithId, Target.Sidereal] = Focus[SiderealTargetWithId](_.target)
 
-case class NonsiderealTargetWithId(id: Target.Id, target: Target.Nonsidereal) derives Eq {
-  def toTargetWithId = TargetWithId(id, target)
+case class NonsiderealTargetWithId(
+  id:              Target.Id,
+  target:          Target.Nonsidereal,
+  disposition:     TargetDisposition,
+  calibrationRole: Option[CalibrationRole]
+) derives Eq {
+  def toTargetWithId = TargetWithId(id, target, disposition, calibrationRole)
 }

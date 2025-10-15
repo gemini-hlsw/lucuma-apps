@@ -83,6 +83,7 @@ trait ObservationDB {
     type AtomStage                           = enums.AtomStage
     type AttachmentType                      = enums.AttachmentType
     type Band                                = enums.Band
+    type BlindOffsetType                     = lucuma.schemas.model.enums.BlindOffsetType
     type Breakpoint                          = enums.Breakpoint
     type BrightnessIntegratedUnits           = Units Of Brightness[Integrated]
     type BrightnessSurfaceUnits              = Units Of Brightness[Surface]

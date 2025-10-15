@@ -3,8 +3,11 @@
 
 package lucuma.schemas.model.arb
 
+import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Target
 import lucuma.core.model.arb.ArbTarget.given
+import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.schemas.model.*
 import org.scalacheck.Arbitrary
@@ -16,30 +19,42 @@ trait ArbTargetWithId:
     for {
       id <- arbitrary[Target.Id]
       t  <- arbitrary[Target]
-    } yield TargetWithId(id, t)
+      d  <- arbitrary[TargetDisposition]
+      cr <- arbitrary[Option[CalibrationRole]]
+    } yield TargetWithId(id, t, d, cr)
   }
 
   given Cogen[TargetWithId] =
-    Cogen[(Target.Id, Target)].contramap(x => (x.id, x.target))
+    Cogen[(Target.Id, Target, TargetDisposition, Option[CalibrationRole])].contramap(x =>
+      (x.id, x.target, x.disposition, x.calibrationRole)
+    )
 
   given Arbitrary[SiderealTargetWithId] = Arbitrary {
     for {
       id <- arbitrary[Target.Id]
       t  <- arbitrary[Target.Sidereal]
-    } yield SiderealTargetWithId(id, t)
+      d  <- arbitrary[TargetDisposition]
+      cr <- arbitrary[Option[CalibrationRole]]
+    } yield SiderealTargetWithId(id, t, d, cr)
   }
 
   given Cogen[SiderealTargetWithId] =
-    Cogen[(Target.Id, Target.Sidereal)].contramap(x => (x.id, x.target))
+    Cogen[(Target.Id, Target.Sidereal, TargetDisposition, Option[CalibrationRole])].contramap(x =>
+      (x.id, x.target, x.disposition, x.calibrationRole)
+    )
 
   given Arbitrary[NonsiderealTargetWithId] = Arbitrary {
     for {
       id <- arbitrary[Target.Id]
       t  <- arbitrary[Target.Nonsidereal]
-    } yield NonsiderealTargetWithId(id, t)
+      d  <- arbitrary[TargetDisposition]
+      cr <- arbitrary[Option[CalibrationRole]]
+    } yield NonsiderealTargetWithId(id, t, d, cr)
   }
 
   given Cogen[NonsiderealTargetWithId] =
-    Cogen[(Target.Id, Target.Nonsidereal)].contramap(x => (x.id, x.target))
+    Cogen[(Target.Id, Target.Nonsidereal, TargetDisposition, Option[CalibrationRole])].contramap(
+      x => (x.id, x.target, x.disposition, x.calibrationRole)
+    )
 
 object ArbTargetWithId extends ArbTargetWithId

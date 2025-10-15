@@ -131,7 +131,7 @@ case class ObsTabTiles(
 
   val asterismAsNel: Option[NonEmptyList[TargetWithId]] =
     NonEmptyList.fromList:
-      obsTargets.toList.map((tid, t) => TargetWithId(tid, t))
+      obsTargets.toList.map((_, t) => t)
 
   def targetCoords(obsTime: Instant): Option[CoordinatesAt] =
     asterismAsNel
@@ -228,9 +228,10 @@ object ObsTabTiles:
         // the configuration the user has selected from the spectroscopy modes table, if any
         selectedConfig      <- useStateView(ConfigSelection.Empty)
         // selected target for imaging, shared between the itc tile and the modes table
-        selectedItcTarget   <- useStateView[Option[ItcTarget]](
-                                 props.obsTargets.values.flatMap(_.itcTarget.toOption).headOption
-                               )
+        selectedItcTarget   <-
+          useStateView[Option[ItcTarget]](
+            props.obsTargets.values.flatMap(_.target.itcTarget.toOption).headOption
+          )
         customSedTimestamps <-
           // The updatedAt timestamps for any custom seds.
           useMemo((props.asterismAsNel, props.attachments.get)): (asterism, attachments) =>

@@ -23,6 +23,7 @@ import explore.model.enums.AppTab
 import explore.model.enums.TableId
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -51,17 +52,16 @@ import scala.collection.immutable.TreeSeqMap
 
 object TargetSummaryTile:
   def apply(
-    userId:                    Option[User.Id],
-    programId:                 Program.Id,
-    targets:                   View[TargetList],
-    targetObservations:        Map[Target.Id, SortedSet[Observation.Id]],
-    calibrationObservationIds: Set[Observation.Id],
-    selectObservation:         (Observation.Id, Target.Id) => Callback,
-    selectedTargetIds:         View[List[Target.Id]],
-    focusedTargetId:           Option[Target.Id],
-    focusTargetId:             Option[Target.Id] => Callback,
-    readonly:                  Boolean,
-    backButton:                VdomNode
+    userId:             Option[User.Id],
+    programId:          Program.Id,
+    targets:            View[TargetList],
+    targetObservations: Map[Target.Id, SortedSet[Observation.Id]],
+    selectObservation:  (Observation.Id, Target.Id) => Callback,
+    selectedTargetIds:  View[List[Target.Id]],
+    focusedTargetId:    Option[Target.Id],
+    focusTargetId:      Option[Target.Id] => Callback,
+    readonly:           Boolean,
+    backButton:         VdomNode
   ): Tile[TargetSummaryTile.TileState] =
     Tile(
       ObsTabTileIds.TargetSummaryId.id,
@@ -75,7 +75,6 @@ object TargetSummaryTile:
           programId,
           targets,
           targetObservations,
-          calibrationObservationIds,
           selectObservation,
           selectedTargetIds,
           focusedTargetId,
@@ -121,18 +120,17 @@ object TargetSummaryTile:
       )
 
   private case class Body(
-    userId:                    Option[User.Id],
-    programId:                 Program.Id,
-    targets:                   View[TargetList],
-    targetObservations:        Map[Target.Id, SortedSet[Observation.Id]],
-    calibrationObservationIds: Set[Observation.Id],
-    selectObservation:         (Observation.Id, Target.Id) => Callback,
-    selectedTargetIds:         View[List[Target.Id]],
-    focusedTargetId:           Option[Target.Id],
-    focusTargetId:             Option[Target.Id] => Callback,
-    filesToImportCount:        Int,
-    columnVisibility:          View[ColumnVisibility],
-    setToggleAllRowsSelected:  (Boolean => Callback) => Callback
+    userId:                   Option[User.Id],
+    programId:                Program.Id,
+    targets:                  View[TargetList],
+    targetObservations:       Map[Target.Id, SortedSet[Observation.Id]],
+    selectObservation:        (Observation.Id, Target.Id) => Callback,
+    selectedTargetIds:        View[List[Target.Id]],
+    focusedTargetId:          Option[Target.Id],
+    focusTargetId:            Option[Target.Id] => Callback,
+    filesToImportCount:       Int,
+    columnVisibility:         View[ColumnVisibility],
+    setToggleAllRowsSelected: (Boolean => Callback) => Callback
   ) extends ReactFnProps(Body.component)
 
   private object Body:
@@ -151,8 +149,6 @@ object TargetSummaryTile:
         .ScrollToOptions()
         .setBehavior(rawVirtual.mod.ScrollBehavior.smooth)
         .setAlign(rawVirtual.mod.ScrollAlignment.center)
-
-    private given Reusability[Map[Target.Id, SortedSet[Observation.Id]]] = Reusability.map
 
     private val component =
       ScalaFnComponent
@@ -218,15 +214,12 @@ object TargetSummaryTile:
                   .withEnableSorting(false)
               )
         .useMemoBy((props, _, _) => // rows
-          (props.targets.get, props.targetObservations, props.calibrationObservationIds)
+          props.targets.get
         ): (_, _, _) =>
-          (targets, targetObservations, calibrationObservationIds) =>
-            def isCalibrationTarget(targetId: Target.Id): Boolean =
-              targetObservations.get(targetId).exists(_.forall(calibrationObservationIds.contains_))
-
+          targets =>
             targets.toList
-              .filterNot((id, _) => isCalibrationTarget(id))
-              .map((id, target) => TargetWithId(id, target))
+              .filter((_, twid) => twid.disposition === TargetDisposition.Science)
+              .map(_._2)
         .useReactTableWithStateStoreBy: (props, ctx, cols, rows) =>
           import ctx.given
 

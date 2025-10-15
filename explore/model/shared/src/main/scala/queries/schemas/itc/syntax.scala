@@ -67,7 +67,7 @@ trait syntax:
   extension (targetIds: AsterismIds)
     // assumes all targets are present
     def toAsterism(allTargets: TargetList): List[Target] =
-      targetIds.toList.map(targetId => allTargets.get(targetId)).flattenOption
+      targetIds.toList.map(targetId => allTargets.get(targetId).map(_.target)).flattenOption
 
     def toItcTargets(allTargets: TargetList): EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
       toAsterism(allTargets).toItcTargets

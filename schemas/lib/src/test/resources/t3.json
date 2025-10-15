@@ -56,5 +56,7 @@
         }
       }
     }
-  }
+  },
+  "disposition": "BLIND_OFFSET",
+  "calibrationRole": null
 }

@@ -16,6 +16,7 @@ import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.AsterismGroup
 import explore.model.AsterismGroupList
+import explore.model.EmptySiderealTarget
 import explore.model.Focused
 import explore.model.LocalClipboard
 import explore.model.ObsIdSet
@@ -247,6 +248,7 @@ object AsterismGroupObsList:
     TargetAddDeleteActions
       .insertTarget(
         programId,
+        EmptySiderealTarget,
         selectTargetOrSummary(_).toAsync,
         ToastCtx[IO].showToast(_)
       )(undoCtx)

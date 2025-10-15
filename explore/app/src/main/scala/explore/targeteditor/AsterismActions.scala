@@ -45,7 +45,7 @@ object AsterismActions:
     else
       val obs     = obsAndTargets._1.addTargetToObservations(target.id, obsIds)
       val targets =
-        if (createdTarget) obsAndTargets._2 + (target.id -> target.target)
+        if (createdTarget) obsAndTargets._2 + (target.id -> target)
         else obsAndTargets._2
       (obs, targets)
 

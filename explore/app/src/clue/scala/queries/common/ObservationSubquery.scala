@@ -25,6 +25,11 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
               id
             }
             guideTargetName
+            useBlindOffset
+            blindOffsetTarget {
+              id
+            }
+            blindOffsetType
           }
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery

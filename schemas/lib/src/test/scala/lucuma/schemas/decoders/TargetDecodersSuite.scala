@@ -9,10 +9,11 @@ import coulomb.Quantity
 import coulomb.syntax.*
 import eu.timepit.refined.collection.NonEmpty
 import eu.timepit.refined.numeric.Positive
-import io.circe.Decoder
 import lucuma.core.enums.Band
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.CatalogName
 import lucuma.core.enums.GalaxySpectrum
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.BrightnessValue
 import lucuma.core.math.Coordinates
@@ -37,22 +38,13 @@ import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.refined.auto.*
-import lucuma.odb.json.target.decoder.given
 import lucuma.schemas.model.TargetWithId
 
 import scala.collection.immutable.SortedMap
 
-class DecodersSuite extends InputStreamSuite {
+class TargetDecodersSuite extends InputStreamSuite {
   inline given Predicate[Long, Positive] with
     transparent inline def isValid(inline t: Long): Boolean = t > 0
-
-  given Decoder[(Target.Id, Target)] = Decoder.instance { c =>
-    val root = c.downField("data").downField("target")
-    for {
-      id     <- root.downField("id").as[Target.Id]
-      target <- root.as[Target]
-    } yield (id, target)
-  }
 
   test("Target decoder - Point - BandNormalized") {
     val expectedId: Target.Id           = Target.Id(2L.refined)
@@ -125,7 +117,15 @@ class DecodersSuite extends InputStreamSuite {
         ).some
       )
 
-    assertParsedStreamEquals("/t2.json", TargetWithId(expectedId, expectedTarget))
+    assertParsedStreamEquals(
+      "/t2.json",
+      TargetWithId(
+        expectedId,
+        expectedTarget,
+        TargetDisposition.Science,
+        none
+      )
+    )
   }
 
   test("Target decoder - Point - EmissionLines") {
@@ -164,7 +164,15 @@ class DecodersSuite extends InputStreamSuite {
         none
       )
 
-    assertParsedStreamEquals("/t3.json", TargetWithId(expectedId, expectedTarget))
+    assertParsedStreamEquals(
+      "/t3.json",
+      TargetWithId(
+        expectedId,
+        expectedTarget,
+        TargetDisposition.BlindOffset,
+        none
+      )
+    )
   }
 
   test("Target decoder - Uniform - BandNormalized") {
@@ -215,6 +223,14 @@ class DecodersSuite extends InputStreamSuite {
         none
       )
 
-    assertParsedStreamEquals("/t4.json", TargetWithId(expectedId, expectedTarget))
+    assertParsedStreamEquals(
+      "/t4.json",
+      TargetWithId(
+        expectedId,
+        expectedTarget,
+        TargetDisposition.Calibration,
+        CalibrationRole.Photometric.some
+      )
+    )
   }
 }

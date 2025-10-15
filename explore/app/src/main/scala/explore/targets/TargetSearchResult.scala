@@ -4,7 +4,6 @@
 package explore.targets
 
 import cats.Eq
-import cats.syntax.all.*
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.AngularSize
@@ -28,7 +27,7 @@ case class TargetSearchResult(
 object TargetSearchResult:
   def fromCatalogTargetResult(r: CatalogTargetResult): TargetSearchResult =
     TargetSearchResult(
-      TargetWithOptId(none, r.target),
+      TargetWithOptId.newScience(r.target),
       r.angularSize
     )
 

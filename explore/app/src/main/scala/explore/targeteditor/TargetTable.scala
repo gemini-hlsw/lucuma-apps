@@ -139,7 +139,6 @@ object TargetTable extends AsterismModifier:
                            targetInfo
                              .get(id)
                              .map(_.at(vizTime))
-                             .map(st => TargetWithId(id, st))
                          )
                          .flattenOption
                      case _                                           => Nil
