@@ -41,7 +41,6 @@
     "ua-parser-js": "2.0.6"
   },
   "devDependencies": {
-    "@ronilaukkarinen/stylelint-value-no-unknown-custom-properties": "4.0.1",
     "@vitejs/plugin-react": "5.0.4",
     "sass": "1.93.2",
     "sass-migrator": "2.4.2",
