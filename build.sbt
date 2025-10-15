@@ -1181,10 +1181,13 @@ lazy val overrideCiCommit = WorkflowStep.Run(
   cond = Some(prCond)
 )
 
-// lazy val bundlemon = WorkflowStep.Use(
-//   UseRef.Public("lironer", "bundlemon-action", "v1"),
-//   name = Some("Run BundleMon")
-// )
+lazy val exploreBundlemon = WorkflowStep.Use(
+  UseRef.Public("lironer", "bundlemon-action", "v1"),
+  name = Some("Run BundleMon"),
+  params = Map(
+    "bundlemon-args" -> s"""--config explore/bundlemonrc.json --subProject "Explore""""
+  )
+)
 
 def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use(
   UseRef.Public("FirebaseExtended", "action-hosting-deploy", "v0"),
@@ -1236,7 +1239,7 @@ ThisBuild / githubWorkflowAddedJobs +=
       exploreSbtLink ::
       exploreNpmBuild ::
       overrideCiCommit ::
-      // bundlemon ::
+      exploreBundlemon ::
       // firebaseDeployReview ::
       firebaseDeployDev ::
       recordDeploymentMetadata ::

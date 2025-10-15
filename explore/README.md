@@ -73,4 +73,4 @@ and Application -> Service Workers (in Chrome) -> unregister.
 
 ## Bundle sizes
 
-You can check the evolution of bundle sizes [here](https://app.bundlemon.dev/projects/61a698e5de59ab000954f941/reports?branch=master&resolution=all)
+You can check the evolution of bundle sizes [here](https://app.bundlemon.dev/projects/61a698e5de59ab000954f941/reports?branch=main&resolution=all)
