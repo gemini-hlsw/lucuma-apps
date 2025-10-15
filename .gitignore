@@ -19,7 +19,6 @@ calibrations/
 .bloop/
 project/project/.bloop/
 metals.sbt
-.vscode
 jre
 
 # hydra
