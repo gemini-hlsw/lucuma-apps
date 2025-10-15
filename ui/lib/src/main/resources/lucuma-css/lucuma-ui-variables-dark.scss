@@ -1,6 +1,6 @@
-//=================
-// DARK THEME VARS
-//=================
+// =================
+//  DARK THEME VARS
+// =================
 @mixin colors-dark {
   // Split color in HSL to easily do variations
   // https://blog.jim-nielsen.com/2020/sass-color-functions-in-css/
@@ -10,83 +10,84 @@
   --color-background-base-hsl:
     var(--color-background-base-h), var(--color-background-base-s), var(--color-background-base-l);
   --color-background: hsl(var(--color-background-base-hsl));
+
   // Variations of the background color
   // Light shades
   --color-background-light-3: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 3%)
   );
-  --color-background-light-3-a: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
-    calc(var(--color-background-base-l) + 3%),
-    0.7
+  --color-background-light-3-a: hsla(
+    var(--color-background-base-h)
+    var(--color-background-base-s)
+    calc(var(--color-background-base-l) + 3%) / 70%
   );
   --color-background-light-5: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 5%)
   );
   --color-background-light-6: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 6%)
   );
   --color-background-light-8: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 8%)
   );
   --color-background-light-10: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 10%)
   );
   --color-background-light-12: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 12%)
   );
   --color-background-light-15: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 15%)
   );
   --color-background-light-20: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 20%)
   );
   --color-background-light-25: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 25%)
   );
   --color-background-light-45: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 45%)
   );
   --color-background-light-50: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 50%)
   );
   --color-background-light-75: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) + 75%)
   );
+
   // Dark shades
   --color-background-dark-5: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) - 5%)
   );
   --color-background-dark-10: hsl(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
+    var(--color-background-base-h)
+    var(--color-background-base-s)
     calc(var(--color-background-base-l) - 10%)
   );
 
@@ -99,31 +100,32 @@
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l),
     var(--color-text-base-a);
   --color-text-base: hsla(var(--color-text-base-hsla));
+
   // Light shades
   --color-text-light-45: hsl(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
+    var(--color-text-base-h)
+    var(--color-text-base-s)
     calc(var(--color-text-base-l) - 45%)
   );
   --color-text-light-55: hsl(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
+    var(--color-text-base-h)
+    var(--color-text-base-s)
     calc(var(--color-text-base-l) - 55%)
   );
   --color-text-light-75: hsl(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
+    var(--color-text-base-h)
+    var(--color-text-base-s)
     calc(var(--color-text-base-l) - 75%)
   );
   --color-text-full: hsl(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
-    var(--color-text-base-l),
-    1
+    var(--color-text-base-h)
+    var(--color-text-base-s)
+    var(--color-text-base-l) / 100%
   );
   --color-text-alt-hsla:
     var(--color-background-base-h), var(--color-background-base-s), var(--color-text-base-l), 1;
   --color-text-alt: hsla(var(--color-text-alt-hsla));
+
   // dark shades
   --color-text-dark-8-hsla:
     var(--color-text-base-h), var(--color-text-base-s), calc(var(--color-text-base-l) - 8%),
@@ -139,9 +141,10 @@
   --gray-a: 1;
   --gray-hsla: var(--gray-h), var(--gray-s), var(--gray-l), var(--gray-a);
   --gray: hsla(var(--gray-hsla));
+
   // dark grays
-  --gray-dark-5: hsla(var(--gray-h), var(--gray-s), calc(var(--gray-l) - 5%), var(--gray-a));
-  --gray-dark-10: hsla(var(--gray-h), var(--gray-s), calc(var(--gray-l) - 10%), var(--gray-a));
+  --gray-dark-5: hsl(var(--gray-h) var(--gray-s) calc(var(--gray-l) - 5%) / var(--gray-a));
+  --gray-dark-10: hsl(var(--gray-h) var(--gray-s) calc(var(--gray-l) - 10%) / var(--gray-a));
   --gray-dark-h: 210;
   --gray-dark-s: 7.9%;
   --gray-dark-l: 24.7%;
@@ -150,29 +153,29 @@
   --gray-dark: hsla(var(--gray-dark-hsla));
   --gray-dark-semi-hsla: var(--gray-dark-h), var(--gray-dark-s), var(--gray-dark-l), 75%;
   --gray-dark-semi: hsla(var(--gray-dark-semi-hsla));
-  --negative-color: hsla(2, 81.2%, 64.5%, 80%);
+  --negative-color: hsl(2deg 81.2% 64.5% / 80%);
 }
 
 @mixin named-colors-dark {
-  --focus-inner-color: hsla(230, 52%, 42%, 1);
-  --focus-outer-color: hsla(220, 72%, 73%, 0.85);
-  --hover-background-color: hsla(260, 72%, 10%, 0.85);
-  --dragging-background-color: hsla(259, 39%, 24%, 0.85);
+  --focus-inner-color: hsl(230deg 52% 42% / 100%);
+  --focus-outer-color: hsl(220deg 72% 73% / 85%);
+  --hover-background-color: hsl(260deg 72% 10% / 85%);
+  --dragging-background-color: hsl(259deg 39% 24% / 85%);
   --text-color: var(--color-text-base);
-  --dark-text-color: rgba(255, 255, 255, 0.85);
+  --dark-text-color: rgb(255 255 255 / 85%);
   --text-alt: var(--color-text-alt);
   --link-color: lightblue;
   --control-background-color: var(--color-background-light-20);
   --negative-text-color: var(--color-text-full);
-  --negative-background-color: hsl(349, 100%, 34.5%);
+  --negative-background-color: hsl(349deg 100% 34.5%);
   --negative-icon-color: var(--negative-color);
-  --warning-text-color: hsl(0, 0%, 100%);
-  --warning-background-color: hsl(35, 75.3%, 49.8%);
-  --error-background-color: hsl(0, 100%, 50%);
-  --explore-accent-color: hsla(120, 73.4%, 74.9%, 80%);
-  --accent-color: hsla(120, 73.4%, 74.9%, 80%);
-  --explore-accent-color-darken-5: hsla(120, 73.4%, 69.9%, 80%);
-  --explore-accent-color-lighten-5: hsla(120, 73.4%, 79.9%, 80%);
+  --warning-text-color: hsl(0deg 0% 100%);
+  --warning-background-color: hsl(35deg 75.3% 49.8%);
+  --error-background-color: hsl(0deg 100% 50%);
+  --explore-accent-color: hsl(120deg 73.4% 74.9% / 80%);
+  --accent-color: hsl(120deg 73.4% 74.9% / 80%);
+  --explore-accent-color-darken-5: hsl(120deg 73.4% 69.9% / 80%);
+  --explore-accent-color-lighten-5: hsl(120deg 73.4% 79.9% / 80%);
   --explore-selected-box-color: yellow;
   --under-tab-background-color: var(--color-background-light-10);
   --under-tab-background-focus-color: var(--color-background-light-6);
@@ -188,29 +191,28 @@
   --scrollbar-background: var(--color-background-light-15);
   --scrollbar-background-thumb: var(--color-background-light-5);
   --scrollbar-background-thumb-hover: var(--color-background-light-3);
-  --hud-color: hsla(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
-    calc(var(--color-text-base-l) - 25%),
-    0.9
+  --hud-color: hsl(
+    var(--color-text-base-h)
+    var(--color-text-base-s)
+    calc(var(--color-text-base-l) - 25%) / 90%
   );
-  --hud-stripe-color: hsla(
-    var(--color-text-base-h),
-    var(--color-text-base-s),
-    calc(var(--color-text-base-l) - 25%),
-    0.01
+  --hud-stripe-color: hsl(
+    var(--color-text-base-h)
+    var(--color-text-base-s)
+    calc(var(--color-text-base-l) - 25%) / 1%
   );
-  --hud-background-color: hsla(
-    var(--color-background-base-h),
-    var(--color-background-base-s),
-    calc(var(--color-background-base-l) - 5%),
-    0.7
+  --hud-background-color: hsl(
+    var(--color-background-base-h)
+    var(--color-background-base-s)
+    calc(var(--color-background-base-l) - 5%) / 70%
   );
+
   // AGS colors
-  --ags-icon-color: hsla(60, 100%, 50%, 80%);
+  --ags-icon-color: hsl(60deg 100% 50% / 80%);
   --ags-fast-guide-speed-color: hsl(120deg 100% 25.1%);
-  --ags-medium-guide-speed-color: hsl(51, 100%, 50%);
-  --ags-slow-guide-speed-color: hsl(33, 100%, 50%);
+  --ags-medium-guide-speed-color: hsl(51deg 100% 50%);
+  --ags-slow-guide-speed-color: hsl(33deg 100% 50%);
+
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
   --tooltip-viz-background-color: var(--color-background-light-3-a);
@@ -235,20 +237,20 @@
   --site-input-placeholder-color: var(--color-text-light-55);
   --site-input-highlight-color: var(--color-text-full);
   --site-disabled-opacity: 0.65;
-  --site-input-highlight-background: hsl(211, 31%, 48%);
-  --site-highlight-background: hsl(211, 31%, 48%);
+  --site-input-highlight-background: hsl(211deg 31% 48%);
+  --site-highlight-background: hsl(211deg 31% 48%);
 }
 
 @mixin datepicker-dark {
   --date-picker-background-color: var(--color-background-light-10);
   --date-picker-header-background-color: var(--color-background-light-20);
   --date-picker-border-color: var(--color-background-light-50);
-  --date-picker-highlighted-color: hsl(125, 58.4%, 99%);
-  --date-picker-highlighted-color-darken-5: hsl(125, 58.4%, 47%);
-  --date-picker-muted-color: hsl(0, 0%, 80%);
-  --date-picker-muted-color-lighten-10: hsl(0, 0%, 90%);
-  --date-picker-muted-color-darken-10: hsl(0, 0%, 70%);
-  --date-picker-muted-color-darken-15: hsl(0, 0%, 65%);
+  --date-picker-highlighted-color: hsl(125deg 58.4% 99%);
+  --date-picker-highlighted-color-darken-5: hsl(125deg 58.4% 47%);
+  --date-picker-muted-color: hsl(0deg 0% 80%);
+  --date-picker-muted-color-lighten-10: hsl(0deg 0% 90%);
+  --date-picker-muted-color-darken-10: hsl(0deg 0% 70%);
+  --date-picker-muted-color-darken-15: hsl(0deg 0% 65%);
   --date-picker-text-color: var(--dark-text-color);
   --date-picker-header-color: var(--text-color);
   --date-picker-selected-color: var(--color-background);
@@ -272,8 +274,11 @@
   --form-prompt-background: var(--negative-background-color);
 }
 
+/* stylelint-disable scss/at-rule-no-unknown */
+/* stylelint-disable scss/no-global-function-names */
+/* stylelint-disable at-rule */
 @mixin button-dark {
-  @activeColor: hsl(206, 66.7%, 38.8%);
+  @activeColor: hsl(206deg 66.7% 38.8%);
   @tertiaryTextColor: rgba(0, 0, 0, 0.6);
   @tertiaryHoverColor: lighten(fadein(@tertiaryTextColor, 100%), 20%);
   @tertiaryActiveColor: lighten(@tertiaryHoverColor, 20%);
@@ -294,6 +299,7 @@
   --button-tertiary-active-color: @tertiaryActiveColor;
   --button-tertiary-active-line-color: lighten(@tertiaryActiveColor, 20%);
 }
+/* stylelint-enable at-rule */
 
 @mixin label-dark {
   --label-background-color: var(--gray-dark);
@@ -323,6 +329,8 @@
   --menu-secondary-hover-item-color: darken(@color-gray-darker, 5%);
   --menu-tabular-active-background: var(--color-background-light-10);
 }
+/* stylelint-enable scss/no-global-function-names */
+/* stylelint-enable scss/at-rule-no-unknown */
 
 @mixin segment-dark {
   --segment-background: var(--color-background-light-5);
@@ -374,7 +382,7 @@
 }
 
 @mixin dimmer-dark {
-  --dimmer-background-color: rgba(0, 0, 0, 0.85);
+  --dimmer-background-color: rgb(0 0 0 / 85%);
 }
 
 @mixin header-dark {
@@ -385,12 +393,12 @@
   --plot-background-color: black;
   --plot-text-color: var(--text-color);
   --plot-text-color-hover: var(--text-alt);
-  --plot-text-color-disabled: hsl(0, 0%, 53%);
-  --plot-grid-color: hsl(0, 0%, 16%);
-  --plot-tooltip-background-color: hsl(0, 0%, 7%);
-  --plot-plot-band-night-color: hsl(0, 0%, 100%);
+  --plot-text-color-disabled: hsl(0deg 0% 53%);
+  --plot-grid-color: hsl(0deg 0% 16%);
+  --plot-tooltip-background-color: hsl(0deg 0% 7%);
+  --plot-plot-band-night-color: hsl(0deg 0% 100%);
   --plot-plot-band-night-opacity: 0.1;
-  --plot-plot-band-exclude-window-color: hsl(0, 93%, 48%);
+  --plot-plot-band-exclude-window-color: hsl(0deg 93% 48%);
   --plot-plot-band-exclude-window-opacity: 0.25;
 }
 

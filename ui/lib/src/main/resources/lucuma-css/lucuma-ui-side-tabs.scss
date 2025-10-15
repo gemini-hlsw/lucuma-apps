@@ -1,7 +1,7 @@
 @use 'lucuma-ui-common.scss' as lucumaUICommon;
 
 :root {
-  --accent-color: hsla(120, 73.4%, 74.9%, 80%);
+  --accent-color: hsl(120deg 73.4% 74.9% / 80%);
   --site-text-color: var(--text-color);
   --under-tab-background-color: var(--color-background-light-10);
   --under-tab-background-focus-color: var(--color-background-light-6);

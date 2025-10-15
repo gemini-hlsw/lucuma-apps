@@ -112,7 +112,7 @@
 }
 
 table tr {
-  .lucuma-sequence-visit-extraRow {
+  .lucuma-sequence-visit-extra-row {
     width: 100%;
     display: flex;
     justify-content: space-between;
@@ -120,21 +120,21 @@ table tr {
     align-items: center;
     padding-left: 5%;
 
-    .lucuma-sequence-visit-extraRow-status {
+    .lucuma-sequence-visit-extra-row-status {
       .p-tag {
         padding-top: 0;
         padding-bottom: 0;
       }
     }
 
-    .lucuma-sequence-visit-extraRow-datasets {
+    .lucuma-sequence-visit-extra-row-datasets {
       flex-grow: 1;
       text-align: left;
 
-      .lucuma-sequence-visit-extraRow-dataset-item {
+      .lucuma-sequence-visit-extra-row-dataset-item {
         margin-right: 2.5dvw;
 
-        .lucuma-sequence-visit-extraRow-dataset-qaStatus {
+        .lucuma-sequence-visit-extra-row-dataset-qa-status {
           margin-left: 0.5dvw;
         }
       }
