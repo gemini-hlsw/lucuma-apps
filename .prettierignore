@@ -1,7 +1,10 @@
-common/src/main/webapp/less/vendor
-common/src/main/webapp/suithemes
-common/src/main/webapp/themes
-hasura/user-prefs/
+ui/demo/src/main/webapp
+
+explore/common/src/main/webapp/less/vendor
+explore/common/src/main/webapp/suithemes
+explore/common/src/main/webapp/themes
+explore/hasura/user-prefs/
+explore/heroku/static
 
 .github/
 .mergify.yml
@@ -11,7 +14,6 @@ hasura/user-prefs/
 flake.lock
 node_modules
 target
-heroku/static
 
-explore/src/clue/resources/*.graphql
+*.graphql
 secrets.yaml
