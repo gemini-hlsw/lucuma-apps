@@ -27,6 +27,10 @@
       "matchPackageNames": ["/vite/"]
     },
     {
+      "groupName": "Stylelint packages",
+      "matchPackageNames": ["/stylelint/"]
+    },
+    {
       "groupName": "Fontawesome",
       "matchPackageNames": ["@fortawesome/**"]
     }
