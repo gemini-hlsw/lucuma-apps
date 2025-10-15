@@ -9,6 +9,8 @@ on:
       - "main"
     paths:
       - "**.graphql"
+    tags:
+      - 'v*'
 
 permissions:
   id-token: write # Required for OIDC
