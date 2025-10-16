@@ -12,26 +12,6 @@ import lucuma.schemas.odb.*
 object TargetQueriesGQL:
 
   @GraphQL
-  trait TargetNameQuery extends GraphQLOperation[ObservationDB]:
-    // namePrefix should include a `%' at the end
-    val document = s"""
-      query($$programId: ProgramId!, $$namePrefix: String!) {
-        targets(
-          WHERE: {
-            program: {id: {EQ: $$programId}}
-            name: {
-              LIKE: $$namePrefix
-              MATCH_CASE: false
-            }
-            disposition: {EQ: SCIENCE}
-          }
-        ) {
-          matches $TargetWithIdSubquery
-        }
-      }
-    """
-
-  @GraphQL
   trait CreateTargetMutation extends GraphQLOperation[ObservationDB]:
     val document = """
       mutation($input: CreateTargetInput!) {

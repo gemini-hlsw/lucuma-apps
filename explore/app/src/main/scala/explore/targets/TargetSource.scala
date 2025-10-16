@@ -10,15 +10,15 @@ import cats.effect.std.Random
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.SimbadSearch
-import explore.services.OdbTargetApi
+import explore.model.TargetList
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.CatalogName
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Parallax
 import lucuma.core.math.ProperMotion
 import lucuma.core.math.RadialVelocity
-import lucuma.core.model.Program
 import lucuma.core.model.SiderealTracking
 import lucuma.core.util.Enumerated
 import org.typelevel.log4cats.Logger
@@ -29,17 +29,24 @@ sealed trait TargetSource[F[_]]:
   def searches(name: NonEmptyString): List[F[List[TargetSearchResult]]]
 
 object TargetSource:
-  case class FromProgram[F[_]](programId: Program.Id)(using
-    odbApi: OdbTargetApi[F]
-  ) extends TargetSource[F]:
-    val name: String = s"Program $programId"
+  case class FromProgram[F[_]: Async](targets: TargetList) extends TargetSource[F]:
+    val name = "Program"
 
     val existing: Boolean = true
 
-    override def searches(name: NonEmptyString): List[F[List[TargetSearchResult]]] =
-      List(odbApi.searchTargetsByNamePrefix(programId, name))
+    def searches(name: NonEmptyString): List[F[List[TargetSearchResult]]] =
+      val matches =
+        targets.values
+          .filter(twid =>
+            twid.target.name.value.toLowerCase.startsWith(name.value.toLowerCase)
+              && twid.disposition === TargetDisposition.Science
+          )
+          .toList
+          .sortBy(_.target.name.value.toLowerCase)
+          .map(twid => TargetSearchResult(twid.toOptId, none))
+      List(matches.pure)
 
-    override def toString: String = programId.toString
+    override def toString(): String = name
 
   case class FromCatalog[F[_]: Async: Random: Logger](catalogName: CatalogName)
       extends TargetSource[F]:
@@ -109,10 +116,10 @@ object TargetSource:
 
   // TODO Test
   given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.from {
-    case (TargetSource.FromProgram(pidA), TargetSource.FromProgram(pidB)) => pidA.compare(pidB)
-    case (TargetSource.FromProgram(_), _)                                 => -1
-    case (_, TargetSource.FromProgram(_))                                 => 1
-    case (TargetSource.FromCatalog(cnA), TargetSource.FromCatalog(cnB))   => cnA.compare(cnB)
+    // doesn't make sense to have more than one of FromProgram, but it is always first
+    case (TargetSource.FromProgram(_), _)                               => -1
+    case (_, TargetSource.FromProgram(_))                               => 1
+    case (TargetSource.FromCatalog(cnA), TargetSource.FromCatalog(cnB)) => cnA.compare(cnB)
   }
 
   given reuseTargetSource[F[_]]: Reusability[TargetSource[F]] = Reusability.byEq

@@ -104,7 +104,7 @@ trait AsterismModifier:
 
     TargetSelectionPopup(
       "Add Target",
-      TargetSource.FromProgram[IO](programId) :: TargetSource.forAllCatalogs[IO],
+      TargetSource.FromProgram[IO](obsAndTargets.get._2) :: TargetSource.forAllCatalogs[IO],
       selectExistingLabel = "Link",
       selectExistingIcon = Icons.Link,
       selectNewLabel = "Add",
