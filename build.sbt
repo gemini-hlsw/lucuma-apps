@@ -945,10 +945,10 @@ def prettierCmd(fix: Boolean): String =
   s"npx prettier ${if (fix) "--write" else "--check"} ."
 
 def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] = {
-  val stylelintFixFlag = if (fix) " --fix" else ""
+  val stylelintFixFlag = if (fix) "--fix " else ""
   // Removes all lines that don't define a variable, thus building a viable CSS file for linting. Thanks ChatGPT.
   (raw"""find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$$/p' -e '/^[[:space:]]*--[^;]*$$/,/;$$/p' {} + >vars.css"""
-    +: dirs.map(dir => s"npx stylelint --formatter github $stylelintFixFlag $dir")) :+
+    +: dirs.map(dir => s"npx stylelint $stylelintFixFlag$dir")) :+
     "rm vars.css"
 }
 
