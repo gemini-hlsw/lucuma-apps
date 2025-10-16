@@ -1325,3 +1325,12 @@ def npmPublishForDir(dir: String) = Def.task {
   Process(List("npm", "publish", "--tag", "latest"), publishDir).!!
   streams.value.log.info(s"Published NPM package from ${publishDir}")
 }
+
+ThisBuild / mergifyLabelPaths :=
+  Map(
+    "schemas"  -> baseDirectory.value / "schemas",
+    "ui"       -> baseDirectory.value / "ui",
+    "explore"  -> baseDirectory.value / "explore",
+    "navigate" -> baseDirectory.value / "navigate",
+    "observe"  -> baseDirectory.value / "observe"
+  )
