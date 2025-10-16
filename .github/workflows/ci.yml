@@ -240,6 +240,11 @@ jobs:
         if: github.event_name == 'pull_request'
         run: echo "CI_COMMIT_SHA=${{ github.event.pull_request.head.sha}}" >> $GITHUB_ENV
 
+      - name: Run BundleMon
+        uses: lironer/bundlemon-action@v1
+        with:
+          bundlemon-args: '--config explore/.bundlemonrc.json --subProject "Explore"'
+
       - name: Deploy staging app to Firebase
         if: github.ref == 'refs/heads/main'
         uses: FirebaseExtended/action-hosting-deploy@v0

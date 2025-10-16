@@ -1,5 +1,5 @@
 {
-  "baseDir": "./heroku/static/assets",
+  "baseDir": "./explore/heroku/static/assets",
   "files": [
     {
       "path": "*-<hash>.js"
