@@ -423,13 +423,13 @@ jobs:
       - name: Run linters
         run: |
           find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
-          npx stylelint --formatter github  explore/common/src/main/webapp/sass
-          npx stylelint --formatter github  observe/web/client/src/main/webapp/styles
-          npx stylelint --formatter github  ui/lib/src/main/resources/lucuma-css
+          npx stylelint explore/common/src/main/webapp/sass
+          npx stylelint observe/web/client/src/main/webapp/styles
+          npx stylelint ui/lib/src/main/resources/lucuma-css
           rm vars.css
           find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$/p' -e '/^[[:space:]]*--[^;]*$/,/;$/p' {} + >vars.css
-          npx stylelint --formatter github  explore/common/src/main/webapp/sass
-          npx stylelint --formatter github  observe/web/client/src/main/webapp/styles
-          npx stylelint --formatter github  ui/lib/src/main/resources/lucuma-css
+          npx stylelint explore/common/src/main/webapp/sass
+          npx stylelint observe/web/client/src/main/webapp/styles
+          npx stylelint ui/lib/src/main/resources/lucuma-css
           rm vars.css
           npx prettier --check .
