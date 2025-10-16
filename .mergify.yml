@@ -17,187 +17,43 @@ pull_request_rules:
   - status-success=Test (ubuntu-22.04, 3, temurin@17, rootJVM)
   actions:
     merge: {}
-- name: Label app PRs
+- name: Label explore PRs
   conditions:
-  - files~=^explore/app/
+  - files~=^explore/
   actions:
     label:
       add:
-      - app
+      - explore
       remove: []
-- name: Label app-clue PRs
+- name: Label navigate PRs
   conditions:
-  - files~=^explore/app-clue/
+  - files~=^navigate/
   actions:
     label:
       add:
-      - app-clue
+      - navigate
       remove: []
-- name: Label client PRs
+- name: Label observe PRs
   conditions:
-  - files~=^observe/web/client/
+  - files~=^observe/
   actions:
     label:
       add:
-      - client
+      - observe
       remove: []
-- name: Label client-clue PRs
+- name: Label schemas PRs
   conditions:
-  - files~=^observe/web/client-clue/
+  - files~=^schemas/
   actions:
     label:
       add:
-      - client-clue
+      - schemas
       remove: []
-- name: Label client-model PRs
+- name: Label ui PRs
   conditions:
-  - files~=^observe/web/client-model/
+  - files~=^ui/
   actions:
     label:
       add:
-      - client-model
-      remove: []
-- name: Label common PRs
-  conditions:
-  - files~=^explore/common/
-  actions:
-    label:
-      add:
-      - common
-      remove: []
-- name: Label css PRs
-  conditions:
-  - files~=^ui/css/
-  actions:
-    label:
-      add:
-      - css
-      remove: []
-- name: Label demo PRs
-  conditions:
-  - files~=^observe/ui/demo/
-  actions:
-    label:
-      add:
-      - demo
-      remove: []
-- name: Label deploy PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - deploy
-      remove: []
-- name: Label epics PRs
-  conditions:
-  - files~=^navigate/epics/
-  actions:
-    label:
-      add:
-      - epics
-      remove: []
-- name: Label lib PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - lib
-      remove: []
-- name: Label model PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - model
-      remove: []
-- name: Label model-testkit PRs
-  conditions:
-  - files~=^explore/model-testkit/
-  actions:
-    label:
-      add:
-      - model-testkit
-      remove: []
-- name: Label model-tests PRs
-  conditions:
-  - files~=^explore/model-tests/
-  actions:
-    label:
-      add:
-      - model-tests
-      remove: []
-- name: Label schema-util PRs
-  conditions:
-  - files~=^navigate/schema-util/
-  actions:
-    label:
-      add:
-      - schema-util
-      remove: []
-- name: Label server PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - server
-      remove: []
-- name: Label server-clue PRs
-  conditions:
-  - files~=^navigate/server-clue/
-  actions:
-    label:
-      add:
-      - server-clue
-      remove: []
-- name: Label server_new PRs
-  conditions:
-  - files~=^observe/server_new/
-  actions:
-    label:
-      add:
-      - server_new
-      remove: []
-- name: Label server_new-clue PRs
-  conditions:
-  - files~=^observe/server_new-clue/
-  actions:
-    label:
-      add:
-      - server_new-clue
-      remove: []
-- name: Label stateengine PRs
-  conditions:
-  - files~=^navigate/stateengine/
-  actions:
-    label:
-      add:
-      - stateengine
-      remove: []
-- name: Label testkit PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - testkit
-      remove: []
-- name: Label tests PRs
-  conditions:
-  - files~=^/
-  actions:
-    label:
-      add:
-      - tests
-      remove: []
-- name: Label workers PRs
-  conditions:
-  - files~=^explore/workers/
-  actions:
-    label:
-      add:
-      - workers
+      - ui
       remove: []
