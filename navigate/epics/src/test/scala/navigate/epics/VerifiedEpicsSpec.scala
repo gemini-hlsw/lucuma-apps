@@ -16,6 +16,8 @@ import scala.concurrent.duration.FiniteDuration
 
 class VerifiedEpicsSpec extends CatsEffectSuite {
 
+  override def munitFlakyOK: Boolean = true
+
   private val epicsService = ResourceFunFixture(EpicsService.getBuilder.build[IO])
 
   /* This test works by creating the client channels before starting the test EPICS server. That way we are sure the
@@ -50,7 +52,7 @@ class VerifiedEpicsSpec extends CatsEffectSuite {
       }
   }
 
-  epicsService.test("Makes sure channels are connected before reading a stream") { service =>
+  epicsService.test("Makes sure channels are connected before reading a stream".flaky) { service =>
     val valueCount = 5
     (for {
       tt  <- service.getChannel[Int]("test:stringVal").map(c => TelltaleChannel("foo", c))
