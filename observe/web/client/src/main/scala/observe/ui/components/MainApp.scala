@@ -33,6 +33,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem
+import lucuma.react.primereact.PrimeReactProvider
 import lucuma.react.primereact.hooks.all.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB
@@ -381,26 +382,28 @@ object MainApp extends ServerEventHandler:
         // When both AppContext and UserVault are ready, proceed to render.
         (ctxPot.value, rootModelData.zoom(RootModelData.userVault).toPotView).tupled.renderPot:
           (ctx, userVault) =>
-            AppContext.ctx.provide(ctx)(
-              IfLogged[BroadcastEvent](
-                "Observe".refined,
-                Css.Empty,
-                allowGuest = false,
-                ctx.ssoClient,
-                userVault,
-                rootModelData.zoom(RootModelData.userSelectionMessage),
-                _ => IO.unit, // MainApp takes care of connections
-                IO.unit,
-                IO.unit,
-                "observe".refined,
-                _.event === BroadcastEvent.LogoutEventId,
-                _.value.toString,
-                BroadcastEvent.LogoutEvent(_)
-              )(_ =>
-                provideApiCtx(
-                  ResyncingPopup,
-                  ObservationSyncer(rootModelData.zoom(RootModelData.loadedObservations)),
-                  router(RootModel(clientConfigPot.get, rootModelData))
+            PrimeReactProvider()(
+              AppContext.ctx.provide(ctx)(
+                IfLogged[BroadcastEvent](
+                  "Observe".refined,
+                  Css.Empty,
+                  allowGuest = false,
+                  ctx.ssoClient,
+                  userVault,
+                  rootModelData.zoom(RootModelData.userSelectionMessage),
+                  _ => IO.unit, // MainApp takes care of connections
+                  IO.unit,
+                  IO.unit,
+                  "observe".refined,
+                  _.event === BroadcastEvent.LogoutEventId,
+                  _.value.toString,
+                  BroadcastEvent.LogoutEvent(_)
+                )(_ =>
+                  provideApiCtx(
+                    ResyncingPopup,
+                    ObservationSyncer(rootModelData.zoom(RootModelData.loadedObservations)),
+                    router(RootModel(clientConfigPot.get, rootModelData))
+                  )
                 )
               )
             )
