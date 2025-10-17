@@ -45,6 +45,9 @@ ThisBuild / resolvers += "Gemini Repository".at(
 
 ThisBuild / evictionErrorLevel := Level.Info
 
+ThisBuild / lucumaCoverage               := false
+ThisBuild / githubWorkflowArtifactUpload := false // Necessary when disabling coverage.
+
 // Uncomment for local gmp testing
 // ThisBuild / resolvers += "Local Maven Repository" at "file://"+Path.userHome.absolutePath+"/.m2/repository"
 
