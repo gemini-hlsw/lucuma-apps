@@ -17,6 +17,7 @@ import japgolly.scalajs.react.extra.router.RouterWithProps
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
+import lucuma.react.primereact.PrimeReactProvider
 import lucuma.ui.syntax.all.*
 
 import scala.concurrent.duration.*
@@ -35,18 +36,20 @@ object RootComponent
         rootModel                       <- useStateView(props.initialModel)
         attr: Option[ResourceAttributes] = rootModel.get.vault.map(ResourceAttributes.fromUserVault)
         programSummariesPot             <- useThrottlingStateView(pending[ProgramSummaries], 5.seconds)
-      yield AppContext.ctx.provide(props.ctx):
-        React.Fragment(
+      yield PrimeReactProvider()(
+        AppContext.ctx.provide(props.ctx)(
           props.ctx.tracing.map: c =>
             Observability(
-              HoneycombOptions(c.key,
-                               c.serviceName,
-                               version(props.ctx.environment).value,
-                               attr.orUndefined
+              HoneycombOptions(
+                c.key,
+                c.serviceName,
+                version(props.ctx.environment).value,
+                attr.orUndefined
               )
             ),
           HelpContext.Provider:
             programSummariesPot.renderPot: programSummaries =>
               props.router(RootModelViews(rootModel, programSummaries))
         )
+      )
     )
