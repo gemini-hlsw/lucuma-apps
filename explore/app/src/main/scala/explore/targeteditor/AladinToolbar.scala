@@ -17,7 +17,6 @@ import lucuma.ags.AgsAnalysis
 import lucuma.core.math.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.Transform
-import lucuma.react.floatingui.Placement
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.ui.aladin.Fov
@@ -33,11 +32,11 @@ case class AladinToolbar(
   viewOffset:        ViewOpt[Offset]
 ) extends ReactFnProps(AladinToolbar.component)
 
-object AladinToolbar {
+object AladinToolbar:
   private type Props = AladinToolbar
 
   private val component =
-    ScalaFnComponent[Props] { props =>
+    ScalaFnComponent[Props]: props =>
       val usableGuideStar = props.selectedGuideStar.forall(_.isUsable)
 
       React.Fragment(
@@ -80,21 +79,11 @@ object AladinToolbar {
           ExploreStyles.AladinCurrentCoords,
           <.span(ExploreStyles.AladinDetailText, formatCoordinates(props.current))
         ),
-        <.div(
-          ExploreStyles.AladinCenterButton,
-          <.span(
-            Button(
-              text = true,
-              onClick = props.viewOffset.set(Offset.Zero),
-              icon = Icons.Bullseye
-                .withTransform(Transform(size = 24))
-                .withClass(ExploreStyles.Accented)
-            ).compact.small
-          ).withTooltip(
-            tooltip = "Center on target",
-            placement = Placement.BottomEnd
-          )
-        )
+        Button(
+          onClick = props.viewOffset.set(Offset.Zero),
+          clazz = ExploreStyles.AladinCenterButton,
+          icon = Icons.Bullseye
+            .withTransform(Transform(size = 24))
+            .withClass(ExploreStyles.Accented)
+        ).compact.small
       )
-    }
-}

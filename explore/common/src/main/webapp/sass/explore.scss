@@ -1442,8 +1442,27 @@ svg.fa-check.explore-success-icon {
 }
 
 .aladin-status-center-button {
+  @include aladin-toolbar-labels;
+
   grid-area: center;
   align-self: center;
+  border: none;
+  cursor: pointer;
+  transition: outline-color 0.2s ease;
+  display: flex;
+  justify-items: center;
+
+  &.p-component.p-button > .p-button-icon-left {
+    margin-right: 0;
+  }
+
+  &:focus,
+  &:active,
+  &:hover {
+    outline-color: var(--primary-color);
+    outline-width: 2px;
+  }
+
 }
 
 .aladin-detail-text {
