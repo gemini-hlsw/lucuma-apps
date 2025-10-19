@@ -168,6 +168,13 @@ export default defineConfig(async ({ mode }) => {
       host: '0.0.0.0',
       port: 8080,
       cors: { origin: '*' },
+      hmr: {
+        port: 8080,
+        host: 'local.lucuma.xyz',
+        clientPort: 8080,
+        // Reduce HMR overhead
+        overlay: false,
+      },
       watch: {
         ignored: [
           function ignoreThisPath(_path) {
