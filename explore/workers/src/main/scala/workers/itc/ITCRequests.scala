@@ -32,7 +32,7 @@ import workers.*
 import scala.collection.immutable.SortedMap
 
 object ITCRequests:
-  val cacheVersion = CacheVersion(21)
+  val cacheVersion = CacheVersion(22)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell) => ItcQueryProblem.SourceTooBright(halfWell)

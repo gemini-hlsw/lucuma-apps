@@ -421,6 +421,7 @@ lazy val explore_workers = project
   .settings(
     libraryDependencies ++= LucumaCatalog.value ++
       Http4sDom.value ++
+      CatsRetry.value ++
       Log4Cats.value,
     Test / scalaJSLinkerConfig ~= {
       import org.scalajs.linker.interface.OutputPatterns

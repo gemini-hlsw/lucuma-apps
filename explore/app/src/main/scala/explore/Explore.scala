@@ -17,6 +17,7 @@ import clue.js.WebSocketJsBackend
 import clue.websocket.ReconnectionStrategy
 import explore.components.ui.ExploreStyles
 import explore.events.*
+import explore.events.ItcMessage.given
 import explore.model.AppConfig
 import explore.model.AppContext
 import explore.model.ExploreLocalPreferences
@@ -44,6 +45,7 @@ import scala.concurrent.duration.*
 import scala.scalajs.js
 
 import js.annotation.*
+import lucuma.react.primereact.Message
 
 @JSExportTopLevel("Explore", moduleID = "explore")
 object ExploreMain {
@@ -103,6 +105,23 @@ object ExploreMain {
           TimeUnit.SECONDS
         ).some
 
+    def initializeItc(
+      workerClients: WorkerClients[IO],
+      itcURI:        org.http4s.Uri,
+      toastCtx:      explore.utils.ToastCtx[IO]
+    )(using Logger[IO]): IO[Unit] =
+      workerClients.itc
+        .requestSingle(ItcMessage.Initialize(itcURI))
+        .flatMap:
+          case Some(Some(error)) =>
+            toastCtx.showToast(error, Message.Severity.Error, true)
+          case Some(None)        =>
+            Logger[IO].info("ITC client initialized")
+          case None              =>
+            Logger[IO].warn("ITC initialization: no response from worker")
+        .start
+        .void
+
     def buildPage(
       dispatcher:       Dispatcher[IO],
       workerClients:    WorkerClients[IO],
@@ -128,21 +147,20 @@ object ExploreMain {
         host                 <- IO(dom.window.location.host)
         httpClient            = buildNonCachingHttpClient[IO]
         appConfig            <- AppConfig.fetchConfig[IO](host, httpClient)
-        _                    <- workerClients.itc.requestAndForget(ItcMessage.Initialize(appConfig.itcURI))
         _                    <- Logger[IO].info(s"Git Commit: [${utils.gitHash.getOrElse("NONE")}]")
         _                    <- Logger[IO].info(s"Config: ${appConfig.show}")
         toastRef             <- Deferred[IO, ToastRef]
-        ctx                  <-
-          AppContext.from[IO](
-            appConfig,
-            reconnectionStrategy,
-            pageUrl,
-            setPageVia,
-            workerClients,
-            httpClient,
-            bc,
-            toastRef
-          )
+        ctx                  <- AppContext.from[IO](
+                                  appConfig,
+                                  reconnectionStrategy,
+                                  pageUrl,
+                                  setPageVia,
+                                  workerClients,
+                                  httpClient,
+                                  bc,
+                                  toastRef
+                                )
+        _                    <- initializeItc(workerClients, appConfig.itcURI, ctx.toastCtx)
         r                    <- (ctx.sso.whoami, setupDOM[IO], showEnvironment[IO](appConfig.environment)).parTupled
         (vault, container, _) = r
       } yield ReactDOMClient
