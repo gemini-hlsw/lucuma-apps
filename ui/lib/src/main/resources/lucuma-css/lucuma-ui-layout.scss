@@ -31,7 +31,6 @@
 @supports (-webkit-touch-callout: none) {
   .main-grid {
     /* The hack for Safari */
-    /* stylelint-disable-next-line value-no-vendor-prefix */
     height: -webkit-fill-available;
   }
 }

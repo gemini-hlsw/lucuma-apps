@@ -9,7 +9,7 @@
   --color-text-base-hsla:
     var(--color-text-base-h), var(--color-text-base-s), var(--color-text-base-l),
     var(--color-text-base-a);
-  --color-text-base: hsla(var(--color-text-base-hsla));
+  --color-text-base: hsl(var(--color-text-base-hsla));
 
   // Light shades
   --color-text-light-45: hsl(
@@ -27,9 +27,9 @@
   --gray-dark-l: 24.7%;
   --gray-dark-a: 1;
   --gray-dark-hsla: var(--gray-dark-h), var(--gray-dark-s), var(--gray-dark-l), var(--gray-dark-a);
-  --gray-dark: hsla(var(--gray-dark-hsla));
+  --gray-dark: hsl(var(--gray-dark-hsla));
   --gray-dark-semi-hsla: var(--gray-dark-h), var(--gray-dark-s), var(--gray-dark-l), 75%;
-  --gray-dark-semi: hsla(var(--gray-dark-semi-hsla));
+  --gray-dark-semi: hsl(var(--gray-dark-semi-hsla));
 }
 
 @mixin named-colors-light {
@@ -146,7 +146,6 @@
 
 /* stylelint-disable scss/at-rule-no-unknown */
 /* stylelint-disable scss/no-global-function-names */
-/* stylelint-disable at-rule */
 @mixin button-light {
   @textColor: rgba(0, 0, 0, 0.6);
   @activeColor: #216ba5;
@@ -169,7 +168,6 @@
   --button-tertiary-active-color: @tertiaryActiveColor;
   --button-tertiary-active-line-color: lighten(@tertiaryActiveColor, 20%);
 }
-/* stylelint-enable at-rule */
 
 @mixin label-light {
   --label-background-color: hsl(0deg 0% 91%);
