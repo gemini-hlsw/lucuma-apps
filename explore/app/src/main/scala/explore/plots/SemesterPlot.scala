@@ -14,7 +14,7 @@ import explore.model.WorkerClients.PlotClient
 import fs2.Stream
 import japgolly.scalajs.react.*
 import lucuma.core.math.BoundedInterval
-import lucuma.core.model.CoordinatesAt
+import lucuma.core.math.Coordinates
 import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
@@ -36,7 +36,7 @@ import js.JSConverters.*
 
 case class SemesterPlot(
   options:          ObjectPlotOptions,
-  coords:           CoordinatesAt,
+  coords:           Coordinates,
   excludeIntervals: List[BoundedInterval[Instant]]
 ) extends ReactFnProps(SemesterPlot.component)
 
@@ -55,7 +55,7 @@ object SemesterPlot:
       .useState(none[Chart_]) // chart handler (chartOpt)
       .useEffectStreamResourceWithDepsBy((props, _, chartOpt) =>
         chartOpt.value.map: chart =>
-          (props.options.semester, props.options.site, props.coords.value, Reusable.always(chart))
+          (props.options.semester, props.options.site, props.coords, Reusable.always(chart))
       ): (_, ctx, _) =>
         _.map { (semester, site, coords, chart) =>
           import ctx.given

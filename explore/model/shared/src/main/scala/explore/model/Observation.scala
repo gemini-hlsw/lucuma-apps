@@ -31,7 +31,6 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -39,6 +38,7 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.TimingWindow
+import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.optics.syntax.lens.*
@@ -288,13 +288,13 @@ case class Observation(
     if (newConfigurationRequestApplies(request.configuration)) updateToPending(request.id)
     else this
 
-  def asterismTracking(allTargets: TargetList): Option[ObjectTracking] =
+  def asterismTracking(allTargets: TargetList): Option[Tracking] =
     NonEmptyList
       .fromList:
         scienceTargetIds.toList
           .map(id => allTargets.get(id).map(_.target))
           .flattenOption
-      .flatMap(ObjectTracking.fromAsterism(_))
+      .flatMap(Tracking.fromAsterism(_))
 
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
     scienceTargetIds.toList

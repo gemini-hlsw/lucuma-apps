@@ -48,7 +48,7 @@ import explore.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
-import lucuma.core.model.CoordinatesAt
+import lucuma.core.math.Coordinates
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.User
@@ -72,7 +72,7 @@ object ConfigurationTile:
     requirements:             UndoSetter[ScienceRequirements],
     pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
     scienceTargetIds:         AsterismIds,
-    baseCoordinates:          Option[CoordinatesAt],
+    baseCoordinates:          Option[Coordinates],
     obsConf:                  ObsConfiguration,
     selectedConfig:           View[ConfigSelection],
     revertedInstrumentConfig: List[ItcInstrumentConfig], // configuration rows selected if reverted
@@ -206,7 +206,7 @@ object ConfigurationTile:
     pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
     obsConf:                  ObsConfiguration,
     itcTargets:               EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
-    baseCoordinates:          Option[CoordinatesAt],
+    baseCoordinates:          Option[Coordinates],
     selectedConfig:           View[ConfigSelection],
     revertedInstrumentConfig: List[ItcInstrumentConfig],
     modes:                    ScienceModes,

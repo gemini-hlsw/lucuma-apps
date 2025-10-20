@@ -9,16 +9,16 @@ import cats.syntax.all.*
 import explore.model.ElevationPlotScheduling
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
+import explore.model.extensions.*
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.Site
 import lucuma.core.enums.TwilightType
 import lucuma.core.math.BoundedInterval
 import lucuma.core.math.Coordinates
-import lucuma.core.model.CoordinatesAt
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.ObservingNight
 import lucuma.core.model.Semester
+import lucuma.core.model.Tracking
 import monocle.Focus
 import org.typelevel.cats.time.given
 
@@ -101,13 +101,13 @@ object ObjectPlotOptions:
   def default(
     predefinedSite:  Option[Site],
     observationTime: Option[Instant],
-    tracking:        Option[ObjectTracking]
+    tracking:        Option[Tracking]
   ) =
     val coords: Option[Coordinates] =
       for
         time <- observationTime
         t    <- tracking
-      yield t.at(time).map(_.value).getOrElse(t.baseCoordinates)
+      yield t.at(time).getOrElse(t.baseCoordinates)
     val site: Site                  =
       predefinedSite
         .orElse:

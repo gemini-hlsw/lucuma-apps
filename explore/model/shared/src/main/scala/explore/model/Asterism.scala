@@ -9,9 +9,9 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.extensions.*
 import lucuma.core.data.Zipper
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.schemas.model.*
 import monocle.*
 
@@ -52,8 +52,8 @@ case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
   def focusOn(tid: Target.Id): Asterism =
     targets.findFocus(_.id === tid).map(Asterism.apply).getOrElse(this)
 
-  def baseTracking: Option[ObjectTracking] =
-    ObjectTracking.fromAsterism(targets.toNel.map(_.target))
+  def baseTracking: Option[Tracking] =
+    Tracking.fromAsterism(targets.toNel.map(_.target))
 
   def hasId(id: Target.Id): Boolean = targets.exists(_.id === id)
 }

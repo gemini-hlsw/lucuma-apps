@@ -28,8 +28,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ScienceMode
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.CoordinatesAt
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
@@ -51,7 +51,7 @@ case class BasicConfigurationPanel(
   selectedConfig:      View[ConfigSelection],
   constraints:         ConstraintSet,
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
-  baseCoordinates:     Option[CoordinatesAt],
+  baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
   createConfig:        IO[Unit],
   confMatrix:          ScienceModes,
