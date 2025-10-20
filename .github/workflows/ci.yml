@@ -81,14 +81,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: node_modules
+          key: explore-node_modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: explore-node_modules
 
       - name: npm clean-install
         if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
         run: |
           cd explore
-          npm clean-install --verbose
+          npm clean-install
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -211,14 +211,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: node_modules
+          key: explore-node_modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: explore-node_modules
 
       - name: npm clean-install
         if: steps.explore-cache-node_modules.outputs.cache-hit != 'true'
         run: |
           cd explore
-          npm clean-install --verbose
+          npm clean-install
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
@@ -299,14 +299,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: node_modules
+          key: observe-node_modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: observe-node_modules
 
       - name: npm clean-install
         if: steps.observe-cache-node_modules.outputs.cache-hit != 'true'
         run: |
           cd observe/web/client
-          npm clean-install --verbose
+          npm clean-install
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
@@ -399,17 +399,17 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Cache Explore node_modules
+      - name: Cache root node_modules
         id: root-cache-node_modules
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: node_modules-${{ hashFiles('package-lock.json') }}
-          restore-keys: node_modules
+          key: root-node_modules-${{ hashFiles('package-lock.json') }}
+          restore-keys: root-node_modules
 
       - name: npm clean-install
         if: steps.root-cache-node_modules.outputs.cache-hit != 'true'
-        run: npm clean-install --verbose
+        run: npm clean-install
 
       - name: Import CSS files
         run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
