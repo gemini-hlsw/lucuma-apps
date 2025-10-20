@@ -364,7 +364,7 @@ jobs:
 
   lint:
     name: Run linters
-    if: ((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini') && github.actor != 'renovate[bot]')
+    if: ((github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && startsWith(github.repository, 'gemini'))
     strategy:
       matrix:
         os: [ubuntu-22.04]
