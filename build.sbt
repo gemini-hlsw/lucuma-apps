@@ -1060,16 +1060,16 @@ lazy val rootSetupNodeNpmInstall =
     // Explore NPM cache
     WorkflowStep.Use(
       UseRef.Public("actions", "cache", "v4"),
-      name = Some("Cache Explore node_modules"),
+      name = Some("Cache root node_modules"),
       id = Some("root-cache-node_modules"),
       params = {
-        val prefix = "node_modules"
+        val prefix = "root-node_modules"
         val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
         Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
       }
     ),
     WorkflowStep.Run(
-      List("npm clean-install --verbose"),
+      List("npm clean-install"),
       name = Some("npm clean-install"),
       cond = Some("steps.root-cache-node_modules.outputs.cache-hit != 'true'")
     )
@@ -1092,13 +1092,13 @@ lazy val exploreSetupNodeNpmInstall =
       name = Some("Cache Explore node_modules"),
       id = Some("explore-cache-node_modules"),
       params = {
-        val prefix = "node_modules"
+        val prefix = "explore-node_modules"
         val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
         Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
       }
     ),
     WorkflowStep.Run(
-      List("cd explore", "npm clean-install --verbose"),
+      List("cd explore", "npm clean-install"),
       name = Some("npm clean-install"),
       cond = Some("steps.explore-cache-node_modules.outputs.cache-hit != 'true'")
     )
@@ -1120,13 +1120,13 @@ lazy val exploreSetupNodeNpmInstall =
         name = Some("Cache Observe node_modules"),
         id = Some("observe-cache-node_modules"),
         params = {
-          val prefix = "node_modules"
+          val prefix = "observe-node_modules"
           val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
           Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
         }
       ),
       WorkflowStep.Run(
-        List("cd observe/web/client", "npm clean-install --verbose"),
+        List("cd observe/web/client", "npm clean-install"),
         name = Some("npm clean-install"),
         cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
       )
