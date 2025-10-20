@@ -27,10 +27,9 @@
     display: inline;
     min-width: 100px;
     width: max-content;
-    word-break: break-word;
 
     span {
-      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
   }
 

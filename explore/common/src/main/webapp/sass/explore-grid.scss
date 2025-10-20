@@ -1,9 +1,9 @@
 .explore-grid {
   display: grid;
-  grid-gap: 1em;
+  gap: 1em;
 
   &.explore-compact {
-    grid-gap: 0.3em;
+    gap: 0.3em;
   }
 
   /*

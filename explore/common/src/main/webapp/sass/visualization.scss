@@ -1,6 +1,6 @@
 @use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
 @use 'explore-common.scss' as exploreCommon;
-@use '/lucuma-css/visualization.scss';
+@use '/lucuma-css/visualization';
 @use 'sass:string';
 
 :root {
@@ -54,7 +54,6 @@ $brightness: var(--aladin-image-brightness);
   .p-menu.p-component.explore-aladin-settings-menu {
     background: var(--button-background-color-semi);
     border-color: var(--site-border-color);
-    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
     font-size: var(--pl-mini-font-size);
     width: 14em;
 
@@ -111,7 +110,6 @@ $brightness: var(--aladin-image-brightness);
   .aladin-survey {
     @include aladin-button-mixin;
 
-    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
     font-size: var(--pl-mini-font-size);
     color: var(--hud-color);
     left: 50px;
@@ -268,7 +266,6 @@ $brightness: var(--aladin-image-brightness);
     height: 100%;
     display: flex;
     justify-content: center;
-    /* stylelint-disable-next-line csstools/value-no-unknown-custom-properties */
     background: repeating-linear-gradient(
       -45deg,
       var(--hud-background-color),

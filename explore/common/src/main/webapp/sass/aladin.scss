@@ -115,7 +115,7 @@
 }
 
 .aladin-marker-measurement table tr td {
-  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .aladin-marker-measurement tr:nth-child(even) {
@@ -323,7 +323,6 @@
   background: hsl(0deg 0% 100%);
   font-size: 15px;
   font-weight: bold;
-  display: inline-block;
   line-height: 0px;
   padding: 8px 2px;
 }

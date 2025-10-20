@@ -131,7 +131,7 @@ body {
 .observe-component-label {
   text-overflow: ellipsis;
   overflow: hidden;
-  word-wrap: break-word;
+  overflow-wrap: break-word;
   white-space: nowrap;
 }
 
