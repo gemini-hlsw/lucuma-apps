@@ -1,3 +1,4 @@
+import react from '@vitejs/plugin-react';
 import type { PathLike } from 'fs';
 import fs from 'fs/promises';
 import { dirname } from 'node:path';
@@ -268,6 +269,7 @@ export default defineConfig(async ({ mode }) => {
           ],
         },
       }),
+      react(),
     ],
   } satisfies UserConfig;
 });
