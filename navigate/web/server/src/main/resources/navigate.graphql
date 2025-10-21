@@ -112,6 +112,7 @@ input TcsConfigInput {
     oiwfs: GuiderConfig
     rotator: RotatorTrackingInput!
     instrument: Instrument!
+    baffles: BaffleConfigInput!
 }
 
 input SwapConfigInput {
@@ -428,6 +429,39 @@ type PwfsMechsState {
     fieldStop: PwfsFieldStop
 }
 
+enum DeployableBaffle {
+    THERMAL_IR
+    NEAR_IR
+    VISIBLE
+    EXTENDED
+}
+
+enum CentralBaffle {
+    OPEN
+    CLOSED
+}
+
+input BaffleAutoInput {
+    visibleLimit: WavelengthInput!
+    nearirLimit:  WavelengthInput!
+}
+
+input BaffleManualInput {
+    centralBaffle: CentralBaffle!
+    deployableBaffle: DeployableBaffle!
+}
+
+input BaffleConfigInput {
+    # One and only one of these must be defined
+    autoConfig: BaffleAutoInput
+    manualConfig: BaffleManualInput
+}
+
+type BafflesState {
+    centralBaffle: CentralBaffle!
+    deployableBaffle: DeployableBaffle!
+}
+
 type Query {
     telescopeState: TelescopeState!
     guideState: GuideConfigurationState!
@@ -442,6 +476,7 @@ type Query {
     acMechsState: AcMechs!
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
+    bafflesState: BafflesState!
 }
 
 type Mutation {

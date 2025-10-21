@@ -14,6 +14,7 @@ import lucuma.odb.json.angle.query.given
 import lucuma.odb.json.offset.query.given
 import navigate.model.AcMechsState
 import navigate.model.AcquisitionAdjustment
+import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
 import navigate.model.NavigateState
@@ -152,6 +153,12 @@ package object encoder {
     Json.obj(
       "filter"    -> s.filter.asJson,
       "fieldStop" -> s.fieldStop.asJson
+    )
+
+  given Encoder[BafflesState] = s =>
+    Json.obj(
+      "centralBaffle"    -> s.central.asJson,
+      "deployableBaffle" -> s.deployable.asJson
     )
 
 }

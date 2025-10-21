@@ -7,8 +7,8 @@ import lucuma.core.util.Enumerated
 
 enum DeployableBafflePosition(val tag: String) extends Product with Serializable
     derives Enumerated {
-  case ThermalIR extends DeployableBafflePosition("ThermalIR")
-  case NearIR    extends DeployableBafflePosition("NearIR")
+  case ThermalIr extends DeployableBafflePosition("ThermalIr")
+  case NearIr    extends DeployableBafflePosition("NearIr")
   case Visible   extends DeployableBafflePosition("Visible")
   case Extended  extends DeployableBafflePosition("Extended")
 }

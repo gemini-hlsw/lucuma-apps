@@ -29,8 +29,8 @@ package object encoders {
   }
 
   given Encoder[DeployableBafflePosition, String] = {
-    case DeployableBafflePosition.ThermalIR => "Retracted"
-    case DeployableBafflePosition.NearIR    => "Near IR"
+    case DeployableBafflePosition.ThermalIr => "Retracted"
+    case DeployableBafflePosition.NearIr    => "Near IR"
     case DeployableBafflePosition.Visible   => "Visible"
     case DeployableBafflePosition.Extended  => "Extended"
   }

@@ -10,10 +10,16 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import navigate.epics.*
 import navigate.epics.VerifiedEpics.VerifiedEpics
+import navigate.model.enums.CentralBafflePosition
+import navigate.model.enums.DeployableBafflePosition
 import navigate.server.tcs.FollowStatus.*
+
+import encoders.*
 
 trait ScsEpicsSystem[F[_]] {
   def getFollowingState: VerifiedEpics[F, F, FollowStatus]
+  def getCentralBaffleState: VerifiedEpics[F, F, CentralBafflePosition]
+  def getDeployableBaffleState: VerifiedEpics[F, F, DeployableBafflePosition]
 }
 
 object ScsEpicsSystem {
@@ -28,6 +34,23 @@ object ScsEpicsSystem {
               case _     => NotFollowing
             }
           }
+
+      override def getCentralBaffleState: VerifiedEpics[F, F, CentralBafflePosition] = VerifiedEpics
+        .readChannel(channels.telltale, channels.centralBaffle)
+        .map(
+          _.map(
+            _.decode[CentralBafflePosition].getOrElse(CentralBafflePosition.Open)
+          )
+        )
+
+      override def getDeployableBaffleState: VerifiedEpics[F, F, DeployableBafflePosition] =
+        VerifiedEpics
+          .readChannel(channels.telltale, channels.deployableBaffle)
+          .map(
+            _.map(
+              _.decode[DeployableBafflePosition].getOrElse(DeployableBafflePosition.Visible)
+            )
+          )
     }
 
   def build[F[_]: Temporal](
