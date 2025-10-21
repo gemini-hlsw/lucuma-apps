@@ -464,7 +464,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       )
       .compose(
         (config.baffles, config.sourceATarget.wavelength)
-          .mapN { case (b, w) => setBaffles(b.central(w), b.deployable(w)) }
+          .mapN { case (b, w) =>
+            setBaffles(b.central(w, config.instrument), b.deployable(w, config.instrument))
+          }
           .getOrElse(identity)
       )
 
