@@ -71,8 +71,8 @@ private object SequenceErrorWebM extends AudioResourceRaw
 @js.native
 @JSGlobal(name = "Audio")
 class RawAudio(val src: String) extends js.Object:
-  def play(): Unit  = js.native
-  def pause(): Unit = js.native
+  def play(): Unit                    = js.native
+  def pause(): Unit                   = js.native
   def canPlayType(tp: String): String = js.native
 
 object RawAudio:

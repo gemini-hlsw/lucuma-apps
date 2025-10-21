@@ -4,6 +4,7 @@
 package lucuma.ui.utils
 
 import cats.Applicative
+import cats.effect.std.Random
 import org.typelevel.log4cats.Logger
 import retry.*
 import retry.RetryDetails.*
@@ -13,7 +14,6 @@ import java.util as ju
 import scala.concurrent.duration.*
 
 import ju.concurrent.TimeUnit
-import cats.effect.std.Random
 
 trait RetryHelpers:
   def retryPolicy[F[_]: Applicative: Random] =

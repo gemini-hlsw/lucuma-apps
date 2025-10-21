@@ -49,8 +49,8 @@ abstract class EpicsCommandBase[F[_]: Async](sysName: String) extends EpicsComma
           cs.map { ccs =>
             ccs.postCallback {
               new CaCommandListener {
-                override def onSuccess(): Unit = f(ApplyCommandResult.Completed.asRight)
-                override def onPause(): Unit   = f(ApplyCommandResult.Paused.asRight)
+                override def onSuccess(): Unit                 = f(ApplyCommandResult.Completed.asRight)
+                override def onPause(): Unit                   = f(ApplyCommandResult.Paused.asRight)
                 override def onFailure(cause: Exception): Unit = f(cause.asLeft)
               }
             }
@@ -295,7 +295,7 @@ object EpicsUtil {
    */
   def safeAttributeWrapF[F[_]: Sync, A >: Null](channel: String, get: => A): F[A] =
     Sync[F]
-      .delay(Option(get))                           // Wrap the read on Option to do null check
+      .delay(Option(get)) // Wrap the read on Option to do null check
       .adaptError { case e => ObserveException(e) } // if we have e.g CAException wrap it
       .ensure(NullEpicsError(channel))(_.isDefined) // equivalent to a null check
       .map {

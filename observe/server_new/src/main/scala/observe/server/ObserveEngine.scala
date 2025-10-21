@@ -439,28 +439,29 @@ object ObserveEngine {
 
           newSeqData
             .focus(_.seq)
-            .modify(s => // Initialize the sequence state
-              val steps: List[EngineStep[F]] =
-                toStepList(
-                  newSeqData.seqGen,
-                  newSeqData.overrides,
-                  HeaderExtraData(st.conditions, st.operator, newSeqData.observer)
-                ).map(_._1) // Ignore breakpoints
+            .modify(
+              s => // Initialize the sequence state
+                val steps: List[EngineStep[F]] =
+                  toStepList(
+                    newSeqData.seqGen,
+                    newSeqData.overrides,
+                    HeaderExtraData(st.conditions, st.operator, newSeqData.observer)
+                  ).map(_._1) // Ignore breakpoints
 
-              val newState: Sequence.State[F] =
-                Sequence.State.init(
-                  atm.fold(Sequence.empty[F](obsId)) { a =>
-                    Sequence.sequence[F](obsId, a.atomId, steps, s.breakpoints)
-                  }
-                )
+                val newState: Sequence.State[F] =
+                  Sequence.State.init(
+                    atm.fold(Sequence.empty[F](obsId)) { a =>
+                      Sequence.sequence[F](obsId, a.atomId, steps, s.breakpoints)
+                    }
+                  )
 
-              // Revive sequence if it was completed - or complete if no more steps
-              val newSeqState: SequenceState =
-                if s.status.isCompleted && atm.nonEmpty then SequenceState.Idle
-                else if atm.isEmpty then SequenceState.Completed
-                else s.status
+                // Revive sequence if it was completed - or complete if no more steps
+                val newSeqState: SequenceState =
+                  if s.status.isCompleted && atm.nonEmpty then SequenceState.Idle
+                  else if atm.isEmpty then SequenceState.Completed
+                  else s.status
 
-              Sequence.State.status.replace(newSeqState)(newState)
+                Sequence.State.status.replace(newSeqState)(newState)
             )
         }(st)
 

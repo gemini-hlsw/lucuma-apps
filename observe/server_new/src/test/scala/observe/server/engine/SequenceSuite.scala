@@ -43,7 +43,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
       id = id,
       executions = List(
         NonEmptyList.of(action, action), // Execution
-        NonEmptyList.one(action)         // Execution
+        NonEmptyList.one(action) // Execution
       )
     )
 
@@ -252,14 +252,14 @@ class SequenceSuite extends munit.CatsEffectSuite {
             id = stepId(1),
             executions = List(
               NonEmptyList.of(completedAction, completedAction), // Execution
-              NonEmptyList.one(completedAction)                  // Execution
+              NonEmptyList.one(completedAction) // Execution
             )
           ),
           EngineStep(
             id = stepId(2),
             executions = List(
               NonEmptyList.of(action, action), // Execution
-              NonEmptyList.one(action)         // Execution
+              NonEmptyList.one(action) // Execution
             )
           )
         ),
@@ -275,7 +275,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
             id = stepId(1),
             executions = List(
               NonEmptyList.of(completedAction, completedAction), // Execution
-              NonEmptyList.one(completedAction)                  // Execution
+              NonEmptyList.one(completedAction) // Execution
             )
           )
         ),
@@ -303,7 +303,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(action, action), // Execution
-                NonEmptyList.one(action)         // Execution
+                NonEmptyList.one(action) // Execution
               )
             )
           ),
@@ -329,7 +329,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(action, action), // Execution
-                NonEmptyList.one(action)         // Execution
+                NonEmptyList.one(action) // Execution
               )
             )
           ),

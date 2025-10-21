@@ -24,13 +24,13 @@ case class ObservationRequests(
   subsystemRun:      Map[Step.Id, Map[Resource | Instrument, OperationRequest]],
   acquisitionPrompt: OperationRequest
 ) derives Eq:
-  val stepRequestInFlight: Boolean =
+  val stepRequestInFlight: Boolean                =
     pause === OperationRequest.InFlight ||
-      cancelPause === OperationRequest.InFlight ||
-      resume === OperationRequest.InFlight ||
-      stop === OperationRequest.InFlight ||
-      abort === OperationRequest.InFlight ||
-      startFrom === OperationRequest.InFlight
+    cancelPause === OperationRequest.InFlight ||
+    resume === OperationRequest.InFlight ||
+    stop === OperationRequest.InFlight ||
+    abort === OperationRequest.InFlight ||
+    startFrom === OperationRequest.InFlight
 
     // Indicate if any resource is being executed
   def subsystemInFlight(stepId: Step.Id): Boolean =

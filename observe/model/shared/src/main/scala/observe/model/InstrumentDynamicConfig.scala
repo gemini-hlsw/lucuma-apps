@@ -63,8 +63,7 @@ object InstrumentDynamicConfig:
       "config"     -> (idc match
         case InstrumentDynamicConfig.GmosNorth(config)  => config.asJson
         case InstrumentDynamicConfig.GmosSouth(config)  => config.asJson
-        case InstrumentDynamicConfig.Flamingos2(config) => config.asJson
-      )
+        case InstrumentDynamicConfig.Flamingos2(config) => config.asJson)
     )
 
   given Decoder[InstrumentDynamicConfig] = Decoder.instance: c =>

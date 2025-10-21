@@ -70,13 +70,13 @@ object Flamingos2Controller {
     lyotWheel:   Flamingos2LyotWheel,
     grism:       Grism
   ) {
-    def setWindowCover(windowCover: Flamingos2WindowCover): CCConfig =
+    def setWindowCover(windowCover: Flamingos2WindowCover): CCConfig       =
       this.copy(windowCover = windowCover)
-    def setDecker(decker:       Flamingos2Decker): CCConfig    = this.copy(decker = decker)
-    def setFPU(focalPlaneUnit:  FocalPlaneUnit): CCConfig      = this.copy(fpu = focalPlaneUnit)
-    def setFilter(filter:       Flamingos2Filter): CCConfig    = this.copy(filter = filter)
-    def setLyotWheel(lyotWheel: Flamingos2LyotWheel): CCConfig = this.copy(lyotWheel = lyotWheel)
-    def setGrism(grism:         Grism): CCConfig               = this.copy(grism = grism)
+    def setDecker(decker:       Flamingos2Decker): CCConfig                = this.copy(decker = decker)
+    def setFPU(focalPlaneUnit:  FocalPlaneUnit): CCConfig                  = this.copy(fpu = focalPlaneUnit)
+    def setFilter(filter:       Flamingos2Filter): CCConfig                = this.copy(filter = filter)
+    def setLyotWheel(lyotWheel: Flamingos2LyotWheel): CCConfig             = this.copy(lyotWheel = lyotWheel)
+    def setGrism(grism:         Grism): CCConfig                           = this.copy(grism = grism)
   }
 
   final case class DCConfig(
@@ -85,12 +85,12 @@ object Flamingos2Controller {
     readoutMode:  Flamingos2ReadoutMode,
     decker:       Flamingos2Decker
   ) {
-    def setExposureTime(exposureTime: ExposureTime): DCConfig =
+    def setExposureTime(exposureTime: ExposureTime): DCConfig          =
       this.copy(exposureTime = exposureTime)
-    def setReads(reads: Flamingos2Reads): DCConfig = this.copy(reads = reads)
-    def setReadoutMode(readoutMode: Flamingos2ReadoutMode): DCConfig =
+    def setReads(reads:   Flamingos2Reads): DCConfig                   = this.copy(reads = reads)
+    def setReadoutMode(readoutMode: Flamingos2ReadoutMode): DCConfig   =
       this.copy(readoutMode = readoutMode)
-    def setDecker(decker: Flamingos2Decker): DCConfig = this.copy(decker = decker)
+    def setDecker(decker: Flamingos2Decker): DCConfig                  = this.copy(decker = decker)
   }
 
   final case class Flamingos2Config(cc: CCConfig, dc: DCConfig) {

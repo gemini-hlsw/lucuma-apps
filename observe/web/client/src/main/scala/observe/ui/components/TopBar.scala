@@ -122,6 +122,6 @@ object TopBar
               isAboutOpen.as(IsAboutOpen.Value)
             )
           else
-            EmptyVdom,
+            EmptyVdom
         )
     )

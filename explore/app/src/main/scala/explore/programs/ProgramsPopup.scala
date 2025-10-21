@@ -188,5 +188,5 @@ object ProgramsPopup:
               onHide.some,
               newProgramId.get,
               virtualizerRef
-            ),
+            )
       )

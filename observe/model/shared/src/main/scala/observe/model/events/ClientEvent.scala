@@ -54,8 +54,7 @@ object ClientEvent:
     conditions:         Conditions,
     operator:           Option[Operator],
     currentRecordedIds: ObsRecordedIds
-  ) extends AllClientEvent
-      derives Eq
+  ) extends AllClientEvent derives Eq
 
   object ObserveState:
     def fromSequenceViewQueue(
@@ -78,8 +77,7 @@ object ClientEvent:
     subsystem: Resource | Instrument,
     event:     SingleActionState,
     error:     Option[String]
-  ) extends AllClientEvent
-      derives Eq
+  ) extends AllClientEvent derives Eq
 
   case class ChecksOverrideEvent(prompt: ChecksOverride) extends SingleClientEvent derives Eq
 

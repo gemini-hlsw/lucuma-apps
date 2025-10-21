@@ -239,7 +239,7 @@ object MainApp extends ServerEventHandler:
         _                <-
           useAsyncEffectWhenDepsReady(
             (ctxPot.value, rootModelData.get.userVault.map(_.toPot).flatten.void).tupled
-          ): (ctx, _) =>              // Initialize ODB client (6)
+          ): (ctx, _) => // Initialize ODB client (6)
             ctx
               .initODBClient:
                 authHeaderRef.getAsync.map:

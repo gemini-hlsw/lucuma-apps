@@ -223,14 +223,14 @@ class StepSuite extends CatsEffectSuite {
                 id = stepId(1),
                 executions = List(
                   NonEmptyList.of(configureTcs, configureInst, triggerPause(eng)), // Execution
-                  NonEmptyList.one(observe)                                        // Execution
+                  NonEmptyList.one(observe) // Execution
                 )
               ),
               EngineStep(
                 id = stepId(2),
                 executions = List(
                   NonEmptyList.of(configureTcs, configureInst), // Execution
-                  NonEmptyList.one(observe)                     // Execution
+                  NonEmptyList.one(observe) // Execution
                 )
               )
             ),
@@ -281,7 +281,7 @@ class StepSuite extends CatsEffectSuite {
               focus = Execution(List(observe)),
               done = List(NonEmptyList.of(actionCompleted, actionCompleted)),
               rolledback =
-                (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe))),
+                (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe)))
             ),
             done = Nil,
             Breakpoints.empty
@@ -385,7 +385,7 @@ class StepSuite extends CatsEffectSuite {
                 id = stepId(1),
                 executions = List(
                   NonEmptyList.of(configureTcs, configureInst), // Execution
-                  NonEmptyList.one(observe)                     // Execution
+                  NonEmptyList.one(observe) // Execution
                 )
               )
             ),
@@ -433,7 +433,7 @@ class StepSuite extends CatsEffectSuite {
                 executions = List(
                   NonEmptyList.of(configureTcs, configureInst), // Execution
                   NonEmptyList.one(triggerStart(eng)),          // Execution
-                  NonEmptyList.one(observe)                     // Execution
+                  NonEmptyList.one(observe) // Execution
                 )
               )
             ),

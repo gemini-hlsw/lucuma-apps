@@ -204,7 +204,7 @@ case class ProgramSummaries(
       val newOrphans =
         if (obs.contains(obsId)) orphans - obsId // shouldn't be there in the first place...
         else orphans.updated(obsId, (workflow, digest))
-      val newObs = obs.updatedWith(obsId)(
+      val newObs     = obs.updatedWith(obsId)(
         _.map(Observation.calculatedValues.replace((workflow, digest)))
       )
       (newObs, newOrphans)
@@ -282,7 +282,7 @@ case class ProgramSummaries(
   lazy val groupWarnings: Map[Group.Id, NonEmptySet[GroupWarning]] =
     extension (b:   Boolean)
       def mkSet(gw: GroupWarning): Set[GroupWarning] = if (b) Set(gw) else Set.empty
-    val ignoreStates: Set[ObservationWorkflowState] =
+    val ignoreStates: Set[ObservationWorkflowState]  =
       Set(ObservationWorkflowState.Inactive, ObservationWorkflowState.Undefined)
 
     allObservationsForGroups

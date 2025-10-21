@@ -40,7 +40,7 @@ extension [F[_]](q: ExecutionQueue)
     }
   }
 
-  def addSeq(s: ExecutionQueue.SequenceInQueue): ExecutionQueue = q.copy(queue = q.queue :+ s)
+  def addSeq(s: ExecutionQueue.SequenceInQueue): ExecutionQueue         = q.copy(queue = q.queue :+ s)
   def addSeqs(ss: List[ExecutionQueue.SequenceInQueue]): ExecutionQueue =
     q.copy(queue = q.queue ++ ss)
   def removeSeq(sid: Observation.Id): ExecutionQueue                    =

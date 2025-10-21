@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import io.circe.Decoder
 import lucuma.core.model.Target
 import lucuma.schemas.model.enums.BlindOffsetType
-
 import monocle.Focus
 import monocle.Lens
 
