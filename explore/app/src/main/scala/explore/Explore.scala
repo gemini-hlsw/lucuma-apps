@@ -25,12 +25,10 @@ import explore.model.RootModel
 import explore.model.RoutingInfo
 import explore.model.WorkerClients
 import explore.model.enums.AppTab
-import explore.utils.*
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
-import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.Program
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.sso.UserVault
@@ -96,12 +94,6 @@ object ExploreMain {
 
   def run: IO[Unit] = {
 
-    def setupReusabilityOverlay(env: ExecutionEnvironment): IO[Unit] =
-      if (env === ExecutionEnvironment.Development) {
-        toggleReusabilityOverlay[IO]() >>
-          IO(japgolly.scalajs.react.extra.ReusabilityOverlay.overrideGloballyInDev())
-      } else IO.unit
-
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, _) =>
         // Increase the delay to get exponential backoff with a minimum of 1s and a max of 1m
@@ -151,7 +143,6 @@ object ExploreMain {
             bc,
             toastRef
           )
-        _                    <- setupReusabilityOverlay(appConfig.environment)
         r                    <- (ctx.sso.whoami, setupDOM[IO], showEnvironment[IO](appConfig.environment)).parTupled
         (vault, container, _) = r
       } yield ReactDOMClient

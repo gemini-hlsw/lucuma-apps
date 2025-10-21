@@ -7,7 +7,6 @@ import cats.effect.*
 import demo.TargetBody
 import japgolly.scalajs.react.React
 import japgolly.scalajs.react.ReactDOMClient
-import japgolly.scalajs.react.extra.ReusabilityOverlay
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom
@@ -21,8 +20,6 @@ trait AladinAppMain extends IOApp.Simple {
   def runIOApp(): Unit = main(Array.empty)
 
   override final def run: IO[Unit] = IO {
-    ReusabilityOverlay.overrideGloballyInDev()
-
     val container = Option(dom.document.getElementById("root")).getOrElse {
       val elem = dom.document.createElement("div")
       elem.id = "root"

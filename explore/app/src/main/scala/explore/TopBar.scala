@@ -20,7 +20,6 @@ import explore.undo.UndoStacks
 import explore.users.RedeemInvitationsPopup
 import explore.users.UserPreferencesPopup
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.callback.CallbackCatsEffect.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.GuestRole
@@ -162,15 +161,8 @@ object TopBar:
           ).flattenOption
 
           val lastItems =
-            if (LinkingInfo.developmentMode)
-              val reusabilityItem = MenuItem
-                .Item(
-                  label = "Toggle Reusability",
-                  icon = Icons.CrystalBall,
-                  command = utils.toggleReusabilityOverlay[CallbackTo](),
-                  visible = ctx.environment === ExecutionEnvironment.Development
-                )
-              lastCommonItems ++ List(ThemeSubMenu(props.theme), reusabilityItem)
+            if LinkingInfo.developmentMode
+            then lastCommonItems :+ ThemeSubMenu(props.theme)
             else lastCommonItems
 
           val menuItems =
