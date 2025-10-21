@@ -20,6 +20,7 @@ object GroupQueriesGQL:
         minimumRequired
         ordered
         system
+        calibrationRoles
         minimumInterval $TimeSpanSubquery
         maximumInterval $TimeSpanSubquery
         timeEstimateRange $CalculatedProgramTimeRangeSubquery
