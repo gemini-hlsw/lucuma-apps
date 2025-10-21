@@ -30,6 +30,8 @@ import munit.CatsEffectSuite
 import navigate.model.*
 import navigate.model.Target.SiderealTarget
 import navigate.model.config.NavigateEngineConfiguration
+import navigate.model.enums.CentralBafflePosition
+import navigate.model.enums.DeployableBafflePosition
 import navigate.server.tcs.TcsNorthControllerSim
 import navigate.server.tcs.TcsSouthControllerSim
 import org.http4s.Response
@@ -153,7 +155,10 @@ class NavigateEngineSpec extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth
+                       Instrument.GmosNorth,
+                       BafflesConfig
+                         .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+                         .some
                      ),
                      none
                    )
@@ -185,7 +190,10 @@ class NavigateEngineSpec extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth
+                       Instrument.GmosNorth,
+                       BafflesConfig
+                         .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+                         .some
                      ),
                      none
                    )

@@ -49,8 +49,7 @@ case class LoadedObservation private (
           case Ready(None)        => Ready(existing)
           case Pending            => visits
           case error              => error
-      case _               => potFromEitherOption(addedVisits.map(_.some))
-    )
+      case _               => potFromEitherOption(addedVisits.map(_.some)))
 
   def reset: LoadedObservation =
     copy(errorMsg = none, sequenceData = Pot.pending, visits = Pot.pending)

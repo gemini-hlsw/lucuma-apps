@@ -19,6 +19,7 @@ case class SwapConfig(
     None,
     None,
     rotatorTrackConfig,
-    Instrument.AcqCam
+    Instrument.AcqCam,
+    None
   )
 }

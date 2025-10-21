@@ -14,5 +14,6 @@ case class TcsConfig(
   pwfs2:               Option[GuiderConfig],
   oiwfs:               Option[GuiderConfig],
   rotatorTrackConfig:  RotatorTrackConfig,
-  instrument:          Instrument
+  instrument:          Instrument,
+  baffles:             Option[BafflesConfig]
 ) derives Show

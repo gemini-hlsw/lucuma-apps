@@ -103,7 +103,9 @@ object SubsystemControls
       yield
         import ctx.given
 
-        <.div(ObserveStyles.ConfigButtonStrip)( // (ObserveStyles.notInMobile)(
+        <.div(
+          ObserveStyles.ConfigButtonStrip
+        )( // (ObserveStyles.notInMobile)(
           props.subsystems
             .sorted[Resource | Instrument]
             .map: subsystem =>

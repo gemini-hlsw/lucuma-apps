@@ -11,15 +11,15 @@ enum BatchExecState(val tag: String) derives Enumerated {
   case Running
       extends BatchExecState(
         "Running"
-      )                                   // Queue was commanded to run, and at least one sequence is running.
+      ) // Queue was commanded to run, and at least one sequence is running.
   case Waiting
       extends BatchExecState(
         "Waiting"
-      )                                   // Queue was commanded to run, but it is waiting for resources.
+      ) // Queue was commanded to run, but it is waiting for resources.
   case Stopping
       extends BatchExecState(
         "Stopping"
-      )                                   // Queue was commanded to stop, but at least one sequence is still running.
+      ) // Queue was commanded to stop, but at least one sequence is still running.
   case Completed
       extends BatchExecState("Completed") // All sequences in the queue were run to completion.
 }

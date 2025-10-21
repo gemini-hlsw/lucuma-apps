@@ -63,10 +63,7 @@ object UserPrompt:
     iq: Option[Discrepancy[String]],
     sb: Option[Discrepancy[String]],
     wv: Option[Discrepancy[String]]
-  ) extends SeqCheck
-      derives Eq,
-        Encoder.AsObject,
-        Decoder
+  ) extends SeqCheck derives Eq, Encoder.AsObject, Decoder
 
   given Eq[UserPrompt] =
     Eq.instance:
@@ -77,7 +74,4 @@ object UserPrompt:
     obsId:  Observation.Id,
     stepId: Step.Id,
     checks: NonEmptyList[SeqCheck]
-  ) extends UserPrompt
-      derives Eq,
-        Encoder.AsObject,
-        Decoder
+  ) extends UserPrompt derives Eq, Encoder.AsObject, Decoder

@@ -47,6 +47,7 @@ import navigate.model.AutoparkGems
 import navigate.model.AutoparkOiwfs
 import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
+import navigate.model.BafflesConfig
 import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
@@ -316,6 +317,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       agName = "gmos",
       origin = Origin(Angle.fromMicroarcseconds(4567), Angle.fromMicroarcseconds(-8901))
     )
+    val m2Baffles                                =
+      BafflesConfig.ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
 
     for {
       (st, ctr) <- createController()
@@ -328,7 +331,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth
+                       Instrument.GmosNorth,
+                       m2Baffles.some
                      )
                    )
       rs        <- st.tcs.get
@@ -504,6 +508,13 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(rs.oiwfsSelect.output.connected)
       assert(rs.oiwfsSelect.oiwfsName.value.exists(_ === "GMOS"))
       assert(rs.oiwfsSelect.output.value.exists(_ === "WFS"))
+
+      // M2 baffles
+      assert(rs.m2Baffles.deployBaffle.connected)
+      assertEquals(rs.m2Baffles.deployBaffle.value, m2Baffles.deployable.encode[String].some)
+      assert(rs.m2Baffles.centralBaffle.connected)
+      assertEquals(rs.m2Baffles.centralBaffle.value, m2Baffles.central.encode[String].some)
+
     }
   }
 
@@ -1479,9 +1490,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   test("Set baffles") {
     for {
       (st, ctr) <- createController()
-      _         <- ctr.baffles(CentralBafflePosition.Open, DeployableBafflePosition.ThermalIR)
+      _         <- ctr.baffles(CentralBafflePosition.Open, DeployableBafflePosition.ThermalIr)
       r0        <- st.tcs.get
-      _         <- ctr.baffles(CentralBafflePosition.Closed, DeployableBafflePosition.NearIR)
+      _         <- ctr.baffles(CentralBafflePosition.Closed, DeployableBafflePosition.NearIr)
       r1        <- st.tcs.get
       _         <- ctr.baffles(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
       r2        <- st.tcs.get

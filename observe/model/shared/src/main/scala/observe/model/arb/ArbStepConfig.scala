@@ -22,7 +22,8 @@ trait ArbStepConfig {
     } yield (a, b)
 
   private val perturbations: List[String => Gen[String]] =
-    List(s => if (s.startsWith("-")) Gen.const(s) else Gen.const(s"00%s") // insert leading 0s
+    List(s =>
+      if (s.startsWith("-")) Gen.const(s) else Gen.const(s"00%s") // insert leading 0s
     )
 
   // Strings that are often parsable as Offsets

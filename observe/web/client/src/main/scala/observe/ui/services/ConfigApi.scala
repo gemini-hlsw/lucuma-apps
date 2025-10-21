@@ -24,7 +24,7 @@ trait ConfigApi[F[_]: MonadThrow]:
   def setWaterVapor(@unused wv:      WaterVapor): F[Unit]      = NotAuthorized
   def setSkyBackground(@unused b:    SkyBackground): F[Unit]   = NotAuthorized
 
-  def setOperator(@unused operator: Option[Operator]): F[Unit] = NotAuthorized
+  def setOperator(@unused operator: Option[Operator]): F[Unit]                                = NotAuthorized
   def setObserver(@unused obsId: Observation.Id, @unused observer: Option[Observer]): F[Unit] =
     NotAuthorized
 

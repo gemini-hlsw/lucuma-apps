@@ -177,11 +177,11 @@ trait ServerEventHandler:
                 case SingleActionState.Completed => ActionStatus.Completed.some
                 case SingleActionState.Failed    => ActionStatus.Failed.some
           )
-          >>> // Reset Request
-            (RootModelData.obsRequests
-              .index(obsId)
-              .andThen(ObservationRequests.subsystemRun.index(stepId).index(subsystem))
-              .replace(OperationRequest.Idle))
+            >>> // Reset Request
+              (RootModelData.obsRequests
+                .index(obsId)
+                .andThen(ObservationRequests.subsystemRun.index(stepId).index(subsystem))
+                .replace(OperationRequest.Idle))
         )
           >> error.map(logMessage(rootModelDataMod, ObserveLogLevel.Error, _)).orEmpty
       case ClientEvent.ChecksOverrideEvent(_)                                             =>

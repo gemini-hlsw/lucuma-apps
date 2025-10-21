@@ -336,10 +336,10 @@ object Sequence {
       // override def setBreakpoints(stepIds: Set[Step.Id], v: Breakpoint): State[F] =
       override def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): State[F] =
         self.copy(
-          breakpoints = breakpointsDelta.foldLeft(breakpoints) {
-            case (accum, (stepId, breakpoint)) =>
+          breakpoints =
+            breakpointsDelta.foldLeft(breakpoints) { case (accum, (stepId, breakpoint)) =>
               if breakpoint === Breakpoint.Enabled then accum + stepId else accum - stepId
-          }
+            }
         )
 
       override def getCurrentBreakpoint: Boolean =

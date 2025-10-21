@@ -46,6 +46,7 @@ import navigate.model.AutoparkGems
 import navigate.model.AutoparkOiwfs
 import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
+import navigate.model.BafflesState
 import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuiderConfig
@@ -460,6 +461,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
               TrackingConfig.noTracking
             )
           )
+      )
+      .compose(
+        (config.baffles, config.sourceATarget.wavelength)
+          .mapN { case (b, w) =>
+            setBaffles(b.central(w, config.instrument), b.deployable(w, config.instrument))
+          }
+          .getOrElse(identity)
       )
 
   protected def getOiwfsWavelegth(instrument: Instrument): Wavelength = (instrument match {
@@ -1480,18 +1488,23 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   ).verifiedRun(ConnectionTimeout)
 
   private val BafflesTimeout = FiniteDuration(40, SECONDS)
+
+  private def setBaffles(
+    central:    CentralBafflePosition,
+    deployable: DeployableBafflePosition
+  ): TcsCommands[F] => TcsCommands[F] = _.bafflesCommand
+    .central(central)
+    .bafflesCommand
+    .deployable(deployable)
+
   override def baffles(
     central:    CentralBafflePosition,
     deployable: DeployableBafflePosition
-  ): F[ApplyCommandResult] =
+  ): F[ApplyCommandResult] = setBaffles(central, deployable)(
     sys.tcsEpics
       .startCommand(BafflesTimeout)
-      .bafflesCommand
-      .central(central)
-      .bafflesCommand
-      .deployable(deployable)
-      .post
-      .verifiedRun(ConnectionTimeout)
+  ).post
+    .verifiedRun(ConnectionTimeout)
 
   override def getTelescopeState: F[TelescopeState] = (
     for {
@@ -2189,6 +2202,15 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   override def getPwfs1Mechs: F[PwfsMechsState] = getPwfsMechs(sys.ags.status.pwfs1Mechs)
 
   override def getPwfs2Mechs: F[PwfsMechsState] = getPwfsMechs(sys.ags.status.pwfs2Mechs)
+
+  override def getBaffles: F[BafflesState] = (for {
+    ctF <- sys.scs.getCentralBaffleState
+    dpF <- sys.scs.getDeployableBaffleState
+  } yield for {
+    ct <- ctF
+    dp <- dpF
+  } yield BafflesState(ct, dp)).verifiedRun(ConnectionTimeout)
+
 }
 
 object TcsBaseControllerEpics {

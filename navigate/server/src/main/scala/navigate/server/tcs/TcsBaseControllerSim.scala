@@ -25,6 +25,7 @@ import monocle.Lens
 import mouse.boolean.*
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
+import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
@@ -356,6 +357,9 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     flt <- p2MechRef.get.map(_.filter)
     fld <- p2MechRef.get.map(_.fieldStop)
   } yield PwfsMechsState(flt, fld)
+
+  override def getBaffles: F[BafflesState] =
+    BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[F]
 
   override val acCommands: AcCommands[F] = new AcCommands[F] {
     override def lens(l: AcLens): F[ApplyCommandResult] =

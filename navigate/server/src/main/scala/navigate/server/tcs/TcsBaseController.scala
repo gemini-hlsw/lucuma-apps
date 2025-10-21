@@ -11,6 +11,7 @@ import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
+import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
@@ -134,6 +135,7 @@ trait TcsBaseController[F[_]] {
   def getOriginOffset: F[FocalPlaneOffset]
   def getPwfs1Mechs: F[PwfsMechsState]
   def getPwfs2Mechs: F[PwfsMechsState]
+  def getBaffles: F[BafflesState]
 }
 
 object TcsBaseController {

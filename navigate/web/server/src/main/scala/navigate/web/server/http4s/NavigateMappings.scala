@@ -49,6 +49,8 @@ import navigate.model.AutoparkGems
 import navigate.model.AutoparkOiwfs
 import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
+import navigate.model.BafflesConfig
+import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
@@ -84,6 +86,8 @@ import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.AcquisitionAdjustmentCommand
+import navigate.model.enums.CentralBafflePosition
+import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -150,6 +154,9 @@ class NavigateMappings[F[_]: Sync](
 
   def pwfs2MechsState: F[Result[PwfsMechsState]] =
     server.getPwfs2MechsState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+
+  def bafflesState: F[Result[BafflesState]] =
+    server.getBafflesState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
 
   def instrumentPort(env: Env): F[Result[Option[Int]]] =
     env
@@ -905,7 +912,8 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("serverConfiguration")((_, _) => serverConfig),
           RootEffect.computeEncodable("acMechsState")((_, _) => acMechsState),
           RootEffect.computeEncodable("pwfs1MechsState")((_, _) => pwfs1MechsState),
-          RootEffect.computeEncodable("pwfs2MechsState")((_, _) => pwfs2MechsState)
+          RootEffect.computeEncodable("pwfs2MechsState")((_, _) => pwfs2MechsState),
+          RootEffect.computeEncodable("bafflesState")((_, _) => bafflesState)
         )
       ),
       ObjectMapping(
@@ -1368,6 +1376,27 @@ object NavigateMappings extends GrackleParsers {
             }.flatten
   } yield RotatorTrackConfig(ipa, mode)
 
+  def parseBafflesAuto(l: List[(String, Value)]): Option[BafflesConfig] = for {
+    vis <- l.collectFirst { case ("visibleLimit", ObjectValue(v)) => parseWavelength(v) }.flatten
+    ni  <- l.collectFirst { case ("nearirLimit", ObjectValue(v)) => parseWavelength(v) }.flatten
+  } yield BafflesConfig.AutoConfig(vis, ni)
+
+  def parseBafflesManual(l: List[(String, Value)]): Option[BafflesConfig] = for {
+    ctr <- l.collectFirst { case ("centralBaffle", EnumValue(v)) =>
+             parseEnumerated[CentralBafflePosition](v)
+           }.flatten
+    dep <- l.collectFirst { case ("deployableBaffle", EnumValue(v)) =>
+             parseEnumerated[DeployableBafflePosition](v)
+           }.flatten
+  } yield BafflesConfig.ManualConfig(ctr, dep)
+
+  def parseBaffles(l: List[(String, Value)]): Option[BafflesConfig] = l
+    .collectFirst { case ("autoConfig", ObjectValue(v)) => parseBafflesAuto(v) }
+    .flatten
+    .orElse(l.collectFirst { case ("manualConfig", ObjectValue(v)) =>
+      parseBafflesManual(v)
+    }.flatten)
+
   def parseTcsConfigInput(l: List[(String, Value)]): Option[TcsConfig] = for {
     t   <- l.collectFirst { case ("sourceATarget", ObjectValue(v)) => parseTargetInput(v) }.flatten
     inp <- l.collectFirst { case ("instParams", ObjectValue(v)) =>
@@ -1395,7 +1424,8 @@ object NavigateMappings extends GrackleParsers {
     ins <- l.collectFirst { case ("instrument", EnumValue(v)) =>
              parseEnumerated[Instrument](v)
            }.flatten
-  } yield TcsConfig(t, inp, p1, p2, oi, rc, ins)
+    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => parseBaffles(v) }.flatten
+  } yield TcsConfig(t, inp, p1, p2, oi, rc, ins, bfs.some)
 
   def parseSwapConfigInput(l: List[(String, Value)]): Option[SwapConfig] = for {
     t   <- l.collectFirst { case ("guideTarget", ObjectValue(v)) => parseTargetInput(v) }.flatten

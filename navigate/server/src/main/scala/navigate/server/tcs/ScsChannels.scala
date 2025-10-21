@@ -11,8 +11,10 @@ import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.given
 
 case class ScsChannels[F[_]](
-  telltale: TelltaleChannel[F],
-  follow:   Channel[F, String]
+  telltale:         TelltaleChannel[F],
+  follow:           Channel[F, String],
+  centralBaffle:    Channel[F, String],
+  deployableBaffle: Channel[F, String]
 )
 
 object ScsChannels {
@@ -22,7 +24,9 @@ object ScsChannels {
     service: EpicsService[F],
     top:     NonEmptyString
   ): Resource[F, ScsChannels[F]] = for {
-    t <- service.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _))
-    f <- service.getChannel[String](top, "followS.VAL")
-  } yield ScsChannels(t, f)
+    t  <- service.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _))
+    f  <- service.getChannel[String](top, "followS.VAL")
+    cb <- service.getChannel[String](top, "CentralBafflePos.VAL")
+    db <- service.getChannel[String](top, "DeployBafflePos.VAL")
+  } yield ScsChannels(t, f, cb, db)
 }

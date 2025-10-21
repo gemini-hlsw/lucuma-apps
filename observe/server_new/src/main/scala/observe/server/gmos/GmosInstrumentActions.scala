@@ -133,7 +133,7 @@ class GmosInstrumentActions[F[_]: Temporal: Logger, A <: GmosController.GmosSite
           .flatMap(observeTail(fileId, env, nsCfg))
 
       // We reach here only if the result was Paused and no command made it stop/pause/abort
-      case _                                                     => Result.Partial(NSContinue).pure[F].widen[Result]
+      case _ => Result.Partial(NSContinue).pure[F].widen[Result]
 
     }
 

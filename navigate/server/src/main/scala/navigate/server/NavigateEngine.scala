@@ -33,6 +33,7 @@ import monocle.syntax.all.focus
 import mouse.all.*
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
+import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment
@@ -181,6 +182,7 @@ trait NavigateEngine[F[_]] {
   def getAcMechsState: F[AcMechsState]
   def getPwfs1MechsState: F[PwfsMechsState]
   def getPwfs2MechsState: F[PwfsMechsState]
+  def getBafflesState: F[BafflesState]
 }
 
 object NavigateEngine {
@@ -781,6 +783,8 @@ object NavigateEngine {
     override def getPwfs1MechsState: F[PwfsMechsState] = systems.tcsCommon.getPwfs1Mechs
 
     override def getPwfs2MechsState: F[PwfsMechsState] = systems.tcsCommon.getPwfs2Mechs
+
+    override def getBafflesState: F[BafflesState] = systems.tcsCommon.getBaffles
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

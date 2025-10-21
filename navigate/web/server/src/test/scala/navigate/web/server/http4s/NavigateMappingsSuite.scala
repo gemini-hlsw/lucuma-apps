@@ -41,6 +41,7 @@ import munit.CatsEffectSuite
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AcquisitionAdjustment
+import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment
@@ -62,6 +63,8 @@ import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.AcquisitionAdjustmentCommand
+import navigate.model.enums.CentralBafflePosition
+import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
@@ -220,6 +223,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 |      mode: TRACKING
                 |    }
                 |    instrument: GMOS_NORTH
+                |    baffles: {
+                |      manualConfig: {
+                |        centralBaffle: OPEN
+                |        deployableBaffle: VISIBLE
+                |      }
+                |    }
                 |  },
                 |  obsId: null
                 |) {
@@ -317,6 +326,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 |      mode: TRACKING
                 |    }
                 |    instrument: GMOS_NORTH
+                |    baffles: {
+                |      manualConfig: {
+                |        centralBaffle: OPEN
+                |        deployableBaffle: VISIBLE
+                |      }
+                |    }
                 |  },
                 |  obsId: "o-2446"
                 |) {
@@ -393,6 +408,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |      mode: TRACKING
           |    }
           |    instrument: GMOS_NORTH
+          |    baffles: {
+          |      manualConfig: {
+          |        centralBaffle: OPEN
+          |        deployableBaffle: VISIBLE
+          |      }
+          |    }
           |  },
           |  obsId: null
           |) {
@@ -471,6 +492,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |    mode: TRACKING
           |  }
           |  instrument: GMOS_NORTH
+          |  baffles: {
+          |    manualConfig: {
+          |      centralBaffle: OPEN
+          |      deployableBaffle: VISIBLE
+          |    }
+          |  }
           |} ) {
           |  result
           |} }
@@ -602,6 +629,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |    mode: TRACKING
           |  }
           |  instrument: GMOS_NORTH
+          |  baffles: {
+          |    manualConfig: {
+          |      centralBaffle: OPEN
+          |      deployableBaffle: VISIBLE
+          |    }
+          |  }
           |} ) {
           |  result
           |} }
@@ -2373,6 +2406,25 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Query M2 baffle positions") {
+    val expected = BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
+    for {
+      mp <- buildMapping(NavigateConfiguration.default, buildServerUndefinedPos)
+      r  <- mp.compileAndRun(
+              """
+          | query { bafflesState {
+          |     centralBaffle
+          |     deployableBaffle
+          |   }
+          | }
+          |""".stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor.downField("data").downField("bafflesState").as[BafflesState],
+      expected.asRight[DecodingFailure]
+    )
+  }
+
 }
 
 object NavigateMappingsTest {
@@ -2625,6 +2677,9 @@ object NavigateMappingsTest {
 
     override def getPwfs2MechsState: IO[PwfsMechsState] =
       PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some).pure[IO]
+
+    override def getBafflesState: IO[BafflesState] =
+      BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {
@@ -2685,6 +2740,9 @@ object NavigateMappingsTest {
     override def getPwfs1MechsState: IO[PwfsMechsState] = PwfsMechsState(none, none).pure[IO]
 
     override def getPwfs2MechsState: IO[PwfsMechsState] = PwfsMechsState(none, none).pure[IO]
+
+    override def getBafflesState: IO[BafflesState] =
+      BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
   }
 
   def buildMapping(
@@ -2890,5 +2948,11 @@ object NavigateMappingsTest {
     PwfsMechsState(h.downField("filter").as[PwfsFilter].toOption,
                    h.downField("fieldStop").as[PwfsFieldStop].toOption
     ).asRight
+
+  given Decoder[BafflesState] = h =>
+    for {
+      cb <- h.downField("centralBaffle").as[CentralBafflePosition]
+      db <- h.downField("deployableBaffle").as[DeployableBafflePosition]
+    } yield BafflesState(cb, db)
 
 }

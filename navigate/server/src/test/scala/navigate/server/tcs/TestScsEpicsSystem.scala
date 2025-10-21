@@ -12,13 +12,17 @@ import navigate.epics.TestChannel
 object TestScsEpicsSystem {
 
   case class State(
-    telltale: TestChannel.State[String],
-    follow:   TestChannel.State[String]
+    telltale:         TestChannel.State[String],
+    follow:           TestChannel.State[String],
+    centralBaffle:    TestChannel.State[String],
+    deployableBaffle: TestChannel.State[String]
   )
 
   val defaultState: State = State(
     TestChannel.State.of(""),
-    TestChannel.State.of("")
+    TestChannel.State.of(""),
+    TestChannel.State.of("Open"),
+    TestChannel.State.of("Visible")
   )
 
   def buildChannels[F[_]: Temporal](
@@ -26,7 +30,9 @@ object TestScsEpicsSystem {
   ): ScsChannels[F] = new ScsChannels[F](
     telltale =
       TelltaleChannel[F]("SCS", new TestChannel[F, State, String](s, Focus[State](_.telltale))),
-    follow = new TestChannel[F, State, String](s, Focus[State](_.follow))
+    follow = new TestChannel[F, State, String](s, Focus[State](_.follow)),
+    centralBaffle = new TestChannel[F, State, String](s, Focus[State](_.centralBaffle)),
+    deployableBaffle = new TestChannel[F, State, String](s, Focus[State](_.deployableBaffle))
   )
 
   def build[F[_]: Temporal](
