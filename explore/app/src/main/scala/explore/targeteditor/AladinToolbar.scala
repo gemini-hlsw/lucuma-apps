@@ -79,11 +79,14 @@ object AladinToolbar:
           ExploreStyles.AladinCurrentCoords,
           <.span(ExploreStyles.AladinDetailText, formatCoordinates(props.current))
         ),
-        Button(
-          onClick = props.viewOffset.set(Offset.Zero),
-          clazz = ExploreStyles.AladinCenterButton,
-          icon = Icons.Bullseye
-            .withTransform(Transform(size = 24))
-            .withClass(ExploreStyles.Accented)
-        ).compact.small
+        <.span(
+          Button(
+            onClick = props.viewOffset.set(Offset.Zero),
+            clazz = ExploreStyles.AladinCenterButton,
+            icon = Icons.Bullseye
+              .withTransform(Transform(size = 24))
+              .withClass(ExploreStyles.Accented)
+          ).compact.small
+        )
+          .withTooltip("Center on Target")
       )
