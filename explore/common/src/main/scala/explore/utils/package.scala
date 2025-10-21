@@ -24,12 +24,10 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.TimeSpan
-import lucuma.react.common.style.Css
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.format.versionDateFormatter
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.syntax.all.given
-import org.scalajs.dom
 
 import java.time.Instant
 
@@ -37,13 +35,6 @@ val canvasWidth  = VdomAttr("width")
 val canvasHeight = VdomAttr("height")
 val dataAbbrv    = VdomAttr("data-abbrv")
 val filter       = VdomAttr("filter")
-
-def toggleReusabilityOverlay[F[_]: Sync](): F[Unit] =
-  Sync[F]
-    .delay(
-      dom.document.body.classList.toggle(ExploreStyles.HideReusability.htmlClass)
-    )
-    .void
 
 val gitHash = BuildInfo.gitHeadCommit
 
