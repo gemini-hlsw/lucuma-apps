@@ -37,7 +37,8 @@ case class SearchForm(
   targetSet:     Target => Callback,
   searching:     View[Set[Target.Id]],
   readonly:      Boolean,
-  cloningTarget: Boolean
+  cloningTarget: Boolean,
+  disableSearch: Boolean = false
 ) extends ReactFnProps[SearchForm](SearchForm.component)
 
 object SearchForm:
@@ -96,7 +97,7 @@ object SearchForm:
           else Callback.empty
 
         val searchIcon: VdomNode =
-          if (enabled.value && !props.readonly)
+          if (enabled.value && !props.readonly && !props.disableSearch)
             TargetSelectionPopup(
               "Replace Target Data",
               TargetSource.forAllSiderealCatalogs[IO],
@@ -137,7 +138,7 @@ object SearchForm:
           validFormat = InputValidSplitEpi.nonEmptyString,
           error = error.value.orUndefined,
           disabled = disabled,
-          postAddons = List(searchIcon).filter(_ => !props.readonly),
+          postAddons = List(searchIcon).filterNot(_ => props.readonly || props.disableSearch),
           onTextChange = (_: String) => error.setState(none),
           onValidChange = valid => enabled.setState(valid),
           placeholder = "Name"

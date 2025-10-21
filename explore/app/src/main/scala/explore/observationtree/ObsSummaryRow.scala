@@ -10,10 +10,11 @@ import explore.model.Group
 import explore.model.Observation
 import explore.model.extensions.*
 import explore.syntax.ui.*
+import japgolly.scalajs.react.vdom.VdomNode
+import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Region
 import lucuma.core.model.Target
-import lucuma.react.fa.FontAwesomeIcon
 import lucuma.schemas.model.TargetWithId
 
 import java.time.Instant
@@ -54,12 +55,12 @@ enum ObsSummaryRow:
       case r: ObsRow            =>
         asterismCoordsOrRegion(r.asterism, r.obs.observationTime)
 
-  def icon: Option[FontAwesomeIcon] = fold(
-    e => e.targetWithId.target.icon.some,
+  def iconWithTooltip: Option[VdomNode] = fold(
+    e => e.targetWithId.target.iconWithTooltip.some,
     o =>
       o.asterism.map(a =>
-        if (a.asNel.isMixed) Icons.Stars
-        else a.focus.target.icon
+        if (a.asNel.isMixed) Icons.Stars.fixedWidthWithTooltip("Mixed Asterism")
+        else a.focus.target.iconWithTooltip
       )
   )
 

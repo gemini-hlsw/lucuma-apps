@@ -33,7 +33,9 @@ import lucuma.refined.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TargetWithId
 import monocle.Focus
+import monocle.Iso
 import monocle.Lens
+import monocle.Optional
 
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
@@ -102,6 +104,9 @@ object ObservationsAndTargets:
 
   val targets: Lens[ObservationsAndTargets, TargetList] =
     Focus[ObservationsAndTargets](_._2)
+
+  def obsOptional(obsId: Observation.Id): Optional[ObservationsAndTargets, Observation] =
+    observations.andThen(Iso.id[ObservationList].index(obsId))
 
 type PosAngleConstraintAndObsMode = (PosAngleConstraint, Option[ObservingMode])
 

@@ -15,6 +15,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.AsterismIds
+import explore.model.BlindOffset
 import explore.model.Constants
 import explore.model.ObsIdSet
 import explore.model.ObservationsAndTargets
@@ -22,19 +23,26 @@ import explore.model.OnAsterismUpdateParams
 import explore.model.enums.TableId
 import explore.model.extensions.*
 import explore.services.OdbAsterismApi
+import explore.services.OdbObservationApi
 import explore.targets.TargetColumns
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.TargetDisposition
+import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.ConfirmDialog
+import lucuma.react.primereact.DialogPosition
+import lucuma.react.primereact.PrimeStyles
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.TargetWithId
+import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.LucumaStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
@@ -42,6 +50,7 @@ import lucuma.ui.syntax.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
+import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 
@@ -57,6 +66,7 @@ case class TargetTable(
   vizTime:          Option[Instant],
   fullScreen:       AladinFullScreen,
   readOnly:         Boolean,
+  blindOffset:      Option[View[BlindOffset]] = None,
   columnVisibility: View[ColumnVisibility]
 ) extends ReactFnProps(TargetTable.component)
 
@@ -82,6 +92,36 @@ object TargetTable extends AsterismModifier:
   )
 
   private def deleteTarget(
+    obsIds:           ObsIdSet,
+    obsAndTargets:    UndoSetter[ObservationsAndTargets],
+    target:           TargetWithId,
+    onAsterismUpdate: OnAsterismUpdateParams => Callback,
+    blindOffset:      Option[View[BlindOffset]]
+  )(using OdbAsterismApi[IO] & OdbObservationApi[IO], Logger[IO]): Callback =
+    if (target.disposition === TargetDisposition.BlindOffset)
+      // will only have a blind offset for a single observation
+      deleteBlindOffsetTarget(obsIds.head, blindOffset)
+    else deleteAsterismTarget(obsIds, obsAndTargets, target, onAsterismUpdate)
+
+  private def deleteBlindOffsetTarget(
+    obsId:       Observation.Id,
+    blindOffset: Option[View[BlindOffset]]
+  )(using api: OdbObservationApi[IO], logger: Logger[IO]): Callback =
+    // blind offsets are not displayed in the target list, so no need to proactively delete them
+    // from the TargetList
+    ConfirmDialog.confirmDialog(
+      message = <.div("Delete the blind offset? This action cannot be undone."),
+      header = "Blind offset delete",
+      acceptLabel = "Yes, delete",
+      accept = api.deleteBlindOffsetTarget(obsId).runAsync >>
+        blindOffset.foldMap(_.set(BlindOffset(false, None, BlindOffsetType.Automatic))),
+      position = DialogPosition.Top,
+      acceptClass = PrimeStyles.ButtonSmall,
+      rejectClass = PrimeStyles.ButtonSmall,
+      icon = Icons.SkullCrossBones(^.color.red)
+    )
+
+  private def deleteAsterismTarget(
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
     target:           TargetWithId,
@@ -120,7 +160,8 @@ object TargetTable extends AsterismModifier:
                                        m.obsIds,
                                        m.obsAndTargets,
                                        cell.row.original,
-                                       m.onAsterismUpdate
+                                       m.onAsterismUpdate,
+                                       props.blindOffset
                                      )
                                    )
                              ).tiny.compact,
@@ -129,19 +170,26 @@ object TargetTable extends AsterismModifier:
                          )
                        )
                        .toList ++
-                       TargetColumns.Builder.ForProgram(ColDef, _.target).AllColumns
+                       TargetColumns.Builder.ForProgram(ColDef).AllColumns
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
-        rows    <- useMemo((props.targetIds, props.obsAndTargets.get._2, vizTime.value)):
-                     case (targetIds, targetInfo, Pot.Ready(vizTime)) =>
-                       targetIds.toList
+        rows    <- useMemo(
+                     (props.targetIds,
+                      props.obsAndTargets.get._2,
+                      vizTime.value,
+                      props.blindOffset.flatMap(_.get.blindOffsetTargetId)
+                     )
+                   ):
+                     case (targetIds, targetInfo, Pot.Ready(vizTime), oBlind) =>
+                       // include the blind offset
+                       (targetIds.toList ++ oBlind)
                          .map(id =>
                            targetInfo
                              .get(id)
                              .map(_.at(vizTime))
                          )
                          .flattenOption
-                     case _                                           => Nil
+                     case _                                                   => Nil
         table   <- useReactTableWithStateStore:
                      import ctx.given
 

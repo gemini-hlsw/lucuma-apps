@@ -192,7 +192,7 @@ trait ObsSummaryColumns:
           _.value.map(obsLink)
         .sortableWith(identifierSortFn),
       ColDef(TargetTypeColumnId, _.value, ColumnNames(TargetTypeColumnId))
-        .withCell(_.value.icon.map(_.withFixedWidth()))
+        .withCell(_.value.iconWithTooltip)
         .withSize(35.toPx)
         .setEnableSorting(false.some),
       mixedColumn(

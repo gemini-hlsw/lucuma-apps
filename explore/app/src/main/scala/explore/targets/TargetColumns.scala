@@ -8,6 +8,7 @@ import cats.Order.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.ExploreModelValidators.*
 import explore.model.conversions.*
@@ -19,6 +20,7 @@ import explore.optics.all.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Band
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.ApparentRadialVelocity
 import lucuma.core.math.Arc
 import lucuma.core.math.BrightnessValue
@@ -38,6 +40,7 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.TargetWithMetadata
 import lucuma.ui.react.given
 import monocle.std.option.*
 
@@ -115,12 +118,11 @@ object TargetColumns:
     )
 
   object Builder:
-    trait Common[D, TM, CM, TF](
-      colDef:    ColumnDef.Applied[D, TM, CM, TF],
-      getTarget: D => Target
+    trait Common[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
     ):
       def baseColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[V] =
-        colDef(id, d => accessor(getTarget(d)), BaseColNames(id))
+        colDef(id, d => accessor(d.target), BaseColNames(id))
 
       val NameColumn: colDef.TypeFor[NonEmptyString] =
         baseColumn(NameColumnId, Target.name.get)
@@ -172,9 +174,8 @@ object TargetColumns:
             .sortable
         )
 
-    trait CommonBand[D, TM, CM, TF](
-      colDef:    ColumnDef.Applied[D, TM, CM, TF],
-      getTarget: D => Target
+    trait CommonBand[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
     ):
       // Order first by unit alphabetically and then value
       private given Order[Measure[BrightnessValue]] = Order.by(x => (x.units.abbv, x.value))
@@ -191,7 +192,7 @@ object TargetColumns:
           val id = bandColumnId(band)
           colDef(
             id,
-            d => BandNormalizedTargetBrightnesses.get(getTarget(d)).flatMap(_.get(band)),
+            d => BandNormalizedTargetBrightnesses.get(d.target).flatMap(_.get(band)),
             BandColNames(id)
           ).withCell(_.value.map(displayWithoutError).orEmpty)
             .withSize(80.toPx)
@@ -199,15 +200,17 @@ object TargetColumns:
             .sortable
         )
 
-    trait CommonSidereal[D, TM, CM, TF](
-      colDef:            ColumnDef.Applied[D, TM, CM, TF],
-      getSiderealTarget: D => Option[Target.Sidereal]
+    trait CommonSidereal[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
     ):
       def siderealColumnOpt[V](
         id:       ColumnId,
         accessor: Target.Sidereal => Option[V]
       ): colDef.TypeFor[Option[V]] =
-        colDef(id, getSiderealTarget.andThen(_.flatMap(accessor)), SiderealColNames(id))
+        colDef(id,
+               d => Target.sidereal.getOption.andThen(_.flatMap(accessor))(d.target),
+               SiderealColNames(id)
+        )
 
       def siderealColumn[V](
         id:       ColumnId,
@@ -251,20 +254,20 @@ object TargetColumns:
             .sortable
         )
 
-    case class ForProgram[D, TM, CM, TF](
-      colDef:    ColumnDef.Applied[D, TM, CM, TF],
-      getTarget: D => Target
-    ) extends Common(colDef, getTarget)
-        with CommonRaDec(colDef, d => getTarget(d).coordsOrRegion)
-        with CommonBand(colDef, getTarget)
-        with CommonSidereal(
-          colDef,
-          d => Target.sidereal.getOption(getTarget(d))
-        ):
-      val BaseColumns: List[colDef.Type] =
+    case class ForProgram[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    ) extends Common(colDef)
+        with CommonRaDec(colDef, _.target.coordsOrRegion)
+        with CommonBand(colDef)
+        with CommonSidereal(colDef):
+      def icon(t: TargetWithMetadata): VdomNode =
+        if (t.disposition === TargetDisposition.BlindOffset)
+          Icons.EyeSlash.fixedWidthWithTooltip("Blind Offset")
+        else t.target.iconWithTooltip
+      val BaseColumns: List[colDef.Type]        =
         List(
-          baseColumn(TypeColumnId, identity)
-            .withCell(_.value.icon.withFixedWidth())
+          colDef(TypeColumnId, identity, BaseColNames(TypeColumnId))
+            .withCell(t => icon(t.value))
             .withSize(35.toPx),
           NameColumn,
           baseColumn(
@@ -305,12 +308,11 @@ object TargetColumns:
       lazy val AllColumns: List[colDef.Type] =
         BaseColumns ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns ++ ProgramColumns
 
-    case class ForSimbad[D, TM, CM, TF](
-      colDef:    ColumnDef.Applied[D, TM, CM, TF],
-      getTarget: D => Target
-    ) extends Common(colDef, getTarget)
-        with CommonRaDec(colDef, d => getTarget(d).coordsOrRegion)
-        with CommonBand(colDef, getTarget)
-        with CommonSidereal(colDef, d => Target.sidereal.getOption(getTarget(d))):
+    case class ForSimbad[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    ) extends Common(colDef)
+        with CommonRaDec(colDef, _.target.coordsOrRegion)
+        with CommonBand(colDef)
+        with CommonSidereal(colDef):
       lazy val AllColumns: List[colDef.Type] =
         (NameColumn +: CatalogColumns) ++ RaDecColumns ++ BandColumns ++ SiderealColumns

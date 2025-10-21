@@ -15,6 +15,7 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
 import explore.utils.*
+import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
@@ -27,9 +28,10 @@ import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.ObservationDB.Enums.*
+import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservations
@@ -387,3 +389,47 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .subscribe[F](ObscalcUpdateInput(programId.assign))
       .processErrors("ObsCalcSubscription")
       .map(_.map(_.obscalcUpdate))
+
+  def setBlindOffsetTarget(
+    obsId:           Observation.Id,
+    target:          Target,
+    blindOffsetType: BlindOffsetType
+  ): F[Target.Id] =
+    val optId: F[Option[Target.Id]] = SetBlindOffsetMutation[F]
+      .execute(
+        obsId.toWhereObservation,
+        true,
+        target.toTargetPropertiesInput.assign,
+        blindOffsetType
+      )
+      .processErrors
+      .map(
+        _.updateObservations.observations.headOption
+          .flatMap(_.targetEnvironment.blindOffsetTarget)
+          .map(_.id)
+      )
+    // Since we just set the blind offset and didn't get an error, we should have a Target.Id
+    optId.flatMap:
+      case None        =>
+        Async[F].raiseError(
+          new Exception("Unexpected error: Target Id not return for blind offset creation.")
+        )
+      case Some(value) => value.pure
+
+  def deleteBlindOffsetTarget(obsId: Observation.Id): F[Unit] =
+    // The blind offset type doesn't really matter here.
+    // Also the API deletes the target if we set useBlindOffset to false, but it doesn't
+    // hurt to do it explicitly.
+    SetBlindOffsetMutation[F]
+      .execute(obsId.toWhereObservation, false, Input.unassign, BlindOffsetType.Automatic)
+      .processErrors
+      .void
+
+  def initializeAutomaticBlindAOffset(obsId: Observation.Id): F[Unit] =
+    // By setting useBlindOffset to true and blindOffsetType to automatic, the target
+    // we be set by whomever is doing the automatic target assignments. At the time of this
+    // writing, that is explore.
+    SetBlindOffsetMutation[F]
+      .execute(obsId.toWhereObservation, true, Input.unassign, BlindOffsetType.Automatic)
+      .processErrors
+      .void

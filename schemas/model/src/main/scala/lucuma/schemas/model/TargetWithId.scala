@@ -25,12 +25,17 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import scala.collection.immutable.SortedMap
 
+trait TargetWithMetadata:
+  val target: Target
+  val disposition: TargetDisposition
+
 case class TargetWithId(
   id:              Target.Id,
   target:          Target,
   disposition:     TargetDisposition,
   calibrationRole: Option[CalibrationRole]
-) derives Eq {
+) extends TargetWithMetadata
+    derives Eq {
   def toOptId: TargetWithOptId = TargetWithOptId(id.some, target, disposition, calibrationRole)
 
   def toSidereal: Option[SiderealTargetWithId] = TargetWithId.sidereal.getOption(this)
@@ -68,7 +73,8 @@ case class TargetWithOptId(
   target:          Target,
   disposition:     TargetDisposition,
   calibrationRole: Option[CalibrationRole]
-) derives Eq:
+) extends TargetWithMetadata
+    derives Eq:
   def withId(targetId: Target.Id): TargetWithId =
     TargetWithId(targetId, target, disposition, calibrationRole)
 

@@ -17,6 +17,7 @@ import explore.model.AppContext
 import explore.model.Asterism
 import explore.model.AsterismIds
 import explore.model.AttachmentList
+import explore.model.BlindOffset
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
@@ -41,6 +42,7 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
+import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.table.ColumnVisibility
 import lucuma.schemas.model.TargetWithId
@@ -78,6 +80,7 @@ object AsterismEditorTile:
     readonly:            Boolean,
     allowEditingOngoing: Boolean,
     sequenceChanged:     Callback = Callback.empty,
+    blindOffset:         Option[View[BlindOffset]] = None,
     backButton:          Option[VdomNode] = None
   )(using odbApi: OdbObservationApi[IO])(using Logger[IO]): Tile[TileState] = {
     // Save the time here. this works for the obs and target tabs
@@ -143,6 +146,7 @@ object AsterismEditorTile:
             readonly,
             allowEditingOngoing,
             sequenceChanged,
+            blindOffset,
             tileState.zoom(TileState.columnVisibility),
             tileState.zoom(TileState.obsEditInfo)
           ),
@@ -159,6 +163,7 @@ object AsterismEditorTile:
           digest,
           tileState.zoom(TileState.columnVisibility),
           tileState.get.obsEditInfo,
+          blindOffset,
           tileSize
         )
     )
@@ -197,36 +202,37 @@ object AsterismEditorTile:
     readonly:            Boolean,
     allowEditingOngoing: Boolean,
     sequenceChanged:     Callback,
+    blindOffset:         Option[View[BlindOffset]], // only pass for a single observation
     columnVisibility:    View[ColumnVisibility],
     obsEditInfo:         View[Option[ObsIdSetEditInfo]]
-  ) extends ReactFnProps(Body.component):
+  ) extends ReactFnProps(Body):
     val allTargets: UndoSetter[TargetList] = obsAndTargets.zoom(ObservationsAndTargets.targets)
 
-  private object Body extends AsterismModifier:
-    private type Props = Body
-
-    private val component =
-      ScalaFnComponent
-        .withHooks[Props]
-        .useMemoBy(props => (props.obsIds, props.obsAndTargets.get._1)): _ =>
-          ObsIdSetEditInfo.fromObservationList
-        .useLayoutEffectWithDepsBy((_, obsEditInfo) => obsEditInfo): (props, _) =>
-          obsEditInfo => props.obsEditInfo.set(obsEditInfo.value.some)
-        .useMemoBy((props, _) => (props.obsIds, props.obsAndTargets.get._1)): (_, _) =>
-          // all of the selected observations must have the same asterism
-          (ids, obses) => obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
-        .useLayoutEffectWithDepsBy((props, _, asterismIds) =>
-          (asterismIds.value, props.focusedTargetId)
-        ): (props, _, _) =>
-          (asterismIds, focusedTargetId) =>
-            // If the selected targetId is None, or not in the asterism, select the first target (if any).
-            // Need to replace history here.
-            focusedTargetId.filter(asterismIds.contains_) match
-              case None => props.setTarget(asterismIds.headOption, SetRouteVia.HistoryReplace)
-              case _    => Callback.empty
-        // full screen aladin
-        .useStateView(AladinFullScreen.Normal)
-        .render: (props, obsEditInfo, asterismIds, fullScreen) =>
+  private object Body
+      extends ReactFnComponent[Body](props =>
+        for
+          obsEditInfo  <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
+                            ObsIdSetEditInfo.fromObservationList
+          _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
+                            props.obsEditInfo.set(roei.value.some)
+          asterismIds  <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+                            // all of the selected observations must have the same asterism
+                            obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
+          allTargetIds <-
+            useMemo((asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))):
+              (asterism, oBlind) =>
+                // This includes the asterism and blind offset
+                asterism ++ oBlind
+          _            <- useLayoutEffectWithDeps((allTargetIds.value, props.focusedTargetId)):
+                            (targetIds, focusedTargetId) =>
+                              // If the selected targetId is None, or not in the target list, select the first target (if any).
+                              // Need to replace history here.
+                              focusedTargetId.filter(targetIds.contains_) match
+                                case None =>
+                                  props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
+                                case _    => Callback.empty
+          fullScreen   <- useStateView(AladinFullScreen.Normal)
+        yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
               props.focusedTargetId,
@@ -262,6 +268,7 @@ object AsterismEditorTile:
                   props.obsTime,
                   fullScreen.get,
                   props.readonly || obsEditInfo.allAreExecuted,
+                  props.blindOffset,
                   props.columnVisibility
                 ),
             // it's possible for us to get here without an asterism but with a focused target id. This will get
@@ -272,6 +279,9 @@ object AsterismEditorTile:
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
                 val obsInfo                                             = props.obsInfo(focusedTargetId)
 
+                // NOTE: If the blind offset is selected, the asterism passed to the target
+                // editor will not be focused properly since the blind offset is not in the asterism.
+                // But, I think that was only get the target id to edit, which we now get from the TargetWithId
                 selectedTargetOpt
                   .map: targetWithId =>
                     <.div(
@@ -279,7 +289,7 @@ object AsterismEditorTile:
                       TargetEditor(
                         props.programId,
                         props.userId,
-                        targetWithId.zoom(TargetWithId.target),
+                        targetWithId,
                         props.obsAndTargets,
                         asterism.focusOn(focusedTargetId),
                         props.obsTime,
@@ -298,6 +308,7 @@ object AsterismEditorTile:
                       )
                     )
           )
+      )
 
   private case class Title(
     programId:              Program.Id,
@@ -311,6 +322,7 @@ object AsterismEditorTile:
     digest:                 CalculatedValue[Option[ExecutionDigest]],
     columnVisibility:       View[ColumnVisibility],
     obsEditInfo:            Option[ObsIdSetEditInfo],
+    blindOffset:            Option[View[BlindOffset]],
     tileSize:               TileSizeState
   ) extends ReactFnProps(Title.component)
 
@@ -351,7 +363,8 @@ object AsterismEditorTile:
                         adding,
                         props.onAsterismUpdate,
                         props.readonly || obsEditInfo.allAreExecuted,
-                        ExploreStyles.AddTargetButton
+                        buttonClass = ExploreStyles.AddTargetButton,
+                        blindOffset = props.blindOffset
                       )
                 ),
                 obsTimeEditor,

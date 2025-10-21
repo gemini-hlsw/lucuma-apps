@@ -69,9 +69,9 @@ object TargetSelectionTable:
       ) ++ (
         props.source match
           case TargetSource.FromCatalog(CatalogName.Simbad) =>
-            TargetColumns.Builder.ForSimbad(ColDef, _.target).AllColumns
+            TargetColumns.Builder.ForSimbad(ColDef).AllColumns
           case _                                            =>
-            TargetColumns.Builder.ForProgram(ColDef, _.target).AllColumns
+            TargetColumns.Builder.ForProgram(ColDef).AllColumns
       )
     }
     // rows

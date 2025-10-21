@@ -8,9 +8,11 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.AngularSize
 import lucuma.catalog.CatalogTargetResult
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.schemas.model.TargetWithMetadata
 import lucuma.schemas.model.TargetWithOptId
 import monocle.Focus
 import monocle.Lens
@@ -19,10 +21,10 @@ import monocle.Optional
 case class TargetSearchResult(
   targetWithOptId: TargetWithOptId,
   angularSize:     Option[AngularSize]
-) {
-  lazy val optId: Option[Target.Id] = targetWithOptId.optId
-  lazy val target: Target           = targetWithOptId.target
-}
+) extends TargetWithMetadata:
+  val optId: Option[Target.Id]       = targetWithOptId.optId
+  val target: Target                 = targetWithOptId.target
+  val disposition: TargetDisposition = targetWithOptId.disposition
 
 object TargetSearchResult:
   def fromCatalogTargetResult(r: CatalogTargetResult): TargetSearchResult =

@@ -59,7 +59,7 @@ object TargetEditorTile:
             TargetEditor(
               programId,
               uid,
-              target.zoom(TargetWithId.target),
+              target,
               obsAndTargets,
               Asterism.one(target.get),
               obsTime = none,
