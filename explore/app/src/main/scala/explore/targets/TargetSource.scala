@@ -48,7 +48,7 @@ object TargetSource:
 
     override def toString(): String = name
 
-  case class FromCatalog[F[_]: Async: Random: Logger](catalogName: CatalogName)
+  case class FromCatalog[F[_]: {Async, Random, Logger}](catalogName: CatalogName)
       extends TargetSource[F]:
     val name: String = Enumerated[CatalogName].tag(catalogName).capitalize
 
@@ -106,12 +106,12 @@ object TargetSource:
 
     override def toString: String = catalogName.toString
 
-  def forAllCatalogs[F[_]: Async: Random: Logger]: NonEmptyList[TargetSource[F]] =
+  def forAllCatalogs[F[_]: {Async, Random, Logger}]: NonEmptyList[TargetSource[F]] =
     NonEmptyList.fromListUnsafe(
       Enumerated[CatalogName].all.map(source => TargetSource.FromCatalog(source))
     )
 
-  def forAllSiderealCatalogs[F[_]: Async: Random: Logger]: NonEmptyList[TargetSource[F]] =
+  def forAllSiderealCatalogs[F[_]: {Async, Random, Logger}]: NonEmptyList[TargetSource[F]] =
     NonEmptyList.of(TargetSource.FromCatalog(CatalogName.Simbad))
 
   // TODO Test

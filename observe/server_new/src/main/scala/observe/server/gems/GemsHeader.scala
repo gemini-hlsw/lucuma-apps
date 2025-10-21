@@ -26,7 +26,7 @@ import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
 object GemsHeader {
-  def header[F[_]: Sync: Logger](
+  def header[F[_]: {Sync, Logger}](
     kwClient:   KeywordsClient[F],
     gemsReader: GemsKeywordReader[F],
     obsReader:  ObsKeywordsReader[F],

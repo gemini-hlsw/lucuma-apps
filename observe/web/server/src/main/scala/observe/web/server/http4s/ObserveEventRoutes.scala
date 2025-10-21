@@ -38,7 +38,7 @@ import scala.concurrent.duration.*
 /**
  * Rest Endpoints under the /api route
  */
-class ObserveEventRoutes[F[_]: Async: Compression](
+class ObserveEventRoutes[F[_]: {Async, Compression}](
   site:             Site,
   environment:      ExecutionEnvironment,
   odbWsUri:         Uri,

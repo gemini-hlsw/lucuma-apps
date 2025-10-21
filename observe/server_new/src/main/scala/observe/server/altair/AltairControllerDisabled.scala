@@ -15,7 +15,7 @@ import observe.server.tcs.Gaos.GuideCapabilities
 import observe.server.tcs.TcsController.FocalPlaneOffset
 import org.typelevel.log4cats.Logger
 
-class AltairControllerDisabled[F[_]: Logger: Applicative] extends AltairController[F] {
+class AltairControllerDisabled[F[_]: {Logger, Applicative}] extends AltairController[F] {
   override def pauseResume(
     pauseReasons:  Gaos.PauseConditionSet,
     resumeReasons: Gaos.ResumeConditionSet,

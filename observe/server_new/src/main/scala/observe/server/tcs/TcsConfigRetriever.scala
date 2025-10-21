@@ -198,7 +198,7 @@ object TcsConfigRetriever {
       v4 -> VirtualGemsTelescope.G4
     ).mapFilter { case (s, v) => s.map((_, v)) }.toMap
 
-    private def getCwfs[T: DetectorStateOps: Eq](
+    private def getCwfs[T: {DetectorStateOps, Eq}](
       getFollow: F[Boolean]
     )(g: VirtualGemsTelescope, active: F[T]): F[GuiderConfig] = for {
       trk <- getNodChopTrackingConfig(epicsSys.gemsGuideConfig(g))
@@ -217,7 +217,7 @@ object TcsConfigRetriever {
     private val getCwfs3: (VirtualGemsTelescope, F[Cwfs3DetectorState]) => F[GuiderConfig] =
       getCwfs(epicsSys.cwfs3Follow)
 
-    private def getOdgw[T: DetectorStateOps: Eq](
+    private def getOdgw[T: {DetectorStateOps, Eq}](
       getParked: F[Boolean],
       getFollow: F[Boolean]
     )(g: VirtualGemsTelescope, active: F[T]): F[GuiderConfig] = for {

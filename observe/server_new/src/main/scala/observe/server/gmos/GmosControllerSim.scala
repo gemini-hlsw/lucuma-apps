@@ -188,12 +188,12 @@ object GmosControllerSim {
       override def nsCount: F[Int] = nsConfig.get.map(_.current.foldMap(_.exposureCount))
     }
 
-  def south[F[_]: Async: Logger]: F[GmosController[F, GmosController.GmosSite.South.type]] =
+  def south[F[_]: {Async, Logger}]: F[GmosController[F, GmosController.GmosSite.South.type]] =
     (Ref.of(NsObsState.Zero), InstrumentControllerSim[F](s"GMOS South")).mapN { (nsConfig, sim) =>
       GmosControllerSim[F, GmosController.GmosSite.South.type](sim, nsConfig)
     }
 
-  def north[F[_]: Async: Logger]: F[GmosController[F, GmosController.GmosSite.North.type]] =
+  def north[F[_]: {Async, Logger}]: F[GmosController[F, GmosController.GmosSite.North.type]] =
     (Ref.of(NsObsState.Zero), InstrumentControllerSim[F](s"GMOS North")).mapN { (nsConfig, sim) =>
       GmosControllerSim[F, GmosController.GmosSite.North.type](sim, nsConfig)
     }

@@ -13,7 +13,7 @@ import observe.server.Progress
 import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
 
-class Flamingos2ControllerDisabled[F[_]: Logger: Functor] extends Flamingos2Controller[F] {
+class Flamingos2ControllerDisabled[F[_]: {Logger, Functor}] extends Flamingos2Controller[F] {
   override def applyConfig(config: Flamingos2Controller.Flamingos2Config): F[Unit] =
     overrideLogMessage("Flamingos-2", "applyConfig")
 

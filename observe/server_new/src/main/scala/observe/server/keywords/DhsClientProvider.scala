@@ -12,7 +12,7 @@ trait DhsClientProvider[F[_]] {
 }
 
 object DhsClientProvider {
-  def dummy[F[_]: FlatMap: Clock: Logger]: DhsClientProvider[F] = new DhsClientProvider[F] {
+  def dummy[F[_]: {FlatMap, Clock, Logger}]: DhsClientProvider[F] = new DhsClientProvider[F] {
     override def dhsClient(instrumentName: String): DhsClient[F] = new DhsClientDisabled[F]
   }
 }

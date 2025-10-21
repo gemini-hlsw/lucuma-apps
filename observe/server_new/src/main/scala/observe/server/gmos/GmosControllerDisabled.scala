@@ -14,8 +14,9 @@ import observe.server.Progress
 import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
 
-class GmosControllerDisabled[F[_]: Logger: Applicative, T <: GmosController.GmosSite](name: String)
-    extends GmosController[F, T] {
+class GmosControllerDisabled[F[_]: {Logger, Applicative}, T <: GmosController.GmosSite](
+  name: String
+) extends GmosController[F, T] {
   override def applyConfig(config: GmosController.GmosConfig[T]): F[Unit] =
     overrideLogMessage(name, "applyConfig")
 

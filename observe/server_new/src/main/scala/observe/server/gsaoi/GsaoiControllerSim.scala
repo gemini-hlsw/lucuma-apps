@@ -17,7 +17,7 @@ import observe.server.gsaoi.GsaoiController.GsaoiConfig
 import org.typelevel.log4cats.Logger
 
 object GsaoiControllerSim {
-  def apply[F[_]: Logger: Async]: F[GsaoiFullHandler[F]] =
+  def apply[F[_]: {Logger, Async}]: F[GsaoiFullHandler[F]] =
     InstrumentControllerSim[F]("GSAOI").map { sim =>
       new GsaoiFullHandler[F] {
 

@@ -43,7 +43,7 @@ final case class StateKeywordsReader[F[_]: Monad](
   def rawBackgroundLightD: F[Double] = conditions.backgroundLightDbl
 }
 
-class StandardHeader[F[_]: Sync: Logger](
+class StandardHeader[F[_]: {Sync, Logger}](
   kwClient:      KeywordsClient[F],
   obsReader:     ObsKeywordsReader[F],
   tcsReader:     TcsKeywordsReader[F],

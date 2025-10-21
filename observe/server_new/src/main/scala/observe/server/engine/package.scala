@@ -129,14 +129,14 @@ object EngineHandle {
   ): EngineHandle[F, Unit] =
     modifyState_(EngineState.sequenceStateAt(obsId).replace(s))
 
-  def debug[F[_]: MonadCancelThrow: Logger](msg: String): EngineHandle[F, Unit] =
+  def debug[F[_]: {MonadCancelThrow, Logger}](msg: String): EngineHandle[F, Unit] =
     liftF(Logger[F].debug(msg))
 
-  def logError[F[_]: MonadCancelThrow: Logger](e: Throwable)(msg: String): EngineHandle[F, Unit] =
+  def logError[F[_]: {MonadCancelThrow, Logger}](e: Throwable)(msg: String): EngineHandle[F, Unit] =
     liftF(Logger[F].error(e)(msg))
 
   // For debugging
-  def printSequenceState[F[_]: MonadCancelThrow: Logger](
+  def printSequenceState[F[_]: {MonadCancelThrow, Logger}](
     obsId: Observation.Id
   ): EngineHandle[F, Unit] =
     inspectSequenceState(obsId): (qs: Sequence.State[F]) =>

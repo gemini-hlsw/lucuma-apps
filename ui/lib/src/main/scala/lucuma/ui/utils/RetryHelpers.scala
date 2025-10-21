@@ -16,7 +16,7 @@ import scala.concurrent.duration.*
 import ju.concurrent.TimeUnit
 
 trait RetryHelpers:
-  def retryPolicy[F[_]: Applicative: Random] =
+  def retryPolicy[F[_]: {Applicative, Random}] =
     capDelay(
       FiniteDuration.apply(5, TimeUnit.SECONDS),
       fullJitter[F](FiniteDuration.apply(10, TimeUnit.MILLISECONDS))

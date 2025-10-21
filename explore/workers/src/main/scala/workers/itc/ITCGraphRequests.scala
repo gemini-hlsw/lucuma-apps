@@ -33,7 +33,7 @@ object ITCGraphRequests:
     SignificantFiguresInput(6.refined, 6.refined, 3.refined)
 
   // Wrapper method to match the call in ItcServer.scala
-  def queryItc[F[_]: Concurrent: Logger: ItcClient](
+  def queryItc[F[_]: {Concurrent, Logger, ItcClient}](
     exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],

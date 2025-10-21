@@ -60,7 +60,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
   val ServiceName: String = "observe"
 
   // Try to load configs for deployment and staging and fall back to the common one in the class path
-  private def config[F[_]: Sync: Logger]: F[ConfigObjectSource] =
+  private def config[F[_]: {Sync, Logger}]: F[ConfigObjectSource] =
     for
       confDir    <- baseDir[F].map(_.resolve("conf"))
       secretsConf = confDir.resolve("local").resolve("secrets.conf")
@@ -116,7 +116,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
     context
   }
 
-  private def tlsContext[F[_]: Sync: Network](tls: TLSConfig): F[Option[TLSContext[F]]] =
+  private def tlsContext[F[_]: {Sync, Network}](tls: TLSConfig): F[Option[TLSContext[F]]] =
     (for {
       ssl <- OptionT.liftF(makeContext[F](tls))
     } yield Network[F].tlsContext.fromSSLContext(ssl)).value
@@ -124,7 +124,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
   private def jwtReader[F[_]: Concurrent](sso: LucumaSSOConfiguration): SsoJwtReader[F] =
     SsoJwtReader(JwtDecoder.withPublicKey(sso.publicKey))
 
-  private def ssoClient[F[_]: Async: Logger](
+  private def ssoClient[F[_]: {Async, Logger}](
     httpClient: Client[F],
     sso:        LucumaSSOConfiguration
   ): Resource[F, SsoClient[F, User]] =
@@ -140,7 +140,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
     )
 
   /** Resource that yields the running web server */
-  private def webServer[F[_]: Async: Trace: Logger: Files: Network: Compression](
+  private def webServer[F[_]: {Async, Trace, Logger, Files, Network, Compression}](
     conf:      ObserveConfiguration,
     clientsDb: ClientsSetDb[F],
     ssoClient: SsoClient[F, User],
@@ -212,7 +212,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
 
   }
 
-  private def redirectWebServer[F[_]: Logger: Async: Network: Compression](
+  private def redirectWebServer[F[_]: {Logger, Async, Network, Compression}](
     conf:    WebServerConfiguration,
     guideDb: GuideConfigDb[F]
   ): Resource[F, Server] = {
@@ -265,7 +265,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
 
   // We build a client with the default retry policy, which will retry GET requests as
   // well as non-GET requests that contain the `Idempotency-Key` header (which we set in `OdbProxy`).
-  private def mkClient[F[_]: Async: Network: Logger](
+  private def mkClient[F[_]: {Async, Network, Logger}](
     timeout: FiniteDuration
   ): Resource[F, Client[F]] =
     EmberClientBuilder

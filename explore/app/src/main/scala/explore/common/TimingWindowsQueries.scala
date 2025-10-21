@@ -20,7 +20,7 @@ import org.typelevel.log4cats.Logger
 
 object TimingWindowsQueries:
 
-  def viewWithRemoteMod[F[_]: MonadThrow: Dispatch](
+  def viewWithRemoteMod[F[_]: {MonadThrow, Dispatch}](
     obsIds: ObsIdSet,
     view:   View[List[TimingWindow]]
   )(using

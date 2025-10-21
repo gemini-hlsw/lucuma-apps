@@ -333,7 +333,7 @@ package object keywords {
     name: KeywordName
   ): KeywordBag => F[KeywordBag] = buildKeyword(get, name, StringKeyword.apply(_, _))
 
-  def sendKeywords[F[_]: MonadThrow: Logger](
+  def sendKeywords[F[_]: {MonadThrow, Logger}](
     id:         ImageFileId,
     keywClient: KeywordsClient[F],
     b:          List[KeywordBag => F[KeywordBag]]

@@ -14,7 +14,7 @@ import org.typelevel.log4cats.Logger
 
 object AltairLgsHeader {
 
-  def header[F[_]: Sync: Logger](
+  def header[F[_]: {Sync, Logger}](
     kwClient:     KeywordsClient[F],
     altairReader: AltairKeywordReader[F]
   ): Header[F] =

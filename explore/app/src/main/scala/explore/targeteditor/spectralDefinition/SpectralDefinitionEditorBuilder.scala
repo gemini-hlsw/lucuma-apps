@@ -190,7 +190,7 @@ private abstract class SpectralDefinitionEditorBuilder[
             UnnormalizedSedInput.blackBodyTempK.modify
           )
 
-      def spectrumRow[T: Enumerated: Display](id: string.NonEmptyString, view: View[T]) =
+      def spectrumRow[T: {Enumerated, Display}](id: string.NonEmptyString, view: View[T]) =
         EnumDropdownView(
           id = id,
           value = view,

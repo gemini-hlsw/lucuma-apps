@@ -33,7 +33,7 @@ import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsSouthController.*
 import org.typelevel.log4cats.Logger
 
-case class TcsSouth[F[_]: Sync: Logger] private (
+case class TcsSouth[F[_]: {Sync, Logger}] private (
   tcsController: TcsSouthController[F],
   subsystems:    NonEmptySet[Subsystem],
   gaos:          Option[Gems[F]],
@@ -267,7 +267,7 @@ object TcsSouth {
     )
   }
 
-  def fromConfig[F[_]: Sync: Logger](
+  def fromConfig[F[_]: {Sync, Logger}](
     controller:          TcsSouthController[F],
     subsystems:          NonEmptySet[Subsystem],
     gaos:                Option[Gems[F]],

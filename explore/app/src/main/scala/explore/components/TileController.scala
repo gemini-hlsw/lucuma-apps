@@ -47,7 +47,7 @@ case class TileController(
 object TileController:
   private type Props = TileController
 
-  private def storeLayouts[F[_]: MonadThrow: Dispatch](
+  private def storeLayouts[F[_]: {MonadThrow, Dispatch}](
     userId:  Option[User.Id],
     section: GridLayoutSection,
     layouts: Layouts

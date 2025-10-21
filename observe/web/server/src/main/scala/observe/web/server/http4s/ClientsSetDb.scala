@@ -28,7 +28,7 @@ object ClientsSetDb {
   type UserAgent  = `User-Agent`
   type ClientsSet = Map[ClientId, (Instant, ClientAddr, Option[UserAgent])]
 
-  def apply[F[_]: Clock: Monad: Logger](ref: Ref[F, ClientsSet]): ClientsSetDb[F] = {
+  def apply[F[_]: {Clock, Monad, Logger}](ref: Ref[F, ClientsSet]): ClientsSetDb[F] = {
     val L = Logger[F]
     new ClientsSetDb[F] {
       def newClient(id: ClientId, addr: ClientsSetDb.ClientAddr, ua: Option[UserAgent]): F[Unit] =

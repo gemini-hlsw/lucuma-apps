@@ -398,7 +398,7 @@ object TestCommon {
       )
     )
 
-  def generateSequence[F[_]: Async: Logger](
+  def generateSequence[F[_]: {Async, Logger}](
     odbObsData: OdbObservationData,
     systems:    Systems[F]
   ): F[Option[SequenceGen[F]]] = for {

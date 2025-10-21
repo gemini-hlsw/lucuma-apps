@@ -39,7 +39,7 @@ object ITCRequests:
     case Error.General(message)          => ItcQueryProblem.GenericError(message)
 
   // Copied from https://gist.github.com/gvolpe/44e2263f9068efe298a1f30390de6d22
-  def parTraverseN[F[_]: Concurrent: Parallel, G[_]: Traverse, A, B](
+  def parTraverseN[F[_]: {Concurrent, Parallel}, G[_]: Traverse, A, B](
     n:  Long,
     ga: G[A]
   )(f: A => F[B]) =
@@ -47,7 +47,7 @@ object ITCRequests:
       ga.parTraverse(a => s.permit.use(_ => f(a)))
 
   // Wrapper method to match the call in ItcServer.scala
-  def queryItc[F[_]: Concurrent: Parallel: Logger](
+  def queryItc[F[_]: {Concurrent, Parallel, Logger}](
     exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],

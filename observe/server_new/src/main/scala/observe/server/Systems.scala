@@ -112,7 +112,7 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: Async: Logger: Trace: Http4sHttpBackend: SecureRandom]: F[OdbProxy[F]] =
+    def odbProxy[F[_]: {Async, Logger, Trace, Http4sHttpBackend, SecureRandom}]: F[OdbProxy[F]] =
       for
         fetchClient                    <- // Http client used ONLY for recording events.
           Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
@@ -134,7 +134,7 @@ object Systems {
         odbSubscriber                   = OdbSubscriber[F]()(using streamingClient)
       yield OdbProxy[F](odbCommands, odbSubscriber)(using streamingClient)
 
-    def dhs[F[_]: Async: Logger](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
+    def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
         new DhsClientProvider[F] {
           override def dhsClient(instrumentName: String): DhsClient[F] = new DhsClientHttp[F](
@@ -370,7 +370,7 @@ object Systems {
       else if (settings.instForceError) Flamingos2ControllerSimBad[IO](settings.failAt)
       else Flamingos2ControllerSim[IO]
     //
-    //    def gpi[F[_]: Async: Logger](
+    //    def gpi[F[_]: {Async, Logger}](
     //      httpClient: Client[F]
     //    ): Resource[F, GpiController[F]] = {
     //      def gpiClient: Resource[F, GpiClient[F]] =
@@ -389,7 +389,7 @@ object Systems {
     //      (gpiClient, gpiGDS(httpClient)).mapN(GpiController(_, _))
     //    }
     //
-    //    def ghost[F[_]: Async: Logger](
+    //    def ghost[F[_]: {Async, Logger}](
     //      httpClient: Client[F]
     //    ): Resource[F, GhostController[F]] = {
     //      def ghostClient: Resource[F, GhostClient[F]] =
@@ -483,7 +483,7 @@ object Systems {
   )(using T: Temporal[IO], L: Logger[IO])(using Trace[IO]): Resource[IO, Systems[IO]] =
     Builder(settings, sso, service, decodeTops(settings.tops)).build(site, httpClient)
 
-  def dummy[F[_]: Async: Logger]: F[Systems[F]] =
+  def dummy[F[_]: {Async, Logger}]: F[Systems[F]] =
     GuideConfigDb
       .newDb[F]
       .map(guideDb =>

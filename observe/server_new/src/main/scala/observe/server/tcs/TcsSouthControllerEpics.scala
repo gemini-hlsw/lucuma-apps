@@ -15,7 +15,7 @@ import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsSouthController.*
 import org.typelevel.log4cats.Logger
 
-final case class TcsSouthControllerEpics[F[_]: Async: Logger](
+final case class TcsSouthControllerEpics[F[_]: {Async, Logger}](
   epicsSys:      TcsEpics[F],
   guideConfigDb: GuideConfigDb[F]
 ) extends TcsSouthController[F] {

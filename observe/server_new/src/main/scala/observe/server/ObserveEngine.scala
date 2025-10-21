@@ -226,7 +226,7 @@ trait ObserveEngine[F[_]] {
 
 object ObserveEngine {
 
-  def createTranslator[F[_]: Async: Logger](
+  def createTranslator[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
     conditionsRef: Ref[F, Conditions]
@@ -498,7 +498,7 @@ object ObserveEngine {
       }
     )
 
-  def onAtomReload[F[_]: MonadCancelThrow: Logger](
+  def onAtomReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F]
   )(
@@ -524,7 +524,7 @@ object ObserveEngine {
         )
       }
 
-  private def tryAtomReload[F[_]: MonadCancelThrow: Logger](
+  private def tryAtomReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
@@ -579,7 +579,7 @@ object ObserveEngine {
   /**
    * Build Observe and setup epics
    */
-  def build[F[_]: Async: Logger](
+  def build[F[_]: {Async, Logger}](
     site:    Site,
     systems: Systems[F],
     conf:    ObserveEngineConfiguration

@@ -36,7 +36,7 @@ trait toast:
         )
       )
 
-    def showDuring[F[_]: Sync: UUIDGen](
+    def showDuring[F[_]: {Sync, UUIDGen}](
       text:         String,
       completeText: Option[String] = none,
       errorText:    Option[String] = none

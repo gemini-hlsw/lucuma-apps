@@ -15,7 +15,7 @@ import workers.*
 
 object ITCVersionsRequests {
 
-  def queryItc[F[_]: Concurrent: Logger](
+  def queryItc[F[_]: {Concurrent, Logger}](
     cache:     Cache[F],
     itcClient: ItcClient[F]
   ): F[Unit] =

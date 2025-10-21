@@ -16,7 +16,7 @@ import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
 object GmosHeader {
-  def header[F[_]: Sync: Logger, T <: GmosSite, S <: gmos.StaticConfig, D <: gmos.DynamicConfig](
+  def header[F[_]: {Sync, Logger}, T <: GmosSite, S <: gmos.StaticConfig, D <: gmos.DynamicConfig](
     kwClient:          KeywordsClient[F],
     gmosObsReader:     GmosObsKeywordsReader[F, T, S, D],
     gmosReader:        GmosKeywordReader[F],

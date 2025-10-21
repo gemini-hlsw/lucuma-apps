@@ -13,7 +13,7 @@ import observe.server.keywords.*
 import org.typelevel.log4cats.Logger
 
 object GcalHeader {
-  def header[F[_]: Sync: Logger](
+  def header[F[_]: {Sync, Logger}](
     kwClient:   KeywordsClient[F],
     gcalReader: GcalKeywordReader[F]
   ): Header[F] =

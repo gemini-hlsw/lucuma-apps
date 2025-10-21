@@ -16,7 +16,7 @@ import observe.server.tcs.TcsController
 import org.typelevel.log4cats.Logger
 
 object AltairControllerSim {
-  def apply[F[_]: Applicative: Logger]: AltairController[F] = new AltairController[F] {
+  def apply[F[_]: {Applicative, Logger}]: AltairController[F] = new AltairController[F] {
     private val L = Logger[F]
 
     override def pauseResume(

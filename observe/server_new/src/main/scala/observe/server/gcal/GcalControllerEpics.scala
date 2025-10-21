@@ -77,7 +77,7 @@ object GcalControllerEpics {
     sys.lampsCmd.setIRLampName("IR") *>
       sys.lampsCmd.setIRLampOn(v)
 
-  def apply[F[_]: Async: Logger](epics: => GcalEpics[F]): GcalController[F] =
+  def apply[F[_]: {Async, Logger}](epics: => GcalEpics[F]): GcalController[F] =
     new GcalController[F] {
       override def applyConfig(config: GcalConfig): F[Unit] =
         retrieveConfig(epics).flatMap(configure(epics, _, config))

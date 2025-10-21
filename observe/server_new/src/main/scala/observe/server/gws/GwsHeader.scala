@@ -20,7 +20,7 @@ import observe.server.keywords.*
 import org.typelevel.log4cats.Logger
 
 object GwsHeader {
-  def header[F[_]: MonadThrow: Logger](
+  def header[F[_]: {MonadThrow, Logger}](
     kwClient:  KeywordsClient[F],
     gwsReader: GwsKeywordReader[F]
   ): Header[F] = new Header[F] {

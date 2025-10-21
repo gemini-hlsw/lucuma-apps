@@ -14,7 +14,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
-class DhsClientDisabled[F[_]: FlatMap: Clock: Logger] extends DhsClient[F] {
+class DhsClientDisabled[F[_]: {FlatMap, Clock, Logger}] extends DhsClient[F] {
 
   val format: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 

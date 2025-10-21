@@ -18,7 +18,7 @@ import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
 object Flamingos2Header {
-  def header[F[_]: Sync: Logger](
+  def header[F[_]: {Sync, Logger}](
     kwClient:          KeywordsClient[F],
     f2ObsReader:       Flamingos2Header.ObsKeywordsReader[F],
     tcsKeywordsReader: TcsKeywordsReader[F]

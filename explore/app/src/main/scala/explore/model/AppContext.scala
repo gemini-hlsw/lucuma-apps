@@ -109,7 +109,7 @@ case class AppContext[F[_]](
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value
 
-  def from[F[_]: Async: FetchJsBackend: WebSocketJsBackend: Parallel: Logger: SecureRandom](
+  def from[F[_]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom}](
     config:               AppConfig,
     reconnectionStrategy: ReconnectionStrategy,
     pageUrl:              Option[(AppTab, Program.Id, Focused)] => String,

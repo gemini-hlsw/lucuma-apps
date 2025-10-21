@@ -16,7 +16,7 @@ import org.http4s.dsl.Http4sDsl
 import org.http4s.server.middleware.GZip
 import org.typelevel.log4cats.Logger
 
-class GuideConfigDbRoutes[F[_]: Concurrent: Compression: Logger](db: GuideConfigDb[F])
+class GuideConfigDbRoutes[F[_]: {Concurrent, Compression, Logger}](db: GuideConfigDb[F])
     extends Http4sDsl[F] {
 
   given EntityDecoder[F, GuideConfig] = jsonOf

@@ -31,7 +31,7 @@ import observe.server.tcs.TcsNorthController.TcsNorthAoConfig
 import observe.server.tcs.TcsNorthController.TcsNorthConfig
 import org.typelevel.log4cats.Logger
 
-class TcsNorth[F[_]: Sync: Logger] private (
+class TcsNorth[F[_]: {Sync, Logger}] private (
   tcsController: TcsNorthController[F],
   subsystems:    NonEmptySet[Subsystem],
   gaos:          Option[Altair[F]],
@@ -228,7 +228,7 @@ object TcsNorth {
     )
   }
 
-  def fromConfig[F[_]: Sync: Logger](
+  def fromConfig[F[_]: {Sync, Logger}](
     controller:          TcsNorthController[F],
     subsystems:          NonEmptySet[Subsystem],
     gaos:                Option[Altair[F]],

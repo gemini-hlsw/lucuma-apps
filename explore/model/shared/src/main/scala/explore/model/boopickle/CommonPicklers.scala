@@ -87,7 +87,7 @@ trait CommonPicklers {
   given picklerNonEmptyChaing[A: Pickler]: Pickler[NonEmptyChain[A]] =
     transformPickler(NonEmptyChain.fromNonEmptyList[A])(_.toNonEmptyList)
 
-  given picklerNonEmptyMap[A: Order: Pickler, B: Pickler]: Pickler[NonEmptyMap[A, B]] =
+  given picklerNonEmptyMap[A: {Order, Pickler}, B: Pickler]: Pickler[NonEmptyMap[A, B]] =
     transformPickler((a: NonEmptyList[(A, B)]) => NonEmptyMap.of(a.head, a.tail*))(
       _.toNel
     )

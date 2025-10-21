@@ -13,7 +13,7 @@ import clue.syntax.*
 import lucuma.odb.data.OdbError
 import org.typelevel.log4cats.Logger
 
-trait OdbApiHelper[F[_]: Sync: Logger](
+trait OdbApiHelper[F[_]: {Sync, Logger}](
   resetCache:       String => F[Unit],
   notifyFatalError: String => F[Unit]
 ):

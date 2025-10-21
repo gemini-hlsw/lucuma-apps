@@ -62,7 +62,7 @@ import scala.concurrent.duration.*
 import SeqEvent.*
 import ClientEvent.*
 
-private class ObserveEngineImpl[F[_]: Async: Logger](
+private class ObserveEngineImpl[F[_]: {Async, Logger}](
   executeEngine:         Engine[F],
   override val systems:  Systems[F],
   @unused settings:      ObserveEngineConfiguration,

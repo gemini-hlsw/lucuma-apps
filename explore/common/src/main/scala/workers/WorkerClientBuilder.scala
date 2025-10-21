@@ -12,7 +12,7 @@ import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 
 trait WorkerClientBuilder[R: Pickler](worker: dom.Worker):
-  def build[F[_]: Async: UUIDGen: Logger](
+  def build[F[_]: {Async, UUIDGen, Logger}](
     dispatcher: Dispatcher[F]
   ): Resource[F, WorkerClient[F, R]] =
     for {

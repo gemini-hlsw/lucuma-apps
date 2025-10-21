@@ -186,7 +186,7 @@ object InstrumentControllerSim {
 
   }
 
-  def apply[F[_]: Logger: Async](name: String): F[InstrumentControllerSim[F]] =
+  def apply[F[_]: {Logger, Async}](name: String): F[InstrumentControllerSim[F]] =
     InstrumentControllerSim.ObserveState.ref[F].map { obsStateRef =>
       new InstrumentControllerSimImpl[F](
         name,
@@ -198,7 +198,7 @@ object InstrumentControllerSim {
       )
     }
 
-  def unsafeWithTimes[F[_]: Async: Logger](
+  def unsafeWithTimes[F[_]: {Async, Logger}](
     name:               String,
     readOutDelay:       TimeSpan,
     stopObserveDelay:   TimeSpan,

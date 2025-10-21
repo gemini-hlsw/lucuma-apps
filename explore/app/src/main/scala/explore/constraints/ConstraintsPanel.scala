@@ -103,7 +103,7 @@ object ConstraintsPanel:
       val erView =
         undoViewSet(ConstraintSet.elevationRange, UpdateConstraintSet.elevationRange)
 
-      def selectEnum[A: Enumerated: Display](
+      def selectEnum[A: {Enumerated, Display}](
         label:      NonEmptyString,
         helpId:     Help.Id,
         lens:       Lens[ConstraintSet, A],

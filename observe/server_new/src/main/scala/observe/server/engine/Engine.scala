@@ -28,7 +28,7 @@ import Result.RetVal
 import UserEvent.*
 import Handle.given
 
-class Engine[F[_]: MonadCancelThrow: Logger] private (
+class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   streamQueue: Queue[F, Stream[F, Event[F]]],
   inputQueue:  Queue[F, Event[F]],
   atomLoad:    (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
@@ -591,7 +591,7 @@ object Engine {
     type EventData = E
   }
 
-  def build[F[_]: Concurrent: Logger](
+  def build[F[_]: {Concurrent, Logger}](
     loadNextAtom:   (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
     reloadNextAtom: (Engine[F], Observation.Id, ReloadReason) => EngineHandle[F, SeqEvent]
   ): F[Engine[F]] = for {
