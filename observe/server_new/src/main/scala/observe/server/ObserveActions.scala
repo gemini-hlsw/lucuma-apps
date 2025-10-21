@@ -123,7 +123,7 @@ trait ObserveActions {
    * Preamble for observations. It tells the odb, the subsystems send the start headers and finally
    * sends an observe
    */
-  def observePreamble[F[_]: Concurrent: Logger](
+  def observePreamble[F[_]: {Concurrent, Logger}](
     fileId: ImageFileId,
     env:    ObserveEnvironment[F]
   ): F[ObserveCommandResult] =
@@ -224,7 +224,7 @@ trait ObserveActions {
   /**
    * Observe for a typical instrument
    */
-  def stdObserve[F[_]: Temporal: Logger](
+  def stdObserve[F[_]: {Temporal, Logger}](
     fileId: ImageFileId,
     env:    ObserveEnvironment[F]
   ): Stream[F, Result] =

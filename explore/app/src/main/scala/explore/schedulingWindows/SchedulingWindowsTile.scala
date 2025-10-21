@@ -74,7 +74,7 @@ object SchedulingWindowsTile:
       _ => Timestamp.unsafeFromInstantTruncated(instant)
     )
 
-  def forObsIdSet[F[_]: OdbObservationApi: MonadThrow: Dispatch: Logger: ToastCtx](
+  def forObsIdSet[F[_]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
     obsEditInfo:  ObsIdSetEditInfo,
     observations: UndoSetter[ObservationList],
     readOnly:     Boolean,
@@ -101,7 +101,7 @@ object SchedulingWindowsTile:
       )
     internalApply(obsEditInfo, timingWindows, readOnly, fullSize)
 
-  def forObservation[F[_]: OdbObservationApi: MonadThrow: Dispatch: Logger: ToastCtx](
+  def forObservation[F[_]: {OdbObservationApi, MonadThrow, Dispatch, Logger, ToastCtx}](
     observation: UndoSetter[Observation],
     readOnly:    Boolean,
     fullSize:    Boolean

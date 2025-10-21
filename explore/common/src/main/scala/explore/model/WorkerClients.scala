@@ -81,7 +81,7 @@ object WorkerClients {
 
   object PlotClient extends WorkerClientBuilder[PlotMessage.Request](PlotWorker())
 
-  def build[F[_]: Async: Logger: SecureRandom](
+  def build[F[_]: {Async, Logger, SecureRandom}](
     dispatcher: Dispatcher[F]
   ): Resource[F, WorkerClients[F]] =
     (ItcClient.build[F](dispatcher),

@@ -204,6 +204,6 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
 }
 
 object TestObserveEngine {
-  def build[F[_]: Async: Logger]: F[TestObserveEngine[F]] =
+  def build[F[_]: {Async, Logger}]: F[TestObserveEngine[F]] =
     Systems.dummy[F].map(TestObserveEngine[F](_))
 }

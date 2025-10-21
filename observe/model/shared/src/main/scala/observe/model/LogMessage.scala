@@ -21,6 +21,6 @@ case class LogMessage(level: ObserveLogLevel, timestamp: Instant, msg: String)
 object LogMessage:
   given Order[LogMessage] = Order.by(_.timestamp)
 
-  def now[F[_]: Clock: Functor](level: ObserveLogLevel, msg: String): F[LogMessage] =
+  def now[F[_]: {Clock, Functor}](level: ObserveLogLevel, msg: String): F[LogMessage] =
     Clock[F].realTime.map: time =>
       LogMessage(level, Instant.ofEpochMilli(time.toMillis), msg)

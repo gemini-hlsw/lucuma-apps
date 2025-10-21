@@ -472,7 +472,7 @@ object TcsNorthControllerEpicsAo {
 
   }
 
-  def apply[F[_]: Async: Logger](epicsSys: TcsEpics[F]): TcsNorthControllerEpicsAo[F] =
+  def apply[F[_]: {Async, Logger}](epicsSys: TcsEpics[F]): TcsNorthControllerEpicsAo[F] =
     new TcsNorthControllerEpicsAoImpl(epicsSys)
 
   final case class EpicsTcsAoConfig(

@@ -839,7 +839,9 @@ object TcsControllerEpicsCommon {
 
   }
 
-  def apply[F[_]: Async: Logger, S <: Site](epicsSys: TcsEpics[F]): TcsControllerEpicsCommon[F, S] =
+  def apply[F[_]: {Async, Logger}, S <: Site](
+    epicsSys: TcsEpics[F]
+  ): TcsControllerEpicsCommon[F, S] =
     new TcsControllerEpicsCommonImpl(epicsSys)
 
   val DefaultTimeout: TimeSpan = TimeSpan.unsafeFromDuration(10, ChronoUnit.SECONDS)

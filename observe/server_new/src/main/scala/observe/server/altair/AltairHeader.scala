@@ -16,7 +16,7 @@ import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
 object AltairHeader {
-  def header[F[_]: Sync: Logger](
+  def header[F[_]: {Sync, Logger}](
     kwClient:          KeywordsClient[F],
     altairReader:      AltairKeywordReader[F],
     tcsKeywordsReader: TcsKeywordsReader[F]

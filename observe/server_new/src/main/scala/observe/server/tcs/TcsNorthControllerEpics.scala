@@ -14,7 +14,7 @@ import observe.server.tcs.TcsController.*
 import observe.server.tcs.TcsNorthController.*
 import org.typelevel.log4cats.Logger
 
-final case class TcsNorthControllerEpics[F[_]: Async: Logger](epicsSys: TcsEpics[F])
+final case class TcsNorthControllerEpics[F[_]: {Async, Logger}](epicsSys: TcsEpics[F])
     extends TcsNorthController[F] {
   private val commonController = TcsControllerEpicsCommon[F, Site.GN.type](epicsSys)
   private val aoController     = TcsNorthControllerEpicsAo(epicsSys)

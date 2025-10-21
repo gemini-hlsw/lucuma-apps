@@ -127,7 +127,7 @@ object Gems {
       OIUsage(opConfig.isOIUsed && stepConfig.isOIUsed)
     )
 
-  def fromConfig[F[_]: MonadThrow: Logger](
+  def fromConfig[F[_]: {MonadThrow, Logger}](
     c:             GemsController[F],
     guideConfigDb: GuideConfigDb[F]
   ): Gems[F] = {
@@ -174,7 +174,7 @@ object Gems {
     def fromBoolean[T: DetectorStateOps](b: Boolean): T =
       if (b) DetectorStateOps[T].trueVal else DetectorStateOps[T].falseVal
 
-    def isActive[T: DetectorStateOps: Eq](v: T): Boolean = v === DetectorStateOps[T].trueVal
+    def isActive[T: {DetectorStateOps, Eq}](v: T): Boolean = v === DetectorStateOps[T].trueVal
   }
 
   sealed trait Cwfs1DetectorState extends Product with Serializable

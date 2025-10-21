@@ -15,7 +15,7 @@ import org.http4s.*
 import org.typelevel.log4cats.Logger
 import queries.schemas.*
 
-case class GraphQLClients[F[_]: Async: Parallel] protected (
+case class GraphQLClients[F[_]: {Async, Parallel}] protected (
   odb:           WebSocketJsClient[F, ObservationDB],
   preferencesDB: WebSocketJsClient[F, UserPreferencesDB],
   sso:           FetchJsClient[F, SSO]
@@ -30,7 +30,7 @@ case class GraphQLClients[F[_]: Async: Parallel] protected (
     ).sequence.void
 
 object GraphQLClients:
-  def build[F[_]: Async: FetchJsBackend: WebSocketJsBackend: Parallel: Logger: SecureRandom](
+  def build[F[_]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom}](
     odbURI:               Uri,
     prefsURI:             Uri,
     ssoURI:               Uri,

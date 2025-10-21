@@ -22,7 +22,7 @@ import org.http4s.server.middleware.GZip
 
 import scala.concurrent.duration.*
 
-class StaticRoutes[F[_]: Sync: Compression: Files]:
+class StaticRoutes[F[_]: {Sync, Compression, Files}]:
   private val AppDir: String = "app"
 
   private val OneYear: Int = 365 * 24 * 60 * 60 // One year in seconds

@@ -26,7 +26,7 @@ import org.http4s.server.middleware.GZip
 /**
  * Rest Endpoints under the /api route
  */
-class ObserveCommandRoutes[F[_]: Async: Compression](
+class ObserveCommandRoutes[F[_]: {Async, Compression}](
   ssoClient: SsoClient[F, User],
   oe:        ObserveEngine[F]
 ) extends Http4sDsl[F] {

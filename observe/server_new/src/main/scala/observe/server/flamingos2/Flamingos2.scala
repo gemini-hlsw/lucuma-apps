@@ -34,7 +34,7 @@ import observe.server.tcs.FOCAL_PLANE_SCALE
 import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
-final case class Flamingos2[F[_]: Async: Logger](
+final case class Flamingos2[F[_]: {Async, Logger}](
   controller:        Flamingos2Controller[F],
   dhsClientProvider: DhsClientProvider[F],
   config:            Flamingos2Controller.Flamingos2Config
@@ -150,7 +150,7 @@ object Flamingos2 {
       dcConfigFromSequenceConfig(dynamicConfig)
     )
 
-  def build[F[_]: Async: Logger](
+  def build[F[_]: {Async, Logger}](
     controller:        Flamingos2Controller[F],
     dhsClientProvider: DhsClientProvider[F],
     stepType:          CoreStepType,

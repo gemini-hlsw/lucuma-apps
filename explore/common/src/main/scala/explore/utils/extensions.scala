@@ -143,7 +143,7 @@ extension (bytes: NonNegLong)
     }
   }
 
-extension [F[_]: Sync: ToastCtx](f: F[Unit])
+extension [F[_]: {Sync, ToastCtx}](f: F[Unit])
   def withToast(
     text:     String,
     severity: Message.Severity = Message.Severity.Info,

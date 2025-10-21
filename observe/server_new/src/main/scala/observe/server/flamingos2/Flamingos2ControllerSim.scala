@@ -35,7 +35,7 @@ final case class Flamingos2ControllerSim[F[_]] private (sim: InstrumentControlle
 }
 
 object Flamingos2ControllerSim {
-  def apply[F[_]: Async: Logger]: F[Flamingos2Controller[F]] =
+  def apply[F[_]: {Async, Logger}]: F[Flamingos2Controller[F]] =
     InstrumentControllerSim("FLAMINGOS-2").map(Flamingos2ControllerSim(_))
 
 }
@@ -43,7 +43,7 @@ object Flamingos2ControllerSim {
 /**
  * This controller will run correctly but fail at step `failAt`
  */
-final case class Flamingos2ControllerSimBad[F[_]: MonadThrow: Logger] private (
+final case class Flamingos2ControllerSimBad[F[_]: {MonadThrow, Logger}] private (
   failAt:  Int,
   sim:     InstrumentControllerSim[F],
   counter: Ref[F, Int]
@@ -71,7 +71,7 @@ final case class Flamingos2ControllerSimBad[F[_]: MonadThrow: Logger] private (
 }
 
 object Flamingos2ControllerSimBad {
-  def apply[F[_]: Async: Logger](failAt: Int): F[Flamingos2Controller[F]] =
+  def apply[F[_]: {Async, Logger}](failAt: Int): F[Flamingos2Controller[F]] =
     (Ref.of[F, Int](0), InstrumentControllerSim("FLAMINGOS-2 (bad)")).mapN { (counter, sim) =>
       Flamingos2ControllerSimBad(
         failAt,

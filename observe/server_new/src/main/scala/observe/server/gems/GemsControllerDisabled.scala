@@ -13,7 +13,7 @@ import observe.server.tcs.Gaos.PauseConditionSet
 import observe.server.tcs.Gaos.PauseResume
 import org.typelevel.log4cats.Logger
 
-class GemsControllerDisabled[F[_]: Logger: Applicative] extends GemsController[F] {
+class GemsControllerDisabled[F[_]: {Logger, Applicative}] extends GemsController[F] {
   override def pauseResume(
     pauseReasons:  PauseConditionSet,
     resumeReasons: Gaos.ResumeConditionSet

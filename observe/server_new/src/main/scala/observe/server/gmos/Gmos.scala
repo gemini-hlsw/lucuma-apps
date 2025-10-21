@@ -43,7 +43,7 @@ import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
 
-abstract class Gmos[F[_]: Temporal: Logger, T <: GmosSite](
+abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
   val controller: GmosController[F, T],
   nsCmdR:         Ref[F, Option[NSObserveCommand]],
   val config:     GmosController.GmosConfig[T]

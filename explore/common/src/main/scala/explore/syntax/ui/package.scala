@@ -71,7 +71,7 @@ extension (vault: UserVault)
     )
     request
 
-extension [F[_]: ApplicativeThrow: ToastCtx, A](f: F[A])
+extension [F[_]: {ApplicativeThrow, ToastCtx}, A](f: F[A])
   def toastErrors: F[A] =
     f.onError {
       case ResponseException(errors, _) =>

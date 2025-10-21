@@ -20,7 +20,7 @@ import WorkerMessage.*
  * Implements the client side of a simple client/server protocol that provides a somewhat more
  * functional/effecful way of communicating with workers.
  */
-class WorkerClient[F[_]: Concurrent: UUIDGen: Logger, R: Pickler] private (
+class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
   worker:    WebWorkerF[F],
   initLatch: Deferred[F, Unit]
 ):
@@ -93,7 +93,7 @@ class WorkerClient[F[_]: Concurrent: UUIDGen: Logger, R: Pickler] private (
     request(requestMessage)(using nothingPickler.xmap(ev.flip)(ev)).use(_.compile.drain)
 
 object WorkerClient:
-  def fromWorker[F[_]: Concurrent: UUIDGen: Logger, R: Pickler](
+  def fromWorker[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler](
     worker: WebWorkerF[F]
   ): Resource[F, WorkerClient[F, R]] =
     for {

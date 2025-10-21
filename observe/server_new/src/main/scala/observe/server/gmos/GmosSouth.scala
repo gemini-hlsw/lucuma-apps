@@ -40,7 +40,7 @@ import observe.server.tcs.*
 import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
-final case class GmosSouth[F[_]: Temporal: Logger](
+final case class GmosSouth[F[_]: {Temporal, Logger}](
   c:                 GmosSouthController[F],
   dhsClientProvider: DhsClientProvider[F],
   nsCmdR:            Ref[F, Option[NSObserveCommand]],
@@ -89,7 +89,7 @@ object GmosSouth {
         StaticConfig.GmosSouth.mosPreImaging.asGetter
     }
 
-  def build[F[_]: Temporal: Logger](
+  def build[F[_]: {Temporal, Logger}](
     controller:        GmosController[F, GmosSite.South.type],
     dhsClientProvider: DhsClientProvider[F],
     nsCmdR:            Ref[F, Option[NSObserveCommand]],

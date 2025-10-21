@@ -102,7 +102,7 @@ trait SeqTranslate[F[_]] {
 
 object SeqTranslate {
 
-  class SeqTranslateImpl[F[_]: Async: Logger](
+  class SeqTranslateImpl[F[_]: {Async, Logger}](
     site:                             Site,
     systemss:                         Systems[F],
     gmosNsCmd:                        Ref[F, Option[NSObserveCommand]],
@@ -976,7 +976,7 @@ object SeqTranslate {
       }
   }
 
-  def apply[F[_]: Async: Logger](
+  def apply[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
     conditionsRef: Ref[F, Conditions]
@@ -995,7 +995,7 @@ object SeqTranslate {
 //      )
 //      .widenRethrowT
 
-  class OverriddenSystems[F[_]: Sync: Logger](systems: Systems[F]) {
+  class OverriddenSystems[F[_]: {Sync, Logger}](systems: Systems[F]) {
 
     private val tcsSouthDisabled: TcsSouthController[F]     = new TcsSouthControllerDisabled[F]
     private val tcsNorthDisabled: TcsNorthController[F]     = new TcsNorthControllerDisabled[F]

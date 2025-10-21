@@ -14,7 +14,7 @@ import org.http4s.server.middleware.GZip
 /**
  * Rest Endpoints to ping the backend and detect when you're logged out
  */
-class PingRoutes[F[_]: Monad: Compression](ssoClient: SsoClient[F, User]) extends Http4sDsl[F] {
+class PingRoutes[F[_]: {Monad, Compression}](ssoClient: SsoClient[F, User]) extends Http4sDsl[F] {
 
   val pingService: HttpRoutes[F] = HttpRoutes.of[F] { case req @ GET -> Root =>
     ssoClient.require(req) { _ =>

@@ -622,7 +622,7 @@ object TcsSouthControllerEpicsAo {
         }
       }
 
-  def apply[F[_]: Async: Logger](epicsSys: TcsEpics[F]): TcsSouthControllerEpicsAo[F] =
+  def apply[F[_]: {Async, Logger}](epicsSys: TcsEpics[F]): TcsSouthControllerEpicsAo[F] =
     new TcsSouthControllerEpicsAoImpl(epicsSys)
 
 }

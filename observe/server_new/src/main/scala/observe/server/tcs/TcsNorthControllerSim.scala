@@ -14,7 +14,7 @@ import observe.server.tcs.TcsNorthController.TcsNorthConfig
 import observe.server.tcs.TcsNorthController.given
 import org.typelevel.log4cats.Logger
 
-class TcsNorthControllerSim[F[_]: Applicative: Logger] private extends TcsNorthController[F] {
+class TcsNorthControllerSim[F[_]: {Applicative, Logger}] private extends TcsNorthController[F] {
   val sim = new TcsControllerSim[F]
   val L   = Logger[F]
 
@@ -42,6 +42,6 @@ class TcsNorthControllerSim[F[_]: Applicative: Logger] private extends TcsNorthC
 
 object TcsNorthControllerSim {
 
-  def apply[F[_]: Applicative: Logger]: TcsNorthController[F] = new TcsNorthControllerSim[F]
+  def apply[F[_]: {Applicative, Logger}]: TcsNorthController[F] = new TcsNorthControllerSim[F]
 
 }

@@ -83,12 +83,12 @@ trait EpicsSystem[T] {
   // Still using a var, but at least now it's hidden.
   private var instanceInternal = Option.empty[T]
 
-  def instance[F[_]: Logger: Sync](service: CaService, tops: Map[String, String]): F[T] =
+  def instance[F[_]: {Logger, Sync}](service: CaService, tops: Map[String, String]): F[T] =
     instanceInternal
       .map(_.pure[F])
       .getOrElse(init[F](service, tops))
 
-  def init[F[_]: Logger: Sync](service: CaService, tops: Map[String, String]): F[T] =
+  def init[F[_]: {Logger, Sync}](service: CaService, tops: Map[String, String]): F[T] =
     MonadError[F, Throwable].catchNonFatal[Unit](
       tops
         .foldLeft(

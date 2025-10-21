@@ -29,7 +29,7 @@ import org.typelevel.log4cats.Logger
 /**
  * Gmos needs different actions for N&S
  */
-class GmosInstrumentActions[F[_]: Temporal: Logger, A <: GmosController.GmosSite](
+class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSite](
   inst: Gmos[F, A]
 ) extends InstrumentActions[F] {
   override def observationProgressStream(

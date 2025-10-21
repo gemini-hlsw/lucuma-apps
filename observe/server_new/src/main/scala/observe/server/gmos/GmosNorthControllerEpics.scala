@@ -108,7 +108,7 @@ object GmosNorthEncoders extends GmosControllerEpics.Encoders[GmosSite.North.typ
 }
 
 object GmosNorthControllerEpics {
-  def apply[F[_]: Async: Logger](sys: => GmosEpics[F]): GmosController[F, GmosSite.North.type] = {
+  def apply[F[_]: {Async, Logger}](sys: => GmosEpics[F]): GmosController[F, GmosSite.North.type] = {
     given GmosControllerEpics.Encoders[GmosSite.North.type] = GmosNorthEncoders
     GmosControllerEpics[F, GmosSite.North.type](sys)
   }

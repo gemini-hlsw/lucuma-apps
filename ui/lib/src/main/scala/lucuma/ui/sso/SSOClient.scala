@@ -27,7 +27,7 @@ import java.util as ju
 
 case class JwtOrcidProfile(exp: Long, `lucuma-user`: User) derives Decoder
 
-case class SSOClient[F[_]: Async: Random: Logger](config: SSOConfig):
+case class SSOClient[F[_]: {Async, Random, Logger}](config: SSOConfig):
   private val client = FetchClientBuilder[F]
     .withRequestTimeout(config.readTimeout)
     .withCredentials(RequestCredentials.include)

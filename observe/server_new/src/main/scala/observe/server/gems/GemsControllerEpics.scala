@@ -97,7 +97,7 @@ class GemsControllerEpics[F[_]: Async](
 
 object GemsControllerEpics {
 
-  def apply[F[_]: Async: Logger](
+  def apply[F[_]: {Async, Logger}](
     epicsSys:    => GemsEpics[F],
     gsaoiGuider: GsaoiGuider[F]
   ): GemsController[F] = new GemsControllerEpics[F](epicsSys, gsaoiGuider)

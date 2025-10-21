@@ -72,7 +72,7 @@ object InstrumentActions {
   /**
    * Default Actions for most instruments it basically delegates to ObserveActions
    */
-  def defaultInstrumentActions[F[_]: Temporal: Logger]: InstrumentActions[F] =
+  def defaultInstrumentActions[F[_]: {Temporal, Logger}]: InstrumentActions[F] =
     new InstrumentActions[F] {
       def observationProgressStream(
         env: ObserveEnvironment[F]
