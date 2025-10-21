@@ -8,13 +8,13 @@ import cats.Order
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.extensions.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
 import lucuma.core.math.skycalc.SkyCalcResults
-import lucuma.core.model.CoordinatesAt
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.util.NewType
 import lucuma.typed.highcharts.mod.Point
 import lucuma.typed.highcharts.mod.PointOptionsObject
@@ -37,7 +37,7 @@ trait ElevationPointWithAirmass extends Point:
 // Can wrap data for a target or an asterism.
 case class ObjectPlotData(
   name:     NonEmptyString,
-  tracking: ObjectTracking,
+  tracking: Tracking,
   sites:    List[Site]
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
@@ -51,7 +51,9 @@ case class ObjectPlotData(
         PlotEvery,
         // We are computing the coordinates at each point in time, this may be expensive
         // and could be optimized for sidereals, but it's probably necessary for non-sidereals.
-        tracking.at(_).map(_.value).getOrElse(tracking.baseCoordinates)
+        tracking
+          .at(_)
+          .getOrElse(tracking.baseCoordinates)
       )
 
 object ObjectPlotData:

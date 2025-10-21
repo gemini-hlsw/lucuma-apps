@@ -34,11 +34,11 @@ import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.BoundedInterval
 import lucuma.core.math.BoundedInterval.*
+import lucuma.core.math.Coordinates
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.CoordinatesAt
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
 import lucuma.core.syntax.all.*
@@ -64,7 +64,7 @@ final case class ImagingModesTable(
   matrix:              ImagingModesMatrix,
   constraints:         ConstraintSet,
   targets:             EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
-  baseCoordinates:     Option[CoordinatesAt],
+  baseCoordinates:     Option[Coordinates],
   customSedTimestamps: List[Timestamp],
   units:               WavelengthUnits,
   targetView:          View[Option[ItcTarget]]

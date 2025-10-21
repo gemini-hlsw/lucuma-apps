@@ -26,7 +26,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 100
-  private val CacheVersion: Int = 3
+  private val CacheVersion: Int = 4
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -66,7 +66,7 @@ trait CatalogCache extends CatalogIDB {
         // Make a query based on two coordinates of the base of an asterism over a year
         val query: CoordinatesRangeQueryByADQL =
           CoordinatesRangeQueryByADQL(
-            NonEmptyList.of(a.value, b.value),
+            NonEmptyList.of(a, b),
             candidatesArea,
             brightnessConstraints.some
           )

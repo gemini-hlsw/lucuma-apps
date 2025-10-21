@@ -35,6 +35,7 @@ import lucuma.core.model.Target
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
 import lucuma.schemas.model.CentralWavelength
 import org.http4s.Uri
 
@@ -204,6 +205,8 @@ trait CommonPicklers {
       SignalToNoise.FromBigDecimalExact.getOption(v).getOrElse(sys.error("Cannot unpickle"))
     )(_.toBigDecimal)
 
+  given Pickler[Timestamp] =
+    transformPickler((instant: Instant) => Timestamp.fromInstant(instant).get)(_.toInstant)
 }
 
 object CommonPicklers extends CommonPicklers

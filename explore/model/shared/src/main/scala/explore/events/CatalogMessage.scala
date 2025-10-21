@@ -8,7 +8,7 @@ import boopickle.Pickler
 import explore.model.boopickle.CatalogPicklers
 import lucuma.ags.GuideStarCandidate
 import lucuma.core.enums.ObservingModeType
-import lucuma.core.model.ObjectTracking
+import lucuma.core.model.Tracking
 import workers.WorkerRequest
 
 import java.time.Duration
@@ -21,7 +21,7 @@ object CatalogMessage extends CatalogPicklers {
   }
 
   case class GSRequest(
-    tracking:    ObjectTracking,
+    tracking:    Tracking,
     vizTime:     Instant,
     obsModeType: ObservingModeType
   ) extends Request {

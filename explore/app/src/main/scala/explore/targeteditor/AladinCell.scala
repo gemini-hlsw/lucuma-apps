@@ -26,6 +26,7 @@ import explore.model.boopickle.*
 import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
+import explore.model.extensions.*
 import explore.model.reusability.given
 import explore.optics.ModelOptics
 import japgolly.scalajs.react.*
@@ -39,7 +40,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
-import lucuma.core.model.ObjectTracking
+import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.*
@@ -64,7 +65,7 @@ case class AladinCell(
   uid:                User.Id,
   obsId:              Option[Observation.Id],
   asterism:           Asterism,
-  asterismTracking:   ObjectTracking,
+  asterismTracking:   Tracking,
   obsTime:            Instant,
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
@@ -352,7 +353,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          props.asterism.focus.id,
                                          constraints,
                                          centralWavelength.value,
-                                         base.value,
+                                         base,
                                          props.sciencePositionsAt(vizTime),
                                          positions,
                                          p,

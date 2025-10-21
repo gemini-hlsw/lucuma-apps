@@ -23,11 +23,11 @@ import lucuma.core.math.arb.ArbRightAscension.given
 import lucuma.core.math.arb.ArbWavelength.given
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
-import lucuma.core.model.SiderealTracking
+import lucuma.core.model.Tracking
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.arb.ArbConstraintSet.given
 import lucuma.core.model.arb.ArbElevationRange.given
-import lucuma.core.model.arb.ArbSiderealTracking.given
+import lucuma.core.model.arb.ArbTracking.given
 import lucuma.core.model.arb.ArbUnnormalizedSED.given
 
 class BoopickleSuite
@@ -46,7 +46,7 @@ class BoopickleSuite
   checkAll("Pickler[ProperMotion]", PicklerTests[ProperMotion].pickler)
   checkAll("Pickler[RadialVelocity]", PicklerTests[RadialVelocity].pickler)
   checkAll("Pickler[Parallax]", PicklerTests[Parallax].pickler)
-  checkAll("Pickler[SiderealTracking]", PicklerTests[SiderealTracking].pickler)
+  checkAll("Pickler[Tracking]", PicklerTests[Tracking].pickler)
   checkAll("Pickler[GuideStarCandidate]", PicklerTests[GuideStarCandidate].pickler)
   checkAll("Pickler[ElevationRange]", PicklerTests[ElevationRange].pickler)
   checkAll("Pickler[ConstraintSet]", PicklerTests[ConstraintSet].pickler)

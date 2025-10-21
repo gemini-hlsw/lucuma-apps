@@ -64,7 +64,7 @@ case class SpectroscopyModesTable(
   spectroscopyRequirements: ScienceRequirements.Spectroscopy,
   constraints:              ConstraintSet,
   targets:                  EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
-  baseCoordinates:          Option[CoordinatesAt],
+  baseCoordinates:          Option[Coordinates],
   matrix:                   SpectroscopyModesMatrix,
   customSedTimestamps:      List[Timestamp],
   units:                    WavelengthUnits
@@ -246,7 +246,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             (props.matrix,
                              props.exposureTimeMode,
                              props.spectroscopyRequirements,
-                             props.baseCoordinates.map(_.value.dec),
+                             props.baseCoordinates.map(_.dec),
                              itcResults.get.cache.size,
                              props.targets,
                              props.constraints,

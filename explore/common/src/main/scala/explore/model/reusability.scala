@@ -41,9 +41,9 @@ import lucuma.core.math.WavelengthDither
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ExposureTimeMode
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.TimingWindow
+import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.Atom
 import lucuma.itc.ItcCcd
 import lucuma.itc.client.GraphResult
@@ -121,7 +121,7 @@ object reusability:
   given Reusability[ItcInstrumentConfig]                = Reusability.byEq
   given Reusability[ConfigSelection]                    = Reusability.byEq
   given Reusability[CentralWavelength]                  = Reusability.byEq
-  given Reusability[ObjectTracking]                     = Reusability.byEq
+  given Reusability[Tracking]                           = Reusability.byEq
   given Reusability[Asterism]                           = Reusability.byEq[Asterism]
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq

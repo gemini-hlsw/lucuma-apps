@@ -38,9 +38,9 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
@@ -329,7 +329,7 @@ object TargetTabContents extends TwoPanels:
                   props.targets.get
                     .get(targetId)
                     .flatMap: targetWithId =>
-                      ObjectTracking
+                      Tracking
                         .fromTarget(targetWithId.target)
                         .map: tracking =>
                           ObjectPlotData.Id(targetId.asRight) -> ObjectPlotData(

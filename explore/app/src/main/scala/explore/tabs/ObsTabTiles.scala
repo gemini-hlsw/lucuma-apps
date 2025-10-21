@@ -56,15 +56,15 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.CoordinatesAt
 import lucuma.core.model.IntCentiPercent
-import lucuma.core.model.ObjectTracking
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.TimeSpan
@@ -117,7 +117,7 @@ case class ObsTabTiles(
   val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     programSummaries.obsAttachmentAssignments
 
-  val asterismTracking: Option[ObjectTracking] =
+  val asterismTracking: Option[Tracking] =
     observation.get.asterismTracking(obsTargets)
 
   val posAngleConstraint: PosAngleConstraint = observation.get.posAngleConstraint
@@ -133,7 +133,7 @@ case class ObsTabTiles(
     NonEmptyList.fromList:
       obsTargets.toList.map((_, t) => t)
 
-  def targetCoords(obsTime: Instant): Option[CoordinatesAt] =
+  def targetCoords(obsTime: Instant): Option[Coordinates] =
     asterismAsNel
       .flatMap(asterismNel => asterismNel.baseTracking.flatMap(_.at(obsTime)))
 
@@ -150,7 +150,7 @@ case class ObsTabTiles(
     )
 
   def obsIQLikelihood(obsTime: Instant): Option[IntCentiPercent] =
-    (centralWavelength, targetCoords(obsTime).map(_.value.dec), site).mapN((cw, dec, site) =>
+    (centralWavelength, targetCoords(obsTime).map(_.dec), site).mapN((cw, dec, site) =>
       site
         .minimumAirMassFor(dec)
         .fold(IntCentiPercent.Min): airMass =>
@@ -158,7 +158,7 @@ case class ObsTabTiles(
     )
 
   def obsConditionsLikelihood(obsTime: Instant): Option[IntCentiPercent] =
-    (centralWavelength, targetCoords(obsTime).map(_.value.dec), site).mapN((cw, dec, site) =>
+    (centralWavelength, targetCoords(obsTime).map(_.dec), site).mapN((cw, dec, site) =>
       conditionsLikelihood(
         constraintSet.get.skyBackground,
         constraintSet.get.cloudExtinction.toCloudExtinction,

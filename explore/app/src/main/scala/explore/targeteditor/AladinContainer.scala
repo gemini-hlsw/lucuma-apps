@@ -17,6 +17,7 @@ import explore.model.ConfigurationForVisualization
 import explore.model.Constants
 import explore.model.GlobalPreferences
 import explore.model.enums.Visible
+import explore.model.extensions.*
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
@@ -31,8 +32,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
-import lucuma.core.model.CoordinatesAt
-import lucuma.core.model.ObjectTracking
+import lucuma.core.model.Tracking
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
@@ -49,7 +49,7 @@ import scala.concurrent.duration.*
 
 case class AladinContainer(
   asterism:               Asterism,
-  asterismTracking:       ObjectTracking,
+  asterismTracking:       Tracking,
   obsTime:                Instant,
   vizConf:                Option[ConfigurationForVisualization],
   globalPreferences:      GlobalPreferences,
@@ -84,9 +84,9 @@ object AladinContainer extends AladinCommon {
         ExploreStyles.GuideSpeedSlow
 
   private def baseAndScience(p: Props) = {
-    val base: CoordinatesAt = p.asterismTracking
+    val base: Coordinates = p.asterismTracking
       .at(p.obsTime)
-      .getOrElse(CoordinatesAt(p.asterismTracking.baseCoordinates))
+      .getOrElse(p.asterismTracking.baseCoordinates)
 
     val science = p.asterism.toSidereal
       .map(t =>
@@ -96,6 +96,7 @@ object AladinContainer extends AladinCommon {
          t.target.tracking.baseCoordinates
         )
       )
+
     (base, science)
   }
 
@@ -114,19 +115,19 @@ object AladinContainer extends AladinCommon {
         baseCoords <- useState(baseAndScience(props))
         // View coordinates base coordinates with pm correction + user panning
         currentPos <-
-          useState(baseCoords.value._1.value.offsetBy(Angle.Angle0, props.options.viewOffset))
+          useState(baseCoords.value._1.offsetBy(Angle.Angle0, props.options.viewOffset))
         // Update coordinates if asterism or obsTime changes
         _          <- useEffectWithDeps((props.asterism, props.obsTime)): _ =>
                         val (base, science) = baseAndScience(props)
                         baseCoords.setState((base, science)) *>
                           currentPos.setState:
-                            base.value.offsetBy(Angle.Angle0, props.options.viewOffset)
+                            base.offsetBy(Angle.Angle0, props.options.viewOffset)
         // Ref to the aladin component
         aladinRef  <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
         _          <-
           useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
-            val newCoords = baseCoords.value._1.value.offsetBy(Angle.Angle0, offset)
+            val newCoords = baseCoords.value._1.offsetBy(Angle.Angle0, offset)
             newCoords
               .map: coords =>
                 aladinRef.value
@@ -146,7 +147,7 @@ object AladinContainer extends AladinCommon {
               case ObservingModeType.Flamingos2LongSlit                                      =>
                 (Css.Empty,
                  Flamingos2Geometry.f2Geometry(
-                   baseCoords.value._1.value,
+                   baseCoords.value._1,
                    props.vizConf.flatMap(_.scienceOffsets),
                    props.vizConf.flatMap(_.acquisitionOffsets),
                    props.vizConf.map(_.posAngle),
@@ -159,7 +160,7 @@ object AladinContainer extends AladinCommon {
               case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
                 (Css.Empty,
                  GmosGeometry.gmosGeometry(
-                   baseCoords.value._1.value,
+                   baseCoords.value._1,
                    props.vizConf.flatMap(_.scienceOffsets),
                    props.vizConf.flatMap(_.acquisitionOffsets),
                    props.vizConf.map(_.posAngle),
@@ -172,7 +173,7 @@ object AladinContainer extends AladinCommon {
               case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
                 (VisualizationStyles.GmosCcdVisible,
                  GmosGeometry.gmosGeometry(
-                   baseCoords.value._1.value,
+                   baseCoords.value._1,
                    props.vizConf.flatMap(_.scienceOffsets),
                    props.vizConf.flatMap(_.acquisitionOffsets),
                    props.vizConf.map(_.posAngle),
@@ -285,16 +286,16 @@ object AladinContainer extends AladinCommon {
                               .flatten
 
         // Use fov from aladin
-        fov    <- useState(none[Fov])
+        fov        <- useState(none[Fov])
         // Survey
-        survey <- useState(
-                    props.vizConf
-                      .flatMap(_.centralWavelength)
-                      .map(w => surveyForWavelength(w.value))
-                      .getOrElse(ImageSurvey.DSS)
-                  )
+        survey     <- useState(
+                        props.vizConf
+                          .flatMap(_.centralWavelength)
+                          .map(w => surveyForWavelength(w.value))
+                          .getOrElse(ImageSurvey.DSS)
+                      )
         // Update survey if conf changes
-        _      <-
+        _          <-
           useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))): w =>
             w.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
@@ -306,7 +307,7 @@ object AladinContainer extends AladinCommon {
          */
         def onPositionChanged(u: PositionChanged): Callback = {
           val viewCoords = Coordinates(u.ra, u.dec)
-          val viewOffset = baseCoordinates.value.diff(viewCoords).offset
+          val viewOffset = baseCoordinates.diff(viewCoords).offset
           currentPos.setState(Some(viewCoords)) *>
             props.updateViewOffset(viewOffset)
         }
@@ -334,14 +335,14 @@ object AladinContainer extends AladinCommon {
         val baseCoordinatesForAladin: String =
           currentPos.value
             .map(Coordinates.fromHmsDms.reverseGet)
-            .getOrElse(Coordinates.fromHmsDms.reverseGet(baseCoordinates.value))
+            .getOrElse(Coordinates.fromHmsDms.reverseGet(baseCoordinates))
 
         val basePosition =
           List(
-            SVGTarget.CrosshairTarget(baseCoordinates.value, Css.Empty, 10),
-            SVGTarget.CircleTarget(baseCoordinates.value, ExploreStyles.BaseTarget, 3),
+            SVGTarget.CrosshairTarget(baseCoordinates, Css.Empty, 10),
+            SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3),
             SVGTarget.LineTo(
-              baseCoordinates.value,
+              baseCoordinates,
               props.asterismTracking.baseCoordinates,
               ExploreStyles.PMCorrectionLine
             )
@@ -376,7 +377,7 @@ object AladinContainer extends AladinCommon {
             for {
               idx <- refineV[NonNegative](i).toOption
               gs  <- props.selectedGuideStar
-              c   <- baseCoordinates.value.offsetBy(gs.posAngle, o) if visible
+              c   <- baseCoordinates.offsetBy(gs.posAngle, o) if visible
             } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
           }
 
@@ -401,7 +402,7 @@ object AladinContainer extends AladinCommon {
           (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
 
         val screenOffset =
-          currentPos.value.map(_.diff(baseCoordinates.value).offset).getOrElse(Offset.Zero)
+          currentPos.value.map(_.diff(baseCoordinates).offset).getOrElse(Offset.Zero)
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
@@ -423,7 +424,7 @@ object AladinContainer extends AladinCommon {
                     _,
                     _,
                     screenOffset,
-                    baseCoordinates.value,
+                    baseCoordinates,
                     // Order matters
                     candidates ++ basePosition ++ sciencePositions ++ offsetTargets
                   )

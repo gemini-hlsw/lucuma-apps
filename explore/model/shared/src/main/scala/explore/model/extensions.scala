@@ -13,9 +13,11 @@ import lucuma.core.math.Declination
 import lucuma.core.math.Epoch
 import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
-import lucuma.core.model.ObjectTracking
+import lucuma.core.model.CompositeTracking
+import lucuma.core.model.ConstantTracking
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.schemas.model.SiderealTargetWithId
 import lucuma.schemas.model.TargetWithId
 
@@ -59,8 +61,8 @@ object extensions:
       TargetWithId.target.replace(targetWithId.target.at(i))(targetWithId)
 
   extension (targets: NonEmptyList[TargetWithId])
-    def baseTracking: Option[ObjectTracking] =
-      ObjectTracking.fromAsterism(targets.map(_.target))
+    def baseTracking: Option[Tracking] =
+      Tracking.fromAsterism(targets.map(_.target))
 
     def toSidereal: List[SiderealTargetWithId] =
       targets.toList.map(_.toSidereal).flattenOption
@@ -69,11 +71,11 @@ object extensions:
     // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
     // have asterisms with multiple ToOs, this is probably fine.
     def coordsOrRegionAt(vizTime: Option[Instant]): Option[Either[Coordinates, Region]] =
-      ObjectTracking
+      Tracking
         .orRegionFromAsterism(targets.map(_.target)) match
-        case Left(ot)      =>
-          vizTime.fold(ot.baseCoordinates.asLeft.some)(v => ot.at(v).map(_.value.asLeft))
-        case Right(region) => region.asRight.some
+        case Left(tracking) =>
+          vizTime.fold(tracking.baseCoordinates.asLeft.some)(v => tracking.at(v).map(_.asLeft))
+        case Right(region)  => region.asRight.some
 
     def isMixed: Boolean =
       targets
@@ -115,3 +117,10 @@ object extensions:
       case None                               => ""
       case Some(Left(dec))                    => f(dec)
       case Some(Right(arc: Arc[Declination])) => arc.format(f)
+
+  extension (tracking: Tracking)
+    def baseCoordinates: Coordinates = tracking match
+      case SiderealTracking(baseCoordinates, _, _, _, _) => baseCoordinates
+      case ConstantTracking(coordinates)                 => coordinates
+      case CompositeTracking(nel)                        => Coordinates.centerOf(nel.map(_.baseCoordinates))
+      case _                                             => sys.error("Non sidereals are not supported")
