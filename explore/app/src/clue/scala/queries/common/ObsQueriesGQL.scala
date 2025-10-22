@@ -137,3 +137,33 @@ object ObsQueriesGQL:
         }
       }
     """
+
+  @GraphQL
+  trait SetBlindOffsetMutation extends GraphQLOperation[ObservationDB]:
+    val document = """
+      mutation(
+        $where: WhereObservation!,
+        $useBlindOffset: Boolean!,
+        $target: TargetPropertiesInput,
+        $blindType: BlindOffsetType!
+      ) {
+        updateObservations(input: {
+          WHERE: $where
+          SET: {
+            targetEnvironment: {
+              useBlindOffset: $useBlindOffset
+              blindOffsetTarget: $target
+              blindOffsetType: $blindType
+            }
+          }
+        }) {
+          observations {
+            targetEnvironment {
+              blindOffsetTarget {
+                id
+              }
+            }
+          }
+        }
+      }
+    """

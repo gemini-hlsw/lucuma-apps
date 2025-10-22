@@ -17,6 +17,7 @@ import explore.model.Constants
 import explore.model.syntax.all.*
 import explore.optics.GetAdjust
 import explore.utils.*
+import japgolly.scalajs.react.*
 import japgolly.scalajs.react.callback.Callback
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.TagOf
@@ -190,9 +191,14 @@ extension [A](view: View[Option[A]])
     val iso = monocle.Iso[Option[A], A](_.orEmpty)(_.some.filterNot(_.isEmpty))
     view.as(iso)
 
+extension (icon: FontAwesomeIcon)
+  def fixedWidthWithTooltip(tooltip: VdomNode): VdomNode =
+    <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
+
 extension (target: Target)
-  def icon: FontAwesomeIcon =
+  def iconWithTooltip: VdomNode =
     target match
-      case Target.Sidereal(_, _, _, _) => Icons.Star
-      case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged
-      case Target.Opportunity(_, _, _) => Icons.HourglassClock
+      case Target.Sidereal(_, _, _, _) => Icons.Star.fixedWidthWithTooltip("Sidereal")
+      case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
+      case Target.Opportunity(_, _, _) =>
+        Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")

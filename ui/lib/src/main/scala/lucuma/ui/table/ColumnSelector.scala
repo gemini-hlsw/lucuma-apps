@@ -40,7 +40,7 @@ object ColumnSelector:
                     id = colId.value,
                     checked = !props.columnVisibility.value.get(colId).contains(Visibility.Hidden),
                     onChange = _ => props.toggleColumnVisibility(colId)
-                  ),
+                  )(^.onClick       ==> (e => e.stopPropagationCB >> e.preventDefaultCB)),
                   <.label(^.htmlFor := colId.value, colName)
                 )
               )

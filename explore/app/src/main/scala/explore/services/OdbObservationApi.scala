@@ -21,6 +21,7 @@ import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.enums.BlindOffsetType
 import queries.common.ObsQueriesGQL.ObsCalcSubscription
 import queries.common.ObsQueriesGQL.ProgramObservationsDelta
 
@@ -100,3 +101,12 @@ trait OdbObservationApi[F[_]]:
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]]
+
+  def setBlindOffsetTarget(
+    obsId:           Observation.Id,
+    target:          Target,
+    blindOffsetType: BlindOffsetType
+  ): F[Target.Id]
+
+  def deleteBlindOffsetTarget(obsId:         Observation.Id): F[Unit]
+  def initializeAutomaticBlindAOffset(obsId: Observation.Id): F[Unit]

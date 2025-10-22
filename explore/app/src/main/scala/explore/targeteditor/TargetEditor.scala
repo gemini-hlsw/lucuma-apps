@@ -35,6 +35,7 @@ import explore.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
@@ -47,6 +48,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
@@ -63,7 +65,7 @@ import java.time.Instant
 case class TargetEditor(
   programId:           Program.Id,
   userId:              User.Id,
-  target:              UndoSetter[Target],
+  targetWithId:        UndoSetter[TargetWithId],
   obsAndTargets:       UndoSetter[ObservationsAndTargets],
   asterism:            Asterism, // This is passed through to Aladin, to plot the entire Asterism.
   obsTime:             Option[Instant],
@@ -148,13 +150,17 @@ object TargetEditor:
         // select the aligner to use based on whether a clone will be created or not.
         targetAligner       <-
           useMemo(
-            (props.programId, props.target.get, props.asterism.focus.id, obsToCloneTo.get)
+            (props.programId,
+             props.targetWithId.get.target,
+             props.targetWithId.get.id,
+             obsToCloneTo.get
+            )
           ): (pid, target, tid, toCloneTo) =>
             import ctx.given
 
             toCloneTo.fold(
               Aligner(
-                props.target,
+                props.targetWithId.zoom(TargetWithId.target),
                 UpdateTargetsInput(
                   WHERE = tid.toWhereTarget.assign,
                   SET = TargetPropertiesInput()
@@ -190,7 +196,7 @@ object TargetEditor:
         val oid = props.obsInfo.current.map(_.head)
 
         val catalogInfo: Option[CatalogInfo] =
-          Target.catalogInfo.getOption(props.target.get).flatten
+          Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
 
         val nameLens          = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.name)
         val siderealLens      = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.sidereal)
@@ -428,7 +434,8 @@ object TargetEditor:
                 allView.set,
                 props.searching,
                 props.readonly || readonlyForStatuses.get,
-                cloning.get
+                cloning.get,
+                disableSearch = props.targetWithId.get.disposition === TargetDisposition.BlindOffset
               ),
               optSiderealAligner.map(siderealCoordinates),
               optOpportunityAligner.map(opportunityRegion)

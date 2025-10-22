@@ -183,7 +183,7 @@ object TargetSummaryTile:
                   )
               ).sortable
             ) ++
-              TargetColumns.Builder.ForProgram(ColDef, _.target).AllColumns ++
+              TargetColumns.Builder.ForProgram(ColDef).AllColumns ++
               List(
                 column(
                   CountColumnId,

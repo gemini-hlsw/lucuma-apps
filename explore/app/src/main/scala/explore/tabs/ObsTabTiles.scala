@@ -511,6 +511,9 @@ object ObsTabTiles:
               if (params.areAddingTarget) params.targetId.some else none
             setCurrentTarget(targetForPage, SetRouteVia.HistoryReplace)
 
+          // Blind offsets do not participate in undo/redo
+          val blindOffsetUndoSetter = props.observation.model.zoom(Observation.blindOffset)
+
           val targetTile =
             AsterismEditorTile(
               props.vault.userId,
@@ -536,7 +539,8 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdmin,
               // Any target changes invalidate the sequence
-              sequenceChanged = sequenceChanged.set(pending)
+              sequenceChanged = sequenceChanged.set(pending),
+              blindOffset = blindOffsetUndoSetter.some
             )
 
           val constraintsSelector: VdomNode =

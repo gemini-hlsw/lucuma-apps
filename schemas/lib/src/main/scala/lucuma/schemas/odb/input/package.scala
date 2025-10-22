@@ -373,14 +373,17 @@ extension (sidereal: Target.Sidereal)
     catalogInfo = sidereal.catalogInfo.map(_.toInput).orIgnore
   )
 
+  def toTargetPropertiesInput: TargetPropertiesInput =
+    TargetPropertiesInput(
+      name = sidereal.name.assign,
+      sidereal = toInput.assign,
+      sourceProfile = sidereal.sourceProfile.toInput.assign
+    )
+
   def toCreateTargetInput(programId: Program.Id): CreateTargetInput =
     CreateTargetInput(
       programId = programId.assign,
-      SET = TargetPropertiesInput(
-        name = sidereal.name.assign,
-        sidereal = toInput.assign,
-        sourceProfile = sidereal.sourceProfile.toInput.assign
-      )
+      SET = toTargetPropertiesInput
     )
 
 extension (nonsidereal: Target.Nonsidereal)
@@ -388,14 +391,17 @@ extension (nonsidereal: Target.Nonsidereal)
     key = NonEmptyString.unsafeFrom(nonsidereal.ephemerisKey.asJson.toString).assign
   )
 
+  def toTargetPropertiesInput: TargetPropertiesInput =
+    TargetPropertiesInput(
+      name = nonsidereal.name.assign,
+      nonsidereal = toInput.assign,
+      sourceProfile = nonsidereal.sourceProfile.toInput.assign
+    )
+
   def toCreateTargetInput(programId: Program.Id): CreateTargetInput =
     CreateTargetInput(
       programId = programId.assign,
-      SET = TargetPropertiesInput(
-        name = nonsidereal.name.assign,
-        nonsidereal = toInput.assign,
-        sourceProfile = nonsidereal.sourceProfile.toInput.assign
-      )
+      SET = toTargetPropertiesInput
     )
 
 extension (too: Target.Opportunity)
@@ -404,14 +410,17 @@ extension (too: Target.Opportunity)
       region = too.region.toInput
     )
 
+  def toTargetPropertiesInput: TargetPropertiesInput =
+    TargetPropertiesInput(
+      name = too.name.assign,
+      opportunity = toInput.assign,
+      sourceProfile = too.sourceProfile.toInput.assign
+    )
+
   def toCreateTargetInput(programId: Program.Id): CreateTargetInput =
     CreateTargetInput(
       programId = programId.assign,
-      SET = TargetPropertiesInput(
-        name = too.name.assign,
-        opportunity = toInput.assign,
-        sourceProfile = too.sourceProfile.toInput.assign
-      )
+      SET = toTargetPropertiesInput
     )
 
 extension (t: Target)
@@ -420,6 +429,12 @@ extension (t: Target)
       case s: Target.Sidereal    => s.toCreateTargetInput(programId)
       case n: Target.Nonsidereal => n.toCreateTargetInput(programId)
       case o: Target.Opportunity => o.toCreateTargetInput(programId)
+
+  def toTargetPropertiesInput: TargetPropertiesInput =
+    t match
+      case s: Target.Sidereal    => s.toTargetPropertiesInput
+      case n: Target.Nonsidereal => n.toTargetPropertiesInput
+      case o: Target.Opportunity => o.toTargetPropertiesInput
 
 extension (d: WavelengthDither)
   def toInput: WavelengthDitherInput =
