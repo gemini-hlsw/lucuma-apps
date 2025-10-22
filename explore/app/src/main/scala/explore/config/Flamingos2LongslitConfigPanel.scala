@@ -41,8 +41,7 @@ final case class Flamingos2LongslitConfigPanel(
   obsId:                    Observation.Id,
   calibrationRole:          Option[CalibrationRole],
   observingMode:            Aligner[ObservingMode.Flamingos2LongSlit, Flamingos2LongSlitInput],
-  exposureTimeMode:         View[Option[ExposureTimeMode]],
-  spectroscopyRequirements: View[ScienceRequirements.Spectroscopy],
+  spectroscopyRequirements: ScienceRequirements.Spectroscopy,
   revertConfig:             Callback,
   confMatrix:               SpectroscopyModesMatrix,
   sequenceChanged:          Callback,
@@ -56,7 +55,7 @@ object Flamingos2LongslitConfigPanel
       for
         ctx       <- useContext(AppContext.ctx)
         modeData  <-
-          useModeData(props.confMatrix, props.spectroscopyRequirements.get, props.observingMode.get)
+          useModeData(props.confMatrix, props.spectroscopyRequirements, props.observingMode.get)
         editState <- useStateView(ConfigEditState.View)
       yield
         import ctx.given
@@ -94,6 +93,13 @@ object Flamingos2LongslitConfigPanel
             Flamingos2LongSlitInput.explicitReadMode.modify
           )
           .view(_.orUnassign)
+
+        val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
+          .zoom(
+            ObservingMode.Flamingos2LongSlit.exposureTimeMode,
+            Flamingos2LongSlitInput.exposureTimeMode.modify
+          )
+          .view(_.toInput.assign)
 
         given Enumerated[Option[Flamingos2ReadMode]] =
           deriveOptionalEnumerated[Flamingos2ReadMode]("Auto")
@@ -157,8 +163,8 @@ object Flamingos2LongslitConfigPanel
           <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.AdvancedConfigurationCol2)(
             ExposureTimeModeEditor(
               props.observingMode.get.instrument.some,
-              props.spectroscopyRequirements.get.wavelength,
-              props.exposureTimeMode,
+              props.spectroscopyRequirements.wavelength,
+              exposureTimeMode,
               ScienceMode.Spectroscopy,
               props.readonly,
               props.units,

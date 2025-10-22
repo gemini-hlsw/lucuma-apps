@@ -166,11 +166,14 @@ object reusability:
        x.centralWavelength,
        x.explicitXBin,
        x.explicitYBin,
-       x.explicitAmpReadMode.getOrElse(x.defaultAmpReadMode),
-       x.explicitAmpGain.getOrElse(x.defaultAmpGain),
-       x.explicitRoi.getOrElse(x.defaultRoi),
-       x.explicitWavelengthDithers.getOrElse(x.defaultWavelengthDithers),
-       x.explicitSpatialOffsets.getOrElse(x.defaultSpatialOffsets)
+       x.ampReadMode,
+       x.ampGain,
+       x.roi,
+       x.wavelengthDithers,
+       x.spatialOffsets,
+       x.exposureTimeMode,
+       x.acquisition.filter,
+       x.acquisition.exposureTimeMode
       )
   given Reusability[ObservingMode.GmosSouthLongSlit]    =
     Reusability.by: x =>
@@ -180,107 +183,28 @@ object reusability:
        x.centralWavelength,
        x.explicitXBin,
        x.explicitYBin,
-       x.explicitAmpReadMode.getOrElse(x.defaultAmpReadMode),
-       x.explicitAmpGain.getOrElse(x.defaultAmpGain),
-       x.explicitRoi.getOrElse(x.defaultRoi),
-       x.explicitWavelengthDithers.getOrElse(x.defaultWavelengthDithers),
-       x.explicitSpatialOffsets.getOrElse(x.defaultSpatialOffsets)
+       x.ampReadMode,
+       x.ampGain,
+       x.roi,
+       x.wavelengthDithers,
+       x.spatialOffsets,
+       x.exposureTimeMode,
+       x.acquisition.filter,
+       x.acquisition.exposureTimeMode
       )
-  given Reusability[ObservingMode]                      = Reusability:
-    case (x @ ObservingMode.GmosNorthLongSlit(_,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _
-          ),
-          y @ ObservingMode.GmosNorthLongSlit(_,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _
-          )
-        ) =>
+  given Reusability[ObservingMode.GmosNorthImaging]     = Reusability.byEq
+  given Reusability[ObservingMode.GmosSouthImaging]     = Reusability.byEq
+  given Reusability[ObservingMode.Flamingos2LongSlit]   = Reusability.byEq
+
+  given Reusability[ObservingMode] = Reusability:
+    case (x: ObservingMode.GmosNorthLongSlit, y: ObservingMode.GmosNorthLongSlit)   =>
       summon[Reusability[ObservingMode.GmosNorthLongSlit]].test(x, y)
-    case (x @ ObservingMode.GmosSouthLongSlit(_,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _
-          ),
-          y @ ObservingMode.GmosSouthLongSlit(_,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _,
-                                              _
-          )
-        ) =>
+    case (x: ObservingMode.GmosSouthLongSlit, y: ObservingMode.GmosSouthLongSlit)   =>
       summon[Reusability[ObservingMode.GmosSouthLongSlit]].test(x, y)
-    case _ => false
+    case (x: ObservingMode.GmosNorthImaging, y: ObservingMode.GmosNorthImaging)     =>
+      summon[Reusability[ObservingMode.GmosNorthImaging]].test(x, y)
+    case (x: ObservingMode.GmosSouthImaging, y: ObservingMode.GmosSouthImaging)     =>
+      summon[Reusability[ObservingMode.GmosSouthImaging]].test(x, y)
+    case (x: ObservingMode.Flamingos2LongSlit, y: ObservingMode.Flamingos2LongSlit) =>
+      summon[Reusability[ObservingMode.Flamingos2LongSlit]].test(x, y)
+    case _                                                                          => false

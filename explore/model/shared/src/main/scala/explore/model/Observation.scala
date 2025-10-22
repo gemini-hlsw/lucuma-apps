@@ -31,6 +31,7 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -96,6 +97,14 @@ case class Observation(
   lazy val observingModeSummary: Option[ObservingModeSummary] =
     observingMode.map(ObservingModeSummary.fromObservingMode)
 
+  // specific to spectroscopy, because imaging will have a list
+  lazy val spectroscopyExposureTimeMode: Option[ExposureTimeMode] =
+    observingMode.flatMap:
+      case ObservingMode.GmosNorthLongSlit(exposureTimeMode = etm)  => etm.some
+      case ObservingMode.GmosSouthLongSlit(exposureTimeMode = etm)  => etm.some
+      case ObservingMode.Flamingos2LongSlit(exposureTimeMode = etm) => etm.some
+      case _                                                        => none
+
   private def profiles(targets: TargetList): Option[NonEmptyList[SourceProfile]] =
     NonEmptyList.fromList:
       scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)
@@ -135,6 +144,8 @@ case class Observation(
             explicitAmpGain,
             defaultRoi,
             explicitRoi,
+            _,
+            _,
             _,
             _,
             _,
@@ -181,6 +192,8 @@ case class Observation(
             explicitAmpGain,
             defaultRoi,
             explicitRoi,
+            _,
+            _,
             _,
             _,
             _,

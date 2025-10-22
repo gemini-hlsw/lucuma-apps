@@ -13,9 +13,11 @@ import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
+import lucuma.core.model.ExposureTimeMode
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
+import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
 import monocle.Prism
@@ -98,7 +100,9 @@ object ObservingMode:
     defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
     defaultSpatialOffsets:     NonEmptyList[Offset.Q],
-    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]]
+    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]],
+    exposureTimeMode:          ExposureTimeMode,
+    acquisition:               GmosNorthLongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosNorth) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
@@ -126,7 +130,8 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets)
+        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GmosNorthLongSlit =
       this.copy(
@@ -140,10 +145,39 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitSpatialOffsets = None
+        explicitSpatialOffsets = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object GmosNorthLongSlit:
+    case class Acquisition(
+      defaultFilter:    GmosNorthFilter,
+      explicitFilter:   Option[GmosNorthFilter],
+      defaultRoi:       GmosLongSlitAcquisitionRoi,
+      explicitRoi:      Option[GmosLongSlitAcquisitionRoi],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      val filter                            = explicitFilter.getOrElse(defaultFilter)
+      val roi                               = explicitRoi.getOrElse(defaultRoi)
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter) ||
+          explicitRoi.exists(_ =!= defaultRoi)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None, explicitRoi = None)
+
+    object Acquisition:
+      val defaultFilter: Lens[Acquisition, GmosNorthFilter]                  =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[GmosNorthFilter]]         =
+        Focus[Acquisition](_.explicitFilter)
+      val defaultRoi: Lens[Acquisition, GmosLongSlitAcquisitionRoi]          =
+        Focus[Acquisition](_.defaultRoi)
+      val explicitRoi: Lens[Acquisition, Option[GmosLongSlitAcquisitionRoi]] =
+        Focus[Acquisition](_.explicitRoi)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]              =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[GmosNorthLongSlit] = deriveDecoder
 
     val initialGrating: Lens[GmosNorthLongSlit, GmosNorthGrating]                                  =
@@ -190,6 +224,8 @@ object ObservingMode:
       Focus[GmosNorthLongSlit](_.defaultSpatialOffsets)
     val explicitSpatialOffsets: Lens[GmosNorthLongSlit, Option[NonEmptyList[Offset.Q]]]            =
       Focus[GmosNorthLongSlit](_.explicitSpatialOffsets)
+    val exposureTimeMode: Lens[GmosNorthLongSlit, ExposureTimeMode]                                =
+      Focus[GmosNorthLongSlit](_.exposureTimeMode)
 
   case class GmosSouthLongSlit(
     initialGrating:            GmosSouthGrating,
@@ -213,7 +249,9 @@ object ObservingMode:
     defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
     defaultSpatialOffsets:     NonEmptyList[Offset.Q],
-    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]]
+    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]],
+    exposureTimeMode:          ExposureTimeMode,
+    acquisition:               GmosSouthLongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
@@ -241,7 +279,8 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets)
+        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GmosSouthLongSlit =
       this.copy(
@@ -255,10 +294,39 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitSpatialOffsets = None
+        explicitSpatialOffsets = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object GmosSouthLongSlit:
+    case class Acquisition(
+      defaultFilter:    GmosSouthFilter,
+      explicitFilter:   Option[GmosSouthFilter],
+      defaultRoi:       GmosLongSlitAcquisitionRoi,
+      explicitRoi:      Option[GmosLongSlitAcquisitionRoi],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      val filter                            = explicitFilter.getOrElse(defaultFilter)
+      val roi                               = explicitRoi.getOrElse(defaultRoi)
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter) ||
+          explicitRoi.exists(_ =!= defaultRoi)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None, explicitRoi = None)
+
+    object Acquisition:
+      val defaultFilter: Lens[Acquisition, GmosSouthFilter]                  =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[GmosSouthFilter]]         =
+        Focus[Acquisition](_.explicitFilter)
+      val defaultRoi: Lens[Acquisition, GmosLongSlitAcquisitionRoi]          =
+        Focus[Acquisition](_.defaultRoi)
+      val explicitRoi: Lens[Acquisition, Option[GmosLongSlitAcquisitionRoi]] =
+        Focus[Acquisition](_.explicitRoi)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]              =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[GmosSouthLongSlit] = deriveDecoder
 
     val initialGrating: Lens[GmosSouthLongSlit, GmosSouthGrating]                                  =
@@ -305,6 +373,8 @@ object ObservingMode:
       Focus[GmosSouthLongSlit](_.defaultSpatialOffsets)
     val explicitSpatialOffsets: Lens[GmosSouthLongSlit, Option[NonEmptyList[Offset.Q]]]            =
       Focus[GmosSouthLongSlit](_.explicitSpatialOffsets)
+    val exposureTimeMode: Lens[GmosSouthLongSlit, ExposureTimeMode]                                =
+      Focus[GmosSouthLongSlit](_.exposureTimeMode)
 
   case class GmosNorthImaging(
     initialFilters:              NonEmptyList[GmosNorthFilter],
@@ -470,7 +540,9 @@ object ObservingMode:
     defaultReadoutMode:  Flamingos2ReadoutMode,
     explicitReadoutMode: Option[Flamingos2ReadoutMode],
     defaultOffsets:      NonEmptyList[Offset],
-    explicitOffsets:     Option[NonEmptyList[Offset]]
+    explicitOffsets:     Option[NonEmptyList[Offset]],
+    exposureTimeMode:    ExposureTimeMode,
+    acquisition:         Flamingos2LongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
     val decker: Flamingos2Decker           =
       explicitDecker.getOrElse(defaultDecker)
@@ -502,6 +574,12 @@ object ObservingMode:
       )
 
   object Flamingos2LongSlit:
+    case class Acquisition(exposureTimeMode: ExposureTimeMode) derives Decoder, Eq
+
+    object Acquisition:
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode] =
+        Focus[Acquisition](_.exposureTimeMode)
+
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
     val initialDisperser: Lens[Flamingos2LongSlit, Flamingos2Disperser]              =
@@ -532,6 +610,8 @@ object ObservingMode:
       Focus[Flamingos2LongSlit](_.defaultOffsets)
     val explicitOffsets: Lens[Flamingos2LongSlit, Option[NonEmptyList[Offset]]]      =
       Focus[Flamingos2LongSlit](_.explicitOffsets)
+    val exposureTimeMode: Lens[Flamingos2LongSlit, ExposureTimeMode]                 =
+      Focus[Flamingos2LongSlit](_.exposureTimeMode)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
