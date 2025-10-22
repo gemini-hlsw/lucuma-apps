@@ -28,6 +28,8 @@ import navigate.server.epicsdata.BinaryOnOffCapitalized
 import navigate.server.epicsdata.BinaryYesNo
 import navigate.server.tcs.TcsChannels.AdjustChannels
 import navigate.server.tcs.TcsChannels.AgMechChannels
+import navigate.server.tcs.TcsChannels.ChopConfigChannels
+import navigate.server.tcs.TcsChannels.ChopRelativeChannels
 import navigate.server.tcs.TcsChannels.EnclosureChannels
 import navigate.server.tcs.TcsChannels.GuideConfigStatusChannels
 import navigate.server.tcs.TcsChannels.InstrumentOffsetCommandChannels
@@ -325,6 +327,38 @@ object TestTcsEpicsSystem {
     )
   }
 
+  case class ChopConfigState(
+    typ:       TestChannel.State[String],
+    source:    TestChannel.State[String],
+    frequency: TestChannel.State[String],
+    dutyCycle: TestChannel.State[String]
+  )
+
+  object ChopConfigState {
+    val default: ChopConfigState = ChopConfigState(
+      TestChannel.State.default,
+      TestChannel.State.default,
+      TestChannel.State.default,
+      TestChannel.State.default
+    )
+  }
+
+  case class ChopRelativeState(
+    thrw:    TestChannel.State[String],
+    angle:   TestChannel.State[String],
+    system:  TestChannel.State[String],
+    equinox: TestChannel.State[String]
+  )
+
+  object ChopRelativeState {
+    val default: ChopRelativeState = ChopRelativeState(
+      TestChannel.State.default,
+      TestChannel.State.default,
+      TestChannel.State.default,
+      TestChannel.State.default
+    )
+  }
+
   case class State(
     telltale:             TestChannel.State[String],
     telescopeParkDir:     TestChannel.State[CadDirective],
@@ -399,7 +433,9 @@ object TestTcsEpicsSystem {
     p1Filter:             TestChannel.State[String],
     p1FieldStop:          TestChannel.State[String],
     p2Filter:             TestChannel.State[String],
-    p2FieldStop:          TestChannel.State[String]
+    p2FieldStop:          TestChannel.State[String],
+    chopConfig:           ChopConfigState,
+    chopRelative:         ChopRelativeState
   )
 
   val defaultState: State = State(
@@ -549,7 +585,9 @@ object TestTcsEpicsSystem {
     p1Filter = TestChannel.State.default,
     p1FieldStop = TestChannel.State.default,
     p2Filter = TestChannel.State.default,
-    p2FieldStop = TestChannel.State.default
+    p2FieldStop = TestChannel.State.default,
+    chopConfig = ChopConfigState.default,
+    chopRelative = ChopRelativeState.default
   )
 
   def buildEnclosureChannels[F[_]: Temporal](s: Ref[F, State]): EnclosureChannels[F] =
@@ -1184,7 +1222,19 @@ object TestTcsEpicsSystem {
       pwfs2Mechs =
         PwfsMechCmdChannels[F](new TestChannel[F, State, String](s, Focus[State](_.p2Filter)),
                                new TestChannel[F, State, String](s, Focus[State](_.p2FieldStop))
-        )
+        ),
+      chopConfig = ChopConfigChannels[F](
+        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.typ)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.source)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.frequency)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopConfig.dutyCycle))
+      ),
+      chopRelative = ChopRelativeChannels[F](
+        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.thrw)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.angle)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.system)),
+        new TestChannel[F, State, String](s, Focus[State](_.chopRelative.equinox))
+      )
     )
 
   def build[F[_]: {Async, Parallel, Dispatcher}](s: Ref[F, State]): TcsEpicsSystem[F] = {
