@@ -213,7 +213,7 @@ object ConstraintsPanel:
             ),
             React
               .Fragment(
-                <.label("Min"),
+                <.label("Min", ^.htmlFor := "minam"),
                 FormInputTextView(
                   id = "minam".refined,
                   value = airMassView.zoom(ElevationRange.ByAirMass.min),
@@ -227,7 +227,7 @@ object ConstraintsPanel:
                   groupClass = ExploreStyles.ElevationRangeEntry,
                   disabled = props.readonly
                 ),
-                <.label("Max"),
+                <.label("Max", ^.htmlFor := "maxam"),
                 FormInputTextView(
                   id = "maxam".refined,
                   value = airMassView.zoom(ElevationRange.ByAirMass.max),
@@ -276,7 +276,7 @@ object ConstraintsPanel:
               )
               .when(elevationRangeOptions.value.rangeType === ByHourAngle)
           ),
-          <.label(
+          <.span(
             LucumaPrimeStyles.FormFieldLabel |+| ExploreStyles.ConstraintsSetLikelihood,
             "Likelihood of selected conditions"
           ),

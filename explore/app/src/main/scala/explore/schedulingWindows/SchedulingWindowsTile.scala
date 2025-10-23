@@ -318,8 +318,9 @@ object SchedulingWindowsTile:
                   renderInclusionRadio(TimingWindowInclusion.Exclude, "exclude-option")
                 ),
                 <.div(ExploreStyles.TimingWindowFromEditor)(
-                  <.span(" from"),
+                  <.label(^.htmlFor := "from-time-picker", " from"),
                   DatePicker24HTime(
+                    "from-time-picker".refined,
                     selectedStart.zoom(timestampToInstant),
                     props.readOnly,
                     maxDate = selectedEnd.get
@@ -367,6 +368,7 @@ object SchedulingWindowsTile:
                     selectedEndAt.mapValue(endAt =>
                       React.Fragment(
                         DatePicker24HTime(
+                          "through-time-picker".refined,
                           endAt.zoom(timestampToInstant),
                           props.readOnly,
                           minDate = selectedStart.get.toInstant.some
