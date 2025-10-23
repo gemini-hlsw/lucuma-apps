@@ -200,6 +200,24 @@ jobs:
         if: matrix.java == 'temurin@17' && steps.setup-java-temurin-17.outputs.cache-hit == 'false'
         run: sbt -v -J-Xmx6g +update
 
+      - id: changedProjects
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            projectDef:
+              - 'build.sbt'
+              - 'project/**'
+            schemas:
+              - 'schemas/**'
+            ui:
+              - 'ui/**'
+            explore:
+              - 'explore/**'
+            navigate:
+              - 'navigate/**'
+            observe:
+              - 'observe/**'
+
       - name: Explore Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -240,7 +258,7 @@ jobs:
           bundlemon-args: '--config explore/.bundlemonrc.json --subProject "Explore"'
 
       - name: Deploy staging app to Firebase
-        if: github.ref == 'refs/heads/main'
+        if: (github.ref == 'refs/heads/main' && (steps.changedProjects.outputs.explore == 'true' || steps.changedProjects.outputs.schemas == 'true' || steps.changedProjects.outputs.ui == 'true' || steps.changedProjects.outputs.projectDef == 'true'))
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}
@@ -251,7 +269,7 @@ jobs:
           channelId: live
 
       - name: Record deployment SHA
-        if: github.ref == 'refs/heads/main'
+        if: (github.ref == 'refs/heads/main' && (steps.changedProjects.outputs.explore == 'true' || steps.changedProjects.outputs.schemas == 'true' || steps.changedProjects.outputs.ui == 'true' || steps.changedProjects.outputs.projectDef == 'true'))
         run: |
           # Create a deployment record with commit SHA for tracking
           echo "Recording deployment: ${{ github.sha }} to explore-gemini-dev"
