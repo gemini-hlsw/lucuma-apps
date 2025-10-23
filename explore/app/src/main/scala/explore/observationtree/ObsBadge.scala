@@ -143,7 +143,7 @@ object ObsBadge:
             <.div(obs.title).when(layout.showTitle),
             <.div(obs.basicConfiguration.map(_.shortName).getOrElse("-"))
               .when(layout.showConfiguration === Section.Header),
-            <.div( // For obs-groups, we will need the parent group id
+            <.div(
               ExploreStyles.ObsBadgeId,
               scienceBandButton.when(props.showScienceBand),
               identifier,
@@ -180,7 +180,9 @@ object ObsBadge:
         else
           <.div(
             obs.workflow.value.validationErrors
-              .toTagMod(using ov => <.div(ov.code.name, <.ul(ov.messages.toList.toTagMod(using i => <.li(i)))))
+              .toTagMod(using
+                ov => <.div(ov.code.name, <.ul(ov.messages.toList.toTagMod(using i => <.li(i))))
+              )
           )
 
       val validationIcon = <.span(Icons.ErrorIcon).withTooltip(content = validationTooltip)
