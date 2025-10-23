@@ -132,7 +132,7 @@ object extensions:
       f.onError:
         case e => Logger[F].error(e)(msg)
 
-  extension [F[_]: MonadThrow: Logger, A](s: fs2.Stream[F, A])
+  extension [F[_]: {MonadThrow, Logger}, A](s: fs2.Stream[F, A])
     def onErrorLog(msg: String = ""): fs2.Stream[F, A] =
       s.handleErrorWith { e =>
         fs2.Stream.eval(Logger[F].error(e)(msg)) >> fs2.Stream.raiseError[F](e)
