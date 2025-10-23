@@ -127,7 +127,7 @@ object extensions:
       case CompositeTracking(nel)                        => Coordinates.centerOf(nel.map(_.baseCoordinates))
       case _                                             => sys.error("Non sidereals are not supported")
 
-  extension [F[_]: MonadThrow: Logger, A](f: F[A])
+  extension [F[_]: {MonadThrow, Logger}, A](f: F[A])
     def logErrors(msg: String = ""): F[A] =
       f.onError:
         case e => Logger[F].error(e)(msg)
