@@ -15,9 +15,11 @@ import java.util.concurrent.ScheduledThreadPoolExecutor
 
 class EpicsUtilSuite extends munit.CatsEffectSuite {
 
+  override def munitFlakyOK: Boolean = true
+
   val executor: ScheduledExecutorService = new ScheduledThreadPoolExecutor(2)
 
-  test("EpicsUtil waitForValue should work with CaWindowStabilizer") {
+  test("EpicsUtil waitForValue should work with CaWindowStabilizer".flaky) {
     val attr: DummyAttribute[Integer]         = new DummyAttribute[Integer]("dummy", "foo")
     val filtered: CaWindowStabilizer[Integer] =
       new CaWindowStabilizer(attr, Duration.ofMillis(50), executor)

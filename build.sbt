@@ -702,9 +702,8 @@ lazy val observeLinux = Seq(
   Universal / maintainer := "Software Group <software@gemini.edu>",
   // This lets us build RPMs from snapshot versions
   Linux / name           := "Observe Server",
-  Linux / version        := {
+  Linux / version        :=
     (ThisBuild / version).value.replace("-SNAPSHOT", "").replace("-", "_").replace(" ", "")
-  }
 )
 
 /**
@@ -1024,14 +1023,36 @@ addCommandAlias("stopNavigateAll", stopNavigateAllCommands.mkString(";", ";", ""
 
 // BEGIN GITHUB ACTIONS
 
-val pushCond       = "github.event_name == 'push'"
-val prCond         = "github.event_name == 'pull_request'"
-val mainCond       = "github.ref == 'refs/heads/main'"
-val notMainCond    = "github.ref != 'refs/heads/main'"
-val geminiRepoCond = "startsWith(github.repository, 'gemini')"
-val isMergedCond   = "github.event.pull_request.merged == true"
-def allConds(conds: String*) = conds.mkString("(", " && ", ")")
-def anyConds(conds: String*) = conds.mkString("(", " || ", ")")
+val pushCond: String                            = "github.event_name == 'push'"
+val prCond: String                              = "github.event_name == 'pull_request'"
+val mainCond: String                            = "github.ref == 'refs/heads/main'"
+val notMainCond: String                         = "github.ref != 'refs/heads/main'"
+val geminiRepoCond: String                      = "startsWith(github.repository, 'gemini')"
+val isMergedCond: String                        = "github.event.pull_request.merged == true"
+def changedProjectCond(project: String): String =
+  s"steps.changedProjects.outputs.${project} == 'true'"
+def allConds(conds: String*): String            = conds.mkString("(", " && ", ")")
+def anyConds(conds: String*): String            = conds.mkString("(", " || ", ")")
+val exploreChangedCond: String                  =
+  anyConds(
+    changedProjectCond("explore"),
+    changedProjectCond("schemas"),
+    changedProjectCond("ui"),
+    changedProjectCond("projectDef")
+  )
+val observeChangedCond: String                  =
+  anyConds(
+    changedProjectCond("observe"),
+    changedProjectCond("schemas"),
+    changedProjectCond("ui"),
+    changedProjectCond("projectDef")
+  )
+val navigateChangedCond: String                 =
+  anyConds(
+    changedProjectCond("navigate"),
+    changedProjectCond("schemas"),
+    changedProjectCond("projectDef")
+  )
 
 val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
 val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
@@ -1104,33 +1125,33 @@ lazy val exploreSetupNodeNpmInstall =
     )
   )
 
-  lazy val observeSetupNodeNpmInstall =
-    List(
-      WorkflowStep.Use(
-        UseRef.Public("actions", "setup-node", "v6"),
-        name = Some("Setup Node.js"),
-        params = Map(
-          "node-version" -> "24",
-          "cache"        -> "npm"
-        )
-      ),
-      // Observe NPM cache
-      WorkflowStep.Use(
-        UseRef.Public("actions", "cache", "v4"),
-        name = Some("Cache Observe node_modules"),
-        id = Some("observe-cache-node_modules"),
-        params = {
-          val prefix = "observe-node_modules"
-          val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
-          Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-        }
-      ),
-      WorkflowStep.Run(
-        List("cd observe/web/client", "npm clean-install"),
-        name = Some("npm clean-install"),
-        cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
+lazy val observeSetupNodeNpmInstall =
+  List(
+    WorkflowStep.Use(
+      UseRef.Public("actions", "setup-node", "v6"),
+      name = Some("Setup Node.js"),
+      params = Map(
+        "node-version" -> "24",
+        "cache"        -> "npm"
       )
+    ),
+    // Observe NPM cache
+    WorkflowStep.Use(
+      UseRef.Public("actions", "cache", "v4"),
+      name = Some("Cache Observe node_modules"),
+      id = Some("observe-cache-node_modules"),
+      params = {
+        val prefix = "observe-node_modules"
+        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
+        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
+      }
+    ),
+    WorkflowStep.Run(
+      List("cd observe/web/client", "npm clean-install"),
+      name = Some("npm clean-install"),
+      cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
     )
+  )
 
 lazy val dockerHubLogin =
   WorkflowStep.Run(
@@ -1216,7 +1237,7 @@ def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use
 
 lazy val firebaseDeployDev = firebaseDeploy(
   "Deploy staging app to Firebase",
-  mainCond,
+  allConds(mainCond, exploreChangedCond),
   live = true
 )
 
@@ -1227,16 +1248,38 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
     """curl -X POST https://api.github.com/repos/${{ github.repository }}/deployments -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/vnd.github+json" -d '{ "ref": "${{ github.sha }}", "environment": "development", "description": "Explore deployment to dev", "auto_merge": false, "required_contexts": [], "task": "deploy:Explore" }' """
   ),
   name = Some("Record deployment SHA"),
-  cond = Some(mainCond)
+  cond = Some(allConds(mainCond, exploreChangedCond))
 )
 
 ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
+
+val usePathsFilter: WorkflowStep = WorkflowStep.Use(
+  UseRef.Public("dorny", "paths-filter", "v3"),
+  Map(
+    "filters" ->
+      """projectDef:
+  - 'build.sbt'
+  - 'project/**'
+schemas:
+  - 'schemas/**'
+ui:
+  - 'ui/**'
+explore:
+  - 'explore/**'
+navigate:
+  - 'navigate/**'
+observe:
+  - 'observe/**'"""
+  ),
+  "changedProjects".some
+)
 
 ThisBuild / githubWorkflowAddedJobs +=
   WorkflowJob(
     "explore-deploy",
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
+      usePathsFilter ::
       exploreSetupNodeNpmInstall :::
       exploreSbtLink ::
       exploreNpmBuild ::
