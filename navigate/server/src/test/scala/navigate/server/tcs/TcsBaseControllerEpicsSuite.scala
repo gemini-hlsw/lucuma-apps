@@ -1696,7 +1696,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     } yield {
       assert(r0.aoFoldMech.parkDir.connected)
       assert(r0.scienceFoldMech.position.connected)
-      assert(r0.hrwfsMech.parkDir.connected)
+      assert(!r0.hrwfsMech.parkDir.connected)
       assertEquals(r0.scienceFoldMech.position.value, "gmos3".some)
       assert(r1.aoFoldMech.position.connected)
       assertEquals(r1.aoFoldMech.position.value, "IN".some)
@@ -1787,6 +1787,35 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(!r0.hrwfsMech.parkDir.connected)
       assert(!r0.aoFoldMech.position.connected)
       assert(!r0.aoFoldMech.parkDir.connected)
+    }
+  }
+
+  test("SC-7053 Don't park HR pickoff mirror unless light goes to instrument in bottom port") {
+    for {
+      x        <- createController(site = Site.GN)
+      (st, ctr) = x
+      _        <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
+      _        <- st.ags.update(
+                    _.focus(_.hwParked.value)
+                      .replace(0.some)
+                      .focus(_.hwName.value)
+                      .replace("IN".some)
+                  )
+      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      r0       <- st.tcs.get
+      _        <- st.ags.update(_.focus(_.gmosPort.value).replace(1.some))
+      _        <- st.ags.update(
+                    _.focus(_.hwParked.value)
+                      .replace(0.some)
+                      .focus(_.hwName.value)
+                      .replace("IN".some)
+                  )
+      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      r1       <- st.tcs.get
+    } yield {
+      assert(!r0.hrwfsMech.parkDir.connected)
+      assert(r1.hrwfsMech.parkDir.connected)
+      assertEquals(r1.hrwfsMech.parkDir.value, CadDirective.MARK.some)
     }
   }
 
