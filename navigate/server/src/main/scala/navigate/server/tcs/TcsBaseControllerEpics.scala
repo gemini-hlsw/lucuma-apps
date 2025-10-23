@@ -1638,7 +1638,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         case (LightSinkName.Hr, _) | (LightSinkName.Ac, _)                                 =>
           s.hrwfsCommands.move.setPosition(HrwfsPickupPosition.In)
         case (_, AgMechPosition.Parked)                                                    => s
-        case _                                                                             => s.hrwfsCommands.park.mark
+        case _ if port === 1                                                               => s.hrwfsCommands.park.mark
+        case _                                                                             => s
       }
     val reqPos      = ScienceFold.Position(from, to, port)
     val scienceFold = (s: TcsCommands[F]) =>
