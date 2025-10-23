@@ -11,6 +11,7 @@ import cats.effect.std.UUIDGen
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import explore.model.boopickle.Boopickle.*
+import explore.model.extensions.*
 import fs2.RaiseThrowable
 import org.typelevel.log4cats.Logger
 
@@ -71,6 +72,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
       .evalTap(msg => Logger[F].debug(s"<<< Received msg from server with id [$id]: [$msg]"))
       .unNoneTerminate
       .rethrow
+      .onErrorLog(s"Error in worker client request with id [$id]")
 
   /**
    * Make a request to the underlying worker and receive a single response (if any) as the effect

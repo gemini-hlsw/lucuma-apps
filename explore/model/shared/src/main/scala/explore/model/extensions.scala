@@ -3,6 +3,7 @@
 
 package explore.model
 
+import cats.MonadThrow
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import cats.syntax.all.given
@@ -25,6 +26,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import scala.annotation.targetName
+import org.typelevel.log4cats.Logger
 
 object extensions:
   // TODO Move this to lucuma-schemas (and remove this logic from TargetWithId)
@@ -124,3 +126,14 @@ object extensions:
       case ConstantTracking(coordinates)                 => coordinates
       case CompositeTracking(nel)                        => Coordinates.centerOf(nel.map(_.baseCoordinates))
       case _                                             => sys.error("Non sidereals are not supported")
+
+  extension [F[_]: {MonadThrow, Logger}, A](f: F[A])
+    def logErrors(msg: String = ""): F[A] =
+      f.onError:
+        case e => Logger[F].error(e)(msg)
+
+  extension [F[_]: {MonadThrow, Logger}, A](s: fs2.Stream[F, A])
+    def onErrorLog(msg: String = ""): fs2.Stream[F, A] =
+      s.handleErrorWith { e =>
+        fs2.Stream.eval(Logger[F].error(e)(msg)) >> fs2.Stream.raiseError[F](e)
+      }

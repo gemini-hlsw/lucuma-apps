@@ -4,6 +4,7 @@
 package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
+import cats.Order.given
 import coulomb.*
 import eu.timepit.refined.*
 import eu.timepit.refined.api.Refined
@@ -28,6 +29,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.Timestamp
 
 import scala.collection.immutable.TreeMap
+import boopickle.CompositePickler
 
 // Boopicklers for catalog related types
 trait CatalogPicklers extends CommonPicklers:
@@ -107,19 +109,18 @@ trait CatalogPicklers extends CommonPicklers:
   given [K: Pickler: Ordering, V: Pickler]: Pickler[TreeMap[K, V]] =
     transformPickler((m: Map[K, V]) => TreeMap.empty[K, V] ++ m)(_.toMap)
 
-  import _root_.cats.Order.given
-  // summon[Ordering[lucuma.core.util.Timestamp]]
-
   given Pickler[EphemerisTracking] =
     transformPickler((m: TreeMap[Timestamp, EphemerisCoordinates]) => EphemerisTracking(m.toSeq*))(
       _.toMap
     )
 
-  given Pickler[Tracking] =
-    compositePickler[Tracking]
-      .addConcreteType[SiderealTracking]
-      .addConcreteType[CompositeTracking]
-      .addConcreteType[ConstantTracking]
-      .addConcreteType[EphemerisTracking]
+  // Recursive class hierarchy must be built in two steps:
+  // https://github.com/suzaku-io/boopickle/blob/master/doc/ClassHierarchies.md#recursive-composite-types
+  given trackingPickler: CompositePickler[Tracking] = compositePickler[Tracking]
+  trackingPickler
+    .addConcreteType[SiderealTracking]
+    .addConcreteType[ConstantTracking]
+    .addConcreteType[EphemerisTracking]
+    .addConcreteType[CompositeTracking]
 
 object CatalogPicklers extends CatalogPicklers
