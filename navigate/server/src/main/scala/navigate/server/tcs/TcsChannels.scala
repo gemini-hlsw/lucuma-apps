@@ -92,7 +92,9 @@ case class TcsChannels[F[_]](
   rotatorWrap:             Channel[F, String],
   zeroRotatorGuideDir:     Channel[F, CadDirective],
   pwfs1Mechs:              PwfsMechCmdChannels[F],
-  pwfs2Mechs:              PwfsMechCmdChannels[F]
+  pwfs2Mechs:              PwfsMechCmdChannels[F],
+  chopConfig:              ChopConfigChannels[F],
+  chopRelative:            ChopRelativeChannels[F]
 )
 
 object TcsChannels {
@@ -325,6 +327,46 @@ object TcsChannels {
         flt <- service.getChannel[String](top.value, s"${name}Filter.A")
         fds <- service.getChannel[String](top.value, s"${name}Fldstop.A")
       } yield PwfsMechCmdChannels(flt, fds)
+  }
+
+  case class ChopConfigChannels[F[_]](
+    typ:       Channel[F, String],
+    source:    Channel[F, String],
+    frequency: Channel[F, String],
+    dutyCycle: Channel[F, String]
+  )
+
+  object ChopConfigChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      top:     TcsTop
+    ): Resource[F, ChopConfigChannels[F]] =
+      for {
+        tp  <- service.getChannel[String](top.value, "chopConfig.A")
+        src <- service.getChannel[String](top.value, "chopConfig.B")
+        fr  <- service.getChannel[String](top.value, "chopConfig.C")
+        dc  <- service.getChannel[String](top.value, "chopConfig.D")
+      } yield ChopConfigChannels(tp, src, fr, dc)
+  }
+
+  case class ChopRelativeChannels[F[_]](
+    thrw:    Channel[F, String],
+    angle:   Channel[F, String],
+    system:  Channel[F, String],
+    equinox: Channel[F, String]
+  )
+
+  object ChopRelativeChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      top:     TcsTop
+    ): Resource[F, ChopRelativeChannels[F]] =
+      for {
+        tr  <- service.getChannel[String](top.value, "chopRelative.A")
+        an  <- service.getChannel[String](top.value, "chopRelative.B")
+        sys <- service.getChannel[String](top.value, "chopRelative.C")
+        eq  <- service.getChannel[String](top.value, "chopRelative.D")
+      } yield ChopRelativeChannels(tr, an, sys, eq)
   }
 
   // Build functions to construct each epics channel for each
@@ -897,6 +939,8 @@ object TcsChannels {
       zrg  <- service.getChannel[CadDirective](tcsTop.value, "zeroRotGuide.DIR")
       p1mc <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs1")
       p2mc <- PwfsMechCmdChannels.build(service, tcsTop, "pwfs2")
+      chcf <- ChopConfigChannels.build(service, tcsTop)
+      chrl <- ChopRelativeChannels.build(service, tcsTop)
     } yield TcsChannels[F](
       tt,
       tpd,
@@ -969,7 +1013,9 @@ object TcsChannels {
       rtwr,
       zrg,
       p1mc,
-      p2mc
+      p2mc,
+      chcf,
+      chrl
     )
   }
 }

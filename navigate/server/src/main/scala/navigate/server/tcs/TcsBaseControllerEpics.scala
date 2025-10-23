@@ -562,6 +562,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                      .instrumentOffsetCommand
                      .offsetY(Distance.Zero)
                  }
+                 .andThen(resetChopParameters)
                  .andThen(setSlewOptions(slewOptions))(
                    sys.tcsEpics.startCommand(TcsConfigTimeout)
                  )
@@ -570,6 +571,30 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     // TODO: Consider case AO -> Instrument
     _   <- lightPath(LightSource.Sky, tcsConfig.instrument.toLightSink)
   } yield r
+
+  private val defaultChopType: String                                  = "2posn"
+  private val defaultChopSource: ChopSource                            = ChopSource.Ics0
+  private val defaultChopFrequency: Double                             = 3.05
+  private val defaultChopDutyCycle: Double                             = 87.0
+  private val defaultChopThrow: Angle                                  = Angle.Angle0
+  private val defaultChopAngle: Angle                                  = Angle.Angle0
+  private def resetChopParameters(cmd: TcsCommands[F]): TcsCommands[F] =
+    cmd.chopConfig
+      .typ(defaultChopType)
+      .chopConfig
+      .source(defaultChopSource)
+      .chopConfig
+      .frequency(defaultChopFrequency)
+      .chopConfig
+      .dutyCycle(defaultChopDutyCycle)
+      .chopRelative
+      .thrw(defaultChopThrow)
+      .chopRelative
+      .angle(defaultChopAngle)
+      .chopRelative
+      .system(SystemDefault)
+      .chopRelative
+      .equinox(EquinoxDefault)
 
   protected def setInstrumentSpecifics(
     config: InstrumentSpecifics

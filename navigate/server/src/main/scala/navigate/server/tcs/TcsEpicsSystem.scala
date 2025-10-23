@@ -92,6 +92,7 @@ object TcsEpicsSystem {
 
   trait TcsEpics[F[_]] {
     def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult]
+    def clear: VerifiedEpics[F, F, Unit]
 
     val mountParkCmd: ParameterlessCommandChannels[F]
     val mountFollowCmd: Command1Channels[F, BinaryOnOff]
@@ -607,7 +608,7 @@ object TcsEpicsSystem {
       this.copy(params = params ++ c)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      params.compile *> tcsEpics.post(timeout)
+      tcsEpics.clear *> params.compile *> tcsEpics.post(timeout)
 
     override val mcsParkCommand: BaseCommand[F, TcsCommands[F]] =
       new BaseCommand[F, TcsCommands[F]] {
@@ -1392,6 +1393,42 @@ object TcsEpicsSystem {
 
     override val pwfs2MechCommands: PwfsMechCommands[F] = buildPwfsMechCommands(channels.pwfs2Mechs)
 
+    override val chopConfig: ChopConfigCommand[F]     = new ChopConfigCommand[F] {
+      override def typ(tp: String): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopConfig.typ)(tp)
+      )
+
+      override def source(src: ChopSource): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopConfig.source)(src)
+      )
+
+      override def frequency(f: Double): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopConfig.frequency)(f)
+      )
+
+      override def dutyCycle(duty: Double): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopConfig.dutyCycle)(duty)
+      )
+    }
+    override val chopRelative: ChopRelativeCommand[F] = new ChopRelativeCommand[F] {
+      override def thrw(d: Angle): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopRelative.thrw)(
+          Angle.signedDecimalArcseconds.get(d).toDouble
+        )
+      )
+
+      override def angle(a: Angle): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopRelative.angle)(a.toDoubleDegrees)
+      )
+
+      override def system(sys: String): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopRelative.system)(sys)
+      )
+
+      override def equinox(eq: String): TcsCommands[F] = addParam(
+        writeCadParam(channels.telltale, channels.chopRelative.equinox)(eq)
+      )
+    }
   }
 
   trait WfsCommands[F[_]] {
@@ -1488,6 +1525,8 @@ object TcsEpicsSystem {
 
     override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
       applyCmd.post(timeout)
+
+    override def clear: VerifiedEpics[F, F, Unit] = applyCmd.clear
 
     override val mountParkCmd: ParameterlessCommandChannels[F] =
       ParameterlessCommandChannels(channels.telltale, channels.telescopeParkDir)
@@ -2156,6 +2195,20 @@ object TcsEpicsSystem {
     def value(v:  Double): S
   }
 
+  trait ChopConfigCommand[F[_]] {
+    def typ(tp:         String): TcsCommands[F]
+    def source(src:     ChopSource): TcsCommands[F]
+    def frequency(f:    Double): TcsCommands[F]
+    def dutyCycle(duty: Double): TcsCommands[F]
+  }
+
+  trait ChopRelativeCommand[F[_]] {
+    def thrw(d:     Angle): TcsCommands[F]
+    def angle(a:    Angle): TcsCommands[F]
+    def system(sys: String): TcsCommands[F]
+    def equinox(eq: String): TcsCommands[F]
+  }
+
   trait TcsCommands[F[_]] {
     def post: VerifiedEpics[F, F, ApplyCommandResult]
     val mcsParkCommand: BaseCommand[F, TcsCommands[F]]
@@ -2219,57 +2272,8 @@ object TcsEpicsSystem {
     val zeroRotatorGuide: BaseCommand[F, TcsCommands[F]]
     val pwfs1MechCommands: PwfsMechCommands[F]
     val pwfs2MechCommands: PwfsMechCommands[F]
-  }
-  /*
-
-  sealed trait VirtualGemsTelescope extends Product with Serializable
-
-  object VirtualGemsTelescope {
-    case object G1 extends VirtualGemsTelescope
-    case object G2 extends VirtualGemsTelescope
-    case object G3 extends VirtualGemsTelescope
-    case object G4 extends VirtualGemsTelescope
+    val chopConfig: ChopConfigCommand[F]
+    val chopRelative: ChopRelativeCommand[F]
   }
 
-  trait OffsetCmd[F[_]] {
-    def setX(v: Double): VerifiedEpics[F, F, Unit]
-    def setY(v: Double): VerifiedEpics[F, F, Unit]
-  }
-
-  trait M2Beam[F[_]] {
-    def setBeam(v: String): VerifiedEpics[F, F, Unit]
-  }
-
-  trait HrwfsPosCmd[F[_]] {
-    def setHrwfsPos(v: String): VerifiedEpics[F, F, Unit]
-  }
-
-  trait AoCorrect[F[_]] {
-    def setCorrections(v: String): VerifiedEpics[F, F, Unit]
-    def setGains(v:       Int): VerifiedEpics[F, F, Unit]
-    def setMatrix(v:      Int): VerifiedEpics[F, F, Unit]
-  }
-
-  trait AoPrepareControlMatrix[F[_]] {
-    def setX(v:             Double): VerifiedEpics[F, F, Unit]
-    def setY(v:             Double): VerifiedEpics[F, F, Unit]
-    def setSeeing(v:        Double): VerifiedEpics[F, F, Unit]
-    def setStarMagnitude(v: Double): VerifiedEpics[F, F, Unit]
-    def setWindSpeed(v:     Double): VerifiedEpics[F, F, Unit]
-  }
-
-  trait AoStatistics[F[_]] {
-    def setFileName(v:            String): VerifiedEpics[F, F, Unit]
-    def setSamples(v:             Int): VerifiedEpics[F, F, Unit]
-    def setInterval(v:            Double): VerifiedEpics[F, F, Unit]
-    def setTriggerTimeInterval(v: Double): VerifiedEpics[F, F, Unit]
-  }
-
-  trait TargetFilter[F[_]] {
-    def setBandwidth(v:    Double): VerifiedEpics[F, F, Unit]
-    def setMaxVelocity(v:  Double): VerifiedEpics[F, F, Unit]
-    def setGrabRadius(v:   Double): VerifiedEpics[F, F, Unit]
-    def setShortCircuit(v: String): VerifiedEpics[F, F, Unit]
-  }
-   */
 }

@@ -10,6 +10,7 @@ import monocle.Focus
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
 import navigate.epics.VerifiedEpics
+import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.server.ApplyCommandResult
 import navigate.server.acm.CadDirective
 import navigate.server.acm.CarState
@@ -108,8 +109,12 @@ object TestAcquisitionCameraEpicsSystem {
   def build[F[_]: {Temporal, Parallel}](
     s: Ref[F, State]
   ): AcquisitionCameraEpicsSystem[F] = AcquisitionCameraEpicsSystem.buildSystem(
-    (_: FiniteDuration) =>
-      VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed),
+    new GeminiApplyCommand[F] {
+      override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
+        VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
+
+      override def clear: VerifiedEpics[F, F, Unit] = VerifiedEpics.unit
+    },
     buildChannels(s)
   )
 
