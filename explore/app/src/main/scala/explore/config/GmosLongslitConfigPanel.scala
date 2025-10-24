@@ -77,63 +77,63 @@ object GmosLongslitConfigPanel {
   ] {
     protected type AA = Aligner[T, Input]
 
-    @inline protected def isCustomized(aligner: AA): Boolean = aligner.get.isCustomized
+    inline protected def isCustomized(aligner: AA): Boolean = aligner.get.isCustomized
 
-    @inline protected def revertCustomizations(aligner: AA)(using
+    protected def revertCustomizations(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): Callback
 
-    @inline protected def centralWavelength(aligner: AA)(using
+    protected def centralWavelength(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Wavelength]
 
-    @inline protected def grating(aligner: AA)(using
+    protected def grating(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Grating]
 
-    @inline protected def filter(aligner: AA)(using
+    protected def filter(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[Filter]]
 
-    @inline protected def fpu(aligner: AA)(using
+    protected def fpu(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Fpu]
 
-    @inline protected def explicitXBinning(aligner: AA)(using
+    protected def explicitXBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[GmosXBinning]]
 
-    @inline protected def explicitYBinning(aligner: AA)(using
+    protected def explicitYBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[GmosYBinning]]
 
-    @inline protected def explicitReadModeGain(aligner: AA)(using
+    protected def explicitReadModeGain(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[(GmosAmpReadMode, GmosAmpGain)]]
 
-    @inline protected def explicitRoi(aligner: AA)(using
+    protected def explicitRoi(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[GmosRoi]]
 
-    @inline protected def explicitWavelengthDithers(aligner: AA)(using
+    protected def explicitWavelengthDithers(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -141,30 +141,30 @@ object GmosLongslitConfigPanel {
       Option[NonEmptyList[WavelengthDither]]
     ]
 
-    @inline protected def explicitSpatialOffsets(aligner: AA)(using
+    protected def explicitSpatialOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[NonEmptyList[Offset.Q]]]
 
-    @inline protected def exposureTimeMode(aligner: AA)(using
+    protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[ExposureTimeMode]
 
-    @inline protected val initialGratingLens: Lens[T, Grating]
-    @inline protected val initialFilterLens: Lens[T, Option[Filter]]
-    @inline protected val initialFpuLens: Lens[T, Fpu]
-    @inline protected val initialCentralWavelengthLens: Lens[T, Wavelength]
-    @inline protected val defaultXBinningLens: Lens[T, GmosXBinning]
-    @inline protected val defaultYBinningLens: Lens[T, GmosYBinning]
-    @inline protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
-    @inline protected val defaultRoiLens: Lens[T, GmosRoi]
-    @inline protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
-    @inline protected val defaultSpatialOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
+    protected val initialGratingLens: Lens[T, Grating]
+    protected val initialFilterLens: Lens[T, Option[Filter]]
+    protected val initialFpuLens: Lens[T, Fpu]
+    protected val initialCentralWavelengthLens: Lens[T, Wavelength]
+    protected val defaultXBinningLens: Lens[T, GmosXBinning]
+    protected val defaultYBinningLens: Lens[T, GmosYBinning]
+    protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
+    protected val defaultRoiLens: Lens[T, GmosRoi]
+    protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
+    protected val defaultSpatialOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
 
-    @inline protected def resolvedReadModeGainGetter: T => (GmosAmpReadMode, GmosAmpGain)
+    protected def resolvedReadModeGainGetter: T => (GmosAmpReadMode, GmosAmpGain)
 
     protected given Display[(GmosAmpReadMode, GmosAmpGain)] =
       Display.by( // Shortname is in lower case for some reason
@@ -406,12 +406,12 @@ object GmosLongslitConfigPanel {
         GmosNorthFpu
       ] {
 
-    @inline override protected def revertCustomizations(
+    inline override protected def revertCustomizations(
       aligner: AA
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): Callback =
       aligner.view(_.toInput).mod(_.revertCustomizations)
 
-    @inline override protected def centralWavelength(
+    inline override protected def centralWavelength(
       aligner: AA
     )(using
       MonadError[IO, Throwable],
@@ -425,7 +425,7 @@ object GmosLongslitConfigPanel {
         )
         .view(_.toInput.assign)
 
-    @inline override protected def grating(aligner: AA)(using
+    inline override protected def grating(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -437,7 +437,7 @@ object GmosLongslitConfigPanel {
         )
         .view(_.assign)
 
-    @inline override protected def filter(aligner: AA)(using
+    inline override protected def filter(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -448,7 +448,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    @inline override protected def fpu(aligner: AA)(using
+    inline override protected def fpu(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -459,7 +459,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.assign)
 
-    @inline override protected def explicitXBinning(aligner: AA)(using
+    inline override protected def explicitXBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -470,7 +470,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.value).orUnassign)
 
-    @inline override protected def explicitYBinning(aligner: AA)(using
+    inline override protected def explicitYBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -493,7 +493,7 @@ object GmosLongslitConfigPanel {
       aligner
         .zoom(unsafeDisjointOptionZip(explicitReadMode, explicitGain), f => i => f(i))
 
-    @inline override protected def explicitReadModeGain(aligner: AA)(using
+    inline override protected def explicitReadModeGain(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -506,7 +506,7 @@ object GmosLongslitConfigPanel {
             .andThen(GmosNorthLongSlitInput.explicitAmpGain.replace(rg._2.orUnassign))
         }
 
-    @inline override protected def explicitRoi(aligner: AA)(using
+    inline override protected def explicitRoi(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -517,7 +517,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    @inline override protected def explicitWavelengthDithers(aligner: AA)(using
+    inline override protected def explicitWavelengthDithers(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -528,7 +528,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    @inline override protected def explicitSpatialOffsets(aligner: AA)(using
+    inline override protected def explicitSpatialOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -539,7 +539,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
-    @inline protected def exposureTimeMode(aligner: AA)(using
+    inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -550,29 +550,29 @@ object GmosLongslitConfigPanel {
       )
       .view(_.toInput.assign)
 
-    @inline override protected val initialGratingLens           =
+    override protected val initialGratingLens           =
       ObservingMode.GmosNorthLongSlit.initialGrating
-    @inline override protected val initialFilterLens            = ObservingMode.GmosNorthLongSlit.initialFilter
-    @inline override protected val initialFpuLens               = ObservingMode.GmosNorthLongSlit.initialFpu
-    @inline override protected val initialCentralWavelengthLens =
+    override protected val initialFilterLens            = ObservingMode.GmosNorthLongSlit.initialFilter
+    override protected val initialFpuLens               = ObservingMode.GmosNorthLongSlit.initialFpu
+    override protected val initialCentralWavelengthLens =
       ObservingMode.GmosNorthLongSlit.initialCentralWavelength.andThen(CentralWavelength.Value)
-    @inline protected val defaultBinningLens                    =
+    protected val defaultBinningLens                    =
       (ObservingMode.GmosNorthLongSlit.defaultXBin,
        ObservingMode.GmosNorthLongSlit.defaultYBin
       ).disjointZip
-    @inline protected val defaultReadModeGainLens               =
+    protected val defaultReadModeGainLens               =
       (ObservingMode.GmosNorthLongSlit.defaultAmpReadMode,
        ObservingMode.GmosNorthLongSlit.defaultAmpGain
       ).disjointZip
-    @inline protected val defaultXBinningLens                   = ObservingMode.GmosNorthLongSlit.defaultXBin
-    @inline protected val defaultYBinningLens                   = ObservingMode.GmosNorthLongSlit.defaultYBin
-    @inline protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
-    @inline override protected val defaultWavelengthDithersLens =
+    protected val defaultXBinningLens                   = ObservingMode.GmosNorthLongSlit.defaultXBin
+    protected val defaultYBinningLens                   = ObservingMode.GmosNorthLongSlit.defaultYBin
+    protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
+    override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
-    @inline override protected val defaultSpatialOffsetsLens    =
+    override protected val defaultSpatialOffsetsLens    =
       ObservingMode.GmosNorthLongSlit.defaultSpatialOffsets
 
-    @inline override protected def resolvedReadModeGainGetter = mode =>
+    inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosNorthLongSlit.explicitAmpReadMode
         .get(mode)
         .getOrElse(ObservingMode.GmosNorthLongSlit.defaultAmpReadMode.get(mode))
@@ -613,12 +613,12 @@ object GmosLongslitConfigPanel {
         GmosSouthFpu
       ] {
 
-    @inline override protected def revertCustomizations(
+    inline override protected def revertCustomizations(
       aligner: AA
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): Callback =
       aligner.view(_.toInput).mod(_.revertCustomizations)
 
-    @inline override def centralWavelength(
+    inline override def centralWavelength(
       aligner: AA
     )(using MonadError[IO, Throwable], Effect.Dispatch[IO], Logger[IO]): View[Wavelength] =
       aligner
@@ -628,7 +628,7 @@ object GmosLongslitConfigPanel {
         )
         .view(_.toInput.assign)
 
-    @inline override protected def grating(aligner: AA)(using
+    inline override protected def grating(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -640,7 +640,7 @@ object GmosLongslitConfigPanel {
         )
         .view(_.assign)
 
-    @inline override protected def filter(aligner: AA)(using
+    inline override protected def filter(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -652,7 +652,7 @@ object GmosLongslitConfigPanel {
         )
         .view(_.orUnassign)
 
-    @inline override protected def fpu(aligner: AA)(using
+    inline override protected def fpu(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -663,7 +663,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.assign)
 
-    @inline override protected def explicitXBinning(aligner: AA)(using
+    inline override protected def explicitXBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -674,7 +674,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.value).orUnassign)
 
-    @inline override protected def explicitYBinning(aligner: AA)(using
+    inline override protected def explicitYBinning(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -697,7 +697,7 @@ object GmosLongslitConfigPanel {
       aligner
         .zoom(unsafeDisjointOptionZip(explicitReadMode, explicitGain), f => i => f(i))
 
-    @inline override protected def explicitReadModeGain(aligner: AA)(using
+    inline override protected def explicitReadModeGain(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -710,7 +710,7 @@ object GmosLongslitConfigPanel {
             .andThen(GmosSouthLongSlitInput.explicitAmpGain.replace(rg._2.orUnassign))
         }
 
-    @inline override protected def explicitRoi(aligner: AA)(using
+    inline override protected def explicitRoi(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -721,7 +721,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.orUnassign)
 
-    @inline override protected def explicitWavelengthDithers(aligner: AA)(using
+    inline override protected def explicitWavelengthDithers(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -736,7 +736,7 @@ object GmosLongslitConfigPanel {
         ).orUnassign
       )
 
-    @inline override protected def explicitSpatialOffsets(aligner: AA)(using
+    inline override protected def explicitSpatialOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -747,7 +747,7 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
-    @inline protected def exposureTimeMode(aligner: AA)(using
+    inline protected def exposureTimeMode(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -758,29 +758,29 @@ object GmosLongslitConfigPanel {
       )
       .view(_.toInput.assign)
 
-    @inline override protected val initialGratingLens           =
+    override protected val initialGratingLens           =
       ObservingMode.GmosSouthLongSlit.initialGrating
-    @inline override protected val initialFilterLens            = ObservingMode.GmosSouthLongSlit.initialFilter
-    @inline override protected val initialFpuLens               = ObservingMode.GmosSouthLongSlit.initialFpu
-    @inline override protected val initialCentralWavelengthLens =
+    override protected val initialFilterLens            = ObservingMode.GmosSouthLongSlit.initialFilter
+    override protected val initialFpuLens               = ObservingMode.GmosSouthLongSlit.initialFpu
+    override protected val initialCentralWavelengthLens =
       ObservingMode.GmosSouthLongSlit.initialCentralWavelength.andThen(CentralWavelength.Value)
-    @inline protected val defaultBinningLens                    =
+    protected val defaultBinningLens                    =
       (ObservingMode.GmosSouthLongSlit.defaultXBin,
        ObservingMode.GmosSouthLongSlit.defaultYBin
       ).disjointZip
-    @inline protected val defaultXBinningLens                   = ObservingMode.GmosSouthLongSlit.defaultXBin
-    @inline protected val defaultYBinningLens                   = ObservingMode.GmosSouthLongSlit.defaultYBin
-    @inline protected val defaultReadModeGainLens               =
+    protected val defaultXBinningLens                   = ObservingMode.GmosSouthLongSlit.defaultXBin
+    protected val defaultYBinningLens                   = ObservingMode.GmosSouthLongSlit.defaultYBin
+    protected val defaultReadModeGainLens               =
       (ObservingMode.GmosSouthLongSlit.defaultAmpReadMode,
        ObservingMode.GmosSouthLongSlit.defaultAmpGain
       ).disjointZip
-    @inline protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
-    @inline override protected val defaultWavelengthDithersLens =
+    protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
+    override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
-    @inline override protected val defaultSpatialOffsetsLens    =
+    override protected val defaultSpatialOffsetsLens    =
       ObservingMode.GmosSouthLongSlit.defaultSpatialOffsets
 
-    @inline override protected def resolvedReadModeGainGetter = mode =>
+    inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosSouthLongSlit.explicitAmpReadMode
         .get(mode)
         .getOrElse(ObservingMode.GmosSouthLongSlit.defaultAmpReadMode.get(mode))

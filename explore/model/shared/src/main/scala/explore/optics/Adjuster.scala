@@ -22,34 +22,34 @@ trait Adjuster[From, To] { self =>
    */
 
   /** compose an [[Adjuster]] with a [[Adjuster]] */
-  @inline final def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
+  final def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
     new Adjuster[From, X] {
       def set(to:   X): From => From      = self.modify(other.set(to))
       def modify(f: X => X): From => From = self.modify(other.modify(f))
     }
 
   /** compose a [[PAdjuster]] with a [[PAdjuster]] */
-  @inline final def andThen[X](other: Setter[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Setter[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   /** compose a [[PAdjuster]] with a [[PTraversal]] */
-  @inline final def andThen[X](other: Traversal[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Traversal[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   /** compose a [[PAdjuster]] with a [[POptional]] */
-  @inline final def andThen[X](other: Optional[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Optional[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   /** compose a [[PAdjuster]] with a [[PPrism]] */
-  @inline final def andThen[X](other: Prism[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Prism[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   /** compose a [[PAdjuster]] with a [[PLens]] */
-  @inline final def andThen[X](other: Lens[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Lens[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   /** compose a [[PAdjuster]] with a [[PIso]] */
-  @inline final def andThen[X](other: Iso[To, X]): Adjuster[From, X] =
+  inline final def andThen[X](other: Iso[To, X]): Adjuster[From, X] =
     andThen(other.asAdjuster)
 
   def asTarget[X](implicit ev: To =:= X): Adjuster[From, X] =

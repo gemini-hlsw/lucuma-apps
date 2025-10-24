@@ -20,7 +20,7 @@ trait BinaryJs {
   final def arrayBufferToBlob(a: ArrayBuffer): Blob =
     new Blob(js.Array(a))
 
-  @inline final def arrayBufferToByteBuffer(a: ArrayBuffer): ByteBuffer =
+  inline final def arrayBufferToByteBuffer(a: ArrayBuffer): ByteBuffer =
     TypedArrayBuffer.wrap(a)
 
   final def base64ToByteBuffer(base64: String): ByteBuffer = {

@@ -27,13 +27,13 @@ sealed abstract class TxnDsl[M <: TxnMode] {
   final def pure[A](a: A): Txn[M, A] =
     TxnStep.pure(a)
 
-  @inline final def delay[A](a: => A): Txn[M, A] =
+  inline final def delay[A](a: => A): Txn[M, A] =
     eval(CallbackTo(a))
 
   final def unit: Txn[M, Unit] =
     TxnStep.unit
 
-  @inline final def none: Txn[M, Option[Nothing]] =
+  inline final def none: Txn[M, Option[Nothing]] =
     pure(None)
 
   final def suspend[A](a: => Txn[M, A]): Txn[M, A] =
@@ -45,26 +45,26 @@ sealed abstract class TxnDsl[M <: TxnMode] {
   final def objectStore[K, V](s: ObjectStoreDef.Sync[K, V]): Txn[M, ObjectStore[K, V]] =
     TxnStep.GetStore(s)
 
-  @inline final def objectStore[K, V](
+  inline final def objectStore[K, V](
     s: ObjectStoreDef.Async[K, V]
   ): Txn[M, ObjectStore[K, s.Value]] =
     objectStore(s.sync)
 
-  @inline final def sequence[G[_], A](txns: G[Txn[M, A]])(implicit G: Traverse[G]): Txn[M, G[A]] =
+  inline final def sequence[G[_], A](txns: G[Txn[M, A]])(implicit G: Traverse[G]): Txn[M, G[A]] =
     traverse(txns)(identityFn)
 
-  @inline final def sequenceIterable[F[x] <: Iterable[x], A](txns: => F[Txn[M, A]])(implicit
+  inline final def sequenceIterable[F[x] <: Iterable[x], A](txns: => F[Txn[M, A]])(implicit
     cbf: BuildFrom[F[Txn[M, A]], A, F[A]]
   ): Txn[M, F[A]] =
     traverseIterable(txns)(identityFn)
 
-  @inline final def sequenceIterable_(txns: => Iterable[Txn[M, Any]]): Txn[M, Unit] =
+  inline final def sequenceIterable_(txns: => Iterable[Txn[M, Any]]): Txn[M, Unit] =
     traverseIterable_(txns)(identityFn)
 
-  @inline final def sequenceOption[A](o: => Option[Txn[M, A]]): Txn[M, Option[A]] =
+  inline final def sequenceOption[A](o: => Option[Txn[M, A]]): Txn[M, Option[A]] =
     traverseOption(o)(identityFn)
 
-  @inline final def sequenceOption_(o: Option[Txn[M, Any]]): Txn[M, Unit] =
+  inline final def sequenceOption_(o: Option[Txn[M, Any]]): Txn[M, Unit] =
     traverseOption_(o)(identityFn)
 
   final def traverse[G[_], A, B](ga: G[A])(f: A => Txn[M, B])(implicit
@@ -112,10 +112,10 @@ sealed abstract class TxnDsl[M <: TxnMode] {
       }
     }
 
-  @inline final def unless[A](cond: Boolean)(txn: => Txn[M, A]): Txn[M, Option[A]] =
+  inline final def unless[A](cond: Boolean)(txn: => Txn[M, A]): Txn[M, Option[A]] =
     when(!cond)(txn)
 
-  @inline final def unless_(cond: Boolean)(txn: => Txn[M, Any]): Txn[M, Unit] =
+  inline final def unless_(cond: Boolean)(txn: => Txn[M, Any]): Txn[M, Unit] =
     when_(!cond)(txn)
 
   final def when[A](cond: Boolean)(txn: => Txn[M, A]): Txn[M, Option[A]] =

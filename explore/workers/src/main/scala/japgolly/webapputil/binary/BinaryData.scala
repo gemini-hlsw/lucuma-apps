@@ -117,19 +117,19 @@ final class BinaryData(
   override def equals(o: Any): Boolean =
     o match {
       case b: BinaryData =>
-        @inline def sameRef = this eq b
-        @inline def sameLen = length == b.length
-        @inline def sameBin =
+        inline def sameRef = this eq b
+        inline def sameLen = length == b.length
+        inline def sameBin =
           (0 until length).forall(i => bytes(offset + i) == b.bytes(b.offset + i))
         sameRef || (sameLen && sameBin)
       case _             =>
         false
     }
 
-  @inline def isEmpty: Boolean =
+  inline def isEmpty: Boolean =
     length == 0
 
-  @inline def nonEmpty: Boolean =
+  inline def nonEmpty: Boolean =
     length != 0
 
   def duplicate: BinaryData =
@@ -236,7 +236,7 @@ final class BinaryData(
     }
   }
 
-  @inline def appendBase64(sb: StringBuilder): Unit =
+  inline def appendBase64(sb: StringBuilder): Unit =
     appendBase64(sb.underlying)
 
   def toStringAsUtf8: String =
