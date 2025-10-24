@@ -34,6 +34,14 @@ object ObservingModeSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
             defaultSpatialOffsets $AngleSubquery
             explicitSpatialOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              defaultRoi
+              explicitRoi
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosSouthLongSlit {
             initialGrating
@@ -58,6 +66,14 @@ object ObservingModeSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
             defaultSpatialOffsets $AngleSubquery
             explicitSpatialOffsets $AngleSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              defaultFilter
+              explicitFilter
+              defaultRoi
+              explicitRoi
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
           gmosNorthImaging {
             initialFilters
@@ -104,6 +120,10 @@ object ObservingModeSubquery
             explicitReadoutMode
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            acquisition {
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
           }
         }
       """

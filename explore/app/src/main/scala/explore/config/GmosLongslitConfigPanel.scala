@@ -59,8 +59,7 @@ object GmosLongslitConfigPanel {
     def obsId: Observation.Id
     def calibrationRole: Option[CalibrationRole]
     def observingMode: Aligner[T, Input]
-    def exposureTimeMode: View[Option[ExposureTimeMode]]
-    def spectroscopyRequirements: View[ScienceRequirements.Spectroscopy]
+    def spectroscopyRequirements: ScienceRequirements.Spectroscopy
     def revertConfig: Callback
     def confMatrix: SpectroscopyModesMatrix
     def sequenceChanged: Callback
@@ -148,6 +147,12 @@ object GmosLongslitConfigPanel {
       Logger[IO]
     ): View[Option[NonEmptyList[Offset.Q]]]
 
+    @inline protected def exposureTimeMode(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode]
+
     @inline protected val initialGratingLens: Lens[T, Grating]
     @inline protected val initialFilterLens: Lens[T, Option[Filter]]
     @inline protected val initialFpuLens: Lens[T, Fpu]
@@ -173,7 +178,7 @@ object GmosLongslitConfigPanel {
           ctx       <- useContext(AppContext.ctx)
           modeData  <- useModeData(
                          props.confMatrix,
-                         props.spectroscopyRequirements.get,
+                         props.spectroscopyRequirements,
                          props.observingMode.get
                        )
           editState <- useStateView(ConfigEditState.View)
@@ -294,8 +299,8 @@ object GmosLongslitConfigPanel {
               dithersControl(props.sequenceChanged),
               ExposureTimeModeEditor(
                 props.instrument.some,
-                props.spectroscopyRequirements.get.wavelength,
-                props.exposureTimeMode,
+                props.spectroscopyRequirements.wavelength,
+                exposureTimeMode(props.observingMode),
                 ScienceMode.Spectroscopy,
                 props.readonly,
                 props.units,
@@ -377,8 +382,7 @@ object GmosLongslitConfigPanel {
     obsId:                    Observation.Id,
     calibrationRole:          Option[CalibrationRole],
     observingMode:            Aligner[ObservingMode.GmosNorthLongSlit, GmosNorthLongSlitInput],
-    exposureTimeMode:         View[Option[ExposureTimeMode]],
-    spectroscopyRequirements: View[ScienceRequirements.Spectroscopy],
+    spectroscopyRequirements: ScienceRequirements.Spectroscopy,
     revertConfig:             Callback,
     confMatrix:               SpectroscopyModesMatrix,
     sequenceChanged:          Callback,
@@ -535,6 +539,17 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
+    @inline protected def exposureTimeMode(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = aligner
+      .zoom(
+        ObservingMode.GmosNorthLongSlit.exposureTimeMode,
+        GmosNorthLongSlitInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
+
     @inline override protected val initialGratingLens           =
       ObservingMode.GmosNorthLongSlit.initialGrating
     @inline override protected val initialFilterLens            = ObservingMode.GmosNorthLongSlit.initialFilter
@@ -574,8 +589,7 @@ object GmosLongslitConfigPanel {
     obsId:                    Observation.Id,
     calibrationRole:          Option[CalibrationRole],
     observingMode:            Aligner[ObservingMode.GmosSouthLongSlit, GmosSouthLongSlitInput],
-    exposureTimeMode:         View[Option[ExposureTimeMode]],
-    spectroscopyRequirements: View[ScienceRequirements.Spectroscopy],
+    spectroscopyRequirements: ScienceRequirements.Spectroscopy,
     revertConfig:             Callback,
     confMatrix:               SpectroscopyModesMatrix,
     sequenceChanged:          Callback,
@@ -732,6 +746,17 @@ object GmosLongslitConfigPanel {
         GmosSouthLongSlitInput.explicitSpatialOffsets.modify
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
+
+    @inline protected def exposureTimeMode(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = aligner
+      .zoom(
+        ObservingMode.GmosSouthLongSlit.exposureTimeMode,
+        GmosSouthLongSlitInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
 
     @inline override protected val initialGratingLens           =
       ObservingMode.GmosSouthLongSlit.initialGrating

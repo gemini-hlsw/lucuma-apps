@@ -52,7 +52,9 @@ case class ItcGraphQuerier(
     remoteConfig.orElse(configs.headOption)
 
   private val exposureTimeMode: Option[ExposureTimeMode] =
-    observation.scienceRequirements.exposureTimeMode
+    observation.spectroscopyExposureTimeMode.orElse(
+      observation.scienceRequirements.exposureTimeMode
+    )
 
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
     asterismIds.toItcTargets(allTargets)

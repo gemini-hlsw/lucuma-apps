@@ -80,7 +80,7 @@ object ImagingConfigurationPanel
           label = "Combination",
           disabled = p.readonly
         ),
-        ExposureTimeModeEditor(
+        ExposureTimeModeEditorOptional(
           p.instrument,
           none,
           p.exposureTimeMode,

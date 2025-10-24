@@ -18,7 +18,6 @@ import explore.components.ui.ExploreStyles
 import explore.config.offsets.OffsetEditor
 import explore.model.AppContext
 import explore.model.Observation
-import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.syntax.ui.*
@@ -66,7 +65,6 @@ object GmosImagingConfigPanel {
     def calibrationRole: Option[CalibrationRole]
     def observingMode: Aligner[T, Input]
     def exposureTimeMode: View[Option[ExposureTimeMode]]
-    def imagingRequirements: View[ScienceRequirements.Imaging]
     def revertConfig: Callback
     def sequenceChanged: Callback
     def readonly: Boolean
@@ -236,7 +234,7 @@ object GmosImagingConfigPanel {
                 )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.AdvancedConfigurationCol2)(
-                ExposureTimeModeEditor(
+                ExposureTimeModeEditorOptional(
                   props.instrument.some,
                   none,
                   props.exposureTimeMode,
@@ -362,16 +360,15 @@ object GmosImagingConfigPanel {
 
   // Gmos North Imaging
   case class GmosNorthImaging(
-    programId:           Program.Id,
-    obsId:               Observation.Id,
-    calibrationRole:     Option[CalibrationRole],
-    observingMode:       Aligner[ObservingMode.GmosNorthImaging, GmosNorthImagingInput],
-    exposureTimeMode:    View[Option[ExposureTimeMode]],
-    imagingRequirements: View[ScienceRequirements.Imaging],
-    revertConfig:        Callback,
-    sequenceChanged:     Callback,
-    readonly:            Boolean,
-    units:               WavelengthUnits
+    programId:        Program.Id,
+    obsId:            Observation.Id,
+    calibrationRole:  Option[CalibrationRole],
+    observingMode:    Aligner[ObservingMode.GmosNorthImaging, GmosNorthImagingInput],
+    exposureTimeMode: View[Option[ExposureTimeMode]],
+    revertConfig:     Callback,
+    sequenceChanged:  Callback,
+    readonly:         Boolean,
+    units:            WavelengthUnits
   ) extends ReactFnProps[GmosImagingConfigPanel.GmosNorthImaging](
         GmosImagingConfigPanel.GmosNorthImaging.component
       )
@@ -499,16 +496,15 @@ object GmosImagingConfigPanel {
 
   // Gmos South Imaging
   case class GmosSouthImaging(
-    programId:           Program.Id,
-    obsId:               Observation.Id,
-    calibrationRole:     Option[CalibrationRole],
-    observingMode:       Aligner[ObservingMode.GmosSouthImaging, GmosSouthImagingInput],
-    exposureTimeMode:    View[Option[ExposureTimeMode]],
-    imagingRequirements: View[ScienceRequirements.Imaging],
-    revertConfig:        Callback,
-    sequenceChanged:     Callback,
-    readonly:            Boolean,
-    units:               WavelengthUnits
+    programId:        Program.Id,
+    obsId:            Observation.Id,
+    calibrationRole:  Option[CalibrationRole],
+    observingMode:    Aligner[ObservingMode.GmosSouthImaging, GmosSouthImagingInput],
+    exposureTimeMode: View[Option[ExposureTimeMode]],
+    revertConfig:     Callback,
+    sequenceChanged:  Callback,
+    readonly:         Boolean,
+    units:            WavelengthUnits
   ) extends ReactFnProps[GmosImagingConfigPanel.GmosSouthImaging](
         GmosImagingConfigPanel.GmosSouthImaging.component
       )

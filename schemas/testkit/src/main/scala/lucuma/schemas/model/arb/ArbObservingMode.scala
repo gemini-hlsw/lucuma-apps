@@ -13,6 +13,8 @@ import lucuma.core.math.WavelengthDither
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
+import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
@@ -22,9 +24,72 @@ import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
 trait ArbObservingMode {
+  import ArbExposureTimeMode.given
   import ArbOffset.given
   import ArbWavelength.given
   import ArbWavelengthDither.given
+
+  given given_Arbitrary_GmosNorthLongSlit_Acquisition
+    : Arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition] =
+    Arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition](
+      for
+        defaultFilter  <- arbitrary[GmosNorthFilter]
+        explicitFilter <- arbitrary[Option[GmosNorthFilter]]
+        defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
+        explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
+        etm            <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosNorthLongSlit.Acquisition(defaultFilter,
+                                                        explicitFilter,
+                                                        defaultRoi,
+                                                        explicitRoi,
+                                                        etm
+      )
+    )
+
+  given given_Cogen_GmosNorthLongSlit_Acquisition
+    : Cogen[ObservingMode.GmosNorthLongSlit.Acquisition] =
+    Cogen[
+      (GmosNorthFilter,
+       Option[GmosNorthFilter],
+       GmosLongSlitAcquisitionRoi,
+       Option[GmosLongSlitAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
+
+  given given_Arbitrary_GmosSouthLongSlit_Acquisition
+    : Arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition] =
+    Arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition](
+      for
+        defaultFilter  <- arbitrary[GmosSouthFilter]
+        explicitFilter <- arbitrary[Option[GmosSouthFilter]]
+        defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
+        explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
+        etm            <- arbitrary[ExposureTimeMode]
+      yield ObservingMode.GmosSouthLongSlit.Acquisition(defaultFilter,
+                                                        explicitFilter,
+                                                        defaultRoi,
+                                                        explicitRoi,
+                                                        etm
+      )
+    )
+
+  given given_Cogen_GmosSouthLongSlit_Acquisition
+    : Cogen[ObservingMode.GmosSouthLongSlit.Acquisition] =
+    Cogen[
+      (GmosSouthFilter,
+       Option[GmosSouthFilter],
+       GmosLongSlitAcquisitionRoi,
+       Option[GmosLongSlitAcquisitionRoi],
+       ExposureTimeMode
+      )
+    ]
+      .contramap(a =>
+        (a.defaultFilter, a.explicitFilter, a.defaultRoi, a.explicitRoi, a.exposureTimeMode)
+      )
 
   given Arbitrary[ObservingMode.GmosNorthLongSlit] =
     Arbitrary[ObservingMode.GmosNorthLongSlit](
@@ -51,6 +116,8 @@ trait ArbObservingMode {
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
         defaultSpatialOffsets     <- arbitrary[NonEmptyList[Offset.Q]]
         explicitSpatialOffsets    <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
       } yield ObservingMode.GmosNorthLongSlit(
         initialGrating,
         grating,
@@ -73,7 +140,9 @@ trait ArbObservingMode {
         defaultWavelengthDithers,
         explicitWavelengthDithers,
         defaultSpatialOffsets,
-        explicitSpatialOffsets
+        explicitSpatialOffsets,
+        exposureTimeMode,
+        acquisition
       )
     )
 
@@ -102,6 +171,8 @@ trait ArbObservingMode {
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
         defaultSpatialOffsets     <- arbitrary[NonEmptyList[Offset.Q]]
         explicitSpatialOffsets    <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
       } yield ObservingMode.GmosSouthLongSlit(
         initialGrating,
         grating,
@@ -124,7 +195,9 @@ trait ArbObservingMode {
         defaultWavelengthDithers,
         explicitWavelengthDithers,
         defaultSpatialOffsets,
-        explicitSpatialOffsets
+        explicitSpatialOffsets,
+        exposureTimeMode,
+        acquisition
       )
     )
 
@@ -151,7 +224,10 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        NonEmptyList[Offset.Q],
-       Option[NonEmptyList[Offset.Q]]
+       (Option[NonEmptyList[Offset.Q]],
+        ExposureTimeMode,
+        ObservingMode.GmosNorthLongSlit.Acquisition
+       )
       )
     ]
       .contramap(o =>
@@ -176,7 +252,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultSpatialOffsets,
-         o.explicitSpatialOffsets
+         (o.explicitSpatialOffsets, o.exposureTimeMode, o.acquisition)
         )
       )
 
@@ -203,7 +279,10 @@ trait ArbObservingMode {
        NonEmptyList[WavelengthDither],
        Option[NonEmptyList[WavelengthDither]],
        NonEmptyList[Offset.Q],
-       Option[NonEmptyList[Offset.Q]]
+       (Option[NonEmptyList[Offset.Q]],
+        ExposureTimeMode,
+        ObservingMode.GmosSouthLongSlit.Acquisition
+       )
       )
     ]
       .contramap(o =>
@@ -228,7 +307,7 @@ trait ArbObservingMode {
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
          o.defaultSpatialOffsets,
-         o.explicitSpatialOffsets
+         (o.explicitSpatialOffsets, o.exposureTimeMode, o.acquisition)
         )
       )
 
@@ -315,6 +394,8 @@ trait ArbObservingMode {
         expicitReadoutMode <- arbitrary[Option[Flamingos2ReadoutMode]]
         defaultOffsets     <- arbitrary[NonEmptyList[Offset]]
         explicitOffsets    <- arbitrary[Option[NonEmptyList[Offset]]]
+        exposureTimeMode   <- arbitrary[ExposureTimeMode]
+        acquistionEtm      <- arbitrary[ExposureTimeMode]
       } yield ObservingMode.Flamingos2LongSlit(
         initialDisperser,
         disperser,
@@ -329,7 +410,9 @@ trait ArbObservingMode {
         defaultReadoutMode,
         expicitReadoutMode,
         defaultOffsets,
-        explicitOffsets
+        explicitOffsets,
+        exposureTimeMode,
+        ObservingMode.Flamingos2LongSlit.Acquisition(acquistionEtm)
       )
     )
 
@@ -348,7 +431,9 @@ trait ArbObservingMode {
        Flamingos2ReadoutMode,
        Option[Flamingos2ReadoutMode],
        NonEmptyList[Offset],
-       Option[NonEmptyList[Offset]]
+       Option[NonEmptyList[Offset]],
+       ExposureTimeMode,
+       ExposureTimeMode
       )
     ]
       .contramap(o =>
@@ -366,7 +451,9 @@ trait ArbObservingMode {
           o.defaultReadoutMode,
           o.explicitReadoutMode,
           o.defaultOffsets,
-          o.explicitOffsets
+          o.explicitOffsets,
+          o.exposureTimeMode,
+          o.acquisition.exposureTimeMode
         )
       )
 

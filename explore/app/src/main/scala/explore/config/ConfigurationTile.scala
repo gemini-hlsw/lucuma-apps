@@ -31,7 +31,6 @@ import explore.model.ObservingModeGroupList
 import explore.model.ObservingModeSummary
 import explore.model.PosAngleConstraintAndObsMode
 import explore.model.ScienceRequirements
-import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.TargetList
 import explore.model.enums.PosAngleOptions
@@ -379,11 +378,8 @@ object ConfigurationTile:
           val exposureTimeModeView =
             requirementsView.zoom(ScienceRequirements.exposureTimeMode)
 
-          val spectroscopyView: ViewOpt[Spectroscopy] = requirementsView
-            .zoom(ScienceRequirements.spectroscopy)
-
-          val imagingView: ViewOpt[Imaging] = requirementsView
-            .zoom(ScienceRequirements.imaging)
+          val spectroscopy: Option[Spectroscopy] =
+            ScienceRequirements.spectroscopy.getOption(requirementsView.get)
 
           React.Fragment(
             <.div(ExploreStyles.ConfigurationGrid)(
@@ -432,15 +428,14 @@ object ConfigurationTile:
               else
                 React.Fragment(
                   // Gmos North Long Slit
-                  (optGmosNorthAligner, spectroscopyView.asView).mapN((northAligner, specView) =>
+                  (optGmosNorthAligner, spectroscopy).mapN((northAligner, spec) =>
                     GmosLongslitConfigPanel
                       .GmosNorthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         northAligner,
-                        exposureTimeModeView,
-                        specView,
+                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
@@ -449,15 +444,14 @@ object ConfigurationTile:
                       )
                   ),
                   // Gmos South Long Slit
-                  (optGmosSouthAligner, spectroscopyView.asView).mapN((southAligner, specView) =>
+                  (optGmosSouthAligner, spectroscopy).mapN((southAligner, spec) =>
                     GmosLongslitConfigPanel
                       .GmosSouthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         southAligner,
-                        exposureTimeModeView,
-                        specView,
+                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
@@ -466,44 +460,39 @@ object ConfigurationTile:
                       )
                   ),
                   // Gmos North Imaging
-                  (optGmosNorthImagingAligner, imagingView.asView).mapN((aligner, imagingView) =>
+                  optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
                       aligner,
                       exposureTimeModeView,
-                      imagingView,
                       revertConfig,
                       props.sequenceChanged,
                       props.obsIsReadonly,
                       props.units
-                    )
-                  ),
+                    ),
                   // Gmos South Imaging
-                  (optGmosSouthImagingAligner, imagingView.asView).mapN((aligner, imagingView) =>
+                  optGmosSouthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosSouthImaging(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
                       aligner,
                       exposureTimeModeView,
-                      imagingView,
                       revertConfig,
                       props.sequenceChanged,
                       props.obsIsReadonly,
                       props.units
-                    )
-                  ),
+                    ),
                   // Flamingos2 Long Slit
-                  (optFlamingos2Aligner, spectroscopyView.asView).mapN((f2Aligner, specView) =>
+                  (optFlamingos2Aligner, spectroscopy).mapN((f2Aligner, spec) =>
                     Flamingos2LongslitConfigPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
                       f2Aligner,
-                      exposureTimeModeView,
-                      specView,
+                      spec,
                       revertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
