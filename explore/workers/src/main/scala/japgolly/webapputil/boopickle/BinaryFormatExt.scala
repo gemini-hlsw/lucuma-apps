@@ -16,12 +16,12 @@ object BinaryFormatExt {
 
   trait Implicits {
 
-    @inline final implicit def BinaryFormatBoopickleExt[A](
+    inline final implicit def BinaryFormatBoopickleExt[A](
       self: BinaryFormat[A]
     ): Implicits.BinaryFormatBoopickleExt[A] =
       new Implicits.BinaryFormatBoopickleExt[A](self)
 
-    @inline final implicit def BinaryFormatBoopickleStaticExt(
+    inline final implicit def BinaryFormatBoopickleStaticExt(
       self: BinaryFormat.type
     ): Implicits.BinaryFormatBoopickleStaticExt =
       new Implicits.BinaryFormatBoopickleStaticExt(self)
@@ -44,10 +44,10 @@ object BinaryFormatExt {
     }
 
     final class BinaryFormatBoopickleStaticExt(private val self: BinaryFormat.type) extends AnyVal {
-      // @inline def pickleCompressEncrypt[A](c: Compression, e: Encryption)(implicit pickler: SafePickler[A]): BinaryFormat[A] =
+      // inline def pickleCompressEncrypt[A](c: Compression, e: Encryption)(implicit pickler: SafePickler[A]): BinaryFormat[A] =
       //   BinaryFormatExt.pickleCompressEncrypt(c, e)
 
-      @inline def versioned[A](
+      inline def versioned[A](
         oldest:   BinaryFormat[A],
         toLatest: BinaryFormat[A]*
       ): BinaryFormat[A] =

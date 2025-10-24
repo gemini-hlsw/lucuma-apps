@@ -24,12 +24,12 @@ object PicklerUtil {
 
   object Implicits {
 
-    @inline implicit def boopickleUtilAnyRefPicklerExt[A <: AnyRef](
+    inline implicit def boopickleUtilAnyRefPicklerExt[A <: AnyRef](
       a: Pickler[A]
     ): AnyRefPicklerExt[A] =
       new AnyRefPicklerExt[A](a)
 
-    @inline implicit def boopickleUtilDecoderExt(a: Decoder): DecoderExt =
+    inline implicit def boopickleUtilDecoderExt(a: Decoder): DecoderExt =
       new DecoderExt(a)
   }
 

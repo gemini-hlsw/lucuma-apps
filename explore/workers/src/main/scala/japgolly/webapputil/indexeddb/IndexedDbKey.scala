@@ -6,7 +6,7 @@ package japgolly.webapputil.indexeddb
 import org.scalajs.dom.IDBKey
 
 final class IndexedDbKey private (val asJs: IDBKey) extends AnyVal {
-  @inline def value = asJs.asInstanceOf[IndexedDbKey.Typed]
+  inline def value = asJs.asInstanceOf[IndexedDbKey.Typed]
 }
 
 object IndexedDbKey {
@@ -16,7 +16,7 @@ object IndexedDbKey {
 
   type Typed = String | Double
 
-  @inline def apply(t: Typed): IndexedDbKey =
+  inline def apply(t: Typed): IndexedDbKey =
     fromJs(t)
 
   def fromJs(k: IDBKey): IndexedDbKey =

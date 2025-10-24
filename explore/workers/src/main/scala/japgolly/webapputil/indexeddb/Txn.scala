@@ -38,8 +38,7 @@ final case class Txn[+M <: TxnMode, +A](step: TxnStep[M, A]) { self =>
 
 object Txn {
 
-  @inline implicit final class InvariantOps[M <: TxnMode, A](private val self: Txn[M, A])
-      extends AnyVal {
+  implicit final class InvariantOps[M <: TxnMode, A](private val self: Txn[M, A]) extends AnyVal {
     import TxnStep._
 
     def flatMap[N <: TxnMode, B](
@@ -49,12 +48,12 @@ object Txn {
       Txn(step)
     }
 
-    @inline def unless(cond: Boolean)(implicit
+    inline def unless(cond: Boolean)(implicit
       ev: TxnStep[RO, Option[Nothing]] => Txn[M, Option[Nothing]]
     ): Txn[M, Option[A]] =
       when(!cond)
 
-    @inline def unless_(cond: Boolean)(implicit
+    inline def unless_(cond: Boolean)(implicit
       ev: TxnStep[RO, Unit] => Txn[M, Unit]
     ): Txn[M, Unit] =
       when_(!cond)

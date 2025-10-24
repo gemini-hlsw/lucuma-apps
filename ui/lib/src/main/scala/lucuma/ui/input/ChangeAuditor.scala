@@ -242,8 +242,7 @@ object ChangeAuditor {
    * @param decimals
    *   - maximum number of allowed decimals.
    */
-  @inline
-  def bigDecimal(decimals: PosInt = 3.refined): ChangeAuditor =
+  inline def bigDecimal(decimals: PosInt = 3.refined): ChangeAuditor =
     bigDecimal(none, decimals)
 
   /**
@@ -255,8 +254,7 @@ object ChangeAuditor {
    * @param decimals
    *   - maximum number of allowed decimals.
    */
-  @inline
-  def bigDecimal(integers: PosInt, decimals: PosInt): ChangeAuditor =
+  inline def bigDecimal(integers: PosInt, decimals: PosInt): ChangeAuditor =
     bigDecimal(integers.some, decimals)
 
   /**
@@ -268,8 +266,7 @@ object ChangeAuditor {
    * @param decimals
    *   - maximum number of allowed decimals.
    */
-  @inline
-  def posBigDecimal(integers: Option[PosInt], decimals: PosInt): ChangeAuditor =
+  inline def posBigDecimal(integers: Option[PosInt], decimals: PosInt): ChangeAuditor =
     bigDecimal(integers, decimals).denyNeg
 
   /**
@@ -280,8 +277,7 @@ object ChangeAuditor {
    * @param decimals
    *   - maximum number of allowed decimals.
    */
-  @inline
-  def posBigDecimal(decimals: PosInt = 3.refined): ChangeAuditor =
+  inline def posBigDecimal(decimals: PosInt = 3.refined): ChangeAuditor =
     posBigDecimal(none, decimals)
 
   /**
@@ -293,8 +289,7 @@ object ChangeAuditor {
    * @param decimals
    *   - maximum number of allowed decimals.
    */
-  @inline
-  def posBigDecimal(integers: PosInt, decimals: PosInt): ChangeAuditor =
+  inline def posBigDecimal(integers: PosInt, decimals: PosInt): ChangeAuditor =
     posBigDecimal(integers.some, decimals)
 
   def scientificNotation(
@@ -303,8 +298,7 @@ object ChangeAuditor {
   ): ChangeAuditor =
     bigDecimal(1.refined[Positive], decimals).allowExp(exponentDigits)
 
-  @inline
-  def posScientificNotation(
+  inline def posScientificNotation(
     decimals:       PosInt = 3.refined,
     exponentDigits: PosInt = 2.refined
   ): ChangeAuditor =

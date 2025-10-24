@@ -13,7 +13,7 @@ object all extends ModelOptics {
     def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    final def asAdjuster: Adjuster[From, To] =
       new Adjuster[From, To] {
         def modify(f: To => To): From => From = self.modify(f)
         def set(to:   To): From => From       = self.replace(to)
@@ -24,7 +24,7 @@ object all extends ModelOptics {
     def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    final def asAdjuster: Adjuster[From, To] =
       new Adjuster[From, To] {
         def modify(f: To => To): From => From = self.modify(f)
         def set(to:   To): From => From       = self.replace(to)
@@ -35,7 +35,7 @@ object all extends ModelOptics {
                              asAdjuster.andThen(other.adjuster)
       )
 
-    @inline final def asGetAdjust: GetAdjust[From, To] =
+    inline final def asGetAdjust: GetAdjust[From, To] =
       new GetAdjust[From, To](self.asGetter, asAdjuster)
   }
 
@@ -43,7 +43,7 @@ object all extends ModelOptics {
     def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    final def asAdjuster: Adjuster[From, To] =
       new Adjuster[From, To] {
         def modify(f: To => To): From => From = self.modify(f)
         def set(to:   To): From => From       = self.replace(to)
@@ -54,7 +54,7 @@ object all extends ModelOptics {
     def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    final def asAdjuster: Adjuster[From, To] =
       new Adjuster[From, To] {
         def modify(f: To => To): From => From = self.modify(f)
         def set(to:   To): From => From       = self.replace(to)
@@ -65,7 +65,7 @@ object all extends ModelOptics {
     def composeAdjuster[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    inline final def asAdjuster: Adjuster[From, To] =
       Adjuster(self.modify)
   }
 
@@ -73,7 +73,7 @@ object all extends ModelOptics {
     def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
       asAdjuster.andThen(other)
 
-    @inline final def asAdjuster: Adjuster[From, To] =
+    final def asAdjuster: Adjuster[From, To] =
       new Adjuster[From, To] {
         def modify(f: To => To): From => From = self.modify(f)
         def set(to:   To): From => From       = self.replace(to)

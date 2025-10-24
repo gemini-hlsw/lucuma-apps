@@ -405,7 +405,7 @@ object IndexedDb {
 
     def sync[A](dslCB: TxnDsl[M] => CallbackTo[Txn[M, A]]): AsyncCallback[A] = {
 
-      @inline def startRawTxn(complete: Try[Unit] => Callback) = {
+      inline def startRawTxn(complete: Try[Unit] => Callback) = {
         val txn = raw.transaction(stores, mode)
 
         txn.onerror = event => complete(Failure(Error(event))).runNow()
@@ -575,13 +575,13 @@ object IndexedDb {
       )
 
     /** Note: insert only */
-    @inline def addResultWhenDefined[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
+    inline def addResultWhenDefined[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       addResultWhenDefinedBy(store)(key, ev)
 
     /** Note: insert only */
-    @inline def addResultWhenDefined[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
+    inline def addResultWhenDefined[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       addResultWhenDefinedBy(store)(key, ev)
@@ -656,13 +656,13 @@ object IndexedDb {
       }
 
     /** Note: upsert */
-    @inline def putOrDeleteResult[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
+    inline def putOrDeleteResult[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       putOrDeleteResultBy(store)(key, ev)
 
     /** Note: upsert */
-    @inline def putOrDeleteResult[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
+    inline def putOrDeleteResult[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       putOrDeleteResultBy(store)(key, ev)
@@ -717,13 +717,13 @@ object IndexedDb {
       )
 
     /** Note: upsert */
-    @inline def putResultWhenDefined[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
+    inline def putResultWhenDefined[K, V](store: ObjectStoreDef.Async[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       putResultWhenDefinedBy(store)(key, ev)
 
     /** Note: upsert */
-    @inline def putResultWhenDefined[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
+    inline def putResultWhenDefined[K, V](store: ObjectStoreDef.Sync[K, V])(key: K)(implicit
       ev: B => Option[V]
     ): AsyncCallback[B] =
       putResultWhenDefinedBy(store)(key, ev)
