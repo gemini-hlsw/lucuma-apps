@@ -14,8 +14,7 @@ import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.refined.*
-import lucuma.ui.primereact.FormLabel
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.syntax.all.given
 
 final case class LambdaAndIntervalFormValues(
@@ -32,15 +31,13 @@ object LambdaAndIntervalFormValues
       given Display[BoundedInterval[Wavelength]] = wavelengthIntervalDisplay(props.units)
 
       React.Fragment(
-        FormLabel(htmlFor = "lambda".refined)("λ / Δλ"),
-        <.label(^.id := "lambda",
-                ExploreStyles.FormValue,
-                s"${props.modeData.fold("Unknown")(_.resolution.toString)}"
+        <.span("λ / Δλ", LucumaPrimeStyles.FormFieldLabel),
+        <.span(ExploreStyles.FormValue,
+               s"${props.modeData.fold("Unknown")(_.resolution.toString)}"
         ),
-        FormLabel(htmlFor = "lambdaInterval".refined)("λ Interval"),
-        <.label(^.id := "lambdaInterval",
-                ExploreStyles.FormValue,
-                s"${adjustedInterval.fold("Unknown")(_.shortName)} ${props.units.symbol}"
+        <.span("λ Interval", LucumaPrimeStyles.FormFieldLabel),
+        <.span(ExploreStyles.FormValue,
+               s"${adjustedInterval.fold("Unknown")(_.shortName)} ${props.units.symbol}"
         )
       )
     )

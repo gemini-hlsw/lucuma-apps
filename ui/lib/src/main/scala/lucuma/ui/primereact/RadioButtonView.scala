@@ -19,7 +19,6 @@ final case class RadioButtonView[V[_], A](
   view:      V[A],
   label:     NonEmptyString,
   name:      js.UndefOr[NonEmptyString] = js.undefined, // name of the "radio button group"
-  inputId:   js.UndefOr[String] = js.undefined,
   disabled:  js.UndefOr[Boolean] = js.undefined,
   clazz:     js.UndefOr[Css] = js.undefined,
   required:  js.UndefOr[Boolean] = js.undefined,
@@ -41,9 +40,8 @@ object RadioButtonView {
     <.div(
       LucumaPrimeStyles.RadioButtonWithLabel,
       RadioButton(
-        id = props.id.value,
         value = props.value,
-        inputId = props.inputId,
+        id = props.id.value,
         name = props.name.map(_.value),
         disabled = props.disabled,
         clazz = props.clazz,

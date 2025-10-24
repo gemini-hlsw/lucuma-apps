@@ -306,6 +306,7 @@ object GmosLongslitConfigPanel {
               // Provide better accessibility by using aria-label directly
               // on the dropdowns so X and Y binning are correctly labeled.
               <.label(
+                ^.htmlFor := "explicitXBin",
                 LucumaPrimeStyles.FormFieldLabel,
                 "Binning",
                 HelpIcon("configuration/gmos/binning.md".refined)
@@ -321,7 +322,7 @@ object GmosLongslitConfigPanel {
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                <.label("x"),
+                <.label(^.htmlFor := "explicitYBin", "x"),
                 CustomizableEnumSelectOptional(
                   id = "explicitYBin".refined,
                   view = explicitYBinning(props.observingMode).withDefault(defaultYBinning),

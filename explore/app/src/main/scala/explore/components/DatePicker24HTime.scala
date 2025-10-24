@@ -5,6 +5,7 @@ package explore.components
 
 import cats.syntax.all.*
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -25,6 +26,7 @@ import scalajs.js
 import scalajs.js.JSConverters.*
 
 case class DatePicker24HTime(
+  id:            NonEmptyString,
   obsTimeView:   View[Instant],
   isReadonly:    Boolean,
   withNowButton: Option[DatePicker24HTime.OnNow] = None,
@@ -41,6 +43,7 @@ object DatePicker24HTime
         val maxDate = props.maxDate.map(_.toDatePickerJsDate)
 
         Datepicker(
+          id = props.id.value,
           onChange = _.map(_.fromDatePickerJsDate).foldMap(props.obsTimeView.set),
           selected = props.obsTimeView.get.toDatePickerJsDate.some,
           minDate = minDate.orUndefined,

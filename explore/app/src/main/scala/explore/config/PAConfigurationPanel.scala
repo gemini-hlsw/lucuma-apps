@@ -102,7 +102,7 @@ object PAConfigurationPanel:
             case (None, Some(averagePA))             =>
               paDisplay(averagePA.averagePA, averagePA)
             case _                                   =>
-              <.label(
+              <.span(
                 "Not Visible, observation complete, or explicit observation duration is less than setup time."
               ).some
         case PosAngleConstraint.AllowFlip(af) if props.selectedPA.exists(_ =!= af) =>

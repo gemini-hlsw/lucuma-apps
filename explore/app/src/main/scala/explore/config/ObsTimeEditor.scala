@@ -59,11 +59,13 @@ object ObsTimeEditor
         <.div(ExploreStyles.ObsInstantTileTitle)(
           React.Fragment(
             <.label(
+              ^.htmlFor := "obs-time-picker",
               dataAbbrv := "Time",
               <.span("Time/Duration"),
               HelpIcon("configuration/obstime.md".refined)
             ),
             DatePicker24HTime(
+              "obs-time-picker".refined,
               props.obsTimeView,
               props.isReadonly,
               DatePicker24HTime
@@ -74,7 +76,7 @@ object ObsTimeEditor
                 )
                 .some
             ),
-            <.label(ExploreStyles.TargetTileObsUTC, "UTC"),
+            <.span(ExploreStyles.TargetTileObsUTC, "UTC"),
             if (props.forMultipleObs) EmptyVdom
             else
               props.obsDurationView
