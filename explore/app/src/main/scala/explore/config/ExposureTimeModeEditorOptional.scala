@@ -44,50 +44,50 @@ object ExposureTimeModeEditorOptional:
   protected val component =
     ScalaFnComponent[Props]: props =>
       for
-        emv    <-
+        exposureTimeModeView <-
           useStateView(
             props.exposureTimeMode.get
               .map(_.modeType)
               .getOrElse(ExposureTimeModeType.SignalToNoise)
           )
-        snMode <- useStateView(
-                    props.exposureTimeMode.get
-                      .flatMap(SignalToNoiseModeInfo.fromModel)
-                      .getOrElse(SignalToNoiseModeInfo.default(props.scienceMode))
-                  )
-        tcMode <- useStateView(
-                    props.exposureTimeMode.get
-                      .flatMap(TimeAndCountModeInfo.fromModel)
-                      .getOrElse(TimeAndCountModeInfo.default(props.scienceMode))
-                  )
-        _      <- useEffectWithDeps(props.exposureTimeMode.get):
-                    // Exposure time mode updated upstream
-                    _.map: etm =>
-                      SignalToNoiseModeInfo.fromModel(etm).traverse(snMode.set) *>
-                        TimeAndCountModeInfo.fromModel(etm).traverse(tcMode.set) *>
-                        emv.set(etm.modeType)
-                    .getOrElse:
-                      snMode.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
-                        tcMode.set(TimeAndCountModeInfo.default(props.scienceMode)) *>
-                        emv.set(ExposureTimeModeType.SignalToNoise)
-        _      <- useEffectWithDeps(props.wavelength):
-                    // Wavelength updated upstream, set `at` if empty
-                    _.map: wv =>
-                      emv.get match
-                        case ExposureTimeModeType.SignalToNoise =>
-                          snMode.set(snMode.get.withRequirementsWavelength(wv))
-                        case ExposureTimeModeType.TimeAndCount  =>
-                          tcMode.set(tcMode.get.withRequirementsWavelength(wv))
-                    .getOrEmpty
+        signalToNoiseView    <- useStateView(
+                                  props.exposureTimeMode.get
+                                    .flatMap(SignalToNoiseModeInfo.fromModel)
+                                    .getOrElse(SignalToNoiseModeInfo.default(props.scienceMode))
+                                )
+        timeAndCountView     <- useStateView(
+                                  props.exposureTimeMode.get
+                                    .flatMap(TimeAndCountModeInfo.fromModel)
+                                    .getOrElse(TimeAndCountModeInfo.default(props.scienceMode))
+                                )
+        _                    <- useEffectWithDeps(props.exposureTimeMode.get):
+                                  // Exposure time mode updated upstream
+                                  _.map: etm =>
+                                    SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
+                                      TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
+                                      exposureTimeModeView.set(etm.modeType)
+                                  .getOrElse:
+                                    signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
+                                      timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode)) *>
+                                      exposureTimeModeView.set(ExposureTimeModeType.SignalToNoise)
+        _                    <- useEffectWithDeps(props.wavelength):
+                                  // Wavelength updated upstream, set `at` if empty
+                                  _.map: wv =>
+                                    exposureTimeModeView.get match
+                                      case ExposureTimeModeType.SignalToNoise =>
+                                        signalToNoiseView.set(signalToNoiseView.get.withRequirementsWavelength(wv))
+                                      case ExposureTimeModeType.TimeAndCount  =>
+                                        timeAndCountView.set(timeAndCountView.get.withRequirementsWavelength(wv))
+                                  .getOrEmpty
       yield
 
-        val snModeView = snMode.withOnMod:
+        val snModeView: View[SignalToNoiseModeInfo] = signalToNoiseView.withOnMod:
           case SignalToNoiseModeInfo(Some(value), Some(at)) =>
             props.exposureTimeMode.set(ExposureTimeMode.SignalToNoiseMode(value, at).some)
           case _                                            =>
             Callback.empty
 
-        val tcModeView = tcMode.withOnMod:
+        val tcModeView: View[TimeAndCountModeInfo] = timeAndCountView.withOnMod:
           case TimeAndCountModeInfo(Some(time), Some(count), Some(at)) =>
             props.exposureTimeMode.set(ExposureTimeMode.TimeAndCountMode(time, count, at).some)
           case _                                                       =>
@@ -96,7 +96,7 @@ object ExposureTimeModeEditorOptional:
         React.Fragment(
           FormEnumDropdownView(
             id = "exposureMode".refined,
-            value = emv,
+            value = exposureTimeModeView,
             label = ReactFragment(
               "Exposure Mode",
               HelpIcon("configuration/exposure-mode.md".refined)
@@ -104,14 +104,14 @@ object ExposureTimeModeEditorOptional:
             onChangeE = (v, _) =>
               v match
                 case Some(ExposureTimeModeType.SignalToNoise) =>
-                  tcMode.get match
+                  timeAndCountView.get match
                     case TimeAndCountModeInfo(_, _, Some(at)) =>
                       snModeView.mod:
                         case s @ SignalToNoiseModeInfo(_, None) => s.copy(at = Some(at))
                         case s                                  => s
                     case _                                    => Callback.empty
                 case Some(ExposureTimeModeType.TimeAndCount)  =>
-                  snMode.get match
+                  signalToNoiseView.get match
                     case SignalToNoiseModeInfo(_, Some(at)) =>
                       tcModeView.mod:
                         case s @ TimeAndCountModeInfo(_, _, None) => s.copy(at = Some(at))
@@ -121,7 +121,7 @@ object ExposureTimeModeEditorOptional:
             ,
             disabled = props.readonly
           ),
-          if (emv.get === ExposureTimeModeType.SignalToNoise)
+          if (exposureTimeModeView.get === ExposureTimeModeType.SignalToNoise)
             SignalToNoiseAtEditor(snModeView,
                                   props.scienceMode,
                                   props.readonly,
