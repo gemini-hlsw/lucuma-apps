@@ -192,10 +192,13 @@ trait ArbProposalType:
     }
 
   given Cogen[ProposalType] =
-    Cogen[Either[Classical, Either[DemoScience, Either[DirectorsTime, Either[
-      FastTurnaround,
-      Either[LargeProgram, Either[PoorWeather, Either[Queue, SystemVerification]]]
-    ]]]]].contramap {
+    Cogen[Either[
+      Classical,
+      Either[DemoScience, Either[DirectorsTime, Either[
+        FastTurnaround,
+        Either[LargeProgram, Either[PoorWeather, Either[Queue, SystemVerification]]]
+      ]]]
+    ]].contramap {
       case c: Classical          => Left(c)
       case d: DemoScience        => Right(Left(d))
       case d: DirectorsTime      => Right(Right(Left(d)))

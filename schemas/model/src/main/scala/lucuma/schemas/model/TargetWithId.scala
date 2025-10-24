@@ -34,8 +34,7 @@ case class TargetWithId(
   target:          Target,
   disposition:     TargetDisposition,
   calibrationRole: Option[CalibrationRole]
-) extends TargetWithMetadata
-    derives Eq {
+) extends TargetWithMetadata derives Eq {
   def toOptId: TargetWithOptId = TargetWithOptId(id.some, target, disposition, calibrationRole)
 
   def toSidereal: Option[SiderealTargetWithId] = TargetWithId.sidereal.getOption(this)
@@ -73,8 +72,7 @@ case class TargetWithOptId(
   target:          Target,
   disposition:     TargetDisposition,
   calibrationRole: Option[CalibrationRole]
-) extends TargetWithMetadata
-    derives Eq:
+) extends TargetWithMetadata derives Eq:
   def withId(targetId: Target.Id): TargetWithId =
     TargetWithId(targetId, target, disposition, calibrationRole)
 
