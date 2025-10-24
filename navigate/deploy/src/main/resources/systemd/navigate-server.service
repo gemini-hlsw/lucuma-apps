@@ -1,0 +1,23 @@
+[Unit]
+Description=Navigate Server
+Requires=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/software/navigate_server/
+EnvironmentFile=/etc/default/navigate-server.env
+ExecStart=/home/software/navigate_server/bin/navigate-server
+Restart=always
+RestartSec=60
+# IOApp returns 128+15 on a regular cancellation, 15 being SIGTERM
+SuccessExitStatus=143
+TimeoutStopSec=5
+User=software
+ExecStartPre=/bin/mkdir -p /run/navigate_server
+ExecStartPre=/bin/chown software:software /run/navigate_server
+ExecStartPre=/bin/chmod 755 /run/navigate_server
+PermissionsStartOnly=true
+LimitNOFILE=1024
+
+[Install]
+WantedBy=multi-user.target
