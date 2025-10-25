@@ -101,13 +101,19 @@ case class ObsTree(
   private def groupIsEmpty(groupId: Group.Id): Boolean =
     groupsChildren.get(groupId.some).forall(_.isEmpty)
 
-  private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty
+  private val isCalibObsSelected: Boolean                               =
+    selectedObsIdSet
+      .map(_.idSet.exists(observations.get.get(_).exists(_.isCalibration)))
+      .getOrElse(false)
+  private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty || isCalibObsSelected
   private val pasteDisabled: Boolean                                    = clipboardObsContents.isEmpty
   private val (deleteDisabled: Boolean, deletedTooltip: Option[String]) =
     selectedObsIdSet
       .map(obsIds =>
         if (observations.get.executedOf(obsIds).nonEmpty)
           (true, "- Cannot delete executed observations.".some)
+        else if (isCalibObsSelected)
+          (true, "- Cannot delete calibration observations.".some)
         else (false, none)
       )
       .orElse(
