@@ -58,7 +58,8 @@ case class AladinContainer(
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
-  guideStarCandidates:    List[AgsAnalysis.Usable]
+  guideStarCandidates:    List[AgsAnalysis.Usable],
+  blindOffset:            Option[Tracking]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -286,16 +287,16 @@ object AladinContainer extends AladinCommon {
                               .flatten
 
         // Use fov from aladin
-        fov        <- useState(none[Fov])
+        fov    <- useState(none[Fov])
         // Survey
-        survey     <- useState(
-                        props.vizConf
-                          .flatMap(_.centralWavelength)
-                          .map(w => surveyForWavelength(w.value))
-                          .getOrElse(ImageSurvey.DSS)
-                      )
+        survey <- useState(
+                    props.vizConf
+                      .flatMap(_.centralWavelength)
+                      .map(w => surveyForWavelength(w.value))
+                      .getOrElse(ImageSurvey.DSS)
+                  )
         // Update survey if conf changes
-        _          <-
+        _      <-
           useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))): w =>
             w.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
@@ -397,6 +398,20 @@ object AladinContainer extends AladinCommon {
             props.globalPreferences.acquisitionOffsets
           )
 
+        val blindOffsetIndicator: List[SVGTarget] =
+          props.blindOffset
+            .flatMap(_.at(props.siderealDiscretizedObsTime.obsTime))
+            .foldMap: coords =>
+              List(
+                SVGTarget.BlindOffsetTarget(coords, ExploreStyles.BlindOffsetTarget, 8)
+              )
+          //   SVGTarget.LineTo(
+          //     asterismTracking.at(obsTime).getOrElse(asterismTracking.baseCoordinates),
+          //     correctedCoords,
+          //     ExploreStyles.BlindOffsetLine
+          //   )
+          // )
+
         val offsetTargets =
           // order is important, scienc to be drawn above acq
           (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
@@ -426,7 +441,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     baseCoordinates,
                     // Order matters
-                    candidates ++ basePosition ++ sciencePositions ++ offsetTargets
+                    candidates ++ basePosition ++ blindOffsetIndicator ++ sciencePositions ++ offsetTargets
                   )
                 ),
               (resize.width,

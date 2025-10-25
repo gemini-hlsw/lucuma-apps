@@ -158,8 +158,15 @@
 
   rect,
   circle,
+  polygon,
   line {
     vector-effect: non-scaling-stroke;
+  }
+
+  .blind-offset-target {
+    stroke: turquoise;
+    fill: turquoise;
+    stroke-width: 1px;
   }
 
   .crosshair-target {

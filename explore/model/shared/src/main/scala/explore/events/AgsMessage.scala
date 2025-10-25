@@ -9,13 +9,14 @@ import cats.data.NonEmptyList
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
-import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import workers.WorkerRequest
+import lucuma.core.math.Angle
+import lucuma.core.math.Offset
 
 object AgsMessage {
   sealed trait Request extends WorkerRequest
@@ -30,7 +31,9 @@ object AgsMessage {
     wavelength:         Wavelength,
     baseCoordinates:    Coordinates,
     scienceCoordinates: List[Coordinates],
-    positions:          NonEmptyList[AgsPosition],
+    posAngles:          NonEmptyList[Angle],
+    acqOffsets:         Option[NonEmptyList[Offset]],
+    sciOffsets:         Option[NonEmptyList[Offset]],
     params:             AgsParams,
     candidates:         List[GuideStarCandidate]
   ) extends Request {

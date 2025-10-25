@@ -23,7 +23,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 19
+  private val AgsCacheVersion: Int = 20
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
@@ -34,7 +34,10 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
                      r.wavelength,
                      r.baseCoordinates,
                      r.scienceCoordinates,
-                     r.positions,
+                     None,
+                     r.posAngles,
+                     r.acqOffsets,
+                     r.sciOffsets,
                      r.params,
                      r.candidates
         )
@@ -48,9 +51,9 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
       _     <- cache.evict(CacheRetention).start
     yield invocation =>
       invocation.data match {
-        case AgsMessage.CleanCache                               =>
+        case AgsMessage.CleanCache                                     =>
           cache.clear *> invocation.respond(())
-        case req @ AgsMessage.AgsRequest(_, _, _, _, _, _, _, _) =>
+        case req @ AgsMessage.AgsRequest(_, _, _, _, _, _, _, _, _, _) =>
           val cacheableRequest =
             Cacheable(CacheName("ags"), CacheVersion(AgsCacheVersion), agsCalculation)
           cache

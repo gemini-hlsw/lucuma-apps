@@ -195,6 +195,21 @@ object TargetEditor:
 
         val oid = props.obsInfo.current.map(_.head)
 
+        val blindOffset =
+          for {
+            obsId <- oid
+            obs   <- props.obsAndTargets.get._1.get(obsId)
+            btid  <- obs.blindOffset.blindOffsetTargetId
+            btt   <- props.obsAndTargets.get._2.get(btid)
+            trk   <- Target.siderealTracking.getOption(btt.target)
+          } yield trk
+          // val btid =
+          //   props.obsAndTargets.get._1.get(obsId).flatMap(_.blindOffset.blindOffsetTargetId)
+          // btid.flatMap(props.obsAndTargets.get._2.get)
+
+        println(blindOffset)
+        // println(blindOffset.map(Target.siderealTracking.getOption))
+
         val catalogInfo: Option[CatalogInfo] =
           Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
 
@@ -420,7 +435,8 @@ object TargetEditor:
                   props.obsConf,
                   props.fullScreen,
                   props.userPreferences,
-                  props.guideStarSelection
+                  props.guideStarSelection,
+                  blindOffset
                 )
               ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(

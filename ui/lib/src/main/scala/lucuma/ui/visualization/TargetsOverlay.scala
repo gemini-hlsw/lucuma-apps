@@ -85,6 +85,13 @@ object SVGTarget {
     title:       Option[String] = None
   ) extends SVGTarget derives Eq
 
+  case class BlindOffsetTarget(
+    coordinates: Coordinates,
+    css:         Css,
+    radius:      Double,
+    title:       Option[String] = None
+  ) extends SVGTarget derives Eq
+
   given Reusability[SVGTarget] = Reusability.byEq
 }
 
@@ -211,6 +218,18 @@ object TargetsOverlay
               case (offP, offQ, SVGTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
                 val pointCss = VisualizationStyles.OffsetPosition |+| css
                 OffsetSVG(offP, offQ, maxP, radius, pointCss, oType, idx, o)
+
+              case (offP, offQ, SVGTarget.BlindOffsetTarget(_, css, radius, title)) =>
+                val pointCss     = VisualizationStyles.BlindOffsetTarget |+| css
+                val scaledRadius = scale(maxP * radius)
+                val cx           = scale(offP)
+                val cy           = scale(offQ)
+
+                <.polygon(
+                  ^.points := s"${cx},${cy - scaledRadius} ${cx + scaledRadius},${cy} ${cx},${cy + scaledRadius} ${cx - scaledRadius},${cy}",
+                  pointCss,
+                  title.map(<.title(_))
+                )
 
               case (offP, offQ, SVGTarget.LineTo(_, d, css, title)) =>
                 val destOffset = d.diff(p.baseCoordinates).offset
