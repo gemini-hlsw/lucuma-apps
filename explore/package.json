@@ -13,7 +13,7 @@
     "@fortawesome/pro-solid-svg-icons": "7.1.0",
     "@fortawesome/pro-thin-svg-icons": "7.1.0",
     "@honeycombio/opentelemetry-web": "1.1.0",
-    "@opentelemetry/auto-instrumentations-web": "0.52.0",
+    "@opentelemetry/auto-instrumentations-web": "0.53.0",
     "@react-hook/resize-observer": "2.0.2",
     "@react-hook/size": "2.1.2",
     "@tanstack/react-table": "8.21.3",
