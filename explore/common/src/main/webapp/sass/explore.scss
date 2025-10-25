@@ -1548,14 +1548,35 @@ svg.fa-check.explore-success-icon {
   }
 
   .obs-badge-extra {
-    margin-top: 5px;
     display: flex;
-    justify-content: space-between;
-    gap: 2em;
+    flex-direction: column;
 
-    .obs-state-select-wrapper {
-      flex-grow: 2;
+    .obs-badge-extra-status {
+      margin-top: 5px;
+      display: flex;
+      justify-content: space-between;
+      gap: 2em;
+
+      .obs-state-select-wrapper {
+        flex-grow: 2;
+      }
     }
+
+    .obs-badge-extra-associated {
+      margin-top: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+
+      .obs-badge-extra-associated-obs {
+        text-align: left;
+
+        &.obs-badge-extra-selected-associated-obs {
+          box-shadow: 0 0 0 2.5px var(--site-solid-border-color);
+        }
+      }
+    }
+
   }
 
   .obs-badge-subtitle {

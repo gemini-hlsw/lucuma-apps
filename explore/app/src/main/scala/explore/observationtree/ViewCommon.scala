@@ -42,7 +42,8 @@ trait ViewCommon {
       selected = forceHighlight || (highlightSelected && focusedObsSet.exists(_.contains(obs.id))),
       readonly = readonly,
       deleteCB = onDelete,
-      allocatedScienceBands = allocatedScienceBands
+      allocatedScienceBands = allocatedScienceBands,
+      programId = programId
     )
 
   def renderObsBadgeItem(

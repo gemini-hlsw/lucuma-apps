@@ -322,11 +322,9 @@ object ObsTree:
             // Disable link dragging to enable tree node dragging
             ^.draggable := false,
             ExploreStyles.ObsItem |+| ExploreStyles.SelectedObsItem.when_(selected),
-            ^.onClick ==> linkOverride(
-              focusObs(props.programId, obs.id.some, ctx)
-            )
+            ^.onClick ==> linkOverride(focusObs(props.programId, obs.id.some, ctx))
           )(
-            ObsBadge( // TODO Pass associatedObss
+            ObsBadge(
               obs,
               ObsBadge.Layout.ObservationsTab,
               selected = selected,
@@ -356,6 +354,9 @@ object ObsTree:
                   ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
               ).some,
               allocatedScienceBands = props.allocatedScienceBands,
+              associatedObss = associatedObss,
+              programId = props.programId,
+              focusedObs = props.focusedObs,
               readonly = props.readonly
             )
           )
