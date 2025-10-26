@@ -59,11 +59,12 @@ case class AladinContainer(
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
-  guideStarCandidates:    List[AgsAnalysis.Usable],
-  blindOffset:            Option[SiderealTracking]
+  guideStarCandidates:    List[AgsAnalysis.Usable]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
+
+  val blindOffset: Option[SiderealTracking] = vizConf.flatMap(_.blindOffset)
 
 object AladinContainer extends AladinCommon {
 
@@ -430,7 +431,6 @@ object AladinContainer extends AladinCommon {
             .foldMap: bo =>
               val (epochCoords, obsTimeCoords) =
                 bo.trackedPositions(props.siderealDiscretizedObsTime.obsTime, Some(bo.epoch))
-              println(bo.epoch)
 
               svgTargetAndLine(
                 obsTimeCoords,

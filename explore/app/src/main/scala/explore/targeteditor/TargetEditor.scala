@@ -435,8 +435,7 @@ object TargetEditor:
                   props.obsConf,
                   props.fullScreen,
                   props.userPreferences,
-                  props.guideStarSelection,
-                  blindOffset
+                  props.guideStarSelection
                 )
               ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(

@@ -29,6 +29,7 @@ import explore.model.GuideStarSelection.*
 import explore.model.display.given
 import explore.model.enums.AgsState
 import explore.model.enums.AppTab
+import lucuma.core.model.SiderealTracking
 import explore.model.enums.GridLayoutSection
 import explore.model.extensions.*
 import explore.model.formats.formatPercentile
@@ -172,6 +173,18 @@ case class ObsTabTiles(
 
 object ObsTabTiles:
   private type Props = ObsTabTiles
+
+  // Helper to convert BlindOffset to SiderealTracking
+  private def blindOffsetToTracking(
+    blindOffset:   Option[BlindOffset],
+    obsAndTargets: ObservationsAndTargets
+  ): Option[SiderealTracking] =
+    for {
+      bo       <- blindOffset
+      targetId <- bo.blindOffsetTargetId
+      target   <- obsAndTargets._2.get(targetId)
+      tracking <- Target.siderealTracking.getOption(target.target)
+    } yield tracking
 
   private def makeConstraintsSelector(
     observationId:     Observation.Id,
@@ -453,7 +466,8 @@ object ObsTabTiles:
               obsDuration.map(_.toDuration),
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
-              props.observation.get.calibrationRole
+              props.observation.get.calibrationRole,
+              blindOffsetToTracking(props.observation.get.blindOffset.some, props.obsAndTargets.get)
             )
 
           val plotData: Option[PlotData] =

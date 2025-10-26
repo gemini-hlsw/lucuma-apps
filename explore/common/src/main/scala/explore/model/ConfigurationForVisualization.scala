@@ -11,6 +11,7 @@ import explore.model.syntax.all.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.SiderealTracking
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 
@@ -23,7 +24,8 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptyList[Offset]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  centralWavelength:          Option[CentralWavelength]
+  centralWavelength:          Option[CentralWavelength],
+  blindOffset:                Option[SiderealTracking]
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguratio
   // TODO: Take the calculated average parallactic angle if needed
@@ -44,18 +46,20 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.centralWavelength
+          obsConfig.centralWavelength,
+          obsConfig.blindOffset
         )
       }
       .orElse:
         obsConfig.selectedConfig
           .toBasicConfiguration(withFallbackWavelength = true)
           .map:
-            fromBasicConfiguration(_, obsConfig.fallbackPA)
+            fromBasicConfiguration(_, obsConfig.fallbackPA, obsConfig.blindOffset)
 
   def fromBasicConfiguration(
     basicConfiguration: BasicConfiguration,
-    selectedPosAngle:   Option[Angle]
+    selectedPosAngle:   Option[Angle],
+    blindOffset:        Option[SiderealTracking] = None
   ): ConfigurationForVisualization =
     ConfigurationForVisualization(
       basicConfiguration,
@@ -63,5 +67,6 @@ object ConfigurationForVisualization:
       None,
       selectedPosAngle,
       None,
-      basicConfiguration.centralWavelength
+      basicConfiguration.centralWavelength,
+      blindOffset
     )

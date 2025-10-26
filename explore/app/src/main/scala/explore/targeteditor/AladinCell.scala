@@ -71,8 +71,7 @@ case class AladinCell(
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
-  guideStarSelection: View[GuideStarSelection],
-  blindOffset:        Option[SiderealTracking]
+  guideStarSelection: View[GuideStarSelection]
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -451,8 +450,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             fovSetter,
             offsetChangeInAladin.reuseAlways,
             guideStar,
-            agsResults.value,
-            props.blindOffset
+            agsResults.value
           )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =

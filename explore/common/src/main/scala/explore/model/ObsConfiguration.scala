@@ -20,6 +20,7 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.SiderealTracking
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import org.typelevel.cats.time.instances.duration.*
@@ -38,7 +39,8 @@ case class ObsConfiguration(
   obsDuration:        Option[Duration],
   needGuideStar:      Boolean,
   remoteGSName:       Option[NonEmptyString],
-  calibrationRole:    Option[CalibrationRole]
+  calibrationRole:    Option[CalibrationRole],
+  blindOffset:        Option[SiderealTracking]
 ) derives Eq:
 
   def posAngleConstraint: Option[PosAngleConstraint] =
@@ -80,6 +82,7 @@ object ObsConfiguration:
       none,
       none,
       needsAGS,
+      none,
       none,
       none
     )
