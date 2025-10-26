@@ -8,13 +8,13 @@ import cats.data.NonEmptyMap
 import cats.syntax.all.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
 import explore.model.Asterism
 import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
-import explore.model.Constants
 import explore.model.GlobalPreferences
 import explore.model.enums.Visible
 import explore.model.extensions.*
@@ -32,6 +32,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Tracking
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
@@ -44,8 +45,8 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
 
 import java.time.Instant
-import java.time.LocalDate
 import scala.concurrent.duration.*
+import lucuma.schemas.model.BasicConfiguration
 
 case class AladinContainer(
   asterism:               Asterism,
@@ -59,7 +60,7 @@ case class AladinContainer(
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
   guideStarCandidates:    List[AgsAnalysis.Usable],
-  blindOffset:            Option[Tracking]
+  blindOffset:            Option[SiderealTracking]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -84,21 +85,108 @@ object AladinContainer extends AladinCommon {
       case GuideSpeed.Slow   =>
         ExploreStyles.GuideSpeedSlow
 
-  private def baseAndScience(p: Props) = {
-    val base: Coordinates = p.asterismTracking
-      .at(p.obsTime)
-      .getOrElse(p.asterismTracking.baseCoordinates)
+  private def svgTargetAndLine(
+    obsTimeCoords: Coordinates,
+    epochCoords:   Option[Coordinates],
+    targetSVG:     Coordinates => SVGTarget,
+    lineStyle:     Css
+  ): List[SVGTarget] =
+    targetSVG(obsTimeCoords) ::
+      epochCoords
+        .map: source =>
+          SVGTarget.LineTo(source, obsTimeCoords, lineStyle)
+        .toList
+
+  private def guideStarsSVG(
+    g:                          AgsAnalysis.Usable,
+    candidates:                 List[AgsAnalysis.Usable],
+    siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
+    configuration:              Option[BasicConfiguration],
+    selectedGS:                 Option[AgsAnalysis.Usable],
+    candidatesVisibility:       Css,
+    calcSize:                   Double => Double
+  ): List[SVGTarget] = {
+    val tracking     = g.target.tracking
+    val candidateCss =
+      if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
+
+    val (epochCoords, obsTimeCoords) =
+      tracking.trackedPositions(siderealDiscretizedObsTime.obsTime, tracking.epoch.some)
+
+    def guideTargetSVG(coords: Coordinates): SVGTarget =
+      if (selectedGS.forall(_.target.id === g.target.id)) {
+        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(4), g)
+      } else {
+        val css  = if (candidates.length < 500) {
+          candidateCss |+| candidatesVisibility
+        } else {
+          ExploreStyles.GuideStarCandidateCrowded |+| candidateCss |+| candidatesVisibility
+        }
+        val size = if (candidates.length < 500) calcSize(3) else calcSize(2.7)
+        SVGTarget.GuideStarCandidateTarget(coords, css, size, g)
+      }
+
+    if (candidates.length < 500) {
+      svgTargetAndLine(
+        obsTimeCoords,
+        epochCoords,
+        guideTargetSVG,
+        ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
+      )
+    } else {
+      List(guideTargetSVG(obsTimeCoords))
+    }
+  }
+
+  private def guideStars(
+    candidates:                 List[AgsAnalysis.Usable],
+    visible:                    Boolean,
+    fovRA:                      Angle,
+    siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
+    configuration:              Option[BasicConfiguration],
+    selectedGS:                 Option[AgsAnalysis.Usable],
+    scienceTargets:             List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]
+  ): List[SVGTarget] = {
+
+    val fov = fovRA.toMicroarcseconds / 1e6
+
+    def calcSize(size: Double): Double = size.max(size * (225 / fov))
+
+    val candidatesVisibility =
+      ExploreStyles.GuideStarCandidateVisible.when_(visible)
+
+    candidates
+      // TODO This should be done in AGS proper
+      .filterNot: x =>
+        scienceTargets.contains(x.target.tracking.baseCoordinates)
+      .flatMap:
+        guideStarsSVG(
+          _,
+          candidates,
+          siderealDiscretizedObsTime,
+          configuration,
+          selectedGS,
+          candidatesVisibility,
+          calcSize
+        )
+  }
+
+  private def baseAndScience(
+    p: Props
+  ): (Coordinates, List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]) = {
+    val baseObsTimeCoords =
+      p.asterismTracking
+        .at(p.obsTime)
+        .getOrElse(p.asterismTracking.baseCoordinates)
 
     val science = p.asterism.toSidereal
-      .map(t =>
-        (t.id === p.asterism.focus.id,
-         t.target.name,
-         t.target.tracking.at(p.obsTime),
-         t.target.tracking.baseCoordinates
-        )
-      )
+      .map: t =>
+        val (epochCoords, obsTimeCoords) =
+          t.target.tracking.trackedPositions(p.obsTime, Some(t.target.tracking.epoch))
 
-    (base, science)
+        (t.id === p.asterism.focus.id, t.target.name, epochCoords, obsTimeCoords)
+
+    (baseObsTimeCoords, science)
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
@@ -211,80 +299,16 @@ object AladinContainer extends AladinCommon {
                           baseCoords
                         ) =>
                           selectedGS.posAngle.foldMap: _ =>
-                            val (baseCoordinates, scienceTargets) = baseCoords.value
-
-                            val fov = fovRA.toMicroarcseconds / 1e6
-
-                            def calcSize(size: Double): Double = size.max(size * (225 / fov))
-
-                            val candidatesVisibility =
-                              ExploreStyles.GuideStarCandidateVisible.when_(visible)
-
-                            candidates
-                              // TODO This should be done in AGS proper
-                              .filterNot(x =>
-                                scienceTargets.contains(x.target.tracking.baseCoordinates)
-                              )
-                              .flatMap { g =>
-                                val tracking           = g.target.tracking
-                                val targetEpoch        = tracking.epoch.epochYear.round
-                                // Approximate to the midddle of the year
-                                val targetEpochInstant =
-                                  LocalDate
-                                    .of(targetEpoch.toInt, 6, 1)
-                                    .atStartOfDay(Constants.UTC)
-                                    .toInstant()
-
-                                val candidateCss =
-                                  if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
-
-                                (tracking.at(targetEpochInstant),
-                                 tracking.at(siderealDiscretizedObsTime.obsTime)
-                                )
-                                  .mapN { (source, dest) =>
-                                    if (candidates.length < 500) {
-                                      List[SVGTarget](
-                                        if (selectedGS.forall(_.target.id === g.target.id)) {
-                                          SVGTarget.GuideStarTarget(dest,
-                                                                    candidateCss,
-                                                                    calcSize(4),
-                                                                    g
-                                          )
-                                        } else {
-                                          SVGTarget.GuideStarCandidateTarget(
-                                            dest,
-                                            candidateCss |+| candidatesVisibility,
-                                            calcSize(3),
-                                            g
-                                          )
-                                        },
-                                        SVGTarget.LineTo(
-                                          source,
-                                          dest,
-                                          ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
-                                        )
-                                      )
-                                    } else {
-                                      List[SVGTarget](
-                                        if (selectedGS.forall(_.target.id === g.target.id)) {
-                                          SVGTarget.GuideStarTarget(dest,
-                                                                    candidateCss,
-                                                                    calcSize(4),
-                                                                    g
-                                          )
-                                        } else {
-                                          SVGTarget.GuideStarCandidateTarget(
-                                            dest,
-                                            ExploreStyles.GuideStarCandidateCrowded |+| candidateCss |+| candidatesVisibility,
-                                            calcSize(2.7),
-                                            g
-                                          )
-                                        }
-                                      )
-                                    }
-                                  }
-                              }
-                              .flatten
+                            val (_, scienceTargets) = baseCoords.value
+                            guideStars(
+                              candidates,
+                              visible,
+                              fovRA,
+                              siderealDiscretizedObsTime,
+                              configuration,
+                              selectedGS,
+                              scienceTargets
+                            )
 
         // Use fov from aladin
         fov    <- useState(none[Fov])
@@ -353,16 +377,19 @@ object AladinContainer extends AladinCommon {
           if (scienceTargets.length > 1)
             scienceTargets.flatMap { (selected, name, pm, base) =>
               pm.foldMap { pm =>
-                List(
-                  SVGTarget.ScienceTarget(
-                    pm,
-                    ExploreStyles.ScienceTarget,
-                    ExploreStyles.ScienceSelectedTarget,
-                    3,
-                    selected,
-                    name.value.some
-                  ),
-                  SVGTarget.LineTo(pm, base, ExploreStyles.PMCorrectionLine)
+                svgTargetAndLine(
+                  pm,
+                  base.some,
+                  coords =>
+                    SVGTarget.ScienceTarget(
+                      coords,
+                      ExploreStyles.ScienceTarget,
+                      ExploreStyles.ScienceSelectedTarget,
+                      3,
+                      selected,
+                      name.value.some
+                    ),
+                  ExploreStyles.PMCorrectionLine
                 )
               }
             }
@@ -400,17 +427,17 @@ object AladinContainer extends AladinCommon {
 
         val blindOffsetIndicator: List[SVGTarget] =
           props.blindOffset
-            .flatMap(_.at(props.siderealDiscretizedObsTime.obsTime))
-            .foldMap: coords =>
-              List(
-                SVGTarget.BlindOffsetTarget(coords, ExploreStyles.BlindOffsetTarget, 8)
+            .foldMap: bo =>
+              val (epochCoords, obsTimeCoords) =
+                bo.trackedPositions(props.siderealDiscretizedObsTime.obsTime, Some(bo.epoch))
+              println(bo.epoch)
+
+              svgTargetAndLine(
+                obsTimeCoords,
+                epochCoords,
+                coords => SVGTarget.BlindOffsetTarget(coords, ExploreStyles.BlindOffsetTarget, 6),
+                ExploreStyles.BlindOffsetLine
               )
-          //   SVGTarget.LineTo(
-          //     asterismTracking.at(obsTime).getOrElse(asterismTracking.baseCoordinates),
-          //     correctedCoords,
-          //     ExploreStyles.BlindOffsetLine
-          //   )
-          // )
 
         val offsetTargets =
           // order is important, scienc to be drawn above acq

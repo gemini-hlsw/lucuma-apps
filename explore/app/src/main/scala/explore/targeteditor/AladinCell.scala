@@ -60,6 +60,7 @@ import queries.schemas.UserPreferencesDB
 
 import java.time.Instant
 import scala.concurrent.duration.*
+import lucuma.core.model.SiderealTracking
 
 case class AladinCell(
   uid:                User.Id,
@@ -71,7 +72,7 @@ case class AladinCell(
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
   guideStarSelection: View[GuideStarSelection],
-  blindOffset:        Option[Tracking]
+  blindOffset:        Option[SiderealTracking]
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)

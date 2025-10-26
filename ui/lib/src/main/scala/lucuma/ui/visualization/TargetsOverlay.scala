@@ -54,7 +54,7 @@ object SVGTarget {
 
   case class LineTo(
     coordinates: Coordinates,
-    destination: Coordinates,
+    to:          Coordinates,
     css:         Css,
     title:       Option[String] = None
   ) extends SVGTarget derives Eq
