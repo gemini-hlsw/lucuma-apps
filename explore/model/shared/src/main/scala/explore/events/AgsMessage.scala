@@ -10,13 +10,13 @@ import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import workers.WorkerRequest
-import lucuma.core.math.Angle
-import lucuma.core.math.Offset
 
 object AgsMessage {
   sealed trait Request extends WorkerRequest

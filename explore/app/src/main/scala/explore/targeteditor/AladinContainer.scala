@@ -38,6 +38,7 @@ import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.aladin.*
 import lucuma.ui.reusability
 import lucuma.ui.reusability.given
@@ -46,7 +47,6 @@ import lucuma.ui.visualization.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import lucuma.schemas.model.BasicConfiguration
 
 case class AladinContainer(
   asterism:               Asterism,
@@ -404,9 +404,16 @@ object AladinContainer extends AladinCommon {
         ) =
           props.vizConf.foldMap(f).foldMap(_.toList).zipWithIndex.map { case (o, i) =>
             for {
-              idx <- refineV[NonNegative](i).toOption
-              gs  <- props.selectedGuideStar
-              c   <- baseCoordinates.offsetBy(gs.posAngle, o) if visible
+              idx       <- refineV[NonNegative](i).toOption
+              gs        <- props.selectedGuideStar
+              baseCoords = if (oType === SequenceType.Acquisition) {
+                props.blindOffset
+                  .flatMap(_.at(props.obsTime))
+                  .getOrElse(baseCoordinates)
+              } else {
+                baseCoordinates
+              }
+              c         <- baseCoords.offsetBy(gs.posAngle, o) if visible
             } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
           }
 

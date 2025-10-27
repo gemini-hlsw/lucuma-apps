@@ -60,7 +60,6 @@ import queries.schemas.UserPreferencesDB
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import lucuma.core.model.SiderealTracking
 
 case class AladinCell(
   uid:                User.Id,

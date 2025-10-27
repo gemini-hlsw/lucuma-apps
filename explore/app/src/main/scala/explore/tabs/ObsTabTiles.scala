@@ -29,7 +29,6 @@ import explore.model.GuideStarSelection.*
 import explore.model.display.given
 import explore.model.enums.AgsState
 import explore.model.enums.AppTab
-import lucuma.core.model.SiderealTracking
 import explore.model.enums.GridLayoutSection
 import explore.model.extensions.*
 import explore.model.formats.formatPercentile
@@ -64,6 +63,7 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.optics.syntax.lens.*
