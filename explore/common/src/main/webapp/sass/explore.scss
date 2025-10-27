@@ -1574,6 +1574,11 @@ svg.fa-check.explore-success-icon {
         &.obs-badge-extra-selected-associated-obs {
           box-shadow: 0 0 0 2.5px var(--site-solid-border-color);
         }
+
+        .obs-badge-extra-associated-obs-checkbox {
+          transform: scale(0.75);
+          margin-right: 0.2em;        
+        }
       }
     }
 
