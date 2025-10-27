@@ -31,6 +31,7 @@ object AgsMessage {
     wavelength:         Wavelength,
     baseCoordinates:    Coordinates,
     scienceCoordinates: List[Coordinates],
+    blindOffset:        Option[Coordinates],
     posAngles:          NonEmptyList[Angle],
     acqOffsets:         Option[NonEmptyList[Offset]],
     sciOffsets:         Option[NonEmptyList[Offset]],

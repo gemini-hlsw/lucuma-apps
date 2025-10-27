@@ -328,21 +328,22 @@ object AladinCell extends ModelOptics with AladinCommon:
                                        throw new NotImplementedError("Gmos Imaging not implemented")
                                    }
 
-                                   val request: Option[AgsMessage.AgsRequest] =
-                                     (params, props.anglesToTest).mapN((params, angles) =>
-                                       AgsMessage.AgsRequest(
-                                         props.asterism.focus.id,
-                                         constraints,
-                                         centralWavelength.value,
-                                         base,
-                                         props.sciencePositionsAt(vizTime),
-                                         angles,
-                                         props.obsConf.flatMap(_.acquisitionOffsets),
-                                         props.obsConf.flatMap(_.scienceOffsets),
-                                         params,
-                                         candidates
-                                       )
-                                     )
+                                    val request: Option[AgsMessage.AgsRequest] =
+                                      (params, props.anglesToTest).mapN((params, angles) =>
+                                        AgsMessage.AgsRequest(
+                                          props.asterism.focus.id,
+                                          constraints,
+                                          centralWavelength.value,
+                                          base,
+                                          props.sciencePositionsAt(vizTime),
+                                          props.obsConf.flatMap(_.blindOffset).flatMap(_.at(vizTime)),
+                                          angles,
+                                          props.obsConf.flatMap(_.acquisitionOffsets),
+                                          props.obsConf.flatMap(_.scienceOffsets),
+                                          params,
+                                          candidates
+                                        )
+                                      )
 
                                    def processResults(r: Option[List[AgsAnalysis.Usable]]): IO[Unit] =
                                      (for

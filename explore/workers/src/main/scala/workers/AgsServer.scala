@@ -34,7 +34,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
                      r.wavelength,
                      r.baseCoordinates,
                      r.scienceCoordinates,
-                     None,
+                     r.blindOffset,
                      r.posAngles,
                      r.acqOffsets,
                      r.sciOffsets,
