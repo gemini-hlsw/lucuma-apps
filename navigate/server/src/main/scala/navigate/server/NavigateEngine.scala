@@ -45,6 +45,7 @@ import navigate.model.NavigateEvent.*
 import navigate.model.NavigateState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
+import navigate.model.RotatorAngle
 import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
@@ -92,7 +93,7 @@ trait NavigateEngine[F[_]] {
   def rotStop(useBrakes:                             Boolean): F[CommandResult]
   def rotPark: F[CommandResult]
   def rotFollow(enable:                              Boolean): F[CommandResult]
-  def rotMove(angle:                                 Angle): F[CommandResult]
+  def rotMove(angle:                                 RotatorAngle): F[CommandResult]
   def rotTrackingConfig(cfg:                         RotatorTrackConfig): F[CommandResult]
   def ecsCarouselMode(
     domeMode:      DomeMode,
@@ -278,7 +279,7 @@ object NavigateEngine {
     override def rotFollow(enable: Boolean): F[CommandResult] =
       simpleCommand(engine, CrcsFollow(enable), systems.tcsCommon.rotFollow(enable))
 
-    override def rotMove(angle: Angle): F[CommandResult] =
+    override def rotMove(angle: RotatorAngle): F[CommandResult] =
       simpleCommand(engine, CrcsMove(angle), systems.tcsCommon.rotMove(angle))
 
     override def ecsCarouselMode(

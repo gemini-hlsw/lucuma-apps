@@ -863,8 +863,8 @@ lazy val navigate_model = project
         Monocle.value ++
         LucumaCore.value ++
         Circe.value ++
-        In(Test)(MUnit.value)
-  )
+        In(Test)(MUnit.value ++ Discipline.value)
+)
 
 lazy val navigate_schema_util = project
   .in(file("navigate/schema-util"))

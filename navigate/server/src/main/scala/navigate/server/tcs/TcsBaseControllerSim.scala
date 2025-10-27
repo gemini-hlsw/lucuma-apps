@@ -31,6 +31,7 @@ import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
+import navigate.model.RotatorAngle
 import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
@@ -98,7 +99,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     )
     .as(ApplyCommandResult.Completed)
 
-  override def rotMove(angle: Angle): F[ApplyCommandResult] = telStateRef
+  override def rotMove(angle: RotatorAngle): F[ApplyCommandResult] = telStateRef
     .update(
       _.focus(_.crcs.parked).replace(NotParked)
     )

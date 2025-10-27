@@ -57,6 +57,7 @@ import navigate.model.Origin
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.ResetPointing
+import navigate.model.RotatorAngle
 import navigate.model.RotatorTrackConfig
 import navigate.model.RotatorTrackingMode
 import navigate.model.ShortcircuitMountFilter
@@ -173,7 +174,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .post
       .verifiedRun(ConnectionTimeout)
 
-  override def rotMove(angle: Angle): F[ApplyCommandResult] =
+  override def rotMove(angle: RotatorAngle): F[ApplyCommandResult] =
     sys.tcsEpics
       .startCommand(timeout)
       .rotMoveCommand
@@ -733,7 +734,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       cfg.mode match {
         case RotatorTrackingMode.Fixed    =>
           x.rotMoveCommand
-            .setAngle(cfg.ipa)
+            .setAngle(RotatorAngle.fromAngle(cfg.ipa))
             .rotatorCommand
             .ipa(cfg.ipa)
             .rotatorCommand

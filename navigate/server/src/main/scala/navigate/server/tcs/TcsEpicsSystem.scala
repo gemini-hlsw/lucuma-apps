@@ -30,6 +30,8 @@ import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
 import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
+import navigate.model.RotatorAngle
+import navigate.model.RotatorAngle.*
 import navigate.model.ShortcircuitTargetFilter
 import navigate.model.enums.AoFoldPosition
 import navigate.model.enums.CentralBafflePosition
@@ -639,7 +641,7 @@ object TcsEpicsSystem {
         )
 
     override val rotMoveCommand: RotMoveCommand[F, TcsCommands[F]] =
-      (angle: Angle) =>
+      (angle: RotatorAngle) =>
         addParam(
           tcsEpics.rotMoveCmd.setParam1(angle.toDoubleDegrees)
         )
@@ -1967,7 +1969,7 @@ object TcsEpicsSystem {
   }
 
   trait RotMoveCommand[F[_], +S] {
-    def setAngle(angle: Angle): S
+    def setAngle(angle: RotatorAngle): S
   }
 
   trait CarouselModeCommand[F[_], +S] {
