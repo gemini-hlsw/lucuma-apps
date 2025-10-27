@@ -1780,8 +1780,7 @@ svg.fa-check.explore-success-icon {
 
     .explore-advanced-configuration-buttons {
       grid-area: buttons;
-      justify-self: end;
-      align-self: end;
+      place-self: end;
     }
   }
 
