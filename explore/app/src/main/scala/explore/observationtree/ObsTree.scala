@@ -334,11 +334,13 @@ object ObsTree:
               obs,
               ObsBadge.Layout.ObservationsTab,
               selected = selected,
-              setStateCB = ObsActions
-                .obsEditState(obs.id)
-                .set(props.observations)
-                .compose((_: ObservationWorkflowState).some)
-                .some,
+              setStateCB = (
+                (obsId: Observation.Id) =>
+                  ObsActions
+                    .obsEditState(obsId)
+                    .set(props.observations)
+                    .compose((_: ObservationWorkflowState).some)
+              ).some,
               setSubtitleCB = ObsActions
                 .obsEditSubtitle(obs.id)
                 .set(props.observations)

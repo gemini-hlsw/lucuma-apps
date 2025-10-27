@@ -30,6 +30,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.LayeredIcon
 import lucuma.react.fa.TextLayer
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.components.TimeSpanView
@@ -44,7 +45,7 @@ case class ObsBadge(
   obs:                   Observation,
   layout:                ObsBadge.Layout,
   selected:              Boolean = false,
-  setStateCB:            Option[ObservationWorkflowState => Callback] = none,
+  setStateCB:            Option[Observation.Id => ObservationWorkflowState => Callback] = none,
   setSubtitleCB:         Option[Option[NonEmptyString] => Callback] = none,
   setScienceBandCB:      Option[ScienceBand => Callback] = none,
   deleteCB:              Callback,
@@ -221,7 +222,7 @@ object ObsBadge:
                         (f, cb) =>
                           val oldValue = obs.workflow.value.state
                           val newValue = f(obs.workflow.value.state)
-                          setStatus(newValue) >> cb(oldValue, newValue)
+                          setStatus(props.obs.id)(newValue) >> cb(oldValue, newValue)
                       ),
                       size = PlSize.Mini,
                       clazz = ExploreStyles.ObsStateSelect,
@@ -243,6 +244,8 @@ object ObsBadge:
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss
                   .map: childObs =>
+                    println(childObs.workflow.value.state)
+
                     val selected: Boolean = props.focusedObs.contains_(childObs.id)
                     Button(
                       clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
@@ -250,8 +253,21 @@ object ObsBadge:
                       onClickE = linkOverride(
                         focusObs(props.programId, childObs.id.some, ctx)
                       ),
-                      severity = Button.Severity.Secondary,
-                      label = childObs.title
+                      severity = Button.Severity.Secondary
+                    ).withMods(
+                      Checkbox(
+                        checked = childObs.workflow.value.state == ObservationWorkflowState.Defined,
+                        variant = Checkbox.Variant.Filled,
+                        clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
+                        onChange = newValue =>
+                          props.setStateCB
+                            .map: setState =>
+                              setState(childObs.id):
+                                if (newValue) ObservationWorkflowState.Defined
+                                else ObservationWorkflowState.Undefined
+                            .orEmpty
+                      )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
+                      childObs.title
                     ).compact
                   .toTagMod
               ).when(props.associatedObss.nonEmpty)
