@@ -226,6 +226,8 @@ object ObservingMode:
       Focus[GmosNorthLongSlit](_.explicitSpatialOffsets)
     val exposureTimeMode: Lens[GmosNorthLongSlit, ExposureTimeMode]                                =
       Focus[GmosNorthLongSlit](_.exposureTimeMode)
+    val acquisition: Lens[GmosNorthLongSlit, GmosNorthLongSlit.Acquisition]                        =
+      Focus[GmosNorthLongSlit](_.acquisition)
 
   case class GmosSouthLongSlit(
     initialGrating:            GmosSouthGrating,
@@ -375,6 +377,8 @@ object ObservingMode:
       Focus[GmosSouthLongSlit](_.explicitSpatialOffsets)
     val exposureTimeMode: Lens[GmosSouthLongSlit, ExposureTimeMode]                                =
       Focus[GmosSouthLongSlit](_.exposureTimeMode)
+    val acquisition: Lens[GmosSouthLongSlit, GmosSouthLongSlit.Acquisition]                        =
+      Focus[GmosSouthLongSlit](_.acquisition)
 
   case class GmosNorthImaging(
     initialFilters:              NonEmptyList[GmosNorthFilter],
@@ -612,6 +616,8 @@ object ObservingMode:
       Focus[Flamingos2LongSlit](_.explicitOffsets)
     val exposureTimeMode: Lens[Flamingos2LongSlit, ExposureTimeMode]                 =
       Focus[Flamingos2LongSlit](_.exposureTimeMode)
+    val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]        =
+      Focus[Flamingos2LongSlit](_.acquisition)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]

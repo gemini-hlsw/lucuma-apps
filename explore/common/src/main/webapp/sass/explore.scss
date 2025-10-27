@@ -1723,83 +1723,144 @@ svg.fa-check.explore-success-icon {
 }
 
 // ------
+// For some reason, when there is a tooltip, primereact wraps the p-component for
+// a MultiSelect in a div with a `p-tooltip-target-wrapper` class. This may happen
+// for other components as well? We need to make that 100% width to fill the form column.
+// ------
+.pl-form-field .p-tooltip-target-wrapper {
+  width: 100%;
+}
+
+// ------
 // Configuration Tile
 // ------
+.explore-configuration-tile-body {
+  display: flex;
+  background-color: var(--surface-card);
+}
+
 .explore-configuration-grid {
   padding: 0.5em;
   width: 100%;
   gap: 0.3em;
   display: flex;
   flex-direction: column;
-}
 
-.explore-configuration-tile-body {
-  display: flex;
-  background-color: var(--surface-card);
-}
-
-// ------
-// Imaging Configuration
-// ------
-.explore-configuration-imaging-filters .p-tooltip-target-wrapper {
-  width: 100%;
-}
-
-// ------
-// Advanced Configuration
-// ------
-
-.explore-advanced-configuration-buttons {
-  grid-area: buttons;
-  justify-self: end;
-}
-
-.explore-advanced-configuration-grid {
-  display: grid;
-  padding: 0.5em;
-  gap: 1em;
-  grid-template:
-    'col1 col2 col3' auto
-    'col1 buttons buttons' auto
-    / 1fr 1fr 1fr;
-}
-
-// on small tiles, we want to stack the form fields
-@container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
-  .explore-advanced-configuration-grid {
+  // ------
+  // Advanced Configuration
+  // ------
+  .explore-gmos-longslit-upper-grid,
+  .explore-flamingos2-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
     grid-template:
-      'col1' auto
-      'col2' auto
-      'col3' auto
-      'buttons' auto
-      / auto;
-  }
-}
-
-.explore-advanced-configuration-col1 {
-  grid-area: col1;
-}
-
-.explore-advanced-configuration-col2 {
-  grid-area: col2;
-}
-
-.explore-advanced-configuration-col3 {
-  grid-area: col3;
-}
-
-.explore-advanced-configuration-binning {
-  display: flex;
-  place-items: baseline stretch;
-  gap: 0.5em;
-  width: 100%;
-
-  div:first-child {
-    flex-grow: 1;
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--site-border-color);
   }
 
-  div:last-child {
-    flex-grow: 1;
+  .explore-gmos-longslit-lower-grid,
+  .explore-flamingos2-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'acquisition buttons' auto
+      / 6fr 4fr; // give the buttons a little more space
+
+    .explore-acquisition-customization-grid {
+      display: grid;
+      padding-top: 0.5em;
+      gap: 1em;
+      grid-template:
+        'col1 col2' auto
+        / 1fr 1fr;
+    }
+
+    .explore-advanced-configuration-buttons {
+      grid-area: buttons;
+      place-self: end;
+    }
+  }
+
+  // This is now used only for Gmos Imaging, which will problably be changed soon, too.
+  .explore-advanced-configuration-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'col1 col2 col3' auto
+      'col1 buttons buttons' auto
+      / 1fr 1fr 1fr;
+
+    .explore-advanced-configuration-buttons {
+      grid-area: buttons;
+      justify-self: end;
+    }
+
+    .explore-advanced-configuration-col1 {
+      grid-area: col1;
+    }
+
+    .explore-advanced-configuration-col2 {
+      grid-area: col2;
+    }
+
+    .explore-advanced-configuration-col3 {
+      grid-area: col3;
+    }
+  }
+
+  // on small tiles, we want to stack the form fields
+  @container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
+    .explore-advanced-configuration-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
+        'col3' auto
+        'buttons' auto
+        / auto;
+    }
+
+    .explore-gmos-longslit-upper-grid,
+    .explore-flamingos2-upper-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
+        'col3' auto
+        / auto;
+    }
+
+    .explore-gmos-longslit-lower-grid,
+    .explore-flamingos2-lower-grid {
+      grid-template:
+        'acquisition' auto
+        'buttons' auto
+        / auto;
+
+      .explore-acquisition-customization-grid {
+        grid-template:
+          'col1' auto
+          'col2' auto
+          / auto;
+      }
+    }
+  }
+
+  .explore-gmos-longslit-binning {
+    display: flex;
+    place-items: baseline stretch;
+    gap: 0.5em;
+    width: 100%;
+
+    div:first-child {
+      flex-grow: 1;
+    }
+
+    div:last-child {
+      flex-grow: 1;
+    }
   }
 }
 
@@ -3246,14 +3307,14 @@ $help-title-height: 40px;
   label:last-child {
     margin-left: 1em;
   }
-}
 
-.explore-average-pa {
-  display: flex;
-  flex-grow: 1;
-  justify-content: space-between;
-  padding-right: 1em;
-  padding-left: 1em;
+  .explore-average-pa {
+    display: flex;
+    flex-grow: 1;
+    justify-content: space-between;
+    padding-right: 1em;
+    padding-left: 1em;
+  }
 }
 
 // Move to lucuma-ui?

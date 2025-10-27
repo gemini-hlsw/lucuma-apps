@@ -446,6 +446,13 @@ extension [A](o: Offset.Component[A])
 
 extension (o: Offset) def toInput: OffsetInput = OffsetInput(o.p.toInput, o.q.toInput)
 
+extension (a: ObservingMode.GmosNorthLongSlit.Acquisition)
+  def toInput: GmosNorthLongSlitAcquisitionInput = GmosNorthLongSlitAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    explicitRoi = a.explicitRoi.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
 extension (o: ObservingMode.GmosNorthLongSlit)
   def toInput: GmosNorthLongSlitInput = GmosNorthLongSlitInput(
     grating = o.grating.assign,
@@ -458,7 +465,16 @@ extension (o: ObservingMode.GmosNorthLongSlit)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    acquisition = o.acquisition.toInput.assign
+  )
+
+extension (a: ObservingMode.GmosSouthLongSlit.Acquisition)
+  def toInput: GmosSouthLongSlitAcquisitionInput = GmosSouthLongSlitAcquisitionInput(
+    explicitFilter = a.explicitFilter.orUnassign,
+    explicitRoi = a.explicitRoi.orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
 
 extension (o: ObservingMode.GmosSouthLongSlit)
@@ -473,7 +489,8 @@ extension (o: ObservingMode.GmosSouthLongSlit)
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign,
     explicitWavelengthDithers = o.explicitWavelengthDithers.map(_.toList.map(_.toInput)).orUnassign,
-    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
   )
 
 extension (o: ObservingMode.GmosNorthImaging)
@@ -498,8 +515,12 @@ extension (o: ObservingMode.GmosSouthImaging)
     explicitRoi = o.explicitRoi.orUnassign
   )
 
+extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
+  def toInput: Flamingos2LongSlitAcquisitionInput = Flamingos2LongSlitAcquisitionInput(
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
 extension (o: ObservingMode.Flamingos2LongSlit)
-  def toInput: Flamingos2LongSlitInput = Flamingos2LongSlitInput(
+  def toInput: Flamingos2LongSlitInput            = Flamingos2LongSlitInput(
     disperser = o.disperser.assign,
     filter = o.filter.assign,
     fpu = o.fpu.assign,
@@ -507,7 +528,8 @@ extension (o: ObservingMode.Flamingos2LongSlit)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    acquisition = o.acquisition.toInput.assign
   )
 
 extension (b: ObservingMode)

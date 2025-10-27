@@ -7,7 +7,6 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.components.ui.ExploreStyles
 import explore.model.Help
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -63,7 +62,6 @@ object CustomizableEnumGroupedMultiSelect:
       <.span(
         LucumaPrimeStyles.FormField,
         PrimeStyles.InputGroup,
-        ExploreStyles.ConfigurationImagingFilters,
         EnumGroupedMultiSelectView(
           id = props.id,
           value = props.view,

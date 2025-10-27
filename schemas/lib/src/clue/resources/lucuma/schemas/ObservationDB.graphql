@@ -6666,7 +6666,7 @@ input Flamingos2LongSlitInput {
   telluricType: TelluricTypeInput = {tag: HOT}
 
   """Acquisition properties that, when set, override default values."""
-  acquisition: Flamingos2LongSlitInput
+  acquisition: Flamingos2LongSlitAcquisitionInput
 }
 
 """Metadata for `enum FilterType`"""
