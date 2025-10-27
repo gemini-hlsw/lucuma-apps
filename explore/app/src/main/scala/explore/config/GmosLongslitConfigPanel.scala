@@ -25,6 +25,7 @@ import explore.model.enums.WavelengthUnits
 import explore.modes.ModeWavelength
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
+import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -153,6 +154,24 @@ object GmosLongslitConfigPanel {
       Logger[IO]
     ): View[ExposureTimeMode]
 
+    protected def explicitAcquisitionFilter(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[Filter]]
+
+    protected def explicitAcquisitionRoi(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosLongSlitAcquisitionRoi]]
+
+    protected def acquisitionExposureTimeModeView(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode]
+
     protected val initialGratingLens: Lens[T, Grating]
     protected val initialFilterLens: Lens[T, Option[Filter]]
     protected val initialFpuLens: Lens[T, Fpu]
@@ -163,6 +182,10 @@ object GmosLongslitConfigPanel {
     protected val defaultRoiLens: Lens[T, GmosRoi]
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
     protected val defaultSpatialOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
+
+    protected val excludedAcquisitionFilters: Set[Filter]
+    protected val defaultAcquisitionFilterLens: Lens[T, Filter]
+    protected val defaultAcquisitionRoiLens: Lens[T, GmosLongSlitAcquisitionRoi]
 
     protected def resolvedReadModeGainGetter: T => (GmosAmpReadMode, GmosAmpGain)
 
@@ -194,11 +217,13 @@ object GmosLongslitConfigPanel {
           val centralWavelengthView    = centralWavelength(props.observingMode)
           val initialCentralWavelength = initialCentralWavelengthLens.get(props.observingMode.get)
 
-          val defaultXBinning      = defaultXBinningLens.get(props.observingMode.get)
-          val defaultYBinning      = defaultYBinningLens.get(props.observingMode.get)
-          val defaultReadModeGain  = defaultReadModeGainLens.get(props.observingMode.get)
-          val defaultRoi           = defaultRoiLens.get(props.observingMode.get)
-          val resolvedReadModeGain = resolvedReadModeGainGetter(props.observingMode.get)
+          val defaultXBinning          = defaultXBinningLens.get(props.observingMode.get)
+          val defaultYBinning          = defaultYBinningLens.get(props.observingMode.get)
+          val defaultReadModeGain      = defaultReadModeGainLens.get(props.observingMode.get)
+          val defaultRoi               = defaultRoiLens.get(props.observingMode.get)
+          val resolvedReadModeGain     = resolvedReadModeGainGetter(props.observingMode.get)
+          val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
+          val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
 
           val validDithers = modeData
             .map(mode =>
@@ -233,145 +258,192 @@ object GmosLongslitConfigPanel {
               allowRevertCustomization = allowRevertCustomization
             )
 
-          <.div(
-            ExploreStyles.AdvancedConfigurationGrid
-          )(
-            <.div(
-              LucumaPrimeStyles.FormColumnCompact,
-              ExploreStyles.AdvancedConfigurationCol1
-            )(
-              CustomizableEnumSelect(
-                id = "grating".refined,
-                view = grating(props.observingMode),
-                defaultValue = initialGratingLens.get(props.observingMode.get),
-                label = "Grating".some,
-                helpId = Some("configuration/gmos/grating.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelectOptional(
-                id = "filter".refined,
-                view = filter(props.observingMode),
-                defaultValue = initialFilterLens.get(props.observingMode.get),
-                label = "Filter".some,
-                helpId = Some("configuration/gmos/filter.md".refined),
-                disabled = disableAdvancedEdit,
-                showClear = true,
-                resetToOriginal = true,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              CustomizableEnumSelect(
-                id = "fpu".refined,
-                view = fpu(props.observingMode),
-                defaultValue = initialFpuLens.get(props.observingMode.get),
-                label = "FPU".some,
-                helpId = Some("configuration/gmos/fpu.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              OffsetsControl(
-                explicitSpatialOffsets(props.observingMode),
-                defaultSpatialOffsetsLens.get(props.observingMode.get),
-                props.sequenceChanged,
-                disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              )
-            ),
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.AdvancedConfigurationCol2)(
-              CustomizableInputText(
-                id = "central-wavelength".refined,
-                value = centralWavelengthView,
-                label = React.Fragment("Central Wavelength",
-                                       HelpIcon("configuration/gmos/central=wavelength.md".refined)
-                ),
-                units = props.units.symbol.some,
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toAuditor,
-                defaultValue = initialCentralWavelength,
-                disabled = disableSimpleEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              dithersControl(props.sequenceChanged),
-              ExposureTimeModeEditor(
-                props.instrument.some,
-                props.spectroscopyRequirements.wavelength,
-                exposureTimeMode(props.observingMode),
-                ScienceMode.Spectroscopy,
-                props.readonly,
-                props.units,
-                props.calibrationRole
-              )
-            ),
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.AdvancedConfigurationCol3)(
-              // Provide better accessibility by using aria-label directly
-              // on the dropdowns so X and Y binning are correctly labeled.
-              <.label(
-                ^.htmlFor := "explicitXBin",
-                LucumaPrimeStyles.FormFieldLabel,
-                "Binning",
-                HelpIcon("configuration/gmos/binning.md".refined)
-              ),
-              <.div(
-                ExploreStyles.AdvancedConfigurationBinning,
-                CustomizableEnumSelectOptional(
-                  id = "explicitXBin".refined,
-                  view = explicitXBinning(props.observingMode).withDefault(defaultXBinning),
-                  defaultValue = defaultXBinning.some,
+          React.Fragment(
+            <.div(ExploreStyles.GmosLongSlitUpperGrid)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                CustomizableEnumSelect(
+                  id = "grating".refined,
+                  view = grating(props.observingMode),
+                  defaultValue = initialGratingLens.get(props.observingMode.get),
+                  label = "Grating".some,
+                  helpId = Some("configuration/gmos/grating.md".refined),
                   disabled = disableAdvancedEdit,
-                  dropdownMods = ^.aria.label := "X Binning",
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
-                <.label(^.htmlFor := "explicitYBin", "x"),
                 CustomizableEnumSelectOptional(
-                  id = "explicitYBin".refined,
-                  view = explicitYBinning(props.observingMode).withDefault(defaultYBinning),
-                  defaultValue = defaultYBinning.some,
+                  id = "filter".refined,
+                  view = filter(props.observingMode),
+                  defaultValue = initialFilterLens.get(props.observingMode.get),
+                  label = "Filter".some,
+                  helpId = Some("configuration/gmos/filter.md".refined),
                   disabled = disableAdvancedEdit,
-                  dropdownMods = ^.aria.label := "Y Binning",
+                  showClear = true,
+                  resetToOriginal = true,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                ),
+                CustomizableEnumSelect(
+                  id = "fpu".refined,
+                  view = fpu(props.observingMode),
+                  defaultValue = initialFpuLens.get(props.observingMode.get),
+                  label = "FPU".some,
+                  helpId = Some("configuration/gmos/fpu.md".refined),
+                  disabled = disableAdvancedEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                ),
+                OffsetsControl(
+                  explicitSpatialOffsets(props.observingMode),
+                  defaultSpatialOffsetsLens.get(props.observingMode.get),
+                  props.sequenceChanged,
+                  disableSimpleEdit,
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 )
               ),
-              CustomizableEnumSelectOptional(
-                id = "explicitReadMode".refined,
-                view = explicitReadModeGain(props.observingMode)
-                  .withDefault(defaultReadModeGain, resolvedReadModeGain),
-                defaultValue = defaultReadModeGain.some,
-                label = "Read Mode".some,
-                helpId = Some("configuration/gmos/read-mode.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                CustomizableInputText(
+                  id = "central-wavelength".refined,
+                  value = centralWavelengthView,
+                  label =
+                    React.Fragment("Central Wavelength",
+                                   HelpIcon("configuration/gmos/central=wavelength.md".refined)
+                    ),
+                  units = props.units.symbol.some,
+                  validFormat = props.units.toInputFormat,
+                  changeAuditor = props.units.toAuditor,
+                  defaultValue = initialCentralWavelength,
+                  disabled = disableSimpleEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                ),
+                dithersControl(props.sequenceChanged),
+                ExposureTimeModeEditor(
+                  props.instrument.some,
+                  props.spectroscopyRequirements.wavelength,
+                  exposureTimeMode(props.observingMode),
+                  ScienceMode.Spectroscopy,
+                  props.readonly,
+                  props.units,
+                  props.calibrationRole
+                )
               ),
-              CustomizableEnumSelectOptional(
-                id = "explicitRoi".refined,
-                view = explicitRoi(props.observingMode).withDefault(defaultRoi),
-                defaultValue = defaultRoi.some,
-                label = "ROI".some,
-                helpId = Some("configuration/gmos/roi.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
-              ),
-              LambdaAndIntervalFormValues(
-                modeData = modeData,
-                centralWavelength = centralWavelengthView.get,
-                units = props.units
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                // Provide better accessibility by using aria-label directly
+                // on the dropdowns so X and Y binning are correctly labeled.
+                <.label(
+                  ^.htmlFor := "explicitXBin",
+                  LucumaPrimeStyles.FormFieldLabel,
+                  "Binning",
+                  HelpIcon("configuration/gmos/binning.md".refined)
+                ),
+                <.div(
+                  ExploreStyles.GmosLongSlitBinning,
+                  CustomizableEnumSelectOptional(
+                    id = "explicitXBin".refined,
+                    view = explicitXBinning(props.observingMode).withDefault(defaultXBinning),
+                    defaultValue = defaultXBinning.some,
+                    disabled = disableAdvancedEdit,
+                    dropdownMods = ^.aria.label := "X Binning",
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization
+                  ),
+                  <.label(^.htmlFor := "explicitYBin", "x"),
+                  CustomizableEnumSelectOptional(
+                    id = "explicitYBin".refined,
+                    view = explicitYBinning(props.observingMode).withDefault(defaultYBinning),
+                    defaultValue = defaultYBinning.some,
+                    disabled = disableAdvancedEdit,
+                    dropdownMods = ^.aria.label := "Y Binning",
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization
+                  )
+                ),
+                CustomizableEnumSelectOptional(
+                  id = "explicitReadMode".refined,
+                  view = explicitReadModeGain(props.observingMode)
+                    .withDefault(defaultReadModeGain, resolvedReadModeGain),
+                  defaultValue = defaultReadModeGain.some,
+                  label = "Read Mode".some,
+                  helpId = Some("configuration/gmos/read-mode.md".refined),
+                  disabled = disableAdvancedEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                ),
+                CustomizableEnumSelectOptional(
+                  id = "explicitRoi".refined,
+                  view = explicitRoi(props.observingMode).withDefault(defaultRoi),
+                  defaultValue = defaultRoi.some,
+                  label = "ROI".some,
+                  helpId = Some("configuration/gmos/roi.md".refined),
+                  disabled = disableAdvancedEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                ),
+                LambdaAndIntervalFormValues(
+                  modeData = modeData,
+                  centralWavelength = centralWavelengthView.get,
+                  units = props.units
+                )
               )
             ),
-            AdvancedConfigButtons(
-              editState = editState,
-              isCustomized = isCustomized(props.observingMode),
-              revertConfig = props.revertConfig,
-              revertCustomizations = revertCustomizations(props.observingMode),
-              sequenceChanged = props.sequenceChanged,
-              readonly = props.readonly
+            <.div(
+              ExploreStyles.GmosLongSlitLowerGrid,
+              <.div(
+                <.span("Acquisition",
+                       HelpIcon("configuration/gmos/acquisition-customization.md".refined)
+                ),
+                <.div(
+                  ExploreStyles.AcquisitionCustomizationGrid,
+                  <.div(
+                    LucumaPrimeStyles.FormColumnCompact,
+                    CustomizableEnumSelectOptional(
+                      id = "acq-explicit-roi".refined,
+                      view = explicitAcquisitionRoi(props.observingMode)
+                        .withDefault(defaultAcquisitionRoi),
+                      defaultValue = defaultAcquisitionRoi.some,
+                      label = "ROI".some,
+                      helpId = None,
+                      disabled = disableAdvancedEdit,
+                      showCustomization = showCustomization,
+                      allowRevertCustomization = allowRevertCustomization
+                    ),
+                    CustomizableEnumSelectOptional(
+                      id = "acq-explicit-filter".refined,
+                      view = explicitAcquisitionFilter(props.observingMode)
+                        .withDefault(defaultAcquisitionFilter),
+                      defaultValue = defaultAcquisitionFilter.some,
+                      exclude = excludedAcquisitionFilters,
+                      label = "Filter".some,
+                      helpId = None,
+                      disabled = disableAdvancedEdit,
+                      showCustomization = showCustomization,
+                      allowRevertCustomization = allowRevertCustomization
+                    )
+                  ),
+                  <.div(
+                    LucumaPrimeStyles.FormColumnCompact,
+                    ExposureTimeModeEditor(
+                      props.observingMode.get.instrument.some,
+                      props.spectroscopyRequirements.wavelength,
+                      acquisitionExposureTimeModeView(props.observingMode),
+                      ScienceMode.Spectroscopy,
+                      props.readonly,
+                      props.units,
+                      props.calibrationRole
+                    )
+                  )
+                )
+              ),
+              AdvancedConfigButtons(
+                editState = editState,
+                isCustomized = isCustomized(props.observingMode),
+                revertConfig = props.revertConfig,
+                revertCustomizations = revertCustomizations(props.observingMode),
+                sequenceChanged = props.sequenceChanged,
+                readonly = props.readonly
+              )
             )
           )
   }
@@ -550,6 +622,47 @@ object GmosLongslitConfigPanel {
       )
       .view(_.toInput.assign)
 
+    inline private def acquisition(
+      aligner: AA
+    ): Aligner[ObservingMode.GmosNorthLongSlit.Acquisition, GmosNorthLongSlitAcquisitionInput] =
+      aligner
+        .zoom(
+          ObservingMode.GmosNorthLongSlit.acquisition,
+          forceAssign(GmosNorthLongSlitInput.acquisition.modify)(
+            GmosNorthLongSlitAcquisitionInput()
+          )
+        )
+
+    inline override protected def explicitAcquisitionFilter(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosNorthFilter]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosNorthLongSlit.Acquisition.explicitFilter,
+            GmosNorthLongSlitAcquisitionInput.explicitFilter.modify
+      )
+      .view(_.orUnassign)
+
+    inline override protected def explicitAcquisitionRoi(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosLongSlitAcquisitionRoi]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosNorthLongSlit.Acquisition.explicitRoi,
+            GmosNorthLongSlitAcquisitionInput.explicitRoi.modify
+      )
+      .view(_.orUnassign)
+
+    inline override protected def acquisitionExposureTimeModeView(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = acquisition(aligner)
+      .zoom(ObservingMode.GmosNorthLongSlit.Acquisition.exposureTimeMode,
+            GmosNorthLongSlitAcquisitionInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
+
     override protected val initialGratingLens           =
       ObservingMode.GmosNorthLongSlit.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosNorthLongSlit.initialFilter
@@ -571,6 +684,20 @@ object GmosLongslitConfigPanel {
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
     override protected val defaultSpatialOffsetsLens    =
       ObservingMode.GmosNorthLongSlit.defaultSpatialOffsets
+
+    override protected val excludedAcquisitionFilters: Set[GmosNorthFilter] =
+      Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
+
+    override protected val defaultAcquisitionFilterLens
+      : Lens[ObservingMode.GmosNorthLongSlit, GmosNorthFilter] =
+      ObservingMode.GmosNorthLongSlit.acquisition.andThen(
+        ObservingMode.GmosNorthLongSlit.Acquisition.defaultFilter
+      )
+    override protected val defaultAcquisitionRoiLens
+      : Lens[ObservingMode.GmosNorthLongSlit, GmosLongSlitAcquisitionRoi] =
+      ObservingMode.GmosNorthLongSlit.acquisition.andThen(
+        ObservingMode.GmosNorthLongSlit.Acquisition.defaultRoi
+      )
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosNorthLongSlit.explicitAmpReadMode
@@ -758,6 +885,50 @@ object GmosLongslitConfigPanel {
       )
       .view(_.toInput.assign)
 
+    inline private def acquisition(
+      aligner: AA
+    ): Aligner[ObservingMode.GmosSouthLongSlit.Acquisition, GmosSouthLongSlitAcquisitionInput] =
+      aligner
+        .zoom(
+          ObservingMode.GmosSouthLongSlit.acquisition,
+          forceAssign(GmosSouthLongSlitInput.acquisition.modify)(
+            GmosSouthLongSlitAcquisitionInput()
+          )
+        )
+
+    override protected val excludedAcquisitionFilters: Set[GmosSouthFilter] =
+      Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
+
+    inline override protected def explicitAcquisitionFilter(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosSouthFilter]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosSouthLongSlit.Acquisition.explicitFilter,
+            GmosSouthLongSlitAcquisitionInput.explicitFilter.modify
+      )
+      .view(_.orUnassign)
+
+    inline override protected def explicitAcquisitionRoi(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[Option[GmosLongSlitAcquisitionRoi]] = acquisition(aligner)
+      .zoom(ObservingMode.GmosSouthLongSlit.Acquisition.explicitRoi,
+            GmosSouthLongSlitAcquisitionInput.explicitRoi.modify
+      )
+      .view(_.orUnassign)
+
+    inline override protected def acquisitionExposureTimeModeView(aligner: AA)(using
+      MonadError[IO, Throwable],
+      Effect.Dispatch[IO],
+      Logger[IO]
+    ): View[ExposureTimeMode] = acquisition(aligner)
+      .zoom(ObservingMode.GmosSouthLongSlit.Acquisition.exposureTimeMode,
+            GmosSouthLongSlitAcquisitionInput.exposureTimeMode.modify
+      )
+      .view(_.toInput.assign)
+
     override protected val initialGratingLens           =
       ObservingMode.GmosSouthLongSlit.initialGrating
     override protected val initialFilterLens            = ObservingMode.GmosSouthLongSlit.initialFilter
@@ -779,6 +950,17 @@ object GmosLongslitConfigPanel {
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
     override protected val defaultSpatialOffsetsLens    =
       ObservingMode.GmosSouthLongSlit.defaultSpatialOffsets
+
+    override protected val defaultAcquisitionFilterLens
+      : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter] =
+      ObservingMode.GmosSouthLongSlit.acquisition.andThen(
+        ObservingMode.GmosSouthLongSlit.Acquisition.defaultFilter
+      )
+    override protected val defaultAcquisitionRoiLens
+      : Lens[ObservingMode.GmosSouthLongSlit, GmosLongSlitAcquisitionRoi] =
+      ObservingMode.GmosSouthLongSlit.acquisition.andThen(
+        ObservingMode.GmosSouthLongSlit.Acquisition.defaultRoi
+      )
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosSouthLongSlit.explicitAmpReadMode

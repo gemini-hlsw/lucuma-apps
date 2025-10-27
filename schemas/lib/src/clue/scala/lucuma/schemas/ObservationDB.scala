@@ -140,6 +140,7 @@ trait ObservationDB {
     type GmosSouthFilter                     = enums.GmosSouthFilter
     type GmosSouthStageMode                  = enums.GmosSouthStageMode
     type GmosBinning                         = enums.GmosBinning
+    type GmosLongSlitAcquisitionRoi          = enums.GmosLongSlitAcquisitionRoi
     type GuideState                          = enums.StepGuideState
     type HiiRegionSpectrum                   = enums.HIIRegionSpectrum
     type ImageQualityPreset                  = ImageQuality.Preset
