@@ -3443,6 +3443,7 @@ div.spectroscopy-table-emptymessage {
 
 a.explore-upgrade-link {
   text-decoration: underline;
+  color: var(--primary-800);
 }
 
 @mixin obs-group-title-mixin {
