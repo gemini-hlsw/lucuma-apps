@@ -278,7 +278,11 @@ object TargetSelectionPopup:
                         fullScreen = false,
                         showZoomControl = false,
                         showFullscreenControl = false,
-                        showGotoControl = false
+                        showGotoControl = false,
+                        showProjectionControl = false,
+                        showSimbadPointerControl = false,
+                        showCooLocation = false,
+                        showFov = false
                       ),
                       customize = v => aladinRef.setState(v.some)
                     )(^.key := selectedTarget.get.foldMap(t => s"${t.source}-${t.resultIndex}"))
