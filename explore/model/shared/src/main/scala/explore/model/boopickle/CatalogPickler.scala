@@ -3,6 +3,7 @@
 
 package explore.model.boopickle
 
+import boopickle.CompositePickler
 import boopickle.DefaultBasic.*
 import cats.Order.given
 import coulomb.*
@@ -29,7 +30,6 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.Timestamp
 
 import scala.collection.immutable.TreeMap
-import boopickle.CompositePickler
 
 // Boopicklers for catalog related types
 trait CatalogPicklers extends CommonPicklers:

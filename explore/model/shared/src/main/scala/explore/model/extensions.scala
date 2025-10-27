@@ -21,12 +21,12 @@ import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.SiderealTargetWithId
 import lucuma.schemas.model.TargetWithId
+import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import scala.annotation.targetName
-import org.typelevel.log4cats.Logger
 
 object extensions:
   // TODO Move this to lucuma-schemas (and remove this logic from TargetWithId)

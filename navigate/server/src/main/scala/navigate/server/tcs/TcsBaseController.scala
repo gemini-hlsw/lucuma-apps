@@ -17,6 +17,7 @@ import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
+import navigate.model.RotatorAngle
 import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
@@ -44,7 +45,7 @@ trait TcsBaseController[F[_]] {
   def rotStop(useBrakes:                Boolean): F[ApplyCommandResult]
   def rotPark: F[ApplyCommandResult]
   def rotFollow(enable:                 Boolean): F[ApplyCommandResult]
-  def rotMove(angle:                    Angle): F[ApplyCommandResult]
+  def rotMove(angle:                    RotatorAngle): F[ApplyCommandResult]
   def ecsCarouselMode(
     domeMode:      DomeMode,
     shutterMode:   ShutterMode,

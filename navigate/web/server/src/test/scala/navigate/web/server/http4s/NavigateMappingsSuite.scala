@@ -51,6 +51,7 @@ import navigate.model.NavigateEvent
 import navigate.model.NavigateState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
+import navigate.model.RotatorAngle
 import navigate.model.RotatorTrackConfig
 import navigate.model.ServerConfiguration
 import navigate.model.SlewOptions
@@ -2462,7 +2463,8 @@ object NavigateMappingsTest {
     override def rotFollow(enable: Boolean): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
-    override def rotMove(angle: Angle): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+    override def rotMove(angle: RotatorAngle): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def ecsCarouselMode(
       domeMode:      DomeMode,

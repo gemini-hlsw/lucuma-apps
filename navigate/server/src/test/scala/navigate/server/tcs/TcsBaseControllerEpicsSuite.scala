@@ -58,6 +58,8 @@ import navigate.model.InstrumentSpecifics
 import navigate.model.Origin
 import navigate.model.PwfsMechsState
 import navigate.model.ResetPointing
+import navigate.model.RotatorAngle
+import navigate.model.RotatorAngle.*
 import navigate.model.RotatorTrackConfig
 import navigate.model.RotatorTrackingMode
 import navigate.model.ShortcircuitMountFilter
@@ -153,7 +155,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   test("Rotator commands") {
-    val testAngle = Angle.fromDoubleDegrees(123.456)
+    val testAngle = RotatorAngle.fromDoubleDegrees(123.456)
 
     for {
       (st, ctr) <- createController()

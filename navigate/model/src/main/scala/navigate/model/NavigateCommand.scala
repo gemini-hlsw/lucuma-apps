@@ -14,6 +14,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import navigate.model.HandsetAdjustment.given
+import navigate.model.RotatorAngle.*
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
@@ -36,7 +37,7 @@ object NavigateCommand {
       extends NavigateCommand
   case class AowfsFollow(enable: Boolean)                                    extends NavigateCommand
   case class CrcsFollow(enable: Boolean)                                     extends NavigateCommand
-  case class CrcsMove(angle: Angle)                                          extends NavigateCommand
+  case class CrcsMove(angle: RotatorAngle)                                   extends NavigateCommand
   case class CrcsStop(brakes: Boolean)                                       extends NavigateCommand
   case class Cwfs1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Cwfs2Follow(enable: Boolean)                                    extends NavigateCommand
@@ -140,7 +141,7 @@ object NavigateCommand {
         s"${self.name}(offset = $offset, ipa = $ipa, iaa = $iaa)"
       case AowfsFollow(enable)                                                           => s"${self.name}(enable = $enable)"
       case CrcsFollow(enable)                                                            => s"${self.name}(enable = $enable)"
-      case CrcsMove(angle)                                                               => f"${self.name}(angle = ${angle.toSignedDoubleDegrees}%.2f)"
+      case CrcsMove(angle)                                                               => f"${self.name}(angle = ${angle.toDoubleDegrees}%.2fº)"
       case CrcsStop(brakes)                                                              => s"${self.name}(brakes = $brakes)"
       case Cwfs1Follow(enable)                                                           => s"${self.name}(enable = $enable)"
       case Cwfs2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
