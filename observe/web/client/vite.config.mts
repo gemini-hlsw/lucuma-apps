@@ -17,10 +17,6 @@ const fixCssRoot: PluginCreator<void> = () => {
     },
   };
 };
-/**
- * Refine type to 'true' instead of 'boolean'
- * @type {true}
- */
 fixCssRoot.postcss = true;
 
 const fontImport = Unfonts({

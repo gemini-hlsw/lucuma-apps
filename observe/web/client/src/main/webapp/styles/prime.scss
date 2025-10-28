@@ -13,10 +13,8 @@
   @include meta.load-css('/lucuma-css/dark-theme');
 }
 
-/* stylelint-disable no-invalid-position-at-import-rule */
-@import '/lucuma-css/lucuma-ui-prime';
-@import '/lucuma-css/lucuma-ui-table';
-/* stylelint-enable no-invalid-position-at-import-rule */
+@include meta.load-css('/lucuma-css/lucuma-ui-prime');
+@include meta.load-css('/lucuma-css/lucuma-ui-table');
 
 body,
 body .p-component {
