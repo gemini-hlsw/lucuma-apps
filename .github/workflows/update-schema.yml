@@ -24,17 +24,22 @@ jobs:
         with:
           app_id: 206840
           private_key: ${{ secrets.WORKFLOW_GH_TOKEN }}
-      - name: Setup node
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
-        
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - name: pnpm install
+        run: pnpm install --frozen-lockfile --filter lucuma-schemas
+
       - name: Install dependencies and fetch latest ODB schema
-        run: |
-          cd schemas
-          npm ci
-          ./fetchODBSchema.mjs dev
+        run: ./fetchODBSchema.mjs dev
         env:
           ODB_API_KEY: ${{ secrets.LUCUMA_DEV_API_KEY }}
       - name: Create Pull Request

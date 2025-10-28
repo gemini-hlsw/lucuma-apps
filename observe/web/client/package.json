@@ -32,7 +32,7 @@
     "vite-plugin-mkcert": "1.17.9"
   },
   "scripts": {
-    "build": "node --unhandled-rejections=strict build.js",
+    "build": "vite build",
     "serve": "vite preview"
   },
   "browserslist": {
