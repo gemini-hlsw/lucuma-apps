@@ -244,9 +244,18 @@ object ObsBadge:
               <.div(ExploreStyles.ObsBadgeExtraAssociated)(
                 props.associatedObss
                   .map: childObs =>
-                    println(childObs.workflow.value.state)
-
                     val selected: Boolean = props.focusedObs.contains_(childObs.id)
+
+                    val currentState: ObservationWorkflowState            = childObs.workflow.value.state
+                    def isChecked(s: ObservationWorkflowState): Boolean   =
+                      s === ObservationWorkflowState.Ready
+                    def fromChecked(b: Boolean): ObservationWorkflowState =
+                      if (b) ObservationWorkflowState.Ready
+                      else ObservationWorkflowState.Inactive
+                    val canToggle: Boolean                                =
+                      childObs.workflow.value.validTransitions
+                        .contains_(fromChecked(!isChecked(currentState)))
+
                     Button(
                       clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
                         ExploreStyles.ObsBadgeSelectedAssociatedObs.when_(selected),
@@ -256,15 +265,14 @@ object ObsBadge:
                       severity = Button.Severity.Secondary
                     ).withMods(
                       Checkbox(
-                        checked = childObs.workflow.value.state == ObservationWorkflowState.Defined,
+                        checked = isChecked(currentState),
                         variant = Checkbox.Variant.Filled,
                         clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
+                        disabled = !canToggle,
                         onChange = newValue =>
                           props.setStateCB
                             .map: setState =>
-                              setState(childObs.id):
-                                if (newValue) ObservationWorkflowState.Defined
-                                else ObservationWorkflowState.Undefined
+                              setState(childObs.id)(fromChecked(newValue))
                             .orEmpty
                       )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
                       childObs.title
