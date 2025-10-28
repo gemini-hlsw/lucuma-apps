@@ -7,12 +7,13 @@ import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.data.NonEmptyList
 import explore.model.boopickle.CatalogPicklers.given
+import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.ScienceOffsets
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
-import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
@@ -33,8 +34,8 @@ object AgsMessage {
     scienceCoordinates: List[Coordinates],
     blindOffset:        Option[Coordinates],
     posAngles:          NonEmptyList[Angle],
-    acqOffsets:         Option[NonEmptyList[Offset]],
-    sciOffsets:         Option[NonEmptyList[Offset]],
+    acqOffsets:         Option[AcquisitionOffsets],
+    sciOffsets:         Option[ScienceOffsets],
     params:             AgsParams,
     candidates:         List[GuideStarCandidate]
   ) extends Request {

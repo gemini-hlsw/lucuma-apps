@@ -9,10 +9,12 @@ import cats.Order.given
 import coulomb.*
 import eu.timepit.refined.*
 import eu.timepit.refined.api.Refined
+import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
@@ -105,6 +107,10 @@ trait CatalogPicklers extends CommonPicklers:
   given Pickler[ConstantTracking] = generatePickler
 
   given Pickler[EphemerisCoordinates] = generatePickler
+
+  given Pickler[AcquisitionOffsets] = picklerNewType(AcquisitionOffsets)
+
+  given Pickler[ScienceOffsets] = picklerNewType(ScienceOffsets)
 
   given [K: Pickler: Ordering, V: Pickler]: Pickler[TreeMap[K, V]] =
     transformPickler((m: Map[K, V]) => TreeMap.empty[K, V] ++ m)(_.toMap)

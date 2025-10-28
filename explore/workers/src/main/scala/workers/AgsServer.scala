@@ -51,9 +51,9 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
       _     <- cache.evict(CacheRetention).start
     yield invocation =>
       invocation.data match {
-        case AgsMessage.CleanCache                                     =>
+        case AgsMessage.CleanCache                                        =>
           cache.clear *> invocation.respond(())
-        case req @ AgsMessage.AgsRequest(_, _, _, _, _, _, _, _, _, _) =>
+        case req @ AgsMessage.AgsRequest(_, _, _, _, _, _, _, _, _, _, _) =>
           val cacheableRequest =
             Cacheable(CacheName("ags"), CacheVersion(AgsCacheVersion), agsCalculation)
           cache
