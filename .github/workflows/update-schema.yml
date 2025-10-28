@@ -39,7 +39,7 @@ jobs:
         run: pnpm install --frozen-lockfile --filter lucuma-schemas
 
       - name: Install dependencies and fetch latest ODB schema
-        run: ./fetchODBSchema.mjs dev
+        run: pnpm schemas fetch-schema dev
         env:
           ODB_API_KEY: ${{ secrets.LUCUMA_DEV_API_KEY }}
       - name: Create Pull Request
