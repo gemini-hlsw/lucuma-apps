@@ -118,11 +118,9 @@ object AladinContainer extends AladinCommon {
       if (selectedGS.forall(_.target.id === g.target.id)) {
         SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(4), g)
       } else {
-        val css  = if (candidates.length < 500) {
-          candidateCss |+| candidatesVisibility
-        } else {
-          ExploreStyles.GuideStarCandidateCrowded |+| candidateCss |+| candidatesVisibility
-        }
+        val css  =
+          candidateCss |+| candidatesVisibility |+|
+            ExploreStyles.GuideStarCandidateCrowded.unless_(candidates.length < 500)
         val size = if (candidates.length < 500) calcSize(3) else calcSize(2.7)
         SVGTarget.GuideStarCandidateTarget(coords, css, size, g)
       }
@@ -407,12 +405,12 @@ object AladinContainer extends AladinCommon {
               idx       <- refineV[NonNegative](i).toOption
               gs        <- props.selectedGuideStar
               baseCoords = if (oType === SequenceType.Acquisition) {
-                props.blindOffset
-                  .flatMap(_.at(props.obsTime))
-                  .getOrElse(baseCoordinates)
-              } else {
-                baseCoordinates
-              }
+                             props.blindOffset
+                               .flatMap(_.at(props.obsTime))
+                               .getOrElse(baseCoordinates)
+                           } else {
+                             baseCoordinates
+                           }
               c         <- baseCoords.offsetBy(gs.posAngle, o) if visible
             } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
           }

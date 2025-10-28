@@ -176,12 +176,11 @@ object ObsTabTiles:
 
   // Helper to convert BlindOffset to SiderealTracking
   private def blindOffsetToTracking(
-    blindOffset:   Option[BlindOffset],
+    blindOffset:   BlindOffset,
     obsAndTargets: ObservationsAndTargets
   ): Option[SiderealTracking] =
     for {
-      bo       <- blindOffset
-      targetId <- bo.blindOffsetTargetId
+      targetId <- blindOffset.blindOffsetTargetId
       target   <- obsAndTargets._2.get(targetId)
       tracking <- Target.siderealTracking.getOption(target.target)
     } yield tracking
@@ -467,7 +466,7 @@ object ObsTabTiles:
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
               props.observation.get.calibrationRole,
-              blindOffsetToTracking(props.observation.get.blindOffset.some, props.obsAndTargets.get)
+              blindOffsetToTracking(props.observation.get.blindOffset, props.obsAndTargets.get)
             )
 
           val plotData: Option[PlotData] =

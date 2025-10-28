@@ -203,12 +203,6 @@ object TargetEditor:
             btt   <- props.obsAndTargets.get._2.get(btid)
             trk   <- Target.siderealTracking.getOption(btt.target)
           } yield trk
-          // val btid =
-          //   props.obsAndTargets.get._1.get(obsId).flatMap(_.blindOffset.blindOffsetTargetId)
-          // btid.flatMap(props.obsAndTargets.get._2.get)
-
-        println(blindOffset)
-        // println(blindOffset.map(Target.siderealTracking.getOption))
 
         val catalogInfo: Option[CatalogInfo] =
           Target.catalogInfo.getOption(props.targetWithId.get.target).flatten

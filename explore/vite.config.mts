@@ -219,7 +219,6 @@ export default defineConfig(async ({ mode }) => {
           watcher.add(sourceFiles);
 
           watcher.on('change', async (file) => {
-            // Only process changes from source files, not destination
             if (sourceFiles.includes(file)) {
               // Copy the updated file to dev directory
               const localConf = path.resolve(publicDirProd, 'local.conf.json');
