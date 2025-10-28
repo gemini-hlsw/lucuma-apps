@@ -13,4 +13,4 @@ The purpose of this project is to encapsulate files needed to work with the ODB,
 
 Contains:
 
-- Use `fetchODBSchema.mjs`. Use the `flake.nix` with `nix develop`, and run `npm install` to use.
+- Use `fetchODBSchema.mjs`. Use the `flake.nix` with `nix develop`, and run `pnpm install` to use.
