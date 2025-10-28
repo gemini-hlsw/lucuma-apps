@@ -14,6 +14,7 @@ ui/demo/src/main/webapp
 flake.lock
 node_modules
 target
+pnpm-lock.yaml
 
 *.graphql
 secrets.yaml

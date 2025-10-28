@@ -13,7 +13,7 @@
     "react-grid-layout": "1.5.2",
     "sass": "1.93.2",
     "ua-parser-js": "2.0.6",
-    "vite": "npm:rolldown-vite@latest",
+    "vite": "7.1.2",
     "vite-plugin-env-compatible": "2.0.1"
   },
   "dependencies": {

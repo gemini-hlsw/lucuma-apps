@@ -25,6 +25,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "5.1.0",
+    "postcss": "8.5.6",
     "process": "0.11.10",
     "sass": "1.93.2",
     "unplugin-fonts": "1.4.0",
@@ -32,7 +33,7 @@
     "vite-plugin-mkcert": "1.17.9"
   },
   "scripts": {
-    "build": "node --unhandled-rejections=strict build.js",
+    "build": "vite build",
     "serve": "vite preview"
   },
   "browserslist": {

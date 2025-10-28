@@ -1,5 +1,5 @@
 #!/bin/bash
 
-npm ci
+pnpm install --frozen-lockfile --filter lucuma-schemas
 
 ./fetchODBSchema.mjs $@

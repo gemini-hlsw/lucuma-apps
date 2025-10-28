@@ -1,0 +1,5 @@
+packages:
+  - 'schemas'
+  - 'explore'
+  - 'ui/demo'
+  - 'observe/web/client'

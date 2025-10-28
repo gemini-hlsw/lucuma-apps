@@ -579,7 +579,7 @@ lazy val observe_web_client = project
   .settings(
     buildJsModule / fileInputs += (Compile / fullLinkJS / scalaJSLinkerOutputDirectory).value.toGlob,
     buildJsModule := {
-      if ((Process("npx" :: "vite" :: "build" :: Nil, baseDirectory.value) !) != 0)
+      if ((Process("pnpm" :: "build" :: Nil, baseDirectory.value) !) != 0)
         throw new Exception("Error building web client")
       else
         baseDirectory.value / "deploy" // Must match directory declared in vite.config.mts
@@ -864,7 +864,7 @@ lazy val navigate_model = project
         LucumaCore.value ++
         Circe.value ++
         In(Test)(MUnit.value ++ Discipline.value)
-)
+  )
 
 lazy val navigate_schema_util = project
   .in(file("navigate/schema-util"))
@@ -944,13 +944,13 @@ lazy val navigate_deploy = project
 // BEGIN ALIASES
 
 def prettierCmd(fix: Boolean): String =
-  s"npx prettier ${if (fix) "--write" else "--check"} ."
+  s"pnpm exec prettier ${if (fix) "--write" else "--check"} ."
 
 def styleLintCmds(mode: String, fix: Boolean, dirs: List[String]): List[String] = {
   val stylelintFixFlag = if (fix) "--fix " else ""
   // Removes all lines that don't define a variable, thus building a viable CSS file for linting. Thanks ChatGPT.
   (raw"""find ui/lib/src/main/resources/lucuma-css -maxdepth 1 -type f -exec sed -n -e '/^[[:space:]]*--.*;[[:space:]]*$$/p' -e '/^[[:space:]]*--[^;]*$$/,/;$$/p' {} + >vars.css"""
-    +: dirs.map(dir => s"npx stylelint $stylelintFixFlag$dir")) :+
+    +: dirs.map(dir => s"pnpm exec stylelint $stylelintFixFlag$dir")) :+
     "rm vars.css"
 }
 
@@ -1068,88 +1068,44 @@ ThisBuild / githubWorkflowPermissions := Some(
     .withContents(PermissionValue.Read)
 )
 
-lazy val rootSetupNodeNpmInstall =
-  List(
-    WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v6"),
-      name = Some("Explore Setup Node.js"),
-      params = Map(
-        "node-version" -> "24",
-        "cache"        -> "npm"
+lazy val setupPnpmAndNode = List(
+  WorkflowStep.Use(
+    UseRef.Public("pnpm", "action-setup", "v4"),
+    name = Some("Setup pnpm")
+  ),
+  WorkflowStep.Use(
+    UseRef.Public("actions", "setup-node", "v6"),
+    name = Some("Setup Node.js"),
+    params = Map(
+      "node-version" -> "24",
+      "registry-url" -> "https://registry.npmjs.org",
+      "cache"        -> "pnpm"
+    )
+  )
+)
+
+lazy val rootSetupNodePnpmInstall =
+  setupPnpmAndNode ++
+    List(
+      WorkflowStep.Run(
+        List("pnpm install --frozen-lockfile"),
+        name = Some("pnpm install")
       )
-    ),
-    // Explore NPM cache
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v4"),
-      name = Some("Cache root node_modules"),
-      id = Some("root-cache-node_modules"),
-      params = {
-        val prefix = "root-node_modules"
-        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
+    )
+
+lazy val exploreSetupNodePnpmInstall =
+  setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("npm clean-install"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.root-cache-node_modules.outputs.cache-hit != 'true'")
+      List("pnpm install --frozen-lockfile --filter explore"),
+      name = Some("pnpm install")
     )
   )
 
-// https://github.com/actions/setup-node/issues/835#issuecomment-1753052021
-lazy val exploreSetupNodeNpmInstall =
-  List(
-    WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v6"),
-      name = Some("Explore Setup Node.js"),
-      params = Map(
-        "node-version" -> "24",
-        "cache"        -> "npm"
-      )
-    ),
-    // Explore NPM cache
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v4"),
-      name = Some("Cache Explore node_modules"),
-      id = Some("explore-cache-node_modules"),
-      params = {
-        val prefix = "explore-node_modules"
-        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
+lazy val observeSetupNodePnpmInstall =
+  setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("cd explore", "npm clean-install"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.explore-cache-node_modules.outputs.cache-hit != 'true'")
-    )
-  )
-
-lazy val observeSetupNodeNpmInstall =
-  List(
-    WorkflowStep.Use(
-      UseRef.Public("actions", "setup-node", "v6"),
-      name = Some("Setup Node.js"),
-      params = Map(
-        "node-version" -> "24",
-        "cache"        -> "npm"
-      )
-    ),
-    // Observe NPM cache
-    WorkflowStep.Use(
-      UseRef.Public("actions", "cache", "v4"),
-      name = Some("Cache Observe node_modules"),
-      id = Some("observe-cache-node_modules"),
-      params = {
-        val prefix = "observe-node_modules"
-        val key    = s"$prefix-$${{ hashFiles('package-lock.json') }}"
-        Map("path" -> "node_modules", "key" -> key, "restore-keys" -> prefix)
-      }
-    ),
-    WorkflowStep.Run(
-      List("cd observe/web/client", "npm clean-install"),
-      name = Some("npm clean-install"),
-      cond = Some("steps.observe-cache-node_modules.outputs.cache-hit != 'true'")
+      List("pnpm install --frozen-lockfile --filter observe"),
+      name = Some("pnpm install")
     )
   )
 
@@ -1176,7 +1132,7 @@ lazy val sbtDockerPublishNavigate =
 lazy val herokuRelease =
   WorkflowStep.Run(
     List(
-      "npm install -g heroku",
+      "pnpm install -g heroku",
       "heroku container:login",
       "docker tag noirlab/gpp-obs registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
       "docker push registry.heroku.com/${{ vars.HEROKU_APP_NAME_GN || 'observe-dev-gn' }}/web",
@@ -1192,7 +1148,7 @@ lazy val exploreSbtLink =
   WorkflowStep.Sbt(List("explore_app/buildJsModule"), name = Some("Link Explore"))
 
 lazy val exploreNpmBuild = WorkflowStep.Run(
-  List("cd explore", "npm run build"),
+  List("pnpm explore build"),
   name = Some("Build Explore"),
   env = Map("NODE_OPTIONS" -> "--max-old-space-size=8192")
 )
@@ -1251,7 +1207,7 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
   cond = Some(allConds(mainCond, exploreChangedCond))
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodeNpmInstall
+ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodePnpmInstall
 
 val usePathsFilter: WorkflowStep = WorkflowStep.Use(
   UseRef.Public("dorny", "paths-filter", "v3"),
@@ -1280,7 +1236,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
       usePathsFilter ::
-      exploreSetupNodeNpmInstall :::
+      exploreSetupNodePnpmInstall :::
       exploreSbtLink ::
       exploreNpmBuild ::
       overrideCiCommit ::
@@ -1301,7 +1257,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "observe-deploy",
     "Build and publish Observe Docker image / Deploy to Heroku",
     githubWorkflowJobSetup.value.toList :::
-      observeSetupNodeNpmInstall :::
+      observeSetupNodePnpmInstall :::
       dockerHubLogin ::
       sbtDockerPublishObserve ::
       herokuRelease ::
@@ -1336,7 +1292,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "lint",
     "Run linters",
     githubWorkflowJobSetup.value.toList :::
-      rootSetupNodeNpmInstall :::
+      rootSetupNodePnpmInstall :::
       lucumaCssStep ::
       lintAllStep ::
       Nil,
@@ -1345,15 +1301,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     cond = Some(allConds(anyConds(mainCond, prCond), geminiRepoCond))
   )
 
-ThisBuild / githubWorkflowPublishPreamble +=
-  WorkflowStep.Use(
-    UseRef.Public("actions", "setup-node", "v6"),
-    Map(
-      "node-version" -> "24",
-      "registry-url" -> "https://registry.npmjs.org",
-      "cache"        -> "npm"
-    )
-  )
+ThisBuild / githubWorkflowPublishPreamble ++= setupPnpmAndNode
 
 ThisBuild / githubWorkflowPublish := Seq(
   WorkflowStep.Sbt(
