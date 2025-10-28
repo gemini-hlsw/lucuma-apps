@@ -36,9 +36,9 @@ sbt explore/fastLinkJS
 ```
 
 To launch explore you can use vite development server going to the `explore` dir and
-calling the command `npx vite`
+calling the command `pnpm vite`. Or, from the root directory, `pnpm explore exec vite`.
 
-You may need to update your node modules via `npm install`
+You may need to update your node modules via `pnpm install`
 
 With that you can open the app at:
 http://local.lucuma.xyz:8080/
