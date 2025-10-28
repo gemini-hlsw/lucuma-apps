@@ -247,7 +247,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    props.obsConf.flatMap(_.agsState).foldMap(_.async.set(AgsState.Idle))
                              else none.pure
       // Analysis results
-      agsResults        <- useSerialState(List.empty[AgsAnalysis.Usable])
+      agsResults        <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
       // Reference to root
       root              <- useMemo(())(_ => domRoot)
       // target options, will be read from the user preferences
@@ -266,11 +266,13 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    setVariable(root, "saturation", tp.saturation) *>
                                    setVariable(root, "brightness", tp.brightness)).toAsync
       // In case the selected name changes remotely
-      _                 <- useEffectWithDeps(props.selectedGSName): n =>
+      _                 <- useEffectWithDeps((props.selectedGSName, agsResults)): (n, resultsPot) =>
                              // Go to the first analysis if present or pick the name from the selection
-                             props.guideStarSelection.set:
-                               n.fold(AgsSelection(agsResults.value.value.headOption.tupleLeft(0))):
-                                 agsResults.value.value.pick
+                             resultsPot.value.value.toOption.foldMap: results =>
+                               val newGss =
+                                 n.fold(AgsSelection(results.headOption.tupleLeft(0))):
+                                   results.pick
+                               props.guideStarSelection.set(newGss)
       // mouse coordinates, starts on the base
       mouseCoords       <- useState(props.asterismTracking.baseCoordinates)
       // Reset offset and gs if asterism change
@@ -280,7 +282,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                              // if the coordinates change, reset ags, offset and mouse coordinates
                              for
                                _ <- props.guideStarSelection.set(GuideStarSelection.Default)
-                               _ <- agsResults.setState(List.empty)
+                               _ <- agsResults.setState(Pot.pending)
                                _ <- offsetOnCenter.set(Offset.Zero)
                                _ <- mouseCoords.setState(props.asterismTracking.baseCoordinates)
                              yield ()
@@ -364,7 +366,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    def processResults(r: Option[List[AgsAnalysis.Usable]]): IO[Unit] =
                                      (for
                                        // Store the analysis
-                                       _ <- r.map(agsResults.setState).getOrEmpty
+                                       _ <- r.map(l => agsResults.setState(Pot.Ready(l))).getOrEmpty
                                        // set the selected index to the first entry
                                        _ <-
                                          val index      = 0.some.filter(_ => r.exists(_.nonEmpty))
@@ -454,6 +456,8 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val guideStar = props.guideStarSelection.get.analysis
 
+      val agsResultsList = agsResults.value.toOption.getOrElse(List.empty)
+
       val renderAladin: AsterismVisualOptions => VdomNode =
         (t: AsterismVisualOptions) =>
           AladinContainer(
@@ -467,7 +471,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             fovSetter,
             offsetChangeInAladin.reuseAlways,
             guideStar,
-            agsResults.value
+            agsResultsList
           )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =
@@ -494,7 +498,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                   ExploreStyles.AgsOverlay,
                   AgsOverlay(
                     props.guideStarSelection,
-                    agsResults.value.filter(_.isUsable),
+                    agsResultsList.filter(_.isUsable),
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,
