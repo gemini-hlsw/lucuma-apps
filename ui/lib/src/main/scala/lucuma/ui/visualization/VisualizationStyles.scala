@@ -10,6 +10,7 @@ object VisualizationStyles:
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")
   val CircleTarget: Css               = Css("circle-target")
   val CrosshairTarget                 = Css("crosshair-target")
+  val BlindOffsetTarget               = Css("blind-offset-target")
   val ArrowBetweenTargets             = Css("arrow-between-targets")
   val OffsetPosition                  = Css("offset-position")
   val GuideStarCandidateTarget        = Css("guide-star-candidate-target")

@@ -219,7 +219,7 @@ export default defineConfig(async ({ mode }) => {
           watcher.add(sourceFiles);
 
           watcher.on('change', async (file) => {
-            if (file.endsWith('environments.conf.json') || file.endsWith('local.conf.json')) {
+            if (sourceFiles.includes(file)) {
               // Copy the updated file to dev directory
               const localConf = path.resolve(publicDirProd, 'local.conf.json');
               const devConf = path.resolve(publicDirProd, 'environments.conf.json');

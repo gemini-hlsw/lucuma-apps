@@ -127,6 +127,22 @@ object extensions:
       case CompositeTracking(nel)                        => Coordinates.centerOf(nel.map(_.baseCoordinates))
       case _                                             => sys.error("Non sidereals are not supported")
 
+    // Calculate positions from tracking considering target epoch and observation time
+    // Useful to put a from/to in the viz
+    // By convention we call the return epochCoords,obsTimeCoords
+    def trackedPositions(
+      obsTime:     Instant,
+      targetEpoch: Option[Epoch]
+    ): (Option[Coordinates], Coordinates) =
+      (targetEpoch.flatMap: epoch =>
+         val epochInstant = epoch.toInstant
+         tracking.at(epochInstant)
+       ,
+       tracking
+         .at(obsTime)
+         .getOrElse(tracking.baseCoordinates)
+      )
+
   extension [F[_]: {MonadThrow, Logger}, A](f: F[A])
     def logErrors(msg: String = ""): F[A] =
       f.onError:

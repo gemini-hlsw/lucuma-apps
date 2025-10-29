@@ -480,6 +480,8 @@ object ExploreStyles:
   val GuideStarCandidateVisible    = Css("guide-star-candidate-target-visible")
   val PMCorrectionLine             = Css("proper-motion-line")
   val PMGSCorrectionLine           = Css("proper-motion-line-gs")
+  val BlindOffsetTarget            = Css("blind-offset-target")
+  val BlindOffsetLine              = Css("blind-offset-line")
   val AladinToolbox                = Css("explore-aladin-toolbox-button")
   val AladinZoomControl            = Css("explore-aladin-zoom-control")
   val AladinSearchZoomControl      = Css("explore-aladin-search-zoom-control")

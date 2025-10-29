@@ -91,22 +91,6 @@ case class AladinCell(
     // This is rare but can happen if each angle finds an equivalent guide star
     yield angles.sorted(using Angle.AngleOrder)
 
-  val positions: Option[NonEmptyList[AgsPosition]] =
-    val offsets: NonEmptyList[Offset] = obsConf
-      .flatMap: o =>
-        (o.scienceOffsets, o.acquisitionOffsets) match
-          case (Some(sci), Some(acq)) => (sci ++ acq.toList).toNes.toNonEmptyList.some
-          case (Some(sci), None)      => sci.some
-          case (None, Some(acq))      => acq.some
-          case (None, None)           => none
-      .getOrElse(NonEmptyList.of(Offset.Zero))
-
-    anglesToTest.map: anglesToTest =>
-      for {
-        pa  <- anglesToTest
-        off <- offsets
-      } yield AgsPosition(pa, off)
-
   def durationAvailable: Boolean =
     obsConf.flatMap(_.obsDuration).isDefined
 
@@ -299,7 +283,6 @@ object AladinCell extends ModelOptics with AladinCommon:
       _                 <- useEffectWithDeps(
                              (props.asterismTracking,
                               props.asterism.focus.id,
-                              props.positions,
                               props.obsConf.flatMap(_.posAngleConstraint),
                               props.obsConf.flatMap(_.constraints),
                               props.obsConf.flatMap(_.centralWavelength),
@@ -310,7 +293,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                            ):
                              case (tracking,
                                    _,
-                                   positions,
                                    _,
                                    Some(constraints),
                                    Some(centralWavelength),
@@ -321,12 +303,11 @@ object AladinCell extends ModelOptics with AladinCommon:
                                import ctx.given
 
                                val runAgs: IO[Unit] =
-                                 (positions,
-                                  tracking.at(vizTime),
+                                 (tracking.at(vizTime),
                                   props.obsConf.flatMap(_.obsModeType),
                                   props.obsConf.flatMap(_.agsState),
                                   candidates
-                                 ).mapN { (positions, base, obsModeType, agsState, candidates) =>
+                                 ).mapN { (base, obsModeType, agsState, candidates) =>
 
                                    val params = obsModeType match {
                                      case ObservingModeType.Flamingos2LongSlit                                    =>
@@ -350,15 +331,18 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    }
 
                                    val request: Option[AgsMessage.AgsRequest] =
-                                     params.map(p =>
+                                     (params, props.anglesToTest).mapN((params, angles) =>
                                        AgsMessage.AgsRequest(
                                          props.asterism.focus.id,
                                          constraints,
                                          centralWavelength.value,
                                          base,
                                          props.sciencePositionsAt(vizTime),
-                                         positions,
-                                         p,
+                                         props.obsConf.flatMap(_.blindOffset).flatMap(_.at(vizTime)),
+                                         angles,
+                                         props.obsConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
+                                         props.obsConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply),
+                                         params,
                                          candidates
                                        )
                                      )
@@ -404,8 +388,7 @@ object AladinCell extends ModelOptics with AladinCommon:
 
                                props.guideStarSelection
                                  .set(AgsSelection(none))
-                                 .toAsync
-                                 .whenA(positions.isEmpty) *>
+                                 .toAsync *>
                                  runAgs.unlessA(props.guideStarSelection.get.isOverride)
                              case _ => IO.unit
       menuRef           <- usePopupMenuRef
