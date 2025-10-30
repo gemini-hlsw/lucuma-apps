@@ -113,7 +113,7 @@ object TestAcquisitionCameraEpicsSystem {
       override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
         VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
 
-      override def clear: VerifiedEpics[F, F, Unit] = VerifiedEpics.unit
+      override def clearIfNotBusy: VerifiedEpics[F, F, Unit] = VerifiedEpics.unit
     },
     buildChannels(s)
   )

@@ -87,6 +87,8 @@ trait TcsEpicsSystem[F[_]] {
 
   def startPwfs2Command(timeout: FiniteDuration): TcsEpicsSystem.WfsCommands[F]
 
+  def clearErrors: VerifiedEpics[F, F, Unit]
+
   val status: TcsStatus[F]
 }
 
@@ -610,7 +612,7 @@ object TcsEpicsSystem {
       this.copy(params = params ++ c)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      tcsEpics.clear *> params.compile *> tcsEpics.post(timeout)
+      params.compile *> tcsEpics.post(timeout)
 
     override val mcsParkCommand: BaseCommand[F, TcsCommands[F]] =
       new BaseCommand[F, TcsCommands[F]] {
@@ -1518,6 +1520,7 @@ object TcsEpicsSystem {
     override def startOiwfsCommand(timeout: FiniteDuration): WfsCommands[F] =
       WfsCommandsImpl(channels, channels.oiwfs, oiObsCmd, timeout, List.empty)
 
+    override def clearErrors: VerifiedEpics[F, F, Unit] = epics.clear
   }
 
   class TcsEpicsImpl[F[_]: Monad](
@@ -1528,7 +1531,7 @@ object TcsEpicsSystem {
     override def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult] =
       applyCmd.post(timeout)
 
-    override def clear: VerifiedEpics[F, F, Unit] = applyCmd.clear
+    override def clear: VerifiedEpics[F, F, Unit] = applyCmd.clearIfNotBusy
 
     override val mountParkCmd: ParameterlessCommandChannels[F] =
       ParameterlessCommandChannels(channels.telltale, channels.telescopeParkDir)
