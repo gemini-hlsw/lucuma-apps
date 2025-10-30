@@ -6,6 +6,7 @@ package explore.config
 import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.numeric.PosInt
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -24,7 +25,8 @@ final case class ExposureTimeModeEditor(
   scienceMode:      ScienceMode,
   readonly:         Boolean,
   units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole]
+  calibrationRole:  Option[CalibrationRole],
+  forceCount:       Option[PosInt] = None
 ) extends ReactFnProps(ExposureTimeModeEditor)
 
 object ExposureTimeModeEditor
@@ -42,6 +44,7 @@ object ExposureTimeModeEditor
           props.scienceMode,
           props.readonly,
           props.units,
-          props.calibrationRole
+          props.calibrationRole,
+          props.forceCount
         )
     )

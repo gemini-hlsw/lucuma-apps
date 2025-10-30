@@ -34,7 +34,8 @@ case class TimeAndCountEditor(
   scienceMode:     ScienceMode,
   readonly:        Boolean,
   units:           WavelengthUnits,
-  calibrationRole: Option[CalibrationRole]
+  calibrationRole: Option[CalibrationRole],
+  showCount:       Boolean
 ) extends ReactFnProps[TimeAndCountEditor](TimeAndCountEditor.component)
 
 object TimeAndCountEditor extends ConfigurationFormats:
@@ -65,18 +66,22 @@ object TimeAndCountEditor extends ConfigurationFormats:
           changeAuditor = timeAuditor,
           disabled = props.readonly
         ).clearable(^.autoComplete.off),
-        FormLabel("exposure-count".refined)("Number of Exp."),
-        FormInputTextView(
-          id = "exposure-count".refined,
-          value = count,
-          groupClass = ExploreStyles.WarningInput.when_(count.get.isEmpty),
-          validFormat = InputValidSplitEpi.posInt.optional,
-          postAddons =
-            count.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
-          changeAuditor = ChangeAuditor.int.optional,
-          units = "#",
-          disabled = props.readonly
-        ).clearable(^.autoComplete.off),
+        Option.when(props.showCount):
+          React.Fragment(
+            FormLabel("exposure-count".refined)("Number of Exp."),
+            FormInputTextView(
+              id = "exposure-count".refined,
+              value = count,
+              groupClass = ExploreStyles.WarningInput.when_(count.get.isEmpty),
+              validFormat = InputValidSplitEpi.posInt.optional,
+              postAddons =
+                count.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
+              changeAuditor = ChangeAuditor.int.optional,
+              units = "#",
+              disabled = props.readonly
+            ).clearable(^.autoComplete.off)
+          )
+        ,
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
           React
             .Fragment(
