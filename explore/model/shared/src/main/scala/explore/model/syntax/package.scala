@@ -20,6 +20,8 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Declination
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.ProgramReference
+import lucuma.core.model.Semester
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.TimingWindow
@@ -245,3 +247,16 @@ object all:
     def fullSetupTime: CalculatedValue[Option[TimeSpan]]       = calcDigest.map(_.map(_.setup.full))
     def remainingObsTime: CalculatedValue[Option[TimeSpan]]    =
       calcDigest.map(_.map(d => d.science.timeEstimate.sum +| d.setup.full))
+
+  extension (pr: ProgramReference)
+    def semester: Option[Semester] =
+      import ProgramReference.*
+      pr match
+        case Example(_)                    => none
+        case Library(_, _)                 => none
+        case Calibration(semester, _, _)   => semester.some
+        case Science(proposal, _)          => proposal.semester.some
+        case System(description)           => none
+        case Engineering(semester, _, _)   => semester.some
+        case Monitoring(semester, _, _)    => semester.some
+        case Commissioning(semester, _, _) => semester.some

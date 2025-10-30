@@ -49,6 +49,7 @@ object ColumnFilter:
     protected[table] val options: List[(A, String)] =
       col
         .getFacetedUniqueValues()
+        .filter((a, _) => display(a).nonEmpty)
         .map: (a, count) =>
           val name: String  = display(a)
           val label: String = if showCount then s"$name (${count})" else name
