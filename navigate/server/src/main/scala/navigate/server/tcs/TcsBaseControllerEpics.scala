@@ -515,6 +515,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   private val TcsConfigTimeout                                     = FiniteDuration(60, SECONDS)
   // Added a 1.5 s wait between selecting the OIWFS and setting targets, to copy TCC
   override def tcsConfig(config: TcsConfig): F[ApplyCommandResult] = for {
+    _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
     _   <- disableGuide
     p1f <- sys.ags.status.pwfs1Mechs.colFilter
              .verifiedRun(ConnectionTimeout)
@@ -537,6 +538,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     slewOptions: SlewOptions,
     tcsConfig:   TcsConfig
   ): F[ApplyCommandResult] = for {
+    _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
     _   <- (stopAllWfs *> disableGuide).whenA(slewOptions.stopGuide.value)
     _   <- disableTargetFilter.whenA(slewOptions.shortcircuitTargetFilter.value)
     p1f <- sys.ags.status.pwfs1Mechs.colFilter
@@ -1606,7 +1608,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .verifiedRun(ConnectionTimeout)
 
   override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
-    disableGuide *>
+    sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout) *>
+      disableGuide *>
       lightPath(LightSource.Sky, LightSinkName.Ac) *>
       sys.hrwfs.status.filter.verifiedRun(ConnectionTimeout).flatMap { x =>
         applyPointToGuideConfig(
@@ -1625,6 +1628,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     val source = LightSource.Sky
 
     for {
+      _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
       _   <- disableGuide
       p1f <- sys.ags.status.pwfs1Mechs.colFilter
                .verifiedRun(ConnectionTimeout)

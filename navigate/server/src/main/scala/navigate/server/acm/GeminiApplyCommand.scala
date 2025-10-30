@@ -38,7 +38,7 @@ trait GeminiApplyCommand[F[_]] {
    */
   def post(timeout: FiniteDuration): VerifiedEpics[F, F, ApplyCommandResult]
 
-  def clear: VerifiedEpics[F, F, Unit]
+  def clearIfNotBusy: VerifiedEpics[F, F, Unit]
 }
 
 object GeminiApplyCommand {
@@ -164,10 +164,17 @@ object GeminiApplyCommand {
         .map(_._2)
         .unNone
 
-    private val ClearDelay                        = 50.milliseconds
-    override def clear: VerifiedEpics[F, F, Unit] = writeChannel(telltaleChannel, apply.dir)(
-      Applicative[F].pure(CadDirective.CLEAR)
-    ) *> VerifiedEpics.liftF(Temporal[F].sleep(ClearDelay))
+    private val ClearDelay                                 = 50.milliseconds
+    override def clearIfNotBusy: VerifiedEpics[F, F, Unit] =
+      readChannel(telltaleChannel, car.oval).flatMap { g =>
+        VerifiedEpics.ifF(g.map(_ != CarState.BUSY))(
+          writeChannel(telltaleChannel, apply.dir)(
+            Applicative[F].pure(CadDirective.CLEAR)
+          ) *> VerifiedEpics.liftF(Temporal[F].sleep(ClearDelay))
+        )(
+          VerifiedEpics.unit
+        )
+      }
   }
 
   private[acm] def commandStateMachine[F[_]: Concurrent](
