@@ -150,8 +150,9 @@ case class ObsTree(
     Tree.Node(
       Tree.Id(value.fold(_.id.toString, _.id.toString)),
       value,
-      draggable = !isSystem,
-      droppable = !isSystem,
+      // Telluric calibration groups are rendered as observations, which can be dragged.
+      draggable = !isSystem || value.exists(_.isTelluricCalibration),
+      droppable = !isSystem && !value.exists(_.isTelluricCalibration),
       children = value.toOption
         // Telluric calibration group children are not shown as tree nodes but within the badge.
         .filterNot(_.isTelluricCalibration)
@@ -167,10 +168,14 @@ case class ObsTree(
   private val rootElements: List[Either[Observation, Group]] = groupsChildren.get(none).orEmpty
 
   private val treeNodes: List[Node[Either[Observation, Group]]] =
-    rootElements.filter(_.fold(_ => true, !_.system)).map(createNode(_, isSystem = false))
+    rootElements
+      .filter(_.fold(_ => true, g => !g.system || g.isTelluricCalibration))
+      .map(createNode(_, isSystem = false))
 
   private val systemTreeNodes: List[Node[Either[Observation, Group]]] =
-    rootElements.filter(_.fold(_ => false, _.system)).map(createNode(_, isSystem = true))
+    rootElements
+      .filter(_.fold(_ => false, g => g.system && !g.isTelluricCalibration))
+      .map(createNode(_, isSystem = true))
 
 object ObsTree:
   private type Props = ObsTree
