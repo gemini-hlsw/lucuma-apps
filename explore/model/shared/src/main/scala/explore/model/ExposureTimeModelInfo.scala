@@ -36,9 +36,9 @@ object TimeAndCountModeInfo:
   val at: Lens[TimeAndCountModeInfo, Option[Wavelength]] =
     Focus[TimeAndCountModeInfo](_.at)
 
-  def default(mode: ScienceMode): TimeAndCountModeInfo =
+  def default(mode: ScienceMode, forceCount: Option[PosInt]): TimeAndCountModeInfo =
     TimeAndCountModeInfo(None,
-                         None,
+                         forceCount,
                          if (mode === ScienceMode.Spectroscopy) none else Wavelength.Min.some
     )
 

@@ -6,6 +6,7 @@ package explore.config
 import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.numeric.PosInt
 import explore.components.HelpIcon
 import explore.model.SignalToNoiseModeInfo
 import explore.model.TimeAndCountModeInfo
@@ -35,7 +36,8 @@ case class ExposureTimeModeEditorOptional(
   scienceMode:      ScienceMode,
   readonly:         Boolean,
   units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole]
+  calibrationRole:  Option[CalibrationRole],
+  forceCount:       Option[PosInt] = None
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
 object ExposureTimeModeEditorOptional:
@@ -44,32 +46,33 @@ object ExposureTimeModeEditorOptional:
   protected val component =
     ScalaFnComponent[Props]: props =>
       for
-        exposureTimeModeView <-
-          useStateView(
-            props.exposureTimeMode.get
-              .map(_.modeType)
-              .getOrElse(ExposureTimeModeType.SignalToNoise)
-          )
+        exposureTimeModeView <- useStateView(
+                                  props.exposureTimeMode.get
+                                    .map(_.modeType)
+                                    .getOrElse(ExposureTimeModeType.SignalToNoise)
+                                )
         signalToNoiseView    <- useStateView(
                                   props.exposureTimeMode.get
                                     .flatMap(SignalToNoiseModeInfo.fromModel)
                                     .getOrElse(SignalToNoiseModeInfo.default(props.scienceMode))
                                 )
-        timeAndCountView     <- useStateView(
-                                  props.exposureTimeMode.get
-                                    .flatMap(TimeAndCountModeInfo.fromModel)
-                                    .getOrElse(TimeAndCountModeInfo.default(props.scienceMode))
-                                )
-        _                    <- useEffectWithDeps(props.exposureTimeMode.get):
+        timeAndCountView     <-
+          useStateView(
+            props.exposureTimeMode.get
+              .flatMap(TimeAndCountModeInfo.fromModel)
+              .getOrElse(TimeAndCountModeInfo.default(props.scienceMode, props.forceCount))
+          )
+        _                    <- useEffectWithDeps((props.exposureTimeMode.get, props.forceCount)): (exp, force) =>
                                   // Exposure time mode updated upstream
-                                  _.map: etm =>
-                                    SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
-                                      TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
-                                      exposureTimeModeView.set(etm.modeType)
-                                  .getOrElse:
-                                    signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
-                                      timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode)) *>
-                                      exposureTimeModeView.set(ExposureTimeModeType.SignalToNoise)
+                                  exp
+                                    .map: etm =>
+                                      SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
+                                        TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
+                                        exposureTimeModeView.set(etm.modeType)
+                                    .getOrElse:
+                                      signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
+                                        timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode, force)) *>
+                                        exposureTimeModeView.set(ExposureTimeModeType.SignalToNoise)
         _                    <- useEffectWithDeps(props.wavelength):
                                   // Wavelength updated upstream, set `at` if empty
                                   _.map: wv =>
@@ -134,6 +137,7 @@ object ExposureTimeModeEditorOptional:
                                props.scienceMode,
                                props.readonly,
                                props.units,
-                               props.calibrationRole
+                               props.calibrationRole,
+                               showCount = props.forceCount.isEmpty
             )
         )

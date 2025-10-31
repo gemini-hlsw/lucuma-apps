@@ -41,6 +41,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.CentralWavelength
@@ -390,10 +391,13 @@ object GmosLongslitConfigPanel {
             ),
             <.div(
               ExploreStyles.GmosLongSlitLowerGrid,
-              <.div(
-                <.span("Acquisition",
-                       HelpIcon("configuration/gmos/acquisition-customization.md".refined)
+              Panel(
+                header = <.span("Acquisition",
+                                HelpIcon("configuration/gmos/acquisition-customization.md".refined)
                 ),
+                toggleable = true,
+                collapsed = true
+              )(
                 <.div(
                   ExploreStyles.AcquisitionCustomizationGrid,
                   <.div(
@@ -428,10 +432,11 @@ object GmosLongslitConfigPanel {
                       props.observingMode.get.instrument.some,
                       props.spectroscopyRequirements.wavelength,
                       acquisitionExposureTimeModeView(props.observingMode),
-                      ScienceMode.Spectroscopy,
+                      ScienceMode.Imaging,
                       props.readonly,
                       props.units,
-                      props.calibrationRole
+                      props.calibrationRole,
+                      forceCount = Some(1.refined)
                     )
                   )
                 )

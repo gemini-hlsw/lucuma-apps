@@ -29,6 +29,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
@@ -217,10 +218,13 @@ object Flamingos2LongslitConfigPanel
           ),
           <.div(
             ExploreStyles.Flamingos2LowerGrid,
-            <.div(
-              <.span("Acquisition",
-                     HelpIcon("configuration/f2/acquisition-customization.md".refined)
+            Panel(
+              header = <.span("Acquisition",
+                              HelpIcon("configuration/f2/acquisition-customization.md".refined)
               ),
+              toggleable = true,
+              collapsed = true
+            )(
               <.div(
                 ExploreStyles.AcquisitionCustomizationGrid,
                 <.div(
@@ -229,10 +233,11 @@ object Flamingos2LongslitConfigPanel
                     props.observingMode.get.instrument.some,
                     props.spectroscopyRequirements.wavelength,
                     acquisitionExposureTimeView,
-                    ScienceMode.Spectroscopy,
+                    ScienceMode.Imaging,
                     props.readonly,
                     props.units,
-                    props.calibrationRole
+                    props.calibrationRole,
+                    forceCount = Some(1.refined)
                   )
                 )
               )
