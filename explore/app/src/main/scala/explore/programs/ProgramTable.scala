@@ -52,7 +52,7 @@ object ProgramTable:
     programCount:     Int
   )
 
-  private val ColDef = ColumnDef[View[ProgramInfo]].WithTableMeta[TableMeta]
+  private val ColDef = ColumnDef[View[ProgramInfo]].WithColumnFilters.WithTableMeta[TableMeta]
 
   private given Reusability[List[View[ProgramInfo]]] = Reusability.by(_.map(_.get))
 
@@ -77,6 +77,7 @@ object ProgramTable:
 
   private val ActionsColumnId: ColumnId   = ColumnId("actions")
   private val IdColumnId: ColumnId        = ColumnId("id")
+  private val SemesterColumnId: ColumnId  = ColumnId("semester")
   private val ReferenceColumnId: ColumnId = ColumnId("reference")
   private val StatusColumnId: ColumnId    = ColumnId("status")
   private val PiColumnId: ColumnId        = ColumnId("pi")
@@ -135,10 +136,15 @@ object ProgramTable:
               _.get.id,
               "Id",
               _.value.toString,
-              size = 60.toPx,
-              minSize = 60.toPx,
-              maxSize = 70.toPx
-            ).sortable,
+              size = 100.toPx,
+              minSize = 100.toPx,
+              maxSize = 120.toPx
+            ).sortable.withFilterMethod(FilterMethod.Text(_.toString)),
+            ColDef(
+              SemesterColumnId,
+              v => v.get.semester.foldMap(_.format),
+              "Semester"
+            ).sortable.withFilterMethod(FilterMethod.Select(identity(_))),
             ColDef(
               ReferenceColumnId,
               v =>
@@ -147,7 +153,7 @@ object ProgramTable:
                   .orElse(v.get.proposalReference.map(_.label))
                   .orEmpty,
               "Reference"
-            ).sortable,
+            ).sortable.withFilterMethod(FilterMethod.StringText()),
             ColDef(
               StatusColumnId,
               v =>
@@ -155,12 +161,12 @@ object ProgramTable:
                   v.get.proposalStatus.name
                 else "",
               "Status"
-            ).sortable,
+            ).sortable.withFilterMethod(FilterMethod.Select(identity(_))),
             ColDef(
               PiColumnId,
               _.get.pi.map(_.lastName).orEmpty,
               "PI"
-            ).sortable,
+            ).sortable.withFilterMethod(FilterMethod.Select(identity(_))),
             ColDef(
               NameColumnId,
               identity[View[ProgramInfo]],
@@ -195,6 +201,7 @@ object ProgramTable:
               minSize = 200.toPx,
               maxSize = 1000.toPx
             ).sortableBy(_.get.name.foldMap(_.value))
+              .withFilterMethod(FilterMethod.Text(_.get.name.foldMap(_.value)))
           )
       rows  <- useMemo(props.programInfos)(identity)
       table <- useReactTable(
@@ -203,6 +210,8 @@ object ProgramTable:
                    rows,
                    enableSorting = true,
                    enableColumnResizing = false,
+                   enableColumnFilters = true,
+                   enableFacetedUniqueValues = true,
                    meta = TableMeta(props.currentProgramId,
                                     props.userId,
                                     props.isStaff,
@@ -218,6 +227,7 @@ object ProgramTable:
       compact = Compact.Very,
       tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
       virtualizerRef = props.virtualizerRef,
+      columnFilterRenderer = FilterMethod.render,
       emptyMessage = "No programs available"
     )
   )

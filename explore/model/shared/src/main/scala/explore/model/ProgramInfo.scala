@@ -8,6 +8,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.syntax.all.*
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
@@ -16,6 +17,7 @@ import lucuma.core.enums.ProgramUserRole
 import lucuma.core.model.Program
 import lucuma.core.model.ProgramReference
 import lucuma.core.model.ProposalReference
+import lucuma.core.model.Semester
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.enums.ProposalStatus
 import monocle.Focus
@@ -34,6 +36,9 @@ case class ProgramInfo(
   calibrationRole:   Option[CalibrationRole],
   deleted:           Boolean
 ) derives Eq:
+  val semester: Option[Semester] =
+    programReference.flatMap(_.semester).orElse(proposalReference.map(_.semester))
+
   def roles(currentUserId: User.Id): List[ProgramUserRole] =
     userRoles.filter(u => u.id.contains(currentUserId)).map(_.role)
 
