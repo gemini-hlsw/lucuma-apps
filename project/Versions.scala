@@ -23,7 +23,7 @@ object Versions {
   val giapiScala             = "0.2.3"
   val grackle                = "0.25.0"
   val graphQLRoutes          = "0.11.3"
-  val http4s                 = "0.23.32"
+  val http4s                 = "0.23.33"
   val http4sDom              = "0.2.12"
   val http4sJdkHttpClient    = "0.10.0"
   val http4sScalaXml         = "0.24.0"
