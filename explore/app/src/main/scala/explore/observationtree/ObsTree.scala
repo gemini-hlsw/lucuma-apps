@@ -64,9 +64,9 @@ case class ObsTree(
   parentGroups:          Either[Observation.Id, Group.Id] => List[Group.Id],
   groupWarnings:         Map[Group.Id, NonEmptySet[GroupWarning]],
   undoer:                Undoer,
-  focusedObs:            Option[Observation.Id], // obs explicitly selected for editing
-  focusedTarget:         Option[Target.Id],
-  focusedGroup:          Option[Group.Id],
+  focusedObsId:          Option[Observation.Id], // obs explicitly selected for editing
+  focusedTargetId:       Option[Target.Id],
+  focusedGroupId:        Option[Group.Id],
   selectedObsIds:        List[Observation.Id],   // obs list selected in table
   setSummaryPanel:       Callback,
   expandedGroups:        View[Set[Group.Id]],
@@ -79,13 +79,18 @@ case class ObsTree(
   readonly:              Boolean
 ) extends ReactFnProps(ObsTree.component):
   private val selectedObsIdSet: Option[ObsIdSet] =
-    focusedObs.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
+    focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
   private val activeGroup: Option[Group.Id] =
-    focusedGroup.orElse(focusedObs.flatMap(observations.get.get(_)).flatMap(_.groupId))
+    val focusedGroup: Option[Group] = focusedGroupId.flatMap(groups.get.get(_))
+    focusedGroup
+      .filterNot(_.isTelluricCalibration)
+      .map(_.id)
+      .orElse(focusedGroup.flatMap(_.parentId)) // For telluric groups, use parent
+      .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
 
   private val focusedObsOrGroup: Option[Either[Observation.Id, Group.Id]] =
-    focusedObs.map(_.asLeft).orElse(focusedGroup.map(_.asRight))
+    focusedObsId.map(_.asLeft).orElse(focusedGroupId.map(_.asRight))
 
   private def groupInfo(
     elem: Either[Observation.Id, Group.Id]
@@ -117,7 +122,7 @@ case class ObsTree(
         else (false, none)
       )
       .orElse(
-        focusedGroup.map(groupId =>
+        focusedGroupId.map(groupId =>
           if (groupIsEmpty(groupId)) (false, none)
           else (true, "- Cannot delete non-empty groups.".some)
         )
@@ -141,7 +146,7 @@ case class ObsTree(
       .map(selectedText)
       .map(_ + activeGroup.map(gid => s" into ${groupText(gid)}").orEmpty)
   private val deleteText: Option[String]                             =
-    selectedObsIdSet.map(observationsText).orElse(focusedGroup.map(groupText))
+    selectedObsIdSet.map(observationsText).orElse(focusedGroupId.map(groupText))
 
   private def createNode(
     value:    Either[Observation, Group],
@@ -242,7 +247,7 @@ object ObsTree:
         _             <- refocus(prevGroupInfo, ctx)
         adding        <- useStateView(AddingObservation(false))
         // Scroll to newly created/selected observation
-        _             <- useEffectWithDeps(props.focusedObs): focusedObs =>
+        _             <- useEffectWithDeps(props.focusedObsId): focusedObs =>
                            focusedObs.map(scrollIfNeeded).getOrEmpty
         // Open the group (and all super-groups) of the focused observation
         _             <- useEffectWithDeps(props.activeGroup):
@@ -320,14 +325,14 @@ object ObsTree:
           obs:            Observation,
           associatedObss: List[Observation] = List.empty
         ): VdomNode = {
-          val selected: Boolean = props.focusedObs.contains_(obs.id)
+          val selected: Boolean = props.focusedObsId.contains_(obs.id)
 
           <.a(
             ^.id        := s"obs-list-${obs.id.toString}",
             ^.href      := ctx.pageUrl(
               (AppTab.Observations,
                props.programId,
-               Focused.singleObs(obs.id, props.focusedTarget)
+               Focused.singleObs(obs.id, props.focusedTargetId)
               ).some
             ),
             // Disable link dragging to enable tree node dragging
@@ -369,7 +374,7 @@ object ObsTree:
               allocatedScienceBands = props.allocatedScienceBands,
               associatedObss = associatedObss,
               programId = props.programId,
-              focusedObs = props.focusedObs,
+              focusedObs = props.focusedObsId,
               readonly = props.readonly
             )
           )
@@ -379,7 +384,7 @@ object ObsTree:
           GroupBadge(
             group,
             props.groupWarnings.get(group.id),
-            selected = props.focusedGroup.contains_(group.id),
+            selected = props.focusedGroupId.contains_(group.id),
             onClickCB = linkOverride:
               focusGroup(props.programId, group.id.some, ctx)
             ,
@@ -412,12 +417,12 @@ object ObsTree:
             case Right(group)                                => renderGroup(group)
             case Left(obs)                                   => renderObs(obs)
 
-        val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroup)
+        val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
 
         val isSystemGroupFocused: Boolean =
           props.activeGroup
             .flatMap(props.groups.get.get(_))
-            .exists(_.system)
+            .exists(g => g.system && !g.isTelluricCalibration)
 
         val tree: VdomNode =
           if (props.deckShown.get === DeckShown.Shown) {
@@ -453,7 +458,7 @@ object ObsTree:
                         onClick = insertGroup(
                           props.programId,
                           // Set the focused group as the new group parent if it is selected
-                          props.focusedGroup,
+                          props.focusedGroupId,
                           props.groups,
                           adding,
                           ctx
@@ -475,7 +480,7 @@ object ObsTree:
                       ActionButtons.ButtonProps(
                         props.selectedObsIdSet
                           .map(obsIdSet => deleteObsList(obsIdSet.idSet.toList))
-                          .orElse(props.focusedGroup.map(deleteGroup))
+                          .orElse(props.focusedGroupId.map(deleteGroup))
                           .orEmpty,
                         disabled = props.deleteDisabled,
                         tooltipExtra = props.deletedTooltip.orElse(props.deleteText)
