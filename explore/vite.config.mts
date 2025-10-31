@@ -71,6 +71,123 @@ const pathExists = async (path: PathLike) => {
   }
 };
 
+/**
+ * Vite plugin to cache enum metadata from ODB with 1-hour TTL
+ */
+const enumMetadataPlugin = (publicDirDev: string) => ({
+  name: 'enum-metadata-cache',
+  configureServer(server: any) {
+    let cachedMetadata: { data: string; timestamp: number } | null = null;
+    const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
+
+    const isCacheValid = () =>
+      cachedMetadata && Date.now() - cachedMetadata.timestamp < CACHE_TTL;
+
+    const fetchEnumMetadata = async (host: string) => {
+      try {
+        const configPath = path.resolve(publicDirDev, 'environments.conf.json');
+        const configText = await fs.readFile(configPath, 'utf-8');
+        const environments = JSON.parse(configText);
+
+        const getODBRestURL = (h: string) =>
+          environments.find((e: any) => e.hostName === h)?.odbRestURI;
+
+        const url = getODBRestURL(host) || getODBRestURL('*');
+
+        if (!url) {
+          throw new Error(`No ODB URL found for host ${host}`);
+        }
+
+        const response = await fetch(`${url}/export/enumMetadata`);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch enum metadata: ${response.statusText}`);
+        }
+
+        const module = await response.text();
+        cachedMetadata = { data: module, timestamp: Date.now() };
+
+        return module;
+      } catch (error) {
+        console.error('[enum-metadata-cache] Failed to fetch:', error);
+        throw error;
+      }
+    };
+
+    server.middlewares.use(async (req: any, res: any, next: any) => {
+      if (req.url?.startsWith('/api/enumMetadata')) {
+        try {
+          let metadata: string;
+
+          if (isCacheValid()) {
+            metadata = cachedMetadata!.data;
+          } else {
+            metadata = await fetchEnumMetadata('local.lucuma.xyz');
+          }
+
+          res.setHeader('Content-Type', 'application/javascript');
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(metadata);
+        } catch (error) {
+          res.statusCode = 500;
+          res.end('Failed to fetch enum metadata');
+        }
+      } else {
+        next();
+      }
+    });
+
+    // Expose cache clearing function for use in reload plugin
+    server.__enumMetadataCache = {
+      clear: () => {
+        cachedMetadata = null;
+      },
+    };
+  },
+});
+
+/**
+ * Vite plugin to reload the page when environment configuration changes
+ */
+const reloadEnvPlugin = (
+  publicDirProd: string,
+  publicDirDev: string,
+) => ({
+  name: 'reload-on-environments-change',
+  configureServer(server: any) {
+    const { ws, watcher } = server;
+
+    const sourceFiles = [
+      path.resolve(publicDirProd, 'environments.conf.json'),
+      path.resolve(publicDirProd, 'local.conf.json'),
+    ];
+
+    watcher.add(sourceFiles);
+
+    watcher.on('change', async (file: string) => {
+      if (sourceFiles.includes(file)) {
+        // Copy the updated file to dev directory
+        const localConf = path.resolve(publicDirProd, 'local.conf.json');
+        const devConf = path.resolve(publicDirProd, 'environments.conf.json');
+
+        try {
+          await fs.copyFile(
+            (await pathExists(localConf)) ? localConf : devConf,
+            path.resolve(publicDirDev, 'environments.conf.json'),
+          );
+          // Clear enum metadata cache since ODB URL might have changed
+          if (server.__enumMetadataCache) {
+            server.__enumMetadataCache.clear();
+          }
+          console.log('Configuration updated, triggering reload...');
+          ws.send({ type: 'full-reload' });
+        } catch (error) {
+          console.error('Failed to update configuration:', error);
+        }
+      }
+    });
+  },
+});
+
 // https://vitejs.dev/config/
 export default defineConfig(async ({ mode }) => {
   const _dirname =
@@ -206,38 +323,8 @@ export default defineConfig(async ({ mode }) => {
     },
     plugins: [
       env(),
-      {
-        name: 'reload-on-environments-change',
-        configureServer(server) {
-          const { ws, watcher } = server;
-
-          const sourceFiles = [
-            path.resolve(publicDirProd, 'environments.conf.json'),
-            path.resolve(publicDirProd, 'local.conf.json'),
-          ];
-
-          watcher.add(sourceFiles);
-
-          watcher.on('change', async (file) => {
-            if (sourceFiles.includes(file)) {
-              // Copy the updated file to dev directory
-              const localConf = path.resolve(publicDirProd, 'local.conf.json');
-              const devConf = path.resolve(publicDirProd, 'environments.conf.json');
-
-              try {
-                await fs.copyFile(
-                  (await pathExists(localConf)) ? localConf : devConf,
-                  path.resolve(publicDirDev, 'environments.conf.json'),
-                );
-                console.log('Configuration updated, triggering reload...');
-                ws.send({ type: 'full-reload' });
-              } catch (error) {
-                console.error('Failed to update configuration:', error);
-              }
-            }
-          });
-        },
-      },
+      enumMetadataPlugin(publicDirDev),
+      reloadEnvPlugin(publicDirProd, publicDirDev),
       mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),
       fontImport,
       VitePWA({
@@ -250,6 +337,20 @@ export default defineConfig(async ({ mode }) => {
           navigateFallbackDenylist: [/\/uninstall\.html$/],
           // Cache aladin images
           runtimeCaching: [
+            {
+              urlPattern: ({ url }) => url.pathname.endsWith('/export/enumMetadata'),
+              handler: 'StaleWhileRevalidate',
+              options: {
+                cacheName: 'enum-metadata',
+                expiration: {
+                  maxAgeSeconds: 60 * 60, // 1 hour
+                  maxEntries: 5,
+                },
+                cacheableResponse: {
+                  statuses: [200],
+                },
+              },
+            },
             imageCache({
               pattern: /^https:\/\/simbad.u-strasbg.fr\/simbad\/sim-id/,
               name: 'simbad',

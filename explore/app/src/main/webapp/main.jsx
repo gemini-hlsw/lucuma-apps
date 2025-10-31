@@ -42,8 +42,13 @@ fetch('/environments.conf.json').then((response) => {
     const specificHostURL = getODBRestURLForHost(window.location.host);
     const url = specificHostURL ? specificHostURL : getODBRestURLForHost('*');
 
+    // In dev mode, fetch from Vite server cache; in prod, fetch from ODB
+    const enumMetadataUrl = import.meta.env.DEV
+      ? '/api/enumMetadata'
+      : `${url}/export/enumMetadata`;
+
     // Suppress vite warning about dynamic imports it can't handle.
-    import(/* @vite-ignore */ `${url}/export/enumMetadata`).then((enumMetadataModule) => {
+    import(/* @vite-ignore */ enumMetadataUrl).then((enumMetadataModule) => {
       // Set it globally so it can be read in Scala code.
       window.enumMetadataString = enumMetadataModule.enumMetadata;
 
