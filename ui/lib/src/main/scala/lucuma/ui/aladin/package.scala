@@ -64,11 +64,12 @@ object CooFrame:
       case "j2000d"   => Some(J2000d)
       case "galactic" => Some(Galactic)
 
-enum ImageSurvey(val tag: String, val name: String, val id: String) derives Enumerated:
+enum ImageSurvey(val tag: String, val name: String, val id: String, val epoch: Epoch) derives Enumerated:
   // See
   // https://github.com/cds-astro/aladin-lite/blob/master/src/js/DefaultHiPSList.js
-  case DSS     extends ImageSurvey("dss_color", "DSS", "P/DSS2/color")
-  case TWOMASS extends ImageSurvey("twomass_color", "2MASS", "P/2MASS/color")
+  // Survey epochs: DSS ~1990, 2MASS ~1999
+  case DSS     extends ImageSurvey("dss_color", "DSS", "P/DSS2/color", Epoch.Julian.fromIntMilliyears(1990000).get)
+  case TWOMASS extends ImageSurvey("twomass_color", "2MASS", "P/2MASS/color", Epoch.Julian.fromIntMilliyears(1999000).get)
 
 object AladinOptions:
   val Default: AladinOptions = apply()
