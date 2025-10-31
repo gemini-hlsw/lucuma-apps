@@ -46,6 +46,7 @@ case class AppContext[F[_]](
   pageUrl:                Option[(AppTab, Program.Id, Focused)] => String,
   setPageVia:             (Option[(AppTab, Program.Id, Focused)], SetRouteVia) => Callback,
   environment:            ExecutionEnvironment,
+  odbRestURI:             org.http4s.Uri,
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
   toastRef:               Deferred[F, ToastRef],
   resetProgramCacheTopic: Topic[F, Option[ProgramError]] // Error message (if any)
@@ -135,6 +136,7 @@ object AppContext:
       pageUrl,
       setPageVia,
       config.environment,
+      config.odbRestURI,
       broadcastChannel,
       toastRef,
       resetProgramCacheTopic

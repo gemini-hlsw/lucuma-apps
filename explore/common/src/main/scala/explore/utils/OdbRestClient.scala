@@ -7,18 +7,15 @@ import cats.effect.Async
 import cats.effect.Resource
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.AppConfig
 import fs2.Stream
 import fs2.text.utf8
 import lucuma.core.enums.AttachmentType
-import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.Attachment
 import lucuma.core.model.Program
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.http4s.headers.Authorization
-import org.scalajs.dom
 
 import scala.concurrent.duration.*
 import scala.util.control.NoStackTrace
@@ -50,7 +47,7 @@ trait OdbRestClient[F[_]] {
 }
 
 object OdbRestClient {
-  def apply[F[_]: Async](env: ExecutionEnvironment, authToken: NonEmptyString): OdbRestClient[F] = {
+  def apply[F[_]: Async](odbRestURI: Uri, authToken: NonEmptyString): OdbRestClient[F] = {
 
     val authHeader = Headers(
       Authorization(Credentials.Token(AuthScheme.Bearer, authToken.value))
@@ -58,30 +55,18 @@ object OdbRestClient {
 
     given QueryParamEncoder[NonEmptyString] = QueryParamEncoder[String].contramap(_.value)
 
-    def getURI: F[Uri] =
-      AppConfig
-        .fetchConfig(
-          env,
-          FetchClientBuilder[F]
-            .withRequestTimeout(5.seconds)
-            .withCache(dom.RequestCache.`no-store`)
-            .create
-        )
-        .map(_.odbRestURI / "attachment")
+    def getURI: Uri = odbRestURI / "attachment"
 
     def client: Client[F] = FetchClientBuilder[F].withRequestTimeout(60.seconds).create
 
     def mkError[A](msg: String): F[A] = Async[F].raiseError(new Exception(msg) with NoStackTrace)
 
     def runRequest(action: String)(f: Uri => Request[F]): Resource[F, Response[F]] =
-      val resource = for {
-        uri <- Resource.eval(getURI)
-        res <- client.run(f(uri))
-      } yield res
-      resource.evalMap(res =>
-        if (res.status === Status.Ok) Async[F].pure(res)
-        else res.error(action)
-      )
+      client
+        .run(f(getURI))
+        .evalMap: res =>
+          if (res.status === Status.Ok) res.pure[F]
+          else res.error(action)
 
     extension (response: Response[F])
       def getBody: F[String]             = response.body.through(utf8.decode).compile.string

@@ -51,8 +51,8 @@ import lucuma.react.primereact.Message
 object ExploreMain {
 
   @JSExport
-  def runIOApp(): Unit =
-    run.unsafeRunAndForget()
+  def runIOApp(configJson: String): Unit =
+    run(configJson).unsafeRunAndForget()
 
   def setupLogger[F[_]: Sync](p: ExploreLocalPreferences): F[Logger[F]] = Sync[F].delay {
     LogLevelLogger.setLevel(p.level)
@@ -94,7 +94,7 @@ object ExploreMain {
     lucuma.react.highcharts.seriesLabel.enable
   }.void
 
-  def run: IO[Unit] = {
+  def run(configJson: String): IO[Unit] = {
 
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, _) =>
@@ -126,7 +126,8 @@ object ExploreMain {
       dispatcher:       Dispatcher[IO],
       workerClients:    WorkerClients[IO],
       localPreferences: ExploreLocalPreferences,
-      bc:               BroadcastChannel[IO, ExploreEvent]
+      bc:               BroadcastChannel[IO, ExploreEvent],
+      configJson:       String
     )(using Logger[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
@@ -145,8 +146,8 @@ object ExploreMain {
 
       for {
         host                 <- IO(dom.window.location.host)
+        appConfig            <- AppConfig.parseFromJson[IO](host, configJson)
         httpClient            = buildNonCachingHttpClient[IO]
-        appConfig            <- AppConfig.fetchConfig[IO](host, httpClient)
         _                    <- Logger[IO].info(s"Git Commit: [${utils.gitHash.getOrElse("NONE")}]")
         _                    <- Logger[IO].info(s"Config: ${appConfig.show}")
         toastRef             <- Deferred[IO, ToastRef]
@@ -181,7 +182,7 @@ object ExploreMain {
       given Logger[IO] <- Resource.eval(setupLogger[IO](prefs))
       workerClients    <- WorkerClients.build[IO](dispatcher)
       bc               <- BroadcastChannel[IO, ExploreEvent]("explore")
-      _                <- Resource.eval(buildPage(dispatcher, workerClients, prefs, bc))
+      _                <- Resource.eval(buildPage(dispatcher, workerClients, prefs, bc, configJson))
     } yield ()).useForever
   }
 

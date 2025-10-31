@@ -59,7 +59,8 @@ fetch('/environments.conf.json').then((response) => {
       // IMPORTANT: Start explore **after** the PWA service worker
       // Otherwise, errors on load may swallow the service worker
       // And leave the user unable to upgrade forever
-      Explore.runIOApp();
+      // Pass the environments config to avoid duplicate fetch
+      Explore.runIOApp(JSON.stringify(environments));
 
       if (import.meta.hot) {
         import.meta.hot.accept();

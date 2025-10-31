@@ -400,7 +400,7 @@ object AttachmentsTile:
         for {
           ctx     <- useContext(AppContext.ctx)
           client  <- useMemo(props.authToken): token =>
-                       OdbRestClient[IO](ctx.environment, token) // This could be in the shared state
+                       OdbRestClient[IO](ctx.odbRestURI, token) // This could be in the shared state
           columns <- useMemo(())(_ => columns(ctx, props))
           rows    <- useMemo((props.showObsAttachments, props.attachments.reuseByValue)):
                        (showObsAttachments, attachments) =>
@@ -472,7 +472,7 @@ object AttachmentsTile:
       for {
         ctx           <- useContext(AppContext.ctx)
         client        <- useMemo(props.authToken): token =>
-                           OdbRestClient[IO](ctx.environment, token)
+                           OdbRestClient[IO](ctx.odbRestURI, token)
         excludedTypes <-
           useMemo(props.showObsAttachments): showObsAttachments =>
             if (showObsAttachments)
