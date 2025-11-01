@@ -217,7 +217,7 @@ object SequenceColumns:
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
       IndexAndTypeColumnId -> FixedSize(60.toPx),
       ExposureColumnId     -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
-      GuideColumnId        -> FixedSize(33.toPx),
+      GuideColumnId        -> FixedSize(36.toPx),
       PColumnId            -> FixedSize(75.toPx),
       QColumnId            -> FixedSize(75.toPx),
       WavelengthColumnId   -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),

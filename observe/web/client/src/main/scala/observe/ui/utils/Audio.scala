@@ -41,14 +41,6 @@ private object SequencePausedMp3 extends AudioResourceRaw
 @js.native
 private object SequencePausedWebM extends AudioResourceRaw
 
-@JSImport("@resources/sounds/acquisitionprompt.mp3", JSImport.Default)
-@js.native
-private object AcquisitionPromptMp3 extends AudioResourceRaw
-
-@JSImport("@resources/sounds/acquisitionprompt.webm", JSImport.Default)
-@js.native
-private object AcquisitionPromptWebM extends AudioResourceRaw
-
 @JSImport("@resources/sounds/sequencecomplete.mp3", JSImport.Default)
 @js.native
 private object SequenceCompleteMp3 extends AudioResourceRaw
@@ -89,9 +81,8 @@ enum Audio(mp3: AudioResourceRaw, webm: AudioResourceRaw):
 
   val play: IO[Unit] = IO(rawAudio.play())
 
-  case SoundActivated    extends Audio(SoundActivatedMp3, SoundActivatedWebM)
-  case StepBeep          extends Audio(BeepMp3, BeepWebM)
-  case SequencePaused    extends Audio(SequencePausedMp3, SequencePausedWebM)
-  case AcquisitionPrompt extends Audio(AcquisitionPromptMp3, AcquisitionPromptWebM)
-  case SequenceComplete  extends Audio(SequenceCompleteMp3, SequenceCompleteWebM)
-  case SequenceError     extends Audio(SequenceErrorMp3, SequenceErrorWebM)
+  case SoundActivated   extends Audio(SoundActivatedMp3, SoundActivatedWebM)
+  case StepBeep         extends Audio(BeepMp3, BeepWebM)
+  case SequencePaused   extends Audio(SequencePausedMp3, SequencePausedWebM)
+  case SequenceComplete extends Audio(SequenceCompleteMp3, SequenceCompleteWebM)
+  case SequenceError    extends Audio(SequenceErrorMp3, SequenceErrorWebM)
