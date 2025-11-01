@@ -3,6 +3,8 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.Eq
+import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.math.SignalToNoise
@@ -25,3 +27,6 @@ case class CurrentAtomStepRow[+D](
   // In either case, we don't have the information from the server.
   val stepEstimate         = none
   val stepState: StepState = step.status
+
+object CurrentAtomStepRow:
+  given [D]: Eq[CurrentAtomStepRow[D]] = Eq.derived

@@ -33,7 +33,6 @@ import lucuma.react.common.Size
 import lucuma.react.table.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.aladin.facade.AladinOptions
-import lucuma.ui.sequence.SequenceRow
 import lucuma.ui.sso.UserVault
 import org.typelevel.cats.time.given
 
@@ -165,9 +164,6 @@ trait TableReusabilityInstances:
   given [TF]: Reusability[TableState[TF]]      =
     Reusability.by(state => (state.columnVisibility, state.sorting))
 
-trait SequenceReusabilityInstances:
-  given [D]: Reusability[SequenceRow[D]] = Reusability.byEq
-
 trait AladinReusabilityInstances extends UtilReusabilityInstances:
   import scala.scalajs.js
 
@@ -247,5 +243,4 @@ package object reusability
     with ModelReusabiltyInstances
     with TimeReusabilityInstances
     with TableReusabilityInstances
-    with SequenceReusabilityInstances
     with AladinReusabilityInstances

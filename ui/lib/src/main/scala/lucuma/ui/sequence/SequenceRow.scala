@@ -204,5 +204,3 @@ object SequenceRow:
 
     object ExecutedStep:
       given [D]: Eq[ExecutedStep[D]] = Eq.by(_.id)
-
-  given [D]: Eq[SequenceRow[D]] = Eq.by(_.id)

@@ -22,9 +22,10 @@ import observe.ui.model.RootModelData
 import observe.ui.model.enums.AppTab
 import observe.ui.services.SequenceApi
 
-case class SequenceTab(rootModel: RootModel, instrument: Instrument) extends ReactFnProps(Home)
+case class SequenceTab(rootModel: RootModel, instrument: Instrument)
+    extends ReactFnProps(SequenceTab)
 
-object Home
+object SequenceTab
     extends ReactFnComponent[SequenceTab](props =>
       for
         ctx         <- useContext(AppContext.ctx)
