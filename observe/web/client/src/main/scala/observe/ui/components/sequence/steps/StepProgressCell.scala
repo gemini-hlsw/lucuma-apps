@@ -21,6 +21,7 @@ import observe.model.enums.Resource
 import observe.ui.ObserveStyles
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
+import cats.data.NonEmptyChain
 
 case class StepProgressCell(
   clientMode:      ClientMode,
@@ -31,6 +32,7 @@ case class StepProgressCell(
   obsId:           Observation.Id,
   requests:        ObservationRequests,
   runningStepId:   Option[Step.Id],
+  fileIds:         Option[NonEmptyChain[ImageFileId]],
   sequenceState:   SequenceState,
   isPausedInStep:  Boolean,
   subsystemStatus: Map[Resource | Instrument, ActionStatus],
@@ -129,8 +131,6 @@ object StepProgressCell
         // else
         //   <.p(ObserveStyles.ComponentLabel, "Pending")
 
-      val fileId = ImageFileId("")
-
       <.div(ObserveStyles.ConfiguringRow)(
         SubsystemControls(
           props.obsId,
@@ -160,7 +160,7 @@ object StepProgressCell
             props.sequenceState,
             props.exposureTime,
             props.progress,
-            fileId,
+            props.fileIds,
             props.isPausedInStep
           )
         else EmptyVdom
