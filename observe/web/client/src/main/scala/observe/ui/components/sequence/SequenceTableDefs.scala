@@ -22,10 +22,10 @@ import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.ui.Icons
 import observe.ui.ObserveStyles
+import observe.ui.components.sequence.steps.*
 import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
-import observe.ui.components.sequence.steps.*
 
 import scalajs.js
 

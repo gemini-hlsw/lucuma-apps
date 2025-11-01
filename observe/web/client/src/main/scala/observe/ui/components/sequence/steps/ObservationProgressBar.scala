@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.data.NonEmptyChain
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
@@ -23,7 +24,6 @@ import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
 
 import scala.concurrent.duration.*
-import cats.data.NonEmptyChain
 
 /**
  * Component to wrap the progress bar

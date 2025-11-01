@@ -3,8 +3,8 @@
 
 package observe.ui.components.sequence.steps
 
-import cats.syntax.all.*
 import cats.data.NonEmptyChain
+import cats.syntax.all.*
 import lucuma.core.enums.SmartGcalType
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.util.TimeSpan

@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.data.NonEmptyChain
 import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -21,7 +22,6 @@ import observe.model.enums.Resource
 import observe.ui.ObserveStyles
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
-import cats.data.NonEmptyChain
 
 case class StepProgressCell(
   clientMode:      ClientMode,
