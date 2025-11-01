@@ -29,14 +29,14 @@ object AcquisitionPrompt
       <.div(ObserveStyles.AcquisitionPrompt)(
         Icons.CircleQuestion.withSize(IconSize.LG),
         <.div(ObserveStyles.AcquisitionPromptMain)(
-          <.div("Has the target been acquired?"),
+          <.div("Proceed to science?"),
           <.div(
             Button(
               size = Button.Size.Small,
               icon = props.clicked.get match
                 case Some(SequenceType.Science) => LucumaIcons.CircleNotch
                 case _                          => Icons.Play,
-              label = "Yes, start observation",
+              label = "Yes, start science",
               disabled = props.clicked.get.isDefined,
               severity = props.clicked.get match
                 case Some(SequenceType.Acquisition) => Button.Severity.Secondary
@@ -48,7 +48,7 @@ object AcquisitionPrompt
               icon = props.clicked.get match
                 case Some(SequenceType.Acquisition) => LucumaIcons.CircleNotch
                 case _                              => Icons.ArrowsRetweet,
-              label = "No, take another step",
+              label = "No, take another acquisition image",
               disabled = props.clicked.get.isDefined,
               severity = props.clicked.get match
                 case Some(SequenceType.Science) => Button.Severity.Secondary
