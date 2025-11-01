@@ -5,11 +5,13 @@ package explore.model
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.eq.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
@@ -25,12 +27,18 @@ case class Group(
   maximumInterval:   Option[TimeSpan],
   ordered:           Boolean,
   system:            Boolean,
+  calibrationRoles:  List[CalibrationRole],
   parentId:          Option[Group.Id],
   parentIndex:       NonNegShort,
   timeEstimateRange: Option[CalculatedValue[Option[ProgramTimeRange]]]
 ) derives Eq,
       Decoder:
   def isAnd: Boolean = minimumRequired.isEmpty
+
+  // Observations that need telluric calibration are placed by the ODB in an auto-generated AND group
+  // together with their telluric calibration observations.
+  def isTelluricCalibration: Boolean =
+    system && calibrationRoles === List(CalibrationRole.Telluric)
 
 object Group:
   type Id = lucuma.core.model.Group.Id

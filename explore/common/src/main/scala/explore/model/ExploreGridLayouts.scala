@@ -250,20 +250,23 @@ object ExploreGridLayouts:
     )
 
     lazy val twilightRemovedIds =
-      List(ObsTabTileIds.FinderChartsId,
-           ObsTabTileIds.ItcId,
-           ObsTabTileIds.NotesId,
-           ObsTabTileIds.TimingWindowsId
+      List(
+        ObsTabTileIds.FinderChartsId,
+        ObsTabTileIds.ItcId,
+        ObsTabTileIds.NotesId,
+        ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
-    lazy val twilightMedium      =
+    lazy val twilightMedium =
       layoutMedium.asList
         .filterNot(l => twilightRemovedIds.contains(l.i))
+
     lazy val specPhotoRemovedIds =
       List(ObsTabTileIds.FinderChartsId, ObsTabTileIds.NotesId, ObsTabTileIds.TimingWindowsId).map(
         _.id.value
       )
-    lazy val specPhotoMedium     =
+
+    lazy val specPhotoMedium =
       layoutMedium.asList
         .filterNot(l => specPhotoRemovedIds.contains(l.i))
 
@@ -280,10 +283,18 @@ object ExploreGridLayouts:
       )
     )
 
+    lazy val telluricRemovedIds =
+      List(
+        ObsTabTileIds.FinderChartsId,
+        ObsTabTileIds.NotesId,
+        ObsTabTileIds.TimingWindowsId
+      ).map(_.id.value)
+
     def removedTiles(role: Option[CalibrationRole]) =
       role match
         case Some(CalibrationRole.Twilight)           => twilightRemovedIds
         case Some(CalibrationRole.SpectroPhotometric) => specPhotoRemovedIds
+        case Some(CalibrationRole.Telluric)           => telluricRemovedIds
         case _                                        => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =

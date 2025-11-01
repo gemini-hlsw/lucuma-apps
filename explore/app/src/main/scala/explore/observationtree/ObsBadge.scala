@@ -12,6 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.EditableLabel
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.syntax.all.*
@@ -20,6 +21,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
+import lucuma.core.model.Program
 import lucuma.core.syntax.all.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
@@ -28,12 +30,14 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.LayeredIcon
 import lucuma.react.fa.TextLayer
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.utils.*
 
 import scala.collection.immutable.SortedSet
 
@@ -41,12 +45,15 @@ case class ObsBadge(
   obs:                   Observation,
   layout:                ObsBadge.Layout,
   selected:              Boolean = false,
-  setStateCB:            Option[ObservationWorkflowState => Callback] = none,
+  setStateCB:            Option[Observation.Id => ObservationWorkflowState => Callback] = none,
   setSubtitleCB:         Option[Option[NonEmptyString] => Callback] = none,
   setScienceBandCB:      Option[ScienceBand => Callback] = none,
   deleteCB:              Callback,
   cloneCB:               Option[Callback] = none,
   allocatedScienceBands: SortedSet[ScienceBand],
+  associatedObss:        List[Observation] = List.empty,
+  programId:             Program.Id,
+  focusedObs:            Option[Observation.Id] = none,
   readonly:              Boolean = false
 ) extends ReactFnProps(ObsBadge.component):
   val executionTime: CalculatedValue[Option[TimeSpan]] = obs.execution.digest.programTimeEstimate
@@ -82,7 +89,10 @@ object ObsBadge:
   }
 
   private val component = ScalaFnComponent[Props]: props =>
-    usePopupMenuRef.map: menuRef =>
+    for
+      ctx     <- useContext(AppContext.ctx)
+      menuRef <- usePopupMenuRef
+    yield
       val obs    = props.obs
       val layout = props.layout
 
@@ -202,34 +212,73 @@ object ObsBadge:
               )
             ),
             <.div(ExploreStyles.ObsBadgeExtra)(
-              props.setStateCB.map(setStatus =>
-                <.span(
-                  ExploreStyles.ObsStateSelectWrapper,
-                  EnumDropdownView(
-                    id = NonEmptyString.unsafeFrom(s"obs-status-${obs.id}-2"),
-                    value = View[ObservationWorkflowState](
-                      obs.workflow.value.state,
-                      (f, cb) =>
-                        val oldValue = obs.workflow.value.state
-                        val newValue = f(obs.workflow.value.state)
-                        setStatus(newValue) >> cb(oldValue, newValue)
-                    ),
-                    size = PlSize.Mini,
-                    clazz = ExploreStyles.ObsStateSelect,
-                    panelClass = ExploreStyles.ObsStateSelectPanel,
-                    disabled = props.isDisabled || obs.workflow.isStale,
-                    exclude = obs.disabledStates
-                  )
-                )(
-                  // don't select the observation when changing the status
-                  ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
-                ).withOptionalTooltip(obs.workflow.staleTooltip)
+              <.div(ExploreStyles.ObsBadgeExtraStatus)(
+                props.setStateCB.map(setStatus =>
+                  <.span(ExploreStyles.ObsStateSelectWrapper)(
+                    EnumDropdownView(
+                      id = NonEmptyString.unsafeFrom(s"obs-status-${obs.id}-2"),
+                      value = View[ObservationWorkflowState](
+                        obs.workflow.value.state,
+                        (f, cb) =>
+                          val oldValue = obs.workflow.value.state
+                          val newValue = f(obs.workflow.value.state)
+                          setStatus(props.obs.id)(newValue) >> cb(oldValue, newValue)
+                      ),
+                      size = PlSize.Mini,
+                      clazz = ExploreStyles.ObsStateSelect,
+                      panelClass = ExploreStyles.ObsStateSelectPanel,
+                      disabled = props.isDisabled || obs.workflow.isStale,
+                      exclude = obs.disabledStates
+                    )
+                  )(
+                    // don't select the observation when changing the status
+                    ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
+                  ).withOptionalTooltip(obs.workflow.staleTooltip)
+                ),
+                props.executionTime.value.map(
+                  TimeSpanView(_, tooltip = props.executionTime.staleTooltip)
+                    .withMods(props.executionTime.staleClass)
+                ),
+                validationIcon.unless(obs.workflow.value.validationErrors.isEmpty)
               ),
-              props.executionTime.value.map(
-                TimeSpanView(_, tooltip = props.executionTime.staleTooltip)
-                  .withMods(props.executionTime.staleClass)
-              ),
-              validationIcon.unless(obs.workflow.value.validationErrors.isEmpty)
+              <.div(ExploreStyles.ObsBadgeExtraAssociated)(
+                props.associatedObss
+                  .map: childObs =>
+                    val selected: Boolean = props.focusedObs.contains_(childObs.id)
+
+                    val currentState: ObservationWorkflowState            = childObs.workflow.value.state
+                    def isChecked(s: ObservationWorkflowState): Boolean   =
+                      s === ObservationWorkflowState.Ready
+                    def fromChecked(b: Boolean): ObservationWorkflowState =
+                      if (b) ObservationWorkflowState.Ready
+                      else ObservationWorkflowState.Inactive
+                    val canToggle: Boolean                                =
+                      childObs.workflow.value.validTransitions
+                        .contains_(fromChecked(!isChecked(currentState)))
+
+                    Button(
+                      clazz = ExploreStyles.ObsBadgeAssociatedObs |+|
+                        ExploreStyles.ObsBadgeSelectedAssociatedObs.when_(selected),
+                      onClickE = linkOverride(
+                        focusObs(props.programId, childObs.id.some, ctx)
+                      ),
+                      severity = Button.Severity.Secondary
+                    ).withMods(
+                      Checkbox(
+                        checked = isChecked(currentState),
+                        variant = Checkbox.Variant.Filled,
+                        clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
+                        disabled = !canToggle,
+                        onChange = newValue =>
+                          props.setStateCB
+                            .map: setState =>
+                              setState(childObs.id)(fromChecked(newValue))
+                            .orEmpty
+                      )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
+                      childObs.title
+                    ).compact
+                  .toTagMod
+              ).when(props.associatedObss.nonEmpty)
             )
           )
         ),
