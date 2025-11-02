@@ -78,7 +78,7 @@ object ObservationExecutionDisplay
         ObsHeader(
           props.selectedObs,
           executionStateAndConfig.map(_.map(_._1)),
-          loadedObsViewPot.map(_.zoom(LoadedObservation.refreshing)),
+          loadedObsViewPot.map(_.zoom(LoadedObservation.isRefreshing)),
           executionStateOpt.get.map(_.sequenceState).getOrElse(SequenceState.Idle),
           rootModelData.obsRequests.getOrElse(
             selectedObsId,

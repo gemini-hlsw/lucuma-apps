@@ -19,13 +19,13 @@ trait ArbLoadedObservation:
       sequenceData <- arbitrary[Pot[SequenceData]]
     yield
       val base = LoadedObservation()
-      LoadedObservation.refreshing.replace(refreshing)(
+      LoadedObservation.isRefreshing.replace(refreshing)(
         sequenceData.toOptionTry.fold(base)(sd => base.withSequenceData(sd.toEither))
       )
 
   given Cogen[LoadedObservation] =
     Cogen[(Boolean, Pot[SequenceData])]
       .contramap: s =>
-        (s.refreshing, s.sequenceData)
+        (s.isRefreshing, s.sequenceData)
 
 object ArbLoadedObservation extends ArbLoadedObservation

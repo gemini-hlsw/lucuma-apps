@@ -203,7 +203,7 @@ trait ServerEventHandler:
               .andThen(LoadedObservations.Value)
               .each
               .andThen(Pot.readyPrism)
-              .andThen(LoadedObservation.refreshing)
+              .andThen(LoadedObservation.isRefreshing)
               .replace(false) >>>
             (_.withAdjustedLoadedObservations(sequenceExecution.keySet)) >>>
             sequenceExecution

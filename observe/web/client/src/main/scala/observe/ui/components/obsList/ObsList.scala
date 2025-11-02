@@ -66,19 +66,24 @@ case class ObsList(
   val obsStates: Map[Observation.Id, SequenceState] =
     executionState.view.mapValues(_.sequenceState).toMap
 
-  val loadedObsPots: Map[Observation.Id, Pot[Unit]] =
+  // Observations here are ready if they are loaded in the server, and also their sequences are loaded in the client.
+  val fullyLoadedObss: Map[Observation.Id, Pot[Unit]] =
     loadedObss.value.view
       .mapValues: loadedObs =>
-        loadedObs.flatMap(_.sequenceData).map(_.config).void
+        loadedObs.flatMap(_.sequenceData).void
       .toMap
 
-  val pendingOrLoadedObss: Map[Observation.Id, Pot[Unit]] =
-    loadedObsPots.filter((_, pot) => pot.isPending || pot.isReady)
+  // Discard errored observations. Used to disable the load button.
+  val pendingOrReadyObss: Map[Observation.Id, Pot[Unit]] =
+    fullyLoadedObss.filter((_, obsPot) => obsPot.isPending || obsPot.isReady)
 
+  // Observations that are being processed (loading/running). Used to show active icon.
   val obsIsProcessing: Map[Observation.Id, Boolean] =
-    loadedObsPots.map: (obsId, pot) =>
+    fullyLoadedObss.map: (obsId, obsPot) =>
       obsId ->
-        (pot.isPending || pot.toOption.flatMap(_ => obsStates.get(obsId)).exists(s => !s.canUnload))
+        (obsPot.isPending || obsPot.toOption
+          .flatMap(_ => obsStates.get(obsId))
+          .exists(s => !s.canUnload))
 
 object ObsList
     extends ReactFnComponent[ObsList](props =>
@@ -131,11 +136,11 @@ object ObsList
       val ConstraintsColumnId: ColumnId = ColumnId("constraints")
 
       def columns(
-        obsStates:           Map[Observation.Id, SequenceState],
-        pendingOrLoadedObss: Map[Observation.Id, Pot[Unit]],
-        obsIsProcessing:     Map[Observation.Id, Boolean],
-        loadObs:             Observation.Id => Callback,
-        linkToExploreObs:    Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+        obsStates:          Map[Observation.Id, SequenceState],
+        pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
+        obsIsProcessing:    Map[Observation.Id, Boolean],
+        loadObs:            Observation.Id => Callback,
+        linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
       ): List[ColumnDef[SessionQueueRow, ?, Nothing, WithFilterMethod, String, ?, Nothing]] =
         List(
           ColDef(
@@ -144,8 +149,8 @@ object ObsList
             header = "",
             cell = cell =>
               renderCentered(
-                if (pendingOrLoadedObss.contains(cell.value))
-                  statusIconRenderer(pendingOrLoadedObss.get(cell.value), obsStates.get(cell.value))
+                if (pendingOrReadyObss.contains(cell.value))
+                  statusIconRenderer(pendingOrReadyObss.get(cell.value), obsStates.get(cell.value))
                 else
                   Button(
                     icon = Icons.FileArrowUp,
@@ -201,7 +206,7 @@ object ObsList
         cols         <-
           useMemo(
             (props.obsStates,
-             props.pendingOrLoadedObss,
+             props.pendingOrReadyObss,
              props.obsIsProcessing,
              props.loadObs,
              props.linkToExploreObs
@@ -239,14 +244,14 @@ object ObsList
           rowMod = row =>
             TagMod(
               rowClass(
-                props.loadedObsPots.get(row.original.obsId),
+                props.fullyLoadedObss.get(row.original.obsId),
                 row.original,
-                props.loadedObsPots.keySet
+                props.fullyLoadedObss.keySet
               ),
               ^.onDoubleClick --> props
                 .loadObs(row.original.obsId)
                 .unless_(
-                  props.loadedObsPots.contains(row.original.obsId) ||
+                  props.fullyLoadedObss.contains(row.original.obsId) ||
                     props.obsIsProcessing(row.original.obsId)
                 )
             ),
