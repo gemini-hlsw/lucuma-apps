@@ -72,6 +72,9 @@ case class ObsList(
         loadedObs.toPot.flatMap(_.sequenceData).map(_.config).void
       .toMap
 
+  val pendingOrLoadedObss: Map[Observation.Id, Pot[Unit]] =
+    loadedObsPots.filter((_, pot) => pot.isPending || pot.isReady)
+
   val obsIsProcessing: Map[Observation.Id, Boolean] =
     loadedObsPots.map: (obsId, pot) =>
       obsId ->
@@ -128,11 +131,11 @@ object ObsList
       val ConstraintsColumnId: ColumnId = ColumnId("constraints")
 
       def columns(
-        obsStates:        Map[Observation.Id, SequenceState],
-        loadedObsPots:    Map[Observation.Id, Pot[Unit]],
-        obsIsProcessing:  Map[Observation.Id, Boolean],
-        loadObs:          Observation.Id => Callback,
-        linkToExploreObs: Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+        obsStates:           Map[Observation.Id, SequenceState],
+        pendingOrLoadedObss: Map[Observation.Id, Pot[Unit]],
+        obsIsProcessing:     Map[Observation.Id, Boolean],
+        loadObs:             Observation.Id => Callback,
+        linkToExploreObs:    Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
       ): List[ColumnDef[SessionQueueRow, ?, Nothing, WithFilterMethod, String, ?, Nothing]] =
         List(
           ColDef(
@@ -141,8 +144,8 @@ object ObsList
             header = "",
             cell = cell =>
               renderCentered(
-                if (loadedObsPots.contains(cell.value))
-                  statusIconRenderer(loadedObsPots.get(cell.value), obsStates.get(cell.value))
+                if (pendingOrLoadedObss.contains(cell.value))
+                  statusIconRenderer(pendingOrLoadedObss.get(cell.value), obsStates.get(cell.value))
                 else
                   Button(
                     icon = Icons.FileArrowUp,
@@ -198,7 +201,7 @@ object ObsList
         cols         <-
           useMemo(
             (props.obsStates,
-             props.loadedObsPots,
+             props.pendingOrLoadedObss,
              props.obsIsProcessing,
              props.loadObs,
              props.linkToExploreObs
