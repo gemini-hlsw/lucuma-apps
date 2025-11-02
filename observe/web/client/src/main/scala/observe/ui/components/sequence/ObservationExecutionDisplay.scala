@@ -44,7 +44,11 @@ object ObservationExecutionDisplay
 
       val loadedObsViewPot: Pot[View[LoadedObservation]] =
         props.rootModelData
-          .zoom(RootModelData.loadedObservations.index(selectedObsId))
+          .zoom:
+            RootModelData.loadedObservations
+              .andThen(LoadedObservations.Value)
+              .index(selectedObsId)
+              .andThen(Pot.readyPrism)
           .toOptionView
           .toPot
 
@@ -58,11 +62,11 @@ object ObservationExecutionDisplay
           (Observation.Id, SequenceData, View[Option[ExecutionVisits]], View[ExecutionState])
         ]
       ] =
-        rootModelData.loadedObservations
+        rootModelData.loadedObservations.value
           .get(selectedObsId)
           .map: lo =>
-            (lo.toPot.as(selectedObsId),
-             lo.sequenceData,
+            (lo.as(selectedObsId),
+             lo.flatMap(_.sequenceData),
              visitsViewPot,
              executionStateOpt.toOptionView.toPot
             ).tupled

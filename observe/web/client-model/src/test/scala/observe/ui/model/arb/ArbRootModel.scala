@@ -3,6 +3,7 @@
 
 package observe.ui.model.arb
 
+import cats.Order.given
 import crystal.Pot
 import crystal.arb.given
 import eu.timepit.refined.scalacheck.string.given
@@ -30,7 +31,7 @@ import observe.model.arb.ArbStepProgress.given
 import observe.model.arb.ObserveModelArbitraries.given
 import observe.model.odb.ObsRecordedIds
 import observe.ui.model.IsAudioActivated
-import observe.ui.model.LoadedObservation
+import observe.ui.model.LoadedObservations
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
 import observe.ui.model.RootModelData
@@ -52,7 +53,7 @@ trait ArbRootModel:
     for
       uv    <- arbitrary[Pot[Option[UserVault]]]
       ros   <- arbitrary[Pot[List[ObsSummary]]]
-      los   <- arbitrary[Map[Observation.Id, LoadedObservation]]
+      los   <- arbitrary[LoadedObservations]
       es    <- arbitrary[Map[Observation.Id, ExecutionState]]
       ri    <- arbitrary[ObsRecordedIds]
       sp    <- arbitrary[Map[Observation.Id, StepProgress]]
@@ -85,12 +86,12 @@ trait ArbRootModel:
     (
       Pot[Option[UserVault]],
       Pot[List[ObsSummary]],
-      List[(Observation.Id, LoadedObservation)],
-      List[(Observation.Id, ExecutionState)],
+      LoadedObservations,
+      Map[Observation.Id, ExecutionState],
       ObsRecordedIds,
-      List[(Observation.Id, StepProgress)],
-      List[(Observation.Id, Step.Id)],
-      List[(Observation.Id, ObservationRequests)],
+      Map[Observation.Id, StepProgress],
+      Map[Observation.Id, Step.Id],
+      Map[Observation.Id, ObservationRequests],
       Conditions,
       Option[Observer],
       Option[Operator],
@@ -100,13 +101,13 @@ trait ArbRootModel:
     )
   ].contramap: x =>
     (x.userVault,
-     x.readyObservations,
-     x.loadedObservations.toList,
-     x.executionState.toList,
+     x.obsList,
+     x.loadedObservations,
+     x.executionState,
      x.recordedIds,
-     x.obsProgress.toList,
-     x.userSelectedStep.toList,
-     x.obsRequests.toList,
+     x.obsProgress,
+     x.userSelectedStep,
+     x.obsRequests,
      x.conditions,
      x.observer,
      x.operator,

@@ -31,16 +31,14 @@ object ObsListTab
         val loadObservation: Reusable[Observation.Id => Callback] =
           Reusable
             .implicitly(rootModelData.readyObservationsMap.keySet)
-            .withValue:
-              obsId =>
-                rootModelData.readyObservationsMap
-                  .get(obsId)
-                  .foldMap:
-                    obsRow =>
-                      sequenceApi.loadObservation(obsId, obsRow.instrument).runAsync // >>
-                      // rootModelDataView.mod(_.withLoadedObservation(obsId, obsRow.instrument))
+            .withValue: obsId =>
+              rootModelData.readyObservationsMap
+                .get(obsId)
+                .foldMap: obsRow =>
+                  rootModelDataView.mod(_.withLoadPendingObservation(obsId)) >>
+                    sequenceApi.loadObservation(obsId, obsRow.instrument).runAsync
 
-        (rootModelData.readyObservations, props.rootModel.renderExploreLinkToObs).tupled
+        (rootModelData.obsList, props.rootModel.renderExploreLinkToObs).tupled
           .renderPot: (observations, renderExploreLinkToObs) =>
             ObsList(
               observations,

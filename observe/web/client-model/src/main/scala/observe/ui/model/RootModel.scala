@@ -29,8 +29,8 @@ import observe.ui.model.enums.ClientMode
 
 case class RootModelData(
   userVault:            Pot[Option[UserVault]],
-  readyObservations:    Pot[List[ObsSummary]],
-  loadedObservations:   Map[Observation.Id, LoadedObservation],
+  obsList:              Pot[List[ObsSummary]],
+  loadedObservations:   LoadedObservations,
   executionState:       Map[Observation.Id, ExecutionState], // Execution state on the server
   recordedIds:          ObsRecordedIds,                      // Map[Observation.Id, RecordedVisit]
   obsProgress:          Map[Observation.Id, StepProgress],
@@ -51,30 +51,36 @@ case class RootModelData(
   val isUserLogged: Boolean = userVault.toOption.flatten.isDefined
 
   lazy val readyObservationsMap: Map[Observation.Id, ObsSummary] =
-    readyObservations.toOption.orEmpty.map(o => o.obsId -> o).toMap
+    obsList.toOption.orEmpty.map(o => o.obsId -> o).toMap
 
   def obsInstrument(obsId: Observation.Id): Option[Instrument] =
     readyObservationsMap.get(obsId).map(_.instrument)
 
   lazy val loadedObsByInstrument: Map[Instrument, Observation.Id] =
-    loadedObservations.keySet.map(obsId => obsInstrument(obsId).map(_ -> obsId)).flatten.toMap
+    loadedObservations.value.keySet.map(obsId => obsInstrument(obsId).map(_ -> obsId)).flatten.toMap
+
+  def withLoadPendingObservation(obsId: Observation.Id): RootModelData =
+    copy(
+      loadedObservations = loadedObservations.modify(_ + (obsId -> Pot.pending))
+    )
 
   // Adds a LoadedObservation for an instrument, removing the previous one for the same instrument, if any.
   def withLoadedObservation(obsId: Observation.Id, instrument: Instrument): RootModelData =
     copy(
       loadedObservations = loadedObsByInstrument
         .get(instrument)
-        .fold(loadedObservations)(oldObsId =>
-          loadedObservations - oldObsId
-        ) + (obsId -> LoadedObservation())
+        .fold(loadedObservations)(oldObsId => loadedObservations.modify(_ - oldObsId))
+        .modify(_ + (obsId -> LoadedObservation().ready))
     )
 
   // Adjusts the loaded observations to the given set, removing any not in the set, adding new ones, and keeping the rest.
   def withAdjustedLoadedObservations(obsIds: Set[Observation.Id]): RootModelData =
-    val newObsIds: Set[Observation.Id] = obsIds -- loadedObservations.keySet
+    val newObsIds: Set[Observation.Id] = obsIds -- loadedObservations.readyObsIds
     copy(
-      loadedObservations = loadedObservations.view.filterKeys(obsIds.contains).toMap ++
-        newObsIds.map(newObsId => newObsId -> LoadedObservation()).toMap
+      loadedObservations = loadedObservations.modify(
+        _.view.filterKeys(obsIds.contains).toMap ++
+          newObsIds.map(newObsId => newObsId -> LoadedObservation().ready).toMap
+      )
     )
 
   def isObsLocked(obsId: Observation.Id): Boolean =
@@ -98,8 +104,8 @@ object RootModelData:
   val Initial: RootModelData =
     RootModelData(
       userVault = Pot.pending,
-      readyObservations = Pot.pending,
-      loadedObservations = Map.empty,
+      obsList = Pot.pending,
+      loadedObservations = LoadedObservations.empty,
       executionState = Map.empty,
       recordedIds = ObsRecordedIds.Empty,
       obsProgress = Map.empty,
@@ -113,28 +119,28 @@ object RootModelData:
       isAudioActivated = IsAudioActivated.True
     )
 
-  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                          = Focus[RootModelData](_.userVault)
-  val readyObservations: Lens[RootModelData, Pot[List[ObsSummary]]]                   =
-    Focus[RootModelData](_.readyObservations)
-  val loadedObservations: Lens[RootModelData, Map[Observation.Id, LoadedObservation]] =
+  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     = Focus[RootModelData](_.userVault)
+  val obsList: Lens[RootModelData, Pot[List[ObsSummary]]]                        =
+    Focus[RootModelData](_.obsList)
+  val loadedObservations: Lens[RootModelData, LoadedObservations]                =
     Focus[RootModelData](_.loadedObservations)
-  val executionState: Lens[RootModelData, Map[Observation.Id, ExecutionState]]        =
+  val executionState: Lens[RootModelData, Map[Observation.Id, ExecutionState]]   =
     Focus[RootModelData](_.executionState)
-  val recordedIds: Lens[RootModelData, ObsRecordedIds]                                = Focus[RootModelData](_.recordedIds)
-  val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]             =
+  val recordedIds: Lens[RootModelData, ObsRecordedIds]                           = Focus[RootModelData](_.recordedIds)
+  val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]        =
     Focus[RootModelData](_.obsProgress)
-  val userSelectedStep: Lens[RootModelData, Map[Observation.Id, Step.Id]]             =
+  val userSelectedStep: Lens[RootModelData, Map[Observation.Id, Step.Id]]        =
     Focus[RootModelData](_.userSelectedStep)
-  val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]]      =
+  val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
     Focus[RootModelData](_.obsRequests)
-  val conditions: Lens[RootModelData, Conditions]                                     = Focus[RootModelData](_.conditions)
-  val observer: Lens[RootModelData, Option[Observer]]                                 = Focus[RootModelData](_.observer)
-  val operator: Lens[RootModelData, Option[Operator]]                                 = Focus[RootModelData](_.operator)
-  val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]               =
+  val conditions: Lens[RootModelData, Conditions]                                = Focus[RootModelData](_.conditions)
+  val observer: Lens[RootModelData, Option[Observer]]                            = Focus[RootModelData](_.observer)
+  val operator: Lens[RootModelData, Option[Operator]]                            = Focus[RootModelData](_.operator)
+  val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]          =
     Focus[RootModelData](_.userSelectionMessage)
-  val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]                   =
+  val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]              =
     Focus[RootModelData](_.globalLog)
-  val isAudioActivated: Lens[RootModelData, IsAudioActivated]                         =
+  val isAudioActivated: Lens[RootModelData, IsAudioActivated]                    =
     Focus[RootModelData](_.isAudioActivated)
 
 case class RootModel(clientConfig: Pot[ClientConfig], data: View[RootModelData])

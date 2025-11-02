@@ -29,7 +29,7 @@ import observe.model.SequenceState
 import observe.model.UnknownTargetName
 import observe.ui.Icons
 import observe.ui.ObserveStyles
-import observe.ui.model.LoadedObservation
+import observe.ui.model.LoadedObservations
 import observe.ui.model.ObsSummary
 import observe.ui.model.SessionQueueRow
 import observe.ui.model.enums.ObsClass
@@ -39,7 +39,7 @@ case class ObsList(
   readyObservations: List[ObsSummary],
   executionState:    Map[Observation.Id, ExecutionState],
   observer:          Option[Observer],
-  loadedObs:         Map[Observation.Id, LoadedObservation],
+  loadedObss:        LoadedObservations,
   loadObs:           Reusable[Observation.Id => Callback],
   linkToExploreObs:  Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
 ) extends ReactFnProps(ObsList):
@@ -55,7 +55,7 @@ case class ObsList(
             .getOrElse(SequenceState.Idle),
           observer,
           ObsClass.Nighttime,
-          loadedObs.contains(obs.obsId),
+          loadedObss.value.contains(obs.obsId),
           // We can't easily know step numbers nor the total number of steps.
           // Maybe we want to show pending and total times instead?
           none,
@@ -67,9 +67,9 @@ case class ObsList(
     executionState.view.mapValues(_.sequenceState).toMap
 
   val loadedObsPots: Map[Observation.Id, Pot[Unit]] =
-    loadedObs.view
+    loadedObss.value.view
       .mapValues: loadedObs =>
-        loadedObs.toPot.flatMap(_.sequenceData).map(_.config).void
+        loadedObs.flatMap(_.sequenceData).map(_.config).void
       .toMap
 
   val pendingOrLoadedObss: Map[Observation.Id, Pot[Unit]] =

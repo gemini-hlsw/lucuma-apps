@@ -1340,7 +1340,7 @@ class ObserveEngineSuite extends TestCommon {
       s1            <-
         eo.executeAndWaitResult(
           _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_))) => true }
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
         )
       _              = // Check all steps loaded
         assertEquals(s1.sequences.get(seqObsId1).get(0).get.seqGen.nextAtom.steps.length, stepCount)
@@ -1356,7 +1356,7 @@ class ObserveEngineSuite extends TestCommon {
       s1            <-
         eo.executeAndWaitResult(
           _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_))) => true }
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
         )
     yield
       // Check all steps loaded

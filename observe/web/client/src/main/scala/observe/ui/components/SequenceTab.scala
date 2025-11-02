@@ -29,7 +29,7 @@ object Home
       for
         ctx         <- useContext(AppContext.ctx)
         sequenceApi <- useContext(SequenceApi.ctx)
-        obsListReady = props.rootModel.data.get.readyObservations.void
+        obsListReady = props.rootModel.data.get.obsList.void
         _           <- // Once obs list is loaded, if the current instrument is not loaded, go to obs list.
           useEffectWithDeps(obsListReady.toOption):
             _.foldMap: _ =>

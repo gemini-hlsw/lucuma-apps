@@ -538,6 +538,7 @@ lazy val observe_ui_model = project
         Circe.value ++
         In(Test)(
           MUnit.value ++
+            Discipline.value ++
             CrystalTestkit.value
         )
   )

@@ -40,13 +40,14 @@ import observe.model.events.ClientEvent.SingleActionState
 import observe.model.events.ClientEvent.UserNotification
 import observe.ui.model.IsAudioActivated
 import observe.ui.model.LoadedObservation
+import observe.ui.model.LoadedObservations
 import observe.ui.model.ObservationRequests
 import observe.ui.model.RootModelData
 import observe.ui.model.enums.ApiStatus
+import observe.ui.model.enums.AppTab
 import observe.ui.model.enums.OperationRequest
 import observe.ui.model.enums.SyncStatus
 import observe.ui.utils.Audio
-import observe.ui.model.enums.AppTab
 
 trait ServerEventHandler:
   private def logMessage(
@@ -198,7 +199,10 @@ trait ServerEventHandler:
             // Or should we only reset the observations that change? In that case, we need to do a thorough comparison.
             // TODO: Maybe just reset in the ApiImpl when we get the response from the server.
             RootModelData.obsRequests.replace(Map.empty) >>>
-            RootModelData.loadedObservations.each
+            RootModelData.loadedObservations
+              .andThen(LoadedObservations.Value)
+              .each
+              .andThen(Pot.readyPrism)
               .andThen(LoadedObservation.refreshing)
               .replace(false) >>>
             (_.withAdjustedLoadedObservations(sequenceExecution.keySet)) >>>
@@ -230,7 +234,9 @@ trait ServerEventHandler:
       case ClientEvent.AtomLoaded(obsId, sequenceType, atomId)                            =>
         rootModelDataMod:
           RootModelData.loadedObservations
+            .andThen(LoadedObservations.Value)
             .index(obsId)
+            .andThen(Pot.readyPrism)
             .modify:
               instrumentRemoveFutureAtomFromLoadedObservation(sequenceType, atomId)
       // TODO Also requery future sequence here. It may have changed. Or there may be new atoms to load past the limit.
@@ -247,9 +253,10 @@ trait ServerEventHandler:
             case Notification.LoadingFailed(obsId, msgs)             =>
               rootModelDataMod:
                 RootModelData.loadedObservations
+                  .andThen(LoadedObservations.Value)
                   .index(obsId)
-                  .modify:
-                    LoadedObservation.errorMsg.replace(msgs.mkString("; ").some)
+                  .replace:
+                    Pot.error(new RuntimeException(msgs.mkString("; ")))
               .as(msgs)
             case Notification.SubsystemBusy(obsId, stepId, resource) =>
               List(s"Error in observation $obsId, step $stepId: Subsystem $resource already in use")

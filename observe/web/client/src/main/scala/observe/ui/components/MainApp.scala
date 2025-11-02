@@ -314,7 +314,7 @@ object MainApp extends ServerEventHandler:
               .unless(subscribed.value) {
                 val readyObservations: ViewF[IO, Pot[List[ObsSummary]]] =
                   rootModelData
-                    .zoom(RootModelData.readyObservations)
+                    .zoom(RootModelData.obsList)
                     .async
 
                 Resource.pure(fs2.Stream.eval[IO, Unit](subscribed.setAsync(true))) >>
