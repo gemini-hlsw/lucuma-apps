@@ -50,6 +50,7 @@ import lucuma.itc.client.GraphResult
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.*
 import lucuma.ui.reusability.given
+import lucuma.ui.sequence.SequenceRow
 
 /**
  * Reusability instances for model classes
@@ -208,3 +209,12 @@ object reusability:
     case (x: ObservingMode.Flamingos2LongSlit, y: ObservingMode.Flamingos2LongSlit) =>
       summon[Reusability[ObservingMode.Flamingos2LongSlit]].test(x, y)
     case _                                                                          => false
+
+  // Since we extend the hierarchy here, we need to provide this instance manually
+  given [D: Eq]: Reusability[SequenceRow[D]] = Reusability:
+    case (a: SequenceRow.FutureStep[D], b: SequenceRow.FutureStep[D])                         => a === b
+    case (a: SequenceRow.Executed.ExecutedStep[D], b: SequenceRow.Executed.ExecutedStep[D])   =>
+      a === b
+    case (a: SequenceRow.Executed.ExecutedVisit[D], b: SequenceRow.Executed.ExecutedVisit[D]) =>
+      a === b
+    case (_, _)                                                                               => false

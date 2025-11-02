@@ -3,9 +3,11 @@
 
 package explore.config.sequence
 
+import cats.Eq
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -28,7 +30,7 @@ private type SequenceColumnsType[D] =
 private type ColumnType[D]          =
   ColumnDef[Expandable[HeaderOrRow[SequenceIndexedRow[D]]], ?, Nothing, Nothing, Nothing, Any, Any]
 
-private trait SequenceTableBuilder[S, D](instrument: Instrument) extends SequenceRowBuilder[D]:
+private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends SequenceRowBuilder[D]:
   private type Props = SequenceTable[S, D]
 
   private lazy val ColDef = ColumnDef[SequenceTableRowType]

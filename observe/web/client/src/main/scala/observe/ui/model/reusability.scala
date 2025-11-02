@@ -42,7 +42,7 @@ object reusability:
   given Reusability[Map[Observation.Id, SequenceState]]    = Reusability.map
   given Reusability[RootModelData]                         = Reusability.byEq
   // Since we extend the hierarchy here, we need to provide this instance manually
-  given [D]: Reusability[SequenceRow[D]]                   = Reusability:
+  given [D: Eq]: Reusability[SequenceRow[D]]               = Reusability:
     case (a: SequenceRow.FutureStep[D], b: SequenceRow.FutureStep[D])                         => a === b
     case (a: SequenceRow.Executed.ExecutedStep[D], b: SequenceRow.Executed.ExecutedStep[D])   =>
       a === b
