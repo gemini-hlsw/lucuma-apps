@@ -527,7 +527,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                                      ODBSequencesLoader
                                        .loadSequenceEndo(observer.some, seq, l, cleanup)
                                    )(_ => ODBSequencesLoader.reloadSequenceEndo(seq, l))(st),
-                                 LoadSequence(obsId)
+                                 LoadSequence(obsId, clientId)
                                 )
                               }
                           } else {
@@ -738,15 +738,15 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       odbProxy.getCurrentRecordedIds.map: recordedIds =>
         ObserveState.fromSequenceViewQueue(svs, recordedIds)
 
-  private def modifyEvent(
+  private def toClientModifyEventStream(
     v:        SeqEvent,
     svs:      => SequencesQueue[SequenceView],
     odbProxy: OdbProxy[F]
   ): Stream[F, TargetedClientEvent] =
     v match
-      case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), cid)                   =>
-        Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(cid))
-      // case RequestConfirmation(m, cid)        => Stream.emit(UserPromptNotification(m, cid))
+      case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId)              =>
+        Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(clientId))
+      // case RequestConfirmation(m, clientId)        => Stream.emit(UserPromptNotification(m, clientId))
       case StartSysConfig(oid, stepId, res)                                                   =>
         Stream.emit[F, TargetedClientEvent](
           SingleActionEvent(oid, stepId, res, ClientEvent.SingleActionState.Started, none)
@@ -756,6 +756,14 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           ClientEvent
             .UserNotification(Notification.ResourceConflict(obsId))
             .forClient(clientId)
+      case LoadSequence(obsId, clientId)                                                      =>
+        buildObserveStateStream(svs, odbProxy) ++
+          svs.loaded
+            .collectFirst:
+              case (instrument, oId) if oId === obsId => instrument
+            .foldMap: instrument =>
+              Stream.emit:
+                ClientEvent.ObsLoaded(instrument).forClient(clientId)
       case ResourceBusy(obsId, stepId, resource, clientId)                                    =>
         Stream.emit:
           UserNotification(Notification.SubsystemBusy(obsId, stepId, resource)).forClient(clientId)
@@ -773,8 +781,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     qState:   EngineState[F],
     odbProxy: OdbProxy[F]
   ): Stream[F, TargetedClientEvent] = {
-    val sequences: List[SequenceView]     =
+    val sequences: List[SequenceView] =
       qState.sequences.view.values.map(viewSequence).toList
+
     // Building the view is a relatively expensive operation
     // By putting it into a def we only incur that cost if the message requires it
     def svs: SequencesQueue[SequenceView] =
@@ -796,7 +805,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           case UserEvent.Pure(NotifyUser(m, cid)) =>
             Stream.emit(UserNotification(m).forClient(cid))
           case UserEvent.ModifyState(_)           =>
-            modifyEvent(uev.getOrElse(NullSeqEvent), svs, odbProxy)
+            toClientModifyEventStream(uev.getOrElse(NullSeqEvent), svs, odbProxy)
           case e if e.isModelUpdate               => buildObserveStateStream(svs, odbProxy)
           case UserEvent.LogInfo(m, ts)           =>
             Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Info, ts, m)))
@@ -856,11 +865,11 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           case _                                                                   => Stream.empty
   }
 
-  override def clientEventStream: Stream[F, TargetedClientEvent] =
+  override val clientEventStream: Stream[F, TargetedClientEvent] =
     heartbeatStream
       .as[TargetedClientEvent](BaDum)
       .merge:
-        stream(EngineState.default[F])
+        eventResultStream(EngineState.default[F])
           .flatMap: (result, qState) =>
             toClientEvent(result, qState, systems.odb).merge:
               Stream
@@ -874,7 +883,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                         .map(_.some)
                 .unNone
 
-  override def stream(s0: EngineState[F]): Stream[F, (EventResult, EngineState[F])] =
+  override def eventResultStream(s0: EngineState[F]): Stream[F, (EventResult, EngineState[F])] =
     // TODO We are never using the process function. Consider removing the `process` method and just returning the stream.
     executeEngine.process(PartialFunction.empty)(s0)
 

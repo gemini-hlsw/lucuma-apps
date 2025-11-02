@@ -84,7 +84,7 @@ class ObserveEngineSuite extends TestCommon {
       for
         _ <- f(oe)
         s <- state.get
-        r <- oe.stream(s)
+        r <- oe.eventResultStream(s)
                //  .evalTap(r => cats.effect.Sync[F].delay(println(s"**** ${r._1}"))) // Uncomment for debugging
                .takeThrough(r => !until.lift(r).getOrElse(false))
                .compile
@@ -794,7 +794,7 @@ class ObserveEngineSuite extends TestCommon {
           clientId,
           RunOverride.Default
         ) *>
-          observeEngine.stream(s0).take(1).compile.last
+          observeEngine.eventResultStream(s0).take(1).compile.last
     } yield result
       .map { case (out, sf) =>
         assert(EngineState.sequenceStateAt[IO](seqObsId1).getOption(sf).exists(_.status.isIdle))

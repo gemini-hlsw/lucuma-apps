@@ -41,7 +41,7 @@ object SeqEvent:
   case class SetDhsEnabled(id: Observation.Id, user: Option[User], enabled: SubsystemEnabled)
       extends SeqEvent
   case class SetConditions(conditions: Conditions, user: Option[User])           extends SeqEvent
-  case class LoadSequence(sid: Observation.Id)                                   extends SeqEvent
+  case class LoadSequence(sid: Observation.Id, clientId: ClientId)               extends SeqEvent
   case class UnloadSequence(id: Observation.Id)                                  extends SeqEvent
   case class AddLoadedSequence(
     instrument: Instrument,

@@ -61,7 +61,6 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
-import org.http4s.client.websocket.WSConnectionHighLevel
 import org.http4s.client.websocket.WSFrame
 import org.http4s.client.websocket.WSRequest
 import org.http4s.client.websocket.middleware.Reconnect
@@ -183,6 +182,9 @@ object MainApp extends ServerEventHandler:
         rootModelData    <- useStateView(RootModelData.Initial)
         configApiStatus  <- useStateView(ApiStatus.Idle)
         isAudioActivated <- useShadowRef(rootModelData.get.isAudioActivated)
+        ctxPot           <- useState(Pot.pending[AppContext[IO]])
+        // Breaks cyclic dependency between ctx and event stream handler
+        ctxPotRef        <- useShadowRef(ctxPot.value.toOption)
         _                <-
           useEffectStreamWhenDepsReady(wsConnection.flatMap(_.toPot)):
             _.receiveStream // Setup server event processor (2)
@@ -194,12 +196,15 @@ object MainApp extends ServerEventHandler:
                     rootModelData.async.mod,
                     syncStatus.async.mod,
                     configApiStatus.async.mod,
+                    page =>
+                      ctxPotRef.getAsync.flatMap:
+                        _.foldMap(_.pushPage(page).toAsync)
+                    ,
                     isAudioActivated.getAsync,
                     toastRef
                   )(event)
                 case Left(error)  =>
                   processStreamError(rootModelData.async.mod)(error)
-        ctxPot           <- useState(Pot.pending[AppContext[IO]])
         _                <-
           useAsyncEffectWhenDepsReady(clientConfigPot.get): clientConfig => // Show environment
             showEnvironment[IO](clientConfig.environment)

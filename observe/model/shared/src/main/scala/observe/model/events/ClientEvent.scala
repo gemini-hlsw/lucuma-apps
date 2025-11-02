@@ -63,6 +63,9 @@ object ClientEvent:
     ): ObserveState =
       ObserveState(view.sequencesState, view.conditions, view.operator, recordedIds)
 
+  // Used to notify the client that sent the load request to switch to the instrument tab.
+  case class ObsLoaded(instrument: Instrument) extends SingleClientEvent derives Eq
+
   case class StepComplete(obsId: Observation.Id) extends AllClientEvent derives Eq
 
   case class SequencePaused(obsId: Observation.Id) extends AllClientEvent derives Eq

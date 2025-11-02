@@ -107,7 +107,7 @@ trait TestCommon extends munit.CatsEffectSuite {
     n:   Long
   ): IO[Option[EngineState[IO]]] =
     (put *> oe
-      .stream(s0)
+      .eventResultStream(s0)
       .take(n)
       .compile
       .last)

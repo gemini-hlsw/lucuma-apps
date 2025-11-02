@@ -46,6 +46,7 @@ import observe.ui.model.enums.ApiStatus
 import observe.ui.model.enums.OperationRequest
 import observe.ui.model.enums.SyncStatus
 import observe.ui.utils.Audio
+import observe.ui.model.enums.AppTab
 
 trait ServerEventHandler:
   private def logMessage(
@@ -153,6 +154,7 @@ trait ServerEventHandler:
     rootModelDataMod:   Endo[RootModelData] => IO[Unit],
     syncStatusMod:      Endo[Option[SyncStatus]] => IO[Unit],
     configApiStatusMod: Endo[ApiStatus] => IO[Unit],
+    pushPage:           AppTab => IO[Unit],
     isAudioActivated:   IO[IsAudioActivated],
     toast:              ToastRef
   )(
@@ -209,6 +211,8 @@ trait ServerEventHandler:
         ) >>
           syncStatusMod(_ => SyncStatus.Synced.some) >>
           configApiStatusMod(_ => ApiStatus.Idle)
+      case ClientEvent.ObsLoaded(instrument)                                              =>
+        pushPage(AppTab.LoadedObs(instrument))
       case ClientEvent.StepComplete(_)                                                    =>
         playAudio(Audio.StepBeep)
       case ClientEvent.SequencePaused(_)                                                  =>
