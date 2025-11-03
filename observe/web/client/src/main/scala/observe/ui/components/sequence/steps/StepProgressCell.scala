@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.data.NonEmptyChain
 import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -31,6 +32,7 @@ case class StepProgressCell(
   obsId:           Observation.Id,
   requests:        ObservationRequests,
   runningStepId:   Option[Step.Id],
+  fileIds:         Option[NonEmptyChain[ImageFileId]],
   sequenceState:   SequenceState,
   isPausedInStep:  Boolean,
   subsystemStatus: Map[Resource | Instrument, ActionStatus],
@@ -129,8 +131,6 @@ object StepProgressCell
         // else
         //   <.p(ObserveStyles.ComponentLabel, "Pending")
 
-      val fileId = ImageFileId("")
-
       <.div(ObserveStyles.ConfiguringRow)(
         SubsystemControls(
           props.obsId,
@@ -160,7 +160,7 @@ object StepProgressCell
             props.sequenceState,
             props.exposureTime,
             props.progress,
-            fileId,
+            props.fileIds,
             props.isPausedInStep
           )
         else EmptyVdom

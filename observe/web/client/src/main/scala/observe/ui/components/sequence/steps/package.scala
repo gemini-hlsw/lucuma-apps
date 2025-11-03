@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.data.NonEmptyChain
 import cats.syntax.all.*
 import lucuma.core.enums.SmartGcalType
 import lucuma.core.model.sequence.StepConfig
@@ -15,7 +16,7 @@ import observe.model.dhs.ImageFileId
 import observe.model.enums.ExecutionStepType
 
 def renderProgressLabel(
-  fileId:            ImageFileId,
+  fileIds:           Option[NonEmptyChain[ImageFileId]],
   remainingTimeSpan: Option[TimeSpan],
   isPausedInStep:    Boolean,
   stage:             ObserveStage
@@ -48,7 +49,7 @@ def renderProgressLabel(
   //       remainingMillis.fold(fileId.value): millis =>
   //         if (millis > 0) s"${fileId.value}$durationStr" else s"${fileId.value} - Reading out..."
 
-  List(fileId.value, durationStr, stageStr)
+  List(fileIds.foldMap(_.toList.mkString("/")), durationStr, stageStr)
     .filterNot(_.isEmpty)
     .mkString(" - ")
 
@@ -93,3 +94,12 @@ extension [D](row: SequenceRow[D])
           case StepExecutionState.Stopped    => StepState.Completed
           case StepExecutionState.Abandoned  => StepState.Failed("Abandoned")
       case _                                                => StepState.Completed
+
+  def fileIds: Option[NonEmptyChain[ImageFileId]] =
+    row match
+      case CurrentAtomStepRow(step, _, _, _)                => step.fileId.map(NonEmptyChain.one(_))
+      case SequenceRow.Executed.ExecutedStep(stepRecord, _) =>
+        NonEmptyChain
+          .fromSeq(stepRecord.datasets)
+          .map(_.map(ds => ImageFileId(ds.filename.format.stripSuffix(".fits"))))
+      case _                                                => none

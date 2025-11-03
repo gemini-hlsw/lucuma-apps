@@ -186,6 +186,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             obsId = obsId,
                             requests = meta.requests,
                             runningStepId = meta.executionState.runningStepId,
+                            fileIds = step.fileIds,
                             sequenceState = meta.executionState.sequenceState,
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),

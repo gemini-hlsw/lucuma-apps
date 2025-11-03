@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.steps
 
+import cats.data.NonEmptyChain
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
@@ -33,7 +34,7 @@ case class ObservationProgressBar(
   sequenceState:  SequenceState,
   exposureTime:   TimeSpan,
   progress:       Option[StepProgress],
-  fileId:         ImageFileId, // TODO This can be multiple ones
+  fileIds:        Option[NonEmptyChain[ImageFileId]],
   isPausedInStep: Boolean
 ) extends ReactFnProps(ObservationProgressBar):
   val isStatic: Boolean =
@@ -92,15 +93,11 @@ object ObservationProgressBar
                   .orEmpty
             .orEmpty
       yield props.runningProgress.fold {
-        val label: String = if (props.isPausedInStep) "Paused" else "Preparing..."
-        val msg: String   =
-          List(s"${props.fileId.value}", label)
-            .filterNot(_.isEmpty)
-            .mkString(" - ")
-
         // Prime React's ProgressBar doesn't show a label when value is zero, so we render our own version.
         <.div(ObserveStyles.Prime.EmptyProgressBar, ObserveStyles.ObservationStepProgressBar)(
-          <.div(ObserveStyles.Prime.EmptyProgressBarLabel)(msg)
+          <.div(ObserveStyles.Prime.EmptyProgressBarLabel)(
+            renderProgressLabel(props.fileIds, none, props.isPausedInStep, ObserveStage.Preparing)
+          )
         )
       } { runningProgress =>
         val elapsedMicros: Long = (maxTime.value -| remainingShown.value).toMicroseconds
@@ -117,7 +114,7 @@ object ObservationProgressBar
               <.div,
               <.div(
                 renderProgressLabel(
-                  props.fileId,
+                  props.fileIds,
                   remainingShown.value.some,
                   props.isPausedInStep,
                   runningProgress.stage
