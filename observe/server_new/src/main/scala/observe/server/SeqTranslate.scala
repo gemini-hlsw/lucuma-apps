@@ -12,6 +12,7 @@ import cats.effect.Temporal
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import fs2.Stream
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
@@ -106,7 +107,8 @@ object SeqTranslate {
     site:                             Site,
     systemss:                         Systems[F],
     gmosNsCmd:                        Ref[F, Option[NSObserveCommand]],
-    @annotation.unused conditionsRef: Ref[F, Conditions]
+    @annotation.unused conditionsRef: Ref[F, Conditions],
+    environment:                      ExecutionEnvironment
   ) extends SeqTranslate[F] {
 
     private val overriddenSystems = new OverriddenSystems[F](systemss)
@@ -153,7 +155,8 @@ object SeqTranslate {
             instf(ov),
             otherSysf.values.toList.map(_(ov)),
             headers(ov),
-            ctx
+            ctx,
+            environment
           )
           // Request the instrument to build the observe actions and merge them with the progress
           // Also catches any errors in the process of running an observation
@@ -979,11 +982,12 @@ object SeqTranslate {
   def apply[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
-    conditionsRef: Ref[F, Conditions]
+    conditionsRef: Ref[F, Conditions],
+    environment:   ExecutionEnvironment
   ): F[SeqTranslate[F]] =
     Ref
       .of[F, Option[NSObserveCommand]](none)
-      .map(new SeqTranslateImpl(site, systems, _, conditionsRef))
+      .map(new SeqTranslateImpl(site, systems, _, conditionsRef, environment))
 
 //  def dataIdFromConfig[F[_]: MonadThrow](config: CleanConfig): F[DataId] =
 //    EitherT

@@ -11,6 +11,7 @@ import coulomb.units.mks.Pascal
 import coulomb.units.si.Second
 import coulomb.units.temperature.Fahrenheit
 import coulomb.units.us.Mile
+import lucuma.core.enums.ExecutionEnvironment
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation
 import observe.model.dhs.ImageFileId
@@ -25,9 +26,10 @@ object GwsHeader {
     gwsReader: GwsKeywordReader[F]
   ): Header[F] = new Header[F] {
     override def sendBefore(
-      obsId:   Observation.Id,
-      id:      ImageFileId,
-      dataset: Option[Dataset.Reference]
+      obsId:       Observation.Id,
+      id:          ImageFileId,
+      dataset:     Option[Dataset.Reference],
+      environment: ExecutionEnvironment
     ): F[Unit] =
       gwsReader.health
         .map(_ === EpicsHealth.Good)

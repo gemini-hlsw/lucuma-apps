@@ -9,6 +9,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.Site
 import lucuma.core.util.TimeSpan
@@ -200,7 +201,7 @@ class SeqTranslateSuite extends TestCommon {
   private val translator: IO[SeqTranslate[IO]] = for {
     systems <- defaultSystems
     c       <- Ref.of[IO, Conditions](Conditions.Default)
-    st      <- SeqTranslate(Site.GS, systems, c)
+    st      <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
   } yield st
 
   test("SeqTranslate trigger stopObserve command only if exposure is in progress") {

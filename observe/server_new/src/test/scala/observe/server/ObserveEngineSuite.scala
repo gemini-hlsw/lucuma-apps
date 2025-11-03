@@ -498,7 +498,7 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       systems <- systemsWithTargetName("proof")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings)
+      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       sf      <- advanceOne(oe,
                             s0,
                             oe.start(
@@ -530,7 +530,7 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       systems <- systemsWithTargetName("proof1")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings)
+      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       sf      <- advanceOne(oe,
                             s0,
                             oe.start(
@@ -562,7 +562,7 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       systems <- systemsWithTargetName("proof1")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings)
+      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       sf      <- advanceOne(oe,
                             s0,
                             oe.start(
@@ -746,7 +746,8 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       systems       <- defaultSystems
-      observeEngine <- ObserveEngine.build[IO](Site.GN, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build[IO](Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       sf            <- advanceOne(
                          observeEngine,
                          s0,
@@ -785,7 +786,8 @@ class ObserveEngineSuite extends TestCommon {
 
     for {
       systems       <- defaultSystems
-      observeEngine <- ObserveEngine.build(Site.GN, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       result        <-
         observeEngine.start(
           seqObsId1,
@@ -837,7 +839,8 @@ class ObserveEngineSuite extends TestCommon {
 
     for {
       systems       <- defaultSystems
-      observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       sf            <-
         advanceN(
           observeEngine,
@@ -953,7 +956,8 @@ class ObserveEngineSuite extends TestCommon {
               Breakpoints.empty
             )
           )(s0)
-      observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s1)
       r             <-
         eo.executeAndWaitResult(
@@ -1044,7 +1048,8 @@ class ObserveEngineSuite extends TestCommon {
                            IO.unit
                          )
                          .apply(EngineState.default[IO])
-      observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       r             <-
         eo.executeAndWaitResult(
@@ -1190,7 +1195,8 @@ class ObserveEngineSuite extends TestCommon {
                            IO.unit
                          )
                          .apply(EngineState.default[IO])
-      observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
                          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
@@ -1281,7 +1287,8 @@ class ObserveEngineSuite extends TestCommon {
                            IO.unit
                          )
                          .apply(EngineState.default[IO])
-      observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine, s0)
       _             <- eo.executeAndWaitState(
                          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
@@ -1335,7 +1342,8 @@ class ObserveEngineSuite extends TestCommon {
                          List.empty
                        )
       systems       <- defaultSystems.map(_.copy(odb = odb))
-      observeEngine <- ObserveEngine.build(Site.GN, systems, defaultSettings)
+      observeEngine <-
+        ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
       eo             = EngineObserver(observeEngine)
       s1            <-
         eo.executeAndWaitResult(

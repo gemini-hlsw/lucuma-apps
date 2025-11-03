@@ -22,6 +22,8 @@ enum KeywordName(
 
   case SW_VER extends KeywordName("SW_VER", "SW_VER")
 
+  case SW_ENV extends KeywordName("SW_ENV", "SW_ENV")
+
   /** @group Constructors */
   case OBJECT extends KeywordName("OBJECT", "OBJECT")
 

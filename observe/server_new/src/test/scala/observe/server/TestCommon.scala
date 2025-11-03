@@ -13,6 +13,7 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosLong
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.GmosAmpCount
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
@@ -86,11 +87,18 @@ trait TestCommon extends munit.CatsEffectSuite {
   val defaultSystems: IO[Systems[IO]] = Systems.dummy[IO]
 
   val observeEngine: IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap(ObserveEngine.build(Site.GS, _, defaultSettings))
+    defaultSystems.flatMap(
+      ObserveEngine.build(Site.GS, _, defaultSettings, ExecutionEnvironment.Development)
+    )
 
   def observeEngineWithODB(odb: OdbProxy[IO]): IO[ObserveEngine[IO]] =
     defaultSystems.flatMap(sys =>
-      ObserveEngine.build(Site.GS, sys.copy(odb = odb), defaultSettings)
+      ObserveEngine.build(
+        Site.GS,
+        sys.copy(odb = odb),
+        defaultSettings,
+        ExecutionEnvironment.Development
+      )
     )
 
   def advanceOne(
@@ -403,7 +411,7 @@ object TestCommon {
     systems:    Systems[F]
   ): F[Option[SequenceGen[F]]] = for {
     c  <- Ref.of[F, Conditions](Conditions.Default)
-    st <- SeqTranslate(Site.GS, systems, c)
+    st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
     sg <- st.translateSequence(odbObsData)
   } yield sg._2
 

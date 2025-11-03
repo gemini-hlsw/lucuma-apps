@@ -5,6 +5,7 @@ package observe.server.gems
 
 import cats.effect.Sync
 import cats.syntax.all.*
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.StepGuideState
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation.Id
@@ -120,9 +121,10 @@ object GemsHeader {
       .handleError(_ => ())
 
     override def sendBefore(
-      obsId:   Id,
-      id:      ImageFileId,
-      dataset: Option[Dataset.Reference]
+      obsId:       Id,
+      id:          ImageFileId,
+      dataset:     Option[Dataset.Reference],
+      environment: ExecutionEnvironment
     ): F[Unit] =
       tcsReader.gwfsMap
         .flatMap(_.toList.map { case (v, gs) => gemsTargetKeyword(id, v, gs) }.sequence)

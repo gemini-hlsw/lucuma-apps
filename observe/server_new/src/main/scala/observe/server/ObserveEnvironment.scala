@@ -3,6 +3,7 @@
 
 package observe.server
 
+import lucuma.core.enums.ExecutionEnvironment
 import observe.model.Observation
 import observe.server.keywords.*
 import observe.server.tcs.Tcs
@@ -13,14 +14,15 @@ import odb.OdbProxy
  * Describes the parameters for an observation
  */
 final case class ObserveEnvironment[F[_]](
-  odb:      OdbProxy[F],
-  dhs:      DhsClientProvider[F],
-  stepType: StepType,
-  obsId:    Observation.Id,
-  inst:     InstrumentSystem[F],
-  otherSys: List[System[F]],
-  headers:  HeaderExtraData => List[Header[F]],
-  ctx:      HeaderExtraData
+  odb:         OdbProxy[F],
+  dhs:         DhsClientProvider[F],
+  stepType:    StepType,
+  obsId:       Observation.Id,
+  inst:        InstrumentSystem[F],
+  otherSys:    List[System[F]],
+  headers:     HeaderExtraData => List[Header[F]],
+  ctx:         HeaderExtraData,
+  environment: ExecutionEnvironment
 ) {
   def getTcs: Option[Tcs[F]] = otherSys.collectFirst {
     case x if x.isInstanceOf[Tcs[F]] => x.asInstanceOf[Tcs[F]]

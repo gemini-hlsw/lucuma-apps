@@ -80,11 +80,11 @@ object InstrumentActions {
         ObserveActions.observationProgressStream(env)
 
       override def observeActions(
-        env: ObserveEnvironment[F]
+        obsEnv: ObserveEnvironment[F]
       ): List[ParallelActions[F]] =
         defaultObserveActions(
-          observationProgressStream(env)
-            .mergeHaltR(launchObserve(env, ObserveActions.stdObserve[F]))
+          observationProgressStream(obsEnv)
+            .mergeHaltR(launchObserve(obsEnv, ObserveActions.stdObserve[F]))
             .handleErrorWith(catchObsErrors[F])
         )
 

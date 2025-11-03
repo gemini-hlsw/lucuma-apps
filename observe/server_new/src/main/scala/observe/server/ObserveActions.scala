@@ -125,20 +125,22 @@ trait ObserveActions {
    */
   def observePreamble[F[_]: {Concurrent, Logger}](
     fileId: ImageFileId,
-    env:    ObserveEnvironment[F]
+    obsEnv: ObserveEnvironment[F]
   ): F[ObserveCommandResult] =
     for {
-      d <- sendDataStart(env.odb, env.obsId, fileId)
-      _ <- notifyObserveStart(env)
-      _ <- env.headers(env.ctx).traverse(_.sendBefore(env.obsId, fileId, d.reference))
+      d <- sendDataStart(obsEnv.odb, obsEnv.obsId, fileId)
+      _ <- notifyObserveStart(obsEnv)
+      _ <- obsEnv
+             .headers(obsEnv.ctx)
+             .traverse(_.sendBefore(obsEnv.obsId, fileId, d.reference, obsEnv.environment))
       _ <-
         info(
-          s"Start ${env.inst.resource.longName} observation ${env.obsId} with label $fileId"
+          s"Start ${obsEnv.inst.resource.longName} observation ${obsEnv.obsId} with label $fileId"
         )
-      r <- env.inst.observe(fileId)
+      r <- obsEnv.inst.observe(fileId)
       _ <-
         info(
-          s"Completed ${env.inst.resource.longName} observation ${env.obsId} with label $fileId"
+          s"Completed ${obsEnv.inst.resource.longName} observation ${obsEnv.obsId} with label $fileId"
         )
     } yield r
 
@@ -226,11 +228,11 @@ trait ObserveActions {
    */
   def stdObserve[F[_]: {Temporal, Logger}](
     fileId: ImageFileId,
-    env:    ObserveEnvironment[F]
+    obsEnv: ObserveEnvironment[F]
   ): Stream[F, Result] =
     for {
-      result <- Stream.eval(observePreamble(fileId, env))
-      ret    <- observeTail(fileId, env)(result)
+      result <- Stream.eval(observePreamble(fileId, obsEnv))
+      ret    <- observeTail(fileId, obsEnv)(result)
     } yield ret
 
 }
