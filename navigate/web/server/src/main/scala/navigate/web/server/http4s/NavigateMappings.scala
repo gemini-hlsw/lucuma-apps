@@ -1424,8 +1424,12 @@ object NavigateMappings extends GrackleParsers {
     ins <- l.collectFirst { case ("instrument", EnumValue(v)) =>
              parseEnumerated[Instrument](v)
            }.flatten
-    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => parseBaffles(v) }.flatten
-  } yield TcsConfig(t, inp, p1, p2, oi, rc, ins, bfs.some)
+    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => parseBaffles(v) } match {
+             case Some(None) => None
+             case None       => Some(None)
+             case x          => x
+           }
+  } yield TcsConfig(t, inp, p1, p2, oi, rc, ins, bfs)
 
   def parseSwapConfigInput(l: List[(String, Value)]): Option[SwapConfig] = for {
     t   <- l.collectFirst { case ("guideTarget", ObjectValue(v)) => parseTargetInput(v) }.flatten
