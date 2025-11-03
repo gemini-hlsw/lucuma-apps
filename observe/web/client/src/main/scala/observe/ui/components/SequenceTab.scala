@@ -36,13 +36,13 @@ object Home
               ctx
                 .replacePage(AppTab.ObsList)
                 .unless_ :
-                  props.rootModel.data.get.loadedObsByInstrument.contains(props.instrument)
+                  props.rootModel.data.get.readyObsByInstrument.contains(props.instrument)
       yield
         val clientConfigPot: Pot[ClientConfig] = props.rootModel.clientConfig
         val rootModelData: RootModelData       = props.rootModel.data.get
 
         val loadedObsId: Option[Observation.Id] =
-          rootModelData.loadedObsByInstrument.get(props.instrument)
+          rootModelData.readyObsByInstrument.get(props.instrument)
 
         (clientConfigPot, props.rootModel.renderExploreLinkToObs, obsListReady).tupled
           .renderPot: (clientConfig, renderExploreLinkToObs, _) =>

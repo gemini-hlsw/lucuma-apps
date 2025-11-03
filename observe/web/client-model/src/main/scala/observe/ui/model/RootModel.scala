@@ -56,8 +56,11 @@ case class RootModelData(
   def obsInstrument(obsId: Observation.Id): Option[Instrument] =
     readyObservationsMap.get(obsId).map(_.instrument)
 
-  lazy val loadedObsByInstrument: Map[Instrument, Observation.Id] =
-    loadedObservations.value.keySet.map(obsId => obsInstrument(obsId).map(_ -> obsId)).flatten.toMap
+  lazy val readyObsByInstrument: Map[Instrument, Observation.Id] =
+    loadedObservations.readyObsIds
+      .map(obsId => obsInstrument(obsId).map(_ -> obsId))
+      .flatten
+      .toMap
 
   def withLoadPendingObservation(obsId: Observation.Id): RootModelData =
     copy(
@@ -67,7 +70,7 @@ case class RootModelData(
   // Adds a LoadedObservation for an instrument, removing the previous one for the same instrument, if any.
   def withLoadedObservation(obsId: Observation.Id, instrument: Instrument): RootModelData =
     copy(
-      loadedObservations = loadedObsByInstrument
+      loadedObservations = readyObsByInstrument
         .get(instrument)
         .fold(loadedObservations)(oldObsId => loadedObservations.modify(_ - oldObsId))
         .modify(_ + (obsId -> LoadedObservation().ready))
