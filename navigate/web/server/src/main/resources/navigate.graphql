@@ -476,7 +476,7 @@ type Query {
     acMechsState: AcMechs!
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
-    bafflesState: BafflesState!
+    bafflesState: BafflesState
 }
 
 type Mutation {
