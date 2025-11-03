@@ -4,6 +4,7 @@
 package lucuma.ui.sequence
 
 import cats.Eq
+import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.StepGuideState
@@ -161,7 +162,7 @@ object SequenceRow:
         )
       )
 
-    given [D]: Eq[FutureStep[D]] = Eq.by(_.id)
+    given [D: Eq]: Eq[FutureStep[D]] = Eq.derived
 
   sealed abstract class Executed[+D] extends SequenceRow[D]:
     val isFinished   = true
@@ -182,7 +183,7 @@ object SequenceRow:
       export visit.{created, id => visitId, interval}
 
     object ExecutedVisit:
-      given [D]: Eq[ExecutedVisit[D]] = Eq.by(_.id)
+      given [D]: Eq[ExecutedVisit[D]] = Eq.derived
 
     case class ExecutedStep[+D](
       stepRecord:    StepRecord[D],
@@ -203,6 +204,4 @@ object SequenceRow:
       }
 
     object ExecutedStep:
-      given [D]: Eq[ExecutedStep[D]] = Eq.by(_.id)
-
-  given [D]: Eq[SequenceRow[D]] = Eq.by(_.id)
+      given [D]: Eq[ExecutedStep[D]] = Eq.derived

@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence
 
+import cats.Eq
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.hooks.*
@@ -40,7 +41,7 @@ import org.typelevel.log4cats.Logger
 import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
-private trait SequenceTableBuilder[S, D](protected val instrument: Instrument)
+private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)
     extends SequenceTableDefs[D]:
   private type Props = SequenceTable[S, D]
 
