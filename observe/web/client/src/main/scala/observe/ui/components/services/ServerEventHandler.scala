@@ -216,7 +216,7 @@ trait ServerEventHandler:
       case ClientEvent.BreakpointReached(_)                                               =>
         playAudio(Audio.SequencePaused)
       case ClientEvent.AcquisitionPromptReached(_)                                        =>
-        playAudio(Audio.AcquisitionPrompt)
+        playAudio(Audio.SequencePaused)
       case ClientEvent.SequenceComplete(_)                                                =>
         playAudio(Audio.SequenceComplete)
       case ClientEvent.SequenceFailed(_, errorMsg)                                        =>
