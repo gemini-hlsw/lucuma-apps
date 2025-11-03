@@ -42,6 +42,8 @@ case class ExposureControlButtons(
 
   val isRunning: Boolean = sequenceState.isRunning
 
+  val isStopRequested: Boolean = sequenceState.isStopRequested
+
   val requestInFlight: Boolean = requests.stepRequestInFlight
 
 object ExposureControlButtons
@@ -83,7 +85,8 @@ object ExposureControlButtons
                       icon = Icons.Pause.withFixedWidth(),
                       tooltip = "Pause the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
-                      disabled = props.requestInFlight || props.isPausedInStep || !props.isExposure,
+                      disabled =
+                        props.requestInFlight || props.isPausedInStep || !props.isExposure || props.isStopRequested,
                       onClickE = _.stopPropagationCB >> sequenceApi.pauseObs(props.obsId).runAsync
                     )
                   case StopObservation   =>
@@ -92,7 +95,8 @@ object ExposureControlButtons
                       icon = Icons.Stop.withFixedWidth().withSize(IconSize.LG),
                       tooltip = "Stop the current exposure early",
                       tooltipOptions = DefaultTooltipOptions,
-                      disabled = props.requestInFlight || !props.isExposure,
+                      disabled =
+                        props.requestInFlight || !props.isExposure || props.isStopRequested,
                       onClickE = _.stopPropagationCB >> sequenceApi.stop(props.obsId).runAsync
                     )
                   case AbortObservation  =>
@@ -101,7 +105,8 @@ object ExposureControlButtons
                       icon = Icons.XMark.withFixedWidth().withSize(IconSize.LG),
                       tooltip = "Abort the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
-                      disabled = props.requestInFlight || !props.isExposure,
+                      disabled =
+                        props.requestInFlight || !props.isExposure || props.isStopRequested,
                       onClickE = _.stopPropagationCB >> sequenceApi.abort(props.obsId).runAsync
                     )
                   // // N&S operations

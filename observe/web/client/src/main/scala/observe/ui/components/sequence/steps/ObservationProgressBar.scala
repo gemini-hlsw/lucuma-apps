@@ -37,8 +37,10 @@ case class ObservationProgressBar(
   fileIds:        Option[NonEmptyChain[ImageFileId]],
   isPausedInStep: Boolean
 ) extends ReactFnProps(ObservationProgressBar):
+  val isStopRequested: Boolean = sequenceState.isStopRequested
+
   val isStatic: Boolean =
-    !sequenceState.isRunning ||
+    isStopRequested || !sequenceState.isRunning ||
       !progress.map(_.stage).contains_(ObserveStage.Exposure) ||
       isPausedInStep
 
@@ -63,7 +65,7 @@ object ObservationProgressBar
         remainingActual <- useRef(props.exposureTime)
         // In case the instrument reports a larger remaining time than the maximum, we adjust it.
         maxTime         <- useRef(props.exposureTime)
-        _               <-
+        _               <- // Smoothing effect
           useEffectStreamWithDeps(props.isStatic): isStatic =>
             import ctx.given
 
@@ -88,7 +90,7 @@ object ObservationProgressBar
             _.map: progressRemainingTime =>
               remainingActual.setAsync(progressRemainingTime) >>
                 Option
-                  .when(progressRemainingTime < remainingShown.value):
+                  .when(progressRemainingTime < remainingShown.value && !props.isStopRequested):
                     remainingShown.setStateAsync(progressRemainingTime)
                   .orEmpty
             .orEmpty
@@ -96,7 +98,13 @@ object ObservationProgressBar
         // Prime React's ProgressBar doesn't show a label when value is zero, so we render our own version.
         <.div(ObserveStyles.Prime.EmptyProgressBar, ObserveStyles.ObservationStepProgressBar)(
           <.div(ObserveStyles.Prime.EmptyProgressBarLabel)(
-            renderProgressLabel(props.fileIds, none, props.isPausedInStep, ObserveStage.Preparing)
+            renderProgressLabel(
+              props.fileIds,
+              none,
+              props.isStopRequested,
+              props.isPausedInStep,
+              ObserveStage.Preparing
+            )
           )
         )
       } { runningProgress =>
@@ -116,6 +124,7 @@ object ObservationProgressBar
                 renderProgressLabel(
                   props.fileIds,
                   remainingShown.value.some,
+                  props.isStopRequested,
                   props.isPausedInStep,
                   runningProgress.stage
                 )
