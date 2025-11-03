@@ -3,7 +3,6 @@
 
 package observe.ui.model.arb
 
-import cats.syntax.all.*
 import crystal.Pot
 import crystal.arb.given
 import lucuma.ui.sequence.SequenceData
@@ -17,18 +16,16 @@ trait ArbLoadedObservation:
   given Arbitrary[LoadedObservation] = Arbitrary:
     for
       refreshing   <- arbitrary[Boolean]
-      errorMsg     <- arbitrary[Option[String]]
       sequenceData <- arbitrary[Pot[SequenceData]]
     yield
       val base = LoadedObservation()
-      (LoadedObservation.refreshing.replace(refreshing) >>>
-        LoadedObservation.errorMsg.replace(errorMsg))(
+      LoadedObservation.isRefreshing.replace(refreshing)(
         sequenceData.toOptionTry.fold(base)(sd => base.withSequenceData(sd.toEither))
       )
 
   given Cogen[LoadedObservation] =
-    Cogen[(Boolean, Option[String], Pot[SequenceData])]
+    Cogen[(Boolean, Pot[SequenceData])]
       .contramap: s =>
-        (s.refreshing, s.errorMsg, s.sequenceData)
+        (s.isRefreshing, s.sequenceData)
 
 object ArbLoadedObservation extends ArbLoadedObservation

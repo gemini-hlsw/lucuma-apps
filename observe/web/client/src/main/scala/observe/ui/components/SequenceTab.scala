@@ -30,20 +30,20 @@ object SequenceTab
       for
         ctx         <- useContext(AppContext.ctx)
         sequenceApi <- useContext(SequenceApi.ctx)
-        obsListReady = props.rootModel.data.get.readyObservations.void
+        obsListReady = props.rootModel.data.get.obsList.void
         _           <- // Once obs list is loaded, if the current instrument is not loaded, go to obs list.
           useEffectWithDeps(obsListReady.toOption):
             _.foldMap: _ =>
               ctx
                 .replacePage(AppTab.ObsList)
                 .unless_ :
-                  props.rootModel.data.get.loadedObsByInstrument.contains(props.instrument)
+                  props.rootModel.data.get.readyObsByInstrument.contains(props.instrument)
       yield
         val clientConfigPot: Pot[ClientConfig] = props.rootModel.clientConfig
         val rootModelData: RootModelData       = props.rootModel.data.get
 
         val loadedObsId: Option[Observation.Id] =
-          rootModelData.loadedObsByInstrument.get(props.instrument)
+          rootModelData.readyObsByInstrument.get(props.instrument)
 
         (clientConfigPot, props.rootModel.renderExploreLinkToObs, obsListReady).tupled
           .renderPot: (clientConfig, renderExploreLinkToObs, _) =>

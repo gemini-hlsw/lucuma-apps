@@ -191,7 +191,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
 
   override def clientEventStream: fs2.Stream[F, TargetedClientEvent] = Stream.empty
 
-  override def stream(
+  override def eventResultStream(
     s0: EngineState[F]
   ): fs2.Stream[F, (EventResult, EngineState[F])] = Stream.empty
 

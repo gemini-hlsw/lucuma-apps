@@ -19,19 +19,18 @@ import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.input.*
 import lucuma.ui.syntax.effect.*
-import monocle.Iso
 import observe.queries.ObsQueriesGQL
 import observe.ui.model.AppContext
 import observe.ui.model.LoadedObservation
+import observe.ui.model.LoadedObservations
 import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 import org.typelevel.log4cats.Logger
 
 // Renderless component that reloads observation summaries and sequences when observations are selected.
-case class ObservationSyncer(
-  loadedObservations: View[Map[Observation.Id, LoadedObservation]]
-) extends ReactFnProps(ObservationSyncer)
+case class ObservationSyncer(loadedObservations: View[LoadedObservations])
+    extends ReactFnProps(ObservationSyncer)
 
 object ObservationSyncer
     extends ReactFnComponent[ObservationSyncer](props =>
@@ -90,7 +89,8 @@ object ObservationSyncer
 
       def loadedObsView(obsId: Observation.Id): Option[View[LoadedObservation]] =
         props.loadedObservations
-          .zoom(Iso.id[Map[Observation.Id, LoadedObservation]].index(obsId))
+          .zoom:
+            LoadedObservations.Value.index(obsId).andThen(Pot.readyPrism)
           .toOptionView
 
       for
@@ -99,14 +99,14 @@ object ObservationSyncer
         odbQueryApi            <- useContext(ODBQueryApi.ctx)
         subscribedObservations <- useRef(Map.empty[Observation.Id, IO[Unit]]) // Cancel effects
         _                      <-
-          useEffectWithDeps(props.loadedObservations.get.keySet): loadedObsIds =>
+          useEffectWithDeps(props.loadedObservations.get.readyObsIds): readyObsIds =>
             import ctx.given
 
             val toSubscribe: Set[Observation.Id] =
-              loadedObsIds -- subscribedObservations.value.keySet
+              readyObsIds -- subscribedObservations.value.keySet
 
             val toUnsubscribe: Set[Observation.Id] =
-              subscribedObservations.value.keySet -- loadedObsIds
+              subscribedObservations.value.keySet -- readyObsIds
 
             val subEffects: Set[IO[Unit]] =
               toSubscribe.map: obsId =>
@@ -136,7 +136,7 @@ object ObservationSyncer
             case PersistentClientStatus.Connected =>
               import ctx.given
 
-              props.loadedObservations.get.keySet.toList.parTraverse_ : obsId =>
+              props.loadedObservations.get.readyObsIds.toList.parTraverse_ : obsId =>
                 loadedObsView(obsId)
                   .fold(IO.unit): obsView =>
                     obsView.async.mod(_.reset) >>

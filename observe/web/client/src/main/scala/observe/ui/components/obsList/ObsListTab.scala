@@ -13,7 +13,6 @@ import observe.ui.components.*
 import observe.ui.model.AppContext
 import observe.ui.model.RootModel
 import observe.ui.model.RootModelData
-import observe.ui.model.enums.AppTab
 
 final case class ObsListTab(rootModel: RootModel) extends ReactFnProps(ObsListTab)
 
@@ -36,11 +35,10 @@ object ObsListTab
               rootModelData.readyObservationsMap
                 .get(obsId)
                 .foldMap: obsRow =>
-                  rootModelDataView.mod(_.withLoadedObservation(obsId, obsRow.instrument)) >>
-                    sequenceApi.loadObservation(obsId, obsRow.instrument).runAsync >>
-                    ctx.pushPage(AppTab.LoadedObs(obsRow.instrument))
+                  rootModelDataView.mod(_.withLoadPendingObservation(obsId)) >>
+                    sequenceApi.loadObservation(obsId, obsRow.instrument).runAsync
 
-        (rootModelData.readyObservations, props.rootModel.renderExploreLinkToObs).tupled
+        (rootModelData.obsList, props.rootModel.renderExploreLinkToObs).tupled
           .renderPot: (observations, renderExploreLinkToObs) =>
             ObsList(
               observations,

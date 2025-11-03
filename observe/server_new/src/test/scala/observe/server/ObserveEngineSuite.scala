@@ -84,7 +84,7 @@ class ObserveEngineSuite extends TestCommon {
       for
         _ <- f(oe)
         s <- state.get
-        r <- oe.stream(s)
+        r <- oe.eventResultStream(s)
                //  .evalTap(r => cats.effect.Sync[F].delay(println(s"**** ${r._1}"))) // Uncomment for debugging
                .takeThrough(r => !until.lift(r).getOrElse(false))
                .compile
@@ -794,7 +794,7 @@ class ObserveEngineSuite extends TestCommon {
           clientId,
           RunOverride.Default
         ) *>
-          observeEngine.stream(s0).take(1).compile.last
+          observeEngine.eventResultStream(s0).take(1).compile.last
     } yield result
       .map { case (out, sf) =>
         assert(EngineState.sequenceStateAt[IO](seqObsId1).getOption(sf).exists(_.status.isIdle))
@@ -1340,7 +1340,7 @@ class ObserveEngineSuite extends TestCommon {
       s1            <-
         eo.executeAndWaitResult(
           _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_))) => true }
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
         )
       _              = // Check all steps loaded
         assertEquals(s1.sequences.get(seqObsId1).get(0).get.seqGen.nextAtom.steps.length, stepCount)
@@ -1356,7 +1356,7 @@ class ObserveEngineSuite extends TestCommon {
       s1            <-
         eo.executeAndWaitResult(
           _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_))) => true }
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
         )
     yield
       // Check all steps loaded

@@ -77,7 +77,7 @@ object Layout
                 },
                 filterPred = {
                   case AppTab.LoadedObs(instrument) =>
-                    props.rootModel.data.get.loadedObsByInstrument.contains(instrument)
+                    props.rootModel.data.get.readyObsByInstrument.contains(instrument)
                   case _                            => true
                 }
               ),
