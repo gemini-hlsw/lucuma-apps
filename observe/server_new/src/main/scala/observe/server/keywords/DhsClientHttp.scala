@@ -3,12 +3,13 @@
 
 package observe.server.keywords
 
-import cats.FlatMap
 import cats.data.EitherT
 import cats.effect.Clock
+import cats.effect.MonadCancelThrow
 import cats.effect.Ref
 import cats.effect.Sync
 import cats.effect.Temporal
+import cats.effect.std.MapRef
 import cats.syntax.all.*
 import io.circe.Decoder
 import io.circe.DecodingFailure
@@ -36,6 +37,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 
 /**
@@ -223,12 +225,12 @@ object DhsClientHttp {
 /**
  * Implementation of the Dhs client that simulates a dhs without external dependencies
  */
-private class DhsClientSim[F[_]: {FlatMap, Logger}](
-  site:    Site,
-  date:    LocalDate,
-  counter: Ref[F, Int]
+private class DhsClientSim[F[_]: {MonadCancelThrow, Logger}](
+  site:        Site,
+  date:        LocalDate,
+  counter:     Ref[F, Int],
+  accumulator: MapRef[F, ImageFileId, Option[KeywordBag]]
 ) extends DhsClient[F] {
-
   val format: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
   private val sitePrefix = site match {
@@ -242,11 +244,26 @@ private class DhsClientSim[F[_]: {FlatMap, Logger}](
 
     }
 
-  override def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] = {
-    val keyStr = keywords.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")
-    Logger[F].info(s"file: $id, final: $finalFlag, keywords: $keyStr")
-  }
-
+  override def setKeywords(id: ImageFileId, keywordBag: KeywordBag, finalFlag: Boolean): F[Unit] =
+    accumulator(id).flatModify { oldKeywordBag =>
+      val newKeywordBag: KeywordBag = oldKeywordBag.fold(keywordBag)(_.combine(keywordBag))
+      if (finalFlag)
+        val finalKeywords: SortedMap[String, String] =
+          SortedMap.from:
+            newKeywordBag.keywords
+              .map: k =>
+                k.name.name.padTo(8, ' ') -> // FITS Keys are 8 characters long
+                  s"${k.value} [${KeywordType.dhsKeywordType(k.keywordType)}]"
+        (none,
+         Logger[F].debug:
+           s"DHS FOR file [$id], Final keywords: \n${finalKeywords.map { case (k, v) => s"$k: $v" }.mkString("\n")}"
+        )
+      else
+        (newKeywordBag.some,
+         Logger[F].trace:
+           s"DHS FOR file [$id], Accumulating keywords: ${keywordBag.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
+        )
+    }
 }
 
 object DhsClientSim {
@@ -257,9 +274,10 @@ object DhsClientSim {
       .flatMap(apply(site, _))
 
   def apply[F[_]: {Sync, Logger}](site: Site, dateTime: LocalDateTime): F[DhsClient[F]] =
-    Ref // Initialize with ordinal of 10-second lapse in the day, between 0 and 8640
-      .of[F, Int](dateTime.getHour() * 360 + dateTime.getMinute() * 6 + dateTime.getSecond() / 10)
-      .map: counter =>
-        new DhsClientSim[F](site, dateTime.toLocalDate, counter)
+    for
+      counter     <- Ref.of[F, Int]: // Ordinal of 10-second lapse in the day, between 0 and 8640
+                       dateTime.getHour() * 360 + dateTime.getMinute() * 6 + dateTime.getSecond() / 10
+      accumulator <- MapRef.ofConcurrentHashMap[F, ImageFileId, KeywordBag]()
+    yield new DhsClientSim[F](site, dateTime.toLocalDate, counter, accumulator)
 
 }
