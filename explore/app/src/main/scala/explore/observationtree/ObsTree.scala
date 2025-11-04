@@ -64,9 +64,9 @@ case class ObsTree(
   parentGroups:          Either[Observation.Id, Group.Id] => List[Group.Id],
   groupWarnings:         Map[Group.Id, NonEmptySet[GroupWarning]],
   undoer:                Undoer,
-  focusedObs:            Option[Observation.Id], // obs explicitly selected for editing
-  focusedTarget:         Option[Target.Id],
-  focusedGroup:          Option[Group.Id],
+  focusedObsId:          Option[Observation.Id], // obs explicitly selected for editing
+  focusedTargetId:       Option[Target.Id],
+  focusedGroupId:        Option[Group.Id],
   selectedObsIds:        List[Observation.Id],   // obs list selected in table
   setSummaryPanel:       Callback,
   expandedGroups:        View[Set[Group.Id]],
@@ -79,13 +79,18 @@ case class ObsTree(
   readonly:              Boolean
 ) extends ReactFnProps(ObsTree.component):
   private val selectedObsIdSet: Option[ObsIdSet] =
-    focusedObs.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
+    focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
   private val activeGroup: Option[Group.Id] =
-    focusedGroup.orElse(focusedObs.flatMap(observations.get.get(_)).flatMap(_.groupId))
+    val focusedGroup: Option[Group] = focusedGroupId.flatMap(groups.get.get(_))
+    focusedGroup
+      .filterNot(_.isTelluricCalibration)
+      .map(_.id)
+      .orElse(focusedGroup.flatMap(_.parentId)) // For telluric groups, use parent
+      .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
 
   private val focusedObsOrGroup: Option[Either[Observation.Id, Group.Id]] =
-    focusedObs.map(_.asLeft).orElse(focusedGroup.map(_.asRight))
+    focusedObsId.map(_.asLeft).orElse(focusedGroupId.map(_.asRight))
 
   private def groupInfo(
     elem: Either[Observation.Id, Group.Id]
@@ -101,17 +106,23 @@ case class ObsTree(
   private def groupIsEmpty(groupId: Group.Id): Boolean =
     groupsChildren.get(groupId.some).forall(_.isEmpty)
 
-  private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty
+  private val isCalibObsSelected: Boolean                               =
+    selectedObsIdSet
+      .map(_.idSet.exists(observations.get.get(_).exists(_.isCalibration)))
+      .getOrElse(false)
+  private val copyDisabled: Boolean                                     = selectedObsIdSet.isEmpty || isCalibObsSelected
   private val pasteDisabled: Boolean                                    = clipboardObsContents.isEmpty
   private val (deleteDisabled: Boolean, deletedTooltip: Option[String]) =
     selectedObsIdSet
       .map(obsIds =>
         if (observations.get.executedOf(obsIds).nonEmpty)
           (true, "- Cannot delete executed observations.".some)
+        else if (isCalibObsSelected)
+          (true, "- Cannot delete calibration observations.".some)
         else (false, none)
       )
       .orElse(
-        focusedGroup.map(groupId =>
+        focusedGroupId.map(groupId =>
           if (groupIsEmpty(groupId)) (false, none)
           else (true, "- Cannot delete non-empty groups.".some)
         )
@@ -135,7 +146,7 @@ case class ObsTree(
       .map(selectedText)
       .map(_ + activeGroup.map(gid => s" into ${groupText(gid)}").orEmpty)
   private val deleteText: Option[String]                             =
-    selectedObsIdSet.map(observationsText).orElse(focusedGroup.map(groupText))
+    selectedObsIdSet.map(observationsText).orElse(focusedGroupId.map(groupText))
 
   private def createNode(
     value:    Either[Observation, Group],
@@ -144,9 +155,12 @@ case class ObsTree(
     Tree.Node(
       Tree.Id(value.fold(_.id.toString, _.id.toString)),
       value,
-      draggable = !isSystem,
-      droppable = !isSystem,
+      // Telluric calibration groups are rendered as observations, which can be dragged.
+      draggable = !isSystem || value.exists(_.isTelluricCalibration),
+      droppable = !isSystem && !value.exists(_.isTelluricCalibration),
       children = value.toOption
+        // Telluric calibration group children are not shown as tree nodes but within the badge.
+        .filterNot(_.isTelluricCalibration)
         .map: group =>
           groupsChildren
             .get(group.id.some)
@@ -159,10 +173,14 @@ case class ObsTree(
   private val rootElements: List[Either[Observation, Group]] = groupsChildren.get(none).orEmpty
 
   private val treeNodes: List[Node[Either[Observation, Group]]] =
-    rootElements.filter(_.fold(_ => true, !_.system)).map(createNode(_, isSystem = false))
+    rootElements
+      .filter(_.fold(_ => true, g => !g.system || g.isTelluricCalibration))
+      .map(createNode(_, isSystem = false))
 
   private val systemTreeNodes: List[Node[Either[Observation, Group]]] =
-    rootElements.filter(_.fold(_ => false, _.system)).map(createNode(_, isSystem = true))
+    rootElements
+      .filter(_.fold(_ => false, g => g.system && !g.isTelluricCalibration))
+      .map(createNode(_, isSystem = true))
 
 object ObsTree:
   private type Props = ObsTree
@@ -229,7 +247,7 @@ object ObsTree:
         _             <- refocus(prevGroupInfo, ctx)
         adding        <- useStateView(AddingObservation(false))
         // Scroll to newly created/selected observation
-        _             <- useEffectWithDeps(props.focusedObs): focusedObs =>
+        _             <- useEffectWithDeps(props.focusedObsId): focusedObs =>
                            focusedObs.map(scrollIfNeeded).getOrEmpty
         // Open the group (and all super-groups) of the focused observation
         _             <- useEffectWithDeps(props.activeGroup):
@@ -246,8 +264,8 @@ object ObsTree:
           if (e.dropNode.exists(node => node.data.isLeft))
             Callback.empty
           else {
-            val dragNode: Either[Observation, Group] = e.dragNode.data
-            val dropNodeId: Option[Group.Id]         = e.dropNode.flatMap(_.data.toOption.map(_.id))
+            val dragNodeId: Either[Observation.Id, Group.Id] = e.dragNode.data.bimap(_.id, _.id)
+            val dropNodeId: Option[Group.Id]                 = e.dropNode.flatMap(_.data.toOption.map(_.id))
 
             val dropIndex: NonNegShort =
               NonNegShort.from(e.dropIndex.toShort).getOrElse(NonNegShort.unsafeFrom(0))
@@ -255,7 +273,7 @@ object ObsTree:
             val dropNodeChildren: Option[List[Either[Observation, Group]]] =
               props.groupsChildren
                 .get(dropNodeId)
-                .map(_.filter(_ =!= dragNode))
+                .map(_.filter(_.bimap(_.id, _.id) =!= dragNodeId))
 
             val newParentGroupIndex: NonNegShort =
               if dropIndex.value == 0 then dropIndex
@@ -265,15 +283,15 @@ object ObsTree:
                   .map(_.fold(_.groupIndex, _.parentIndex) |+| 1)
                   .getOrElse(NonNegShort.unsafeFrom(0))
 
-            dragNode
+            dragNodeId
               .fold(
-                obs =>
+                obsId =>
                   ObsActions
-                    .obsGroupInfo(obs.id)
+                    .obsGroupInfo(obsId)
                     .set(props.observations)((dropNodeId, newParentGroupIndex).some),
-                group =>
+                groupId =>
                   ObsActions
-                    .groupParentInfo(group.id)
+                    .groupParentInfo(groupId)
                     .set(props.groups)((dropNodeId, newParentGroupIndex).some)
               ) >> // Open the group we moved to
               dropNodeId.map(id => props.expandedGroups.mod(_ + id)).getOrEmpty
@@ -303,87 +321,108 @@ object ObsTree:
             .set(props.groups)(none)
             .showToastCB(s"Deleted group ${groupId.shortName}")
 
+        def renderObs(
+          obs:            Observation,
+          associatedObss: List[Observation] = List.empty
+        ): VdomNode = {
+          val selected: Boolean = props.focusedObsId.contains_(obs.id)
+
+          <.a(
+            ^.id        := s"obs-list-${obs.id.toString}",
+            ^.href      := ctx.pageUrl(
+              (AppTab.Observations,
+               props.programId,
+               Focused.singleObs(obs.id, props.focusedTargetId)
+              ).some
+            ),
+            // Disable link dragging to enable tree node dragging
+            ^.draggable := false,
+            ExploreStyles.ObsItem |+| ExploreStyles.SelectedObsItem.when_(selected),
+            ^.onClick ==> linkOverride(focusObs(props.programId, obs.id.some, ctx))
+          )(
+            ObsBadge(
+              obs,
+              ObsBadge.Layout.ObservationsTab,
+              selected = selected,
+              setStateCB = (
+                (obsId: Observation.Id) =>
+                  ObsActions
+                    .obsEditState(obsId)
+                    .set(props.observations)
+                    .compose((_: ObservationWorkflowState).some)
+              ).some,
+              setSubtitleCB = ObsActions
+                .obsEditSubtitle(obs.id)
+                .set(props.observations)
+                .compose((_: Option[NonEmptyString]).some)
+                .some,
+              deleteCB = deleteObsList(List(obs.id)),
+              cloneCB = cloneObs(
+                props.programId,
+                List(obs.id),
+                obs.groupId, // Clone to the same group
+                props.observations,
+                ctx
+              ).switching(adding.async, AddingObservation(_))
+                .withToastDuring(s"Duplicating obs ${obs.id}")
+                .runAsync
+                .some,
+              setScienceBandCB = (
+                (b: ScienceBand) =>
+                  ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
+              ).some,
+              allocatedScienceBands = props.allocatedScienceBands,
+              associatedObss = associatedObss,
+              programId = props.programId,
+              focusedObs = props.focusedObsId,
+              readonly = props.readonly
+            )
+          )
+        }
+
+        def renderGroup(group: Group): VdomNode =
+          GroupBadge(
+            group,
+            props.groupWarnings.get(group.id),
+            selected = props.focusedGroupId.contains_(group.id),
+            onClickCB = linkOverride:
+              focusGroup(props.programId, group.id.some, ctx)
+            ,
+            href = ctx.pageUrl(
+              (
+                AppTab.Observations,
+                props.programId,
+                Focused.group(group.id)
+              ).some
+            ),
+            deleteCB = deleteGroup(group.id),
+            isEmpty = props.groupIsEmpty(group.id),
+            readonly = props.readonly || group.system
+          )
+
         def renderItem(
           nodeValue: Either[Observation, Group]
         ): VdomNode =
           nodeValue match
-            case Left(obs)    =>
-              val selected: Boolean = props.focusedObs.contains_(obs.id)
+            case Right(group) if group.isTelluricCalibration =>
+              val observations: List[Observation] =
+                props.groupsChildren
+                  .get(group.id.some)
+                  .orEmpty
+                  .collect:
+                    case Left(obs) => obs
+              val mainObs: Option[Observation]    = observations.find(_.calibrationRole.isEmpty)
+              mainObs.fold(renderGroup(group)): obs =>
+                renderObs(obs, observations.filterNot(_ === obs))
+            case Right(group)                                => renderGroup(group)
+            case Left(obs)                                   => renderObs(obs)
 
-              <.a(
-                ^.id        := s"obs-list-${obs.id.toString}",
-                ^.href      := ctx.pageUrl(
-                  (AppTab.Observations,
-                   props.programId,
-                   Focused.singleObs(obs.id, props.focusedTarget)
-                  ).some
-                ),
-                // Disable link dragging to enable tree node dragging
-                ^.draggable := false,
-                ExploreStyles.ObsItem |+| ExploreStyles.SelectedObsItem.when_(selected),
-                ^.onClick ==> linkOverride(
-                  focusObs(props.programId, obs.id.some, ctx)
-                )
-              )(
-                ObsBadge(
-                  obs,
-                  ObsBadge.Layout.ObservationsTab,
-                  selected = selected,
-                  setStateCB = ObsActions
-                    .obsEditState(obs.id)
-                    .set(props.observations)
-                    .compose((_: ObservationWorkflowState).some)
-                    .some,
-                  setSubtitleCB = ObsActions
-                    .obsEditSubtitle(obs.id)
-                    .set(props.observations)
-                    .compose((_: Option[NonEmptyString]).some)
-                    .some,
-                  deleteCB = deleteObsList(List(obs.id)),
-                  cloneCB = cloneObs(
-                    props.programId,
-                    List(obs.id),
-                    obs.groupId, // Clone to the same group
-                    props.observations,
-                    ctx
-                  ).switching(adding.async, AddingObservation(_))
-                    .withToastDuring(s"Duplicating obs ${obs.id}")
-                    .runAsync
-                    .some,
-                  setScienceBandCB = (
-                    (b: ScienceBand) =>
-                      ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
-                  ).some,
-                  allocatedScienceBands = props.allocatedScienceBands,
-                  readonly = props.readonly
-                )
-              )
-            case Right(group) =>
-              GroupBadge(
-                group,
-                props.groupWarnings.get(group.id),
-                selected = props.focusedGroup.contains_(group.id),
-                onClickCB = linkOverride:
-                  focusGroup(props.programId, group.id.some, ctx)
-                ,
-                href = ctx.pageUrl(
-                  (
-                    AppTab.Observations,
-                    props.programId,
-                    Focused.group(group.id)
-                  ).some
-                ),
-                deleteCB = deleteGroup(group.id),
-                isEmpty = props.groupIsEmpty(group.id),
-                readonly = props.readonly || group.system
-              )
-
-        val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroup)
+        val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
 
         val isSystemGroupFocused: Boolean =
           props.activeGroup
             .flatMap(props.groups.get.get(_))
-            .exists(_.system)
+            .exists(g => g.system && !g.isTelluricCalibration)
 
         val tree: VdomNode =
           if (props.deckShown.get === DeckShown.Shown) {
@@ -419,7 +458,7 @@ object ObsTree:
                         onClick = insertGroup(
                           props.programId,
                           // Set the focused group as the new group parent if it is selected
-                          props.focusedGroup,
+                          props.focusedGroupId,
                           props.groups,
                           adding,
                           ctx
@@ -441,7 +480,7 @@ object ObsTree:
                       ActionButtons.ButtonProps(
                         props.selectedObsIdSet
                           .map(obsIdSet => deleteObsList(obsIdSet.idSet.toList))
-                          .orElse(props.focusedGroup.map(deleteGroup))
+                          .orElse(props.focusedGroupId.map(deleteGroup))
                           .orEmpty,
                         disabled = props.deleteDisabled,
                         tooltipExtra = props.deletedTooltip.orElse(props.deleteText)
