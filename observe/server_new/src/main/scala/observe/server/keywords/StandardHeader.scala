@@ -7,6 +7,7 @@ import cats.Monad
 import cats.data.Nested
 import cats.effect.Sync
 import cats.syntax.all.*
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
 import lucuma.core.enums.StepGuideState
 import lucuma.core.model.ElevationRange
@@ -73,10 +74,14 @@ class StandardHeader[F[_]: {Sync, Logger}](
   private def sfTcsKeyword[B: DefaultHeaderValue](v: F[B]) =
     optTcsKeyword[B](TcsController.Subsystem.AGUnit)(v)
 
-  private def baseKeywords(dataset: Option[Dataset.Reference]): List[KeywordBag => F[KeywordBag]] =
+  private def baseKeywords(
+    dataset:     Option[Dataset.Reference],
+    environment: ExecutionEnvironment
+  ): List[KeywordBag => F[KeywordBag]] =
     List(
       buildString("Observe".pure[F], KeywordName.SW_NAME),
       buildString(OcsBuildInfo.version.pure[F], KeywordName.SW_VER),
+      buildString(environment.tag.toLowerCase.capitalize.pure[F], KeywordName.SW_ENV),
       buildString(obsObject, KeywordName.OBJECT),
       buildString(obsReader.obsType, KeywordName.OBSTYPE),
       buildString(obsReader.obsClass, KeywordName.OBSCLASS),
@@ -242,15 +247,17 @@ class StandardHeader[F[_]: {Sync, Logger}](
   }
 
   override def sendBefore(
-    obsId:   Id,
-    id:      ImageFileId,
-    dataset: Option[Dataset.Reference]
+    obsId:       Id,
+    id:          ImageFileId,
+    dataset:     Option[Dataset.Reference],
+    environment: ExecutionEnvironment
   ): F[Unit] = {
-    val oiwfsKeywords = guiderKeywords(id,
-                                       obsReader.oiwfsGuide,
-                                       "OI",
-                                       tcsReader.oiwfsTarget,
-                                       List(buildDouble(tcsReader.oiwfsFreq, KeywordName.OIFREQ))
+    val oiwfsKeywords = guiderKeywords(
+      id,
+      obsReader.oiwfsGuide,
+      "OI",
+      tcsReader.oiwfsTarget,
+      List(buildDouble(tcsReader.oiwfsFreq, KeywordName.OIFREQ))
     )
 
     val pwfs1Keywords = standardGuiderKeywords(
@@ -272,7 +279,7 @@ class StandardHeader[F[_]: {Sync, Logger}](
     val aowfsKeywords =
       standardGuiderKeywords(id, obsReader.aowfsGuide, "AO", tcsReader.aowfsTarget, Nil)
 
-    sendKeywords(id, kwClient, baseKeywords(dataset)) *>
+    sendKeywords(id, kwClient, baseKeywords(dataset, environment)) *>
       requestedConditions(id) *>
       requestedAirMassAngle(id) *>
       timingWindows(id) *>

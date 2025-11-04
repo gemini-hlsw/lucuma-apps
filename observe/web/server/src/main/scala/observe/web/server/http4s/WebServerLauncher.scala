@@ -288,7 +288,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
     for {
       caS  <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
       sys  <- Systems.build(conf.site, httpClient, conf.observeEngine, conf.lucumaSSO, caS)
-      seqE <- Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine))
+      seqE <-
+        Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine, conf.environment))
     } yield seqE
 
   private def publishStats[F[_]: Temporal](cs: ClientsSetDb[F]): Stream[F, Unit] =

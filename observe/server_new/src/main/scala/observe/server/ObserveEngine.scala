@@ -14,6 +14,7 @@ import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
@@ -229,9 +230,10 @@ object ObserveEngine {
   def createTranslator[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
-    conditionsRef: Ref[F, Conditions]
+    conditionsRef: Ref[F, Conditions],
+    environment:   ExecutionEnvironment
   ): F[SeqTranslate[F]] =
-    SeqTranslate(site, systems, conditionsRef)
+    SeqTranslate(site, systems, conditionsRef, environment)
 
   private def observations[F[_]](st: EngineState[F]): List[SequenceData[F]] =
     List(st.selected.gmosSouth, st.selected.gmosNorth, st.selected.flamingos2).flattenOption
@@ -580,12 +582,13 @@ object ObserveEngine {
    * Build Observe and setup epics
    */
   def build[F[_]: {Async, Logger}](
-    site:    Site,
-    systems: Systems[F],
-    conf:    ObserveEngineConfiguration
+    site:        Site,
+    systems:     Systems[F],
+    conf:        ObserveEngineConfiguration,
+    environment: ExecutionEnvironment
   )(using Monoid[F[Unit]]): F[ObserveEngine[F]] = for {
     rc  <- Ref.of[F, Conditions](Conditions.Default)
-    tr  <- createTranslator(site, systems, rc)
+    tr  <- createTranslator(site, systems, rc, environment)
     eng <- Engine.build[F](
              onAtomComplete[F](systems.odb, tr),
              onAtomReload[F](systems.odb, tr)

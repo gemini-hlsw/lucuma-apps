@@ -5,6 +5,7 @@ package observe.server.gcal
 
 import cats.Applicative
 import cats.effect.Sync
+import lucuma.core.enums.ExecutionEnvironment
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation.Id
 import observe.model.dhs.ImageFileId
@@ -26,9 +27,10 @@ object GcalHeader {
       )
 
       override def sendBefore(
-        obsId:   Id,
-        id:      ImageFileId,
-        dataset: Option[Dataset.Reference]
+        obsId:       Id,
+        id:          ImageFileId,
+        dataset:     Option[Dataset.Reference],
+        environment: ExecutionEnvironment
       ): F[Unit] =
         sendKeywords(id, kwClient, gcalKeywords)
 

@@ -5,6 +5,7 @@ package observe.server
 
 import cats.*
 import cats.syntax.all.*
+import lucuma.core.enums.ExecutionEnvironment
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation
 import observe.model.dhs.ImageFileId
@@ -347,9 +348,10 @@ package object keywords {
 
   def dummyHeader[F[_]: Applicative]: Header[F] = new Header[F] {
     override def sendBefore(
-      obsId:   Observation.Id,
-      id:      ImageFileId,
-      dataset: Option[Dataset.Reference]
+      obsId:       Observation.Id,
+      id:          ImageFileId,
+      dataset:     Option[Dataset.Reference],
+      environment: ExecutionEnvironment
     ): F[Unit] =
       Applicative[F].unit
     override def sendAfter(id: ImageFileId): F[Unit] =

@@ -6,6 +6,7 @@ package observe.server.flamingos2
 import cats.Applicative
 import cats.effect.Sync
 import cats.syntax.all.*
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -25,9 +26,10 @@ object Flamingos2Header {
   ): Header[F] =
     new Header[F] {
       override def sendBefore(
-        obsId:   Observation.Id,
-        id:      ImageFileId,
-        dataset: Option[Dataset.Reference]
+        obsId:       Observation.Id,
+        id:          ImageFileId,
+        dataset:     Option[Dataset.Reference],
+        environment: ExecutionEnvironment
       ): F[Unit] =
         sendKeywords(
           id,
