@@ -141,11 +141,11 @@ trait TcsEpics[F[_]] {
 
   def yoffsetPoC1: F[Double]
 
-  def sourceAWavelength: F[Double]
+  def sourceAWavelengthAngstroms: F[Double]
 
-  def sourceBWavelength: F[Double]
+  def sourceBWavelengthAngstroms: F[Double]
 
-  def sourceCWavelength: F[Double]
+  def sourceCWavelengthAngstroms: F[Double]
 
   def chopBeam: F[String]
 
@@ -810,15 +810,15 @@ final class TcsEpicsImpl[F[_]: Async](epicsService: CaService, tops: Map[String,
     tcsState.getDoubleAttribute("yoffsetPoC1")
   )
 
-  override def sourceAWavelength: F[Double] = safeAttributeSDoubleF(
+  override def sourceAWavelengthAngstroms: F[Double] = safeAttributeSDoubleF(
     tcsState.getDoubleAttribute("sourceAWavelength")
   )
 
-  override def sourceBWavelength: F[Double] = safeAttributeSDoubleF(
+  override def sourceBWavelengthAngstroms: F[Double] = safeAttributeSDoubleF(
     tcsState.getDoubleAttribute("sourceBWavelength")
   )
 
-  override def sourceCWavelength: F[Double] = safeAttributeSDoubleF(
+  override def sourceCWavelengthAngstroms: F[Double] = safeAttributeSDoubleF(
     tcsState.getDoubleAttribute("sourceCWavelength")
   )
 
@@ -1028,7 +1028,7 @@ final class TcsEpicsImpl[F[_]: Async](epicsService: CaService, tops: Map[String,
 
     override def frame: F[String] = safeAttributeF(tcsState.getStringAttribute("frame"))
 
-    override def centralWavelenght: F[Double] = sourceAWavelength
+    override def centralWavelengthAngstroms: F[Double] = sourceAWavelengthAngstroms
 
     override def ra: F[Double] = safeAttributeSDoubleF(tcsState.getDoubleAttribute("ra"))
 
@@ -1052,26 +1052,26 @@ final class TcsEpicsImpl[F[_]: Async](epicsService: CaService, tops: Map[String,
   }
 
   private def target(base: String): Target[F] = new Target[F] {
-    override def epoch: F[String]             = safeAttributeF(tcsState.getStringAttribute(base + "aepoch"))
-    override def equinox: F[String]           = safeAttributeF(tcsState.getStringAttribute(base + "aequin"))
-    override def radialVelocity: F[Double]    = safeAttributeSDoubleF(
+    override def epoch: F[String]                      = safeAttributeF(tcsState.getStringAttribute(base + "aepoch"))
+    override def equinox: F[String]                    = safeAttributeF(tcsState.getStringAttribute(base + "aequin"))
+    override def radialVelocity: F[Double]             = safeAttributeSDoubleF(
       tcsState.getDoubleAttribute(base + "arv")
     )
-    override def frame: F[String]             = safeAttributeF(tcsState.getStringAttribute(base + "aframe"))
-    override def centralWavelenght: F[Double] =
+    override def frame: F[String]                      = safeAttributeF(tcsState.getStringAttribute(base + "aframe"))
+    override def centralWavelengthAngstroms: F[Double] =
       safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "awavel"))
-    override def ra: F[Double]                = safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "ara"))
-    override def objectName: F[String]        = safeAttributeF(
+    override def ra: F[Double]                         = safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "ara"))
+    override def objectName: F[String]                 = safeAttributeF(
       tcsState.getStringAttribute(base + "aobjec")
     )
-    override def dec: F[Double]               = safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "adec"))
-    override def parallax: F[Double]          = safeAttributeSDoubleF(
+    override def dec: F[Double]                        = safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "adec"))
+    override def parallax: F[Double]                   = safeAttributeSDoubleF(
       tcsState.getDoubleAttribute(base + "aparal")
     )
-    override def properMotionRA: F[Double]    = safeAttributeSDoubleF(
+    override def properMotionRA: F[Double]             = safeAttributeSDoubleF(
       tcsState.getDoubleAttribute(base + "apmra")
     )
-    override def properMotionDec: F[Double]   =
+    override def properMotionDec: F[Double]            =
       safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "apmdec"))
   }
 
@@ -1432,7 +1432,7 @@ object TcsEpics extends EpicsSystem[TcsEpics[IO]] {
     def epoch: F[String]
     def properMotionRA: F[Double]
     def properMotionDec: F[Double]
-    def centralWavelenght: F[Double]
+    def centralWavelengthAngstroms: F[Double]
     def parallax: F[Double]
     def radialVelocity: F[Double]
   }
@@ -1440,17 +1440,17 @@ object TcsEpics extends EpicsSystem[TcsEpics[IO]] {
   // TODO: Delete me after fully moved to tagless
   extension (tio: Target[IO]) {
     def to[F[_]: LiftIO]: Target[F] = new Target[F] {
-      def objectName: F[String]        = tio.objectName.to[F]
-      def ra: F[Double]                = tio.ra.to[F]
-      def dec: F[Double]               = tio.dec.to[F]
-      def frame: F[String]             = tio.frame.to[F]
-      def equinox: F[String]           = tio.equinox.to[F]
-      def epoch: F[String]             = tio.epoch.to[F]
-      def properMotionRA: F[Double]    = tio.properMotionRA.to[F]
-      def properMotionDec: F[Double]   = tio.properMotionDec.to[F]
-      def centralWavelenght: F[Double] = tio.centralWavelenght.to[F]
-      def parallax: F[Double]          = tio.parallax.to[F]
-      def radialVelocity: F[Double]    = tio.radialVelocity.to[F]
+      def objectName: F[String]                 = tio.objectName.to[F]
+      def ra: F[Double]                         = tio.ra.to[F]
+      def dec: F[Double]                        = tio.dec.to[F]
+      def frame: F[String]                      = tio.frame.to[F]
+      def equinox: F[String]                    = tio.equinox.to[F]
+      def epoch: F[String]                      = tio.epoch.to[F]
+      def properMotionRA: F[Double]             = tio.properMotionRA.to[F]
+      def properMotionDec: F[Double]            = tio.properMotionDec.to[F]
+      def centralWavelengthAngstroms: F[Double] = tio.centralWavelengthAngstroms.to[F]
+      def parallax: F[Double]                   = tio.parallax.to[F]
+      def radialVelocity: F[Double]             = tio.radialVelocity.to[F]
     }
   }
 

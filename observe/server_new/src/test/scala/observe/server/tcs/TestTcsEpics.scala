@@ -391,11 +391,11 @@ case class TestTcsEpics[F[_]: Async](
 
   override def yoffsetPoC1: F[Double] = state.get.map(_.yoffsetPoC1)
 
-  override def sourceAWavelength: F[Double] = state.get.map(_.sourceAWavelength)
+  override def sourceAWavelengthAngstroms: F[Double] = state.get.map(_.sourceAWavelength)
 
-  override def sourceBWavelength: F[Double] = state.get.map(_.sourceBWavelength)
+  override def sourceBWavelengthAngstroms: F[Double] = state.get.map(_.sourceBWavelength)
 
-  override def sourceCWavelength: F[Double] = state.get.map(_.sourceCWavelength)
+  override def sourceCWavelengthAngstroms: F[Double] = state.get.map(_.sourceCWavelength)
 
   override def chopBeam: F[String] = state.get.map(_.chopBeam)
 
@@ -1110,17 +1110,17 @@ object TestTcsEpics {
   }
 
   final case class TargetVals(
-    objectName:        String,
-    ra:                Double,
-    dec:               Double,
-    frame:             String,
-    equinox:           String,
-    epoch:             String,
-    properMotionRA:    Double,
-    properMotionDec:   Double,
-    centralWavelenght: Double,
-    parallax:          Double,
-    radialVelocity:    Double
+    objectName:                 String,
+    ra:                         Double,
+    dec:                        Double,
+    frame:                      String,
+    equinox:                    String,
+    epoch:                      String,
+    properMotionRA:             Double,
+    properMotionDec:            Double,
+    centralWavelengthAngstroms: Double,
+    parallax:                   Double,
+    radialVelocity:             Double
   )
 
   object TargetVals {
@@ -1133,22 +1133,23 @@ object TestTcsEpics {
       epoch = "",
       properMotionRA = 0.0,
       properMotionDec = 0.0,
-      centralWavelenght = 0.0,
+      centralWavelengthAngstroms = 0.0,
       parallax = 0.0,
       radialVelocity = 0.0
     )
 
-    val objectName: Lens[TargetVals, String]        = Focus[TargetVals](_.objectName)
-    val ra: Lens[TargetVals, Double]                = Focus[TargetVals](_.ra)
-    val dec: Lens[TargetVals, Double]               = Focus[TargetVals](_.dec)
-    val frame: Lens[TargetVals, String]             = Focus[TargetVals](_.frame)
-    val equinox: Lens[TargetVals, String]           = Focus[TargetVals](_.equinox)
-    val epoch: Lens[TargetVals, String]             = Focus[TargetVals](_.epoch)
-    val properMotionRA: Lens[TargetVals, Double]    = Focus[TargetVals](_.properMotionRA)
-    val properMotionDec: Lens[TargetVals, Double]   = Focus[TargetVals](_.properMotionDec)
-    val centralWavelenght: Lens[TargetVals, Double] = Focus[TargetVals](_.centralWavelenght)
-    val parallax: Lens[TargetVals, Double]          = Focus[TargetVals](_.parallax)
-    val radialVelocity: Lens[TargetVals, Double]    = Focus[TargetVals](_.radialVelocity)
+    val objectName: Lens[TargetVals, String]                 = Focus[TargetVals](_.objectName)
+    val ra: Lens[TargetVals, Double]                         = Focus[TargetVals](_.ra)
+    val dec: Lens[TargetVals, Double]                        = Focus[TargetVals](_.dec)
+    val frame: Lens[TargetVals, String]                      = Focus[TargetVals](_.frame)
+    val equinox: Lens[TargetVals, String]                    = Focus[TargetVals](_.equinox)
+    val epoch: Lens[TargetVals, String]                      = Focus[TargetVals](_.epoch)
+    val properMotionRA: Lens[TargetVals, Double]             = Focus[TargetVals](_.properMotionRA)
+    val properMotionDec: Lens[TargetVals, Double]            = Focus[TargetVals](_.properMotionDec)
+    val centralWavelengthAngstroms: Lens[TargetVals, Double] =
+      Focus[TargetVals](_.centralWavelengthAngstroms)
+    val parallax: Lens[TargetVals, Double]                   = Focus[TargetVals](_.parallax)
+    val radialVelocity: Lens[TargetVals, Double]             = Focus[TargetVals](_.radialVelocity)
   }
 
   def probeGuideConfigGetters[F[_]: Applicative](
@@ -1164,19 +1165,19 @@ object TestTcsEpics {
 
   def targetGetters[F[_]: Applicative](st: Ref[F, State], g: Getter[State, TargetVals]): Target[F] =
     new Target[F] {
-      override def objectName: F[String]        = st.get.map(g.andThen(TargetVals.objectName).get)
-      override def ra: F[Double]                = st.get.map(g.andThen(TargetVals.ra).get)
-      override def dec: F[Double]               = st.get.map(g.andThen(TargetVals.dec).get)
-      override def frame: F[String]             = st.get.map(g.andThen(TargetVals.frame).get)
-      override def equinox: F[String]           = st.get.map(g.andThen(TargetVals.equinox).get)
-      override def epoch: F[String]             = st.get.map(g.andThen(TargetVals.epoch).get)
-      override def properMotionRA: F[Double]    = st.get.map(g.andThen(TargetVals.properMotionRA).get)
-      override def properMotionDec: F[Double]   =
+      override def objectName: F[String]                 = st.get.map(g.andThen(TargetVals.objectName).get)
+      override def ra: F[Double]                         = st.get.map(g.andThen(TargetVals.ra).get)
+      override def dec: F[Double]                        = st.get.map(g.andThen(TargetVals.dec).get)
+      override def frame: F[String]                      = st.get.map(g.andThen(TargetVals.frame).get)
+      override def equinox: F[String]                    = st.get.map(g.andThen(TargetVals.equinox).get)
+      override def epoch: F[String]                      = st.get.map(g.andThen(TargetVals.epoch).get)
+      override def properMotionRA: F[Double]             = st.get.map(g.andThen(TargetVals.properMotionRA).get)
+      override def properMotionDec: F[Double]            =
         st.get.map(g.andThen(TargetVals.properMotionDec).get)
-      override def centralWavelenght: F[Double] =
-        st.get.map(g.andThen(TargetVals.centralWavelenght).get)
-      override def parallax: F[Double]          = st.get.map(g.andThen(TargetVals.parallax).get)
-      override def radialVelocity: F[Double]    = st.get.map(g.andThen(TargetVals.radialVelocity).get)
+      override def centralWavelengthAngstroms: F[Double] =
+        st.get.map(g.andThen(TargetVals.centralWavelengthAngstroms).get)
+      override def parallax: F[Double]                   = st.get.map(g.andThen(TargetVals.parallax).get)
+      override def radialVelocity: F[Double]             = st.get.map(g.andThen(TargetVals.radialVelocity).get)
     }
 
   sealed trait TestTcsEvent extends Product with Serializable

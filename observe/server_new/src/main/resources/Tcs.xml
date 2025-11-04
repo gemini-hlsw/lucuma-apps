@@ -1443,17 +1443,17 @@
         <attribute name="sourceAWavelength">
             <channel>sad:sourceAWavelength.VAL</channel>
             <type>DOUBLE</type>
-            <description>Source A Wavelength</description>
+            <description>Source A Wavelength (Angstroms)</description>
         </attribute>
         <attribute name="sourceBWavelength">
             <channel>sad:sourceBWavelength.VAL</channel>
             <type>DOUBLE</type>
-            <description>Source B Wavelength</description>
+            <description>Source B Wavelength (Angstroms)</description>
         </attribute>
         <attribute name="sourceCWavelength">
             <channel>sad:sourceCWavelength.VAL</channel>
             <type>DOUBLE</type>
-            <description>Source C Wavelength</description>
+            <description>Source C Wavelength (Angstroms)</description>
         </attribute>
         <attribute name="port2Label">
             <channel>port:port2.VAL</channel>
@@ -1564,7 +1564,7 @@
         <attribute name="elevatio">
             <channel>currentEl.VAL</channel>
             <type>DOUBLE</type>
-            <description>Current Elevation</description>
+            <description>Current Elevation (Degrees)</description>
         </attribute>
         <attribute name="crpa">
             <channel>currentRma.VAL</channel>

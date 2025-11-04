@@ -30,21 +30,22 @@ trait ConditionSetReader[F[_]] {
   def waterVaporDbl: F[Double]
 
   def backgroundLightDbl: F[Double]
+
+  protected def percentileStr(v: Option[Int]): String =
+    v.map(x => if (x === 100) "Any" else s"$x-percentile").getOrElse("UNKNOWN")
+
 }
 
 object ConditionSetReaderEpics {
   def apply[F[_]: Monad](site: Site, tcsEpics: TcsEpics[F])(
     conditions: Conditions
   ): ConditionSetReader[F] = new ConditionSetReader[F]:
-    private def percentileStr(v: Option[Int]): String =
-      v.map(x => if (x === 100) "Any" else s"$x-percentile").getOrElse("UNKNOWN")
-
     override def imageQualityStr: F[String] = for {
-      wv <- tcsEpics.sourceATarget.centralWavelenght
+      wv <- tcsEpics.sourceATarget.centralWavelengthAngstroms
       el <- tcsEpics.elevation
     } yield percentileStr(
       Wavelength
-        .fromIntNanometers(wv.toInt)
+        .fromIntAngstroms(wv.toInt)
         .flatMap(w => conditions.iq.map(_.toPercentile(w, Angle.fromDoubleDegrees(el))))
     )
 
@@ -78,8 +79,6 @@ object ConditionSetReaderEpics {
 object DummyConditionSetReader {
   def apply[F[_]: Applicative](site: Site)(conditions: Conditions): ConditionSetReader[F] =
     new ConditionSetReader[F] {
-      private def percentileStr(v: Option[Int]): String =
-        v.map(x => if (x === 100) "Any" else s"$x-percentile").getOrElse("UNKNOWN")
 
       override def imageQualityStr: F[String] = DefaultHeaderValue[String].default.pure[F]
 
