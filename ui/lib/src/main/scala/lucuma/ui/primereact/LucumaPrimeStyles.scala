@@ -7,9 +7,8 @@ import cats.syntax.all.*
 import lucuma.react.common.*
 
 trait LucumaPrimeStyles:
-  // compact is used for form columns and buttons
+  // these are used for form columns and buttons
   val Compact: Css     = Css("pl-compact")
-  // not used for buttons, at least not at the moment
   val VeryCompact: Css = Css("pl-very-compact")
 
   // currently used for buttons
