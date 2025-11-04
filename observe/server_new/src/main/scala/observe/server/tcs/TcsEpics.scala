@@ -1028,7 +1028,7 @@ final class TcsEpicsImpl[F[_]: Async](epicsService: CaService, tops: Map[String,
 
     override def frame: F[String] = safeAttributeF(tcsState.getStringAttribute("frame"))
 
-    override def centralWavelenght: F[Double] = sourceAWavelength
+    override def centralWavelength: F[Double] = sourceAWavelength
 
     override def ra: F[Double] = safeAttributeSDoubleF(tcsState.getDoubleAttribute("ra"))
 
@@ -1058,7 +1058,7 @@ final class TcsEpicsImpl[F[_]: Async](epicsService: CaService, tops: Map[String,
       tcsState.getDoubleAttribute(base + "arv")
     )
     override def frame: F[String]             = safeAttributeF(tcsState.getStringAttribute(base + "aframe"))
-    override def centralWavelenght: F[Double] =
+    override def centralWavelength: F[Double] =
       safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "awavel"))
     override def ra: F[Double]                = safeAttributeSDoubleF(tcsState.getDoubleAttribute(base + "ara"))
     override def objectName: F[String]        = safeAttributeF(
@@ -1432,7 +1432,7 @@ object TcsEpics extends EpicsSystem[TcsEpics[IO]] {
     def epoch: F[String]
     def properMotionRA: F[Double]
     def properMotionDec: F[Double]
-    def centralWavelenght: F[Double]
+    def centralWavelength: F[Double]
     def parallax: F[Double]
     def radialVelocity: F[Double]
   }
@@ -1448,7 +1448,7 @@ object TcsEpics extends EpicsSystem[TcsEpics[IO]] {
       def epoch: F[String]             = tio.epoch.to[F]
       def properMotionRA: F[Double]    = tio.properMotionRA.to[F]
       def properMotionDec: F[Double]   = tio.properMotionDec.to[F]
-      def centralWavelenght: F[Double] = tio.centralWavelenght.to[F]
+      def centralWavelength: F[Double] = tio.centralWavelength.to[F]
       def parallax: F[Double]          = tio.parallax.to[F]
       def radialVelocity: F[Double]    = tio.radialVelocity.to[F]
     }

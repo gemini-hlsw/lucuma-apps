@@ -454,7 +454,7 @@ object TcsKeywordsReaderEpics extends TcsKeywordDefaults {
 
       override def parallax: F[Double] = t.parallax.safeValOrDefault
 
-      override def wavelength: F[Double] = t.centralWavelenght.safeValOrDefault
+      override def wavelength: F[Double] = t.centralWavelength.safeValOrDefault
 
       override def epoch: F[Double] = t.epoch.map(translateEpoch).safeValOrDefault
 

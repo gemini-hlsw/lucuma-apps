@@ -1173,7 +1173,7 @@ object TestTcsEpics {
       override def properMotionRA: F[Double]    = st.get.map(g.andThen(TargetVals.properMotionRA).get)
       override def properMotionDec: F[Double]   =
         st.get.map(g.andThen(TargetVals.properMotionDec).get)
-      override def centralWavelenght: F[Double] =
+      override def centralWavelength: F[Double] =
         st.get.map(g.andThen(TargetVals.centralWavelenght).get)
       override def parallax: F[Double]          = st.get.map(g.andThen(TargetVals.parallax).get)
       override def radialVelocity: F[Double]    = st.get.map(g.andThen(TargetVals.radialVelocity).get)
