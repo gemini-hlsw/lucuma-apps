@@ -41,7 +41,7 @@ object ConditionSetReaderEpics {
     conditions: Conditions
   ): ConditionSetReader[F] = new ConditionSetReader[F]:
     override def imageQualityStr: F[String] = for {
-      wv <- tcsEpics.sourceATarget.centralWavelength // sourceWavelength (A, B y C) are in Angstroms
+      wv <- tcsEpics.sourceATarget.centralWavelengthAngstroms
       el <- tcsEpics.elevation
     } yield percentileStr(
       Wavelength

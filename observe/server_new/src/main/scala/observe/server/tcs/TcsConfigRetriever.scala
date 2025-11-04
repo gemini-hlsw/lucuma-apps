@@ -182,7 +182,7 @@ object TcsConfigRetriever {
       epicsSys.yoffsetPoA1.map(_.withUnit[Millimeter])
 
     private def getWavelength: F[Wavelength] =
-      epicsSys.sourceAWavelength.map(v =>
+      epicsSys.sourceAWavelengthAngstroms.map(v =>
         Wavelength.fromIntAngstroms(v.toInt).getOrElse(Wavelength.Min)
       )
 
