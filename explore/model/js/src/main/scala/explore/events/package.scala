@@ -22,6 +22,7 @@ object ExploreEvent {
   val PWAUpdateId      = 2
   val PWAReloadId      = 3
   val ExploreUIReadyId = 4
+  val PWATestToastId   = 5
 
   class LogoutEvent(val nonce: String) extends ExploreEvent {
     val event = LogoutEventId
@@ -46,6 +47,11 @@ object ExploreEvent {
 
   object ExploreUIReady extends ExploreEvent {
     val event = ExploreUIReadyId
+    val value = ""
+  }
+
+  object PWATestToast extends ExploreEvent {
+    val event = PWATestToastId
     val value = ""
   }
 

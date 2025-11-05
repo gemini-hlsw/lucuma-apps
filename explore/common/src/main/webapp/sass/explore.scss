@@ -3529,11 +3529,10 @@ div.spectroscopy-table-emptymessage {
   }
 }
 
-// Needed to make sure the PWA update toast is always on top
-.p-toast,
-// has not working properely on FF
-.p-toast:has(.explore-prompt-toast) {
-  z-index: 2000;
+.toast-portal {
+  .p-toast {
+    z-index: 2147483647 !important;
+  }
 }
 
 a.explore-upgrade-link {

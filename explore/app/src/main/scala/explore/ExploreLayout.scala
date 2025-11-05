@@ -17,6 +17,7 @@ import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
 import explore.common.UserPreferencesQueries
+import explore.components.ToastPortal
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
@@ -40,7 +41,6 @@ import lucuma.react.hotkeys.hooks.*
 import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Sidebar
-import lucuma.react.primereact.Toast
 import lucuma.react.primereact.ToastRef
 import lucuma.react.primereact.hooks.all.*
 import lucuma.refined.*
@@ -116,8 +116,7 @@ object ExploreLayout:
       bc.messages.evalMap:
         // This is coming from the js world, we can't match the type
         _.data.event match
-          // TODO: Handle logout events
-          case ExploreEvent.PWAUpdateId =>
+          case ExploreEvent.PWAUpdateId | ExploreEvent.PWATestToastId =>
             // Clear other toasts first
             toastRef.clear().toAsync *>
               toastRef
@@ -137,7 +136,7 @@ object ExploreLayout:
                     .runAsyncAndForget
                 )
                 .toAsync
-          case _                        => IO.unit
+          case _                                                      => IO.unit
 
   private val component =
     ScalaFnComponent[Props]: props =>
@@ -211,7 +210,6 @@ object ExploreLayout:
         val userVault: View[Option[UserVault]] = view.zoom(RootModel.vault)
 
         React.Fragment(
-          Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(toastRef.ref),
           // On Error we show a modal dialog with the error message while we reload.
           programError.value
             .map(error =>
@@ -416,5 +414,6 @@ object ExploreLayout:
               }
               .getOrElse:
                 props.resolution.renderP(props.model)
-          )
+          ),
+          ToastPortal(toastRef)
         )
