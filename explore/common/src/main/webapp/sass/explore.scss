@@ -1792,7 +1792,7 @@ svg.fa-check.explore-success-icon {
     gap: 1em;
     grid-template:
       'acquisition buttons' auto
-      / 6fr 4fr; // give the buttons a little more space
+      / 2fr 1fr;
 
     .explore-acquisition-customization-grid {
       display: grid;
@@ -1806,6 +1806,10 @@ svg.fa-check.explore-success-icon {
     .explore-advanced-configuration-buttons {
       grid-area: buttons;
       justify-self: end;
+
+      .p-component.p-button {
+        margin-bottom: 0.5em;
+      }
     }
   }
 
