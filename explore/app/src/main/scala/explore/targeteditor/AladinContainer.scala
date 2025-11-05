@@ -30,6 +30,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SiderealTracking
@@ -88,12 +89,12 @@ object AladinContainer extends AladinCommon {
 
   private def svgTargetAndLine(
     obsTimeCoords: Coordinates,
-    epochCoords:   Option[Coordinates],
+    surveyCoords:  Option[Coordinates],
     targetSVG:     Coordinates => SVGTarget,
     lineStyle:     Css
   ): List[SVGTarget] =
     targetSVG(obsTimeCoords) ::
-      epochCoords
+      surveyCoords
         .map: source =>
           SVGTarget.LineTo(source, obsTimeCoords, lineStyle)
         .toList
@@ -105,14 +106,15 @@ object AladinContainer extends AladinCommon {
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
     candidatesVisibility:       Css,
-    calcSize:                   Double => Double
+    calcSize:                   Double => Double,
+    surveyEpoch:                Epoch
   ): List[SVGTarget] = {
     val tracking     = g.target.tracking
     val candidateCss =
       if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
 
-    val (epochCoords, obsTimeCoords) =
-      tracking.trackedPositions(siderealDiscretizedObsTime.obsTime, tracking.epoch.some)
+    val (surveyCoords, obsTimeCoords) =
+      tracking.trackedPositions(siderealDiscretizedObsTime.obsTime, surveyEpoch.some)
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
@@ -128,7 +130,7 @@ object AladinContainer extends AladinCommon {
     if (candidates.length < 500) {
       svgTargetAndLine(
         obsTimeCoords,
-        epochCoords,
+        surveyCoords,
         guideTargetSVG,
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
@@ -144,7 +146,8 @@ object AladinContainer extends AladinCommon {
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
-    scienceTargets:             List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]
+    scienceTargets:             List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)],
+    surveyEpoch:                Epoch
   ): List[SVGTarget] = {
 
     val fov = fovRA.toMicroarcseconds / 1e6
@@ -166,12 +169,14 @@ object AladinContainer extends AladinCommon {
           configuration,
           selectedGS,
           candidatesVisibility,
-          calcSize
+          calcSize,
+          surveyEpoch
         )
   }
 
   private def baseAndScience(
-    p: Props
+    p: Props,
+    surveyEpoch: Epoch
   ): (Coordinates, List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]) = {
     val baseObsTimeCoords =
       p.asterismTracking
@@ -180,10 +185,10 @@ object AladinContainer extends AladinCommon {
 
     val science = p.asterism.toSidereal
       .map: t =>
-        val (epochCoords, obsTimeCoords) =
-          t.target.tracking.trackedPositions(p.obsTime, Some(t.target.tracking.epoch))
+        val (surveyCoords, obsTimeCoords) =
+          t.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
 
-        (t.id === p.asterism.focus.id, t.target.name, epochCoords, obsTimeCoords)
+        (t.id === p.asterism.focus.id, t.target.name, surveyCoords, obsTimeCoords)
 
     (baseObsTimeCoords, science)
   }
@@ -198,15 +203,22 @@ object AladinContainer extends AladinCommon {
 
   private val component =
     ScalaFnComponent[Props]: props =>
+      val initialSurvey = props.vizConf
+        .flatMap(_.centralWavelength)
+        .map(w => surveyForWavelength(w.value))
+        .getOrElse(ImageSurvey.DSS)
+
       for {
         // Base coordinates and science targets with pm correction if possible
-        baseCoords <- useState(baseAndScience(props))
+        baseCoords <- useState(baseAndScience(props, initialSurvey.epoch))
         // View coordinates base coordinates with pm correction + user panning
         currentPos <-
           useState(baseCoords.value._1.offsetBy(Angle.Angle0, props.options.viewOffset))
-        // Update coordinates if asterism or obsTime changes
-        _          <- useEffectWithDeps((props.asterism, props.obsTime)): _ =>
-                        val (base, science) = baseAndScience(props)
+        // Survey
+        survey     <- useState(initialSurvey)
+        // Update coordinates if asterism or obsTime or survey changes
+        _          <- useEffectWithDeps((props.asterism, props.obsTime, survey)): (_, _, s) =>
+                        val (base, science) = baseAndScience(props, s.value.epoch)
                         baseCoords.setState((base, science)) *>
                           currentPos.setState:
                             base.offsetBy(Angle.Angle0, props.options.viewOffset)
@@ -284,7 +296,8 @@ object AladinContainer extends AladinCommon {
                          props.siderealDiscretizedObsTime,
                          props.vizConf.map(_.configuration),
                          props.selectedGuideStar,
-                         baseCoords
+                         baseCoords,
+                         survey
                         )
                       ):
                         (
@@ -295,7 +308,8 @@ object AladinContainer extends AladinCommon {
                           siderealDiscretizedObsTime,
                           configuration,
                           selectedGS,
-                          baseCoords
+                          baseCoords,
+                          survey
                         ) =>
                           selectedGS.posAngle.foldMap: _ =>
                             val (_, scienceTargets) = baseCoords.value
@@ -306,18 +320,12 @@ object AladinContainer extends AladinCommon {
                               siderealDiscretizedObsTime,
                               configuration,
                               selectedGS,
-                              scienceTargets
+                              scienceTargets,
+                              survey.value.epoch
                             )
 
         // Use fov from aladin
         fov    <- useState(none[Fov])
-        // Survey
-        survey <- useState(
-                    props.vizConf
-                      .flatMap(_.centralWavelength)
-                      .map(w => surveyForWavelength(w.value))
-                      .getOrElse(ImageSurvey.DSS)
-                  )
         // Update survey if conf changes
         _      <-
           useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))): w =>
@@ -361,36 +369,37 @@ object AladinContainer extends AladinCommon {
             .map(Coordinates.fromHmsDms.reverseGet)
             .getOrElse(Coordinates.fromHmsDms.reverseGet(baseCoordinates))
 
+        val baseSurveyEpochCoords =
+          props.asterismTracking.at(survey.value.epoch.toInstant)
+
         val basePosition =
           List(
             SVGTarget.CrosshairTarget(baseCoordinates, Css.Empty, 10),
-            SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3),
+            SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3)
+          ) ++ baseSurveyEpochCoords.map: surveyCoords =>
             SVGTarget.LineTo(
+              surveyCoords,
               baseCoordinates,
-              props.asterismTracking.baseCoordinates,
               ExploreStyles.PMCorrectionLine
             )
-          )
 
         val sciencePositions =
           if (scienceTargets.length > 1)
-            scienceTargets.flatMap { (selected, name, pm, base) =>
-              pm.foldMap { pm =>
-                svgTargetAndLine(
-                  pm,
-                  base.some,
-                  coords =>
-                    SVGTarget.ScienceTarget(
-                      coords,
-                      ExploreStyles.ScienceTarget,
-                      ExploreStyles.ScienceSelectedTarget,
-                      3,
-                      selected,
-                      name.value.some
-                    ),
-                  ExploreStyles.PMCorrectionLine
-                )
-              }
+            scienceTargets.flatMap { (selected, name, surveyCoords, obsTimeCoords) =>
+              svgTargetAndLine(
+                obsTimeCoords,
+                surveyCoords,
+                coords =>
+                  SVGTarget.ScienceTarget(
+                    coords,
+                    ExploreStyles.ScienceTarget,
+                    ExploreStyles.ScienceSelectedTarget,
+                    3,
+                    selected,
+                    name.value.some
+                  ),
+                ExploreStyles.PMCorrectionLine
+              )
             }
           else Nil
 

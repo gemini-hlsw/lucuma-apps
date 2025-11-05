@@ -1,0 +1,13 @@
+/*
+!/*/
+/schemas/
+!/schemas/*/
+/ui/
+!/ui/*/
+/explore/
+/project/
+/schemas/lib/
+/schemas/model/
+/schemas/testkit/
+/ui/lib/
+/ui/testkit/
