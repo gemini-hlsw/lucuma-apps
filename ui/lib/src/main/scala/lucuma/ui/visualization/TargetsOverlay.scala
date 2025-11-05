@@ -220,16 +220,7 @@ object TargetsOverlay
                 OffsetSVG(offP, offQ, maxP, radius, pointCss, oType, idx, o)
 
               case (offP, offQ, SVGTarget.BlindOffsetTarget(_, css, radius, title)) =>
-                val pointCss     = VisualizationStyles.BlindOffsetTarget |+| css
-                val scaledRadius = scale(maxP * radius)
-                val cx           = scale(offP)
-                val cy           = scale(offQ)
-
-                <.polygon(
-                  ^.points := s"${cx},${cy - scaledRadius} ${cx + scaledRadius},${cy} ${cx},${cy + scaledRadius} ${cx - scaledRadius},${cy}",
-                  pointCss,
-                  title.map(<.title(_))
-                )
+                BlindOffsetTarget(offP, offQ, maxP, radius, css)
 
               case (offP, offQ, SVGTarget.LineTo(_, d, css, title)) =>
                 val destOffset = d.diff(p.baseCoordinates).offset
