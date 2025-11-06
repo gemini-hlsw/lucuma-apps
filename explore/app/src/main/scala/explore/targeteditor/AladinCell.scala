@@ -40,6 +40,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -62,15 +63,17 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 case class AladinCell(
-  uid:                User.Id,
-  obsId:              Option[Observation.Id],
-  asterism:           Asterism,
-  asterismTracking:   Tracking,
-  obsTime:            Instant,
-  obsConf:            Option[ObsConfiguration],
-  fullScreen:         View[AladinFullScreen],
-  userPreferences:    View[UserPreferences],
-  guideStarSelection: View[GuideStarSelection]
+  uid:                 User.Id,
+  obsId:               Option[Observation.Id],
+  asterism:            Asterism,
+  asterismTracking:    Tracking,
+  obsTime:             Instant,
+  obsConf:             Option[ObsConfiguration],
+  fullScreen:          View[AladinFullScreen],
+  userPreferences:     View[UserPreferences],
+  guideStarSelection:  View[GuideStarSelection],
+  focusedTargetId:     Target.Id,
+  blindOffsetTargetId: Option[Target.Id] = None
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)

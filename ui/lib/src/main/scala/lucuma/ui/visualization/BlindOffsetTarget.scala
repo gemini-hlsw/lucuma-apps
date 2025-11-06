@@ -13,22 +13,32 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 
 case class BlindOffsetTarget(
-  offP:     Double,
-  offQ:     Double,
-  maxP:     Long,
-  radius:   Double,
-  pointCss: Css,
-  title:    Option[String] = "blind offset".some
+  offP:        Double,
+  offQ:        Double,
+  maxP:        Long,
+  radius:      Double,
+  pointCss:    Css,
+  selectedCss: Css,
+  selected:    Boolean,
+  title:       String
 ) extends ReactFnProps(BlindOffsetTarget)
 
 object BlindOffsetTarget
     extends ReactFnComponent[BlindOffsetTarget](p =>
       val pointCss = VisualizationStyles.BlindOffsetTarget |+| p.pointCss
 
-      <.circle(VisualizationStyles.VisualizationTooltipTarget)(
-        ^.cx := scale(p.offP),
-        ^.cy := scale(p.offQ),
-        ^.r  := scale(p.maxP * p.radius),
-        pointCss
-      ).withTooltipOptions(content = p.title.getOrElse("<>"))
+      <.g(VisualizationStyles.VisualizationTooltipTarget)(
+        <.circle(
+          ^.cx := scale(p.offP),
+          ^.cy := scale(p.offQ),
+          ^.r  := scale(p.maxP * (p.radius + 3)),
+          p.selectedCss
+        ).when(p.selected),
+        <.circle(
+          ^.cx := scale(p.offP),
+          ^.cy := scale(p.offQ),
+          ^.r  := scale(p.maxP * p.radius),
+          pointCss
+        )
+      ).withTooltipOptions(content = p.title)
     )

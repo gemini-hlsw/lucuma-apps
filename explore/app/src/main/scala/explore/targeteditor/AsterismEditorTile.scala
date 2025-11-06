@@ -232,6 +232,19 @@ object AsterismEditorTile:
                                   props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
                                 case _    => Callback.empty
           fullScreen   <- useStateView(AladinFullScreen.Normal)
+          _            <-
+            useLayoutEffectWithDeps((props.focusedTargetId, props.allTargets.get)):
+              (focusedTargetId, allTargets) =>
+                focusedTargetId match
+                  case Some(targetId) =>
+                    val targetExists = allTargets.get(targetId).map(t => (t.id, t.target.name))
+                    Callback.log(
+                      s"TargetEditor render check: focusedTargetId=$targetId, exists=$targetExists"
+                    )
+                  case None           =>
+                    Callback.log(
+                      "TargetEditor render check: focusedTargetId=None (will show placeholder)"
+                    )
         yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -282,31 +295,43 @@ object AsterismEditorTile:
                 // NOTE: If the blind offset is selected, the asterism passed to the target
                 // editor will not be focused properly since the blind offset is not in the asterism.
                 // But, I think that was only get the target id to edit, which we now get from the TargetWithId
-                selectedTargetOpt
-                  .map: targetWithId =>
+
+                // Always render the container to prevent layout shift when selecting targets
+                <.div(
+                  ExploreStyles.TargetTileEditor,
+                  selectedTargetOpt.fold(
                     <.div(
-                      ExploreStyles.TargetTileEditor,
-                      TargetEditor(
-                        props.programId,
-                        props.userId,
-                        targetWithId,
-                        props.obsAndTargets,
-                        asterism.focusOn(focusedTargetId),
-                        props.obsTime,
-                        props.obsConf.some,
-                        props.searching,
-                        onClone = props.onCloneTarget,
-                        obsInfo = obsInfo,
-                        fullScreen = fullScreen,
-                        userPreferences = props.userPreferences,
-                        guideStarSelection = props.guideStarSelection,
-                        attachments = props.attachments,
-                        authToken = props.authToken,
-                        readonly = props.readonly,
-                        allowEditingOngoing = props.allowEditingOngoing,
-                        invalidateSequence = props.sequenceChanged
-                      )
+                      ^.display        := "flex",
+                      ^.justifyContent := "center",
+                      ^.alignItems     := "center",
+                      ^.padding        := "2rem",
+                      ^.color          := "#888",
+                      "Select a target to view details"
                     )
+                  )(targetWithId =>
+                    TargetEditor(
+                      props.programId,
+                      props.userId,
+                      targetWithId,
+                      props.obsAndTargets,
+                      asterism.focusOn(focusedTargetId),
+                      props.obsTime,
+                      props.obsConf.some,
+                      props.searching,
+                      onClone = props.onCloneTarget,
+                      obsInfo = obsInfo,
+                      fullScreen = fullScreen,
+                      userPreferences = props.userPreferences,
+                      guideStarSelection = props.guideStarSelection,
+                      attachments = props.attachments,
+                      authToken = props.authToken,
+                      readonly = props.readonly,
+                      allowEditingOngoing = props.allowEditingOngoing,
+                      invalidateSequence = props.sequenceChanged,
+                      blindOffsetTargetId = props.blindOffset.flatMap(_.get.blindOffsetTargetId)
+                    )
+                  )
+                ).some
           )
       )
 

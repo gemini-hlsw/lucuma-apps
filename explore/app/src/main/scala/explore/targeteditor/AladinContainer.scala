@@ -34,6 +34,7 @@ import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.SiderealTracking
+import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
@@ -188,7 +189,11 @@ object AladinContainer extends AladinCommon {
         val (surveyCoords, obsTimeCoords) =
           t.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
 
+<<<<<<< HEAD
         (t.id === p.asterism.focus.id, t.target.name, surveyCoords, obsTimeCoords)
+=======
+        (t.id === p.focusedTargetId, t.target.name, epochCoords, obsTimeCoords)
+>>>>>>> 0281e7320 (blind-center)
 
     (baseObsTimeCoords, science)
   }
@@ -369,19 +374,21 @@ object AladinContainer extends AladinCommon {
             .map(Coordinates.fromHmsDms.reverseGet)
             .getOrElse(Coordinates.fromHmsDms.reverseGet(baseCoordinates))
 
-        val baseSurveyEpochCoords =
+        val baseSurveyEpochCoors =
           props.asterismTracking.at(survey.value.epoch.toInstant)
 
         val basePosition =
-          List(
-            SVGTarget.CrosshairTarget(baseCoordinates, Css.Empty, 10),
-            SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3)
-          ) ++ baseSurveyEpochCoords.map: surveyCoords =>
-            SVGTarget.LineTo(
-              surveyCoords,
-              baseCoordinates,
-              ExploreStyles.PMCorrectionLine
+          if (scienceTargets.length <= 1)
+            List(
+              SVGTarget.CrosshairTarget(baseCoordinates, Css.Empty, 10),
+              SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3),
+              SVGTarget.LineTo(
+                baseCoordinates,
+                props.asterismTracking.baseCoordinates,
+                ExploreStyles.PMCorrectionLine
+              )
             )
+          else Nil
 
         val sciencePositions =
           if (scienceTargets.length > 1)
@@ -412,8 +419,9 @@ object AladinContainer extends AladinCommon {
           props.vizConf.foldMap(f).foldMap(_.toList).zipWithIndex.map { case (o, i) =>
             for {
               idx       <- refineV[NonNegative](i).toOption
-              posAngle  <- props.selectedGuideStar.map(_.posAngle)
-                            .orElse(props.vizConf.map(_.posAngle))
+              posAngle  <- props.selectedGuideStar
+                             .map(_.posAngle)
+                             .orElse(props.vizConf.map(_.posAngle))
               baseCoords = if (oType === SequenceType.Acquisition) {
                              props.blindOffset
                                .flatMap(_.at(props.obsTime))
@@ -447,10 +455,20 @@ object AladinContainer extends AladinCommon {
               val (epochCoords, obsTimeCoords) =
                 bo.trackedPositions(props.siderealDiscretizedObsTime.obsTime, Some(bo.epoch))
 
+              // Check if the blind offset is selected by comparing the focused target ID with the blind offset target ID
+              val isSelected = props.blindOffsetTargetId.exists(_ === props.focusedTargetId)
+
               svgTargetAndLine(
                 obsTimeCoords,
                 epochCoords,
-                coords => SVGTarget.BlindOffsetTarget(coords, ExploreStyles.BlindOffsetTarget, 6),
+                coords =>
+                  SVGTarget.BlindOffsetTarget(
+                    coords,
+                    ExploreStyles.BlindOffsetTarget,
+                    ExploreStyles.BlindOffsetSelectedTarget,
+                    6,
+                    isSelected
+                  ),
                 ExploreStyles.BlindOffsetLine
               )
 

@@ -80,7 +80,8 @@ case class TargetEditor(
   authToken:           Option[NonEmptyString],
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
-  invalidateSequence:  Callback = Callback.empty
+  invalidateSequence:  Callback = Callback.empty,
+  blindOffsetTargetId: Option[Target.Id] = None
 ) extends ReactFnProps(TargetEditor.component)
 
 object TargetEditor:
@@ -420,7 +421,9 @@ object TargetEditor:
                   props.obsConf,
                   props.fullScreen,
                   props.userPreferences,
-                  props.guideStarSelection
+                  props.guideStarSelection,
+                  props.targetWithId.get.id,
+                  props.blindOffsetTargetId
                 )
               ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(

@@ -253,6 +253,26 @@ $brightness: var(--aladin-image-brightness);
 
   .targets-overlay-svg {
     isolation: isolate;
+
+    .blind-offset-target {
+      stroke: purple;
+      fill: hsl(300deg 100% 25% / 50%);
+      stroke-width: 1px;
+    }
+
+    .science-target {
+      fill: hsl(240deg 100% 60.2%);
+      stroke: hsl(240deg 100% 60.2%);
+      stroke-width: 1px;
+      pointer-events: stroke;
+    }
+
+    .science-selected-target {
+      fill: hsl(33deg 100% 50%);
+      stroke: hsl(33deg 100% 50%);
+      stroke-width: 2px;
+    }
+
   }
 
   .targets-overlay-svg .arrow-between-targets {
