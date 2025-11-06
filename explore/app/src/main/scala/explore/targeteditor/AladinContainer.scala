@@ -412,7 +412,8 @@ object AladinContainer extends AladinCommon {
           props.vizConf.foldMap(f).foldMap(_.toList).zipWithIndex.map { case (o, i) =>
             for {
               idx       <- refineV[NonNegative](i).toOption
-              gs        <- props.selectedGuideStar
+              posAngle  <- props.selectedGuideStar.map(_.posAngle)
+                            .orElse(props.vizConf.map(_.posAngle))
               baseCoords = if (oType === SequenceType.Acquisition) {
                              props.blindOffset
                                .flatMap(_.at(props.obsTime))
@@ -420,7 +421,7 @@ object AladinContainer extends AladinCommon {
                            } else {
                              baseCoordinates
                            }
-              c         <- baseCoords.offsetBy(gs.posAngle, o) if visible
+              c         <- baseCoords.offsetBy(posAngle, o) if visible
             } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
           }
 
