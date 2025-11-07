@@ -90,7 +90,7 @@ case class SiderealTargetWithId(
 
   def at(i: Instant): SiderealTargetWithId = {
     val ldt            = LocalDateTime.ofInstant(i, ZoneOffset.UTC)
-    val epoch          = Epoch.Julian.fromLocalDateTime(ldt).getOrElse(target.tracking.epoch)
+    val epoch          = Epoch.Julian.fromUtcDateTime(ldt).getOrElse(target.tracking.epoch)
     val trackingUpdate = (tracking: SiderealTracking) =>
       tracking.at(i).fold(tracking) { c =>
         val update = SiderealTracking.baseCoordinates.replace(c) >>> SiderealTracking.epoch

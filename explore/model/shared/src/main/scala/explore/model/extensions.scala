@@ -31,7 +31,7 @@ object extensions:
   extension (target: Target.Sidereal)
     def at(i: Instant): Target.Sidereal = {
       val ldt            = LocalDateTime.ofInstant(i, ZoneOffset.UTC)
-      val epoch          = Epoch.Julian.fromLocalDateTime(ldt).getOrElse(target.tracking.epoch)
+      val epoch          = Epoch.Julian.fromUtcDateTime(ldt).getOrElse(target.tracking.epoch)
       val trackingUpdate = (tracking: SiderealTracking) =>
         tracking.at(i).fold(tracking) { c =>
           val update = SiderealTracking.baseCoordinates.replace(c) >>> SiderealTracking.epoch
@@ -105,7 +105,7 @@ object extensions:
       obsTime:     Instant
     ): (Option[Coordinates], Coordinates) =
       (targetEpoch.flatMap: epoch =>
-         val epochInstant = epoch.toInstant
+         val epochInstant = epoch.unsafeToInstant
          tracking.at(epochInstant)
        ,
        tracking
