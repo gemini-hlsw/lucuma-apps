@@ -65,9 +65,9 @@ object GroupEditBody
       val intervalsLens: Lens[Group, (Option[TimeSpan], Option[TimeSpan])] =
         Group.minimumInterval.disjointZip(Group.maximumInterval)
 
-      def isIntervalError(min: Option[TimeSpan], max: Option[TimeSpan]): Boolean =
+      def isIntervalError(min: Option[TimeSpan], max: TimeSpan, useMax: Boolean): Boolean =
         // If either is unset, the API is fine with it
-        (min, max).tupled.exists(_ > _)
+        min.exists(m => useMax && (m > max))
 
       val intervalErrorString: NonEmptyString =
         "Mininum delay must be <= Maximum delay".refined
@@ -90,37 +90,43 @@ object GroupEditBody
           )
 
       for
-        ctx           <- useContext(AppContext.ctx)
-        editType      <- useStateView:
-                           if props.group.get.isAnd then GroupEditType.And else GroupEditType.Or
-        isLoading     <- useStateView(false)
-        minIntervalV  <- useStateView(props.group.get.minimumInterval)
-        maxIntervalV  <- useStateView(props.group.get.maximumInterval)
-        _             <- useEffectWithDeps(props.group.get.minimumInterval): ots =>
-                           minIntervalV.set(ots)
-        _             <- useEffectWithDeps(props.group.get.maximumInterval): ots =>
-                           maxIntervalV.set(ots)
+        ctx            <- useContext(AppContext.ctx)
+        editType       <- useStateView:
+                            if props.group.get.isAnd then GroupEditType.And else GroupEditType.Or
+        isLoading      <- useStateView(false)
+        minIntervalV   <- useStateView(props.group.get.minimumInterval)
+        maxIntervalV   <- useStateView(props.group.get.maximumInterval.orEmpty)
+        useMaxInterval <- useStateView(props.group.get.maximumInterval.isDefined)
+        _              <- useEffectWithDeps(props.group.get.minimumInterval): ots =>
+                            minIntervalV.set(ots)
+        _              <- useEffectWithDeps(props.group.get.maximumInterval): ots =>
+                            ots.fold(useMaxInterval.set(false))(ts =>
+                              maxIntervalV.set(ts) >> useMaxInterval.set(true)
+                            )
+
         _             <-
-          useEffectWithDeps((minIntervalV.get, maxIntervalV.get)): (min, max) =>
-            if (
-              !isIntervalError(min, max) &&
-              (props.group.get.minimumInterval =!= min || props.group.get.maximumInterval =!= max)
-            )
-              groupModViewBase(
-                props.group,
-                intervalsLens,
-                (n, x) =>
-                  GroupPropertiesInput(minimumInterval = n.map(_.toInput).orUnassign,
-                                       maximumInterval = x.map(_.toInput).orUnassign
-                  ),
-                ctx.odbApi,
-                isLoading
-              )(using ctx.logger).set((min, max))
-            else Callback.empty
+          useEffectWithDeps((minIntervalV.get, maxIntervalV.get, useMaxInterval.get)):
+            (min, max, useMax) =>
+              val optMax = if useMax then max.some else none
+              if (
+                !isIntervalError(min, max, useMax) &&
+                (props.group.get.minimumInterval =!= min || props.group.get.maximumInterval =!= optMax)
+              )
+                groupModViewBase(
+                  props.group,
+                  intervalsLens,
+                  (n, x) =>
+                    GroupPropertiesInput(minimumInterval = n.map(_.toInput).orUnassign,
+                                         maximumInterval = x.map(_.toInput).orUnassign
+                    ),
+                  ctx.odbApi,
+                  isLoading
+                )(using ctx.logger).set((min, optMax))
+              else Callback.empty
         nameDisplay   <- useState(props.group.get.name)
         intervalError <-
-          useMemo((minIntervalV.get, maxIntervalV.get)): (min, max) =>
-            Option.when(isIntervalError(min, max))(intervalErrorString).orUndefined
+          useMemo((minIntervalV.get, maxIntervalV.get, useMaxInterval.get)): (min, max, useMax) =>
+            Option.when(isIntervalError(min, max, useMax))(intervalErrorString).orUndefined
       yield
         import ctx.given
 
@@ -227,14 +233,21 @@ object GroupEditBody
             disabled = isDisabled,
             error = intervalError.value
           ),
+          Checkbox(
+            id = "useMaxDelay",
+            checked = useMaxInterval.get,
+            onChange = useMaxInterval.set,
+            disabled = isDisabled
+          ),
+          FormLabel(htmlFor = "useMaxDelay".refined)("Maximum delay").unless(useMaxInterval.get),
           FormTimeSpanInput(
-            value = maxIntervalV.withNoneAsEmpty,
+            value = maxIntervalV,
             id = "maxDelay".refined,
             label = "Maximum delay",
             min = TimeSpan.Zero,
             disabled = isDisabled,
             error = intervalError.value
-          )
+          ).when(useMaxInterval.get)
         )
 
         val plannedTime =
