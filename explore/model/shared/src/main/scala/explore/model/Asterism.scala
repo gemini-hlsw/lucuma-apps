@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.extensions.*
 import lucuma.core.data.Zipper
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
@@ -20,8 +21,6 @@ import java.time.Instant
 /**
  * Contains a list of targets focused on the selected one on the UI
  */
-// Can this be an opaque type?
-// Maybe this can be a wrapper for a View[Asterism] and a selected id that must be in the view
 case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
   def toSiderealAt(vizTime: Instant): List[SiderealTargetWithId] =
     targets.traverse(_.toSidereal.map(_.at(vizTime))).foldMap(_.toList)
@@ -56,6 +55,26 @@ case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
     Tracking.fromAsterism(targets.toNel.map(_.target))
 
   def hasId(id: Target.Id): Boolean = targets.exists(_.id === id)
+
+  // Find the blind offset target in the zipper
+  def blindOffsetTarget: Option[TargetWithId] =
+    targets.find(_.disposition == TargetDisposition.BlindOffset)
+
+  // Get just the blind offset target ID
+  def blindOffsetTargetId: Option[Target.Id] =
+    blindOffsetTarget.map(_.id)
+
+  // Check if a given target ID is the blind offset target
+  def isBlindOffsetTarget(tid: Target.Id): Boolean =
+    targets.exists(t => t.id == tid && t.disposition == TargetDisposition.BlindOffset)
+
+  // Get all non-blind-offset targets (science + calibration)
+  // def nonBlindOffsetTargets: List[TargetWithId] =
+  //   targets.toList.filter(_.disposition != TargetDisposition.BlindOffset)
+
+  // Get IDs of non-blind-offset targets
+  // def nonBlindOffsetTargetIds: List[Target.Id] =
+  //   nonBlindOffsetTargets.map(_.id)
 }
 
 object Asterism {

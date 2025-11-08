@@ -36,6 +36,7 @@ import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -218,19 +219,23 @@ object AsterismEditorTile:
           asterismIds  <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
                             // all of the selected observations must have the same asterism
                             obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
-          allTargetIds <-
-            useMemo((asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))):
-              (asterism, oBlind) =>
-                // This includes the asterism and blind offset
-                asterism ++ oBlind
+          // Build asterism IDs that include blind offset
+          allAsterismIds <- useMemo((asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))):
+                              (scienceIds, oBlindId) =>
+                                // Include blind offset target in the IDs if present
+                                scienceIds ++ oBlindId.toList
+          allTargetIds <- useState(allAsterismIds.toList)
+          asterism     <- useMemo(allAsterismIds):
+                            ids =>
+                              Asterism.fromIdsAndTargets(ids, props.allTargets.get)
           _            <- useLayoutEffectWithDeps((allTargetIds.value, props.focusedTargetId)):
-                            (targetIds, focusedTargetId) =>
-                              // If the selected targetId is None, or not in the target list, select the first target (if any).
-                              // Need to replace history here.
-                              focusedTargetId.filter(targetIds.contains_) match
-                                case None =>
-                                  props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
-                                case _    => Callback.empty
+                             (targetIds, focusedTargetId) =>
+                               // If the selected targetId is None, or not in the target list, select the first target (if any).
+                               // Need to replace history here.
+                               focusedTargetId.filter(targetIds.contains) match
+                                 case None =>
+                                   props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
+                                 case _    => Callback.empty
           fullScreen   <- useStateView(AladinFullScreen.Normal)
           _            <-
             useLayoutEffectWithDeps((props.focusedTargetId, props.allTargets.get)):
@@ -274,7 +279,7 @@ object AsterismEditorTile:
                   props.userId.some,
                   props.programId,
                   unexecutedObs,
-                  asterismIds,
+                  asterism,
                   props.obsAndTargets,
                   selectedTargetView,
                   props.onAsterismUpdate,
@@ -286,15 +291,15 @@ object AsterismEditorTile:
                 ),
             // it's possible for us to get here without an asterism but with a focused target id. This will get
             // corrected, but we need to not render the target editor before it is corrected.
-            (Asterism.fromIdsAndTargets(asterismIds, props.allTargets.get), props.focusedTargetId)
-              .mapN: (asterism, focusedTargetId) =>
+            asterism.flatMap: a =>
+              props.focusedTargetId.map: focusedTargetId =>
                 val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
                 val obsInfo                                             = props.obsInfo(focusedTargetId)
 
-                // NOTE: If the blind offset is selected, the asterism passed to the target
-                // editor will not be focused properly since the blind offset is not in the asterism.
-                // But, I think that was only get the target id to edit, which we now get from the TargetWithId
+                // NOTE: If blind offset is selected, asterism passed to target
+                // editor will not be focused properly since blind offset is not in asterism.
+                // But, I think that was only get target id to edit, which we now get from TargetWithId
 
                 // Always render the container to prevent layout shift when selecting targets
                 <.div(
@@ -314,7 +319,7 @@ object AsterismEditorTile:
                       props.userId,
                       targetWithId,
                       props.obsAndTargets,
-                      asterism.focusOn(focusedTargetId),
+                      a.focusOn(focusedTargetId),
                       props.obsTime,
                       props.obsConf.some,
                       props.searching,
@@ -327,8 +332,7 @@ object AsterismEditorTile:
                       authToken = props.authToken,
                       readonly = props.readonly,
                       allowEditingOngoing = props.allowEditingOngoing,
-                      invalidateSequence = props.sequenceChanged,
-                      blindOffsetTargetId = props.blindOffset.flatMap(_.get.blindOffsetTargetId)
+                      invalidateSequence = props.sequenceChanged
                     )
                   )
                 ).some

@@ -63,17 +63,16 @@ import java.time.Instant
 import scala.concurrent.duration.*
 
 case class AladinCell(
-  uid:                 User.Id,
-  obsId:               Option[Observation.Id],
-  asterism:            Asterism,
-  asterismTracking:    Tracking,
-  obsTime:             Instant,
-  obsConf:             Option[ObsConfiguration],
-  fullScreen:          View[AladinFullScreen],
-  userPreferences:     View[UserPreferences],
-  guideStarSelection:  View[GuideStarSelection],
-  focusedTargetId:     Target.Id,
-  blindOffsetTargetId: Option[Target.Id] = None
+  uid:                User.Id,
+  obsId:              Option[Observation.Id],
+  asterism:           Asterism,
+  asterismTracking:   Tracking,
+  obsTime:            Instant,
+  obsConf:            Option[ObsConfiguration],
+  fullScreen:         View[AladinFullScreen],
+  userPreferences:    View[UserPreferences],
+  guideStarSelection: View[GuideStarSelection],
+  focusedTargetId:    Target.Id
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)

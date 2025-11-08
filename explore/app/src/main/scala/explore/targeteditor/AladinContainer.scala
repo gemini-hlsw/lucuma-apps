@@ -28,6 +28,7 @@ import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -176,26 +177,27 @@ object AladinContainer extends AladinCommon {
   }
 
   private def baseAndScience(
-    p: Props,
+    p:           Props,
     surveyEpoch: Epoch
   ): (Coordinates, List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]) = {
     val baseObsTimeCoords =
       p.asterismTracking
         .at(p.obsTime)
-        .getOrElse(p.asterismTracking.baseCoordinates)
+        .getOrElse(p.asterismTracking.baseCoordinates)(t.id === p.asterism.focus.id,
+                                                       t.target.name,
+                                                       surveyCoords,
+                                                       obsTimeCoords
+        )
 
-    val science = p.asterism.toSidereal
-      .map: t =>
-        val (surveyCoords, obsTimeCoords) =
-          t.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
+    val allTargets = p.asterism.asList
+      .flatMap: t =>
+        t.toSidereal.map: siderealT =>
+          val (epochCoords, obsTimeCoords) =
+            siderealT.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
 
-<<<<<<< HEAD
-        (t.id === p.asterism.focus.id, t.target.name, surveyCoords, obsTimeCoords)
-=======
-        (t.id === p.focusedTargetId, t.target.name, epochCoords, obsTimeCoords)
->>>>>>> 0281e7320 (blind-center)
+          (t.id === p.focusedTargetId, t.target.name, epochCoords, obsTimeCoords)
 
-    (baseObsTimeCoords, science)
+    (baseObsTimeCoords, allTargets)
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
@@ -330,9 +332,9 @@ object AladinContainer extends AladinCommon {
                             )
 
         // Use fov from aladin
-        fov    <- useState(none[Fov])
+        fov <- useState(none[Fov])
         // Update survey if conf changes
-        _      <-
+        _   <-
           useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))): w =>
             w.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
@@ -390,7 +392,7 @@ object AladinContainer extends AladinCommon {
             )
           else Nil
 
-        val sciencePositions =
+        val targetPositions =
           if (scienceTargets.length > 1)
             scienceTargets.flatMap { (selected, name, surveyCoords, obsTimeCoords) =>
               svgTargetAndLine(
@@ -449,14 +451,20 @@ object AladinContainer extends AladinCommon {
             props.globalPreferences.acquisitionOffsets
           )
 
-        val blindOffsetIndicator: List[SVGTarget] =
-          props.blindOffset
-            .foldMap: bo =>
-              val (epochCoords, obsTimeCoords) =
-                bo.trackedPositions(props.siderealDiscretizedObsTime.obsTime, Some(bo.epoch))
+        val offsetTargets =
+          // order is important, scienc to be drawn above acq
+          (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
 
-              // Check if the blind offset is selected by comparing the focused target ID with the blind offset target ID
-              val isSelected = props.blindOffsetTargetId.exists(_ === props.focusedTargetId)
+        // Render blind offset targets from asterism separately
+        val blindOffsetTargets = props.asterism.asList
+          .filter(_.disposition == TargetDisposition.BlindOffset)
+          .flatMap: t =>
+            t.toSidereal.map: siderealT =>
+              val (epochCoords, obsTimeCoords) =
+                siderealT.target.tracking
+                  .trackedPositions(props.obsTime, Some(siderealT.target.tracking.epoch))
+
+              val isSelected = t.id === props.focusedTargetId
 
               svgTargetAndLine(
                 obsTimeCoords,
@@ -471,10 +479,6 @@ object AladinContainer extends AladinCommon {
                   ),
                 ExploreStyles.BlindOffsetLine
               )
-
-        val offsetTargets =
-          // order is important, scienc to be drawn above acq
-          (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
 
         val screenOffset =
           currentPos.value.map(_.diff(baseCoordinates).offset).getOrElse(Offset.Zero)
@@ -501,7 +505,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     baseCoordinates,
                     // Order matters
-                    candidates ++ basePosition ++ blindOffsetIndicator ++ sciencePositions ++ offsetTargets
+                    candidates ++ basePosition ++ targetPositions ++ offsetTargets ++ blindOffsetTargets.flatten
                   )
                 ),
               (resize.width,
