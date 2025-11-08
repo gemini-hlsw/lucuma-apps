@@ -2,7 +2,7 @@
   "name": "explore",
   "private": true,
   "dependencies": {
-    "@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration": "2.0.8",
+    "@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration": "2.0.9",
     "@floating-ui/react": "0.27.16",
     "@fontsource/lato": "5.2.7",
     "@fortawesome/fontawesome-pro": "7.1.0",
