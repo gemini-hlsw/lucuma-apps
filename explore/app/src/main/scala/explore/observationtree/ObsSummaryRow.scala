@@ -59,7 +59,7 @@ enum ObsSummaryRow:
     e => e.targetWithId.target.iconWithTooltip.some,
     o =>
       o.asterism.map(a =>
-        if (a.asNel.isMixed) Icons.Stars.fixedWidthWithTooltip("Mixed Asterism")
+        if (a.isMixed) Icons.Stars.fixedWidthWithTooltip("Mixed Asterism")
         else a.focus.target.iconWithTooltip
       )
   )
@@ -74,4 +74,4 @@ enum ObsSummaryRow:
     asterism: Option[Asterism],
     vizTime:  Option[Instant]
   ): Option[Either[Coordinates, Region]] =
-    asterism.flatMap(_.asNel.coordsOrRegionAt(vizTime))
+    asterism.flatMap(_.coordsOrRegionAt(vizTime))

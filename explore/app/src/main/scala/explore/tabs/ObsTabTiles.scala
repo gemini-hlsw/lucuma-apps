@@ -30,7 +30,6 @@ import explore.model.display.given
 import explore.model.enums.AgsState
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
-import explore.model.extensions.*
 import explore.model.formats.formatPercentile
 import explore.model.itc.ItcTarget
 import explore.model.layout.*
@@ -76,7 +75,6 @@ import lucuma.react.resizeDetector.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
@@ -130,13 +128,13 @@ case class ObsTabTiles(
   val centralWavelength: Option[CentralWavelength] =
     observation.get.observingMode.flatMap(_.centralWavelength)
 
-  val asterismAsNel: Option[NonEmptyList[TargetWithId]] =
-    NonEmptyList.fromList:
+  private val asterismAsNel: Option[Asterism] =
+    Asterism.fromTargets:
       obsTargets.toList.map((_, t) => t)
 
   def targetCoords(obsTime: Instant): Option[Coordinates] =
     asterismAsNel
-      .flatMap(asterismNel => asterismNel.baseTracking.flatMap(_.at(obsTime)))
+      .flatMap(_.baseTracking.flatMap(_.at(obsTime)))
 
   def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
 

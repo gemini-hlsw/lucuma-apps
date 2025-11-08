@@ -28,7 +28,6 @@ import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
-import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -183,21 +182,16 @@ object AladinContainer extends AladinCommon {
     val baseObsTimeCoords =
       p.asterismTracking
         .at(p.obsTime)
-        .getOrElse(p.asterismTracking.baseCoordinates)(t.id === p.asterism.focus.id,
-                                                       t.target.name,
-                                                       surveyCoords,
-                                                       obsTimeCoords
-        )
+        .getOrElse(p.asterismTracking.baseCoordinates)
 
-    val allTargets = p.asterism.asList
-      .flatMap: t =>
-        t.toSidereal.map: siderealT =>
-          val (epochCoords, obsTimeCoords) =
-            siderealT.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
+    val allTargets = p.asterism.mapScience: t =>
+      t.toSidereal.map: siderealT =>
+        val (epochCoords, obsTimeCoords) =
+          siderealT.target.tracking.trackedPositions(p.obsTime, surveyEpoch.some)
 
-          (t.id === p.focusedTargetId, t.target.name, epochCoords, obsTimeCoords)
+        (t.id === p.asterism.focus.id, t.target.name, epochCoords, obsTimeCoords)
 
-    (baseObsTimeCoords, allTargets)
+    (baseObsTimeCoords, allTargets.flattenOption)
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
@@ -456,8 +450,7 @@ object AladinContainer extends AladinCommon {
           (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
 
         // Render blind offset targets from asterism separately
-        val blindOffsetTargets = props.asterism.asList
-          .filter(_.disposition == TargetDisposition.BlindOffset)
+        val blindOffsetTargets = props.asterism.blindOffsetTargets
           .flatMap: t =>
             t.toSidereal.map: siderealT =>
               val (epochCoords, obsTimeCoords) =

@@ -176,16 +176,11 @@ object TargetTable extends AsterismModifier:
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
         rows    <- useMemo(
-                     (props.asterism,
-                      props.obsAndTargets.get._2,
-                      vizTime.value
-                     )
+                     (props.asterism, props.obsAndTargets.get._2, vizTime.value)
                    ):
-                      case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
-                        // The asterism already includes all targets (science + blind offset)
-                        asterism.asList
-                          .map(_.at(vizTime))
-                      case _ => Nil
+                     case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
+                       asterism.map(_.at(vizTime)).toList
+                     case _                                                => Nil
         table   <- useReactTableWithStateStore:
                      import ctx.given
 

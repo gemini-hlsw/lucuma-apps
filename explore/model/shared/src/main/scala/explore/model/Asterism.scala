@@ -10,118 +10,79 @@ import cats.syntax.all.*
 import explore.model.extensions.*
 import lucuma.core.data.Zipper
 import lucuma.core.enums.TargetDisposition
-import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.*
-import monocle.*
 
 import java.time.Instant
+import lucuma.core.math.Coordinates
+import lucuma.core.math.Region
 
 /**
  * Contains a list of targets focused on the selected one on the UI
  */
 case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
-  def toSiderealAt(vizTime: Instant): List[SiderealTargetWithId] =
-    targets.traverse(_.toSidereal.map(_.at(vizTime))).foldMap(_.toList)
 
-  def toSidereal: List[SiderealTargetWithId] =
-    targets.toNel.toSidereal
+  private val allTargets = targets.toNel
 
-  def toSiderealTracking: List[SiderealTracking] =
-    targets.traverse(_.toSidereal.map(_.target.tracking)).foldMap(_.toList)
+  // science targets (science + calibration)
+  private val science: List[TargetWithId] =
+    allTargets.filter(_.disposition != TargetDisposition.BlindOffset)
 
-  def asList: List[TargetWithId] = targets.toList
+  // This uses ObjectTracking.orRegionFromAsterism, which treats any asterism with a
+  // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
+  // have asterisms with multiple TtargetstargetsoOs, this is probably fine.
+  def coordsOrRegionAt(vizTime: Option[Instant]): Option[Either[Coordinates, Region]] =
+    NonEmptyList
+      .fromList(science.map(_.target))
+      .flatMap: science =>
+        Tracking
+          .orRegionFromAsterism(science) match
+          case Left(tracking) =>
+            vizTime.fold(tracking.baseCoordinates.asLeft.some)(v => tracking.at(v).map(_.asLeft))
+          case Right(region)  => region.asRight.some
 
-  def asNel: NonEmptyList[TargetWithId] = targets.toNel
+  // checks if the science targets are of different kind
+  def isMixed: Boolean =
+    science
+      .map {
+        _.target match
+          case Target.Sidereal(_, _, _, _) => 0
+          case Target.Nonsidereal(_, _, _) => 1
+          case Target.Opportunity(_, _, _) => 2
+      }
+      .distinct
+      .size > 1
 
-  def add(t: TargetWithId): Asterism =
-    Asterism.isoTargets.reverse.modify(_ :+ t)(this)
-
-  def ids: NonEmptyList[Target.Id] = targets.toNel.map(_.id)
-
-  def remove(id: Target.Id): Option[Asterism] =
-    if (hasId(id)) {
-      val filtered = targets.toNel.filter(_.id =!= id)
-      Asterism.fromTargets(filtered)
-    } else this.some
+  def ids: NonEmptyList[Target.Id] = allTargets.map(_.id)
 
   def focus = targets.focus
 
   def focusOn(tid: Target.Id): Asterism =
     targets.findFocus(_.id === tid).map(Asterism.apply).getOrElse(this)
 
+  // Tracking of the base of science, don't consider blind offsets
   def baseTracking: Option[Tracking] =
-    Tracking.fromAsterism(targets.toNel.map(_.target))
+    NonEmptyList.fromList(science.map(_.target)).flatMap(Tracking.fromAsterism)
 
-  def hasId(id: Target.Id): Boolean = targets.exists(_.id === id)
+  def mapScience[B](f: TargetWithId => B): List[B] =
+    science.map(f)
 
-  // Find the blind offset target in the zipper
-  def blindOffsetTarget: Option[TargetWithId] =
-    targets.find(_.disposition == TargetDisposition.BlindOffset)
+  def map[B](f: TargetWithId => B): NonEmptyList[B] =
+    allTargets.map(f)
 
-  // Get just the blind offset target ID
-  def blindOffsetTargetId: Option[Target.Id] =
-    blindOffsetTarget.map(_.id)
-
-  // Check if a given target ID is the blind offset target
-  def isBlindOffsetTarget(tid: Target.Id): Boolean =
-    targets.exists(t => t.id == tid && t.disposition == TargetDisposition.BlindOffset)
-
-  // Get all non-blind-offset targets (science + calibration)
-  // def nonBlindOffsetTargets: List[TargetWithId] =
-  //   targets.toList.filter(_.disposition != TargetDisposition.BlindOffset)
-
-  // Get IDs of non-blind-offset targets
-  // def nonBlindOffsetTargetIds: List[Target.Id] =
-  //   nonBlindOffsetTargets.map(_.id)
+  // all blind offset targets
+  def blindOffsetTargets: List[TargetWithId] =
+    allTargets.filter(_.disposition === TargetDisposition.BlindOffset)
 }
 
-object Asterism {
-  val isoTargets: Iso[NonEmptyList[TargetWithId], Asterism] =
-    Iso[Asterism, NonEmptyList[TargetWithId]](_.targets.toNel)(s =>
-      Asterism(Zipper.fromNel(s))
-    ).reverse
-
-  val targetsEach: Traversal[Asterism, TargetWithId] = isoTargets.reverse.each
-
-  val targets: Lens[Asterism, Zipper[TargetWithId]] = Focus[Asterism](_.targets)
-
-  val focus: Lens[Asterism, TargetWithId] = targets.andThen(Zipper.focus)
+object Asterism:
 
   def fromTargets(targets: List[TargetWithId]): Option[Asterism] =
     NonEmptyList.fromList(targets).map(s => Asterism(Zipper.fromNel(s)))
 
-  val siderealTargetsEach: Traversal[Asterism, SiderealTargetWithId] =
-    targetsEach.andThen(TargetWithId.sidereal)
-
-  val fromTargetsList: Iso[List[TargetWithId], Option[Asterism]] =
-    Iso[List[TargetWithId], Option[Asterism]](fromTargets) {
-      case Some(Asterism(targets)) => targets.toList
-      case _                       => Nil
-    }
-
-  def fromTargetsListOn(id: Option[Target.Id]): Iso[List[TargetWithId], Option[Asterism]] =
-    Iso[List[TargetWithId], Option[Asterism]]((tl: List[TargetWithId]) =>
-      fromTargets(tl).flatMap(a => id.map(a.focusOn).orElse(a.some))
-    ) {
-      case Some(Asterism(targets)) => targets.toList
-      case _                       => Nil
-    }
-
   def one(targets: TargetWithId): Asterism =
     Asterism(Zipper.of(targets))
 
-  def targetOptional(targetId: Target.Id): Optional[Option[Asterism], TargetWithId] =
-    Optional[Option[Asterism], TargetWithId](
-      _.flatMap(_.targets.find(_.id === targetId))
-    )(target =>
-      _.map(
-        Asterism.targetsEach.modify(twid => if (twid.id === targetId) target else twid)
-      )
-    )
-
   def fromIdsAndTargets(ids: AsterismIds, targets: TargetList): Option[Asterism] =
     fromTargets(ids.toList.map(id => targets.get(id)).flattenOption)
-
-}

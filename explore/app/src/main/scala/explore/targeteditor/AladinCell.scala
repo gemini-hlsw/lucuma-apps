@@ -103,14 +103,14 @@ case class AladinCell(
     obsConf.flatMap(_.remoteGSName)
 
   def sciencePositionsAt(vizTime: Instant): List[Coordinates] =
-    asterism.asList
-      .flatMap(_.toSidereal)
+    asterism
+      .mapScience(_.toSidereal)
+      .flatten
       .flatMap(_.target.tracking.at(vizTime))
 
 end AladinCell
 
 trait AladinCommon:
-  given Reusability[Asterism] = Reusability.by(x => (x.toSiderealTracking, x.focus.id))
   given Reusability[AgsState] = Reusability.byEq
 
   def userPrefsSetter(
