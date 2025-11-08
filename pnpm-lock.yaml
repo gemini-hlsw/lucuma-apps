@@ -140,7 +140,7 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 5.1.0
-        version: 5.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 5.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       postcss:
         specifier: 8.5.6
         version: 8.5.6
@@ -149,19 +149,19 @@ importers:
         version: 1.93.3
       unplugin-fonts:
         specifier: 1.4.0
-        version: 1.4.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 1.4.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       vite:
-        specifier: 7.1.12
-        version: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+        specifier: 7.2.2
+        version: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
       vite-plugin-env-compatible:
         specifier: 2.0.1
         version: 2.0.1
       vite-plugin-mkcert:
         specifier: 1.17.9
-        version: 1.17.9(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 1.17.9(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       vite-plugin-pwa:
         specifier: 1.1.0
-        version: 1.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
+        version: 1.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0)
       workbox-build:
         specifier: 7.3.0
         version: 7.3.0(@types/babel__core@7.20.5)
@@ -234,7 +234,7 @@ importers:
     devDependencies:
       '@vitejs/plugin-react':
         specifier: 5.1.0
-        version: 5.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 5.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       postcss:
         specifier: 8.5.6
         version: 8.5.6
@@ -246,13 +246,13 @@ importers:
         version: 1.93.3
       unplugin-fonts:
         specifier: 1.4.0
-        version: 1.4.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 1.4.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       vite:
-        specifier: 7.1.12
-        version: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+        specifier: 7.2.2
+        version: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
       vite-plugin-mkcert:
         specifier: 1.17.9
-        version: 1.17.9(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 1.17.9(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
 
   schemas:
     devDependencies:
@@ -283,7 +283,7 @@ importers:
         version: 2.0.2(react@18.3.1)
       '@vitejs/plugin-react':
         specifier: 5.1.0
-        version: 5.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
+        version: 5.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
@@ -306,8 +306,8 @@ importers:
         specifier: 2.0.6
         version: 2.0.6
       vite:
-        specifier: 7.1.12
-        version: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+        specifier: 7.2.2
+        version: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
       vite-plugin-env-compatible:
         specifier: 2.0.1
         version: 2.0.1
@@ -3634,8 +3634,8 @@ packages:
       '@vite-pwa/assets-generator':
         optional: true
 
-  vite@7.1.12:
-    resolution: {integrity: sha512-ZWyE8YXEXqJrrSLvYgrRP7p62OziLW7xI5HYGWFzOvupfAlrLvURSzv/FyGyy0eidogEM3ujU+kUG1zuHgb6Ug==}
+  vite@7.2.2:
+    resolution: {integrity: sha512-BxAKBWmIbrDgrokdGZH1IgkIk/5mMHDreLDmCJ0qpyJaAteP8NvMhkwr/ZCQNqNH97bw/dANTE9PDzqwJghfMQ==}
     engines: {node: ^20.19.0 || >=22.12.0}
     hasBin: true
     peerDependencies:
@@ -5352,7 +5352,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react@5.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))':
+  '@vitejs/plugin-react@5.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))':
     dependencies:
       '@babel/core': 7.28.5
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.28.5)
@@ -5360,7 +5360,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-beta.43
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+      vite: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -7672,11 +7672,11 @@ snapshots:
 
   universalify@2.0.1: {}
 
-  unplugin-fonts@1.4.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)):
+  unplugin-fonts@1.4.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)):
     dependencies:
       fast-glob: 3.3.3
       unplugin: 2.3.5
-      vite: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+      vite: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
 
   unplugin@2.3.5:
     dependencies:
@@ -7714,27 +7714,27 @@ snapshots:
       dotenv: 8.2.0
       dotenv-expand: 5.1.0
 
-  vite-plugin-mkcert@1.17.9(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)):
+  vite-plugin-mkcert@1.17.9(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)):
     dependencies:
       axios: 1.13.1(debug@4.4.3)
       debug: 4.4.3
       picocolors: 1.1.1
-      vite: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+      vite: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
     transitivePeerDependencies:
       - supports-color
 
-  vite-plugin-pwa@1.1.0(vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
+  vite-plugin-pwa@1.1.0(vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0))(workbox-build@7.3.0(@types/babel__core@7.20.5))(workbox-window@7.3.0):
     dependencies:
       debug: 4.4.3
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.15
-      vite: 7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
+      vite: 7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0)
       workbox-build: 7.3.0(@types/babel__core@7.20.5)
       workbox-window: 7.3.0
     transitivePeerDependencies:
       - supports-color
 
-  vite@7.1.12(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0):
+  vite@7.2.2(@types/node@24.9.2)(sass@1.93.3)(terser@5.44.0):
     dependencies:
       esbuild: 0.25.12
       fdir: 6.5.0(picomatch@4.0.3)
