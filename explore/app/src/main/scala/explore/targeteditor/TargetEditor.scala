@@ -16,7 +16,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.Asterism
+import explore.model.ObservationTargets
 import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
@@ -67,7 +67,7 @@ case class TargetEditor(
   userId:              User.Id,
   targetWithId:        UndoSetter[TargetWithId],
   obsAndTargets:       UndoSetter[ObservationsAndTargets],
-  asterism:            Asterism, // This is passed through to Aladin, to plot the entire Asterism.
+  asterism:            ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
   obsTime:             Option[Instant],
   obsConf:             Option[ObsConfiguration],
   searching:           View[Set[Target.Id]],

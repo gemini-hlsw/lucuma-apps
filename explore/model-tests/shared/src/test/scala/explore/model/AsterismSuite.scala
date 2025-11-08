@@ -23,41 +23,41 @@ import org.scalacheck.Test
 class AsterismSuite extends DisciplineSuite:
   override val scalaCheckTestParameters = Test.Parameters.default.withMaxSize(10)
 
-  checkAll("Eq[AsterismSuite]", EqTests[Asterism].eqv)
-  checkAll("Asterism.isoTargets", IsoTests(Asterism.isoTargets))
-  checkAll("Asterism.fromTargetsList", IsoTests(Asterism.fromTargetsList))
-  checkAll("Asterism.targetsEach", TraversalTests(Asterism.targetsEach))
-  checkAll("Asterism.siderealTargetsEach", TraversalTests(Asterism.siderealTargetsEach))
+  checkAll("Eq[ObservationTargets]", EqTests[ObservationTargets].eqv)
+  checkAll("ObservationTargets.isoTargets", IsoTests(ObservationTargets.isoTargets))
+  checkAll("ObservationTargets.fromTargetsList", IsoTests(ObservationTargets.fromTargetsList))
+  checkAll("ObservationTargets.targetsEach", TraversalTests(ObservationTargets.targetsEach))
+  checkAll("ObservationTargets.siderealTargetsEach", TraversalTests(ObservationTargets.siderealTargetsEach))
 
   test("targetOptional") {
     forAll { (id: Target.Id) =>
-      given Arbitrary[Option[Asterism]] = gen.optAsterism(id)
-      checkAll("Asterism.targetOptional", OptionalTests(Asterism.targetOptional(id)))
+      given Arbitrary[Option[ObservationTargets]] = gen.optObservationTargets(id)
+      checkAll("ObservationTargets.targetOptional", OptionalTests(ObservationTargets.targetOptional(id)))
     }
   }
 
   test("fromTargetsListOn") {
     forAll { (id: Target.Id) =>
-      given Arbitrary[Option[Asterism]] = gen.optAsterism(id)
-      checkAll("Asterism.fromTargetsListOn", IsoTests(Asterism.fromTargetsListOn(Some(id))))
+      given Arbitrary[Option[ObservationTargets]] = gen.optObservationTargets(id)
+      checkAll("ObservationTargets.fromTargetsListOn", IsoTests(ObservationTargets.fromTargetsListOn(Some(id))))
     }
   }
 
   object gen:
-    // Sometimes the asterisms includes target id
-    def optAsterism(id: Target.Id): Arbitrary[Option[Asterism]] =
+    // Sometimes the observationTargets includes target id
+    def optObservationTargets(id: Target.Id): Arbitrary[Option[ObservationTargets]] =
       Arbitrary(
-        Gen.option[Asterism](asterism(id).arbitrary)
+        Gen.option[ObservationTargets](observationTargets(id).arbitrary)
       )
 
-    def asterism(id: Target.Id): Arbitrary[Asterism] =
+    def observationTargets(id: Target.Id): Arbitrary[ObservationTargets] =
       Arbitrary(
         Gen.oneOf(
-          arbAsterism.arbitrary,
+          arbObservationTargets.arbitrary,
           Gen.oneOf(
-            arbAsterism.arbitrary,
+            arbObservationTargets.arbitrary,
             for
-              ast    <- arbAsterism.arbitrary
+              ast    <- arbObservationTargets.arbitrary
               target <-
                 arbitrary[Target].map(t => TargetWithId(id, t, TargetDisposition.Science, None))
             yield ast.add(target)

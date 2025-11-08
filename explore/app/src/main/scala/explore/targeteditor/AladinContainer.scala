@@ -12,7 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
-import explore.model.Asterism
+import explore.model.ObservationTargets
 import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences

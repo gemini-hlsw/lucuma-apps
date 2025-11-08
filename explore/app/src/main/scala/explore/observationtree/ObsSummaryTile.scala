@@ -12,7 +12,7 @@ import explore.components.ColumnSelectorInTitle
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.Asterism
+import explore.model.ObservationTargets
 import explore.model.Constants
 import explore.model.Group
 import explore.model.GroupList
@@ -119,7 +119,7 @@ object ObsSummaryTile extends ObsSummaryColumns:
                            .map(id => allTargets.get(id))
                            .flattenOption
                        .map: (obs, targets) =>
-                         val asterism = Asterism.fromTargets(targets)
+                         val asterism = ObservationTargets.fromTargets(targets)
                          Expandable(
                            ObsRow(
                              obs,

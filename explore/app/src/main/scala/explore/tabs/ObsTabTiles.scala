@@ -128,8 +128,8 @@ case class ObsTabTiles(
   val centralWavelength: Option[CentralWavelength] =
     observation.get.observingMode.flatMap(_.centralWavelength)
 
-  private val asterismAsNel: Option[Asterism] =
-    Asterism.fromTargets:
+  private val asterismAsNel: Option[ObservationTargets] =
+    ObservationTargets.fromTargets:
       obsTargets.toList.map((_, t) => t)
 
   def targetCoords(obsTime: Instant): Option[Coordinates] =

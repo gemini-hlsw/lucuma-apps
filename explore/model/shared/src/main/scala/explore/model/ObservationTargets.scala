@@ -21,7 +21,7 @@ import lucuma.core.math.Region
 /**
  * Contains a list of targets focused on the selected one on the UI
  */
-case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
+case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives Eq {
 
   private val allTargets = targets.toNel
 
@@ -58,8 +58,8 @@ case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
 
   def focus = targets.focus
 
-  def focusOn(tid: Target.Id): Asterism =
-    targets.findFocus(_.id === tid).map(Asterism.apply).getOrElse(this)
+  def focusOn(tid: Target.Id): ObservationTargets =
+    targets.findFocus(_.id === tid).map(ObservationTargets.apply).getOrElse(this)
 
   // Tracking of the base of science, don't consider blind offsets
   def baseTracking: Option[Tracking] =
@@ -76,13 +76,13 @@ case class Asterism(private val targets: Zipper[TargetWithId]) derives Eq {
     allTargets.filter(_.disposition === TargetDisposition.BlindOffset)
 }
 
-object Asterism:
+object ObservationTargets:
 
-  def fromTargets(targets: List[TargetWithId]): Option[Asterism] =
-    NonEmptyList.fromList(targets).map(s => Asterism(Zipper.fromNel(s)))
+  def fromTargets(targets: List[TargetWithId]): Option[ObservationTargets] =
+    NonEmptyList.fromList(targets).map(s => ObservationTargets(Zipper.fromNel(s)))
 
-  def one(targets: TargetWithId): Asterism =
-    Asterism(Zipper.of(targets))
+  def one(targets: TargetWithId): ObservationTargets =
+    ObservationTargets(Zipper.of(targets))
 
-  def fromIdsAndTargets(ids: AsterismIds, targets: TargetList): Option[Asterism] =
+  def fromIdsAndTargets(ids: AsterismIds, targets: TargetList): Option[ObservationTargets] =
     fromTargets(ids.toList.map(id => targets.get(id)).flattenOption)

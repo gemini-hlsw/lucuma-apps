@@ -5,7 +5,7 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
-import explore.model.Asterism
+import explore.model.ObservationTargets
 import explore.model.Group
 import explore.model.Observation
 import explore.model.extensions.*
@@ -33,7 +33,7 @@ enum ObsSummaryRow:
   case ObsRow(
     obs:          Observation,
     targetWithId: Option[TargetWithId],
-    asterism:     Option[Asterism],
+    asterism:     Option[ObservationTargets],
     group:        Option[Group]
   ) extends ObsSummaryRow
 
@@ -71,7 +71,7 @@ enum ObsSummaryRow:
     vizTime.fold(twid.target)(twid.target.at).coordsOrRegion
 
   private def asterismCoordsOrRegion(
-    asterism: Option[Asterism],
+    asterism: Option[ObservationTargets],
     vizTime:  Option[Instant]
   ): Option[Either[Coordinates, Region]] =
     asterism.flatMap(_.coordsOrRegionAt(vizTime))

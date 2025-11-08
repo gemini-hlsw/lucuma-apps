@@ -65,7 +65,7 @@ import scala.concurrent.duration.*
 case class AladinCell(
   uid:                User.Id,
   obsId:              Option[Observation.Id],
-  asterism:           Asterism,
+  asterism:           ObservationTargets,
   asterismTracking:   Tracking,
   obsTime:            Instant,
   obsConf:            Option[ObsConfiguration],

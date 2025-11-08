@@ -123,7 +123,7 @@ object reusability:
   given Reusability[ConfigSelection]                    = Reusability.byEq
   given Reusability[CentralWavelength]                  = Reusability.byEq
   given Reusability[Tracking]                           = Reusability.byEq
-  given Reusability[Asterism]                           = Reusability.byEq[Asterism]
+  given Reusability[ObservationTargets]                           = Reusability.byEq[ObservationTargets]
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq
   given Reusability[SelectedPanel]                      = Reusability.byEq

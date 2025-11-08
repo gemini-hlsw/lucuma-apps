@@ -14,7 +14,7 @@ import explore.components.ui.ExploreStyles
 import explore.config.ObsTimeEditor
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.Asterism
+import explore.model.ObservationTargets
 import explore.model.AsterismIds
 import explore.model.AttachmentList
 import explore.model.BlindOffset
@@ -227,7 +227,7 @@ object AsterismEditorTile:
           allTargetIds <- useState(allAsterismIds.toList)
           asterism     <- useMemo(allAsterismIds):
                             ids =>
-                              Asterism.fromIdsAndTargets(ids, props.allTargets.get)
+                              ObservationTargets.fromIdsAndTargets(ids, props.allTargets.get)
           _            <- useLayoutEffectWithDeps((allTargetIds.value, props.focusedTargetId)):
                              (targetIds, focusedTargetId) =>
                                // If the selected targetId is None, or not in the target list, select the first target (if any).

@@ -14,7 +14,7 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.Asterism
+import explore.model.ObservationTargets
 
 import explore.model.BlindOffset
 import explore.model.Constants
@@ -60,8 +60,8 @@ case class TargetTable(
   userId:           Option[User.Id],
   programId:        Program.Id,
   obsIds:           ObsIdSet, // Only used to invoke DB - should only be unexecuted observations
-  // Targets are not modified here, we only modify which ones belong to the Asterism.
-  asterism:         Option[Asterism],
+  // Targets are not modified here, we only modify which ones belong to the ObservationTargets.
+  asterism:         Option[ObservationTargets],
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
   selectedTarget:   View[Option[Target.Id]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
