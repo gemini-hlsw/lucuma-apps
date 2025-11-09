@@ -62,7 +62,6 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
-import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.optics.syntax.lens.*
@@ -171,17 +170,6 @@ case class ObsTabTiles(
 
 object ObsTabTiles:
   private type Props = ObsTabTiles
-
-  // Helper to convert BlindOffset to SiderealTracking
-  private def blindOffsetToTracking(
-    blindOffset:   BlindOffset,
-    obsAndTargets: ObservationsAndTargets
-  ): Option[SiderealTracking] =
-    for {
-      targetId <- blindOffset.blindOffsetTargetId
-      target   <- obsAndTargets._2.get(targetId)
-      tracking <- Target.siderealTracking.getOption(target.target)
-    } yield tracking
 
   private def makeConstraintsSelector(
     observationId:     Observation.Id,
@@ -463,8 +451,7 @@ object ObsTabTiles:
               obsDuration.map(_.toDuration),
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
-              props.observation.get.calibrationRole,
-              blindOffsetToTracking(props.observation.get.blindOffset, props.obsAndTargets.get)
+              props.observation.get.calibrationRole
             )
 
           val plotData: Option[PlotData] =

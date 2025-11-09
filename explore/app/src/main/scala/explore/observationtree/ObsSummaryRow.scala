@@ -5,9 +5,9 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
-import explore.model.ObservationTargets
 import explore.model.Group
 import explore.model.Observation
+import explore.model.ObservationTargets
 import explore.model.extensions.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.VdomNode

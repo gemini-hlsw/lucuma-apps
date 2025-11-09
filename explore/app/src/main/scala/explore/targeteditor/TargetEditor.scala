@@ -16,12 +16,12 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.ObservationTargets
 import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
@@ -420,8 +420,7 @@ object TargetEditor:
                   props.obsConf,
                   props.fullScreen,
                   props.userPreferences,
-                  props.guideStarSelection,
-                  props.targetWithId.get.id
+                  props.guideStarSelection
                 )
               ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(

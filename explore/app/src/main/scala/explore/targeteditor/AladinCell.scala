@@ -40,7 +40,6 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
-import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -71,8 +70,7 @@ case class AladinCell(
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
-  guideStarSelection: View[GuideStarSelection],
-  focusedTargetId:    Target.Id
+  guideStarSelection: View[GuideStarSelection]
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -340,7 +338,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          centralWavelength.value,
                                          base,
                                          props.sciencePositionsAt(vizTime),
-                                         props.obsConf.flatMap(_.blindOffset).flatMap(_.at(vizTime)),
+                                         props.asterism.blindOffsetTargets.headOption
+                                           .flatMap(_.toSidereal)
+                                           .flatMap(_.target.tracking.at(vizTime)),
                                          angles,
                                          props.obsConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
                                          props.obsConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply),

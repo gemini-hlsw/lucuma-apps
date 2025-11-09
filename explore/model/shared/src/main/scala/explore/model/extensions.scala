@@ -99,10 +99,10 @@ object extensions:
 
     // Calculate positions from tracking considering target epoch and observation time
     // Useful to put a from/to in the viz
-    // By convention we call the return epochCoords,obsTimeCoords
+    // By convention we call the return epochCoords, obsTimeCoords
     def trackedPositions(
-      obsTime:     Instant,
-      targetEpoch: Option[Epoch]
+      targetEpoch: Option[Epoch],
+      obsTime:     Instant
     ): (Option[Coordinates], Coordinates) =
       (targetEpoch.flatMap: epoch =>
          val epochInstant = epoch.toInstant

@@ -19,6 +19,6 @@ trait ArbObservationTargets:
   }
 
   given Cogen[ObservationTargets] =
-    Cogen[List[TargetWithId]].contramap(_.allTargets.toList)
+    Cogen[List[TargetWithId]].contramap(_.map(identity).toList)
 
 object ArbObservationTargets extends ArbObservationTargets

@@ -14,11 +14,10 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.ObservationTargets
-
 import explore.model.BlindOffset
 import explore.model.Constants
 import explore.model.ObsIdSet
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.enums.TableId

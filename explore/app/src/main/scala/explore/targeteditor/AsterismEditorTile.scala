@@ -14,7 +14,6 @@ import explore.components.ui.ExploreStyles
 import explore.config.ObsTimeEditor
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.ObservationTargets
 import explore.model.AsterismIds
 import explore.model.AttachmentList
 import explore.model.BlindOffset
@@ -22,6 +21,7 @@ import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.OnCloneParameters
@@ -36,7 +36,6 @@ import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
-
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User

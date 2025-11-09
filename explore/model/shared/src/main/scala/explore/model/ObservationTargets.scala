@@ -10,13 +10,14 @@ import cats.syntax.all.*
 import explore.model.extensions.*
 import lucuma.core.data.Zipper
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.math.Coordinates
+import lucuma.core.math.Region
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.*
 
 import java.time.Instant
-import lucuma.core.math.Coordinates
-import lucuma.core.math.Region
 
 /**
  * Contains a list of targets focused on the selected one on the UI
@@ -74,6 +75,14 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   // all blind offset targets
   def blindOffsetTargets: List[TargetWithId] =
     allTargets.filter(_.disposition === TargetDisposition.BlindOffset)
+
+  // Tracking of the first blind offset, the table allows any but
+  // only one is ever in the db.
+  // we can use it for trackirng only if shidereal
+  def blindOffsetSiderealTracking: Option[SiderealTracking] =
+    blindOffsetTargets.map(_.toSidereal).collectFirst {
+      case Some(SiderealTargetWithId(target = target)) => target.tracking
+    }
 }
 
 object ObservationTargets:

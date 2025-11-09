@@ -12,13 +12,13 @@ import explore.components.ColumnSelectorInTitle
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.ObservationTargets
 import explore.model.Constants
 import explore.model.Group
 import explore.model.GroupList
 import explore.model.ObsSummaryTabTileIds
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationTargets
 import explore.model.TargetList
 import explore.model.enums.TableId
 import explore.model.reusability.given

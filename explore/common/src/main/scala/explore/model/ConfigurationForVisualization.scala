@@ -11,7 +11,6 @@ import explore.model.syntax.all.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.PosAngleConstraint
-import lucuma.core.model.SiderealTracking
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 
@@ -24,10 +23,9 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptyList[Offset]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  centralWavelength:          Option[CentralWavelength],
-  blindOffset:                Option[SiderealTracking]
+  centralWavelength:          Option[CentralWavelength]
 ) derives Eq:
-  // Effective pos angle, either from the AGS, or the default for the conifguratio
+  // Effective pos angle, either from the AGS, or the default for the conifguration
   // TODO: Take the calculated average parallactic angle if needed
   val posAngle: Angle =
     selectedPosAngle.getOrElse(
@@ -46,20 +44,18 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.centralWavelength,
-          obsConfig.blindOffset
+          obsConfig.centralWavelength
         )
       }
       .orElse:
         obsConfig.selectedConfig
           .toBasicConfiguration(withFallbackWavelength = true)
           .map:
-            fromBasicConfiguration(_, obsConfig.fallbackPA, obsConfig.blindOffset)
+            fromBasicConfiguration(_, obsConfig.fallbackPA)
 
   def fromBasicConfiguration(
     basicConfiguration: BasicConfiguration,
-    selectedPosAngle:   Option[Angle],
-    blindOffset:        Option[SiderealTracking] = None
+    selectedPosAngle:   Option[Angle]
   ): ConfigurationForVisualization =
     ConfigurationForVisualization(
       basicConfiguration,
@@ -67,6 +63,5 @@ object ConfigurationForVisualization:
       None,
       selectedPosAngle,
       None,
-      basicConfiguration.centralWavelength,
-      blindOffset
+      basicConfiguration.centralWavelength
     )
