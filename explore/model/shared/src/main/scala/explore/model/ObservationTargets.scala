@@ -30,6 +30,8 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   private val science: List[TargetWithId] =
     allTargets.filter(_.disposition != TargetDisposition.BlindOffset)
 
+  val length: Int = targets.length
+
   // This uses ObjectTracking.orRegionFromAsterism, which treats any asterism with a
   // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
   // have asterisms with multiple TtargetstargetsoOs, this is probably fine.

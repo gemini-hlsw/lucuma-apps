@@ -40,6 +40,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.TargetWithId
 import lucuma.ui.aladin.*
 import lucuma.ui.reusability
 import lucuma.ui.reusability.given
@@ -114,13 +115,8 @@ object AladinContainer extends AladinCommon {
     val candidateCss =
       if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
 
-<<<<<<< HEAD
-    val (surveyCoords, obsTimeCoords) =
-      tracking.trackedPositions(siderealDiscretizedObsTime.obsTime, surveyEpoch.some)
-=======
     val (epochCoords, obsTimeCoords) =
-      tracking.trackedPositions(tracking.epoch.some, siderealDiscretizedObsTime.obsTime)
->>>>>>> ba92c0dd8 (Reduce passing around of blind offset target info)
+      tracking.trackedPositions(surveyEpoch.some, siderealDiscretizedObsTime.obsTime)
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
@@ -136,7 +132,7 @@ object AladinContainer extends AladinCommon {
     if (candidates.length < 500) {
       svgTargetAndLine(
         obsTimeCoords,
-        surveyCoords,
+        epochCoords,
         guideTargetSVG,
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
@@ -180,6 +176,29 @@ object AladinContainer extends AladinCommon {
         )
   }
 
+  private def renderTargets(
+    targets:      List[TargetWithId],
+    obsTime:      Instant,
+    focusId:      Target.Id,
+    targetSVG:    (TargetWithId, Boolean, Coordinates) => SVGTarget,
+    lineStyle:    Css,
+    isSelectable: Boolean,
+    surveyEpoch:  Epoch
+  ): List[SVGTarget] =
+    targets.flatMap: t =>
+      t.toSidereal.toList.flatMap: siderealT =>
+        val (epochCoords, obsTimeCoords) =
+          siderealT.target.tracking.trackedPositions(surveyEpoch.some, obsTime)
+
+        val isSelected = isSelectable && t.id === focusId
+
+        svgTargetAndLine(
+          obsTimeCoords,
+          epochCoords,
+          coords => targetSVG(t, isSelected, coords),
+          lineStyle
+        )
+
   private def baseAndScience(
     p:           Props,
     surveyEpoch: Epoch
@@ -194,7 +213,7 @@ object AladinContainer extends AladinCommon {
       t.toSidereal.map: siderealT =>
         val (epochCoords, obsTimeCoords) =
           siderealT.target.tracking
-            .trackedPositions(siderealT.target.tracking.epoch.some, surveyEpoch.some)
+            .trackedPositions(surveyEpoch.some, p.obsTime)
 
         (t.id === p.asterism.focus.id, t.target.name, epochCoords, obsTimeCoords)
 
@@ -202,6 +221,8 @@ object AladinContainer extends AladinCommon {
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
+
+  private val TargetSize = 6
 
   private def surveyForWavelength(w: Wavelength) =
     if (w > CutOff)
@@ -230,27 +251,6 @@ object AladinContainer extends AladinCommon {
                         baseCoords.setState((base, science)) *>
                           currentPos.setState:
                             base.offsetBy(Angle.Angle0, props.options.viewOffset)
-        // _                      <- useEffectWithDeps(
-        //                             (props.asterism, props.obsTime, props.asterism.focus.id)
-        //                           ): _ =>
-        //                             Callback.log(
-        //                               s"AladinContainer useEffect triggered: focus = ${props.asterism.focus.id}"
-        //                             ) *> {
-        //                               val (base, science)  = baseAndScience(props)
-        //                               val (currentBase, _) = baseCoords.value
-        //
-        //                               // Only recenter if base coordinates actually changed significantly
-        //                               // Use a threshold of 0.001 arcseconds to avoid recentering on focus changes
-        //                               val coordsChanged = currentBase.angularDistance(base).toMicroarcseconds > 1000
-        //
-        //                               // Always update baseCoords to reflect selection changes
-        //                               baseCoords.setState((base, science)) *>
-        //                                 // Only recenter view when coordinates actually change
-        //                                 currentPos
-        //                                   .setState(base.offsetBy(Angle.Angle0, props.options.viewOffset))
-        //                                   .when_(coordsChanged)
-        //                             }
-        // Ref to the aladin component
         aladinRef  <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
         _          <-
@@ -397,56 +397,28 @@ object AladinContainer extends AladinCommon {
             .map(Coordinates.fromHmsDms.reverseGet)
             .getOrElse(Coordinates.fromHmsDms.reverseGet(baseCoordinates))
 
-        val baseSurveyEpochCoors =
-          props.asterismTracking.at(survey.value.epoch.toInstant)
-
         val basePosition =
           List(
             SVGTarget.CrosshairTarget(baseCoordinates, Css.Empty, 10)
           )
-          //   SVGTarget.CircleTarget(baseCoordinates, ExploreStyles.BaseTarget, 3),
-          //   SVGTarget.LineTo(
-          //     baseCoordinates,
-          //     props.asterismTracking.baseCoordinates,
-          //     ExploreStyles.PMCorrectionLine
-          //   )
-          // )
 
-        val targetPositions =
-<<<<<<< HEAD
-          if (scienceTargets.length > 1)
-            scienceTargets.flatMap { (selected, name, surveyCoords, obsTimeCoords) =>
-              svgTargetAndLine(
-                obsTimeCoords,
-                surveyCoords,
-=======
-          scienceTargets.flatMap: (selected, name, pm, base) =>
-            println(s"$name $pm $base")
-            pm.foldMap: pm =>
-              svgTargetAndLine(
-                pm,
-                base.some,
->>>>>>> ba92c0dd8 (Reduce passing around of blind offset target info)
-                coords =>
-                  SVGTarget.ScienceTarget(
-                    coords,
-                    ExploreStyles.ScienceTarget,
-                    ExploreStyles.ScienceSelectedTarget,
-<<<<<<< HEAD
-                    3,
-=======
-                    10,
->>>>>>> ba92c0dd8 (Reduce passing around of blind offset target info)
-                    selected,
-                    name.value.some
-                  ),
-                ExploreStyles.PMCorrectionLine
-              )
-<<<<<<< HEAD
-            }
-          else Nil
-=======
->>>>>>> ba92c0dd8 (Reduce passing around of blind offset target info)
+        val targetPositions = renderTargets(
+          props.asterism.mapScience(identity),
+          props.obsTime,
+          props.asterism.focus.id,
+          (t, selected, coords) =>
+            SVGTarget.ScienceTarget(
+              coords,
+              ExploreStyles.ScienceTarget,
+              ExploreStyles.ScienceSelectedTarget,
+              TargetSize,
+              selected,
+              t.target.name.value.some
+            ),
+          ExploreStyles.PMCorrectionLine,
+          props.asterism.length > 1,
+          survey.value.epoch
+        )
 
         def offsetIndicators(
           f:       ConfigurationForVisualization => Option[NonEmptyList[Offset]],
@@ -491,44 +463,28 @@ object AladinContainer extends AladinCommon {
           (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
 
         // Render blind offset targets from asterism separately
-        val blindOffsetTargets = props.asterism.blindOffsetTargets
-          .flatMap: t =>
-            t.toSidereal.map: siderealT =>
-              val (epochCoords, obsTimeCoords) =
-                siderealT.target.tracking
-                  .trackedPositions(siderealT.target.tracking.epoch.some, props.obsTime)
-
-              val isSelected = t.id === props.asterism.focus.id
-
-              svgTargetAndLine(
-                obsTimeCoords,
-                epochCoords,
-                coords =>
-                  SVGTarget.BlindOffsetTarget(
-                    coords,
-                    ExploreStyles.BlindOffsetTarget,
-                    ExploreStyles.BlindOffsetSelectedTarget,
-                    10,
-                    isSelected
-                  ),
-                ExploreStyles.BlindOffsetLine
-              )
-          .flatten
+        val blindOffsetTargets = renderTargets(
+          props.asterism.blindOffsetTargets,
+          props.obsTime,
+          props.asterism.focus.id,
+          (_, selected, coords) =>
+            SVGTarget.BlindOffsetTarget(
+              coords,
+              Css.Empty,
+              ExploreStyles.BlindOffsetSelectedTarget,
+              TargetSize,
+              selected
+            ),
+          ExploreStyles.BlindOffsetLine,
+          props.asterism.length > 1,
+          survey.value.epoch
+        )
 
         val screenOffset =
           currentPos.value.map(_.diff(baseCoordinates).offset).getOrElse(Offset.Zero)
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
-        pprint.pprintln("--------")
-        pprint.pprintln("epoch")
-        pprint.pprintln(scienceTargets.map(_._3.map(Coordinates.fromHmsDms.reverseGet)))
-        pprint.pprintln("now")
-        pprint.pprintln(scienceTargets.map(_._4).map(Coordinates.fromHmsDms.reverseGet))
-        pprint.pprintln(scienceTargets)
-        // pprint.pprintln(basePosition)
-        // pprint.pprintln(blindOffsetTargets)
-        // pprint.pprintln(targetPositions)
 
         <.div.withRef(resize.ref)(ExploreStyles.AladinContainerBody)(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
@@ -550,7 +506,7 @@ object AladinContainer extends AladinCommon {
                     baseCoordinates,
                     // Order matters
                     // candidates ++ basePosition ++ blindOffsetTargets ++ targetPositions ++ offsetPositions
-                    basePosition ++ blindOffsetTargets ++ targetPositions ++ offsetPositions
+                    blindOffsetTargets ++ targetPositions ++ offsetPositions ++ basePosition
                   )
                 ),
               (resize.width,

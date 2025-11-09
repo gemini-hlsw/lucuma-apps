@@ -30,7 +30,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
-import lucuma.react.primereact.Message
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
