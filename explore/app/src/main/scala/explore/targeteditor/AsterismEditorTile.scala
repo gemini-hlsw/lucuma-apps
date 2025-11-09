@@ -211,44 +211,30 @@ object AsterismEditorTile:
   private object Body
       extends ReactFnComponent[Body](props =>
         for
-          obsEditInfo  <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
-                            ObsIdSetEditInfo.fromObservationList
-          _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
-                            props.obsEditInfo.set(roei.value.some)
-          asterismIds  <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
-                            // all of the selected observations must have the same asterism
-                            obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
+          obsEditInfo    <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
+                              ObsIdSetEditInfo.fromObservationList
+          _              <- useLayoutEffectWithDeps(obsEditInfo): roei =>
+                              props.obsEditInfo.set(roei.value.some)
+          asterismIds    <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+                              // all of the selected observations must have the same asterism
+                              obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
           // Build asterism IDs that include blind offset
-          allAsterismIds <- useMemo((asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))):
-                              (scienceIds, oBlindId) =>
-                                // Include blind offset target in the IDs if present
-                                scienceIds ++ oBlindId.toList
-          allTargetIds <- useState(allAsterismIds.toList)
-          asterism     <- useMemo(allAsterismIds):
-                            ids =>
+          allAsterismIds <- useMemo(
+                              (asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
+                            ): (scienceIds, oBlindId) =>
+                              // Include blind offset target in the IDs if present
+                              scienceIds ++ oBlindId.toList
+          asterism       <- useMemo(allAsterismIds): ids =>
                               ObservationTargets.fromIdsAndTargets(ids, props.allTargets.get)
-          _            <- useLayoutEffectWithDeps((allTargetIds.value, props.focusedTargetId)):
-                             (targetIds, focusedTargetId) =>
-                               // If the selected targetId is None, or not in the target list, select the first target (if any).
-                               // Need to replace history here.
-                               focusedTargetId.filter(targetIds.contains) match
-                                 case None =>
-                                   props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
-                                 case _    => Callback.empty
-          fullScreen   <- useStateView(AladinFullScreen.Normal)
-          _            <-
-            useLayoutEffectWithDeps((props.focusedTargetId, props.allTargets.get)):
-              (focusedTargetId, allTargets) =>
-                focusedTargetId match
-                  case Some(targetId) =>
-                    val targetExists = allTargets.get(targetId).map(t => (t.id, t.target.name))
-                    Callback.log(
-                      s"TargetEditor render check: focusedTargetId=$targetId, exists=$targetExists"
-                    )
-                  case None           =>
-                    Callback.log(
-                      "TargetEditor render check: focusedTargetId=None (will show placeholder)"
-                    )
+          _              <- useLayoutEffectWithDeps((allAsterismIds.toList, props.focusedTargetId)):
+                              (targetIds, focusedTargetId) =>
+                                // If the selected targetId is None, or not in the target list, select the first target (if any).
+                                // Need to replace history here.
+                                focusedTargetId.filter(targetIds.contains) match
+                                  case None =>
+                                    props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
+                                  case _    => Callback.empty
+          fullScreen     <- useStateView(AladinFullScreen.Normal)
         yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -296,23 +282,10 @@ object AsterismEditorTile:
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
                 val obsInfo                                             = props.obsInfo(focusedTargetId)
 
-                // NOTE: If blind offset is selected, asterism passed to target
-                // editor will not be focused properly since blind offset is not in asterism.
-                // But, I think that was only get target id to edit, which we now get from TargetWithId
-
                 // Always render the container to prevent layout shift when selecting targets
                 <.div(
                   ExploreStyles.TargetTileEditor,
-                  selectedTargetOpt.fold(
-                    <.div(
-                      ^.display        := "flex",
-                      ^.justifyContent := "center",
-                      ^.alignItems     := "center",
-                      ^.padding        := "2rem",
-                      ^.color          := "#888",
-                      "Select a target to view details"
-                    )
-                  )(targetWithId =>
+                  selectedTargetOpt.map: targetWithId =>
                     TargetEditor(
                       props.programId,
                       props.userId,
@@ -333,7 +306,6 @@ object AsterismEditorTile:
                       allowEditingOngoing = props.allowEditingOngoing,
                       invalidateSequence = props.sequenceChanged
                     )
-                  )
                 ).some
           )
       )

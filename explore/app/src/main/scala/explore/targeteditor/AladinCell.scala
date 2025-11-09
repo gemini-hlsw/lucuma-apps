@@ -338,9 +338,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          centralWavelength.value,
                                          base,
                                          props.sciencePositionsAt(vizTime),
-                                         props.asterism.blindOffsetTargets.headOption
-                                           .flatMap(_.toSidereal)
-                                           .flatMap(_.target.tracking.at(vizTime)),
+                                         props.asterism.blindOffsetSiderealTracking
+                                           .flatMap(_.at(vizTime)),
                                          angles,
                                          props.obsConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
                                          props.obsConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply),

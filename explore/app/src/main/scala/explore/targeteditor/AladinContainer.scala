@@ -467,13 +467,14 @@ object AladinContainer extends AladinCommon {
           props.asterism.blindOffsetTargets,
           props.obsTime,
           props.asterism.focus.id,
-          (_, selected, coords) =>
+          (t, selected, coords) =>
             SVGTarget.BlindOffsetTarget(
               coords,
               Css.Empty,
               ExploreStyles.BlindOffsetSelectedTarget,
               TargetSize,
-              selected
+              selected,
+              t.target.name.value.some
             ),
           ExploreStyles.BlindOffsetLine,
           props.asterism.length > 1,
@@ -505,8 +506,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     baseCoordinates,
                     // Order matters
-                    // candidates ++ basePosition ++ blindOffsetTargets ++ targetPositions ++ offsetPositions
-                    blindOffsetTargets ++ targetPositions ++ offsetPositions ++ basePosition
+                    candidates ++ blindOffsetTargets ++ targetPositions ++ basePosition ++ offsetPositions
                   )
                 ),
               (resize.width,

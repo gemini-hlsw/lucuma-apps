@@ -256,12 +256,12 @@ $brightness: var(--aladin-image-brightness);
 
     .blind-offset-target {
       stroke: hsl(300deg 100% 25%);
-      fill: hsl(300deg 100% 25% / 80%);
+      fill: hsl(300deg 100% 25% / 40%);
       stroke-width: 1px;
     }
 
     .science-target {
-      fill: hsl(240deg 100% 60.2% / 80%);
+      fill: hsl(240deg 100% 60.2% / 40%);
       stroke: hsl(240deg 100% 60.2%);
       stroke-width: 1px;
       pointer-events: stroke;

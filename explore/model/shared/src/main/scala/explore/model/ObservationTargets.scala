@@ -34,7 +34,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
 
   // This uses ObjectTracking.orRegionFromAsterism, which treats any asterism with a
   // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
-  // have asterisms with multiple TtargetstargetsoOs, this is probably fine.
+  // have asterisms with multiple TOs, this is probably fine.
   def coordsOrRegionAt(vizTime: Option[Instant]): Option[Either[Coordinates, Region]] =
     NonEmptyList
       .fromList(science.map(_.target))
@@ -80,7 +80,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
 
   // Tracking of the first blind offset, the table allows any but
   // only one is ever in the db.
-  // we can use it for trackirng only if shidereal
+  // we can use it for trackirng only if sidereal
   def blindOffsetSiderealTracking: Option[SiderealTracking] =
     blindOffsetTargets.map(_.toSidereal).collectFirst {
       case Some(SiderealTargetWithId(target = target)) => target.tracking
