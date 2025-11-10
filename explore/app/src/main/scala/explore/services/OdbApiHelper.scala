@@ -38,9 +38,11 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
   // we don't want to reset if there are unrecoverable errors like an incompatible schema
   private def shouldResetCache(error: Throwable): Boolean = error match {
     case ResponseException(errors, _) =>
-      // This detects one particular case, there may be more.
-      !errors.exists(_.message.startsWith("No field"))
-    case _                            => true
+      // This detects particular cases, which are unrecoverable
+      !(errors.exists(_.message.startsWith("No field")) ||
+        errors.exists(_.message.startsWith("Non-leaf field")))
+    case a                            =>
+      true
   }
 
   extension [A](fa: F[A])
@@ -87,5 +89,7 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
         .map:
           _.onError: e =>
             fs2.Stream.eval:
-              Logger[F].error(e)(s"Error in ODB API call, resetting cache") >>
-                resetCache(e.getMessage)
+              val doReset = shouldResetCache(e)
+              Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
+                resetCache(e.getMessage).whenA(doReset) >>
+                notifyFatalError(e.getMessage).unlessA(doReset)
