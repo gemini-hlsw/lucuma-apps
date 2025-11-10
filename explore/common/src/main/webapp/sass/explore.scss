@@ -1727,7 +1727,18 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .group-delays-form,
+  .group-delays-form {
+    display: grid;
+    column-gap: var(--content-padding);
+    grid-template-columns: repeat(3, auto);
+    align-items: center;
+    margin-right: auto;
+
+    .pl-form-field-label {
+      grid-column: 2;
+    }
+  }
+
   .group-planned-time {
     display: grid;
     column-gap: var(--content-padding);
