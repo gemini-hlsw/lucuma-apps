@@ -56,7 +56,7 @@ import org.typelevel.log4cats.Logger
 import java.time.Instant
 import scala.collection.immutable.SortedSet
 
-object AsterismEditorTile:
+object ObservationTargetsEditorTile:
   def apply(
     userId:              Option[User.Id],
     tileId:              Tile.TileId,

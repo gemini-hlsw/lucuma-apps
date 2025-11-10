@@ -45,7 +45,7 @@ import explore.plots.PlotData
 import explore.schedulingWindows.SchedulingWindowsTile
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.targeteditor.AsterismEditorTile
+import explore.targeteditor.ObservationTargetsEditorTile
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -513,7 +513,7 @@ object ObsTabTiles:
           val blindOffsetUndoSetter = props.observation.model.zoom(Observation.blindOffset)
 
           val targetTile =
-            AsterismEditorTile(
+            ObservationTargetsEditorTile(
               props.vault.userId,
               ObsTabTileIds.TargetId.id,
               props.programId,

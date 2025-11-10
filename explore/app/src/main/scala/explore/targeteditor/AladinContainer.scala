@@ -206,7 +206,7 @@ object AladinContainer extends AladinCommon {
       p.obsTargets.baseTracking
         .flatMap(_.at(p.obsTime))
 
-    val allTargets = p.obsTargets.mapScience: t =>
+    val science = p.obsTargets.mapScience: t =>
       t.toSidereal.map: siderealT =>
         val (epochCoords, obsTimeCoords) =
           siderealT.target.tracking
@@ -214,7 +214,7 @@ object AladinContainer extends AladinCommon {
 
         (t.id === p.obsTargets.focus.id, t.target.name, epochCoords, obsTimeCoords)
 
-    (baseObsTimeCoords, allTargets.flattenOption)
+    (baseObsTimeCoords, science.flattenOption)
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
