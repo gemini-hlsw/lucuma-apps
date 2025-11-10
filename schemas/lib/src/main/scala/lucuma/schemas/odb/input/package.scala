@@ -495,7 +495,8 @@ extension (o: ObservingMode.GmosSouthLongSlit)
 
 extension (o: ObservingMode.GmosNorthImaging)
   def toInput: GmosNorthImagingInput = GmosNorthImagingInput(
-    filters = o.filters.toList.assign,
+    // we don't have etms per filter yet
+    filters = o.filters.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign,
     offsets = o.offsets.map(_.toInput).assign,
     explicitMultipleFiltersMode = o.explicitMultipleFiltersMode.orUnassign,
     explicitBin = o.explicitBin.orUnassign,
@@ -506,7 +507,8 @@ extension (o: ObservingMode.GmosNorthImaging)
 
 extension (o: ObservingMode.GmosSouthImaging)
   def toInput: GmosSouthImagingInput = GmosSouthImagingInput(
-    filters = o.filters.toList.assign,
+    // we don't have etms per filter yet
+    filters = o.filters.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign,
     offsets = o.offsets.map(_.toInput).assign,
     explicitMultipleFiltersMode = o.explicitMultipleFiltersMode.orUnassign,
     explicitBin = o.explicitBin.orUnassign,
@@ -519,8 +521,9 @@ extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
   def toInput: Flamingos2LongSlitAcquisitionInput = Flamingos2LongSlitAcquisitionInput(
     exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
+
 extension (o: ObservingMode.Flamingos2LongSlit)
-  def toInput: Flamingos2LongSlitInput            = Flamingos2LongSlitInput(
+  def toInput: Flamingos2LongSlitInput = Flamingos2LongSlitInput(
     disperser = o.disperser.assign,
     filter = o.filter.assign,
     fpu = o.fpu.assign,
@@ -568,13 +571,13 @@ extension (i: BasicConfiguration)
     case o: BasicConfiguration.GmosNorthImaging   =>
       ObservingModeInput(
         gmosNorthImaging = GmosNorthImagingInput(
-          filters = o.filter.toList.assign
+          filters = o.filter.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign
         ).assign
       )
     case o: BasicConfiguration.GmosSouthImaging   =>
       ObservingModeInput(
         gmosSouthImaging = GmosSouthImagingInput(
-          filters = o.filter.toList.assign
+          filters = o.filter.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign
         ).assign
       )
     case o: BasicConfiguration.Flamingos2LongSlit =>

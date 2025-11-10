@@ -399,7 +399,7 @@ object GmosImagingConfigPanel {
         ObservingMode.GmosNorthImaging.filters,
         GmosNorthImagingInput.filters.modify
       )
-      .view(_.toList.assign)
+      .view(_.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign)
 
     override protected def offsets(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -536,7 +536,7 @@ object GmosImagingConfigPanel {
           ObservingMode.GmosSouthImaging.filters,
           GmosSouthImagingInput.filters.modify
         )
-        .view(_.toList.assign)
+        .view(_.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign)
 
     inline override protected def offsets(aligner: AA)(using
       MonadError[IO, Throwable],
