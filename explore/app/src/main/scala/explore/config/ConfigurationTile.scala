@@ -48,8 +48,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.PosAngleConstraint
-import lucuma.core.model.Target
 import lucuma.core.model.Program
+import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp

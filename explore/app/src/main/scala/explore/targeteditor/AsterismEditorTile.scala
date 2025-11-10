@@ -3,6 +3,7 @@
 
 package explore.targeteditor
 
+import cats.Order.given
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
@@ -54,7 +55,6 @@ import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
-import cats.Order.given
 
 object AsterismEditorTile:
   def apply(
@@ -216,24 +216,24 @@ object AsterismEditorTile:
                            ObsIdSetEditInfo.fromObservationList
           _           <- useLayoutEffectWithDeps(obsEditInfo): roei =>
                            props.obsEditInfo.set(roei.value.some)
-          asterismIds <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+          scienceIds  <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
                            // all of the selected observations must have the same asterism
                            obses.get(ids.head).fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
           // Build asterism IDs that include blind offset
           targetIds   <- useMemo(
-                           (asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
+                           (scienceIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
                          ): (scienceIds, oBlindId) =>
                            // Include blind offset target in the IDs if present
                            scienceIds.value ++ oBlindId.toList
           allTargets  <- useMemo(targetIds): ids =>
                            ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
           _           <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
-                           (asterismIds, focusedTargetId) =>
+                           (allTargetIds, focusedTargetId) =>
                              // If the selected targetId is None, or not in the target list, select the first target (if any).
                              // Need to replace history here.
-                             focusedTargetId.filter(asterismIds.contains) match
+                             focusedTargetId.filter(allTargetIds.contains) match
                                case None =>
-                                 props.setTarget(asterismIds.headOption, SetRouteVia.HistoryReplace)
+                                 props.setTarget(allTargetIds.headOption, SetRouteVia.HistoryReplace)
                                case _    => Callback.empty
           fullScreen  <- useStateView(AladinFullScreen.Normal)
         yield
@@ -279,9 +279,9 @@ object AsterismEditorTile:
               props.focusedTargetId.map: focusedTargetId =>
                 val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
-                val obsInfo                                             = props.obsInfo(focusedTargetId)
 
-                // Always render the container to prevent layout shift when selecting targets
+                val obsInfo = props.obsInfo(focusedTargetId)
+
                 <.div(
                   ExploreStyles.TargetTileEditor,
                   selectedTargetOpt.map: targetWithId =>

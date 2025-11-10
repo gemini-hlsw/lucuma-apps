@@ -69,6 +69,10 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   def baseTracking: Option[Tracking] =
     NonEmptyList.fromList(science.map(_.target)).flatMap(Tracking.fromAsterism)
 
+  // try science tracking, else blind offset tracking
+  def tracking: Option[Tracking] =
+    baseTracking.orElse(blindOffsetSiderealTracking)
+
   def mapScience[B](f: TargetWithId => B): List[B] =
     science.map(f)
 
@@ -83,9 +87,10 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   // only one is ever in the db.
   // we can use it for trackirng only if sidereal
   def blindOffsetSiderealTracking: Option[SiderealTracking] =
-    blindOffsetTargets.map(_.toSidereal).collectFirst {
-      case Some(SiderealTargetWithId(target = target)) => target.tracking
-    }
+    blindOffsetTargets
+      .map(_.toSidereal)
+      .collectFirst:
+        case Some(SiderealTargetWithId(target = target)) => target.tracking
 }
 
 object ObservationTargets:

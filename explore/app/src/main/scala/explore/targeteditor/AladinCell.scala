@@ -40,7 +40,6 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
-import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.*
@@ -64,8 +63,7 @@ import scala.concurrent.duration.*
 case class AladinCell(
   uid:                User.Id,
   obsId:              Option[Observation.Id],
-  asterism:           ObservationTargets,
-  asterismTracking:   Tracking,
+  obsTargets:         ObservationTargets,
   obsTime:            Instant,
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
@@ -77,6 +75,8 @@ case class AladinCell(
 
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, obsConf.flatMap(_.posAngleConstraint))
+
+  val asterismTracking = obsTargets.tracking
 
   val anglesToTest: Option[NonEmptyList[Angle]] =
     for
@@ -101,7 +101,7 @@ case class AladinCell(
     obsConf.flatMap(_.remoteGSName)
 
   def sciencePositionsAt(vizTime: Instant): List[Coordinates] =
-    asterism
+    obsTargets
       .mapScience(_.toSidereal)
       .flatten
       .flatMap(_.target.tracking.at(vizTime))
@@ -172,7 +172,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           .updateAladinPreferences[IO](
             options.get.toOption.flatMap(_.id),
             props.uid,
-            props.asterism.ids,
+            props.obsTargets.ids,
             offset = newOffset.some
           )
           .unlessA(ignore)
@@ -188,7 +188,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           .updateAladinPreferences[IO](
             options.get.toOption.flatMap(_.id),
             props.uid,
-            props.asterism.ids,
+            props.obsTargets.ids,
             offset = o
           )
           .void
@@ -204,32 +204,37 @@ object AladinCell extends ModelOptics with AladinCommon:
       // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates        <- useEffectResultWithDeps(
                              (props.siderealDiscretizedObsTime,
-                              props.asterismTracking,
+                              props.obsTargets.baseTracking,
                               props.obsConf.flatMap(_.obsModeType)
                              )
                            ): (siderealDiscretizedObsTime, baseTracking, obsModeType) =>
                              import ctx.given
 
-                             if (props.needsAGS && obsModeType.isDefined)
-                               (for
-                                 _          <- props.obsConf
-                                                 .flatMap(_.agsState)
-                                                 .foldMap(_.async.set(AgsState.LoadingCandidates))
-                                 candidates <- obsModeType
-                                                 .map(ot =>
-                                                   CatalogClient[IO]
-                                                     .requestSingle:
-                                                       CatalogMessage.GSRequest(
-                                                         baseTracking,
-                                                         siderealDiscretizedObsTime.obsTime,
-                                                         ot
-                                                       )
-                                                 )
-                                                 .getOrElse(none.pure[IO])
-                               yield candidates)
-                                 .guarantee:
-                                   props.obsConf.flatMap(_.agsState).foldMap(_.async.set(AgsState.Idle))
-                             else none.pure
+                             (obsModeType, baseTracking)
+                               .mapN: (_, baseTracking) =>
+                                 if (props.needsAGS)
+                                   (for
+                                     _          <- props.obsConf
+                                                     .flatMap(_.agsState)
+                                                     .foldMap(_.async.set(AgsState.LoadingCandidates))
+                                     candidates <- obsModeType
+                                                     .map(ot =>
+                                                       CatalogClient[IO]
+                                                         .requestSingle:
+                                                           CatalogMessage.GSRequest(
+                                                             baseTracking,
+                                                             siderealDiscretizedObsTime.obsTime,
+                                                             ot
+                                                           )
+                                                     )
+                                                     .getOrElse(none.pure[IO])
+                                   yield candidates)
+                                     .guarantee:
+                                       props.obsConf
+                                         .flatMap(_.agsState)
+                                         .foldMap(_.async.set(AgsState.Idle))
+                                 else none.pure
+                               .getOrElse(List.empty.some.pure[IO])
       // Analysis results
       agsResults        <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
       // Reference to root
@@ -237,12 +242,12 @@ object AladinCell extends ModelOptics with AladinCommon:
       // target options, will be read from the user preferences
       options           <- useStateView(pending[AsterismVisualOptions])
       // Load target preferences
-      targetPreferences <- useEffectWithDeps((props.uid, props.asterism.ids)): _ =>
+      targetPreferences <- useEffectWithDeps((props.uid, props.obsTargets.ids)): _ =>
                              import ctx.given
 
                              AsterismPreferences
                                .queryWithDefault[IO](props.uid,
-                                                     props.asterism.ids,
+                                                     props.obsTargets.ids,
                                                      Constants.InitialFov
                                )
                                .flatMap: tp =>
@@ -258,9 +263,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    results.pick
                                props.guideStarSelection.set(newGss)
       // mouse coordinates, starts on the base
-      mouseCoords       <- useState(props.asterismTracking.baseCoordinates)
+      mouseCoords       <- useState(props.asterismTracking.map(_.baseCoordinates))
       // Reset offset and gs if asterism change
-      _                 <- useEffectWithDeps(props.asterism): _ =>
+      _                 <- useEffectWithDeps(props.obsTargets): _ =>
                              val (_, offsetOnCenter) = offsetViews(props, options)(ctx)
 
                              // if the coordinates change, reset ags, offset and mouse coordinates
@@ -268,7 +273,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                _ <- props.guideStarSelection.set(GuideStarSelection.Default)
                                _ <- agsResults.setState(Pot.pending)
                                _ <- offsetOnCenter.set(Offset.Zero)
-                               _ <- mouseCoords.setState(props.asterismTracking.baseCoordinates)
+                               _ <- mouseCoords.setState(props.asterismTracking.map(_.baseCoordinates))
                              yield ()
       // Reset selection if pos angle changes except for manual selection changes
       _                 <- useEffectWithDeps(props.obsConf.flatMap(_.posAngleConstraint)): _ =>
@@ -282,7 +287,7 @@ object AladinCell extends ModelOptics with AladinCommon:
       // Request ags calculation
       _                 <- useEffectWithDeps(
                              (props.asterismTracking,
-                              props.asterism.focus.id,
+                              props.obsTargets.focus.id,
                               props.obsConf.flatMap(_.posAngleConstraint),
                               props.obsConf.flatMap(_.constraints),
                               props.obsConf.flatMap(_.centralWavelength),
@@ -303,7 +308,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                import ctx.given
 
                                val runAgs: IO[Unit] =
-                                 (tracking.at(vizTime),
+                                 (tracking.flatMap(_.at(vizTime)),
                                   props.obsConf.flatMap(_.obsModeType),
                                   props.obsConf.flatMap(_.agsState),
                                   candidates
@@ -333,12 +338,12 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    val request: Option[AgsMessage.AgsRequest] =
                                      (params, props.anglesToTest).mapN((params, angles) =>
                                        AgsMessage.AgsRequest(
-                                         props.asterism.focus.id,
+                                         props.obsTargets.focus.id,
                                          constraints,
                                          centralWavelength.value,
                                          base,
                                          props.sciencePositionsAt(vizTime),
-                                         props.asterism.blindOffsetSiderealTracking.flatMap(_.at(vizTime)),
+                                         props.obsTargets.blindOffsetSiderealTracking.flatMap(_.at(vizTime)),
                                          angles,
                                          props.obsConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
                                          props.obsConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply),
@@ -407,7 +412,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             props.fullScreen.set(v) *> userPrefsSetter(props.uid, fullScreen = v.some)
 
       val coordinatesSetter =
-        ((c: Coordinates) => mouseCoords.setState(c)).reuseAlways
+        ((c: Coordinates) => mouseCoords.setState(c.some)).reuseAlways
 
       val fovSetter = (newFov: Fov) => {
         val ignore = options.get.fold(
@@ -424,7 +429,7 @@ object AladinCell extends ModelOptics with AladinCommon:
               .updateAladinPreferences[IO](
                 options.get.toOption.flatMap(_.id),
                 props.uid,
-                props.asterism.ids,
+                props.obsTargets.ids,
                 newFov.x.some,
                 newFov.y.some
               )
@@ -444,8 +449,7 @@ object AladinCell extends ModelOptics with AladinCommon:
       val renderAladin: AsterismVisualOptions => VdomNode =
         (t: AsterismVisualOptions) =>
           AladinContainer(
-            props.asterism,
-            props.asterismTracking,
+            props.obsTargets,
             props.obsTime,
             props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
             globalPreferences.get,
@@ -462,14 +466,15 @@ object AladinCell extends ModelOptics with AladinCommon:
           val agsState = props.obsConf
             .flatMap(_.agsState.map(_.get))
             .getOrElse(AgsState.Idle)
-          AladinToolbar(
-            Fov(t.fovRA, t.fovDec),
-            mouseCoords.value,
-            agsState,
-            guideStar,
-            globalPreferences.get.agsOverlay,
-            offsetOnCenter
-          )
+          mouseCoords.value.map: mouseCoords =>
+            AladinToolbar(
+              Fov(t.fovRA, t.fovDec),
+              mouseCoords,
+              agsState,
+              guideStar,
+              globalPreferences.get.agsOverlay,
+              offsetOnCenter
+            )
 
       val renderAgsOverlay: AsterismVisualOptions => VdomNode =
         (_: AsterismVisualOptions) =>
@@ -510,7 +515,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           .mapValue: options =>
             AladinPreferencesMenu(
               props.uid,
-              props.asterism.ids,
+              props.obsTargets.ids,
               globalPreferences,
               options,
               menuRef

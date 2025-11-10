@@ -11,4 +11,3 @@ import org.scalacheck.Arbitrary.*
 
 class AsterismSuite extends DisciplineSuite:
   checkAll("Eq[ObservationTargets]", EqTests[ObservationTargets].eqv)
-
