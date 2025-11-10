@@ -50,7 +50,7 @@ echo "GPP_SLACK_WEBHOOK_URL: $([ -n "$GPP_SLACK_WEBHOOK_URL" ] && echo "✓ Set"
 echo "GPP_SLACK_CHANNEL: $([ -n "$GPP_SLACK_CHANNEL" ] && echo "✓ Set ($GPP_SLACK_CHANNEL)" || echo "✗ Not set (will use default: #gpp)")"
 if [ -n "$GPP_GITHUB_TOKEN" ]; then
     echo "GPP_GITHUB_TOKEN: ✓ Set"
-  else 
+  else
     echo "GPP_GITHUB_TOKEN:  ✗ Not set (This is necessary for recording deployments)"
     exit 1
 fi
@@ -84,7 +84,7 @@ get_github_deployment_shas() {
   local -n git_sha="$3"
 
   local is_docker=$([[ " ${docker_systems[*]} " =~ [[:space:]]${system}[[:space:]] ]] && [[ ${4} ]] && echo true || echo false)
-  
+
   if [ $is_docker = true ]; then
     local -n image_shas_object="$4"
   fi
@@ -121,7 +121,7 @@ record_github_deployment() {
   # Secure curl options handling
   local curl_opts=("-s" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
   local payload_object=""
-  if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi 
+  if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
 
 
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
@@ -159,7 +159,7 @@ set_system_vars() {
     fi
 
     get_github_deployment_shas "$display_name" "$TARGET_ENV" target_sha["$display_name"]
-    
+
     promote["$display_name"]=$( [ "${source_sha["$display_name"]}" = "none" ] || [ "${target_sha["$display_name"]}" = "none" ] || [ "${source_sha["$display_name"]}" != "${target_sha["$display_name"]}" ] && echo true || echo false )
   done
 }
@@ -283,7 +283,7 @@ check_hasura_changes() {
       ;;
   esac
 
-  cd hasura/user-prefs
+  cd explore/hasura/user-prefs
   unset NODE_OPTIONS
 
   local has_changes=false
@@ -329,19 +329,19 @@ check_hasura_changes() {
 # Function to promote Docker images between environments in Heroku
 promote_heroku_docker_images() {
   local -a systems=("${@:1}")
-  
+
   # Login to Heroku container registry once (for all images)
   if ! heroku container:login; then
     echo "  ! Failed to login to Heroku container registry"
     exit 1
   fi
-  
+
   # Process each entry in the array
   for display_name in "${systems[@]}"; do
     # Check if this service should be promoted
     if [ "${promote["$display_name"]}" = true ]; then
       echo "## Promote ${display_name} to $TARGET_ENV"
-      
+
       # Get image name from the associative array
       local base_name="${image_name["${display_name}"]}-${TARGET_ENV}"
 
@@ -358,7 +358,7 @@ promote_heroku_docker_images() {
           echo "${display_name} database backup created (ID not captured)"
         fi
       fi
-      
+
       declare -a proc_types=() # Split space-separated string into array
       read -a proc_types <<< "${process_types["${display_name}"]}"
 
