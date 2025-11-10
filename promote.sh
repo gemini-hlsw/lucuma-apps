@@ -375,7 +375,7 @@ promote_heroku_docker_images() {
         echo "    Docker image to promote: $docker_image_sha"
 
         # We use API instead of CLI in order to be able to release a docker image with a specific id.
-        local curl_opts=("-s" "--netrc" "-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
+        local curl_opts=("-s" "--netrc" "--fail-with-body" "-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
 
         local release_proc_type=$(curl "${curl_opts[@]}" -X PATCH https://api.heroku.com/apps/${base_name}/formation \
           -d "{
