@@ -60,7 +60,7 @@ case class TargetTable(
   programId:        Program.Id,
   obsIds:           ObsIdSet, // Only used to invoke DB - should only be unexecuted observations
   // Targets are not modified here, we only modify which ones belong to the ObservationTargets.
-  asterism:         Option[ObservationTargets],
+  obsTargets:       Option[ObservationTargets],
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
   selectedTarget:   View[Option[Target.Id]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
@@ -175,7 +175,7 @@ object TargetTable extends AsterismModifier:
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
         rows    <- useMemo(
-                     (props.asterism, props.obsAndTargets.get._2, vizTime.value)
+                     (props.obsTargets, props.obsAndTargets.get._2, vizTime.value)
                    ):
                      case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
                        asterism.map(_.at(vizTime)).toList

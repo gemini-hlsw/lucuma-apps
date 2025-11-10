@@ -67,7 +67,7 @@ case class Observation(
   reference:               Option[ObservationReference],
   title:                   String,
   subtitle:                Option[NonEmptyString],
-  scienceTargetIds:        AsterismIds,
+  scienceTargetIds:        SortedSet[Target.Id],
   selectedGSName:          Option[NonEmptyString],
   constraints:             ConstraintSet,
   timingWindows:           List[TimingWindow],

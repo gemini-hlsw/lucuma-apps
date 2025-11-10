@@ -14,7 +14,6 @@ import explore.components.ui.ExploreStyles
 import explore.config.ObsTimeEditor
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.AsterismIds
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.GuideStarSelection
@@ -54,6 +53,8 @@ import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
+import scala.collection.immutable.SortedSet
+import cats.Order.given
 
 object AsterismEditorTile:
   def apply(
@@ -211,30 +212,30 @@ object AsterismEditorTile:
   private object Body
       extends ReactFnComponent[Body](props =>
         for
-          obsEditInfo    <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
-                              ObsIdSetEditInfo.fromObservationList
-          _              <- useLayoutEffectWithDeps(obsEditInfo): roei =>
-                              props.obsEditInfo.set(roei.value.some)
-          asterismIds    <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
-                              // all of the selected observations must have the same asterism
-                              obses.get(ids.head).fold(AsterismIds.empty)(_.scienceTargetIds)
+          obsEditInfo <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
+                           ObsIdSetEditInfo.fromObservationList
+          _           <- useLayoutEffectWithDeps(obsEditInfo): roei =>
+                           props.obsEditInfo.set(roei.value.some)
+          asterismIds <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+                           // all of the selected observations must have the same asterism
+                           obses.get(ids.head).fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
           // Build asterism IDs that include blind offset
-          allAsterismIds <- useMemo(
-                              (asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
-                            ): (scienceIds, oBlindId) =>
-                              // Include blind offset target in the IDs if present
-                              scienceIds ++ oBlindId.toList
-          asterism       <- useMemo(allAsterismIds): ids =>
-                              ObservationTargets.fromIdsAndTargets(ids, props.allTargets.get)
-          _              <- useLayoutEffectWithDeps((allAsterismIds.toList, props.focusedTargetId)):
-                              (targetIds, focusedTargetId) =>
-                                // If the selected targetId is None, or not in the target list, select the first target (if any).
-                                // Need to replace history here.
-                                focusedTargetId.filter(targetIds.contains) match
-                                  case None =>
-                                    props.setTarget(targetIds.headOption, SetRouteVia.HistoryReplace)
-                                  case _    => Callback.empty
-          fullScreen     <- useStateView(AladinFullScreen.Normal)
+          targetIds   <- useMemo(
+                           (asterismIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
+                         ): (scienceIds, oBlindId) =>
+                           // Include blind offset target in the IDs if present
+                           scienceIds.value ++ oBlindId.toList
+          allTargets  <- useMemo(targetIds): ids =>
+                           ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
+          _           <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
+                           (asterismIds, focusedTargetId) =>
+                             // If the selected targetId is None, or not in the target list, select the first target (if any).
+                             // Need to replace history here.
+                             focusedTargetId.filter(asterismIds.contains) match
+                               case None =>
+                                 props.setTarget(asterismIds.headOption, SetRouteVia.HistoryReplace)
+                               case _    => Callback.empty
+          fullScreen  <- useStateView(AladinFullScreen.Normal)
         yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -264,7 +265,7 @@ object AsterismEditorTile:
                   props.userId.some,
                   props.programId,
                   unexecutedObs,
-                  asterism,
+                  allTargets,
                   props.obsAndTargets,
                   selectedTargetView,
                   props.onAsterismUpdate,
@@ -274,9 +275,7 @@ object AsterismEditorTile:
                   props.blindOffset,
                   props.columnVisibility
                 ),
-            // it's possible for us to get here without an asterism but with a focused target id. This will get
-            // corrected, but we need to not render the target editor before it is corrected.
-            asterism.flatMap: a =>
+            allTargets.flatMap: a =>
               props.focusedTargetId.map: focusedTargetId =>
                 val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))

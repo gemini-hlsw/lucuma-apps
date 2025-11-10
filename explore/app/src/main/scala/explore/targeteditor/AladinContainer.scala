@@ -195,7 +195,7 @@ object AladinContainer extends AladinCommon {
         svgTargetAndLine(
           obsTimeCoords,
           epochCoords,
-          coords => targetSVG(t, isSelected, coords),
+          targetSVG(t, isSelected, _),
           lineStyle
         )
 
@@ -351,13 +351,11 @@ object AladinContainer extends AladinCommon {
                               scienceTargets,
                               survey.value.epoch
                             )
-
         // Use fov from aladin
-        fov <- useState(none[Fov])
+        fov        <- useState(none[Fov])
         // Update survey if conf changes
-        _   <-
-          useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))): w =>
-            w.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
+        _          <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
+                        _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
         val (baseCoordinates, scienceTargets) = baseCoords.value
 
@@ -429,8 +427,7 @@ object AladinContainer extends AladinCommon {
           props.vizConf.foldMap(f).foldMap(_.toList).zipWithIndex.map { case (o, i) =>
             for {
               idx       <- refineV[NonNegative](i).toOption
-              posAngle  <- props.selectedGuideStar
-                             .map(_.posAngle)
+              posAngle  <- props.selectedGuideStar .map(_.posAngle)
                              .orElse(props.vizConf.map(_.posAngle))
               baseCoords = if (oType === SequenceType.Acquisition) {
                              props.blindOffset

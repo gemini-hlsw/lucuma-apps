@@ -7,7 +7,6 @@ import cats.Hash
 import cats.data.EitherNec
 import cats.data.NonEmptyList
 import cats.syntax.all.*
-import explore.model.AsterismIds
 import explore.model.Constants
 import explore.model.TargetList
 import explore.model.itc.ItcQueryProblem
@@ -23,6 +22,8 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
+
+import scala.collection.immutable.SortedSet
 
 trait syntax:
 
@@ -64,7 +65,7 @@ trait syntax:
   private given Hash[TargetInput]    = Hash.by(x => (x.sourceProfile, x.radialVelocity))
   private given Hash[ItcTarget]      = Hash.by(x => (x.name.value, x.input))
 
-  extension (targetIds: AsterismIds)
+  extension (targetIds: SortedSet[Target.Id])
     // assumes all targets are present
     def toAsterism(allTargets: TargetList): List[Target] =
       targetIds.toList.map(targetId => allTargets.get(targetId).map(_.target)).flattenOption

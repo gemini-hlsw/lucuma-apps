@@ -18,6 +18,7 @@ import lucuma.core.model.Tracking
 import lucuma.schemas.model.*
 
 import java.time.Instant
+import scala.collection.immutable.SortedSet
 
 /**
  * Contains a list of targets focused on the selected one on the UI
@@ -95,5 +96,8 @@ object ObservationTargets:
   def one(targets: TargetWithId): ObservationTargets =
     ObservationTargets(Zipper.of(targets))
 
-  def fromIdsAndTargets(ids: AsterismIds, targets: TargetList): Option[ObservationTargets] =
+  def fromIdsAndTargets(
+    ids:     SortedSet[Target.Id],
+    targets: TargetList
+  ): Option[ObservationTargets] =
     fromTargets(ids.toList.map(id => targets.get(id)).flattenOption)

@@ -40,7 +40,6 @@ case class TargetWithId(
   def toSidereal: Option[SiderealTargetWithId] = TargetWithId.sidereal.getOption(this)
 
   def toNonSidereal: Option[NonsiderealTargetWithId] = TargetWithId.nonsidereal.getOption(this)
-
 }
 
 object TargetWithId {

@@ -14,7 +14,7 @@ import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 
 trait ArbObservationTargets:
-  given arbObservationTargets: Arbitrary[ObservationTargets] = Arbitrary {
+  given Arbitrary[ObservationTargets] = Arbitrary {
     arbitrary[NonEmptyList[TargetWithId]].map(n => ObservationTargets(Zipper.fromNel(n)))
   }
 

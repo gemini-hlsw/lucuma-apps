@@ -294,7 +294,7 @@ object ObsTabTiles:
         obsTimeOrNowPot.value.renderPot: obsTimeOrNow =>
           val globalPreferences = props.userPreferences.zoom(UserPreferences.globalPreferences)
 
-          val asterismIds: View[AsterismIds] =
+          val asterismIds: View[SortedSet[Target.Id]] =
             props.observation.model.zoom(Observation.scienceTargetIds)
 
           val basicConfiguration: Option[BasicConfiguration] =
