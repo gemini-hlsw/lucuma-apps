@@ -49,10 +49,10 @@ Then, from `sbt`, you can build the client with:
 
 This will rebuild the client continuously whenever you make changes.
 
-To run the client, in a terminal window, always in `observe/web/client`:
+To run the client, in a terminal window on the project root:
 
 ```
-    npx vite
+    pnpm observe exec vite
 ```
 
 # Deployment

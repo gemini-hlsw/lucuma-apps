@@ -53,10 +53,10 @@ In same cases you may want to test locally how the app looks without deploying. 
 sbt explore/fullLinkJS
 ```
 
-- Build it with vite and launch
+- Build it with vite and launch (from the project root)
 
 ```
-npx vite build && npx vite preview
+pnpm explore exec vite
 ```
 
 As before you can now see the app locally but in a different port
