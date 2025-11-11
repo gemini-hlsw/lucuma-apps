@@ -311,11 +311,19 @@ trait ArbObservingMode {
         )
       )
 
+  given arbGmosNorthImagingFilter: Arbitrary[ObservingMode.GmosNorthImaging.ImagingFilter] =
+    Arbitrary(
+      for {
+        filter <- arbitrary[GmosNorthFilter]
+        etm    <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GmosNorthImaging.ImagingFilter(filter, etm)
+    )
+
   given Arbitrary[ObservingMode.GmosNorthImaging] =
     Arbitrary[ObservingMode.GmosNorthImaging](
       for {
-        initialFilters              <- arbitrary[NonEmptyList[GmosNorthFilter]]
-        filters                     <- arbitrary[NonEmptyList[GmosNorthFilter]]
+        initialFilters              <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
+        filters                     <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
         defaultMultipleFiltersMode  <- arbitrary[MultipleFiltersMode]
         explicitMultipleFiltersMode <- arbitrary[Option[MultipleFiltersMode]]
         defaultBin                  <- arbitrary[GmosBinning]
@@ -344,11 +352,19 @@ trait ArbObservingMode {
       )
     )
 
+  given arbGmosSouthImagingFilter: Arbitrary[ObservingMode.GmosSouthImaging.ImagingFilter] =
+    Arbitrary(
+      for {
+        filter <- arbitrary[GmosSouthFilter]
+        etm    <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GmosSouthImaging.ImagingFilter(filter, etm)
+    )
+
   given Arbitrary[ObservingMode.GmosSouthImaging] =
     Arbitrary[ObservingMode.GmosSouthImaging](
       for {
-        initialFilters              <- arbitrary[NonEmptyList[GmosSouthFilter]]
-        filters                     <- arbitrary[NonEmptyList[GmosSouthFilter]]
+        initialFilters              <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
+        filters                     <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
         defaultMultipleFiltersMode  <- arbitrary[MultipleFiltersMode]
         explicitMultipleFiltersMode <- arbitrary[Option[MultipleFiltersMode]]
         defaultBin                  <- arbitrary[GmosBinning]
@@ -457,10 +473,13 @@ trait ArbObservingMode {
         )
       )
 
+  given cogenGmosNorthImagingFilter: Cogen[ObservingMode.GmosNorthImaging.ImagingFilter] =
+    Cogen[(GmosNorthFilter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
+
   given Cogen[ObservingMode.GmosNorthImaging] =
     Cogen[
-      (NonEmptyList[GmosNorthFilter],
-       NonEmptyList[GmosNorthFilter],
+      (NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
+       NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
        MultipleFiltersMode,
        Option[MultipleFiltersMode],
        GmosBinning,
@@ -492,10 +511,13 @@ trait ArbObservingMode {
         )
       )
 
+  given cogenGmosSouthImagingFilter: Cogen[ObservingMode.GmosSouthImaging.ImagingFilter] =
+    Cogen[(GmosSouthFilter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
+
   given Cogen[ObservingMode.GmosSouthImaging] =
     Cogen[
-      (NonEmptyList[GmosSouthFilter],
-       NonEmptyList[GmosSouthFilter],
+      (NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
+       NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
        MultipleFiltersMode,
        Option[MultipleFiltersMode],
        GmosBinning,
