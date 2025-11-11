@@ -3,7 +3,7 @@ import path from 'path';
 import { defineConfig, type UserConfig } from 'vite';
 import env from 'vite-plugin-env-compatible';
 
-const scalaVersion = '3.7.3';
+const scalaVersion = '3.7.4';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
