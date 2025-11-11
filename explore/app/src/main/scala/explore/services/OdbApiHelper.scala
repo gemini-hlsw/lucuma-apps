@@ -45,16 +45,18 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
       true
   }
 
+  private def logErrorAndResetCache(e: Throwable): F[Unit] =
+    val doReset = shouldResetCache(e)
+    Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
+      resetCache(e.getMessage).whenA(doReset) >>
+      notifyFatalError(e.getMessage).unlessA(doReset)
+
   extension [A](fa: F[A])
     private def adaptOdbErrors: F[A] =
       fa.adaptError(adaptResponseException)
 
     protected def resetCacheOnError: F[A] =
-      fa.onError: e =>
-        val doReset = shouldResetCache(e)
-        Logger[F].error(e)(s"Error in ODB API call $doReset") >>
-          resetCache(e.getMessage).whenA(doReset) >>
-          notifyFatalError(e.getMessage).unlessA(doReset)
+      fa.onError(logErrorAndResetCache(_))
 
   extension [D](fa: F[GraphQLResponse[D]])
     protected def processErrors: F[D] =
@@ -88,8 +90,4 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
           Logger[F].error(re)(s"[$logPrefix] Error in subscription")
         .map:
           _.onError: e =>
-            fs2.Stream.eval:
-              val doReset = shouldResetCache(e)
-              Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
-                resetCache(e.getMessage).whenA(doReset) >>
-                notifyFatalError(e.getMessage).unlessA(doReset)
+            fs2.Stream.eval(logErrorAndResetCache(e))
