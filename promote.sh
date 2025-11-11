@@ -105,19 +105,25 @@ get_github_deployment_shas() {
     curl_opts+=("-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
   fi
 
-  local github_deployment=$(curl "${curl_opts[@]}" \
-    "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&task=deploy:${system}&per_page=1" || echo "error")
+  local curl_output
+  local curl_success
+  if curl_output=$(curl "${curl_opts[@]}" \
+    "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&task=deploy:${system}&per_page=1"); then
+    curl_success=true
+  else
+    curl_success=false
+  fi
 
-  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $github_deployment"; fi
+  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $curl_output"; fi
 
-  if [ "$github_deployment" = "error" ]; then
+  if [ "$curl_success" = false ]; then
     echo "  ! Error querying GitHub API Deployment for $system in $env"
     exit 1
   fi
 
-  git_sha=$(echo "$github_deployment" | jq -r '.[0].sha // "none"' ) # 2>/dev/null)
+  git_sha=$(echo "$curl_output" | jq -r '.[0].sha // "none"' ) # 2>/dev/null)
   if [ $is_docker = true ]; then
-    image_shas_object=$(echo "$github_deployment" | jq -r '.[0].payload.docker_image_shas // "none"' ) #2>/dev/null)
+    image_shas_object=$(echo "$curl_output" | jq -r '.[0].payload.docker_image_shas // "none"' ) #2>/dev/null)
   fi
 }
 
@@ -137,18 +143,24 @@ record_github_deployment() {
 
 
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
-  # echo "  Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}""
-  deployment_result=$(curl "${curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" \
+  if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}\"""; fi
+
+  local curl_output
+  local curl_success
+  if curl_output=$(curl "${curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" \
     -d "{\"ref\":\"${source_sha["$system"]}\",\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
-    2>&1)
-  # echo "  Debug: Deployment creation result: $(echo "$deployment_result" | head -c 200)..."
+    ); then
+    curl_success=true
+  else
+    curl_success=false
+  fi
 
-  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $deployment_result"; fi
+  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $curl_output"; fi
 
-  if echo "$deployment_result" | grep -q '"id"'; then
+  if [ "$curl_success" = true ] && echo "$curl_output" | grep -q '"id"'; then
     echo "  ✓ Deployment record created successfully"
   else
-    echo "  ! Failed to record deployment: $deployment_result"
+    echo "  ! Failed to record deployment: $curl_output"
     exit 1
   fi
 }
@@ -158,7 +170,7 @@ set_system_vars() {
 
   for display_name in "${systems[@]}"; do
 
-    echo "Checking of $display_name changes.."
+    echo "Checking for $display_name changes..."
 
     get_github_deployment_shas "$display_name" "$SOURCE_ENV" source_sha["$display_name"] docker_image_shas_object["$display_name"]
 
@@ -271,7 +283,7 @@ send_slack_notification() {
 
   local payload="{\"text\":\"$message\"}"
 
-  if curl -s -X POST -H 'Content-type: application/json' --data "$payload" "$GPP_SLACK_WEBHOOK_URL" > /dev/null 2>&1; then
+  if curl -s -X POST -H 'Content-type: application/json' --data "$payload" "$GPP_SLACK_WEBHOOK_URL" > /dev/null; then
     echo "  Slack notification sent successfully"
   else
     echo "  ! Failed to send Slack notification (deployment continues)"
@@ -365,7 +377,7 @@ promote_heroku_docker_images() {
       if [ "${backup["${display_name}"]}" = true ]; then
         echo "Capturing database backup before ${display_name} promotion..."
         local backup_output=$(heroku pg:backups:capture --app ${base_name} 2>&1)
-        local backup_id=$(echo "$backup_output" | grep -o 'b[0-9]\{3\}' | head -1 || echo "unknown")
+        backup_id=$(echo "$backup_output" | grep -o 'b[0-9]\{3\}' | head -1 || echo "unknown")
         if [ "$backup_id" != "unknown" ]; then
           echo "${display_name} database backup created: ${backup_id}"
         else
@@ -389,10 +401,12 @@ promote_heroku_docker_images() {
         echo "    Docker image to promote: $docker_image_sha"
 
         # We use API instead of CLI in order to be able to release a docker image with a specific id.
-        local curl_opts=("-s" "--netrc" "--fail-with-body" $"-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
+        local curl_opts=("-s" "--netrc" "--fail-with-body" "-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
         curl_opts+=( "${DEBUG_CURL[@]}" )
 
-        local release_proc_type=$(curl "${curl_opts[@]}" -X PATCH https://api.heroku.com/apps/${base_name}/formation \
+        local curl_output
+        local curl_success
+        if curl_output=$(curl "${curl_opts[@]}" -X PATCH https://api.heroku.com/apps/${base_name}/formation \
           -d "{
           \"updates\": [
             {
@@ -400,12 +414,16 @@ promote_heroku_docker_images() {
               \"docker_image\": \"${docker_image_sha}\"
             }
           ]
-        }" || echo "error")
+        }"); then
+          curl_success=true
+        else
+          curl_success=false
+        fi
 
-        if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $release_proc_type"; fi
+        if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $curl_output"; fi
 
-        if [ "$release_proc_type" = "error" ]; then
-          echo "  ! Error promoting ${base_name}/${process_type} to $TARGET_ENV"
+        if [ "$curl_success" = false ]; then
+          echo "  ! Error promoting ${base_name}/${process_type} to $TARGET_ENV: $curl_output"
           exit 1
         else
           echo "  ✓ ${base_name}/${process_type} promoted successfully to $TARGET_ENV"
@@ -518,7 +536,7 @@ if [ "$PROMOTE_HASURA" = true ]; then
 
   echo "## Promote user preferences db to $TARGET_ENV"
   (
-    cd hasura/user-prefs || exit 1
+    cd explore/hasura/user-prefs || exit 1
     unset NODE_OPTIONS
     if hasura migrate apply --endpoint "$HASURA_ENDPOINT" --database-name default && \
       hasura metadata apply --endpoint "$HASURA_ENDPOINT" && \
