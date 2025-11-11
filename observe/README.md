@@ -37,8 +37,7 @@ This module contains a web-based observe client. It contains a SPA (Single-page 
 Fist, you need to install the NPM dependencies. In a terminal window:
 
 ```
-    cd observe/web/client
-    npm i
+    pnpm install
 ```
 
 Then, from `sbt`, you can build the client with:

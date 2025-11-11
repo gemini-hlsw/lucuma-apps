@@ -32,7 +32,7 @@ of opening testing to any device in the network
 First you need to build a copy of the fastLinkJS version of explore
 
 ```
-sbt explore/fastLinkJS
+sbt explore_app/fastLinkJS
 ```
 
 To launch explore you can use vite development server going to the `explore` dir and
@@ -50,13 +50,13 @@ In same cases you may want to test locally how the app looks without deploying. 
 - Build a full link version of explore
 
 ```
-sbt explore/fullLinkJS
+sbt explore_app/fullLinkJS
 ```
 
 - Build it with vite and launch (from the project root)
 
 ```
-pnpm explore exec vite
+pnpm explore exec vite build && pnpm explore exec vite preview
 ```
 
 As before you can now see the app locally but in a different port
