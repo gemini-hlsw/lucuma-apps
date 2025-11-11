@@ -38,21 +38,25 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
   // we don't want to reset if there are unrecoverable errors like an incompatible schema
   private def shouldResetCache(error: Throwable): Boolean = error match {
     case ResponseException(errors, _) =>
-      // This detects one particular case, there may be more.
-      !errors.exists(_.message.startsWith("No field"))
-    case _                            => true
+      // This detects particular cases, which are unrecoverable
+      !(errors.exists(_.message.startsWith("No field")) ||
+        errors.exists(_.message.startsWith("Non-leaf field")))
+    case a                            =>
+      true
   }
+
+  private def logErrorAndResetCache(e: Throwable): F[Unit] =
+    val doReset = shouldResetCache(e)
+    Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
+      resetCache(e.getMessage).whenA(doReset) >>
+      notifyFatalError(e.getMessage).unlessA(doReset)
 
   extension [A](fa: F[A])
     private def adaptOdbErrors: F[A] =
       fa.adaptError(adaptResponseException)
 
     protected def resetCacheOnError: F[A] =
-      fa.onError: e =>
-        val doReset = shouldResetCache(e)
-        Logger[F].error(e)(s"Error in ODB API call $doReset") >>
-          resetCache(e.getMessage).whenA(doReset) >>
-          notifyFatalError(e.getMessage).unlessA(doReset)
+      fa.onError(logErrorAndResetCache(_))
 
   extension [D](fa: F[GraphQLResponse[D]])
     protected def processErrors: F[D] =
@@ -86,6 +90,4 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
           Logger[F].error(re)(s"[$logPrefix] Error in subscription")
         .map:
           _.onError: e =>
-            fs2.Stream.eval:
-              Logger[F].error(e)(s"Error in ODB API call, resetting cache") >>
-                resetCache(e.getMessage)
+            fs2.Stream.eval(logErrorAndResetCache(e))

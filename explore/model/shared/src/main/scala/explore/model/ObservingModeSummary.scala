@@ -21,8 +21,10 @@ import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
+import lucuma.schemas.ObservationDB.Types.GmosNorthImagingFilterInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GmosSouthImagingFilterInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
@@ -105,7 +107,8 @@ enum ObservingModeSummary:
     case GmosNorthImaging(filters, ampReadMode, roi)                                  =>
       ObservingModeInput(
         gmosNorthImaging = GmosNorthImagingInput(
-          filters = filters.toList.assign,
+          // no etm yet
+          filters = filters.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
         ).assign
@@ -113,7 +116,8 @@ enum ObservingModeSummary:
     case GmosSouthImaging(filters, ampReadMode, roi)                                  =>
       ObservingModeInput(
         gmosSouthImaging = GmosSouthImagingInput(
-          filters = filters.toList.assign,
+          // no etm yet
+          filters = filters.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
         ).assign

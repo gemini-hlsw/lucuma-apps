@@ -76,8 +76,14 @@ object ObservingModeSubquery
             }
           }
           gmosNorthImaging {
-            initialFilters
-            filters
+            initialFilters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            filters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
             defaultMultipleFiltersMode
             explicitMultipleFiltersMode
             defaultBin
@@ -91,8 +97,14 @@ object ObservingModeSubquery
             offsets $OffsetSubquery
           }
           gmosSouthImaging {
-            initialFilters
-            filters
+            initialFilters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            filters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
             defaultMultipleFiltersMode
             explicitMultipleFiltersMode
             defaultBin
