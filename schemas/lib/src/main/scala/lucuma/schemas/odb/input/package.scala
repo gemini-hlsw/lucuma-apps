@@ -493,10 +493,21 @@ extension (o: ObservingMode.GmosSouthLongSlit)
     acquisition = o.acquisition.toInput.assign
   )
 
+extension (imagingFilter: ObservingMode.GmosNorthImaging.ImagingFilter)
+  def toInput: GmosNorthImagingFilterInput = GmosNorthImagingFilterInput(
+    filter = imagingFilter.filter,
+    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
+  )
+
+extension (imagingFilter: ObservingMode.GmosSouthImaging.ImagingFilter)
+  def toInput: GmosSouthImagingFilterInput = GmosSouthImagingFilterInput(
+    filter = imagingFilter.filter,
+    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
+  )
+
 extension (o: ObservingMode.GmosNorthImaging)
   def toInput: GmosNorthImagingInput = GmosNorthImagingInput(
-    // we don't have etms per filter yet
-    filters = o.filters.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign,
+    filters = o.filters.toList.map(_.toInput).assign,
     offsets = o.offsets.map(_.toInput).assign,
     explicitMultipleFiltersMode = o.explicitMultipleFiltersMode.orUnassign,
     explicitBin = o.explicitBin.orUnassign,
@@ -507,8 +518,7 @@ extension (o: ObservingMode.GmosNorthImaging)
 
 extension (o: ObservingMode.GmosSouthImaging)
   def toInput: GmosSouthImagingInput = GmosSouthImagingInput(
-    // we don't have etms per filter yet
-    filters = o.filters.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign,
+    filters = o.filters.toList.map(_.toInput).assign,
     offsets = o.offsets.map(_.toInput).assign,
     explicitMultipleFiltersMode = o.explicitMultipleFiltersMode.orUnassign,
     explicitBin = o.explicitBin.orUnassign,

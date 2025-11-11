@@ -31,12 +31,10 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
-import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Dialog
-import lucuma.react.primereact.TooltipOptions
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
@@ -75,7 +73,8 @@ object GmosImagingConfigPanel {
     T <: ObservingMode,
     Input,
     Props <: GmosImagingConfigPanel[T, Input],
-    Filter: Enumerated: Display
+    ImagingFilter,
+    Filter
   ] {
     protected type AA = Aligner[T, Input]
 
@@ -91,7 +90,7 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[NonEmptyList[Filter]]
+    ): View[NonEmptyList[ImagingFilter]]
 
     protected def offsets(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -123,9 +122,9 @@ object GmosImagingConfigPanel {
       Logger[IO]
     ): View[Option[GmosRoi]]
 
-    protected val filtersLens: Lens[T, NonEmptyList[Filter]]
+    protected val filtersLens: Lens[T, NonEmptyList[ImagingFilter]]
     protected val offsetLens: Lens[T, List[Offset]]
-    protected val initialFiltersLens: Lens[T, NonEmptyList[Filter]]
+    protected val initialFiltersLens: Lens[T, NonEmptyList[ImagingFilter]]
     protected val filterTypeGetter: Filter => FilterType
     protected val defaultMultipleFiltersModeLens: Lens[T, MultipleFiltersMode]
     protected val defaultBinningLens: Lens[T, GmosBinning]
@@ -147,15 +146,15 @@ object GmosImagingConfigPanel {
         for {
           ctx              <- useContext(AppContext.ctx)
           editState        <- useStateView(ConfigEditState.View)
-          localFiltersView <- useStateView(List.empty[Filter])
+          // localFiltersView <- useStateView(List.empty[Filter])
           offsetDialogOpen <- useStateView(OffsetDialogOpen(false))
           localOffsets     <- useStateView {
                                 import ctx.given
                                 offsets(props.observingMode).get
                               }
           _                <- useEffectWithDeps(offsetLens.get(props.observingMode.get))(localOffsets.set)
-          _                <-
-            useEffectWithDeps(filtersLens.get(props.observingMode.get).toList)(localFiltersView.set)
+          // _                <-
+          //   useEffectWithDeps(filtersLens.get(props.observingMode.get).toList)(localFiltersView.set)
         } yield
           import ctx.given
 
@@ -172,17 +171,17 @@ object GmosImagingConfigPanel {
           val defaultRoi                 = defaultRoiLens.get(props.observingMode.get)
           val resolvedReadModeGain       = resolvedReadModeGainGetter(props.observingMode.get)
 
-          val filtersView = filters(props.observingMode)
+          // val filtersView = filters(props.observingMode)
 
-          val filtersGrouper: NonEmptyList[(String, Filter => Boolean)] =
-            NonEmptyList.of(
-              ("Broad Band", filterTypeGetter(_) === FilterType.BroadBand),
-              ("Narrow Band", filterTypeGetter(_) === FilterType.NarrowBand),
-              ("Combination", filterTypeGetter(_) === FilterType.Combination),
-              ("Engineering", filterTypeGetter(_) === FilterType.Engineering)
-            )
+          // val filtersGrouper: NonEmptyList[(String, Filter => Boolean)] =
+          //   NonEmptyList.of(
+          //     ("Broad Band", filterTypeGetter(_) === FilterType.BroadBand),
+          //     ("Narrow Band", filterTypeGetter(_) === FilterType.NarrowBand),
+          //     ("Combination", filterTypeGetter(_) === FilterType.Combination),
+          //     ("Engineering", filterTypeGetter(_) === FilterType.Engineering)
+          //   )
 
-          val initialFilters = initialFiltersLens.get(props.observingMode.get)
+          // val initialFilters = initialFiltersLens.get(props.observingMode.get)
           val offsetReadOnly = props.readonly || editState.get === ConfigEditState.View
           val offsetsCount   = offsets(props.observingMode).get.size
           val offsetsText    =
@@ -198,29 +197,29 @@ object GmosImagingConfigPanel {
                 LucumaPrimeStyles.FormColumnCompact,
                 ExploreStyles.AdvancedConfigurationCol1
               )(
-                CustomizableEnumGroupedMultiSelect(
-                  id = "filters".refined,
-                  label = "Filters".some,
-                  helpId = Some("configuration/gmos/imaging-filters.md".refined),
-                  view = localFiltersView.withOnMod(l =>
-                    NonEmptyList.fromList(l).fold(Callback.empty)(filtersView.set)
-                  ),
-                  defaultValue = initialFilters.toList,
-                  defaultFormatter = Some(Display[Filter].longName),
-                  groupFunctions = filtersGrouper,
-                  error = Option
-                    .when(localFiltersView.get.isEmpty)(
-                      "At least one filter is required"
-                    ),
-                  itemTemplate = Some(si => Display[Filter].longName(si.value)),
-                  maxSelectedLabels = 3.some,
-                  selectedItemsLabel = s"${localFiltersView.get.size} selected".some,
-                  tooltip = localFiltersView.get.map(Display[Filter].longName).mkString("\n").some,
-                  tooltipOptions = TooltipOptions(showOnDisabled = true).some,
-                  disabled = disableSimpleEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                ),
+                // CustomizableEnumGroupedMultiSelect(
+                //   id = "filters".refined,
+                //   label = "Filters".some,
+                //   helpId = Some("configuration/gmos/imaging-filters.md".refined),
+                //   view = localFiltersView.withOnMod(l =>
+                //     NonEmptyList.fromList(l).fold(Callback.empty)(filtersView.set)
+                //   ),
+                //   defaultValue = initialFilters.toList,
+                //   defaultFormatter = Some(Display[Filter].longName),
+                //   groupFunctions = filtersGrouper,
+                //   error = Option
+                //     .when(localFiltersView.get.isEmpty)(
+                //       "At least one filter is required"
+                //     ),
+                //   itemTemplate = Some(si => Display[Filter].longName(si.value)),
+                //   maxSelectedLabels = 3.some,
+                //   selectedItemsLabel = s"${localFiltersView.get.size} selected".some,
+                //   tooltip = localFiltersView.get.map(Display[Filter].longName).mkString("\n").some,
+                //   tooltipOptions = TooltipOptions(showOnDisabled = true).some,
+                //   disabled = disableSimpleEdit,
+                //   showCustomization = showCustomization,
+                //   allowRevertCustomization = allowRevertCustomization
+                // ),
                 CustomizableEnumSelectOptional(
                   id = "explicitMultipleFiltersMode".refined,
                   view = explicitMultipleFiltersMode(props.observingMode)
@@ -382,6 +381,7 @@ object GmosImagingConfigPanel {
         ObservingMode.GmosNorthImaging,
         GmosNorthImagingInput,
         GmosImagingConfigPanel.GmosNorthImaging,
+        ObservingMode.GmosNorthImaging.ImagingFilter,
         GmosNorthFilter
       ] {
 
@@ -394,12 +394,12 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[NonEmptyList[GmosNorthFilter]] = aligner
+    ): View[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]] = aligner
       .zoom(
         ObservingMode.GmosNorthImaging.filters,
         GmosNorthImagingInput.filters.modify
       )
-      .view(_.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign)
+      .view(_.toList.map(_.toInput).assign)
 
     override protected def offsets(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -518,6 +518,7 @@ object GmosImagingConfigPanel {
         ObservingMode.GmosSouthImaging,
         GmosSouthImagingInput,
         GmosImagingConfigPanel.GmosSouthImaging,
+        ObservingMode.GmosSouthImaging.ImagingFilter,
         GmosSouthFilter
       ] {
 
@@ -530,13 +531,13 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[NonEmptyList[GmosSouthFilter]] =
+    ): View[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]] =
       aligner
         .zoom(
           ObservingMode.GmosSouthImaging.filters,
           GmosSouthImagingInput.filters.modify
         )
-        .view(_.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign)
+        .view(_.toList.map(_.toInput).assign)
 
     inline override protected def offsets(aligner: AA)(using
       MonadError[IO, Throwable],

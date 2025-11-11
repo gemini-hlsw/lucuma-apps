@@ -52,9 +52,9 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case s: ObservingMode.GmosSouthLongSlit  =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
     case n: ObservingMode.GmosNorthImaging   =>
-      BasicConfiguration.GmosNorthImaging(n.filters)
+      BasicConfiguration.GmosNorthImaging(n.filters.map(_.filter))
     case s: ObservingMode.GmosSouthImaging   =>
-      BasicConfiguration.GmosSouthImaging(s.filters)
+      BasicConfiguration.GmosSouthImaging(s.filters.map(_.filter))
     case f: ObservingMode.Flamingos2LongSlit =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
 }
@@ -381,8 +381,8 @@ object ObservingMode:
       Focus[GmosSouthLongSlit](_.acquisition)
 
   case class GmosNorthImaging(
-    initialFilters:              NonEmptyList[GmosNorthFilter],
-    filters:                     NonEmptyList[GmosNorthFilter],
+    initialFilters:              NonEmptyList[GmosNorthImaging.ImagingFilter],
+    filters:                     NonEmptyList[GmosNorthImaging.ImagingFilter],
     offsets:                     List[Offset],
     defaultMultipleFiltersMode:  MultipleFiltersMode,
     explicitMultipleFiltersMode: Option[MultipleFiltersMode],
@@ -426,11 +426,15 @@ object ObservingMode:
       )
 
   object GmosNorthImaging:
+    case class ImagingFilter(filter: GmosNorthFilter, exposureTimeMode: ExposureTimeMode)
+        derives Decoder,
+          Eq
+
     given Decoder[GmosNorthImaging] = deriveDecoder
 
-    val initialFilters: Lens[GmosNorthImaging, NonEmptyList[GmosNorthFilter]]            =
+    val initialFilters: Lens[GmosNorthImaging, NonEmptyList[ImagingFilter]]              =
       Focus[GmosNorthImaging](_.initialFilters)
-    val filters: Lens[GmosNorthImaging, NonEmptyList[GmosNorthFilter]]                   =
+    val filters: Lens[GmosNorthImaging, NonEmptyList[ImagingFilter]]                     =
       Focus[GmosNorthImaging](_.filters)
     val defaultMultipleFiltersMode: Lens[GmosNorthImaging, MultipleFiltersMode]          =
       Focus[GmosNorthImaging](_.defaultMultipleFiltersMode)
@@ -456,8 +460,8 @@ object ObservingMode:
       Focus[GmosNorthImaging](_.offsets)
 
   case class GmosSouthImaging(
-    initialFilters:              NonEmptyList[GmosSouthFilter],
-    filters:                     NonEmptyList[GmosSouthFilter],
+    initialFilters:              NonEmptyList[GmosSouthImaging.ImagingFilter],
+    filters:                     NonEmptyList[GmosSouthImaging.ImagingFilter],
     offsets:                     List[Offset],
     defaultMultipleFiltersMode:  MultipleFiltersMode,
     explicitMultipleFiltersMode: Option[MultipleFiltersMode],
@@ -501,11 +505,15 @@ object ObservingMode:
       )
 
   object GmosSouthImaging:
+    case class ImagingFilter(filter: GmosSouthFilter, exposureTimeMode: ExposureTimeMode)
+        derives Decoder,
+          Eq
+
     given Decoder[GmosSouthImaging] = deriveDecoder
 
-    val initialFilters: Lens[GmosSouthImaging, NonEmptyList[GmosSouthFilter]]            =
+    val initialFilters: Lens[GmosSouthImaging, NonEmptyList[ImagingFilter]]              =
       Focus[GmosSouthImaging](_.initialFilters)
-    val filters: Lens[GmosSouthImaging, NonEmptyList[GmosSouthFilter]]                   =
+    val filters: Lens[GmosSouthImaging, NonEmptyList[ImagingFilter]]                     =
       Focus[GmosSouthImaging](_.filters)
     val defaultMultipleFiltersMode: Lens[GmosSouthImaging, MultipleFiltersMode]          =
       Focus[GmosSouthImaging](_.defaultMultipleFiltersMode)

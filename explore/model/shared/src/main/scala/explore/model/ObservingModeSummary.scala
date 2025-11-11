@@ -21,10 +21,8 @@ import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
-import lucuma.schemas.ObservationDB.Types.GmosNorthImagingFilterInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
-import lucuma.schemas.ObservationDB.Types.GmosSouthImagingFilterInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
@@ -34,6 +32,7 @@ import lucuma.schemas.odb.input.*
 
 // Observing mode with explicit values merged over defaults. Used for grouping observations by configuration.
 enum ObservingModeSummary:
+  // TODO: Update for acquisition customization?
   case GmosNorthLongSlit(
     grating:           GmosNorthGrating,
     filter:            Option[GmosNorthFilter],
@@ -42,6 +41,7 @@ enum ObservingModeSummary:
     ampReadMode:       GmosAmpReadMode,
     roi:               GmosRoi
   ) extends ObservingModeSummary
+  // TODO: Update for acquisition customization?
   case GmosSouthLongSlit(
     grating:           GmosSouthGrating,
     filter:            Option[GmosSouthFilter],
@@ -50,18 +50,19 @@ enum ObservingModeSummary:
     ampReadMode:       GmosAmpReadMode,
     roi:               GmosRoi
   ) extends ObservingModeSummary
+  // TODO: Update for acquisition customization?
   case Flamingos2LongSlit(
     grating: Flamingos2Disperser,
     filter:  Flamingos2Filter,
     fpu:     Flamingos2Fpu
   ) extends ObservingModeSummary
   case GmosNorthImaging(
-    filters:     NonEmptyList[GmosNorthFilter],
+    filters:     NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
   ) extends ObservingModeSummary
   case GmosSouthImaging(
-    filters:     NonEmptyList[GmosSouthFilter],
+    filters:     NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
   ) extends ObservingModeSummary
@@ -107,8 +108,7 @@ enum ObservingModeSummary:
     case GmosNorthImaging(filters, ampReadMode, roi)                                  =>
       ObservingModeInput(
         gmosNorthImaging = GmosNorthImagingInput(
-          // no etm yet
-          filters = filters.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign,
+          filters = filters.toList.map(_.toInput).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
         ).assign
@@ -117,7 +117,7 @@ enum ObservingModeSummary:
       ObservingModeInput(
         gmosSouthImaging = GmosSouthImagingInput(
           // no etm yet
-          filters = filters.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign,
+          filters = filters.toList.map(_.toInput).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
         ).assign
@@ -163,10 +163,10 @@ object ObservingModeSummary:
     case Flamingos2LongSlit(grating, filter, fpu)                                     =>
       s"Flamingos2 Longslit ${grating.shortName} ${filter.shortName} ${fpu.shortName}"
     case GmosNorthImaging(filters, ampReadMode, roi)                                  =>
-      val filterStr = filters.map(_.shortName).toList.mkString(", ")
+      val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"GMOS-N Imaging $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case GmosSouthImaging(filters, ampReadMode, roi)                                  =>
-      val filterStr = filters.map(_.shortName).toList.mkString(", ")
+      val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"GMOS-S Imaging $filterStr ${ampReadMode.shortName} ${roi.shortName}"
 
   object GmosNorthLongSlit:
