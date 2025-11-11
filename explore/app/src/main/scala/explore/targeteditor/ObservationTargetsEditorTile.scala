@@ -275,8 +275,10 @@ object ObservationTargetsEditorTile:
                   props.blindOffset,
                   props.columnVisibility
                 ),
-            allTargets.flatMap: a =>
-              props.focusedTargetId.map: focusedTargetId =>
+            (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
+             props.focusedTargetId
+            )
+              .mapN: (targets, focusedTargetId) =>
                 val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
 
@@ -290,7 +292,7 @@ object ObservationTargetsEditorTile:
                       props.userId,
                       targetWithId,
                       props.obsAndTargets,
-                      a.focusOn(focusedTargetId),
+                      targets.focusOn(focusedTargetId),
                       props.obsTime,
                       props.obsConf.some,
                       props.searching,
