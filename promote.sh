@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-# Usage: promote.sh <source_env> <target_env> [--dry-run] [--skip-slack]
+# Usage: promote.sh <source_env> <target_env> [--dry-run] [--skip-slack] [--debug]
 # Example: promote.sh dev staging
-# Example: promote.sh dev staging --dry-run
+# Example: promote.sh dev staging --dry-run --debug
 # Example: promote.sh dev staging --skip-slack
 
 set -e
@@ -11,6 +11,8 @@ SOURCE_ENV=$1
 TARGET_ENV=$2
 DRY_RUN=false
 SKIP_SLACK=false
+DEBUG=false
+DEBUG_CURL=()
 
 all_systems=("Explore" "SSO" "ITC" "ODB")
 docker_systems=("SSO" "ITC" "ODB")
@@ -23,6 +25,10 @@ for arg in "$@"; do
       ;;
     --skip-slack)
       SKIP_SLACK=true
+      ;;
+    --debug)
+      DEBUG=true
+      DEBUG_CURL=("-v")
       ;;
   esac
 done
@@ -93,13 +99,16 @@ get_github_deployment_shas() {
   local deploy_env=$(map_github_deploy_env "$env")
 
   # Secure curl options handling
-  local curl_opts=("-s" "-H" "Accept: application/vnd.github.v3+json")
+  local curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json")
+  curl_opts+=( "${DEBUG_CURL[@]}" )
   if [ -n "$GPP_GITHUB_TOKEN" ]; then
     curl_opts+=("-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
   fi
 
   local github_deployment=$(curl "${curl_opts[@]}" \
     "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&task=deploy:${system}&per_page=1" || echo "error")
+
+  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $github_deployment"; fi
 
   if [ "$github_deployment" = "error" ]; then
     echo "  ! Error querying GitHub API Deployment for $system in $env"
@@ -116,10 +125,13 @@ record_github_deployment() {
   local system=$1
 
   local repo_name=${repo["$system"]}
+  local orig_env=$(map_github_deploy_env "$SOURCE_ENV")
   local deploy_env=$(map_github_deploy_env "$TARGET_ENV")
 
   # Secure curl options handling
-  local curl_opts=("-s" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
+  local curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
+  curl_opts+=( "${DEBUG_CURL[@]}" )
+  
   local payload_object=""
   if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
 
@@ -127,9 +139,11 @@ record_github_deployment() {
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
   # echo "  Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}""
   deployment_result=$(curl "${curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" \
-    -d "{\"ref\":\"${source_sha["$system"]}\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
+    -d "{\"ref\":\"${source_sha["$system"]}\",\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
     2>&1)
   # echo "  Debug: Deployment creation result: $(echo "$deployment_result" | head -c 200)..."
+
+  if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $deployment_result"; fi
 
   if echo "$deployment_result" | grep -q '"id"'; then
     echo "  ✓ Deployment record created successfully"
@@ -203,7 +217,7 @@ show_slack_message() {
   fi
 
   # Include backup ID for ODB
-  if [ ${backup["$service"]} = true ] && [ -n "$backup_id" ] && [ "$backup_id" != "unknown" ]; then
+  if [ "${backup["$service"]}" = true ] && [ -n "$backup_id" ] && [ "$backup_id" != "unknown" ]; then
     echo "    Database backup: $backup_id"
   fi
 
@@ -375,7 +389,8 @@ promote_heroku_docker_images() {
         echo "    Docker image to promote: $docker_image_sha"
 
         # We use API instead of CLI in order to be able to release a docker image with a specific id.
-        local curl_opts=("-s" "--netrc" "-v" "--fail-with-body" "-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
+        local curl_opts=("-s" "--netrc" "--fail-with-body" $"-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
+        curl_opts+=( "${DEBUG_CURL[@]}" )
 
         local release_proc_type=$(curl "${curl_opts[@]}" -X PATCH https://api.heroku.com/apps/${base_name}/formation \
           -d "{
@@ -386,6 +401,8 @@ promote_heroku_docker_images() {
             }
           ]
         }" || echo "error")
+
+        if [ "$DEBUG" = true ]; then echo "*** RESPONSE: $release_proc_type"; fi
 
         if [ "$release_proc_type" = "error" ]; then
           echo "  ! Error promoting ${base_name}/${process_type} to $TARGET_ENV"
