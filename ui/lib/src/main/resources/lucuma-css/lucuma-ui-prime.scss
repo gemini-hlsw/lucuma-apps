@@ -7,7 +7,7 @@
   --pl-button-padding: 0.7857em;
   --pl-compact-button-padding: 0.3929em;
   --pl-very-compact-button-padding-top: 0.11em;
-  --pl-very-compact-button-padding-right: 0.5em;
+  --pl-very-compact-button-padding-right: 0.4em;
   --pl-mini-font-size: 0.7857rem;
   --pl-tiny-font-size: 0.8571rem;
   --pl-small-font-size: 0.9286rem;
@@ -70,14 +70,41 @@
 // For styling of buttons in primereact for different "compactness" and adjust other sizing
 .p-component.p-button.pl-compact,
 .p-component.p-splitbutton.pl-compact > .p-component.p-button,
+.p-component.p-togglebutton.pl-compact > .p-component.p-button,
 .p-component.p-button-group.pl-compact > .p-component.p-button {
   padding: var(--pl-compact-button-padding);
+
+  &:not(.p-button-icon-only) {
+    .p-button-icon-left {
+      margin-right: 0.2em;
+    }
+
+    .p-button-icon-right {
+      margin-left: 0.2em;
+    }
+  }
 }
 
 .p-component.p-button.pl-very-compact,
 .p-component.p-splitbutton.pl-very-compact > .p-component.p-button,
+.p-component.p-togglebutton.pl-very-compact > .p-component.p-button,
 .p-component.p-button-group.pl-very-compact > .p-component.p-button {
   padding: var(--pl-very-compact-button-padding-top) var(--pl-very-compact-button-padding-right);
+
+  &.p-button-icon-only {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  &:not(.p-button-icon-only) {
+    .p-button-icon-left {
+      margin-right: 0.2em;
+    }
+
+    .p-button-icon-right {
+      margin-left: 0.2em;
+    }
+  }
 }
 
 .p-component.p-button {
@@ -90,17 +117,6 @@
   // Buttons with layered icon
   & > .fa-layers {
     width: 1.5em;
-  }
-}
-
-// A togglebutton contains a button that needs the padding specified.
-.p-component.p-togglebutton {
-  &.pl-compact .p-component.p-button {
-    padding: var(--pl-compact-button-padding);
-  }
-
-  &.pl-very-compact .p-component.p-button {
-    padding: var(--pl-very-compact-button-padding-top) var(--pl-very-compact-button-padding-right);
   }
 }
 
