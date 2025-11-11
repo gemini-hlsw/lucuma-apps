@@ -4,7 +4,6 @@
 package explore.model
 
 import cats.MonadThrow
-import cats.data.NonEmptyList
 import cats.syntax.all.*
 import cats.syntax.all.given
 import lucuma.core.enums.ArcType
@@ -19,7 +18,6 @@ import lucuma.core.model.ConstantTracking
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
-import lucuma.schemas.model.SiderealTargetWithId
 import lucuma.schemas.model.TargetWithId
 import org.typelevel.log4cats.Logger
 
@@ -62,34 +60,6 @@ object extensions:
     def at(i: Instant): TargetWithId =
       TargetWithId.target.replace(targetWithId.target.at(i))(targetWithId)
 
-  extension (targets: NonEmptyList[TargetWithId])
-    def baseTracking: Option[Tracking] =
-      Tracking.fromAsterism(targets.map(_.target))
-
-    def toSidereal: List[SiderealTargetWithId] =
-      targets.toList.map(_.toSidereal).flattenOption
-
-    // This uses ObjectTracking.orRegionFromAsterism, which treats any asterism with a
-    // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
-    // have asterisms with multiple ToOs, this is probably fine.
-    def coordsOrRegionAt(vizTime: Option[Instant]): Option[Either[Coordinates, Region]] =
-      Tracking
-        .orRegionFromAsterism(targets.map(_.target)) match
-        case Left(tracking) =>
-          vizTime.fold(tracking.baseCoordinates.asLeft.some)(v => tracking.at(v).map(_.asLeft))
-        case Right(region)  => region.asRight.some
-
-    def isMixed: Boolean =
-      targets
-        .map {
-          _.target match
-            case Target.Sidereal(_, _, _, _) => 0
-            case Target.Nonsidereal(_, _, _) => 1
-            case Target.Opportunity(_, _, _) => 2
-        }
-        .distinct
-        .size > 1
-
   extension [A](arc: Arc[A])
     def format(f: A => String): String = arc match
       case Arc.Empty()             => "Empty"
@@ -129,10 +99,10 @@ object extensions:
 
     // Calculate positions from tracking considering target epoch and observation time
     // Useful to put a from/to in the viz
-    // By convention we call the return epochCoords,obsTimeCoords
+    // By convention we call the return epochCoords, obsTimeCoords
     def trackedPositions(
-      obsTime:     Instant,
-      targetEpoch: Option[Epoch]
+      targetEpoch: Option[Epoch],
+      obsTime:     Instant
     ): (Option[Coordinates], Coordinates) =
       (targetEpoch.flatMap: epoch =>
          val epochInstant = epoch.toInstant

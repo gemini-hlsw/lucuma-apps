@@ -12,7 +12,6 @@ import explore.components.HelpIcon
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.config.sequence.byInstrument.*
-import explore.model.AsterismIds
 import explore.model.Execution
 import explore.model.ObsTabTileIds
 import explore.model.Observation
@@ -36,11 +35,13 @@ import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 
+import scala.collection.immutable.SortedSet
+
 object SequenceTile extends SequenceTileHelper:
   def apply(
     obsId:               Observation.Id,
     obsExecution:        Execution,
-    asterismIds:         AsterismIds,
+    asterismIds:         SortedSet[Target.Id],
     customSedTimestamps: List[Timestamp],
     calibrationRole:     Option[CalibrationRole],
     sequenceChanged:     View[Pot[Unit]]

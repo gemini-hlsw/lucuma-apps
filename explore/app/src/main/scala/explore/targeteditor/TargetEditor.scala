@@ -16,12 +16,12 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.Asterism
 import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
@@ -67,7 +67,8 @@ case class TargetEditor(
   userId:              User.Id,
   targetWithId:        UndoSetter[TargetWithId],
   obsAndTargets:       UndoSetter[ObservationsAndTargets],
-  asterism:            Asterism, // This is passed through to Aladin, to plot the entire Asterism.
+  // TODO, we may derive obsTargets from obsAndTargets
+  obsTargets:          ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
   obsTime:             Option[Instant],
   obsConf:             Option[ObsConfiguration],
   searching:           View[Set[Target.Id]],
@@ -190,7 +191,7 @@ object TargetEditor:
 
         val disabled: Boolean =
           props.searching.get.exists(
-            _ === props.asterism.focus.id
+            _ === props.obsTargets.focus.id
           ) || cloning.get || props.readonly || readonlyForStatuses.get
 
         val oid = props.obsInfo.current.map(_.head)
@@ -394,7 +395,7 @@ object TargetEditor:
               radialVelocityView,
               disabled,
               props.obsConf.flatMap(_.calibrationRole),
-              props.asterism.focus.id,
+              props.obsTargets.focus.id,
               props.userPreferences,
               props.userId
             )
@@ -408,25 +409,23 @@ object TargetEditor:
                               props.allowEditingOngoing
           ),
           <.div(ExploreStyles.TargetGrid)(
-            // If there is a ToO in the asterism, we won't have a baseTracking and will skip visualization.
-            props.asterism.baseTracking.map: tracking =>
-              obsTime.value.renderPot(ot =>
-                AladinCell(
-                  props.userId,
-                  oid,
-                  props.asterism,
-                  tracking,
-                  ot,
-                  props.obsConf,
-                  props.fullScreen,
-                  props.userPreferences,
-                  props.guideStarSelection
-                )
-              ),
+            // If there is a ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
+            obsTime.value.renderPot(ot =>
+              AladinCell(
+                props.userId,
+                oid,
+                props.obsTargets,
+                ot,
+                props.obsConf,
+                props.fullScreen,
+                props.userPreferences,
+                props.guideStarSelection
+              )
+            ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
               // Keep the search field and the coords always together
               SearchForm(
-                props.asterism.focus.id,
+                props.obsTargets.focus.id,
                 // SearchForm doesn't edit the name directly. It will set it atomically, together
                 // with coords & magnitudes from the catalog search, so that all 3 fields are
                 // a single undo/redo operation.

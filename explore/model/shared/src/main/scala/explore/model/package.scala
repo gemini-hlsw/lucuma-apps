@@ -73,12 +73,7 @@ val EmptyOpportunityTarget =
     SourceProfile.Point(SpectralDefinition.BandNormalized(none, SortedMap.empty))
   )
 
-type AsterismIds = SortedSet[Target.Id]
-
-object AsterismIds:
-  val empty: AsterismIds = SortedSet.empty[Target.Id]
-
-type AsterismGroupList             = SortedMap[ObsIdSet, AsterismIds]
+type AsterismGroupList             = SortedMap[ObsIdSet, SortedSet[Target.Id]]
 type TargetList                    = SortedMap[Target.Id, TargetWithId]
 type TargetWithObsList             = SortedMap[Target.Id, TargetWithObs]
 type ObservationList               = SortedMap[Observation.Id, Observation]

@@ -29,7 +29,7 @@ import explore.plots.ObjectPlotData
 import explore.plots.PlotData
 import explore.shortcuts.*
 import explore.shortcuts.given
-import explore.targeteditor.AsterismEditorTile
+import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targets.TargetPasteAction
 import explore.targets.TargetSummaryTile
 import explore.undo.*
@@ -520,7 +520,7 @@ object TargetTabContents extends TwoPanels:
                 )
 
             val asterismEditorTile =
-              AsterismEditorTile(
+              ObservationTargetsEditorTile(
                 props.userId,
                 TargetTabTileIds.AsterismEditor.id,
                 props.programId,

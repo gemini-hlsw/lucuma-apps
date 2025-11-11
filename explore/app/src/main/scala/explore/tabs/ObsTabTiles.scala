@@ -30,7 +30,6 @@ import explore.model.display.given
 import explore.model.enums.AgsState
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
-import explore.model.extensions.*
 import explore.model.formats.formatPercentile
 import explore.model.itc.ItcTarget
 import explore.model.layout.*
@@ -46,7 +45,7 @@ import explore.plots.PlotData
 import explore.schedulingWindows.SchedulingWindowsTile
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.targeteditor.AsterismEditorTile
+import explore.targeteditor.ObservationTargetsEditorTile
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -63,7 +62,6 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
-import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.optics.syntax.lens.*
@@ -76,7 +74,6 @@ import lucuma.react.resizeDetector.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
@@ -130,13 +127,13 @@ case class ObsTabTiles(
   val centralWavelength: Option[CentralWavelength] =
     observation.get.observingMode.flatMap(_.centralWavelength)
 
-  val asterismAsNel: Option[NonEmptyList[TargetWithId]] =
-    NonEmptyList.fromList:
+  private val asterismAsNel: Option[ObservationTargets] =
+    ObservationTargets.fromTargets:
       obsTargets.toList.map((_, t) => t)
 
   def targetCoords(obsTime: Instant): Option[Coordinates] =
     asterismAsNel
-      .flatMap(asterismNel => asterismNel.baseTracking.flatMap(_.at(obsTime)))
+      .flatMap(_.baseTracking.flatMap(_.at(obsTime)))
 
   def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
 
@@ -173,17 +170,6 @@ case class ObsTabTiles(
 
 object ObsTabTiles:
   private type Props = ObsTabTiles
-
-  // Helper to convert BlindOffset to SiderealTracking
-  private def blindOffsetToTracking(
-    blindOffset:   BlindOffset,
-    obsAndTargets: ObservationsAndTargets
-  ): Option[SiderealTracking] =
-    for {
-      targetId <- blindOffset.blindOffsetTargetId
-      target   <- obsAndTargets._2.get(targetId)
-      tracking <- Target.siderealTracking.getOption(target.target)
-    } yield tracking
 
   private def makeConstraintsSelector(
     observationId:     Observation.Id,
@@ -308,7 +294,7 @@ object ObsTabTiles:
         obsTimeOrNowPot.value.renderPot: obsTimeOrNow =>
           val globalPreferences = props.userPreferences.zoom(UserPreferences.globalPreferences)
 
-          val asterismIds: View[AsterismIds] =
+          val asterismIds: View[SortedSet[Target.Id]] =
             props.observation.model.zoom(Observation.scienceTargetIds)
 
           val basicConfiguration: Option[BasicConfiguration] =
@@ -465,8 +451,7 @@ object ObsTabTiles:
               obsDuration.map(_.toDuration),
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
-              props.observation.get.calibrationRole,
-              blindOffsetToTracking(props.observation.get.blindOffset, props.obsAndTargets.get)
+              props.observation.get.calibrationRole
             )
 
           val plotData: Option[PlotData] =
@@ -528,7 +513,7 @@ object ObsTabTiles:
           val blindOffsetUndoSetter = props.observation.model.zoom(Observation.blindOffset)
 
           val targetTile =
-            AsterismEditorTile(
+            ObservationTargetsEditorTile(
               props.vault.userId,
               ObsTabTileIds.TargetId.id,
               props.programId,

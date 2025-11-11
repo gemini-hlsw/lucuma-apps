@@ -14,14 +14,15 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
-import explore.model.AsterismIds
 import explore.model.BlindOffset
 import explore.model.Constants
 import explore.model.ObsIdSet
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.enums.TableId
 import explore.model.extensions.*
+import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.targets.TargetColumns
@@ -58,8 +59,8 @@ case class TargetTable(
   userId:           Option[User.Id],
   programId:        Program.Id,
   obsIds:           ObsIdSet, // Only used to invoke DB - should only be unexecuted observations
-  // Targets are not modified here, we only modify which ones belong to the Asterism.
-  targetIds:        AsterismIds,
+  // Targets are not modified here, we only modify which ones belong to the ObservationTargets.
+  obsTargets:       Option[ObservationTargets],
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
   selectedTarget:   View[Option[Target.Id]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
@@ -174,22 +175,11 @@ object TargetTable extends AsterismModifier:
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
         rows    <- useMemo(
-                     (props.targetIds,
-                      props.obsAndTargets.get._2,
-                      vizTime.value,
-                      props.blindOffset.flatMap(_.get.blindOffsetTargetId)
-                     )
+                     (props.obsTargets, props.obsAndTargets.get._2, vizTime.value)
                    ):
-                     case (targetIds, targetInfo, Pot.Ready(vizTime), oBlind) =>
-                       // include the blind offset
-                       (targetIds.toList ++ oBlind)
-                         .map(id =>
-                           targetInfo
-                             .get(id)
-                             .map(_.at(vizTime))
-                         )
-                         .flattenOption
-                     case _                                                   => Nil
+                     case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
+                       asterism.map(_.at(vizTime)).toList
+                     case _                                                => Nil
         table   <- useReactTableWithStateStore:
                      import ctx.given
 

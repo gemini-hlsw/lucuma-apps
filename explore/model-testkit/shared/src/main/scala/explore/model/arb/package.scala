@@ -10,7 +10,7 @@ object all
     with ArbTree
     with ArbKeyedIndexedTree
     with ArbObservation
-    with ArbAsterism
+    with ArbObservationTargets
     with ArbCallForProposal
     with ArbProposalType
     with ArbPartnerSplit

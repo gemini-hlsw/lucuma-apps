@@ -22,7 +22,6 @@ import explore.common.ScienceQueries.UpdateScienceRequirements
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.AsterismIds
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSetEditInfo
 import explore.model.ObsTabTileIds
@@ -50,6 +49,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
+import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
@@ -63,6 +63,8 @@ import lucuma.ui.syntax.all.given
 import monocle.Iso
 import queries.schemas.itc.syntax.*
 
+import scala.collection.immutable.SortedSet
+
 object ConfigurationTile:
   def apply(
     userId:                   Option[User.Id],
@@ -70,7 +72,7 @@ object ConfigurationTile:
     obsId:                    Observation.Id,
     requirements:             UndoSetter[ScienceRequirements],
     pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
-    scienceTargetIds:         AsterismIds,
+    scienceTargetIds:         SortedSet[Target.Id],
     baseCoordinates:          Option[Coordinates],
     obsConf:                  ObsConfiguration,
     selectedConfig:           View[ConfigSelection],

@@ -486,6 +486,7 @@ object ExploreStyles:
   val PMCorrectionLine             = Css("proper-motion-line")
   val PMGSCorrectionLine           = Css("proper-motion-line-gs")
   val BlindOffsetTarget            = Css("blind-offset-target")
+  val BlindOffsetSelectedTarget    = Css("blind-offset-selected-target")
   val BlindOffsetLine              = Css("blind-offset-line")
   val AladinToolbox                = Css("explore-aladin-toolbox-button")
   val AladinZoomControl            = Css("explore-aladin-zoom-control")

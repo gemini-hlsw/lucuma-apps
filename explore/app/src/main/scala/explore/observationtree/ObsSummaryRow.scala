@@ -5,9 +5,9 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
-import explore.model.Asterism
 import explore.model.Group
 import explore.model.Observation
+import explore.model.ObservationTargets
 import explore.model.extensions.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.VdomNode
@@ -33,7 +33,7 @@ enum ObsSummaryRow:
   case ObsRow(
     obs:          Observation,
     targetWithId: Option[TargetWithId],
-    asterism:     Option[Asterism],
+    asterism:     Option[ObservationTargets],
     group:        Option[Group]
   ) extends ObsSummaryRow
 
@@ -59,7 +59,7 @@ enum ObsSummaryRow:
     e => e.targetWithId.target.iconWithTooltip.some,
     o =>
       o.asterism.map(a =>
-        if (a.asNel.isMixed) Icons.Stars.fixedWidthWithTooltip("Mixed Asterism")
+        if (a.isMixed) Icons.Stars.fixedWidthWithTooltip("Mixed Asterism")
         else a.focus.target.iconWithTooltip
       )
   )
@@ -71,7 +71,7 @@ enum ObsSummaryRow:
     vizTime.fold(twid.target)(twid.target.at).coordsOrRegion
 
   private def asterismCoordsOrRegion(
-    asterism: Option[Asterism],
+    asterism: Option[ObservationTargets],
     vizTime:  Option[Instant]
   ): Option[Either[Coordinates, Region]] =
-    asterism.flatMap(_.asNel.coordsOrRegionAt(vizTime))
+    asterism.flatMap(_.coordsOrRegionAt(vizTime))

@@ -9,9 +9,9 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
-import explore.model.Asterism
 import explore.model.AttachmentList
 import explore.model.GuideStarSelection
+import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
@@ -61,7 +61,7 @@ object TargetEditorTile:
               uid,
               target,
               obsAndTargets,
-              Asterism.one(target.get),
+              ObservationTargets.one(target.get),
               obsTime = none,
               obsConf = none,
               searching = searching,
