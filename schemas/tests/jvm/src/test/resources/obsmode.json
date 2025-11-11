@@ -1,8 +1,18 @@
 {
   "gmosSouthLongSlit": null,
   "gmosNorthImaging": {
-    "initialFilters": [{"filter": "HA", "exposureTimeMode": {"signalToNoise": {"value": 900, "at": {"picometers": 1}}}}],
-    "filters": [{"filter": "HA", "exposureTimeMode": {"signalToNoise": {"value": 900, "at": {"picometers": 1}}}}],
+    "initialFilters": [
+      {
+        "filter": "HA",
+        "exposureTimeMode": { "signalToNoise": { "value": 900, "at": { "picometers": 1 } } }
+      }
+    ],
+    "filters": [
+      {
+        "filter": "HA",
+        "exposureTimeMode": { "signalToNoise": { "value": 900, "at": { "picometers": 1 } } }
+      }
+    ],
     "defaultMultipleFiltersMode": "GROUPED",
     "explicitMultipleFiltersMode": null,
     "defaultBin": "TWO",
