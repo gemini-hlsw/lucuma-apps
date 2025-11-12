@@ -141,14 +141,13 @@ record_github_deployment() {
   local payload_object=""
   if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
 
-
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
-  if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}\"""; fi
+  if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}\"""; fi
 
   local curl_output
   local curl_success
   if curl_output=$(curl "${curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" \
-    -d "{\"ref\":\"${source_sha["$system"]}\",\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
+    -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
     ); then
     curl_success=true
   else
