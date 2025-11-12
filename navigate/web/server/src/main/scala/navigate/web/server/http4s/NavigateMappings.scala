@@ -701,12 +701,12 @@ class NavigateMappings[F[_]: Sync](
       for {
         from <- Elab.liftR(
                   parseEnumerated[LightSource](f).toResult(
-                    "Could not parse lightpathConfig parameter \"from\""
+                    s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
                   )
                 )
         to   <- Elab.liftR(
                   parseEnumerated[LightSinkName](t).toResult(
-                    "Could not parse lightpathConfig parameter \"to\""
+                    s"Could not parse lightpathConfig parameter \"to\" \"${t}\""
                   )
                 )
         _    <- Elab.env("from" -> from)
@@ -716,7 +716,7 @@ class NavigateMappings[F[_]: Sync](
       Elab
         .liftR(
           parseAcquisitionAdjustment(adj)
-            .toResult("Could not parse adjustment parameter \"adjustment\"")
+            .toResult(s"Could not parse adjustment parameter \"adjustment\" \"${adj}\"")
         )
         .flatMap { x =>
           Elab.env("adjustment" -> x)
@@ -728,7 +728,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         w <- Elab.liftR(
                parseEnumerated[GuideProbe](wfs).toResult(
-                 "Could not parse wfsSky parameter \"wfs\""
+                 s"Could not parse wfsSky parameter \"wfs\" ${wfs}"
                )
              )
         t <- Elab.liftR(
@@ -749,7 +749,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[VirtualTelescope](target).toResult(
-                 "Could not parse adjustTarget parameter \"target\""
+                 s"Could not parse adjustTarget parameter \"target\" \"${target}\""
                )
              )
         o <- Elab.liftR(
@@ -768,7 +768,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[VirtualTelescope](target).toResult(
-                 "Could not parse resetTargetAdjustment parameter \"target\""
+                 s"Could not parse resetTargetAdjustment parameter \"target\" \"${target}\""
                )
              )
         _ <- Elab.env("target", t)
@@ -778,7 +778,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[VirtualTelescope](target).toResult(
-                 "Could not parse absorbTargetAdjustment parameter \"target\""
+                 s"Could not parse absorbTargetAdjustment parameter \"target\" \"${target}\""
                )
              )
         _ <- Elab.env("target", t)
@@ -816,7 +816,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[AcLens](name).toResult(
-                 "Could not parse acLens parameter \"lens\""
+                 s"Could not parse acLens parameter \"lens\" \"${name}\""
                )
              )
         _ <- Elab.env("lens", t)
@@ -825,7 +825,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[AcFilter](name).toResult(
-                 "Could not parse acFilter parameter \"filter\""
+                 s"Could not parse acFilter parameter \"filter\" \"${name}\""
                )
              )
         _ <- Elab.env("filter", t)
@@ -834,7 +834,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[AcNdFilter](name).toResult(
-                 "Could not parse acNdFilter parameter \"ndFilter\""
+                 s"Could not parse acNdFilter parameter \"ndFilter\" \"${name}\""
                )
              )
         _ <- Elab.env("ndFilter", t)
@@ -852,7 +852,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[PwfsFilter](name).toResult(
-                 "Could not parse pwfs1Filter parameter \"filter\""
+                 s"Could not parse pwfs1Filter parameter \"filter\" \"${name}\""
                )
              )
         _ <- Elab.env("filter", t)
@@ -861,7 +861,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[PwfsFieldStop](name).toResult(
-                 "Could not parse pwfs1FieldStop parameter \"fieldStop\""
+                 s"Could not parse pwfs1FieldStop parameter \"fieldStop\" \"${name}\""
                )
              )
         _ <- Elab.env("fieldStop", t)
@@ -870,7 +870,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[PwfsFilter](name).toResult(
-                 "Could not parse pwfs2Filter parameter \"filter\""
+                 s"Could not parse pwfs2Filter parameter \"filter\" \"${name}\""
                )
              )
         _ <- Elab.env("filter", t)
@@ -879,7 +879,7 @@ class NavigateMappings[F[_]: Sync](
       for {
         t <- Elab.liftR(
                parseEnumerated[PwfsFieldStop](name).toResult(
-                 "Could not parse pwfs2FieldStop parameter \"fieldStop\""
+                 s"Could not parse pwfs2FieldStop parameter \"fieldStop\" \"${name}\""
                )
              )
         _ <- Elab.env("fieldStop", t)
@@ -888,7 +888,7 @@ class NavigateMappings[F[_]: Sync](
       Elab
         .liftR(
           parseEnumerated[Instrument](ins)
-            .toResult("Could not parse instrumentPort parameter \"instrument\"")
+            .toResult(s"Could not parse instrumentPort parameter \"instrument\" \"${ins}\"")
         )
         .flatMap(x => Elab.env("instrument" -> x))
   }

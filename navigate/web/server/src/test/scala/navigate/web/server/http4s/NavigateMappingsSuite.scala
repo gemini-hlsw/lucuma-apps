@@ -1381,8 +1381,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |    mountOffload: true
           |    daytimeMode: false
           |    probeGuide: {
-          |      from: PWFS_1
-          |      to: PWFS_2
+          |      from: PWFS1
+          |      to: PWFS2
           |    }
           |  }
           |) {
