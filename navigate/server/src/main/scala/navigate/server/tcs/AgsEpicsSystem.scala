@@ -4,14 +4,20 @@
 package navigate.server.tcs
 
 import cats.Applicative
+import cats.effect.Concurrent
 import cats.effect.Resource
 import cats.effect.Temporal
+import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
+import fs2.Stream
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.util.Enumerated
 import mouse.boolean.*
 import navigate.epics.*
+import navigate.epics.Channel.StreamEvent
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.VerifiedEpics.*
 import navigate.model.enums.PwfsFieldStop
@@ -54,14 +60,17 @@ object AgsEpicsSystem {
     def aoName: VerifiedEpics[F, F, AgMechPosition]
     def hwName: VerifiedEpics[F, F, AgMechPosition]
     def sfName: VerifiedEpics[F, F, ScienceFold]
+    def oiwfsName: VerifiedEpics[F, F, Option[Instrument]]
+    def oiwfsNameStream: VerifiedEpics[F, Resource[F, *], Stream[F, Option[Instrument]]]
     def pwfs1Angles: PwfsAngles[F]
     def pwfs2Angles: PwfsAngles[F]
     def pwfs1Mechs: PwfsMechs[F]
     def pwfs2Mechs: PwfsMechs[F]
   }
 
-  private[tcs] def buildSystem[F[_]: Applicative](
-    channels: AgsChannels[F]
+  private[tcs] def buildSystem[F[_]: {Applicative, Dispatcher, Concurrent}](
+    channels: AgsChannels[F],
+    site:     Site
   ): AgsEpicsSystem[F] =
     new AgsEpicsSystem[F] {
       override val status: AgsStatus[F] = new AgsStatus[F] {
@@ -153,6 +162,33 @@ object AgsEpicsSystem {
         override def sfName: VerifiedEpics[F, F, ScienceFold] =
           VerifiedEpics.readChannel(channels.telltale, channels.sfName).map(_.map(_.decode))
 
+        private def oiInstrumentDecode(v: String): Option[Instrument] = v match {
+          case "GMOS"  =>
+            if (site === Site.GS) Instrument.GmosSouth.some else Instrument.GmosNorth.some
+          case "GNIRS" => Instrument.Gnirs.some
+          case "NIRI"  => Instrument.Niri.some
+          case "F2"    => Instrument.Flamingos2.some
+          case "NIFS"  => none
+        }
+
+        override def oiwfsName: VerifiedEpics[F, F, Option[Instrument]] =
+          VerifiedEpics
+            .readChannel(channels.telltale, channels.oiwfsName)
+            .map(
+              _.map(oiInstrumentDecode)
+            )
+
+        override def oiwfsNameStream
+          : VerifiedEpics[F, Resource[F, *], Stream[F, Option[Instrument]]] = VerifiedEpics
+          .eventStream(channels.telltale, channels.oiwfsName)
+          .map(
+            _.map(
+              _.collect { case StreamEvent.ValueChanged(t) =>
+                oiInstrumentDecode(t)
+              }
+            )
+          )
+
         override def pwfs1Angles: PwfsAngles[F] =
           PwfsAngles.build(channels.telltale, channels.p1Angles)
 
@@ -162,6 +198,7 @@ object AgsEpicsSystem {
         override def pwfs1Mechs: PwfsMechs[F] = PwfsMechs.build(channels.telltale, channels.p1Mechs)
 
         override def pwfs2Mechs: PwfsMechs[F] = PwfsMechs.build(channels.telltale, channels.p2Mechs)
+
       }
     }
 
@@ -203,8 +240,9 @@ object AgsEpicsSystem {
     }
   }
 
-  def build[F[_]: Temporal](
+  def build[F[_]: {Temporal, Dispatcher}](
     service: EpicsService[F],
-    top:     NonEmptyString
-  ): Resource[F, AgsEpicsSystem[F]] = AgsChannels.build[F](service, top).map(buildSystem)
+    top:     NonEmptyString,
+    site:    Site
+  ): Resource[F, AgsEpicsSystem[F]] = AgsChannels.build[F](service, top).map(buildSystem(_, site))
 }

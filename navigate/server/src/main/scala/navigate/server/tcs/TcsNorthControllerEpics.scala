@@ -7,13 +7,17 @@ import cats.Parallel
 import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
+import navigate.model.WfsConfiguration
+import navigate.server.ApplyCommandResult
 import navigate.server.ConnectionTimeout
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.FiniteDuration
 
+import EpicsSystems.*
+
 class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
-  sys:      EpicsSystems[F],
+  sys:      EpicsSystemsNorth[F],
   timeout:  FiniteDuration,
   stateRef: Ref[F, TcsBaseControllerEpics.State]
 ) extends TcsBaseControllerEpics[F](
@@ -49,12 +53,19 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
     niriPort = nr
   )).verifiedRun(ConnectionTimeout)
 
+  override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] =
+    wfsCircularBuffer(sys.oiwfs, enable)
+
+  override def getOiwfsConfig: F[WfsConfiguration] = getWfsConfig(sys.oiwfs, sys.oiwfs)
+
+  override def oiwfsConfigStream: F[fs2.Stream[F, WfsConfiguration]] =
+    wfsConfigStream(sys.oiwfs, sys.oiwfs)
 }
 
 object TcsNorthControllerEpics {
 
   def build[F[_]: {Async, Parallel, Logger}](
-    sys:     EpicsSystems[F],
+    sys:     EpicsSystemsNorth[F],
     timeout: FiniteDuration
   ): F[TcsNorthControllerEpics[F]] =
     Ref

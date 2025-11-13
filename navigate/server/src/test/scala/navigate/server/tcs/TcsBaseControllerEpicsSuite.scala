@@ -96,6 +96,7 @@ import navigate.server.epicsdata
 import navigate.server.epicsdata.BinaryOnOff
 import navigate.server.epicsdata.BinaryOnOffCapitalized
 import navigate.server.epicsdata.BinaryYesNo
+import navigate.server.tcs.EpicsSystems.*
 import navigate.server.tcs.FollowStatus.Following
 import navigate.server.tcs.FollowStatus.NotFollowing
 import navigate.server.tcs.ParkStatus.NotParked
@@ -2472,11 +2473,82 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
+  private def circularBufferTest(
+    l:      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]],
+    cmd:    Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]],
+    oiName: String = "None",
+    site:   Site = Site.GS
+  ): IO[Unit] = for {
+    (st, ctr) <- createController(site)
+    _         <- st.ags.update(_.focus(_.oiName.value).replace(oiName.some))
+    _         <- l.get(st).update(_.focus(_.circularBufferImageEnabled.value).replace("FALSE".some))
+    _         <- l.get(st).update(_.focus(_.circularBufferAoEnabled.value).replace("FALSE".some))
+    _         <- l.get(st).update(_.focus(_.circularBufferFgEnabled.value).replace("FALSE".some))
+    _         <- cmd.get(ctr)(true)
+    r1        <- l.get(st).get
+    _         <- l.get(st).update(_.focus(_.circularBufferImageEnabled.value).replace("TRUE".some))
+    _         <- l.get(st).update(_.focus(_.circularBufferAoEnabled.value).replace("TRUE".some))
+    _         <- l.get(st).update(_.focus(_.circularBufferFgEnabled.value).replace("TRUE".some))
+    _         <- cmd.get(ctr)(false)
+    r2        <- l.get(st).get
+  } yield {
+    assert(r1.circularBufferImage.connected)
+    assert(r1.circularBufferAo.connected)
+    assert(r1.circularBufferFg.connected)
+    assertEquals(r1.circularBufferImage.value, "1".some)
+    assertEquals(r1.circularBufferAo.value, "1".some)
+    assertEquals(r1.circularBufferFg.value, "1".some)
+    assertEquals(r2.circularBufferImage.value, "0".some)
+    assertEquals(r2.circularBufferAo.value, "0".some)
+    assertEquals(r2.circularBufferFg.value, "0".some)
+  }
+
+  test("Configure GMOS OIWFS circular buffer at GS") {
+    circularBufferTest(
+      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.gmoi),
+      Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
+      "GMOS"
+    )
+  }
+
+  test("Configure F2 OIWFS circular buffer at GS") {
+    circularBufferTest(
+      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.f2oi),
+      Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
+      "F2"
+    )
+  }
+
+  test("Configure OIWFS circular buffer at GN") {
+    circularBufferTest(
+      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.oiw),
+      Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.oiwfsCircularBuffer),
+      "GNIRS",
+      Site.GN
+    )
+  }
+
+  test("Configure PWFS1 circular buffer") {
+    circularBufferTest(
+      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.p1),
+      Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.pwfs1CircularBuffer)
+    )
+  }
+
+  test("Configure PWFS2 circular buffer") {
+    circularBufferTest(
+      Getter[StateRefs[IO], Ref[IO, TestWfsEpicsSystem.State]](_.p2),
+      Getter[TcsBaseControllerEpics[IO], Boolean => IO[ApplyCommandResult]](_.pwfs2CircularBuffer)
+    )
+  }
+
   case class StateRefs[F[_]](
     tcs:  Ref[F, TestTcsEpicsSystem.State],
     p1:   Ref[F, TestWfsEpicsSystem.State],
     p2:   Ref[F, TestWfsEpicsSystem.State],
     oiw:  Ref[F, TestWfsEpicsSystem.State],
+    gmoi: Ref[F, TestWfsEpicsSystem.State],
+    f2oi: Ref[F, TestWfsEpicsSystem.State],
     oi:   Ref[F, TestOiwfsEpicsSystem.State],
     mcs:  Ref[F, TestMcsEpicsSystem.State],
     scs:  Ref[F, TestScsEpicsSystem.State],
@@ -2493,6 +2565,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         p1   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
         p2   <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
         oiw  <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+        gmoi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
+        f2oi <- Ref.of[IO, TestWfsEpicsSystem.State](TestWfsEpicsSystem.defaultState)
         oi   <- Ref.of[IO, TestOiwfsEpicsSystem.State](TestOiwfsEpicsSystem.defaultState)
         mcs  <- Ref.of[IO, TestMcsEpicsSystem.State](TestMcsEpicsSystem.defaultState)
         scs  <- Ref.of[IO, TestScsEpicsSystem.State](TestScsEpicsSystem.defaultState)
@@ -2502,41 +2576,52 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         ac   <- Ref.of[IO, TestAcquisitionCameraEpicsSystem.State](
                   TestAcquisitionCameraEpicsSystem.defaultState
                 )
-      } yield (
-        StateRefs(tcs, p1, p2, oiw, oi, mcs, scs, crcs, ags, ac),
-        (site === Site.GS).fold(
-          new TcsSouthControllerEpics[IO](
-            EpicsSystems(
-              TestTcsEpicsSystem.build(tcs),
-              TestWfsEpicsSystem.build("PWFS1", p1),
-              TestWfsEpicsSystem.build("PWFS2", p2),
-              TestOiwfsEpicsSystem.build(oiw, oi),
-              TestMcsEpicsSystem.build(mcs),
-              TestScsEpicsSystem.build(scs),
-              TestCrcsEpicsSystem.build(crcs),
-              TestAgsEpicsSystem.build(ags),
-              TestAcquisitionCameraEpicsSystem.build(ac)
+      } yield {
+        val oiSys = TestOiwfsEpicsSystem.build(oiw, oi)
+
+        (
+          StateRefs(tcs, p1, p2, oiw, gmoi, f2oi, oi, mcs, scs, crcs, ags, ac),
+          (site === Site.GS).fold(
+            new TcsSouthControllerEpics[IO](
+              EpicsSystemsSouth(
+                TestWfsEpicsSystem.build("GMOS OI", gmoi),
+                TestWfsEpicsSystem.build("F2 OI", f2oi),
+                BaseEpicsSystems(
+                  TestTcsEpicsSystem.build(tcs),
+                  TestWfsEpicsSystem.build("PWFS1", p1),
+                  TestWfsEpicsSystem.build("PWFS2", p2),
+                  TestOiwfsEpicsSystem.build(oiw, oi),
+                  TestMcsEpicsSystem.build(mcs),
+                  TestScsEpicsSystem.build(scs),
+                  TestCrcsEpicsSystem.build(crcs),
+                  TestAgsEpicsSystem.build(ags, Site.GS),
+                  TestAcquisitionCameraEpicsSystem.build(ac)
+                )
+              ),
+              DefaultTimeout,
+              st
             ),
-            DefaultTimeout,
-            st
-          ),
-          new TcsNorthControllerEpics[IO](
-            EpicsSystems(
-              TestTcsEpicsSystem.build(tcs),
-              TestWfsEpicsSystem.build("PWFS1", p1),
-              TestWfsEpicsSystem.build("PWFS2", p2),
-              TestOiwfsEpicsSystem.build(oiw, oi),
-              TestMcsEpicsSystem.build(mcs),
-              TestScsEpicsSystem.build(scs),
-              TestCrcsEpicsSystem.build(crcs),
-              TestAgsEpicsSystem.build(ags),
-              TestAcquisitionCameraEpicsSystem.build(ac)
-            ),
-            DefaultTimeout,
-            st
+            new TcsNorthControllerEpics[IO](
+              EpicsSystemsNorth(
+                oiSys,
+                BaseEpicsSystems(
+                  TestTcsEpicsSystem.build(tcs),
+                  TestWfsEpicsSystem.build("PWFS1", p1),
+                  TestWfsEpicsSystem.build("PWFS2", p2),
+                  oiSys,
+                  TestMcsEpicsSystem.build(mcs),
+                  TestScsEpicsSystem.build(scs),
+                  TestCrcsEpicsSystem.build(crcs),
+                  TestAgsEpicsSystem.build(ags, Site.GN),
+                  TestAcquisitionCameraEpicsSystem.build(ac)
+                )
+              ),
+              DefaultTimeout,
+              st
+            )
           )
         )
-      )
+      }
     }
 
   def normalizeAnglePosDegree(a: Double): Double =

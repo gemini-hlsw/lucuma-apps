@@ -6,6 +6,7 @@ package navigate.server.tcs
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.Temporal
+import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.refined.auto.*
@@ -105,13 +106,18 @@ object OiwfsEpicsSystem {
     )
   }
 
-  private[tcs] def buildSystem[F[_]: {Temporal, Parallel}](
+  private[tcs] def buildSystem[F[_]: {Temporal, Parallel, Dispatcher}](
     wfsChannels:   WfsChannels[F],
     oiwfsChannels: OiwfsChannels[F]
   ): OiwfsEpicsSystem[F] = new OiwfsEpicsSystem[F] {
     private val wfsEpicsSystem: WfsEpicsSystem[F] = WfsEpicsSystem.buildSystem[F](wfsChannels)
 
-    export wfsEpicsSystem.*
+    export wfsEpicsSystem.{
+      getIntegrationTime,
+      getQualityStatus,
+      integrationTimeStream,
+      startGainCommand
+    }
 
     override def startDarkCommand(timeout: FiniteDuration): DarkCommand[F] =
       new DarkCommandImpl[F](wfsChannels.telltale, oiwfsChannels, timeout)
@@ -122,11 +128,12 @@ object OiwfsEpicsSystem {
     override def startSignalProcCommand(timeout: FiniteDuration): SignalProcCommand[F] =
       SignalProcCommandImpl[F](wfsChannels.telltale, oiwfsChannels, timeout)
 
+    override val telltale: TelltaleChannel[F] = wfsEpicsSystem.telltale
   }
 
   val systemName: String = "OIWFS"
 
-  def build[F[_]: {Temporal, Parallel}](
+  def build[F[_]: {Temporal, Parallel, Dispatcher}](
     service:      EpicsService[F],
     top:          NonEmptyString,
     fluxName:     NonEmptyString,

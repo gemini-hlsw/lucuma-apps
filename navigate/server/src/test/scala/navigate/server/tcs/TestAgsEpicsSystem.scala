@@ -5,6 +5,8 @@ package navigate.server.tcs
 
 import cats.effect.Ref
 import cats.effect.Temporal
+import cats.effect.std.Dispatcher
+import lucuma.core.enums.Site
 import monocle.Focus
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
@@ -36,6 +38,7 @@ object TestAgsEpicsSystem {
     aoName:       TestChannel.State[String],
     hwName:       TestChannel.State[String],
     sfName:       TestChannel.State[String],
+    oiName:       TestChannel.State[String],
     p1TableAngle: TestChannel.State[Double],
     p1ArmAngle:   TestChannel.State[Double],
     p2TableAngle: TestChannel.State[Double],
@@ -70,6 +73,7 @@ object TestAgsEpicsSystem {
     TestChannel.State.of(""),
     TestChannel.State.of(""),
     TestChannel.State.of(""),
+    TestChannel.State.of("None"),
     TestChannel.State.of(0.0),
     TestChannel.State.of(0.0),
     TestChannel.State.of(0.0),
@@ -109,6 +113,7 @@ object TestAgsEpicsSystem {
     aoName = new TestChannel[F, State, String](s, Focus[State](_.aoName)),
     hwName = new TestChannel[F, State, String](s, Focus[State](_.hwName)),
     sfName = new TestChannel[F, State, String](s, Focus[State](_.sfName)),
+    oiwfsName = new TestChannel[F, State, String](s, Focus[State](_.oiName)),
     p1Angles = AgsChannels.PwfsAnglesChannels[F](
       tableAngle = new TestChannel[F, State, Double](s, Focus[State](_.p1TableAngle)),
       armAngle = new TestChannel[F, State, Double](s, Focus[State](_.p1ArmAngle))
@@ -127,7 +132,8 @@ object TestAgsEpicsSystem {
     )
   )
 
-  def build[F[_]: Temporal](
-    s: Ref[F, State]
-  ): AgsEpicsSystem[F] = AgsEpicsSystem.buildSystem(buildChannels(s))
+  def build[F[_]: {Temporal, Dispatcher}](
+    s:    Ref[F, State],
+    site: Site
+  ): AgsEpicsSystem[F] = AgsEpicsSystem.buildSystem(buildChannels(s), site)
 }

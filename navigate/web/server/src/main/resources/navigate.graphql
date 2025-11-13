@@ -462,6 +462,17 @@ type BafflesState {
     deployableBaffle: DeployableBaffle!
 }
 
+type WfsConfigState {
+    exposureTime: TimeSpan!
+    saving: Boolean!
+}
+
+type AllWfsConfigState {
+    pwfs1: WfsConfigState!
+    pwfs2: WfsConfigState!
+    oiwfs: WfsConfigState!
+}
+
 type Query {
     telescopeState: TelescopeState!
     guideState: GuideConfigurationState!
@@ -477,6 +488,7 @@ type Query {
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
     bafflesState: BafflesState
+    allWfsConfigState: AllWfsConfigState!
 }
 
 type Mutation {
@@ -499,6 +511,7 @@ type Mutation {
     pwfs1Follow(enable: Boolean!): OperationOutcome!
     pwfs1Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs1StopObserve: OperationOutcome!
+    pwfs1CircularBuffer(enable: Boolean): OperationOutcome!
     pwfs2Filter(filter: PwfsFilter): OperationOutcome!
     pwfs2FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
     pwfs2Target(target: TargetPropertiesInput!): OperationOutcome!
@@ -507,12 +520,14 @@ type Mutation {
     pwfs2Follow(enable: Boolean!): OperationOutcome!
     pwfs2Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs2StopObserve: OperationOutcome!
+    pwfs2CircularBuffer(enable: Boolean): OperationOutcome!
     oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
     oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
     oiwfsPark: OperationOutcome!
     oiwfsFollow(enable: Boolean!): OperationOutcome!
     oiwfsObserve(period: TimeSpanInput!): OperationOutcome!
     oiwfsStopObserve: OperationOutcome!
+    oiwfsCircularBuffer(enable: Boolean): OperationOutcome!
     acObserve(period: TimeSpanInput!): OperationOutcome!
     acStopObserve: OperationOutcome!
     guideEnable(config: GuideConfigurationInput!): OperationOutcome!
@@ -556,4 +571,5 @@ type Subscription {
     acMechsState: AcMechs!
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
+    allWfsConfigState: AllWfsConfigState!
 }

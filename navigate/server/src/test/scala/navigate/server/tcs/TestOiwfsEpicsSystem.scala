@@ -4,8 +4,10 @@
 package navigate.server.tcs
 
 import cats.Parallel
+import cats.effect.Async
 import cats.effect.Ref
 import cats.effect.Temporal
+import cats.effect.std.Dispatcher
 import monocle.Focus
 import navigate.epics.TestChannel
 import navigate.server.acm.CadDirective
@@ -38,12 +40,19 @@ object TestOiwfsEpicsSystem {
     darkFilename = TestChannel(s, Focus[State](_.darkFilename))
   )
 
-  def build[F[_]: {Temporal, Parallel}](
+  def build[F[_]: {Async, Temporal, Parallel, Dispatcher}](
     wfs:   Ref[F, TestWfsEpicsSystem.State],
     oiwfs: Ref[F, State]
-  ): OiwfsEpicsSystem[F] =
-    OiwfsEpicsSystem.buildSystem(TestWfsEpicsSystem.buildChannels("OIWFS", wfs),
-                                 buildChannels(oiwfs)
-    )
+  ): OiwfsEpicsSystem[F] & CircularBufferControl[F] = {
+    val wfsChannels = TestWfsEpicsSystem.buildWfsChannels("OIWFS", wfs)
+    val cbChannels  = TestWfsEpicsSystem.buildCircularBufferChannels(wfsChannels.telltale, wfs)
+    val ois         = OiwfsEpicsSystem.buildSystem(wfsChannels, buildChannels(oiwfs))
+    val cb          = CircularBufferControl.buildSystem(cbChannels)
+    new OiwfsEpicsSystem[F] with CircularBufferControl[F] {
+      export ois.*
+      export cb.*
+    }
+
+  }
 
 }

@@ -52,6 +52,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.config.ControlStrategy
 import navigate.model.config.NavigateEngineConfiguration
 import navigate.model.enums.AcFilter
@@ -126,10 +127,19 @@ trait NavigateEngine[F[_]] {
   def disableGuide: F[CommandResult]
   def pwfs1Observe(period:                           TimeSpan): F[CommandResult]
   def pwfs1StopObserve: F[CommandResult]
+  def pwfs1CircularBuffer(enable:                    Boolean): F[CommandResult]
+  def getPwfs1Configuration: F[WfsConfiguration]
+  def getPwfs1ConfigurationStream: F[Stream[F, WfsConfiguration]]
   def pwfs2Observe(period:                           TimeSpan): F[CommandResult]
   def pwfs2StopObserve: F[CommandResult]
+  def pwfs2CircularBuffer(enable:                    Boolean): F[CommandResult]
+  def getPwfs2Configuration: F[WfsConfiguration]
+  def getPwfs2ConfigurationStream: F[Stream[F, WfsConfiguration]]
   def oiwfsObserve(period:                           TimeSpan): F[CommandResult]
   def oiwfsStopObserve: F[CommandResult]
+  def oiwfsCircularBuffer(enable:                    Boolean): F[CommandResult]
+  def getOiwfsConfiguration: F[WfsConfiguration]
+  def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]]
   def acObserve(period:                              TimeSpan): F[CommandResult]
   def acStopObserve: F[CommandResult]
   def swapTarget(swapConfig:                         SwapConfig): F[CommandResult]
@@ -786,6 +796,39 @@ object NavigateEngine {
     override def getPwfs2MechsState: F[PwfsMechsState] = systems.tcsCommon.getPwfs2Mechs
 
     override def getBafflesState: F[BafflesState] = systems.tcsCommon.getBaffles
+
+    override def pwfs1CircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
+      engine,
+      Pwfs1CircularBuffer(enable),
+      systems.tcsCommon.pwfs1CircularBuffer(enable)
+    )
+
+    override def pwfs2CircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
+      engine,
+      Pwfs2CircularBuffer(enable),
+      systems.tcsCommon.pwfs2CircularBuffer(enable)
+    )
+
+    override def oiwfsCircularBuffer(enable: Boolean): F[CommandResult] = simpleCommand(
+      engine,
+      OiwfsCircularBuffer(enable),
+      systems.tcsCommon.oiwfsCircularBuffer(enable)
+    )
+
+    override def getPwfs1Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs1Config
+
+    override def getPwfs1ConfigurationStream: F[Stream[F, WfsConfiguration]] =
+      systems.tcsCommon.pwfs1ConfigStream
+
+    override def getPwfs2Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs2Config
+
+    override def getPwfs2ConfigurationStream: F[Stream[F, WfsConfiguration]] =
+      systems.tcsCommon.pwfs2ConfigStream
+
+    override def getOiwfsConfiguration: F[WfsConfiguration] = systems.tcsCommon.getOiwfsConfig
+
+    override def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]] =
+      systems.tcsCommon.oiwfsConfigStream
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

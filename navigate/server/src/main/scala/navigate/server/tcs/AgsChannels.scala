@@ -26,6 +26,7 @@ case class AgsChannels[F[_]](
   aoName:          Channel[F, String],
   hwName:          Channel[F, String],
   sfName:          Channel[F, String],
+  oiwfsName:       Channel[F, String],
   p1Angles:        AgsChannels.PwfsAnglesChannels[F],
   p2Angles:        AgsChannels.PwfsAnglesChannels[F],
   p1Mechs:         AgsChannels.PwfsMechsChannels[F],
@@ -117,25 +118,26 @@ object AgsChannels {
     service: EpicsService[F],
     top:     NonEmptyString
   ): Resource[F, AgsChannels[F]] = for {
-    t        <- service.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _))
-    inPos    <- service.getChannel[Int](top, "inPosition.VAL")
-    sfParked <- service.getChannel[Int](top, "sfParked.VAL")
-    aoParked <- service.getChannel[Int](top, "aoParked.VAL")
-    hwParked <- service.getChannel[Int](top, "hwParked.VAL")
-    p1Parked <- service.getChannel[Int](top, "p1:probeParked.VAL")
-    p1Follow <- service.getChannel[String](top, "p1:followS.VAL")
-    p2Parked <- service.getChannel[Int](top, "p2:probeParked.VAL")
-    p2Follow <- service.getChannel[String](top, "p2:followS.VAL")
-    oiParked <- service.getChannel[Int](top, "oi:probeParked.VAL")
-    oiFollow <- service.getChannel[String](top, "oi:followS.VAL")
-    ports    <- InstrumentPortChannels.build(service, top)
-    aoName   <- service.getChannel[String](top, "aoName.VAL")
-    hwName   <- service.getChannel[String](top, "hwName.VAL")
-    sfName   <- service.getChannel[String](top, "sfName.VAL")
-    p1Angles <- PwfsAnglesChannels.build(service, top, "p1")
-    p2Angles <- PwfsAnglesChannels.build(service, top, "p2")
-    p1Mechs  <- PwfsMechsChannels.build(service, top, "p1")
-    p2Mechs  <- PwfsMechsChannels.build(service, top, "p2")
+    t         <- service.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _))
+    inPos     <- service.getChannel[Int](top, "inPosition.VAL")
+    sfParked  <- service.getChannel[Int](top, "sfParked.VAL")
+    aoParked  <- service.getChannel[Int](top, "aoParked.VAL")
+    hwParked  <- service.getChannel[Int](top, "hwParked.VAL")
+    p1Parked  <- service.getChannel[Int](top, "p1:probeParked.VAL")
+    p1Follow  <- service.getChannel[String](top, "p1:followS.VAL")
+    p2Parked  <- service.getChannel[Int](top, "p2:probeParked.VAL")
+    p2Follow  <- service.getChannel[String](top, "p2:followS.VAL")
+    oiParked  <- service.getChannel[Int](top, "oi:probeParked.VAL")
+    oiFollow  <- service.getChannel[String](top, "oi:followS.VAL")
+    ports     <- InstrumentPortChannels.build(service, top)
+    aoName    <- service.getChannel[String](top, "aoName.VAL")
+    hwName    <- service.getChannel[String](top, "hwName.VAL")
+    sfName    <- service.getChannel[String](top, "sfName.VAL")
+    oiwfsName <- service.getChannel[String](top, "oi:name.VAL")
+    p1Angles  <- PwfsAnglesChannels.build(service, top, "p1")
+    p2Angles  <- PwfsAnglesChannels.build(service, top, "p2")
+    p1Mechs   <- PwfsMechsChannels.build(service, top, "p1")
+    p2Mechs   <- PwfsMechsChannels.build(service, top, "p2")
   } yield AgsChannels(
     t,
     inPos,
@@ -152,6 +154,7 @@ object AgsChannels {
     aoName,
     hwName,
     sfName,
+    oiwfsName,
     p1Angles,
     p2Angles,
     p1Mechs,

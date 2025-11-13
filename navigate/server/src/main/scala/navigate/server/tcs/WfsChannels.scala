@@ -20,7 +20,8 @@ case class WfsChannels[F[_]](
   reset:            Channel[F, Double],
   gainsDir:         Channel[F, CadDirective],
   flux:             Channel[F, Int],
-  centroidDetected: Channel[F, Int]
+  centroidDetected: Channel[F, Int],
+  integrationTime:  Channel[F, Double]
 )
 
 object WfsChannels {
@@ -43,6 +44,7 @@ object WfsChannels {
       rst    <- service.getChannel[Double](top, gainResetName.value)
       fx     <- service.getChannel[Int](top, fluxName.value)
       ct     <- service.getChannel[Int](top, centroidName.value)
+      it     <- service.getChannel[Double](top, "dc:intTime.VAL")
     } yield WfsChannels[F](
       telltale = tell,
       tipGain = tipG,
@@ -52,6 +54,7 @@ object WfsChannels {
       reset = rst,
       gainsDir = gDir,
       flux = fx,
-      centroidDetected = ct
+      centroidDetected = ct,
+      integrationTime = it
     )
 }

@@ -59,6 +59,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.config.NavigateConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
@@ -2682,6 +2683,30 @@ object NavigateMappingsTest {
 
     override def getBafflesState: IO[BafflesState] =
       BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
+
+    override def pwfs1CircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs2CircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def oiwfsCircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def getPwfs1Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getPwfs1ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+
+    override def getPwfs2Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getPwfs2ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+
+    override def getOiwfsConfiguration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {
