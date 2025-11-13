@@ -430,6 +430,11 @@ object ObservingMode:
         derives Decoder,
           Eq
 
+    object ImagingFilter:
+      val filter: Lens[ImagingFilter, GmosNorthFilter]            = Focus[ImagingFilter](_.filter)
+      val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
+        Focus[ImagingFilter](_.exposureTimeMode)
+
     given Decoder[GmosNorthImaging] = deriveDecoder
 
     val initialFilters: Lens[GmosNorthImaging, NonEmptyList[ImagingFilter]]              =
@@ -508,6 +513,11 @@ object ObservingMode:
     case class ImagingFilter(filter: GmosSouthFilter, exposureTimeMode: ExposureTimeMode)
         derives Decoder,
           Eq
+
+    object ImagingFilter:
+      val filter: Lens[ImagingFilter, GmosSouthFilter]            = Focus[ImagingFilter](_.filter)
+      val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
+        Focus[ImagingFilter](_.exposureTimeMode)
 
     given Decoder[GmosSouthImaging] = deriveDecoder
 

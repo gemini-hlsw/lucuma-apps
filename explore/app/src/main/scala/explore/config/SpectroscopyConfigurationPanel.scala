@@ -101,7 +101,8 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
                                          ScienceMode.Spectroscopy,
                                          p.readonly,
                                          p.units,
-                                         p.calibrationRole
+                                         p.calibrationRole,
+                                         "spectReq".refined
           ),
           Option.when(
             focalPlaneSupported

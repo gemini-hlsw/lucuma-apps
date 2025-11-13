@@ -7,7 +7,9 @@ import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
+import explore.components.ui.ExploreStyles
 import explore.model.SignalToNoiseModeInfo
 import explore.model.TimeAndCountModeInfo
 import explore.model.enums.ExposureTimeModeType
@@ -23,12 +25,23 @@ import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.react.common.ReactFnProps
+import lucuma.react.common.style.Css
 import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 
+/**
+ * @param idPrefix - Since we often have multiple exposure time editors on the page at one time, we add
+ *    a prefix to the control ids.
+ * @param forceCount - Forces the count for Time & Count to the provided value and does not display the
+ *    count control. Used for acquisition customization where count is always 1.
+ * @param forGridRow - Creates the controls suitable to laying them all out in a CSS Grid. Essentially,
+ *    it wraps the Label/Input pairs in a `span` so there is only DOM element. The spans have a class
+ *    so they can be assigned to a grid column via Css. It also adds the `HiddenLabel` class to the
+ *    labels so they will be hidden from view while still being accessible to screen readers.
+ */
 case class ExposureTimeModeEditorOptional(
   instrument:       Option[Instrument],
   wavelength:       Option[Wavelength],
@@ -37,7 +50,9 @@ case class ExposureTimeModeEditorOptional(
   readonly:         Boolean,
   units:            WavelengthUnits,
   calibrationRole:  Option[CalibrationRole],
-  forceCount:       Option[PosInt] = None
+  idPrefix:         NonEmptyString,
+  forceCount:       Option[PosInt] = None,
+  forGridRow:       Boolean = false
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
 object ExposureTimeModeEditorOptional:
@@ -84,6 +99,16 @@ object ExposureTimeModeEditorOptional:
                                   .getOrEmpty
       yield
 
+        def makeId(base: NonEmptyString): NonEmptyString =
+          NonEmptyString.unsafeFrom(s"${props.idPrefix}$base")
+
+        def labelClass: Css = ExploreStyles.HiddenLabel.when_(props.forGridRow)
+
+        // if it is for the grid row (ex. imaging filters grid), wrap everything in a span
+        def controlsWrapper(node: VdomNode, clazz: Css): VdomNode =
+          if props.forGridRow then <.span(node, clazz)
+          else node
+
         val snModeView: View[SignalToNoiseModeInfo] = signalToNoiseView.withOnMod:
           case SignalToNoiseModeInfo(Some(value), Some(at)) =>
             props.exposureTimeMode.set(ExposureTimeMode.SignalToNoiseMode(value, at).some)
@@ -96,14 +121,15 @@ object ExposureTimeModeEditorOptional:
           case _                                                       =>
             Callback.empty
 
-        React.Fragment(
+        val modeSelector =
           FormEnumDropdownView(
-            id = "exposureMode".refined,
+            id = makeId("ExposureMode".refined),
             value = exposureTimeModeView,
             label = ReactFragment(
               "Exposure Mode",
               HelpIcon("configuration/exposure-mode.md".refined)
             ),
+            labelClass = ExploreStyles.HiddenLabel.when_(props.forGridRow),
             onChangeE = (v, _) =>
               v match
                 case Some(ExposureTimeModeType.SignalToNoise) =>
@@ -123,21 +149,32 @@ object ExposureTimeModeEditorOptional:
                 case None                                     => Callback.empty
             ,
             disabled = props.readonly
-          ),
+          )
+
+        React.Fragment(
+          controlsWrapper(modeSelector, ExploreStyles.ExposureTimeModeMode),
           if (exposureTimeModeView.get === ExposureTimeModeType.SignalToNoise)
-            SignalToNoiseAtEditor(snModeView,
-                                  props.scienceMode,
-                                  props.readonly,
-                                  props.units,
-                                  props.calibrationRole
+            SignalToNoiseAtEditor(
+              snModeView,
+              props.scienceMode,
+              props.readonly,
+              props.units,
+              props.calibrationRole,
+              makeId,
+              labelClass,
+              controlsWrapper
             )
           else
-            TimeAndCountEditor(props.instrument,
-                               tcModeView,
-                               props.scienceMode,
-                               props.readonly,
-                               props.units,
-                               props.calibrationRole,
-                               showCount = props.forceCount.isEmpty
+            TimeAndCountEditor(
+              props.instrument,
+              tcModeView,
+              props.scienceMode,
+              props.readonly,
+              props.units,
+              props.calibrationRole,
+              showCount = props.forceCount.isEmpty,
+              makeId,
+              labelClass,
+              controlsWrapper
             )
         )

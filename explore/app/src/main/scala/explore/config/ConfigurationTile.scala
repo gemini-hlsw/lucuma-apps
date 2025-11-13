@@ -47,6 +47,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -377,8 +378,8 @@ object ConfigurationTile:
               UpdateScienceRequirements.scienceRequirements
             )
 
-          val exposureTimeModeView =
-            requirementsView.zoom(ScienceRequirements.exposureTimeMode)
+          val reqsExposureTimeMode: Option[ExposureTimeMode] =
+            props.requirements.get.exposureTimeMode
 
           val spectroscopy: Option[Spectroscopy] =
             ScienceRequirements.spectroscopy.getOption(requirementsView.get)
@@ -468,7 +469,7 @@ object ConfigurationTile:
                       props.obsId,
                       props.obsConf.calibrationRole,
                       aligner,
-                      exposureTimeModeView,
+                      reqsExposureTimeMode,
                       revertConfig,
                       props.sequenceChanged,
                       props.obsIsReadonly,
@@ -481,7 +482,7 @@ object ConfigurationTile:
                       props.obsId,
                       props.obsConf.calibrationRole,
                       aligner,
-                      exposureTimeModeView,
+                      reqsExposureTimeMode,
                       revertConfig,
                       props.sequenceChanged,
                       props.obsIsReadonly,
