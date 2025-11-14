@@ -370,11 +370,13 @@ object ExploreStyles:
   val Flamingos2LowerGrid: Css          = Css("explore-flamingos2-lower-grid")
   val GmosLongSlitUpperGrid: Css        = Css("explore-gmos-longslit-upper-grid")
   val GmosLongSlitLowerGrid: Css        = Css("explore-gmos-longslit-lower-grid")
+  val GmosImagingUpperGrid: Css         = Css("explore-gmos-imaging-upper-grid")
+  val GmosImagingLowerGrid: Css         = Css("explore-gmos-imaging-lower-grid")
+  val GmosImagingFilter: Css            = Css("explore-gmos-imaging-filter")
+  val GmosImagingFilterGrid: Css        = Css("explore-gmos-imaging-filter-grid")
+  val GmosImagingFilterGridHeader: Css  = Css("explore-gmos-imaging-filter-grid-header")
+  val GmosImagingFilterGridAction: Css  = Css("explore-gmos-imaging-filter-grid-action")
   val AcquisitionCustomizationGrid: Css = Css("explore-acquisition-customization-grid")
-  val AdvancedConfigurationGrid: Css    = Css("explore-advanced-configuration-grid")
-  val AdvancedConfigurationCol1: Css    = Css("explore-advanced-configuration-col1")
-  val AdvancedConfigurationCol2: Css    = Css("explore-advanced-configuration-col2")
-  val AdvancedConfigurationCol3: Css    = Css("explore-advanced-configuration-col3")
   val AdvancedConfigurationButtons: Css = Css("explore-advanced-configuration-buttons")
   val GmosLongSlitBinning: Css          = Css("explore-gmos-longslit-binning")
   val ExploreTable: Css                 = Css("explore-table")
@@ -401,6 +403,13 @@ object ExploreStyles:
   val OffsetsEditorDialog: Css          = Css("explore-offsets-dialog")
   val OffsetEditorButton: Css           = Css("explore-offsets-button")
   val OffsetRegenerate: Css             = Css("explore-offsets-regenerate")
+
+  // ExposureTimeModeEditor
+  val ExposureTimeModeMode: Css          = Css("explore-etm-mode")
+  val ExposureTimeModeSignalToNoise: Css = Css("explore-etm-signal-to-noise")
+  val ExposureTimeModeAt: Css            = Css("explore-etm-at")
+  val ExposureTimeModeTime: Css          = Css("explore-etm-time")
+  val ExposureTimeModeCount: Css         = Css("explore-etm-count")
 
   // Sequence Viewer
   val SequencesPanel         = Css("explore-sequences-panel")
@@ -557,3 +566,6 @@ object ExploreStyles:
   val Hidden: Css    = Css("explore-hidden")
   val Stale: Css     = Css("stale")
   val ZeroValue: Css = Css("explore-zero-value")
+
+  // Hidden, but still visible to screen readers. (ie. doesn't use visibility: hidden)
+  val HiddenLabel: Css = Css("explore-hidden-label")

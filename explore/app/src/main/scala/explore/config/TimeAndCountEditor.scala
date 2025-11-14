@@ -6,6 +6,7 @@ package explore.config
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.cats.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
 import explore.model.Constants
@@ -20,10 +21,10 @@ import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
+import lucuma.react.common.style.Css
 import lucuma.refined.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
-import lucuma.ui.primereact.FormLabel
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -35,7 +36,10 @@ case class TimeAndCountEditor(
   readonly:        Boolean,
   units:           WavelengthUnits,
   calibrationRole: Option[CalibrationRole],
-  showCount:       Boolean
+  showCount:       Boolean,
+  makeId:          NonEmptyString => NonEmptyString,
+  labelClass:      Css,
+  controlsWrapper: (VdomNode, Css) => VdomNode
 ) extends ReactFnProps[TimeAndCountEditor](TimeAndCountEditor.component)
 
 object TimeAndCountEditor extends ConfigurationFormats:
@@ -54,24 +58,29 @@ object TimeAndCountEditor extends ConfigurationFormats:
         .getOrElse((durationMs.optional, ChangeAuditor.posBigDecimal(2.refined).optional))
 
       React.Fragment(
-        FormLabel("exposure-time".refined)("Exp. Time"),
-        FormInputTextView(
-          id = "exposure-time".refined,
-          value = exposureTime,
-          groupClass = ExploreStyles.WarningInput.when_(exposureTime.get.isEmpty),
-          validFormat = timeFormat,
-          postAddons =
-            exposureTime.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
-          units = "s",
-          changeAuditor = timeAuditor,
-          disabled = props.readonly
-        ).clearable(^.autoComplete.off),
+        props.controlsWrapper(
+          FormInputTextView(
+            id = props.makeId("ExposureTime".refined),
+            value = exposureTime,
+            label = "Exp. Time",
+            labelClass = props.labelClass,
+            groupClass = ExploreStyles.WarningInput.when_(exposureTime.get.isEmpty),
+            validFormat = timeFormat,
+            postAddons =
+              exposureTime.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
+            units = "s",
+            changeAuditor = timeAuditor,
+            disabled = props.readonly
+          ).clearable(^.autoComplete.off),
+          ExploreStyles.ExposureTimeModeTime
+        ),
         Option.when(props.showCount):
-          React.Fragment(
-            FormLabel("exposure-count".refined)("Number of Exp."),
+          props.controlsWrapper(
             FormInputTextView(
-              id = "exposure-count".refined,
+              id = props.makeId("ExposureCount".refined),
               value = count,
+              label = "Number of Exp.",
+              labelClass = props.labelClass,
               groupClass = ExploreStyles.WarningInput.when_(count.get.isEmpty),
               validFormat = InputValidSplitEpi.posInt.optional,
               postAddons =
@@ -79,24 +88,26 @@ object TimeAndCountEditor extends ConfigurationFormats:
               changeAuditor = ChangeAuditor.int.optional,
               units = "#",
               disabled = props.readonly
-            ).clearable(^.autoComplete.off)
+            ).clearable(^.autoComplete.off),
+            ExploreStyles.ExposureTimeModeCount
           )
         ,
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
-          React
-            .Fragment(
-              FormLabel("signal-to-noise-at".refined)(Constants.SignalToNoiseAtLabel),
-              FormInputTextView(
-                id = "signal-to-noise-at".refined,
-                groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
-                postAddons = signalToNoiseAt.get.fold(
-                  List(props.calibrationRole.renderRequiredForITCIcon)
-                )(_ => Nil),
-                value = signalToNoiseAt,
-                units = props.units.symbol,
-                validFormat = props.units.toInputWedge,
-                changeAuditor = props.units.toSNAuditor,
-                disabled = props.readonly
-              ).clearable(^.autoComplete.off)
-            )
+          props.controlsWrapper(
+            FormInputTextView(
+              id = props.makeId("SignalToNoiseAt".refined),
+              label = Constants.SignalToNoiseAtLabel,
+              labelClass = props.labelClass,
+              groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
+              postAddons = signalToNoiseAt.get.fold(
+                List(props.calibrationRole.renderRequiredForITCIcon)
+              )(_ => Nil),
+              value = signalToNoiseAt,
+              units = props.units.symbol,
+              validFormat = props.units.toInputWedge,
+              changeAuditor = props.units.toSNAuditor,
+              disabled = props.readonly
+            ).clearable(^.autoComplete.off),
+            ExploreStyles.ExposureTimeModeAt
+          )
       )

@@ -18,6 +18,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 
+// See parameter comments on `ExposureTimeModeEditorOptional`
 final case class ExposureTimeModeEditor(
   instrument:       Option[Instrument],
   wavelength:       Option[Wavelength],
@@ -26,7 +27,8 @@ final case class ExposureTimeModeEditor(
   readonly:         Boolean,
   units:            WavelengthUnits,
   calibrationRole:  Option[CalibrationRole],
-  forceCount:       Option[PosInt] = None
+  forceCount:       Option[PosInt] = None,
+  forGridRow:       Boolean = false
 ) extends ReactFnProps(ExposureTimeModeEditor)
 
 object ExposureTimeModeEditor
@@ -45,6 +47,7 @@ object ExposureTimeModeEditor
           props.readonly,
           props.units,
           props.calibrationRole,
-          props.forceCount
+          props.forceCount,
+          props.forGridRow
         )
     )

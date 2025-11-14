@@ -5,6 +5,7 @@ package explore.config
 
 import cats.syntax.all.*
 import crystal.react.View
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.itc.renderRequiredForITCIcon
@@ -19,6 +20,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.common.style.Css
 import lucuma.refined.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
@@ -31,7 +33,10 @@ case class SignalToNoiseAtEditor(
   scienceMode:     ScienceMode,
   readonly:        Boolean,
   units:           WavelengthUnits,
-  calibrationRole: Option[CalibrationRole]
+  calibrationRole: Option[CalibrationRole],
+  makeId:          NonEmptyString => NonEmptyString,
+  labelClass:      Css,
+  controlsWrapper: (VdomNode, Css) => VdomNode
 ) extends ReactFnProps(SignalToNoiseAtEditor)
 
 object SignalToNoiseAtEditor
@@ -43,21 +48,28 @@ object SignalToNoiseAtEditor
         SignalToNoiseInput(
           signalToNoise,
           props.calibrationRole,
-          props.readonly
+          props.readonly,
+          props.makeId,
+          props.labelClass,
+          props.controlsWrapper
         ),
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
-          FormInputTextView(
-            id = "signal-to-noise-at".refined,
-            label = Constants.SignalToNoiseAtLabel,
-            groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
-            postAddons = signalToNoiseAt.get.fold(
-              List(props.calibrationRole.renderRequiredForITCIcon)
-            )(_ => Nil),
-            value = signalToNoiseAt,
-            units = props.units.symbol,
-            validFormat = props.units.toInputWedge,
-            changeAuditor = props.units.toSNAuditor,
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off)
+          props.controlsWrapper(
+            FormInputTextView(
+              id = props.makeId("SignalToNoiseAt".refined),
+              label = Constants.SignalToNoiseAtLabel,
+              labelClass = props.labelClass,
+              groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
+              postAddons = signalToNoiseAt.get.fold(
+                List(props.calibrationRole.renderRequiredForITCIcon)
+              )(_ => Nil),
+              value = signalToNoiseAt,
+              units = props.units.symbol,
+              validFormat = props.units.toInputWedge,
+              changeAuditor = props.units.toSNAuditor,
+              disabled = props.readonly
+            ).clearable(^.autoComplete.off),
+            ExploreStyles.ExposureTimeModeAt
+          )
       )
     )

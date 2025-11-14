@@ -1786,6 +1786,7 @@ svg.fa-check.explore-success-icon {
   // Advanced Configuration
   // ------
   .explore-gmos-longslit-upper-grid,
+  .explore-gmos-imaging-upper-grid,
   .explore-flamingos2-upper-grid {
     display: grid;
     padding: 0.5em;
@@ -1813,6 +1814,64 @@ svg.fa-check.explore-success-icon {
         'col1 col2' auto
         / 1fr 1fr;
     }
+  }
+
+  .explore-gmos-imaging-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'filters buttons' auto
+      / 2fr 1fr;
+
+    .p-panel-title span {
+      display: flex;
+      gap: 0.5em;
+
+      .explore-help-icon {
+        margin-left: 0;
+      }
+    }
+
+    .explore-gmos-imaging-filter-grid {
+      display: grid;
+      padding-top: 0.5em;
+      gap: 0.5em;
+      grid-template-columns: [action] auto [filter] 1fr [mode] 1fr [sn] 1fr [time] 1fr [count] 1fr;
+
+      .pl-form-field {
+        width: 100%;
+      }
+
+      .explore-gmos-imaging-filter-grid-header {
+        padding-left: 0.5em;
+        background: var(--surface-100);
+      }
+
+      .explore-gmos-imaging-filter-grid-action {
+        grid-column: action;
+      }
+
+      .explore-gmos-imaging-filter {
+        grid-column: filter;
+      }
+
+      .explore-etm-mode {
+        grid-column: mode;
+      }
+
+      .explore-etm-signal-to-noise {
+        grid-column: sn;
+      }
+
+      .explore-etm-time {
+        grid-column: time;
+      }
+
+      .explore-etm-count {
+        grid-column: count;
+      }
+    }
 
     .explore-advanced-configuration-buttons {
       grid-area: buttons;
@@ -1824,46 +1883,10 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  // This is now used only for Gmos Imaging, which will problably be changed soon, too.
-  .explore-advanced-configuration-grid {
-    display: grid;
-    padding: 0.5em;
-    gap: 1em;
-    grid-template:
-      'col1 col2 col3' auto
-      'col1 buttons buttons' auto
-      / 1fr 1fr 1fr;
-
-    .explore-advanced-configuration-buttons {
-      grid-area: buttons;
-      justify-self: end;
-    }
-
-    .explore-advanced-configuration-col1 {
-      grid-area: col1;
-    }
-
-    .explore-advanced-configuration-col2 {
-      grid-area: col2;
-    }
-
-    .explore-advanced-configuration-col3 {
-      grid-area: col3;
-    }
-  }
-
   // on small tiles, we want to stack the form fields
   @container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
-    .explore-advanced-configuration-grid {
-      grid-template:
-        'col1' auto
-        'col2' auto
-        'col3' auto
-        'buttons' auto
-        / auto;
-    }
-
     .explore-gmos-longslit-upper-grid,
+    .explore-gmos-imaging-upper-grid,
     .explore-flamingos2-upper-grid {
       grid-template:
         'col1' auto
@@ -1885,6 +1908,13 @@ svg.fa-check.explore-success-icon {
           'col2' auto
           / auto;
       }
+    }
+
+    .explore-gmos-imaging-lower-grid {
+      grid-template:
+        'filters' auto
+        'buttons' auto
+        / auto;
     }
   }
 
@@ -3782,6 +3812,21 @@ a.explore-upgrade-link {
 
 .explore-hidden {
   visibility: hidden;
+}
+
+// Makes the label hidden but still available to screen readers.
+// https://www.w3.org/WAI/tutorials/forms/labels/#note-on-hiding-elements
+// Modified by google AI for deprecated CSS
+label.explore-hidden-label {
+  border: 0;
+  clip-path: inset(50%); // clips to a 0x0 area
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  white-space: nowrap;
 }
 
 // Correctly set styles in input and button groups when they are wrapped in a tooltip-target-wrapper.
