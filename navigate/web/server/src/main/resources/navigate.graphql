@@ -112,7 +112,7 @@ input TcsConfigInput {
     oiwfs: GuiderConfig
     rotator: RotatorTrackingInput!
     instrument: Instrument!
-    baffles: BaffleConfigInput!
+    baffles: BaffleConfigInput
 }
 
 input SwapConfigInput {

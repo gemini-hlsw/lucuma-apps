@@ -1424,10 +1424,10 @@ object NavigateMappings extends GrackleParsers {
     ins <- l.collectFirst { case ("instrument", EnumValue(v)) =>
              parseEnumerated[Instrument](v)
            }.flatten
-    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => parseBaffles(v) } match {
-             case Some(None) => None
-             case None       => Some(None)
-             case x          => x
+    bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => v } match {
+             case Some(x) =>
+               if (x.forall(_._2 == Value.AbsentValue)) Some(None) else parseBaffles(x).map(_.some)
+             case None    => Some(None)
            }
   } yield TcsConfig(t, inp, p1, p2, oi, rc, ins, bfs)
 
