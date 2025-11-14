@@ -22,16 +22,13 @@ import lucuma.schemas.model.TargetWithId
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 import scala.annotation.targetName
 
 object extensions:
   // TODO Move this to lucuma-schemas (and remove this logic from TargetWithId)
   extension (target: Target.Sidereal)
     def at(i: Instant): Target.Sidereal = {
-      val ldt            = LocalDateTime.ofInstant(i, ZoneOffset.UTC)
-      val epoch          = Epoch.Julian.fromLocalDateTime(ldt).getOrElse(target.tracking.epoch)
+      val epoch          = Epoch.Julian.fromInstant(i).getOrElse(target.tracking.epoch)
       val trackingUpdate = (tracking: SiderealTracking) =>
         tracking.at(i).fold(tracking) { c =>
           val update = SiderealTracking.baseCoordinates.replace(c) >>> SiderealTracking.epoch
@@ -105,9 +102,7 @@ object extensions:
       obsTime:     Instant
     ): (Option[Coordinates], Coordinates) =
       (targetEpoch.flatMap: epoch =>
-         val epochInstant = epoch.toInstant
-         tracking.at(epochInstant)
-       ,
+         tracking.at(epoch.toInstant),
        tracking
          .at(obsTime)
          .getOrElse(tracking.baseCoordinates)

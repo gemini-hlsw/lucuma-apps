@@ -21,8 +21,6 @@ import monocle.Optional
 import monocle.Prism
 
 import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneOffset
 import scala.collection.immutable.SortedMap
 
 trait TargetWithMetadata:
@@ -89,8 +87,7 @@ case class SiderealTargetWithId(
   def toTargetWithId = TargetWithId(id, target, disposition, calibrationRole)
 
   def at(i: Instant): SiderealTargetWithId = {
-    val ldt            = LocalDateTime.ofInstant(i, ZoneOffset.UTC)
-    val epoch          = Epoch.Julian.fromLocalDateTime(ldt).getOrElse(target.tracking.epoch)
+    val epoch          = Epoch.Julian.fromInstant(i).getOrElse(target.tracking.epoch)
     val trackingUpdate = (tracking: SiderealTracking) =>
       tracking.at(i).fold(tracking) { c =>
         val update = SiderealTracking.baseCoordinates.replace(c) >>> SiderealTracking.epoch

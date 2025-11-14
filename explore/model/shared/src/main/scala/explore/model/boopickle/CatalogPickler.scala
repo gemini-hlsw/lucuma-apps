@@ -46,11 +46,10 @@ trait CatalogPicklers extends CommonPicklers:
       override def unpickle(implicit state: UnpickleState): Epoch      = {
         val prefix   = state.unpickle[Char]
         val miliyear = state.unpickle[Int]
-        (prefix match {
+        (prefix match
           case 'J' => Epoch.Julian.fromIntMilliyears(miliyear)
-          case 'B' => Epoch.Besselian.fromIntMilliyears(miliyear)
           case _   => None
-        }).getOrElse(sys.error("Cannot unpickle"))
+        ).getOrElse(sys.error("Cannot unpickle"))
       }
     }
 
