@@ -327,8 +327,7 @@ object GmosLongslitConfigPanel {
                   ScienceMode.Spectroscopy,
                   props.readonly,
                   props.units,
-                  props.calibrationRole,
-                  "gmosLongslit".refined
+                  props.calibrationRole
                 )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -437,7 +436,6 @@ object GmosLongslitConfigPanel {
                       props.readonly,
                       props.units,
                       props.calibrationRole,
-                      "gmosAcq".refined,
                       forceCount = Some(1.refined)
                     )
                   )

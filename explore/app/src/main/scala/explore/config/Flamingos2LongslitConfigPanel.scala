@@ -187,8 +187,7 @@ object Flamingos2LongslitConfigPanel
                 ScienceMode.Spectroscopy,
                 props.readonly,
                 props.units,
-                props.calibrationRole,
-                "f2LongSlit".refined
+                props.calibrationRole
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -238,7 +237,6 @@ object Flamingos2LongslitConfigPanel
                     props.readonly,
                     props.units,
                     props.calibrationRole,
-                    "f2Acq".refined,
                     forceCount = Some(1.refined)
                   )
                 )

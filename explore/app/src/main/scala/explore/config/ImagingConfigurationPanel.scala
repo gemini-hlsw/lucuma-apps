@@ -87,8 +87,7 @@ object ImagingConfigurationPanel
           ScienceMode.Imaging,
           p.readonly,
           p.units,
-          p.calibrationRole,
-          "imagingReq".refined
+          p.calibrationRole
         )
       )
     )

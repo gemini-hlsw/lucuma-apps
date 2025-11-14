@@ -33,8 +33,6 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 
 /**
- * @param idPrefix - Since we often have multiple exposure time editors on the page at one time, we add
- *    a prefix to the control ids.
  * @param forceCount - Forces the count for Time & Count to the provided value and does not display the
  *    count control. Used for acquisition customization where count is always 1.
  * @param forGridRow - Creates the controls suitable to laying them all out in a CSS Grid. Essentially,
@@ -50,7 +48,6 @@ case class ExposureTimeModeEditorOptional(
   readonly:         Boolean,
   units:            WavelengthUnits,
   calibrationRole:  Option[CalibrationRole],
-  idPrefix:         NonEmptyString,
   forceCount:       Option[PosInt] = None,
   forGridRow:       Boolean = false
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
@@ -97,10 +94,11 @@ object ExposureTimeModeEditorOptional:
                                       case ExposureTimeModeType.TimeAndCount  =>
                                         timeAndCountView.set(timeAndCountView.get.withRequirementsWavelength(wv))
                                   .getOrEmpty
+        idPrefix             <- useId
       yield
 
         def makeId(base: NonEmptyString): NonEmptyString =
-          NonEmptyString.unsafeFrom(s"${props.idPrefix}$base")
+          NonEmptyString.unsafeFrom(s"${idPrefix}$base")
 
         def labelClass: Css = ExploreStyles.HiddenLabel.when_(props.forGridRow)
 
