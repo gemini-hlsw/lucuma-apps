@@ -351,6 +351,7 @@ object GmosImagingConfigPanel {
                             disableSimpleEdit,
                             props.units,
                             props.calibrationRole,
+                            NonEmptyString.unsafeFrom(s"imgFilter$idx"),
                             forGridRow = true
                           )
                         )

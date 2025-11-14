@@ -95,14 +95,14 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
             changeAuditor = p.units.toAuditor,
             disabled = p.readonly
           ).clearable(^.autoComplete.off),
-          ExposureTimeModeEditorOptional(
-            p.instrument,
-            wv.get,
-            p.exposureTimeMode,
-            ScienceMode.Spectroscopy,
-            p.readonly,
-            p.units,
-            p.calibrationRole
+          ExposureTimeModeEditorOptional(p.instrument,
+                                         wv.get,
+                                         p.exposureTimeMode,
+                                         ScienceMode.Spectroscopy,
+                                         p.readonly,
+                                         p.units,
+                                         p.calibrationRole,
+                                         "spectReq".refined
           ),
           Option.when(
             focalPlaneSupported
