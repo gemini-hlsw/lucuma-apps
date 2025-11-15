@@ -24,7 +24,7 @@
     "ua-parser-js": "2.0.6"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "5.1.0",
+    "@vitejs/plugin-react": "5.1.1",
     "postcss": "8.5.6",
     "process": "0.11.10",
     "sass": "1.93.3",
