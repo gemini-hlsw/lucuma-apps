@@ -68,8 +68,8 @@ object ProgramsPopup:
   )(programId: Program.Id): Callback =
     onClose.orEmpty >>
       undoStacks.set(UndoStacks.empty[IO, ProgramSummaries]) >>
-      (if (onClose.isEmpty) ctx.replacePage((AppTab.Overview, programId, Focused.None).some)
-       else ctx.pushPage((AppTab.Overview, programId, Focused.None).some))
+      (if (onClose.isEmpty) ctx.replacePage((AppTab.Observations, programId, Focused.None).some)
+       else ctx.pushPage((AppTab.Observations, programId, Focused.None).some))
 
   private val ScrollOptions =
     rawVirtual.mod
