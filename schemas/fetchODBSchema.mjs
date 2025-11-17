@@ -12,20 +12,8 @@ import { buildClientSchema, getIntrospectionQuery, printSchema } from 'graphql';
 // in the proper place in `lucuma-schemas` for use in generating code.
 //
 
-const KEY_MESSAGE = `
-Define the ODB_API_KEY environment variable to use this script. For example:
-
-  export ODB_API_KEY="111.4ed718065f21a8f01014c8d08db2c0f74fe3e860ae25bb1f03c5ae4c5e2d0a0e677e6e781a086d0a6638960506cff7db"
-
-You can get an API key from the Explore "User Preferences" menu item in Explore.`;
-
 const RED = '\x1b[0;31m';
 const NC = '\x1b[0m';
-
-if (!process.env.ODB_API_KEY) {
-  console.error(`${RED}${KEY_MESSAGE}${NC}`);
-  process.exit(1);
-}
 
 function usage() {
   console.error(`${RED}Usage: ${process.argv[1]} [local|dev|staging]${NC}`);
@@ -54,10 +42,16 @@ switch (process.argv[2]) {
 const response = await fetch(new URL(url), {
   headers: {
     'Content-Type': 'application/json',
-    Authorization: `Bearer ${process.env.ODB_API_KEY}`,
   },
   method: 'POST',
-  body: JSON.stringify({ query: getIntrospectionQuery() }),
+  body: JSON.stringify({
+    query: getIntrospectionQuery({
+      specifiedByUrl: true,
+      oneOf: true,
+      inputValueDeprecation: true,
+      directiveIsRepeatable: true,
+    }),
+  }),
 });
 
 if (!response.ok) {
@@ -66,9 +60,13 @@ if (!response.ok) {
 
 console.log(`Fetched ODB schema from ${url}`);
 
-const data = (await response.json()).data;
+const json = await response.json();
 
-const schema = printSchema(buildClientSchema(data));
+if (json.errors) {
+  throw new Error('Introspection query returned errors', { cause: json.errors });
+}
+
+const schema = printSchema(buildClientSchema(json.data));
 
 const outputFile = 'lib/src/clue/resources/lucuma/schemas/ObservationDB.graphql';
 
