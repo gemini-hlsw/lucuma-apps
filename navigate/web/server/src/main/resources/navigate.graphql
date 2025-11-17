@@ -451,8 +451,8 @@ input BaffleManualInput {
     deployableBaffle: DeployableBaffle!
 }
 
-input BaffleConfigInput {
-    # One and only one of these must be defined
+"One and only one of the configurations must be provided"
+input BaffleConfigInput @oneOf {
     autoConfig: BaffleAutoInput
     manualConfig: BaffleManualInput
 }
