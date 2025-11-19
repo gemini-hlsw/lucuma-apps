@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {
@@ -467,12 +467,6 @@ type WfsConfigState {
     saving: Boolean!
 }
 
-type AllWfsConfigState {
-    pwfs1: WfsConfigState!
-    pwfs2: WfsConfigState!
-    oiwfs: WfsConfigState!
-}
-
 type Query {
     telescopeState: TelescopeState!
     guideState: GuideConfigurationState!
@@ -488,7 +482,9 @@ type Query {
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
     bafflesState: BafflesState
-    allWfsConfigState: AllWfsConfigState!
+    pwfs1ConfigState: WfsConfigState!
+    pwfs2ConfigState: WfsConfigState!
+    oiwfsConfigState: WfsConfigState!
 }
 
 type Mutation {
@@ -571,5 +567,7 @@ type Subscription {
     acMechsState: AcMechs!
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
-    allWfsConfigState: AllWfsConfigState!
+    pwfs1ConfigState: WfsConfigState!
+    pwfs2ConfigState: WfsConfigState!
+    oiwfsConfigState: WfsConfigState!
 }

@@ -2427,6 +2427,51 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Set PWFS1 circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { pwfs1CircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("pwfs1CircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
+  test("Set PWFS2 circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { pwfs2CircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("pwfs2CircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
+  test("Set OIWFS circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { oiwfsCircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("oiwfsCircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
 }
 
 object NavigateMappingsTest {

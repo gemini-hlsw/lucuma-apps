@@ -74,6 +74,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.ZeroChopThrow
 import navigate.model.ZeroGuideOffset
 import navigate.model.ZeroInstrumentOffset
@@ -154,6 +155,18 @@ class NavigateMappings[F[_]: Sync](
 
   def pwfs2MechsState: F[Result[PwfsMechsState]] =
     server.getPwfs2MechsState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
+
+  def pwfs1ConfigState: F[Result[WfsConfiguration]] = server.getPwfs1Configuration.attempt.map(
+    _.fold(e => Result.failure(e.getMessage), Result.success)
+  )
+
+  def pwfs2ConfigState: F[Result[WfsConfiguration]] = server.getPwfs2Configuration.attempt.map(
+    _.fold(e => Result.failure(e.getMessage), Result.success)
+  )
+
+  def oiwfsConfigState: F[Result[WfsConfiguration]] = server.getOiwfsConfiguration.attempt.map(
+    _.fold(e => Result.failure(e.getMessage), Result.success)
+  )
 
   def bafflesState: F[Result[BafflesState]] =
     server.getBafflesState.attempt.map(_.fold(e => Result.failure(e.getMessage), Result.success))
@@ -542,6 +555,51 @@ class NavigateMappings[F[_]: Sync](
     Result.failure[OperationOutcome]("AC Window parameter could not be parsed.").pure[F]
   )
 
+  def pwfs1CircularBuffer(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Boolean]("enable")
+      .map(
+        server
+          .pwfs1CircularBuffer(_)
+          .attempt
+          .map(convertResult)
+      )
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("PWFS1 circular buffer parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def pwfs2CircularBuffer(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Boolean]("enable")
+      .map(
+        server
+          .pwfs2CircularBuffer(_)
+          .attempt
+          .map(convertResult)
+      )
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("PWFS2 circular buffer parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def oiwfsCircularBuffer(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Boolean]("enable")
+      .map(
+        server
+          .oiwfsCircularBuffer(_)
+          .attempt
+          .map(convertResult)
+      )
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("OIWFS circular buffer parameter could not be parsed.")
+          .pure[F]
+      )
+
   def parameterlessCommand(cmd: F[CommandResult]): F[Result[OperationOutcome]] =
     cmd.attempt
       .map(convertResult)
@@ -884,6 +942,12 @@ class NavigateMappings[F[_]: Sync](
              )
         _ <- Elab.env("fieldStop", t)
       } yield ()
+    case (MutationType, "pwfs1CircularBuffer", List(Binding("enable", BooleanValue(v))))        =>
+      Elab.env("enable" -> v)
+    case (MutationType, "pwfs2CircularBuffer", List(Binding("enable", BooleanValue(v))))        =>
+      Elab.env("enable" -> v)
+    case (MutationType, "oiwfsCircularBuffer", List(Binding("enable", BooleanValue(v))))        =>
+      Elab.env("enable" -> v)
     case (QueryType, "instrumentPort", List(Binding("instrument", EnumValue(ins))))             =>
       Elab
         .liftR(
@@ -913,7 +977,10 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("acMechsState")((_, _) => acMechsState),
           RootEffect.computeEncodable("pwfs1MechsState")((_, _) => pwfs1MechsState),
           RootEffect.computeEncodable("pwfs2MechsState")((_, _) => pwfs2MechsState),
-          RootEffect.computeEncodable("bafflesState")((_, _) => bafflesState)
+          RootEffect.computeEncodable("bafflesState")((_, _) => bafflesState),
+          RootEffect.computeEncodable("pwfs1ConfigState")((_, _) => pwfs1ConfigState),
+          RootEffect.computeEncodable("pwfs2ConfigState")((_, _) => pwfs2ConfigState),
+          RootEffect.computeEncodable("oiwfsConfigState")((_, _) => oiwfsConfigState)
         )
       ),
       ObjectMapping(
@@ -1063,7 +1130,10 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("acLens")((_, env) => acLens(env)),
           RootEffect.computeEncodable("acFilter")((_, env) => acFilter(env)),
           RootEffect.computeEncodable("acNdFilter")((_, env) => acNdFilter(env)),
-          RootEffect.computeEncodable("acWindowSize")((_, env) => acWindowSize(env))
+          RootEffect.computeEncodable("acWindowSize")((_, env) => acWindowSize(env)),
+          RootEffect.computeEncodable("pwfs1CircularBuffer")((_, env) => pwfs1CircularBuffer(env)),
+          RootEffect.computeEncodable("pwfs2CircularBuffer")((_, env) => pwfs2CircularBuffer(env)),
+          RootEffect.computeEncodable("oiwfsCircularBuffer")((_, env) => oiwfsCircularBuffer(env))
         )
       ),
       ObjectMapping(
@@ -1148,6 +1218,30 @@ class NavigateMappings[F[_]: Sync](
           RootStream.computeCursor("pwfs2MechsState") { (p, env) =>
             pwfs2MechsTopic
               .subscribe(1024)
+              .map(_.asJson)
+              .map(circeCursor(p, env, _))
+              .map(Result.success)
+          },
+          RootStream.computeCursor("pwfs1ConfigState") { (p, env) =>
+            Stream
+              .eval(server.getPwfs1ConfigurationStream)
+              .flatten
+              .map(_.asJson)
+              .map(circeCursor(p, env, _))
+              .map(Result.success)
+          },
+          RootStream.computeCursor("pwfs2ConfigState") { (p, env) =>
+            Stream
+              .eval(server.getPwfs2ConfigurationStream)
+              .flatten
+              .map(_.asJson)
+              .map(circeCursor(p, env, _))
+              .map(Result.success)
+          },
+          RootStream.computeCursor("oiwfsConfigState") { (p, env) =>
+            Stream
+              .eval(server.getOiwfsConfigurationStream)
+              .flatten
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)

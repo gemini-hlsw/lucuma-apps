@@ -12,6 +12,7 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.angle.query.given
 import lucuma.odb.json.offset.query.given
+import lucuma.odb.json.time.query.given
 import navigate.model.AcMechsState
 import navigate.model.AcquisitionAdjustment
 import navigate.model.BafflesState
@@ -21,6 +22,7 @@ import navigate.model.NavigateState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.ServerConfiguration
+import navigate.model.WfsConfiguration
 import navigate.server.tcs.GuideState
 import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.MechSystemState
@@ -159,6 +161,12 @@ package object encoder {
     Json.obj(
       "centralBaffle"    -> s.central.asJson,
       "deployableBaffle" -> s.deployable.asJson
+    )
+
+  given Encoder[WfsConfiguration] = s =>
+    Json.obj(
+      "exposureTime" -> s.exposureTime.asJson,
+      "saving"       -> s.saving.asJson
     )
 
 }
