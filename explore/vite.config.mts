@@ -100,8 +100,7 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
     let cachedMetadata: { data: string; timestamp: number } | null = null;
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 
-    const isCacheValid = () =>
-      cachedMetadata && Date.now() - cachedMetadata.timestamp < CACHE_TTL;
+    const isCacheValid = () => cachedMetadata && Date.now() - cachedMetadata.timestamp < CACHE_TTL;
 
     // get environments and enumMetadata and cache locally
     const fetchEnumMetadata = async (host: string) => {
@@ -165,10 +164,7 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
 /**
  * Vite plugin to reload the page when environment configuration changes
  */
-const reloadEnvPlugin = (
-  publicDirProd: string,
-  publicDirDev: string,
-) => ({
+const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string) => ({
   name: 'reload-on-environments-change',
   configureServer(server: any) {
     const { ws, watcher } = server;

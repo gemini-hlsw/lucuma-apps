@@ -43,9 +43,7 @@ fetch('/environments.conf.json').then((response) => {
     const url = specificHostURL ? specificHostURL : getODBRestURLForHost('*');
 
     // In dev mode, from Vite server; in prod, fetch from ODB
-    const enumUrl = import.meta.env.DEV
-      ? '/api/enumMetadata'
-      : `${url}/export/enumMetadata`;
+    const enumUrl = import.meta.env.DEV ? '/api/enumMetadata' : `${url}/export/enumMetadata`;
 
     // Suppress vite warning about dynamic imports it can't handle.
     import(/* @vite-ignore */ enumUrl).then((enumMetadataModule) => {
