@@ -26,14 +26,17 @@ import explore.model.RootModel
 import explore.model.RoutingInfo
 import explore.model.WorkerClients
 import explore.model.enums.AppTab
+import explore.utils.ToastCtx
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
+import lucuma.react.primereact.Message
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
@@ -45,7 +48,6 @@ import scala.concurrent.duration.*
 import scala.scalajs.js
 
 import js.annotation.*
-import lucuma.react.primereact.Message
 
 @JSExportTopLevel("Explore", moduleID = "explore")
 object ExploreMain {
@@ -107,8 +109,8 @@ object ExploreMain {
 
     def initializeItc(
       workerClients: WorkerClients[IO],
-      itcURI:        org.http4s.Uri,
-      toastCtx:      explore.utils.ToastCtx[IO]
+      itcURI:        Uri,
+      toastCtx:      ToastCtx[IO]
     )(using Logger[IO]): IO[Unit] =
       workerClients.itc
         .requestSingle(ItcMessage.Initialize(itcURI))
@@ -146,7 +148,7 @@ object ExploreMain {
 
       for {
         host                 <- IO(dom.window.location.host)
-        appConfig            <- AppConfig.parseFromJson[IO](host, configJson)
+        appConfig             = AppConfig.parseConf(host, configJson)
         httpClient            = buildNonCachingHttpClient[IO]
         _                    <- Logger[IO].info(s"Git Commit: [${utils.gitHash.getOrElse("NONE")}]")
         _                    <- Logger[IO].info(s"Config: ${appConfig.show}")

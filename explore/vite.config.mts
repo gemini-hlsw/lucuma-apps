@@ -60,6 +60,26 @@ const imageCache = ({
 });
 
 /**
+ * Configuration to cache enum metadata from ODB
+ * Cache calls with a 1h TTL but return immediately if stale
+ * We also force a cache cleanup when SW gets updates
+ */
+const enumMetadataCache = (): RuntimeCaching => ({
+  urlPattern: ({ url }) => url.pathname.endsWith('/export/enumMetadata'),
+  handler: 'StaleWhileRevalidate',
+  options: {
+    cacheName: 'enum-metadata',
+    expiration: {
+      maxAgeSeconds: 60 * 60, // 1 hour
+      maxEntries: 5,
+    },
+    cacheableResponse: {
+      statuses: [200],
+    },
+  },
+});
+
+/**
  * Check if a file or directory exists
  */
 const pathExists = async (path: PathLike) => {
@@ -83,6 +103,7 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
     const isCacheValid = () =>
       cachedMetadata && Date.now() - cachedMetadata.timestamp < CACHE_TTL;
 
+    // get environments and enumMetadata and cache locally
     const fetchEnumMetadata = async (host: string) => {
       try {
         const configPath = path.resolve(publicDirDev, 'environments.conf.json');
@@ -92,16 +113,13 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
         const getODBRestURL = (h: string) =>
           environments.find((e: any) => e.hostName === h)?.odbRestURI;
 
-        const url = getODBRestURL(host) || getODBRestURL('*');
+        const url = getODBRestURL(host);
 
         if (!url) {
-          throw new Error(`No ODB URL found for host ${host}`);
+          throw new Error(`No ODB URL found`);
         }
 
         const response = await fetch(`${url}/export/enumMetadata`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch enum metadata: ${response.statusText}`);
-        }
 
         const module = await response.text();
         cachedMetadata = { data: module, timestamp: Date.now() };
@@ -136,7 +154,6 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
       }
     });
 
-    // Expose cache clearing function for use in reload plugin
     server.__enumMetadataCache = {
       clear: () => {
         cachedMetadata = null;
@@ -337,20 +354,7 @@ export default defineConfig(async ({ mode }) => {
           navigateFallbackDenylist: [/\/uninstall\.html$/],
           // Cache aladin images
           runtimeCaching: [
-            {
-              urlPattern: ({ url }) => url.pathname.endsWith('/export/enumMetadata'),
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'enum-metadata',
-                expiration: {
-                  maxAgeSeconds: 60 * 60, // 1 hour
-                  maxEntries: 5,
-                },
-                cacheableResponse: {
-                  statuses: [200],
-                },
-              },
-            },
+            enumMetadataCache(),
             imageCache({
               pattern: /^https:\/\/simbad.u-strasbg.fr\/simbad\/sim-id/,
               name: 'simbad',

@@ -28,6 +28,7 @@ import lucuma.core.model.Program
 import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.sso.SSOClient
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
 import queries.schemas.SSO
@@ -46,7 +47,7 @@ case class AppContext[F[_]](
   pageUrl:                Option[(AppTab, Program.Id, Focused)] => String,
   setPageVia:             (Option[(AppTab, Program.Id, Focused)], SetRouteVia) => Callback,
   environment:            ExecutionEnvironment,
-  odbRestURI:             org.http4s.Uri,
+  odbRestURI:             Uri,
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
   toastRef:               Deferred[F, ToastRef],
   resetProgramCacheTopic: Topic[F, Option[ProgramError]] // Error message (if any)

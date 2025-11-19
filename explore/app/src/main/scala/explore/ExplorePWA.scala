@@ -33,18 +33,6 @@ object ExplorePWA {
     def installing: Boolean = js.native
   }
 
-  // Facade for Cache Storage API
-  // https://developer.mozilla.org/en-US/docs/Web/API/CacheStorage
-  @js.native
-  trait CacheStorage extends js.Object {
-    def delete(cacheName: String): js.Promise[Boolean] = js.native
-  }
-
-  @js.native
-  trait WindowWithCaches extends js.Object {
-    def caches: CacheStorage = js.native
-  }
-
   @js.native
   trait RegisterSWOptions extends js.Object {
     var onRegisterError: js.Function1[js.Any, Unit]
@@ -119,11 +107,10 @@ object ExplorePWA {
         RegisterSWOptions(
           onNeedRefresh =
             // If a new version is detected, clear enum metadata cache and ask the user
-            Callback.log("New version available, clearing caches...") *>
+            Callback.log("New version available, clear the cache and ask the user to update") *>
               Callback {
-                dom.window.asInstanceOf[WindowWithCaches].caches.delete("enum-metadata")
+                dom.window.caches.map(_.delete("enum-metadata"))
               } *>
-              Callback.log("New version available, ask the user to update") *>
               // Delay a bit to let the front setup the listener
               requestUserConfirmation(bc),
           onOfflineReady = Callback.log(s"Offline ready"),
