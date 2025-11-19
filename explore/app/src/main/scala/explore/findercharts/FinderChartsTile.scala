@@ -99,7 +99,7 @@ object FinderChartsTile:
         for {
           ctx       <- useContext(AppContext.ctx)
           client    <- useMemo(props.authToken): token =>
-                         OdbRestClient[IO](ctx.environment, token)
+                         OdbRestClient[IO](ctx.odbRestURI, token)
           transform <- useStateView(Transformation.Default) // Current transformation
           urlMap    <- useStateView[UrlMap](Map.empty)
           // added attachment, FIXME once we can upload and assign in one step

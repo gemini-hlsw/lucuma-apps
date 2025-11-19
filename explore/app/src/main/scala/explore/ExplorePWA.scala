@@ -106,8 +106,11 @@ object ExplorePWA {
       registerSW(
         RegisterSWOptions(
           onNeedRefresh =
-            // If a new version is detected ask the usser
-            Callback.log("New version available, ask the user to update") *>
+            // If a new version is detected, clear enum metadata cache and ask the user
+            Callback.log("New version available, clear the cache and ask the user to update") *>
+              Callback {
+                dom.window.caches.map(_.delete("enum-metadata"))
+              } *>
               // Delay a bit to let the front setup the listener
               requestUserConfirmation(bc),
           onOfflineReady = Callback.log(s"Offline ready"),

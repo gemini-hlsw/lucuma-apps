@@ -23,7 +23,7 @@ object ItcMessage extends ItcPicklers:
   sealed trait Request extends WorkerRequest
 
   case class Initialize(itcURI: Uri) extends Request:
-    type ResponseType = Nothing
+    type ResponseType = Option[String]
 
   case object CleanCache extends Request:
     type ResponseType = Unit
@@ -55,3 +55,5 @@ object ItcMessage extends ItcPicklers:
   private given Pickler[CleanCache.type] = generatePickler
 
   given Pickler[Request] = generatePickler
+
+  given Pickler[Option[String]] = optionPickler[String]

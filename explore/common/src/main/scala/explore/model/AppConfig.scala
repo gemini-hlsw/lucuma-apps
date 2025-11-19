@@ -6,15 +6,13 @@ package explore.model
 import cats.Eq
 import cats.Show
 import cats.derived.*
-import cats.effect.Async
 import cats.syntax.all.*
 import io.circe.*
+import io.circe.parser.decode
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.ui.sso.SSOConfig
 import org.http4s.Uri
 import org.http4s.circe.*
-import org.http4s.client.Client
-import org.http4s.syntax.all.*
 
 case class AppConfig(
   hostName:         String,
@@ -29,38 +27,13 @@ case class AppConfig(
       Show,
       Decoder
 
-object AppConfig {
-  private val configFile = uri"/environments.conf.json"
-
-  private def fetchHelper[F[_]: Async](
-    client:   Client[F],
-    selector: List[AppConfig] => F[AppConfig]
-  ): F[AppConfig] =
-    client
-      .get(configFile)(_.decodeJson[List[AppConfig]])
-      .adaptError { case t =>
-        new Exception("Could not retrieve configuration.", t)
-      }
-      .flatMap(selector)
-
-  def fetchConfig[F[_]: Async](host: String, client: Client[F]): F[AppConfig] =
-    fetchHelper(
-      client,
-      confs =>
+object AppConfig:
+  def parseConf(host: String, json: String): AppConfig =
+    decode[List[AppConfig]](json) match
+      case Left(err)    =>
+        throw new Exception("Could not parse configuration from JSON.", err)
+      case Right(confs) =>
         confs
           .find(conf => host.startsWith(conf.hostName))
           .orElse(confs.find(_.hostName === "*"))
-          .fold(
-            Async[F].raiseError(new Exception("Host not found in configuration."))
-          )(_.pure)
-    )
-
-  def fetchConfig[F[_]: Async](env: ExecutionEnvironment, client: Client[F]): F[AppConfig] =
-    fetchHelper(
-      client,
-      _.find(_.environment === env)
-        .fold(
-          Async[F].raiseError(new Exception("Environment not found in configuration."))
-        )(_.pure)
-    )
-}
+          .getOrElse(throw new Exception("Host not found in configuration."))

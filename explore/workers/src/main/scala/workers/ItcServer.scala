@@ -48,11 +48,20 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
     } yield { invocation =>
       invocation.data match
         case ItcMessage.Initialize(itcURI) =>
-          for {
+          (for {
             client <- ItcClient.create[IO](itcURI, createClient)
             _      <- itcClient.complete(client).void
             _      <- ITCVersionsRequests.queryItc[IO](cache, client).andWait(1.hour).foreverM.start
-          } yield ()
+          } yield ()).attempt.flatMap {
+            case Right(_)  =>
+              Logger[IO].info("ITC client initialized successfully") >>
+                invocation.respond(none[String])
+            case Left(err) =>
+              Logger[IO].error("Failed to initialize ITC client") >>
+                invocation.respond(
+                  Some(s"ITC initialization failed: ${err.getMessage}")
+                )
+          }
 
         case ItcMessage.CleanCache =>
           cache.clear *> invocation.respond(())

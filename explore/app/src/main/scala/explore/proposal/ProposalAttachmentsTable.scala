@@ -94,7 +94,7 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
       .withHooks[Props]
       .useContext(AppContext.ctx)
       .useMemoBy((p, _) => p.authToken): (_, ctx) =>
-        token => OdbRestClient[IO](ctx.environment, token)
+        token => OdbRestClient[IO](ctx.odbRestURI, token)
       .useStateView(Action.None)
       .useStateView[UrlMap](Map.empty)
       .useEffectWithDepsBy((props, _, _, _, _) => props.attachments.get.proposalList):

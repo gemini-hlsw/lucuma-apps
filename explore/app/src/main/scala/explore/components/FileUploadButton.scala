@@ -48,7 +48,7 @@ object FileUploadButton
       for
         ctx           <- useContext(AppContext.ctx)
         odbRestClient <- useMemo(props.authToken):
-                           _.map(OdbRestClient[IO](ctx.environment, _))
+                           _.map(OdbRestClient[IO](ctx.odbRestURI, _))
         ref           <- useRefToVdom[HTMLInputElement]
         id            <- useId
         msgItem       <- useMemo(id): id =>

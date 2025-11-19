@@ -17,6 +17,7 @@ import clue.js.WebSocketJsBackend
 import clue.websocket.ReconnectionStrategy
 import explore.components.ui.ExploreStyles
 import explore.events.*
+import explore.events.ItcMessage.given
 import explore.model.AppConfig
 import explore.model.AppContext
 import explore.model.ExploreLocalPreferences
@@ -25,14 +26,17 @@ import explore.model.RootModel
 import explore.model.RoutingInfo
 import explore.model.WorkerClients
 import explore.model.enums.AppTab
+import explore.utils.ToastCtx
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
+import lucuma.react.primereact.Message
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
+import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
@@ -49,8 +53,8 @@ import js.annotation.*
 object ExploreMain {
 
   @JSExport
-  def runIOApp(): Unit =
-    run.unsafeRunAndForget()
+  def runIOApp(configJson: String): Unit =
+    run(configJson).unsafeRunAndForget()
 
   def setupLogger[F[_]: Sync](p: ExploreLocalPreferences): F[Logger[F]] = Sync[F].delay {
     LogLevelLogger.setLevel(p.level)
@@ -92,7 +96,7 @@ object ExploreMain {
     lucuma.react.highcharts.seriesLabel.enable
   }.void
 
-  def run: IO[Unit] = {
+  def run(configJson: String): IO[Unit] = {
 
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, _) =>
@@ -103,11 +107,29 @@ object ExploreMain {
           TimeUnit.SECONDS
         ).some
 
+    def initializeItc(
+      workerClients: WorkerClients[IO],
+      itcURI:        Uri,
+      toastCtx:      ToastCtx[IO]
+    )(using Logger[IO]): IO[Unit] =
+      workerClients.itc
+        .requestSingle(ItcMessage.Initialize(itcURI))
+        .flatMap:
+          case Some(Some(error)) =>
+            toastCtx.showToast(error, Message.Severity.Error, true)
+          case Some(None)        =>
+            Logger[IO].info("ITC client initialized")
+          case None              =>
+            Logger[IO].warn("ITC initialization: no response from worker")
+        .start
+        .void
+
     def buildPage(
       dispatcher:       Dispatcher[IO],
       workerClients:    WorkerClients[IO],
       localPreferences: ExploreLocalPreferences,
-      bc:               BroadcastChannel[IO, ExploreEvent]
+      bc:               BroadcastChannel[IO, ExploreEvent],
+      configJson:       String
     )(using Logger[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
@@ -126,23 +148,22 @@ object ExploreMain {
 
       for {
         host                 <- IO(dom.window.location.host)
+        appConfig             = AppConfig.parseConf(host, configJson)
         httpClient            = buildNonCachingHttpClient[IO]
-        appConfig            <- AppConfig.fetchConfig[IO](host, httpClient)
-        _                    <- workerClients.itc.requestAndForget(ItcMessage.Initialize(appConfig.itcURI))
         _                    <- Logger[IO].info(s"Git Commit: [${utils.gitHash.getOrElse("NONE")}]")
         _                    <- Logger[IO].info(s"Config: ${appConfig.show}")
         toastRef             <- Deferred[IO, ToastRef]
-        ctx                  <-
-          AppContext.from[IO](
-            appConfig,
-            reconnectionStrategy,
-            pageUrl,
-            setPageVia,
-            workerClients,
-            httpClient,
-            bc,
-            toastRef
-          )
+        ctx                  <- AppContext.from[IO](
+                                  appConfig,
+                                  reconnectionStrategy,
+                                  pageUrl,
+                                  setPageVia,
+                                  workerClients,
+                                  httpClient,
+                                  bc,
+                                  toastRef
+                                )
+        _                    <- initializeItc(workerClients, appConfig.itcURI, ctx.toastCtx)
         r                    <- (ctx.sso.whoami, setupDOM[IO], showEnvironment[IO](appConfig.environment)).parTupled
         (vault, container, _) = r
       } yield ReactDOMClient
@@ -163,7 +184,7 @@ object ExploreMain {
       given Logger[IO] <- Resource.eval(setupLogger[IO](prefs))
       workerClients    <- WorkerClients.build[IO](dispatcher)
       bc               <- BroadcastChannel[IO, ExploreEvent]("explore")
-      _                <- Resource.eval(buildPage(dispatcher, workerClients, prefs, bc))
+      _                <- Resource.eval(buildPage(dispatcher, workerClients, prefs, bc, configJson))
     } yield ()).useForever
   }
 
