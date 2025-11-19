@@ -7,10 +7,15 @@ import cats.Monad
 import cats.Parallel
 import cats.effect.Resource
 import cats.effect.Temporal
+import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
+import fs2.Stream
 import lucuma.core.refined.auto.*
+import lucuma.core.util.TimeSpan
+import navigate.epics.Channel.StreamEvent
 import navigate.epics.EpicsService
+import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
 import navigate.server.ApplyCommandResult
@@ -23,6 +28,9 @@ import scala.concurrent.duration.FiniteDuration
 trait WfsEpicsSystem[F[_]] {
   def startGainCommand(timeout: FiniteDuration): WfsEpicsSystem.WfsGainCommands[F]
   def getQualityStatus: WfsEpicsSystem.WfsQualityStatus[F]
+  def getIntegrationTime: VerifiedEpics[F, F, TimeSpan]
+  def integrationTimeStream: VerifiedEpics[F, Resource[F, *], Stream[F, TimeSpan]]
+  val telltale: TelltaleChannel[F]
 }
 
 object WfsEpicsSystem {
@@ -40,7 +48,7 @@ object WfsEpicsSystem {
     def setScaleGain(v: Double): S
   }
 
-  private[tcs] def buildSystem[F[_]: {Temporal, Parallel}](
+  private[tcs] def buildSystem[F[_]: {Temporal, Parallel, Dispatcher}](
     channels: WfsChannels[F]
   ): WfsEpicsSystem[F] = new WfsEpicsSystem[F] {
     override def startGainCommand(timeout: FiniteDuration): WfsGainCommands[F] =
@@ -56,9 +64,26 @@ object WfsEpicsSystem {
         .readChannel(channels.telltale, channels.centroidDetected)
         .flatMap(x => VerifiedEpics.liftF[F, F, Boolean](x.map(_ === 0)))
     }
+
+    override val telltale: TelltaleChannel[F] = channels.telltale
+
+    override def getIntegrationTime: VerifiedEpics[F, F, TimeSpan] = VerifiedEpics
+      .readChannel(channels.telltale, channels.integrationTime)
+      .map(_.map(x => TimeSpan.fromSeconds(x).getOrElse(TimeSpan.Zero)))
+
+    override def integrationTimeStream: VerifiedEpics[F, Resource[F, *], Stream[F, TimeSpan]] =
+      VerifiedEpics
+        .eventStream(channels.telltale, channels.integrationTime)
+        .map(
+          _.map(
+            _.collect { case StreamEvent.ValueChanged(t) =>
+              TimeSpan.fromSeconds(t).getOrElse(TimeSpan.Zero)
+            }
+          )
+        )
   }
 
-  def build[F[_]: {Temporal, Parallel}](
+  def build[F[_]: {Temporal, Parallel, Dispatcher}](
     service:             EpicsService[F],
     sysName:             String,
     top:                 NonEmptyString,

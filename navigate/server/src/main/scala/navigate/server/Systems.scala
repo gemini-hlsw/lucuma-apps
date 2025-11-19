@@ -16,6 +16,7 @@ import lucuma.core.refined.auto.*
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import navigate.epics.EpicsService
+import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.model.config.ControlStrategy
 import navigate.model.config.NavigateConfiguration
 import navigate.server.tcs.*
@@ -25,6 +26,8 @@ import org.http4s.Headers
 import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
+
+import EpicsSystems.*
 
 case class Systems[F[_]](
   odb:       OdbProxy[F],
@@ -62,10 +65,12 @@ object Systems {
       Resource.eval(odb)
 
     def buildTcsSouthController: Resource[F, TcsSouthController[F]] =
-      if (conf.navigateEngine.systemControl.tcs === ControlStrategy.FullControl)
+      if (conf.navigateEngine.systemControl.tcs === ControlStrategy.FullControl) {
+        val gmoiTop = readTop(tops, "gmoi".refined)
+        val f2oiTop = readTop(tops, "f2oi".refined)
         for {
           tcs  <- TcsEpicsSystem.build(epicsSrv, tops)
-          p1   <- WfsEpicsSystem.build(
+          p1   <- PwfsEpicsSystem.build(
                     epicsSrv,
                     "PWFS1",
                     readTop(tops, "pwfs1".refined),
@@ -73,7 +78,7 @@ object Systems {
                     "dc:fgDiag6P1.VALH".refined,
                     "dc:fgDiag1P1.VALB".refined
                   )
-          p2   <- WfsEpicsSystem.build(
+          p2   <- PwfsEpicsSystem.build(
                     epicsSrv,
                     "PWFS2",
                     readTop(tops, "pwfs2".refined),
@@ -87,42 +92,56 @@ object Systems {
                     "dc:fgDiag1P2.VALQ".refined,
                     "dc:fgDiag1P2.VALB".refined
                   )
+          gmoi <- CircularBufferControl.build(epicsSrv, gmoiTop, "GMOS OI".asLeft)
+          f2oi <- CircularBufferControl.build(epicsSrv, f2oiTop, "F2 OI".asLeft)
           mcs  <- McsEpicsSystem.build(epicsSrv, readTop(tops, "mc".refined))
           scs  <- ScsEpicsSystem.build(epicsSrv, readTop(tops, "m2".refined))
           crcs <- CrcsEpicsSystem.build(epicsSrv, readTop(tops, "cr".refined))
-          ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined))
+          ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined), Site.GS)
           hr   <- AcquisitionCameraEpicsSystem.build(epicsSrv, readTop(tops, "hrwfs".refined))
           r    <-
             Resource.eval(
               TcsSouthControllerEpics
-                .build(EpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr),
+                .build(EpicsSystemsSouth(gmoi,
+                                         f2oi,
+                                         BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr)
+                       ),
                        conf.navigateEngine.ioTimeout
                 )
             )
         } yield r
-      else
+      } else
         Resource.eval(TcsSouthControllerSim.build)
 
     def buildTcsNorthController: Resource[F, TcsNorthController[F]] =
       if (conf.navigateEngine.systemControl.tcs === ControlStrategy.FullControl)
         for {
           tcs  <- TcsEpicsSystem.build(epicsSrv, tops)
-          p1   <- WfsEpicsSystem.build(epicsSrv, "PWFS1", readTop(tops, "pwfs1".refined))
-          p2   <- WfsEpicsSystem.build(epicsSrv, "PWFS2", readTop(tops, "pwfs2".refined))
+          p1   <- PwfsEpicsSystem.build(epicsSrv, "PWFS1", readTop(tops, "pwfs1".refined))
+          p2   <- PwfsEpicsSystem.build(epicsSrv, "PWFS2", readTop(tops, "pwfs2".refined))
           oi   <- OiwfsEpicsSystem.build(
                     epicsSrv,
                     readTop(tops, "oiwfs".refined),
                     "dc:fgDiag1Oi.VALQ".refined,
                     "dc:fgDiag1Oi.VALB".refined
                   )
+          oicb <- CircularBufferControl.build(epicsSrv,
+                                              readTop(tops, "oiwfs".refined),
+                                              oi.telltale.asRight
+                  )
           mcs  <- McsEpicsSystem.build(epicsSrv, readTop(tops, "mc".refined))
           scs  <- ScsEpicsSystem.build(epicsSrv, readTop(tops, "m2".refined))
           crcs <- CrcsEpicsSystem.build(epicsSrv, readTop(tops, "cr".refined))
-          ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined))
+          ags  <- AgsEpicsSystem.build(epicsSrv, readTop(tops, "ag".refined), Site.GN)
           hr   <- AcquisitionCameraEpicsSystem.build(epicsSrv, readTop(tops, "hrwfs".refined))
           r    <- Resource.eval(
                     TcsNorthControllerEpics.build(
-                      EpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr),
+                      EpicsSystemsNorth(new OiwfsEpicsSystem[F] with CircularBufferControl[F] {
+                                          export oi.*
+                                          export oicb.*
+                                        },
+                                        BaseEpicsSystems(tcs, p1, p2, oi, mcs, scs, crcs, ags, hr)
+                      ),
                       conf.navigateEngine.ioTimeout
                     )
                   )

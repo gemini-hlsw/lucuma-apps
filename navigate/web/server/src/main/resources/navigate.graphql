@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {
@@ -462,6 +462,11 @@ type BafflesState {
     deployableBaffle: DeployableBaffle!
 }
 
+type WfsConfigState {
+    exposureTime: TimeSpan!
+    saving: Boolean!
+}
+
 type Query {
     telescopeState: TelescopeState!
     guideState: GuideConfigurationState!
@@ -477,6 +482,9 @@ type Query {
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
     bafflesState: BafflesState
+    pwfs1ConfigState: WfsConfigState!
+    pwfs2ConfigState: WfsConfigState!
+    oiwfsConfigState: WfsConfigState!
 }
 
 type Mutation {
@@ -499,6 +507,7 @@ type Mutation {
     pwfs1Follow(enable: Boolean!): OperationOutcome!
     pwfs1Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs1StopObserve: OperationOutcome!
+    pwfs1CircularBuffer(enable: Boolean): OperationOutcome!
     pwfs2Filter(filter: PwfsFilter): OperationOutcome!
     pwfs2FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
     pwfs2Target(target: TargetPropertiesInput!): OperationOutcome!
@@ -507,12 +516,14 @@ type Mutation {
     pwfs2Follow(enable: Boolean!): OperationOutcome!
     pwfs2Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs2StopObserve: OperationOutcome!
+    pwfs2CircularBuffer(enable: Boolean): OperationOutcome!
     oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
     oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
     oiwfsPark: OperationOutcome!
     oiwfsFollow(enable: Boolean!): OperationOutcome!
     oiwfsObserve(period: TimeSpanInput!): OperationOutcome!
     oiwfsStopObserve: OperationOutcome!
+    oiwfsCircularBuffer(enable: Boolean): OperationOutcome!
     acObserve(period: TimeSpanInput!): OperationOutcome!
     acStopObserve: OperationOutcome!
     guideEnable(config: GuideConfigurationInput!): OperationOutcome!
@@ -556,4 +567,7 @@ type Subscription {
     acMechsState: AcMechs!
     pwfs1MechsState: PwfsMechsState!
     pwfs2MechsState: PwfsMechsState!
+    pwfs1ConfigState: WfsConfigState!
+    pwfs2ConfigState: WfsConfigState!
+    oiwfsConfigState: WfsConfigState!
 }

@@ -59,6 +59,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.config.NavigateConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
@@ -2426,6 +2427,51 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Set PWFS1 circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { pwfs1CircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("pwfs1CircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
+  test("Set PWFS2 circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { pwfs2CircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("pwfs2CircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
+  test("Set OIWFS circular buffer") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun("mutation { oiwfsCircularBuffer( enable: true ) { result } }")
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("oiwfsCircularBuffer")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
 }
 
 object NavigateMappingsTest {
@@ -2682,6 +2728,30 @@ object NavigateMappingsTest {
 
     override def getBafflesState: IO[BafflesState] =
       BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[IO]
+
+    override def pwfs1CircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs2CircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def oiwfsCircularBuffer(enable: Boolean): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def getPwfs1Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getPwfs1ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+
+    override def getPwfs2Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getPwfs2ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+
+    override def getOiwfsConfiguration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
+
+    override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
+      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {

@@ -9,6 +9,7 @@ import cats.effect.Ref
 import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.syntax.all.*
+import fs2.Stream
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.math.Angle
@@ -38,6 +39,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
@@ -405,4 +407,27 @@ abstract class TcsBaseControllerSim[F[_]: Async](
       )
       .as(ApplyCommandResult.Completed)
 
+  override def pwfs1CircularBuffer(enable: Boolean): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def pwfs2CircularBuffer(enable: Boolean): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def getPwfs1Config: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+
+  override def getPwfs2Config: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+
+  override def getOiwfsConfig: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+
+  override def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]] =
+    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
+
+  override def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]] =
+    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
+
+  override def oiwfsConfigStream: F[Stream[F, WfsConfiguration]] =
+    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
 }

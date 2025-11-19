@@ -60,6 +60,7 @@ object NavigateCommand {
   case class Odgw4Follow(enable: Boolean)                                    extends NavigateCommand
   case class OiwfsFollow(enable: Boolean)                                    extends NavigateCommand
   case class OiwfsObserve(period: TimeSpan)                                  extends NavigateCommand
+  case class OiwfsCircularBuffer(enable: Boolean)                            extends NavigateCommand
   case class OiwfsProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class OiwfsTarget(target: Target)                                     extends NavigateCommand
   case class OriginAdjust(handsetAdjustment: HandsetAdjustment, openLoops: Boolean)
@@ -70,12 +71,14 @@ object NavigateCommand {
   case class Pwfs1Filter(filter: PwfsFilter)                                 extends NavigateCommand
   case class Pwfs1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Pwfs1Observe(period: TimeSpan)                                  extends NavigateCommand
+  case class Pwfs1CircularBuffer(enable: Boolean)                            extends NavigateCommand
   case class Pwfs1ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs1Target(target: Target)                                     extends NavigateCommand
   case class Pwfs2FieldStop(fieldStop: PwfsFieldStop)                        extends NavigateCommand
   case class Pwfs2Filter(filter: PwfsFilter)                                 extends NavigateCommand
   case class Pwfs2Follow(enable: Boolean)                                    extends NavigateCommand
   case class Pwfs2Observe(period: TimeSpan)                                  extends NavigateCommand
+  case class Pwfs2CircularBuffer(enable: Boolean)                            extends NavigateCommand
   case class Pwfs2ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs2Target(target: Target)                                     extends NavigateCommand
   case class RestoreTarget(config: TcsConfig)                                extends NavigateCommand

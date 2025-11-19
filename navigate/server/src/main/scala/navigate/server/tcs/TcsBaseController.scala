@@ -3,6 +3,7 @@
 
 package navigate.server.tcs
 
+import fs2.Stream
 import lucuma.core.enums.LightSinkName
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
@@ -24,6 +25,7 @@ import navigate.model.SwapConfig
 import navigate.model.Target
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
@@ -77,10 +79,13 @@ trait TcsBaseController[F[_]] {
   def disableGuide: F[ApplyCommandResult]
   def pwfs1Observe(exposureTime:        TimeSpan): F[ApplyCommandResult]
   def pwfs1StopObserve: F[ApplyCommandResult]
+  def pwfs1CircularBuffer(enable:       Boolean): F[ApplyCommandResult]
   def pwfs1Sky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]
   def pwfs2Observe(exposureTime:        TimeSpan): F[ApplyCommandResult]
+  def pwfs2CircularBuffer(enable:       Boolean): F[ApplyCommandResult]
   def pwfs2StopObserve: F[ApplyCommandResult]
   def pwfs2Sky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]
+  def oiwfsCircularBuffer(enable:       Boolean): F[ApplyCommandResult]
   def oiwfsObserve(exposureTime:        TimeSpan): F[ApplyCommandResult]
   def oiwfsStopObserve: F[ApplyCommandResult]
   def oiwfsSky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]
@@ -137,6 +142,12 @@ trait TcsBaseController[F[_]] {
   def getPwfs1Mechs: F[PwfsMechsState]
   def getPwfs2Mechs: F[PwfsMechsState]
   def getBaffles: F[BafflesState]
+  def getPwfs1Config: F[WfsConfiguration]
+  def getPwfs2Config: F[WfsConfiguration]
+  def getOiwfsConfig: F[WfsConfiguration]
+  def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]]
+  def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]]
+  def oiwfsConfigStream: F[Stream[F, WfsConfiguration]]
 }
 
 object TcsBaseController {
