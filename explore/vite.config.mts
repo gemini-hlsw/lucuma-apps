@@ -110,7 +110,8 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
         const environments = JSON.parse(configText);
 
         const getODBRestURL = (h: string) =>
-          environments.find((e: any) => e.hostName === h)?.odbRestURI;
+          environments.find((e: any) => e.hostName === h)?.odbRestURI ??
+          environments.find((e: any) => e.hostName === '*')?.odbRestURI;
 
         const url = getODBRestURL(host);
 
