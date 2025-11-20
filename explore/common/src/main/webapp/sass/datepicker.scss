@@ -1,5 +1,8 @@
 @use 'datepicker/datepicker';
 
+// React-datepicker shows Aria messages without this.
+// https://github.com/Hacker0x01/react-datepicker/issues/3924#issuecomment-1430907381
+/* stylelint-disable selector-class-pattern */
 .react-datepicker {
   font-family: inherit;
 }
@@ -8,7 +11,71 @@
   font-family: inherit;
 }
 
-/* stylelint-disable-next-line selector-class-pattern */
 .react-datepicker__aria-live {
-  display: none;
+  position: absolute;
+  clip-path: circle(0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  width: 1px;
+  white-space: nowrap;
+}
+
+.react-datepicker__day--disabled {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+/* stylelint-enable selector-class-pattern */
+
+// ------
+// Obs time editor
+// ------
+@mixin react-datepicker-wrapper {
+  & .react-datepicker-wrapper {
+    width: unset;
+    padding-left: 0.3em;
+    padding-right: 0.3em;
+  }
+}
+
+@mixin react-datepicker-input {
+  /* stylelint-disable-next-line selector-class-pattern */
+  & .react-datepicker__input-container input {
+    text-shadow: unset;
+    font-weight: unset;
+  }
+}
+
+.explore-datepicker {
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__input-time-container {
+    text-align: center;
+    margin: 5px 0 0;
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__children-container {
+    text-align: center;
+    margin: 5px 0 0;
+    width: 100%;
+
+    .p-button {
+      display: inline-block;
+      width: 100%;
+      padding-top: 5px;
+      padding-bottom: 5px;
+      margin-top: 5px;
+      margin-bottom: 5px;
+      font-size: 0.944rem;
+    }
+  }
+
+  /* stylelint-disable-next-line selector-class-pattern */
+  .react-datepicker__input-time-container .explore-datepicker-time-editor {
+    input {
+      width: 7ch;
+    }
+  }
 }
