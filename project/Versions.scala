@@ -45,7 +45,7 @@ object Versions {
   val mUnitScalacheck        = "1.2.0"
   val natchez                = "0.3.8"
   val natchezHttp4s          = "0.6.1"
-  val pprint                 = "0.9.4"
+  val pprint                 = "0.9.5"
   val pureConfig             = "0.17.9"
   val sbtBuildInfo           = "0.13.1"
   val sbtLucuma              = "0.14.8"
