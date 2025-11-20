@@ -314,6 +314,7 @@ input ProbeFrameOffsetInput {
     probeFrame: GuideProbe!
     deltaU: AngleInput!
     deltaV: AngleInput!
+    alignAngle: AngleInput
 }
 
 input HandsetAdjustmentInput {

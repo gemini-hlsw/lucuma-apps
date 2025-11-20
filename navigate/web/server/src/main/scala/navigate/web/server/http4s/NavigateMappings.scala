@@ -1612,7 +1612,11 @@ object NavigateMappings extends GrackleParsers {
                    }.flatten
           du    <- n.collectFirst { case ("deltaU", ObjectValue(m)) => parseAngle(m) }.flatten
           dv    <- n.collectFirst { case ("deltaV", ObjectValue(m)) => parseAngle(m) }.flatten
-        } yield HandsetAdjustment.ProbeFrameAdjustment(probe, du, dv)
+          aa    <- n.collectFirst { case ("deltaV", ObjectValue(m)) => m } match {
+                     case None    => Some(None)
+                     case Some(x) => parseAngle(x).map(_.some)
+                   }
+        } yield HandsetAdjustment.ProbeFrameAdjustment(probe, du, dv, aa)
       case _                                              => none
     }
 

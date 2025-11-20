@@ -1907,31 +1907,29 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     )
   ).verifiedRun(ConnectionTimeout)
 
-  private val OiwfsAngle: Angle = Angle.fromDoubleDegrees(138.94)
-
   private def adjustParams(
     handsetAdjustment: HandsetAdjustment
   ): F[(ReferenceFrame, Double, Angle)] =
     handsetAdjustment match {
-      case HandsetAdjustment.EquatorialAdjustment(deltaRA, deltaDec)             =>
+      case HandsetAdjustment.EquatorialAdjustment(deltaRA, deltaDec)                         =>
         val pol = rectToPolar(deltaDec, deltaRA)
         (ReferenceFrame.Tracking, Angle.signedDecimalArcseconds.get(pol._1).doubleValue, pol._2)
           .pure[F]
-      case HandsetAdjustment.FocalPlaneAdjustment(value)                         =>
+      case HandsetAdjustment.FocalPlaneAdjustment(value)                                     =>
         val pol = rectToPolar(value.deltaY.value, -value.deltaX.value)
         (ReferenceFrame.XY, Angle.signedDecimalArcseconds.get(pol._1).doubleValue, pol._2).pure[F]
-      case HandsetAdjustment.HorizontalAdjustment(deltaAz, deltaEl)              =>
+      case HandsetAdjustment.HorizontalAdjustment(deltaAz, deltaEl)                          =>
         val pol = rectToPolar(deltaEl, deltaAz)
         (ReferenceFrame.AzimuthElevation,
          Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
          pol._2
         )
           .pure[F]
-      case HandsetAdjustment.InstrumentAdjustment(value)                         =>
+      case HandsetAdjustment.InstrumentAdjustment(value)                                     =>
         val pol = rectToPolar(-value.q.toAngle, value.p.toAngle)
         (ReferenceFrame.Instrument, Angle.signedDecimalArcseconds.get(pol._1).doubleValue, pol._2)
           .pure[F]
-      case HandsetAdjustment.ProbeFrameAdjustment(probeRefFrame, deltaX, deltaY) =>
+      case HandsetAdjustment.ProbeFrameAdjustment(probeRefFrame, deltaX, deltaY, alignAngle) =>
         probeRefFrame match {
           case GuideProbe.PWFS1           =>
             wfsRefAdjustParams(sys.ags.status.pwfs1Angles, rectToPolar(-deltaX, -deltaY))
@@ -1941,13 +1939,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
             val pol = rectToPolar(deltaY, deltaX)
             (ReferenceFrame.XY,
              Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
-             pol._2 + OiwfsAngle
+             pol._2 + alignAngle.getOrElse(Angle.Angle0)
             ).pure[F]
           case GuideProbe.Flamingos2OIWFS =>
             val pol = rectToPolar(deltaY, deltaX)
             (ReferenceFrame.XY,
              Angle.signedDecimalArcseconds.get(pol._1).doubleValue,
-             pol._2 + OiwfsAngle
+             pol._2 + alignAngle.getOrElse(Angle.Angle0)
             ).pure[F]
         }
     }
