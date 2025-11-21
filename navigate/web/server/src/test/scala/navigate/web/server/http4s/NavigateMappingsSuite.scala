@@ -1728,6 +1728,9 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |        deltaV: {
           |          arcseconds: 0.0
           |        }
+          |        alignAngle: {
+          |          arcseconds: 357.2
+          |        }
           |      }
           |    }
           |  ) {
