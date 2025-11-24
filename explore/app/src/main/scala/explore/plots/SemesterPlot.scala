@@ -18,7 +18,9 @@ import lucuma.core.math.Coordinates
 import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
+import lucuma.typed.highcharts.highchartsStrings.line
 import lucuma.typed.highcharts.mod.*
+import lucuma.typed.highcharts.mod.Point
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given
@@ -181,20 +183,13 @@ object SemesterPlot:
               .ofInstant(Instant.ofEpochMilli(value.toLong), ZoneOffset.UTC)
               .format(GppDateFormatter)
 
-          val tooltipFormatter: TooltipFormatterCallbackFunction = {
-            (ctx: TooltipFormatterContextObject, _: Tooltip) =>
-              val x          = ctx.x match
-                case x: Double => x
-                case x: String => x.toDouble
-                case _         => 0.0
-              val y          = ctx.y.asInstanceOf[js.UndefOr[String | Double]] match
-                case y: Double => y
-                case y: String => y.toDouble
-                case _         => 0.0
-              val date       = dateFormat(x)
-              val visibility = Duration.ofMillis((y * MillisPerHour).toLong)
-              val minutes    = visibility.getSeconds / 60
-              s"<strong>$date</strong><br/>${ctx.series.name}: ${minutes / 60}h${minutes % 60}m"
+          val tooltipFormatter: TooltipFormatterCallbackFunction = { (point: Point, _: Tooltip) =>
+            val x: Double            = point.x
+            val y: Double            = point.y.toOption.orEmpty
+            val date: String         = dateFormat(x)
+            val visibility: Duration = Duration.ofMillis((y * MillisPerHour).toLong)
+            val minutes: Long        = visibility.getSeconds / 60
+            s"<strong>$date</strong><br/>${point.series.name}: ${minutes / 60}h${minutes % 60}m"
           }
 
           Options()
@@ -248,11 +243,14 @@ object SemesterPlot:
             )
             .setSeries(
               List(
-                SeriesLineOptions((), ())
+                SeriesLineOptions((), (), line)
                   .setName("Visibility")
                   .setYAxis(0)
                   .setAnimation(false)
                   .setData(js.Array())
+                  .setLabel:
+                    SeriesLabelOptionsObject()
+                      .setEnabled(false)
               )
                 .map(_.asInstanceOf[SeriesOptionsType])
                 .toJSArray
