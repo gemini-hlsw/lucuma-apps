@@ -34,7 +34,6 @@
             pkgs.nodePackages.typescript
             pkgs.nodePackages.graphqurl
             pkgs.hasura-cli
-            pkgs.pnpm
             pkgs.sops
             pkgs.age
             pkgs.yq

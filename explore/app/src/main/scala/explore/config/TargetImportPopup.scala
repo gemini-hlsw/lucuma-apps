@@ -14,6 +14,7 @@ import explore.services.OdbTargetApi
 import fs2.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.catalog.clients.SimbadClient
 import lucuma.catalog.csv.TargetImport
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -31,7 +32,6 @@ import monocle.Focus
 import monocle.Lens
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
-import org.http4s.syntax.all.*
 import org.scalajs.dom.File as DOMFile
 
 import scala.concurrent.duration.*
@@ -72,7 +72,9 @@ object TargetImportPopup:
     s
       .through(text.utf8.decode)
       .through:
-        TargetImport.csv2targetsAndLookup(client, uri"https://lucuma-cors-proxy.herokuapp.com".some)
+        TargetImport.csv2targetsAndLookup(
+          SimbadClient.build(client)
+        )
       .evalMap:
         case Left(a)       =>
           stateUpdate(State.targetErrors.modify(e => e :++ a.toList.map(_.displayValue)))
