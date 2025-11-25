@@ -1,5 +1,19 @@
 packages:
-  - 'schemas'
-  - 'explore'
-  - 'ui/demo'
-  - 'observe/web/client'
+  - schemas
+  - explore
+  - ui/demo
+  - observe/web/client
+
+# https://pnpm.io/settings#minimumreleaseage
+# 2 days, in minutes
+minimumReleaseAge: 2880
+
+# https://pnpm.io/settings#trustpolicy
+trustPolicy: no-downgrade
+
+onlyBuiltDependencies:
+  - '@parcel/watcher'
+  - esbuild
+
+ignoredBuiltDependencies:
+  - protobufjs
