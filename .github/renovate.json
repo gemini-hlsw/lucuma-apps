@@ -5,6 +5,8 @@
   "platformAutomerge": true,
   "automergeStrategy": "squash",
   "schedule": ["every weekend"],
+  "minimumReleaseAge": "2 days",
+  "prCreation": "not-pending",
   "lockFileMaintenance": {
     "enabled": true
   },
@@ -13,13 +15,7 @@
   },
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest",
-        "lockFileMaintenance"
-      ],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance"],
       "automerge": true
     },
     {
