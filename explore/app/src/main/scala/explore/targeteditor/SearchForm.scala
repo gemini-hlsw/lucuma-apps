@@ -100,7 +100,7 @@ object SearchForm:
           if (enabled.value && !props.readonly && !props.disableSearch)
             TargetSelectionPopup(
               "Replace Target Data",
-              TargetSource.forAllSiderealCatalogs[IO],
+              TargetSource.forAllSiderealCatalogs[IO](ctx.simbadClient),
               "",
               Icons.Ban,
               "Fetch",

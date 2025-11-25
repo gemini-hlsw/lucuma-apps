@@ -6,14 +6,13 @@ package explore.targets
 import cats.Order
 import cats.data.NonEmptyList
 import cats.effect.Async
-import cats.effect.std.Random
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.common.SimbadSearch
 import explore.model.TargetList
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.CatalogTargetResult
+import lucuma.catalog.clients.SimbadClient
 import lucuma.core.enums.CatalogName
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Parallax
@@ -48,8 +47,10 @@ object TargetSource:
 
     override def toString(): String = name
 
-  case class FromCatalog[F[_]: {Async, Random, Logger}](catalogName: CatalogName)
-      extends TargetSource[F]:
+  case class FromCatalog[F[_]: {Async, Logger as L}](
+    catalogName: CatalogName,
+    simbad:      SimbadClient[F]
+  ) extends TargetSource[F]:
     val name: String = Enumerated[CatalogName].tag(catalogName).capitalize
 
     val existing: Boolean = false
@@ -82,7 +83,19 @@ object TargetSource:
           val escapedName: String = name.value.replaceAll("\\*", "\\\\*")
 
           val regularSearch: F[List[CatalogTargetResult]] =
-            SimbadSearch.search[F](name)
+            NonEmptyString
+              .from(escapedName)
+              .toOption
+              .map: term =>
+                // Swallow errors, return empty
+                simbad
+                  .search(name = term)
+                  .flatMap(
+                    _.fold(e => L.warn(s"Problems calling simbad $e").as(List.empty),
+                           List(_).pure[F]
+                    )
+                  )
+              .getOrElse(List.empty.pure[F])
 
           // This a heuristic based on observed Simbad behavior.
           val wildcardSearches: List[F[List[CatalogTargetResult]]] = List(
@@ -92,8 +105,8 @@ object TargetSource:
             ),
             NonEmptyString.unsafeFrom(s"NAME $escapedName*")
           ).distinct.map(term =>
-            Logger[F].debug(s"Searching Simbad: [$term]") >>
-              SimbadSearch.search[F](term, wildcard = true)
+            L.debug(s"Searching Simbad: [$term]") >>
+              simbad.search(term, wildcard = true, 100.some)
           )
 
           (regularSearch +: wildcardSearches).map:
@@ -106,20 +119,24 @@ object TargetSource:
 
     override def toString: String = catalogName.toString
 
-  def forAllCatalogs[F[_]: {Async, Random, Logger}]: NonEmptyList[TargetSource[F]] =
+  def forAllCatalogs[F[_]: {Async, Logger}](
+    simbad: SimbadClient[F]
+  ): NonEmptyList[TargetSource[F]] =
     NonEmptyList.fromListUnsafe(
-      Enumerated[CatalogName].all.map(source => TargetSource.FromCatalog(source))
+      Enumerated[CatalogName].all.map(source => TargetSource.FromCatalog(source, simbad))
     )
 
-  def forAllSiderealCatalogs[F[_]: {Async, Random, Logger}]: NonEmptyList[TargetSource[F]] =
-    NonEmptyList.of(TargetSource.FromCatalog(CatalogName.Simbad))
+  def forAllSiderealCatalogs[F[_]: {Async, Logger}](
+    simbad: SimbadClient[F]
+  ): NonEmptyList[TargetSource[F]] =
+    NonEmptyList.of(TargetSource.FromCatalog(CatalogName.Simbad, simbad))
 
   // TODO Test
   given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.from {
     // doesn't make sense to have more than one of FromProgram, but it is always first
-    case (TargetSource.FromProgram(_), _)                               => -1
-    case (_, TargetSource.FromProgram(_))                               => 1
-    case (TargetSource.FromCatalog(cnA), TargetSource.FromCatalog(cnB)) => cnA.compare(cnB)
+    case (TargetSource.FromProgram(_), _)                                     => -1
+    case (_, TargetSource.FromProgram(_))                                     => 1
+    case (TargetSource.FromCatalog(cnA, _), TargetSource.FromCatalog(cnB, _)) => cnA.compare(cnB)
   }
 
   given reuseTargetSource[F[_]]: Reusability[TargetSource[F]] = Reusability.byEq
