@@ -14,6 +14,7 @@ import explore.services.OdbTargetApi
 import fs2.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.catalog.clients.SimbadClient
 import lucuma.catalog.csv.TargetImport
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -29,12 +30,7 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import monocle.Focus
 import monocle.Lens
-import org.http4s.client.Client
-import org.http4s.dom.FetchClientBuilder
-import org.http4s.syntax.all.*
 import org.scalajs.dom.File as DOMFile
-
-import scala.concurrent.duration.*
 
 case class TargetImportPopup(
   programId: Program.Id,
@@ -67,12 +63,12 @@ object TargetImportPopup:
     programId:   Program.Id,
     s:           Stream[F, Byte],
     stateUpdate: (State => State) => F[Unit],
-    client:      Client[F]
+    client:      SimbadClient[F]
   )(using odbApi: OdbTargetApi[F]): Stream[F, Unit] =
     s
       .through(text.utf8.decode)
       .through:
-        TargetImport.csv2targetsAndLookup(client, uri"https://lucuma-cors-proxy.herokuapp.com".some)
+        TargetImport.csv2targetsAndLookup(client)
       .evalMap:
         case Left(a)       =>
           stateUpdate(State.targetErrors.modify(e => e :++ a.toList.map(_.displayValue)))
@@ -105,20 +101,16 @@ object TargetImportPopup:
                    import ctx.given
 
                    state.setState(State.Default).toAsync *>
-                     FetchClientBuilder[IO]
-                       .withRequestTimeout(15.seconds)
-                       .resource
-                       .use: client =>
-                         files
-                           .traverse: f =>
-                             importTargets[IO](
-                               props.programId,
-                               dom.readReadableStream(IO(f.stream())),
-                               state.modState(_).toAsync,
-                               client
-                             )
-                           .compile
-                           .toList
+                     files
+                       .traverse: f =>
+                         importTargets[IO](
+                           props.programId,
+                           dom.readReadableStream(IO(f.stream())),
+                           state.modState(_).toAsync,
+                           ctx.simbadClient
+                         )
+                       .compile
+                       .toList
                        .guarantee(state.modState(State.done.replace(true)).toAsync)
                        .void
                        .whenA(files.nonEmpty)

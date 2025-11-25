@@ -68,9 +68,9 @@ object TargetSelectionTable:
         ).withColumnSize(FixedSize(70.toPx))
       ) ++ (
         props.source match
-          case TargetSource.FromCatalog(CatalogName.Simbad) =>
+          case TargetSource.FromCatalog(CatalogName.Simbad, client) =>
             TargetColumns.Builder.ForSimbad(ColDef).AllColumns
-          case _                                            =>
+          case _                                                    =>
             TargetColumns.Builder.ForProgram(ColDef).AllColumns
       )
     }

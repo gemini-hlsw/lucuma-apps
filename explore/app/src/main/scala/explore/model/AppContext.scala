@@ -22,6 +22,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.feature.Context
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.catalog.clients.SimbadClient
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
@@ -29,6 +30,7 @@ import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.sso.SSOClient
 import org.http4s.Uri
+import org.http4s.Uri.Scheme
 import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
 import queries.schemas.SSO
@@ -107,6 +109,8 @@ case class AppContext[F[_]](
       resetCache = errorMsg => resetProgramCache(errorMsg.some),
       notifyFatalError = errorMsg => notifyFatalError(errorMsg)
     )
+
+  val simbadClient = SimbadClient.build(httpClient, _.copy(scheme = Scheme.https.some))
 
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value

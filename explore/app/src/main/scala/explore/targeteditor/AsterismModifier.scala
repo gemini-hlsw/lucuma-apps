@@ -23,6 +23,7 @@ import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
+import lucuma.catalog.clients.SimbadClient
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
@@ -88,6 +89,7 @@ trait AsterismModifier:
     onAsterismUpdate: OnAsterismUpdateParams => Callback,
     readOnly:         Boolean = false,
     buttonClass:      Css = Css.Empty,
+    client:           SimbadClient[IO],
     blindOffset:      Option[View[BlindOffset]] = none
   )(using
     odbApi:           OdbTargetApi[IO] & OdbAsterismApi[IO] & OdbObservationApi[IO]
@@ -139,7 +141,8 @@ trait AsterismModifier:
 
     TargetSelectionPopup(
       "Add Target",
-      TargetSource.FromProgram[IO](obsAndTargets.get._2) :: TargetSource.forAllCatalogs[IO],
+      TargetSource.FromProgram[IO](obsAndTargets.get._2) ::
+        TargetSource.forAllCatalogs[IO](client),
       selectExistingLabel = "Link",
       selectExistingIcon = Icons.Link,
       selectNewLabel = "Add",

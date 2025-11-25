@@ -365,6 +365,7 @@ object ObservationTargetsEditorTile:
                         props.onAsterismUpdate,
                         props.readonly || obsEditInfo.allAreExecuted,
                         buttonClass = ExploreStyles.AddTargetButton,
+                        client = ctx.simbadClient,
                         blindOffset = props.blindOffset
                       )
                 ),

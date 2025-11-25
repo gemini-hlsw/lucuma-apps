@@ -213,7 +213,8 @@ object TargetTable extends AsterismModifier:
                 props.obsAndTargets,
                 adding,
                 props.onAsterismUpdate,
-                buttonClass = LucumaPrimeStyles.Massive
+                buttonClass = LucumaPrimeStyles.Massive,
+                client = ctx.simbadClient
               )
             )
         else
