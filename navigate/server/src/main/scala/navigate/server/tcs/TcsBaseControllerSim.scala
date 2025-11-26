@@ -301,31 +301,51 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def pwfs1ProbeTracking(config: TrackingConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def pwfs1Park: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def pwfs1Park: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.pwfs1).replace(MechSystemState(Parked, NotFollowing))
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def pwfs1Follow(enable: Boolean): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs1Follow(enable: Boolean): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.pwfs1).replace(MechSystemState(NotParked, enable.fold(Following, NotFollowing)))
+    )
+    .as(ApplyCommandResult.Completed)
 
   override def pwfs2ProbeTracking(config: TrackingConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def pwfs2Park: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def pwfs2Park: F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.pwfs2).replace(MechSystemState(Parked, NotFollowing))
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def pwfs2Follow(enable: Boolean): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs2Follow(enable: Boolean): F[ApplyCommandResult] = telStateRef
+    .update(
+      _.focus(_.pwfs2).replace(MechSystemState(NotParked, enable.fold(Following, NotFollowing)))
+    )
+    .as(ApplyCommandResult.Completed)
 
-  override def pwfs1Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs1Observe(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
+    .update(_.copy(p1Integrating = true))
+    .as(ApplyCommandResult.Completed)
 
-  override def pwfs1StopObserve: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def pwfs1StopObserve: F[ApplyCommandResult] = guideRef
+    .update(_.copy(p1Integrating = false))
+    .as(ApplyCommandResult.Completed)
 
   override def pwfs1Sky(exposureTime: TimeSpan)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def pwfs2Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs2Observe(exposureTime: TimeSpan): F[ApplyCommandResult] = guideRef
+    .update(_.copy(p2Integrating = true))
+    .as(ApplyCommandResult.Completed)
 
-  override def pwfs2StopObserve: F[ApplyCommandResult] = ApplyCommandResult.Completed.pure[F]
+  override def pwfs2StopObserve: F[ApplyCommandResult] = guideRef
+    .update(_.copy(p2Integrating = false))
+    .as(ApplyCommandResult.Completed)
 
   override def pwfs2Sky(exposureTime: TimeSpan)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
