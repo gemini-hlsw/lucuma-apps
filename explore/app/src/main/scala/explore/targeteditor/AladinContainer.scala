@@ -278,6 +278,7 @@ object AladinContainer extends AladinCommon {
                     (Css.Empty,
                      Flamingos2Geometry.f2Geometry(
                        baseCoords,
+                       props.blindOffset,
                        props.vizConf.flatMap(_.scienceOffsets),
                        props.vizConf.flatMap(_.acquisitionOffsets),
                        props.vizConf.map(_.posAngle),
