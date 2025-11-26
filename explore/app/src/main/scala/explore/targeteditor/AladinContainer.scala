@@ -291,6 +291,7 @@ object AladinContainer extends AladinCommon {
                     (Css.Empty,
                      GmosGeometry.gmosGeometry(
                        baseCoords,
+                       props.blindOffset,
                        props.vizConf.flatMap(_.scienceOffsets),
                        props.vizConf.flatMap(_.acquisitionOffsets),
                        props.vizConf.map(_.posAngle),
@@ -304,6 +305,7 @@ object AladinContainer extends AladinCommon {
                     (VisualizationStyles.GmosCcdVisible,
                      GmosGeometry.gmosGeometry(
                        baseCoords,
+                       props.blindOffset,
                        props.vizConf.flatMap(_.scienceOffsets),
                        props.vizConf.flatMap(_.acquisitionOffsets),
                        props.vizConf.map(_.posAngle),
