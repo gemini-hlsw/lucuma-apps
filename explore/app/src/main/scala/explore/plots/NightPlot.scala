@@ -40,6 +40,7 @@ import scala.collection.MapView
 import scala.scalajs.js
 
 import js.JSConverters.*
+import lucuma.typed.highcharts.mod as Highcharts
 
 case class NightPlot(
   plotData:         PlotData,
@@ -411,7 +412,6 @@ object NightPlot:
                 .setLabel:
                   SeriesLabelOptionsObject()
                     .setEnabled(series.showLabel)
-                    .setConnectorAllowed(true)
                     .setOnArea(false)
                 .setClassName:
                   "elevation-plot-series" +
@@ -436,24 +436,20 @@ object NightPlot:
     val observingNight =
       ObservingNight.fromSiteAndLocalDate(props.options.get.site, props.options.get.date)
 
-    val bounds =
-      val start = props.options.get.minInstant
-      val end   = props.options.get.maxInstant
-
-      (start, end)
+    val start: Instant = props.options.get.minInstant
+    val end: Instant   = props.options.get.maxInstant
 
     for {
-      chartAndMoonData <- useMemo((props.options.get.site, props.plotData, bounds)):
-                            (site, plotData, bounds) =>
-                              val (start, end): (Instant, Instant) = bounds
+      chartAndMoonData <-
+        useMemo((props.options.get.site, props.plotData, start, end)):
+          (site, plotData, start, end) =>
+            val seriesData: MapView[ObjectPlotData.Id, ObjectPlotData.Points] =
+              plotData.value.view.mapValues(_.pointsAtInstant(site, start, end))
 
-                              val seriesData: MapView[ObjectPlotData.Id, ObjectPlotData.Points] =
-                                plotData.value.view.mapValues(_.pointsAtInstant(site, start, end))
+            val chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData] =
+              seriesData.mapValues(_.seriesData)
 
-                              val chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData] =
-                                seriesData.mapValues(_.seriesData)
-
-                              (chartData, seriesData.headOption.map(_._2.moonData))
+            (chartData, seriesData.headOption.map(_._2.moonData))
       chartOptions     <-
         useMemo(
           (props.plotData,
