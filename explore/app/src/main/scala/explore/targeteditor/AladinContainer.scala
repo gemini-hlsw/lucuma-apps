@@ -59,6 +59,7 @@ import lucuma.ui.visualization.*
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
+import scala.scalajs.LinkingInfo
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,
@@ -79,7 +80,7 @@ case class AladinContainer(
   val blindOffset: Option[Coordinates] =
     obsTargets.blindOffsetSiderealTracking.flatMap(_.at(obsTime))
 
-  val pfVisibility = globalPreferences.patrolFieldVisibility
+  val pfVisibility = GlobalPreferences.pfVisibility.get(globalPreferences)
 
 object AladinContainer extends AladinCommon {
 
@@ -280,23 +281,23 @@ object AladinContainer extends AladinCommon {
 
       for {
         // Base coordinates and science targets with pm correction if possible
-        baseCoords             <- useState(baseAndScience(props, initialSurvey.epoch))
+        baseCoords   <- useState(baseAndScience(props, initialSurvey.epoch))
         // View coordinates base coordinates with pm correction + user panning
-        currentPos             <-
+        currentPos   <-
           useState(baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset)))
         // Survey
-        survey                 <- useState(initialSurvey)
+        survey       <- useState(initialSurvey)
         // Update coordinates if obsTargets or obsTime or survey changes
-        _                      <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, s) =>
-                                    val (base, science) = baseAndScience(props, s.value.epoch)
-                                    baseCoords.setState((base, science)) *>
-                                      currentPos.setState(
-                                        base
-                                          .flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset))
-                                      )
-        aladinRef              <- useState(none[Aladin])
+        _            <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, s) =>
+                          val (base, science) = baseAndScience(props, s.value.epoch)
+                          baseCoords.setState((base, science)) *>
+                            currentPos.setState(
+                              base
+                                .flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset))
+                            )
+        aladinRef    <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
-        _                      <-
+        _            <-
           useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
             val newCoords = baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, offset))
             newCoords
@@ -307,7 +308,7 @@ object AladinContainer extends AladinCommon {
                   .when_(offset === Offset.Zero)
               .getOrEmpty
         // Memoized svg for visualization shapes
-        shapes                 <-
+        shapes       <-
           useMemo(
             (baseCoords, props.vizConf, props.globalPreferences.agsOverlay, props.selectedGuideStar)
           ) { _ =>
@@ -362,7 +363,7 @@ object AladinContainer extends AladinCommon {
                 }
           }
         // Debug patrol field shapes using Ags.generatePositions
-        debugPatrolFieldShapes <-
+        pfShapes     <-
           useMemo(
             (props.vizConf,
              props.selectedGuideStar,
@@ -464,7 +465,7 @@ object AladinContainer extends AladinCommon {
             }
           }
         // AGS positions for offset indicators (uses single angle)
-        agsPositions           <-
+        agsPositions <-
           useMemo(
             (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
           ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
@@ -486,47 +487,47 @@ object AladinContainer extends AladinCommon {
             }
           }
         // resize detector
-        resize                 <- useResizeDetector
+        resize       <- useResizeDetector
         // memoized catalog targets with their proper motions corrected
-        candidates             <- useMemo(
-                                    (props.guideStarCandidates,
-                                     props.globalPreferences.showCatalog,
-                                     props.globalPreferences.fullScreen,
-                                     props.options.fovRA,
-                                     props.siderealDiscretizedObsTime,
-                                     props.vizConf.map(_.configuration),
-                                     props.selectedGuideStar,
-                                     baseCoords,
-                                     survey
-                                    )
-                                  ):
-                                    (
-                                      candidates,
-                                      visible,
-                                      _,
-                                      fovRA,
-                                      siderealDiscretizedObsTime,
-                                      configuration,
-                                      selectedGS,
-                                      baseCoords,
-                                      survey
-                                    ) =>
-                                      selectedGS.posAngle.foldMap: _ =>
-                                        val (_, scienceTargets) = baseCoords.value
-                                        guideStars(
-                                          candidates,
-                                          visible,
-                                          fovRA,
-                                          siderealDiscretizedObsTime,
-                                          configuration,
-                                          selectedGS,
-                                          survey.value.epoch
-                                        )
+        candidates   <- useMemo(
+                          (props.guideStarCandidates,
+                           props.globalPreferences.showCatalog,
+                           props.globalPreferences.fullScreen,
+                           props.options.fovRA,
+                           props.siderealDiscretizedObsTime,
+                           props.vizConf.map(_.configuration),
+                           props.selectedGuideStar,
+                           baseCoords,
+                           survey
+                          )
+                        ):
+                          (
+                            candidates,
+                            visible,
+                            _,
+                            fovRA,
+                            siderealDiscretizedObsTime,
+                            configuration,
+                            selectedGS,
+                            baseCoords,
+                            survey
+                          ) =>
+                            selectedGS.posAngle.foldMap: _ =>
+                              val (_, scienceTargets) = baseCoords.value
+                              guideStars(
+                                candidates,
+                                visible,
+                                fovRA,
+                                siderealDiscretizedObsTime,
+                                configuration,
+                                selectedGS,
+                                survey.value.epoch
+                              )
         // Use fov from aladin
-        fov                    <- useState(none[Fov])
+        fov          <- useState(none[Fov])
         // Update survey if conf changes
-        _                      <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
-                                    _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
+        _            <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
+                          _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
         val (baseCoordinates, scienceTargets) = baseCoords.value
 
@@ -703,11 +704,11 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              <.div(TagMod.devOnly:
+              Option.when(LinkingInfo.developmentMode)(
                 (resize.width,
                  resize.height,
                  fov.value,
-                 debugPatrolFieldShapes.value.flatMap(m => NonEmptyMap.fromMap(m))
+                 pfShapes.value.flatMap(m => NonEmptyMap.fromMap(m))
                 )
                   .mapN(
                     SVGVisualizationOverlay(
@@ -718,7 +719,8 @@ object AladinContainer extends AladinCommon {
                       _,
                       Css.Empty
                     )
-                  )),
+                  )
+              ),
               ReactAladin(
                 ExploreStyles.TargetAladin,
                 AladinOptions(
