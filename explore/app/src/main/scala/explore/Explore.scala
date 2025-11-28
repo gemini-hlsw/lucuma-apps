@@ -86,16 +86,6 @@ object ExploreMain {
       element.innerHTML = msg
     }
 
-  // To setup the accessibility module we need to call the modules
-  // This needs to be done in the right order
-  def setupHighCharts[F[_]: Sync]: F[Unit] = Sync[F].delay {
-    // This may seem like a no-op but it is in fact triggering the npm import
-    // Order is important you need to import Highcharts first
-    lucuma.react.highcharts.Highcharts
-    lucuma.react.highcharts.HighchartsAccesibility
-    lucuma.react.highcharts.seriesLabel.enable
-  }.void
-
   def run(configJson: String): IO[Unit] = {
 
     val reconnectionStrategy: ReconnectionStrategy =
@@ -179,7 +169,6 @@ object ExploreMain {
 
     (for {
       dispatcher       <- Dispatcher.parallel[IO]
-      _                <- Resource.eval(setupHighCharts[IO])
       prefs            <- Resource.eval(ExploreLocalPreferences.loadPreferences[IO])
       given Logger[IO] <- Resource.eval(setupLogger[IO](prefs))
       workerClients    <- WorkerClients.build[IO](dispatcher)

@@ -18,6 +18,7 @@ import lucuma.itc.client.GraphResult
 import lucuma.itc.math.roundToSignificantFigures
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
+import lucuma.typed.highcharts.highchartsStrings.line
 import lucuma.typed.highcharts.mod.{^ as _, *}
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -66,11 +67,13 @@ object ItcSpectroscopyPlot {
       }
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
-      (ctx: TooltipFormatterContextObject, _: Tooltip) =>
-        val x        = rounded(ctx.x)
-        val y        = rounded(ctx.y)
-        val measUnit = if (graph.graphType === GraphType.SignalGraph) " 𝐞⁻" else ""
-        s"""<strong>$x nm</strong><br/><span class="$graphClassName highcharts-color-${ctx.colorIndex.toInt}">●</span> ${ctx.series.name}: <strong>$y$measUnit</strong>"""
+      (point: Point, _: Tooltip) =>
+        val x: String          = rounded(point.x)
+        val y: String          = rounded(point.y)
+        val measUnit: String   = if (graph.graphType === GraphType.SignalGraph) " 𝐞⁻" else ""
+        val classNames: String =
+          graphClassName + point.colorIndex.toOption.foldMap(ci => s" highcharts-color-${ci.toInt}")
+        s"""<strong>$x nm</strong><br/><span class="$classNames">●</span> ${point.series.name}: <strong>$y$measUnit</strong>"""
 
     val graphTitle = graph.graphType match
       case GraphType.SignalGraph      => "Signal in 1-pixel"
@@ -125,7 +128,7 @@ object ItcSpectroscopyPlot {
       .setSeries(
         graph.series
           .map: series =>
-            SeriesLineOptions((), ())
+            SeriesLineOptions((), (), line)
               .setName(series.title)
               .setYAxis(0)
               .setData(

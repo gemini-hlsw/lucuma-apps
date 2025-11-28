@@ -78,8 +78,8 @@ importers:
         specifier: 3.7.2-beta
         version: 3.7.2-beta
       highcharts:
-        specifier: 11.4.8
-        version: 11.4.8
+        specifier: 12.4.0
+        version: 12.4.0
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
@@ -2386,8 +2386,8 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  highcharts@11.4.8:
-    resolution: {integrity: sha512-5Tke9LuzZszC4osaFisxLIcw7xgNGz4Sy3Jc9pRMV+ydm6sYqsPYdU8ELOgpzGNrbrRNDRBtveoR5xS3SzneEA==}
+  highcharts@12.4.0:
+    resolution: {integrity: sha512-o6UxxfChSUrvrZUbWrAuqL1HO/+exhAUPcZY6nnqLsadZQlnP16d082sg7DnXKZCk1gtfkyfkp6g3qkIZ9miZg==}
 
   hoist-non-react-statics@3.3.2:
     resolution: {integrity: sha512-/gGivxi8JPKWNm/W0jSmzcMPpfpPLc3dY/6GxhX2hQ9iGj3aDfklV4ET7NjKpSinLpJ5vafa9iiGIEZg10SfBw==}
@@ -6100,7 +6100,7 @@ snapshots:
       property-information: 7.1.0
       space-separated-tokens: 2.0.2
 
-  highcharts@11.4.8: {}
+  highcharts@12.4.0: {}
 
   hoist-non-react-statics@3.3.2:
     dependencies:

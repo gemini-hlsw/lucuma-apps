@@ -23,6 +23,7 @@ import lucuma.core.util.time.*
 import lucuma.core.util.time.format.GppTimeFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
+import lucuma.typed.highcharts.highchartsStrings.area
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
@@ -200,27 +201,20 @@ object NightPlot:
       ) => timeFormat(labelValue.value.asInstanceOf[Double])
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
-      (ctx: TooltipFormatterContextObject, _: Tooltip) =>
-        val x                = ctx.x match
-          case x: Double => x
-          case x: String => x.toDouble
-          case _         => 0.0
-        val y                = ctx.y.asInstanceOf[js.UndefOr[String | Double]] match
-          case y: Double => y
-          case y: String => y.toDouble
-          case _         => 0.0
-        val time             = timeFormat(x)
+      (point: Point, _: Tooltip) =>
+        val x: Double        = point.x
+        val y: Double        = point.y.toOption.orEmpty
+        val time: String     = timeFormat(x)
         // HACK. TODO Think of something better
-        val seriesIndex: Int = ctx.series.index.toInt / chartData.size.toInt
-        val value            = seriesIndex match
-          case 0 =>                      // Target elevation with airmass
-            formatAngle(
-              y
-            ) + s"<br/>Airmass: ${"%.3f".format(ctx.point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
-          case 2 => "%.2f".format(ctx.y) // Sky Brightness
-          case _ => formatAngle(y)       // Other elevations
+        val seriesIndex: Int = point.series.index.toInt / chartData.size.toInt
+        val value: String    = seriesIndex match
+          case 0 =>                        // Target elevation with airmass
+            formatAngle(y) +
+              s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
+          case 2 => "%.2f".format(point.y) // Sky Brightness
+          case _ => formatAngle(y)         // Other elevations
 
-        s"<strong>$time ($timeDisplayStr)</strong><br/>${ctx.series.name}: $value"
+        s"<strong>$time ($timeDisplayStr)</strong><br/>${point.series.name}: $value"
 
     val dusk: String = instantFormat(tbNauticalNight.start)
     val dawn: String = instantFormat(tbNauticalNight.end)
@@ -412,7 +406,7 @@ object NightPlot:
         seriesToPlot
           .map: series =>
             val baseSeries: SeriesAreaOptions =
-              SeriesAreaOptions((), (), ())
+              SeriesAreaOptions((), (), area, ())
                 .setName(if (series.showLabel) series.name else "")
                 .setLabel:
                   SeriesLabelOptionsObject()
@@ -487,7 +481,8 @@ object NightPlot:
                               if size === 0 then chartOpt.value.foreach(_.showLoading(props.emptyMessage))
                               else chartOpt.value.foreach(_.hideLoading())
     } yield React.Fragment(
-      Chart(chartOptions, allowUpdate = false, onCreate = c => chartOpt.set(c.some)),
+      Chart(chartOptions, allowUpdate = false, onCreate = c => chartOpt.set(c.some))
+        .withModules(Chart.Module.SeriesLabel),
       chartAndMoonData._2.map: moonData =>
         MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
     )
