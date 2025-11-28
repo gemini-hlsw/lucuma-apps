@@ -1086,7 +1086,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         )
     }
 
-  private val WfsObserveTimeout = FiniteDuration(10, SECONDS)
+  private val WfsObserveTimeout = FiniteDuration(20, SECONDS)
 
   private def setupPwfs1Observe: (exposureTime: TimeSpan, isQL: Boolean) => F[ApplyCommandResult] =
     setupWfsObserve(
@@ -1132,7 +1132,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       setupOiwfsObserve(exposureTime, !guideUsesOiwfs(g.m1Guide, g.m2Guide))
     }
 
-  private val WfsStopObserveTimeout = FiniteDuration(8, SECONDS)
+  private val WfsStopObserveTimeout = FiniteDuration(15, SECONDS)
 
   override def pwfs1StopObserve: F[ApplyCommandResult] = sys.tcsEpics
     .startPwfs1Command(WfsStopObserveTimeout)
