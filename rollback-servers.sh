@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Roll back SSO, ITC and ODB in a given environment to a given commit SHA.
-# Usage: rollback-servers.sh <env> <commit-sha> [--debug]
+# If SHA is not provided, list SHAs appearing in the last 10 deployment records for the environment.
+# Usage: rollback-servers.sh <env> [<commit-sha>] [--debug]
 
 # Vibe coded 🎉 with GPT-5 mini
 
@@ -17,8 +18,8 @@ for arg in "$@"; do
   esac
 done
 
-if [ -z "$ENV" ] || [ -z "$SHA" ]; then
-  echo "Usage: rollback-servers.sh <env> <commit-sha> [--debug]"
+if [ -z "$ENV" ]; then
+  echo "Usage: rollback-servers.sh <env> [<commit-sha>] [--debug]"
   exit 1
 fi
 
@@ -45,11 +46,6 @@ confirm() {
     esac
   done
 }
-
-if ! confirm ; then
-  exit 1
-fi
-
 
 map_github_deploy_env() {
   case $1 in
@@ -79,13 +75,70 @@ process_types["ODB"]="web calibration obscalc"
 docker_systems=("SSO" "ITC" "ODB")
 deploy_env=$(map_github_deploy_env "$ENV")
 
-# GitHub curl base options
+# GitHub curl base options (re-usable)
 gh_curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
 gh_curl_opts+=( "${DEBUG_CURL[@]}" )
 
 # Heroku curl base options (uses netrc for auth)
 heroku_curl_base=("-s" "--netrc" "-H" "Content-Type: application/json" "-H" "Accept: application/vnd.heroku+json; version=3.docker-releases")
 heroku_curl_base+=( "${DEBUG_CURL[@]}" )
+
+# If SHA not provided: list unique SHAs (preserve order) from recent deployment records per repo, and show created_at
+if [ -z "$SHA" ]; then
+  echo "Listing commit SHAs from recent deployments for environment '$ENV' (newest first):"
+  declare -A seen_repo=()
+  for system in "${docker_systems[@]}"; do
+    repo_name=${repo["$system"]}
+    if [ "${seen_repo[$repo_name]+_}" ]; then
+      continue
+    fi
+    seen_repo[$repo_name]=1
+
+    # list which services use this repo
+    services=""
+    for s in "${docker_systems[@]}"; do
+      if [ "${repo[$s]}" = "$repo_name" ]; then
+        services="$services $s"
+      fi
+    done
+    services=$(echo "$services" | sed 's/^ //')
+
+    echo
+    echo "==> $repo_name (services:$services)"
+    # fetch a larger page to increase chance of getting 10 unique SHAs (there are duplicates)
+    if gh_output=$(curl "${gh_curl_opts[@]}" "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&per_page=50"); then
+      if [ "$DEBUG" = true ]; then echo "  *** GITHUB RESPONSE: $gh_output"; fi
+
+      # emit sha<TAB>created_at for each deployment, preserve order, then dedupe by sha while preserving first occurrence
+      echo "$gh_output" | jq -r '.[] | "\(.sha)\t\(.created_at)"' 2>/dev/null | \
+        awk -F"\t" '!seen[$1]++ { printf "%2d. %s  — %s\n", ++i, $1, $2; if (i==10) exit }' || {
+          echo "  (no deployments found or parsing error)"
+        }
+    else
+      echo "  ! Failed to query GitHub for deployments of $repo_name"
+    fi
+  done
+  echo
+  echo "To perform a rollback, re-run with the desired SHA: rollback-servers.sh <env> <commit-sha>"
+  exit 1
+fi
+
+confirm() {
+  local reply
+  while true; do
+    read -r -p "WARNING: This script WILL NOT undo a DB migration. Make sure you are rolling back to a commit that supports the currently deployed DB migration. Proceed [y/N]: " reply
+    case "${reply,,}" in
+      y|yes) return 0 ;;
+      n|no)  return 1 ;;
+      "")    return 1 ;;  # default NO
+      *) echo "Please answer y or n." ;;
+    esac
+  done
+}
+
+if ! confirm ; then
+  exit 1
+fi
 
 send_slack_notification() {
   local service=$1
@@ -115,12 +168,6 @@ send_slack_notification() {
     echo "  ! Failed to send Slack notification (continuing)"
   fi
 }
-
-# Ensure Heroku credentials are available for API calls
-# if ! heroku container:login >/dev/null 2>&1; then
-#   echo "  ! Failed to login to Heroku container registry - ensure 'heroku' CLI is logged in and ~/.netrc is configured"
-#   exit 1
-# fi
 
 echo "Rolling back SSO/ITC/ODB in $ENV to commit $SHA"
 
