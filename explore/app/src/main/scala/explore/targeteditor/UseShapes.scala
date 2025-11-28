@@ -3,9 +3,9 @@
 
 package explore.targeteditor
 
+import cats.Order.*
 import cats.data.NonEmptyList
 import cats.syntax.all.*
-import cats.Order.*
 import explore.components.ui.ExploreStyles
 import explore.model.ConfigurationForVisualization
 import explore.model.PFVisibility

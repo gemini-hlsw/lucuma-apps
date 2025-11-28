@@ -24,8 +24,8 @@ import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AcquisitionOffsets
-import lucuma.ags.AgsAnalysis
 import lucuma.ags.Ags
+import lucuma.ags.AgsAnalysis
 import lucuma.ags.GeometryType
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.GuideSpeed

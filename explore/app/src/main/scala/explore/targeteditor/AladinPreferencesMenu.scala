@@ -10,6 +10,7 @@ import crystal.*
 import crystal.react.*
 import eu.timepit.refined.*
 import eu.timepit.refined.auto.*
+import explore.Icons
 import explore.common.UserPreferencesQueries.AsterismPreferences
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
@@ -23,14 +24,14 @@ import lucuma.core.model.User
 import lucuma.react.common.*
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupMenuRef
+import lucuma.react.primereact.PopupTieredMenu
 import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
-import explore.Icons
+
 import scala.scalajs.LinkingInfo
-import lucuma.react.primereact.PopupTieredMenu
 
 case class AladinPreferencesMenu(
   uid:               User.Id,
