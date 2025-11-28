@@ -79,7 +79,7 @@ object AladinContainer extends AladinCommon {
 
   // We need to detect if the selected GS deserves a refresh, this could be if the
   // selected target changes or if e.g. the pos angle change for the same target
-  given Reusability[AgsAnalysis.Usable] =
+  private given Reusability[AgsAnalysis.Usable] =
     Reusability.by(u => (u.target, u.posAngle))
 
   private def speedCss(gs: GuideSpeed): Css =
@@ -270,7 +270,7 @@ object AladinContainer extends AladinCommon {
                           props.globalPreferences.agsOverlay,
                           props.selectedGuideStar
                         )
-        // Debug patrol field shapes using custom hook
+        // patrol field shapes for debugging
         pfShapes     <- usePatrolFieldShapes(
                           props.vizConf,
                           props.selectedGuideStar,
@@ -279,7 +279,6 @@ object AladinContainer extends AladinCommon {
                           props.pfVisibility,
                           props.anglesToTest
                         )
-        // AGS positions for offset indicators (uses single angle)
         agsPositions <- useMemo(
                           (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
                         ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
@@ -404,10 +403,9 @@ object AladinContainer extends AladinCommon {
           survey.value.epoch
         )
 
-        // Offset indicators using pre-computed locations from AGS positions
-        // pos.location is already rotated: (offsetPos - pivot).rotate(posAngle) + pivot
+        // Offset indicators calculated and rotated directly bby ags
         val offsetPositions = agsPositions.value.toList.flatMap { positions =>
-          // Science offset indicators
+          // Science offsets
           val scienceOffsets =
             if (props.globalPreferences.scienceOffsets.value) {
               positions.toList
@@ -429,7 +427,7 @@ object AladinContainer extends AladinCommon {
                 }
             } else Nil
 
-          // Acquisition offset indicators
+          // Acquisition offsets
           val acquisitionOffsets =
             if (props.globalPreferences.acquisitionOffsets.value) {
               positions.toList
