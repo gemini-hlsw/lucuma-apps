@@ -1102,12 +1102,13 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   private def testWfsStart(
-    cmdL: Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]],
-    l:    Getter[State, WfsObserveChannelState],
-    fnL:  Getter[StateRefs[IO], IO[TestChannel.State[String]]]
+    cmdL:   Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]],
+    l:      Getter[State, WfsObserveChannelState],
+    fnL:    Getter[StateRefs[IO], IO[TestChannel.State[String]]],
+    prefix: String = ""
   ): IO[Unit] = {
     val testVal          = TimeSpan.unsafeFromMicroseconds(5000)
-    val expectedFilename = "data/200Hz.fits"
+    val expectedFilename = s"data/${prefix}200Hz.fits"
 
     for {
       (st, ctr) <- createController()
@@ -1141,7 +1142,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     testWfsStart(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs1Observe),
       Getter[State, WfsObserveChannelState](_.pwfs1.observe),
-      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.signalProc))
+      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.signalProc)),
+      "p1_"
     )
   }
 
@@ -1149,7 +1151,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     testWfsStart(
       Getter[TcsBaseController[IO], TimeSpan => IO[ApplyCommandResult]](_.pwfs2Observe),
       Getter[State, WfsObserveChannelState](_.pwfs2.observe),
-      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.signalProc))
+      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.signalProc)),
+      "p2_"
     )
   }
 
@@ -1869,7 +1872,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     guideCfg: TelescopeGuideConfig,
     wfsStL:   Lens[State, ProbeTrackingStateState],
     cmdL:     Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]],
-    dfn:      Getter[StateRefs[IO], IO[TestChannel.State[String]]]
+    dfn:      Getter[StateRefs[IO], IO[TestChannel.State[String]]],
+    prefix:   String = ""
   ): IO[Unit] = {
     val expTime = TimeSpan.unsafeFromMicroseconds(50000)
 
@@ -1883,7 +1887,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       sdf       <- dfn.get(st)
     } yield {
       assert(sdf.connected)
-      assertEquals(sdf.value, "20Hz.fits".some)
+      assertEquals(sdf.value, s"${prefix}20Hz.fits".some)
 
       checkGuide(r1, guideCfg)
 
@@ -1905,7 +1909,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       p1GuideConfig,
       Focus[State](_.pwfs1TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs1Sky),
-      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.dark))
+      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.dark)),
+      "p1_"
     )
   }
 
@@ -1914,7 +1919,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       p2GuideConfig,
       Focus[State](_.pwfs2TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs2Sky),
-      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.dark))
+      Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.dark)),
+      "p2_"
     )
   }
 
