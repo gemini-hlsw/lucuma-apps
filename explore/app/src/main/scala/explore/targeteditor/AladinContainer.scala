@@ -6,6 +6,7 @@ package explore.targeteditor
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
 import cats.syntax.all.*
+import cats.Order.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.types.string.NonEmptyString
@@ -55,6 +56,7 @@ import lucuma.ui.reusability
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
+import lucuma.core.geom.gmos
 
 import java.time.Instant
 import scala.collection.immutable.SortedMap
@@ -374,94 +376,71 @@ object AladinContainer extends AladinCommon {
              props.anglesToTest
             )
           ) { (vizConf, selectedGS, baseCoords, blindOffset, _, _, _) =>
+            val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
+            // Determine which angles to use based on the toggle
+            val allAngles  = if (props.pfVisibility.showAllAngles) {
+              // Show fields for all angles
+              props.anglesToTest.orElse(fallbackPA)
+            } else {
+              // Show only the selected guide star's
+              selectedGS
+                .flatMap(_.posAngle.some)
+                .map(NonEmptyList.one)
+                .orElse(fallbackPA)
+            }
+
             for {
               conf            <- vizConf.map(_.configuration)
               agsParams       <- createAgsParams(conf, PortDisposition.Side)
               baseCoordinates <- baseCoords.value._1
+              paAngles        <- allAngles
             } yield {
-              val blindCoordinates = blindOffset
 
-              // Determine which angles to use based on the toggle
-              val anglesToUse = if (props.pfVisibility.showAllAngles) {
-                // Show patrol fields for all tested angles
-                props.anglesToTest.getOrElse(
-                  // Fallback to vizConf angle or Angle0 if anglesToTest not available
-                  NonEmptyList.one(vizConf.map(_.posAngle).getOrElse(Angle.Angle0))
-                )
-              } else {
-                // Show only the selected guide star's angle (current behavior)
-                // If no GS selected, use vizConf angle or Angle0
-                selectedGS
-                  .flatMap(_.posAngle.some)
-                  .map(NonEmptyList.one)
-                  .getOrElse(NonEmptyList.one(vizConf.map(_.posAngle).getOrElse(Angle.Angle0)))
-              }
-
-              val typedPositions = Ags.generatePositions(
+              val positions = Ags.generatePositions(
                 baseCoordinates,
-                blindCoordinates,
-                anglesToUse,
+                blindOffset,
+                paAngles,
                 vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
                 vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
               )
+
               val visualizations =
-                AgsVisualization.patrolFieldGeometries(agsParams, typedPositions)
+                AgsVisualization.patrolFieldGeometries(agsParams, positions)
 
-              println(s"aaaa ${blindOffset}")
-              println(
-                s"Visualizations count: ${visualizations.size}, types: ${visualizations.map(_.position.geometryType).toList}"
-              )
-              // Filter visualizations based on visibility toggles
-              val visibleVisualizations = visualizations.toList.filter { pfv =>
-                pfv.position.geometryType match
-                  case GeometryType.Base         => props.pfVisibility.showBase
-                  case GeometryType.BlindOffset  =>
-                    props.pfVisibility.showBlindOffset
-                  case GeometryType.AcqOffset    =>
-                    props.pfVisibility.showAcquisitionOffset
-                  case GeometryType.SciOffset    =>
-                    props.pfVisibility.showScienceOffset
-                  case GeometryType.Intersection => true
-                  case GeometryType.Vignetting   => false
-              }
-              println(
-                s"Visible visualizations: ${visibleVisualizations.size}, types: ${visibleVisualizations.map(_.position.geometryType)}"
-              )
+              val individualFields = visualizations.toList
+                .filter { pfv =>
+                  pfv.position.geometryType match
+                    case GeometryType.Base         => props.pfVisibility.showBase
+                    case GeometryType.BlindOffset  => props.pfVisibility.showBlindOffset
+                    case GeometryType.AcqOffset    => props.pfVisibility.showAcquisitionOffset
+                    case GeometryType.SciOffset    => props.pfVisibility.showScienceOffset
+                    case GeometryType.Intersection => props.pfVisibility.showIntersection
+                    case GeometryType.Vignetting   => false
+                }
+                .zipWithIndex
+                .map: (pfv, idx) =>
+                  val baseCss = pfv.position.geometryType.css
+                  // we nedd a unique id for the map
+                  val idxCss  = Css(s"pf-idx-$idx")
+                  (baseCss |+| idxCss, pfv.posPatrolField)
 
-              // println(visibleVisualizations.map(_.geometryType))
-
-              // Map each visible patrol field to its geometry type color with unique key
-              val individualFields = visibleVisualizations.zipWithIndex.map { case (pfv, idx) =>
-                val baseCss   = pfv.position.geometryType.css
-                // Create unique CSS class by appending index
-                val uniqueCss = Css(s"${baseCss.htmlClass}-$idx")
-                (uniqueCss, pfv.posPatrolField)
-              }
-
-              // Add the intersected patrol field (same for all positions at this PA) if enabled and any are visible
-              val intersectedField =
-                if (visibleVisualizations.nonEmpty && props.pfVisibility.showIntersection)
-                  List(
-                    (
-                      VisualizationStyles.PatrolFieldIntersectionDebug,
-                      visibleVisualizations.head.paIntersection
-                    )
-                  )
+              // Add the intersected patrol field for each tested angle
+              val intersections =
+                if (props.pfVisibility.showIntersection)
+                  visualizations.toList
+                    .groupBy(_.position.posAngle)
+                    .values
+                    .zipWithIndex
+                    .map: (pfvs, idx) =>
+                      val idxCss = Css(s"pf-intersection-$idx")
+                      (VisualizationStyles.PatrolFieldIntersectionDebug |+| idxCss,
+                       pfvs.head.paIntersection
+                      )
+                    .toList
                 else
                   List.empty
 
-              // Add candidates area as anchor for proper viewBox calculation
-              // This ensures the overlay is centered correctly like the main visualization
-              val posAngle    = anglesToUse.head
-              val anchorShape = List(
-                (VisualizationStyles.GmosCandidatesArea,
-                 lucuma.core.geom.gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
-                )
-              )
-
-              SortedMap[Css, ShapeExpression](
-                (individualFields ++ intersectedField ++ anchorShape)*
-              )(using Ordering.by(_.htmlClass))
+              SortedMap.from(individualFields ++ intersections)
             }
           }
         // AGS positions for offset indicators (uses single angle)

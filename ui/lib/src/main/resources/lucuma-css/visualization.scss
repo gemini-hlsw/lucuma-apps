@@ -86,26 +86,26 @@
     stroke-dasharray: 3;
   }
 
-  // Individual patrol fields - colored by position type (with indexed variants)
-  [class^="patrol-field-base"] {
+  // Individual patrol fields - colored by position type
+  .patrol-field-base {
     stroke: var(--patrol-field-base-color);
     stroke-width: 1px;
     fill: none;
   }
 
-  [class^="patrol-field-blind-offset"] {
+  .patrol-field-blind-offset {
     stroke: var(--patrol-field-blind-offset-color);
     stroke-width: 1px;
     fill: none;
   }
 
-  [class^="patrol-field-acquisition-offset"] {
+  .patrol-field-acquisition-offset {
     stroke: var(--patrol-field-acq-offset-color);
     stroke-width: 1px;
     fill: none;
   }
 
-  [class^="patrol-field-science-offset"] {
+  .patrol-field-science-offset {
     stroke: var(--patrol-field-sci-offset-color);
     stroke-width: 1px;
     fill: none;
