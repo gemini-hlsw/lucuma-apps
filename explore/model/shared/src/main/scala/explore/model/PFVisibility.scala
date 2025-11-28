@@ -4,16 +4,17 @@
 package explore.model
 
 import cats.Eq
+import explore.model.enums.Visible
 import io.circe.Decoder
 import monocle.Focus
 
 case class PFVisibility(
-  showBase:              Boolean,
-  showBlindOffset:       Boolean,
-  showAcquisitionOffset: Boolean,
-  showScienceOffset:     Boolean,
-  showIntersection:      Boolean,
-  showAllAngles:         Boolean
+  showBase:              Visible,
+  showBlindOffset:       Visible,
+  showAcquisitionOffset: Visible,
+  showScienceOffset:     Visible,
+  showIntersection:      Visible,
+  showAllAngles:         Visible
 ) derives Decoder
 
 object PFVisibility:
@@ -27,10 +28,10 @@ object PFVisibility:
   val showAllAngles         = Focus[PFVisibility](_.showAllAngles)
 
   val Default = PFVisibility(
-    showBase = false,
-    showBlindOffset = true,
-    showAcquisitionOffset = false,
-    showScienceOffset = false,
-    showIntersection = false,
-    showAllAngles = false
+    showBase = Visible.Hidden,
+    showBlindOffset = Visible.Hidden,
+    showAcquisitionOffset = Visible.Hidden,
+    showScienceOffset = Visible.Hidden,
+    showIntersection = Visible.Hidden,
+    showAllAngles = Visible.Hidden
   )

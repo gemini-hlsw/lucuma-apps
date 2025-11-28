@@ -77,10 +77,14 @@ object AladinContainer extends AladinCommon {
 
   private type Props = AladinContainer
 
-  // We need to detect if the selected GS deserves a refresh, this could be if the
-  // selected target changes or if e.g. the pos angle change for the same target
-  private given Reusability[AgsAnalysis.Usable] =
-    Reusability.by(u => (u.target, u.posAngle))
+  // Relative sizes for targets passed to the svg layer, in terms of the side of
+  // the svg projected onto the focal plane
+  private val TargetSize             = 6
+  private val CrosshairSize          = 10
+  private val OffsetIndicatorSize    = 4
+  private val GuideStarSize          = 4
+  private val GuideStarCandidateSize = 3
+  private val GuideStarCrowdedSize   = 2.7
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -122,12 +126,14 @@ object AladinContainer extends AladinCommon {
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
-        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(4), g)
+        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), g)
       } else {
         val css  =
           candidateCss |+| candidatesVisibility |+|
             ExploreStyles.GuideStarCandidateCrowded.unless_(candidates.length < 500)
-        val size = if (candidates.length < 500) calcSize(3) else calcSize(2.7)
+        val size =
+          if (candidates.length < 500) calcSize(GuideStarCandidateSize)
+          else calcSize(GuideStarCrowdedSize)
         SVGTarget.GuideStarCandidateTarget(coords, css, size, g)
       }
 
@@ -218,9 +224,6 @@ object AladinContainer extends AladinCommon {
   }
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
-
-  // Relative size for targets passed to the svg layer
-  private val TargetSize = 6
 
   private def surveyForWavelength(w: Wavelength) =
     if (w > CutOff)
@@ -382,7 +385,7 @@ object AladinContainer extends AladinCommon {
         val basePosition =
           baseCoordinates.foldMap: c =>
             List(
-              SVGTarget.CrosshairTarget(c, Css.Empty, 10)
+              SVGTarget.CrosshairTarget(c, Css.Empty, CrosshairSize)
             )
 
         val targetPositions = renderTargets(
@@ -422,7 +425,7 @@ object AladinContainer extends AladinCommon {
                     pos.offsetPos,
                     SequenceType.Science,
                     ExploreStyles.ScienceOffsetPosition,
-                    4
+                    OffsetIndicatorSize
                   )
                 }
             } else Nil
@@ -444,7 +447,7 @@ object AladinContainer extends AladinCommon {
                     pos.offsetPos,
                     SequenceType.Acquisition,
                     ExploreStyles.AcquisitionOffsetPosition,
-                    4
+                    OffsetIndicatorSize
                   )
                 }
             } else Nil

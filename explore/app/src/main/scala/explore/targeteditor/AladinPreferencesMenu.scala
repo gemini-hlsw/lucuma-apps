@@ -138,12 +138,12 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
 
         val pfView = props.globalPreferences.zoom(GlobalPreferences.pfVisibility)
 
-        val showBaseView         = pfView.zoom(PFVisibility.showBase)
-        val showBlindOffsetView  = pfView.zoom(PFVisibility.showBlindOffset)
-        val showSciOffsetView    = pfView.zoom(PFVisibility.showScienceOffset)
-        val showAcqOffsetView    = pfView.zoom(PFVisibility.showAcquisitionOffset)
-        val showIntersectionView = pfView.zoom(PFVisibility.showIntersection)
-        val showAllAngles        = pfView.zoom(PFVisibility.showAllAngles)
+        val showBaseView         = pfView.zoom(PFVisibility.showBase).as(Visible.Value)
+        val showBlindOffsetView  = pfView.zoom(PFVisibility.showBlindOffset).as(Visible.Value)
+        val showSciOffsetView    = pfView.zoom(PFVisibility.showScienceOffset).as(Visible.Value)
+        val showAcqOffsetView    = pfView.zoom(PFVisibility.showAcquisitionOffset).as(Visible.Value)
+        val showIntersectionView = pfView.zoom(PFVisibility.showIntersection).as(Visible.Value)
+        val showAllAngles        = pfView.zoom(PFVisibility.showAllAngles).as(Visible.Value)
 
         def menuItem(content: VdomNode): MenuItem =
           MenuItem.Custom(

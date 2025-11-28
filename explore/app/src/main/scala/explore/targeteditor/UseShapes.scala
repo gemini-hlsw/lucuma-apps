@@ -46,11 +46,6 @@ def usePatrolFieldShapes(
   anglesToTest:    Option[NonEmptyList[Angle]]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
-  // We need to detect if the selected GS deserves a refresh, this could be if the
-  // selected target changes or if e.g. the pos angle change for the same target
-  given Reusability[AgsAnalysis.Usable] =
-    Reusability.by(u => (u.target, u.posAngle))
-
   def createAgsParams(
     conf: BasicConfiguration,
     port: PortDisposition
@@ -88,7 +83,7 @@ def usePatrolFieldShapes(
     val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
 
     val allAngles =
-      if (pfVisibility.showAllAngles)
+      if (pfVisibility.showAllAngles.value)
         anglesToTest.orElse(fallbackPA)
       else
         selectedGS
@@ -116,11 +111,11 @@ def usePatrolFieldShapes(
       val individualFields = visualizations.toList
         .filter: pfv =>
           pfv.position.geometryType match
-            case GeometryType.Base         => pfVisibility.showBase
-            case GeometryType.BlindOffset  => pfVisibility.showBlindOffset
-            case GeometryType.AcqOffset    => pfVisibility.showAcquisitionOffset
-            case GeometryType.SciOffset    => pfVisibility.showScienceOffset
-            case GeometryType.Intersection => pfVisibility.showIntersection
+            case GeometryType.Base         => pfVisibility.showBase.value
+            case GeometryType.BlindOffset  => pfVisibility.showBlindOffset.value
+            case GeometryType.AcqOffset    => pfVisibility.showAcquisitionOffset.value
+            case GeometryType.SciOffset    => pfVisibility.showScienceOffset.value
+            case GeometryType.Intersection => pfVisibility.showIntersection.value
             case GeometryType.Vignetting   => false
         .zipWithIndex
         .map: (pfv, idx) =>
@@ -129,7 +124,7 @@ def usePatrolFieldShapes(
           (baseCss |+| idxCss, pfv.posPatrolField)
 
       val intersections =
-        if (pfVisibility.showIntersection)
+        if (pfVisibility.showIntersection.value)
           visualizations.toList
             .groupBy(_.position.posAngle)
             .values
@@ -164,9 +159,6 @@ def useVisualizationShapes(
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
-  given Reusability[AgsAnalysis.Usable] =
-    Reusability.by(u => (u.target, u.posAngle))
-
   useMemo(
     (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS)
   ) { (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS) =>
