@@ -185,6 +185,13 @@
   --ags-medium-guide-speed-color: hsl(51deg 100% 50%);
   --ags-slow-guide-speed-color: hsl(33deg 100% 50%);
 
+  // Patrol field colors
+  --patrol-field-base-color: hsl(240deg 100% 60.2%);
+  --patrol-field-blind-offset-color: hsl(300deg 100% 25%);
+  --patrol-field-acq-offset-color: hsl(9deg 70% 63.9%);
+  --patrol-field-sci-offset-color: hsl(181deg 100% 41%);
+  --patrol-field-intersection-color: hsl(330deg 100% 50%);
+
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
   --tooltip-viz-background-color: var(--color-background-light-3-a);

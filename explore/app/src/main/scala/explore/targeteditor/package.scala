@@ -5,11 +5,18 @@ package explore.targeteditor
 
 import cats.syntax.option.*
 import explore.model.AsterismVisualOptions
+import explore.model.reusability.given
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.Reusability.*
+import lucuma.ags.AgsAnalysis
 import lucuma.core.util.NewBoolean
 import lucuma.ui.aladin.Fov
+import lucuma.ui.reusability.given
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.document
+
+given Reusability[AgsAnalysis.Usable] =
+  Reusability.by(u => (u.target, u.posAngle))
 
 object AreAdding extends NewBoolean
 type AreAdding = AreAdding.Type

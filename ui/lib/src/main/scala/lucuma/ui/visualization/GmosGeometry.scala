@@ -6,7 +6,11 @@ package lucuma.ui.visualization
 import cats.data.NonEmptyList
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
+import lucuma.ags.AcquisitionOffsets
+import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.AgsParams
+import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
@@ -126,6 +130,7 @@ object GmosGeometry:
   // Full geometry for GMOS
   def gmosGeometry(
     referenceCoordinates:    Coordinates,
+    blindOffset:             Option[Coordinates],
     scienceOffsets:          Option[NonEmptyList[Offset]],
     acquisitionOffsets:      Option[NonEmptyList[Offset]],
     fallbackPosAngle:        Option[Angle],
@@ -145,24 +150,32 @@ object GmosGeometry:
 
         // Don't show the probe if there is no usable GS
         val probe = gs
-          .map { gs =>
+          .map: gs =>
             val gsOffset   =
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
             val probeShape =
               probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, Css.Empty)
 
-            val offsets =
-              (scienceOffsets |+| acquisitionOffsets)
-                .orElse(NonEmptyList.one(Offset.Zero).some)
+            val positions = Ags.generatePositions(
+              referenceCoordinates,
+              blindOffset,
+              NonEmptyList.one(posAngle),
+              acquisitionOffsets.map(AcquisitionOffsets.apply),
+              scienceOffsets.map(ScienceOffsets.apply)
+            )
+
+            val fpu =
+              conf match
+                case Some(BasicConfiguration.GmosNorthLongSlit(fpu = fpu)) => fpu.asLeft.some
+                case Some(BasicConfiguration.GmosSouthLongSlit(fpu = fpu)) => fpu.asRight.some
+                case _                                                     => none
 
             val patrolFieldIntersection =
-              for {
-                conf <- conf
-                o    <- offsets
-              } yield GmosGeometry
-                .patrolFieldIntersection(posAngle, o.distinct, conf, port)
+              conf.map: _ =>
+                val agsParams = AgsParams.GmosAgsParams(fpu, port)
+                val calcs     = agsParams.posCalculations(positions)
+                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
-          }
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])
       }

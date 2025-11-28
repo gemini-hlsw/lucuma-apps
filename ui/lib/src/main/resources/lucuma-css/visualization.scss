@@ -49,6 +49,10 @@
   pointer-events: none; // let aladin get pointer events
   z-index: 40;
 
+  .visualization-anchor {
+    display: none;
+  }
+
   .viz-polygon {
     stroke: gray;
     stroke-width: 2px;
@@ -84,6 +88,37 @@
     stroke: hsl(120deg 100% 50%);
     stroke-width: 1.5px;
     stroke-dasharray: 3;
+  }
+
+  // Individual patrol fields - colored by position type
+  .patrol-field-base {
+    stroke: var(--patrol-field-base-color);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  .patrol-field-blind-offset {
+    stroke: var(--patrol-field-blind-offset-color);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  .patrol-field-acquisition-offset {
+    stroke: var(--patrol-field-acq-offset-color);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  .patrol-field-science-offset {
+    stroke: var(--patrol-field-sci-offset-color);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  .patrol-field-intersected-debug {
+    stroke: var(--patrol-field-intersection-color);
+    stroke-width: 2.5px;
+    fill: none;
   }
 
   &.flamingos2-fpu-visible .flamingos2-fpu > polygon,
