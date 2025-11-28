@@ -32,6 +32,7 @@ object VisualizationStyles:
   val JtsPolygon       = Css("viz-polygon")
   val JtsCollection    = Css("viz-collecttion")
   val VisualizationSvg = Css("visualization-overlay-svg")
+  val Anchor           = Css("visualization-anchor")
 
   // GMOS-specific styles
   val GmosScienceCcd: Css            = Css("gmos-science-ccd")

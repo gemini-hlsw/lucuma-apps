@@ -49,6 +49,10 @@
   pointer-events: none; // let aladin get pointer events
   z-index: 40;
 
+  .visualization-anchor {
+    display: none
+  }
+
   .viz-polygon {
     stroke: gray;
     stroke-width: 2px;

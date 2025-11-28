@@ -24,6 +24,8 @@ import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
+import lucuma.core.geom.flamingos2
+import lucuma.core.geom.gmos
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -141,7 +143,18 @@ def usePatrolFieldShapes(
         else
           List.empty
 
-      SortedMap.from(individualFields ++ intersections)
+      // We need a hidden achor centered at 0, 0
+      val anchor = conf.obsModeType match
+        case ObservingModeType.Flamingos2LongSlit                                      =>
+          (VisualizationStyles.Anchor,
+           flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
+          )
+        case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+          (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+        case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
+          (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+
+      SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
 
 def useVisualizationShapes(

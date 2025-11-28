@@ -134,7 +134,8 @@ object TopBar:
             MenuItem.Item(label = "Logout", icon = Icons.Logout, command = logout.runAsync).some,
             MenuItem
               .SubMenu(
-                label = "Patrol Fields",
+                label = "Log Level",
+                icon = Icons.BarCodeRead,
                 visible = ctx.environment =!= ExecutionEnvironment.Production
               )(
                 MenuItem.Item(
