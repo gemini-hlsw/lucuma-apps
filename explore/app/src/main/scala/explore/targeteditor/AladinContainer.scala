@@ -6,7 +6,6 @@ package explore.targeteditor
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
 import cats.syntax.all.*
-import cats.Order.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.types.string.NonEmptyString
@@ -27,24 +26,16 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.Ags
-import lucuma.ags.AgsParams
-import lucuma.ags.AgsVisualization
 import lucuma.ags.GeometryType
 import lucuma.ags.ScienceOffsets
-import lucuma.ags.SingleProbeAgsParams
-import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideSpeed
-import lucuma.core.enums.ObservingModeType
-import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
-import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Target
-import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
@@ -56,10 +47,8 @@ import lucuma.ui.reusability
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
-import lucuma.core.geom.gmos
 
 import java.time.Instant
-import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
 
@@ -90,10 +79,8 @@ object AladinContainer extends AladinCommon {
 
   // We need to detect if the selected GS deserves a refresh, this could be if the
   // selected target changes or if e.g. the pos angle change for the same target
-  private given Reusability[AgsAnalysis.Usable] =
+  given Reusability[AgsAnalysis.Usable] =
     Reusability.by(u => (u.target, u.posAngle))
-
-  private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -241,39 +228,6 @@ object AladinContainer extends AladinCommon {
     else
       ImageSurvey.DSS
 
-  // Map geometry type to CSS class for patrol field colors
-  extension (geometryType: GeometryType)
-    def css: Css = geometryType match
-      case GeometryType.Base         => VisualizationStyles.PatrolFieldBase
-      case GeometryType.BlindOffset  => VisualizationStyles.PatrolFieldBlindOffset
-      case GeometryType.AcqOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
-      case GeometryType.SciOffset    => VisualizationStyles.PatrolFieldScienceOffset
-      case GeometryType.Intersection => VisualizationStyles.PatrolFieldIntersectionDebug
-      case GeometryType.Vignetting   => VisualizationStyles.DebugScienceVignetting
-
-  // Create AgsParams from BasicConfiguration
-  private def createAgsParams(
-    conf: BasicConfiguration,
-    port: PortDisposition
-  ): Option[SingleProbeAgsParams] =
-    conf match
-      case m: BasicConfiguration.GmosNorthLongSlit  =>
-        AgsParams.GmosAgsParams(m.fpu.asLeft.some, port).some
-      case m: BasicConfiguration.GmosSouthLongSlit  =>
-        AgsParams.GmosAgsParams(m.fpu.asRight.some, port).some
-      case _: BasicConfiguration.GmosNorthImaging   =>
-        AgsParams.GmosAgsParams(none, port).some
-      case _: BasicConfiguration.GmosSouthImaging   =>
-        AgsParams.GmosAgsParams(none, port).some
-      case m: BasicConfiguration.Flamingos2LongSlit =>
-        AgsParams
-          .Flamingos2AgsParams(
-            Flamingos2LyotWheel.F16,
-            Flamingos2FpuMask.Builtin(m.fpu),
-            port
-          )
-          .some
-
   private val component =
     ScalaFnComponent[Props]: props =>
       val initialSurvey = props.vizConf
@@ -299,172 +253,53 @@ object AladinContainer extends AladinCommon {
                             )
         aladinRef    <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
-        _            <-
-          useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
-            val newCoords = baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, offset))
-            newCoords
-              .map: coords =>
-                aladinRef.value
-                  .traverse(_.gotoRaDecCB(coords))
-                  .void
-                  .when_(offset === Offset.Zero)
-              .getOrEmpty
+        _            <- useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
+                          val newCoords = baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, offset))
+                          newCoords
+                            .map: coords =>
+                              aladinRef.value
+                                .traverse(_.gotoRaDecCB(coords))
+                                .void
+                                .when_(offset === Offset.Zero)
+                            .getOrEmpty
         // Memoized svg for visualization shapes
-        shapes       <-
-          useMemo(
-            (baseCoords, props.vizConf, props.globalPreferences.agsOverlay, props.selectedGuideStar)
-          ) { _ =>
-            val candidatesVisibilityCss =
-              ExploreStyles.GuideStarCandidateVisible.when_(props.globalPreferences.agsOverlay)
-
-            (props.vizConf.map(_.configuration.obsModeType), baseCoords.value._1).mapN:
-              (conf, baseCoords) =>
-                conf match {
-                  case ObservingModeType.Flamingos2LongSlit                                      =>
-                    (Css.Empty,
-                     Flamingos2Geometry.f2Geometry(
-                       baseCoords,
-                       props.blindOffset,
-                       props.vizConf.flatMap(_.scienceOffsets),
-                       props.vizConf.flatMap(_.acquisitionOffsets),
-                       props.vizConf.map(_.posAngle),
-                       props.vizConf.map(_.configuration),
-                       PortDisposition.Side,
-                       props.selectedGuideStar,
-                       candidatesVisibilityCss
-                     )
-                    )
-                  case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-                    (Css.Empty,
-                     GmosGeometry.gmosGeometry(
-                       baseCoords,
-                       props.blindOffset,
-                       props.vizConf.flatMap(_.scienceOffsets),
-                       props.vizConf.flatMap(_.acquisitionOffsets),
-                       props.vizConf.map(_.posAngle),
-                       props.vizConf.map(_.configuration),
-                       PortDisposition.Side,
-                       props.selectedGuideStar,
-                       candidatesVisibilityCss
-                     )
-                    )
-                  case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-                    (VisualizationStyles.GmosCcdVisible,
-                     GmosGeometry.gmosGeometry(
-                       baseCoords,
-                       props.blindOffset,
-                       props.vizConf.flatMap(_.scienceOffsets),
-                       props.vizConf.flatMap(_.acquisitionOffsets),
-                       props.vizConf.map(_.posAngle),
-                       props.vizConf.map(_.configuration),
-                       PortDisposition.Side,
-                       props.selectedGuideStar,
-                       candidatesVisibilityCss
-                     )
-                    )
-                }
-          }
-        // Debug patrol field shapes using Ags.generatePositions
-        pfShapes     <-
-          useMemo(
-            (props.vizConf,
-             props.selectedGuideStar,
-             baseCoords,
-             props.blindOffset,
-             props.obsTime,
-             props.pfVisibility,
-             props.anglesToTest
-            )
-          ) { (vizConf, selectedGS, baseCoords, blindOffset, _, _, _) =>
-            val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
-            // Determine which angles to use based on the toggle
-            val allAngles  = if (props.pfVisibility.showAllAngles) {
-              // Show fields for all angles
-              props.anglesToTest.orElse(fallbackPA)
-            } else {
-              // Show only the selected guide star's
-              selectedGS
-                .flatMap(_.posAngle.some)
-                .map(NonEmptyList.one)
-                .orElse(fallbackPA)
-            }
-
-            for {
-              conf            <- vizConf.map(_.configuration)
-              agsParams       <- createAgsParams(conf, PortDisposition.Side)
-              baseCoordinates <- baseCoords.value._1
-              paAngles        <- allAngles
-            } yield {
-
-              val positions = Ags.generatePositions(
-                baseCoordinates,
-                blindOffset,
-                paAngles,
-                vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
-                vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
-              )
-
-              val visualizations =
-                AgsVisualization.patrolFieldGeometries(agsParams, positions)
-
-              val individualFields = visualizations.toList
-                .filter { pfv =>
-                  pfv.position.geometryType match
-                    case GeometryType.Base         => props.pfVisibility.showBase
-                    case GeometryType.BlindOffset  => props.pfVisibility.showBlindOffset
-                    case GeometryType.AcqOffset    => props.pfVisibility.showAcquisitionOffset
-                    case GeometryType.SciOffset    => props.pfVisibility.showScienceOffset
-                    case GeometryType.Intersection => props.pfVisibility.showIntersection
-                    case GeometryType.Vignetting   => false
-                }
-                .zipWithIndex
-                .map: (pfv, idx) =>
-                  val baseCss = pfv.position.geometryType.css
-                  // we nedd a unique id for the map
-                  val idxCss  = Css(s"pf-idx-$idx")
-                  (baseCss |+| idxCss, pfv.posPatrolField)
-
-              // Add the intersected patrol field for each tested angle
-              val intersections =
-                if (props.pfVisibility.showIntersection)
-                  visualizations.toList
-                    .groupBy(_.position.posAngle)
-                    .values
-                    .zipWithIndex
-                    .map: (pfvs, idx) =>
-                      val idxCss = Css(s"pf-intersection-$idx")
-                      (VisualizationStyles.PatrolFieldIntersectionDebug |+| idxCss,
-                       pfvs.head.paIntersection
-                      )
-                    .toList
-                else
-                  List.empty
-
-              SortedMap.from(individualFields ++ intersections)
-            }
-          }
+        shapes       <- useVisualizationShapes(
+                          props.vizConf,
+                          baseCoords.value._1,
+                          props.blindOffset,
+                          props.globalPreferences.agsOverlay,
+                          props.selectedGuideStar
+                        )
+        // Debug patrol field shapes using custom hook
+        pfShapes     <- usePatrolFieldShapes(
+                          props.vizConf,
+                          props.selectedGuideStar,
+                          baseCoords.value._1,
+                          props.blindOffset,
+                          props.pfVisibility,
+                          props.anglesToTest
+                        )
         // AGS positions for offset indicators (uses single angle)
-        agsPositions <-
-          useMemo(
-            (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
-          ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
-            for {
-              baseCoordinates <- baseCoords.value._1
-            } yield {
-              val posAngle = selectedGS
-                .map(_.posAngle)
-                .orElse(vizConf.map(_.posAngle))
-                .getOrElse(Angle.Angle0)
+        agsPositions <- useMemo(
+                          (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
+                        ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
+                          for {
+                            baseCoordinates <- baseCoords.value._1
+                          } yield {
+                            val posAngle = selectedGS
+                              .map(_.posAngle)
+                              .orElse(vizConf.map(_.posAngle))
+                              .getOrElse(Angle.Angle0)
 
-              Ags.generatePositions(
-                baseCoordinates,
-                blindOffset,
-                NonEmptyList.one(posAngle),
-                vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
-                vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
-              )
-            }
-          }
+                            Ags.generatePositions(
+                              baseCoordinates,
+                              blindOffset,
+                              NonEmptyList.one(posAngle),
+                              vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
+                              vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
+                            )
+                          }
+                        }
         // resize detector
         resize       <- useResizeDetector
         // memoized catalog targets with their proper motions corrected
@@ -670,8 +505,8 @@ object AladinContainer extends AladinCommon {
               (resize.width,
                resize.height,
                fov.value,
-               shapes.value.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
-               shapes.value.map(_._1)
+               shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
+               shapes.map(_._1)
               )
                 .mapN(
                   SVGVisualizationOverlay(
@@ -687,7 +522,7 @@ object AladinContainer extends AladinCommon {
                 (resize.width,
                  resize.height,
                  fov.value,
-                 pfShapes.value.flatMap(m => NonEmptyMap.fromMap(m))
+                 pfShapes.flatMap(m => NonEmptyMap.fromMap(m))
                 )
                   .mapN(
                     SVGVisualizationOverlay(
