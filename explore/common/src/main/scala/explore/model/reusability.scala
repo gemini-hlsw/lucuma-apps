@@ -126,6 +126,7 @@ object reusability:
   given Reusability[ObservationTargets]                 = Reusability.byEq[ObservationTargets]
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq
+  given Reusability[PFVisibility]                       = Reusability.byEq
   given Reusability[SelectedPanel]                      = Reusability.byEq
   given Reusability[Configuration]                      = Reusability.byEq
   given Reusability[ConfigurationRequest]               = Reusability.byEq

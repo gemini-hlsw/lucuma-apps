@@ -23,17 +23,27 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.Ags
+import lucuma.ags.AgsParams
+import lucuma.ags.AgsVisualization
+import lucuma.ags.GeometryType
+import lucuma.ags.ScienceOffsets
+import lucuma.ags.SingleProbeAgsParams
+import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
+import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Target
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
@@ -47,6 +57,7 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
 
 import java.time.Instant
+import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 
 case class AladinContainer(
@@ -59,13 +70,16 @@ case class AladinContainer(
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
-  guideStarCandidates:    List[AgsAnalysis.Usable]
+  guideStarCandidates:    List[AgsAnalysis.Usable],
+  anglesToTest:           Option[NonEmptyList[Angle]]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
 
   val blindOffset: Option[Coordinates] =
     obsTargets.blindOffsetSiderealTracking.flatMap(_.at(obsTime))
+
+  val pfVisibility = globalPreferences.patrolFieldVisibility
 
 object AladinContainer extends AladinCommon {
 
@@ -146,7 +160,6 @@ object AladinContainer extends AladinCommon {
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
-    scienceTargets:             List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)],
     surveyEpoch:                Epoch
   ): List[SVGTarget] = {
 
@@ -158,9 +171,6 @@ object AladinContainer extends AladinCommon {
       ExploreStyles.GuideStarCandidateVisible.when_(visible)
 
     candidates
-      // TODO This should be done in AGS proper
-      .filterNot: x =>
-        scienceTargets.contains(x.target.tracking.baseCoordinates)
       .flatMap:
         guideStarsSVG(
           _,
@@ -228,6 +238,39 @@ object AladinContainer extends AladinCommon {
     else
       ImageSurvey.DSS
 
+  // Map geometry type to CSS class for patrol field colors
+  extension (geometryType: GeometryType)
+    def css: Css = geometryType match
+      case GeometryType.Base         => VisualizationStyles.PatrolFieldBase
+      case GeometryType.BlindOffset  => VisualizationStyles.PatrolFieldBlindOffset
+      case GeometryType.AcqOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.SciOffset    => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.Intersection => VisualizationStyles.PatrolFieldIntersectionDebug
+      case GeometryType.Vignetting   => VisualizationStyles.DebugScienceVignetting
+
+  // Create AgsParams from BasicConfiguration
+  private def createAgsParams(
+    conf: BasicConfiguration,
+    port: PortDisposition
+  ): Option[SingleProbeAgsParams] =
+    conf match
+      case m: BasicConfiguration.GmosNorthLongSlit  =>
+        AgsParams.GmosAgsParams(m.fpu.asLeft.some, port).some
+      case m: BasicConfiguration.GmosSouthLongSlit  =>
+        AgsParams.GmosAgsParams(m.fpu.asRight.some, port).some
+      case _: BasicConfiguration.GmosNorthImaging   =>
+        AgsParams.GmosAgsParams(none, port).some
+      case _: BasicConfiguration.GmosSouthImaging   =>
+        AgsParams.GmosAgsParams(none, port).some
+      case m: BasicConfiguration.Flamingos2LongSlit =>
+        AgsParams
+          .Flamingos2AgsParams(
+            Flamingos2LyotWheel.F16,
+            Flamingos2FpuMask.Builtin(m.fpu),
+            port
+          )
+          .some
+
   private val component =
     ScalaFnComponent[Props]: props =>
       val initialSurvey = props.vizConf
@@ -237,23 +280,23 @@ object AladinContainer extends AladinCommon {
 
       for {
         // Base coordinates and science targets with pm correction if possible
-        baseCoords <- useState(baseAndScience(props, initialSurvey.epoch))
+        baseCoords             <- useState(baseAndScience(props, initialSurvey.epoch))
         // View coordinates base coordinates with pm correction + user panning
-        currentPos <-
+        currentPos             <-
           useState(baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset)))
         // Survey
-        survey     <- useState(initialSurvey)
+        survey                 <- useState(initialSurvey)
         // Update coordinates if obsTargets or obsTime or survey changes
-        _          <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, s) =>
-                        val (base, science) = baseAndScience(props, s.value.epoch)
-                        baseCoords.setState((base, science)) *>
-                          currentPos.setState(
-                            base
-                              .flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset))
-                          )
-        aladinRef  <- useState(none[Aladin])
+        _                      <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, s) =>
+                                    val (base, science) = baseAndScience(props, s.value.epoch)
+                                    baseCoords.setState((base, science)) *>
+                                      currentPos.setState(
+                                        base
+                                          .flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset))
+                                      )
+        aladinRef              <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
-        _          <-
+        _                      <-
           useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
             val newCoords = baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, offset))
             newCoords
@@ -264,7 +307,7 @@ object AladinContainer extends AladinCommon {
                   .when_(offset === Offset.Zero)
               .getOrEmpty
         // Memoized svg for visualization shapes
-        shapes     <-
+        shapes                 <-
           useMemo(
             (baseCoords, props.vizConf, props.globalPreferences.agsOverlay, props.selectedGuideStar)
           ) { _ =>
@@ -318,49 +361,172 @@ object AladinContainer extends AladinCommon {
                     )
                 }
           }
+        // Debug patrol field shapes using Ags.generatePositions
+        debugPatrolFieldShapes <-
+          useMemo(
+            (props.vizConf,
+             props.selectedGuideStar,
+             baseCoords,
+             props.blindOffset,
+             props.obsTime,
+             props.pfVisibility,
+             props.anglesToTest
+            )
+          ) { (vizConf, selectedGS, baseCoords, blindOffset, _, _, _) =>
+            for {
+              conf            <- vizConf.map(_.configuration)
+              agsParams       <- createAgsParams(conf, PortDisposition.Side)
+              baseCoordinates <- baseCoords.value._1
+            } yield {
+              val blindCoordinates = blindOffset
+
+              // Determine which angles to use based on the toggle
+              val anglesToUse = if (props.pfVisibility.showAllAngles) {
+                // Show patrol fields for all tested angles
+                props.anglesToTest.getOrElse(
+                  // Fallback to vizConf angle or Angle0 if anglesToTest not available
+                  NonEmptyList.one(vizConf.map(_.posAngle).getOrElse(Angle.Angle0))
+                )
+              } else {
+                // Show only the selected guide star's angle (current behavior)
+                // If no GS selected, use vizConf angle or Angle0
+                selectedGS
+                  .flatMap(_.posAngle.some)
+                  .map(NonEmptyList.one)
+                  .getOrElse(NonEmptyList.one(vizConf.map(_.posAngle).getOrElse(Angle.Angle0)))
+              }
+
+              val typedPositions = Ags.generatePositions(
+                baseCoordinates,
+                blindCoordinates,
+                anglesToUse,
+                vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
+                vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
+              )
+              val visualizations =
+                AgsVisualization.patrolFieldGeometries(agsParams, typedPositions)
+
+              println(s"aaaa ${blindOffset}")
+              println(
+                s"Visualizations count: ${visualizations.size}, types: ${visualizations.map(_.position.geometryType).toList}"
+              )
+              // Filter visualizations based on visibility toggles
+              val visibleVisualizations = visualizations.toList.filter { pfv =>
+                pfv.position.geometryType match
+                  case GeometryType.Base         => props.pfVisibility.showBase
+                  case GeometryType.BlindOffset  =>
+                    props.pfVisibility.showBlindOffset
+                  case GeometryType.AcqOffset    =>
+                    props.pfVisibility.showAcquisitionOffset
+                  case GeometryType.SciOffset    =>
+                    props.pfVisibility.showScienceOffset
+                  case GeometryType.Intersection => true
+                  case GeometryType.Vignetting   => false
+              }
+              println(
+                s"Visible visualizations: ${visibleVisualizations.size}, types: ${visibleVisualizations.map(_.position.geometryType)}"
+              )
+
+              // println(visibleVisualizations.map(_.geometryType))
+
+              // Map each visible patrol field to its geometry type color with unique key
+              val individualFields = visibleVisualizations.zipWithIndex.map { case (pfv, idx) =>
+                val baseCss   = pfv.position.geometryType.css
+                // Create unique CSS class by appending index
+                val uniqueCss = Css(s"${baseCss.htmlClass}-$idx")
+                (uniqueCss, pfv.posPatrolField)
+              }
+
+              // Add the intersected patrol field (same for all positions at this PA) if enabled and any are visible
+              val intersectedField =
+                if (visibleVisualizations.nonEmpty && props.pfVisibility.showIntersection)
+                  List(
+                    (
+                      VisualizationStyles.PatrolFieldIntersectionDebug,
+                      visibleVisualizations.head.paIntersection
+                    )
+                  )
+                else
+                  List.empty
+
+              // Add candidates area as anchor for proper viewBox calculation
+              // This ensures the overlay is centered correctly like the main visualization
+              val posAngle    = anglesToUse.head
+              val anchorShape = List(
+                (VisualizationStyles.GmosCandidatesArea,
+                 lucuma.core.geom.gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
+                )
+              )
+
+              SortedMap[Css, ShapeExpression](
+                (individualFields ++ intersectedField ++ anchorShape)*
+              )(using Ordering.by(_.htmlClass))
+            }
+          }
+        // AGS positions for offset indicators (uses single angle)
+        agsPositions           <-
+          useMemo(
+            (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
+          ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
+            for {
+              baseCoordinates <- baseCoords.value._1
+            } yield {
+              val posAngle = selectedGS
+                .map(_.posAngle)
+                .orElse(vizConf.map(_.posAngle))
+                .getOrElse(Angle.Angle0)
+
+              Ags.generatePositions(
+                baseCoordinates,
+                blindOffset,
+                NonEmptyList.one(posAngle),
+                vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
+                vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
+              )
+            }
+          }
         // resize detector
-        resize     <- useResizeDetector
+        resize                 <- useResizeDetector
         // memoized catalog targets with their proper motions corrected
-        candidates <- useMemo(
-                        (props.guideStarCandidates,
-                         props.globalPreferences.showCatalog,
-                         props.globalPreferences.fullScreen,
-                         props.options.fovRA,
-                         props.siderealDiscretizedObsTime,
-                         props.vizConf.map(_.configuration),
-                         props.selectedGuideStar,
-                         baseCoords,
-                         survey
-                        )
-                      ):
-                        (
-                          candidates,
-                          visible,
-                          _,
-                          fovRA,
-                          siderealDiscretizedObsTime,
-                          configuration,
-                          selectedGS,
-                          baseCoords,
-                          survey
-                        ) =>
-                          selectedGS.posAngle.foldMap: _ =>
-                            val (_, scienceTargets) = baseCoords.value
-                            guideStars(
-                              candidates,
-                              visible,
-                              fovRA,
-                              siderealDiscretizedObsTime,
-                              configuration,
-                              selectedGS,
-                              scienceTargets,
-                              survey.value.epoch
-                            )
+        candidates             <- useMemo(
+                                    (props.guideStarCandidates,
+                                     props.globalPreferences.showCatalog,
+                                     props.globalPreferences.fullScreen,
+                                     props.options.fovRA,
+                                     props.siderealDiscretizedObsTime,
+                                     props.vizConf.map(_.configuration),
+                                     props.selectedGuideStar,
+                                     baseCoords,
+                                     survey
+                                    )
+                                  ):
+                                    (
+                                      candidates,
+                                      visible,
+                                      _,
+                                      fovRA,
+                                      siderealDiscretizedObsTime,
+                                      configuration,
+                                      selectedGS,
+                                      baseCoords,
+                                      survey
+                                    ) =>
+                                      selectedGS.posAngle.foldMap: _ =>
+                                        val (_, scienceTargets) = baseCoords.value
+                                        guideStars(
+                                          candidates,
+                                          visible,
+                                          fovRA,
+                                          siderealDiscretizedObsTime,
+                                          configuration,
+                                          selectedGS,
+                                          survey.value.epoch
+                                        )
         // Use fov from aladin
-        fov        <- useState(none[Fov])
+        fov                    <- useState(none[Fov])
         // Update survey if conf changes
-        _          <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
-                        _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
+        _                      <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
+                                    _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
         val (baseCoordinates, scienceTargets) = baseCoords.value
 
@@ -423,47 +589,56 @@ object AladinContainer extends AladinCommon {
           survey.value.epoch
         )
 
-        def offsetIndicators(
-          f:       ConfigurationForVisualization => Option[NonEmptyList[Offset]],
-          oType:   SequenceType,
-          css:     Css,
-          visible: Visible
-        ) =
-          props.vizConf.foldMap(f).foldMap(_.toList).zipWithIndex.map { case (o, i) =>
-            for {
-              idx       <- refineV[NonNegative](i).toOption
-              posAngle  <- props.selectedGuideStar
-                             .map(_.posAngle)
-                             .orElse(props.vizConf.map(_.posAngle))
-              baseCoords = if (oType === SequenceType.Acquisition) {
-                             props.blindOffset
-                               .orElse(baseCoordinates)
-                           } else {
-                             baseCoordinates
-                           }
-              c         <- baseCoords.flatMap(_.offsetBy(posAngle, o)) if visible
-            } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
-          }
+        // Offset indicators using pre-computed locations from AGS positions
+        // pos.location is already rotated: (offsetPos - pivot).rotate(posAngle) + pivot
+        val offsetPositions = agsPositions.value.toList.flatMap { positions =>
+          // Science offset indicators
+          val scienceOffsets =
+            if (props.globalPreferences.scienceOffsets.value) {
+              positions.toList
+                .filter(_.geometryType == GeometryType.SciOffset)
+                .zipWithIndex
+                .flatMap { case (pos, i) =>
+                  for {
+                    idx <- refineV[NonNegative](i).toOption
+                    // pos.location is already rotated, apply with Angle0
+                    c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
+                  } yield SVGTarget.OffsetIndicator(
+                    c,
+                    idx,
+                    pos.offsetPos,
+                    SequenceType.Science,
+                    ExploreStyles.ScienceOffsetPosition,
+                    4
+                  )
+                }
+            } else Nil
 
-        val scienceOffsetIndicators =
-          offsetIndicators(
-            _.scienceOffsets,
-            SequenceType.Science,
-            ExploreStyles.ScienceOffsetPosition,
-            props.globalPreferences.scienceOffsets
-          )
+          // Acquisition offset indicators
+          val acquisitionOffsets =
+            if (props.globalPreferences.acquisitionOffsets.value) {
+              positions.toList
+                .filter(_.geometryType == GeometryType.AcqOffset)
+                .zipWithIndex
+                .flatMap { case (pos, i) =>
+                  for {
+                    idx <- refineV[NonNegative](i).toOption
+                    // pos.location is already rotated, apply with Angle0
+                    c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
+                  } yield SVGTarget.OffsetIndicator(
+                    c,
+                    idx,
+                    pos.offsetPos,
+                    SequenceType.Acquisition,
+                    ExploreStyles.AcquisitionOffsetPosition,
+                    4
+                  )
+                }
+            } else Nil
 
-        val acquisitionOffsetIndicators =
-          offsetIndicators(
-            _.acquisitionOffsets,
-            SequenceType.Acquisition,
-            ExploreStyles.AcquisitionOffsetPosition,
-            props.globalPreferences.acquisitionOffsets
-          )
-
-        val offsetPositions =
-          // order is important, scienc to be drawn above acq
-          (acquisitionOffsetIndicators |+| scienceOffsetIndicators).flattenOption
+          // order is important, science to be drawn above acq
+          acquisitionOffsets ++ scienceOffsets
+        }
 
         // Render blind offset targets from obsTargets separately
         val blindOffsetTargets = renderTargets(
@@ -528,6 +703,22 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              <.div(TagMod.devOnly:
+                (resize.width,
+                 resize.height,
+                 fov.value,
+                 debugPatrolFieldShapes.value.flatMap(m => NonEmptyMap.fromMap(m))
+                )
+                  .mapN(
+                    SVGVisualizationOverlay(
+                      _,
+                      _,
+                      _,
+                      screenOffset,
+                      _,
+                      Css.Empty
+                    )
+                  )),
               ReactAladin(
                 ExploreStyles.TargetAladin,
                 AladinOptions(

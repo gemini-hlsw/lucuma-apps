@@ -28,7 +28,7 @@ object PFVisibility:
 
   val Default = PFVisibility(
     showBase = false,
-    showBlindOffset = false,
+    showBlindOffset = true,
     showAcquisitionOffset = false,
     showScienceOffset = false,
     showIntersection = false,

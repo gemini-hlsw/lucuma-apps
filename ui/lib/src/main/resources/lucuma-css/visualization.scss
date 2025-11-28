@@ -86,6 +86,37 @@
     stroke-dasharray: 3;
   }
 
+  // Individual patrol fields - colored by position type (with indexed variants)
+  [class^="patrol-field-base"] {
+    stroke: hsl(240deg 100% 60.2%);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  [class^="patrol-field-blind-offset"] {
+    stroke: purple;
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  [class^="patrol-field-acquisition-offset"] {
+    stroke: hsl(9deg 70% 63.9%);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  [class^="patrol-field-science-offset"] {
+    stroke: hsl(181deg 100% 41%);
+    stroke-width: 1px;
+    fill: none;
+  }
+
+  .patrol-field-intersected-debug {
+    stroke: hsl(330deg 100% 50%);
+    stroke-width: 2.5px;
+    fill: none;
+  }
+
   &.flamingos2-fpu-visible .flamingos2-fpu > polygon,
   &.gmos-fpu-visible .gmos-fpu > polygon {
     display: inline;
