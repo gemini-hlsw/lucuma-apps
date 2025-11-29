@@ -24,7 +24,7 @@ type Distance {
     millimeters: BigDecimal!
 }
 
-input DistanceInput {
+input DistanceInput @oneOf {
     micrometers: Long
     millimeters: BigDecimal
 }
@@ -317,7 +317,7 @@ input ProbeFrameOffsetInput {
     alignAngle: AngleInput
 }
 
-input HandsetAdjustmentInput {
+input HandsetAdjustmentInput @oneOf {
     """ Azimuth/Elevation coordinate system """
     horizontalAdjustment: HorizontalOffsetInput
     """ Telescope focal plane coordinate system (X, Y)"""
@@ -452,8 +452,8 @@ input BaffleManualInput {
     deployableBaffle: DeployableBaffle!
 }
 
-input BaffleConfigInput {
-    # One and only one of these must be defined
+"One and only one of the configurations must be provided"
+input BaffleConfigInput @oneOf {
     autoConfig: BaffleAutoInput
     manualConfig: BaffleManualInput
 }
