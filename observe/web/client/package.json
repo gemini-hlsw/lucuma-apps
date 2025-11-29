@@ -4,13 +4,10 @@
   "dependencies": {
     "@floating-ui/react": "0.27.16",
     "@fontsource/lato": "5.2.7",
-    "@fortawesome/fontawesome-pro": "7.1.0",
     "@fortawesome/fontawesome-svg-core": "7.1.0",
-    "@fortawesome/pro-duotone-svg-icons": "7.1.0",
     "@fortawesome/pro-light-svg-icons": "7.1.0",
     "@fortawesome/pro-regular-svg-icons": "7.1.0",
     "@fortawesome/pro-solid-svg-icons": "7.1.0",
-    "@fortawesome/pro-thin-svg-icons": "7.1.0",
     "@fortawesome/sharp-solid-svg-icons": "7.1.0",
     "@react-hook/resize-observer": "2.0.2",
     "@react-hook/size": "2.1.2",

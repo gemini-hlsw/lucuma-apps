@@ -81,7 +81,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter explore
+        run: pnpm install --frozen-lockfile --filter explore --prefer-offline
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -226,7 +226,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter explore
+        run: pnpm install --frozen-lockfile --filter explore --prefer-offline
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
@@ -305,7 +305,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter observe
+        run: pnpm install --frozen-lockfile --filter observe --prefer-offline
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
@@ -403,7 +403,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --frozen-lockfile --filter 'lucuma-apps' --prefer-offline
 
       - name: Import CSS files
         run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss

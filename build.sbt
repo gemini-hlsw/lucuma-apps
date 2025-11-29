@@ -1089,7 +1089,16 @@ lazy val rootSetupNodePnpmInstall =
   setupPnpmAndNode ++
     List(
       WorkflowStep.Run(
-        List("pnpm install --frozen-lockfile"),
+        List("pnpm install --frozen-lockfile --filter '!lucuma-ui-demo' --prefer-offline"),
+        name = Some("pnpm install")
+      )
+    )
+
+lazy val rootOnlySetupNodePnpmInstall =
+  setupPnpmAndNode ++
+    List(
+      WorkflowStep.Run(
+        List("pnpm install --frozen-lockfile --filter 'lucuma-apps' --prefer-offline"),
         name = Some("pnpm install")
       )
     )
@@ -1097,7 +1106,7 @@ lazy val rootSetupNodePnpmInstall =
 lazy val exploreSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter explore"),
+      List("pnpm install --frozen-lockfile --filter explore --prefer-offline"),
       name = Some("pnpm install")
     )
   )
@@ -1105,7 +1114,7 @@ lazy val exploreSetupNodePnpmInstall =
 lazy val observeSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter observe"),
+      List("pnpm install --frozen-lockfile --filter observe --prefer-offline"),
       name = Some("pnpm install")
     )
   )
@@ -1293,7 +1302,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "lint",
     "Run linters",
     githubWorkflowJobSetup.value.toList :::
-      rootSetupNodePnpmInstall :::
+      rootOnlySetupNodePnpmInstall :::
       lucumaCssStep ::
       lintAllStep ::
       Nil,
