@@ -65,7 +65,7 @@ object ConfigurationRequestJustificationViewer
             header = "Justification Viewer",
             footer = footer
           )(
-            ReactMarkdown(content = md, clazz = ExploreStyles.HelpMarkdownBody)
+            <.div(ExploreStyles.HelpMarkdownBody)(ReactMarkdown(content = md))
           )
         )
     )

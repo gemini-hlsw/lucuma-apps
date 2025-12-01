@@ -96,22 +96,19 @@ object HelpBody:
             ).mini.compact
           )
         ),
-        <.div(
-          ExploreStyles.HelpBody,
-          themeAttr := "light",
-          state.get match {
+        <.div(ExploreStyles.HelpBody, ExploreStyles.HelpMarkdownBody, themeAttr := "light")(
+          state.get match
             case Pot.Ready(a)                                 =>
               ReactMarkdown(
                 content = a,
-                clazz = ExploreStyles.HelpMarkdownBody,
                 imageConv,
                 remarkPlugins = List(RemarkPlugin.RemarkMath, RemarkPlugin.RemarkGFM),
                 rehypePlugins = List(RehypePlugin.RehypeExternalLinks, RehypePlugin.RehypeKatex)
               )
             case Pot.Pending                                  =>
-              <.div(ExploreStyles.HelpMarkdownBody, "Loading...")
+              "Loading..."
             case Pot.Error(o) if o.getMessage.contains("404") =>
-              <.div(ExploreStyles.HelpMarkdownBody)(
+              <.div(
                 "Not found",
                 TagMod.when(props.userVault.isStaffOrAdmin)(
                   React.Fragment(
@@ -121,10 +118,6 @@ object HelpBody:
                 )
               )
             case Pot.Error(_)                                 =>
-              <.div(
-                ExploreStyles.HelpMarkdownBody,
-                "We encountered an error trying to read the help file"
-              )
-          }
+              "We encountered an error trying to read the help file"
         )
       )

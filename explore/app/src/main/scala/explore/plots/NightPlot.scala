@@ -24,6 +24,7 @@ import lucuma.core.util.time.format.GppTimeFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
 import lucuma.typed.highcharts.highchartsStrings.area
+import lucuma.typed.highcharts.mod as Highcharts
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
@@ -40,7 +41,6 @@ import scala.collection.MapView
 import scala.scalajs.js
 
 import js.JSConverters.*
-import lucuma.typed.highcharts.mod as Highcharts
 
 case class NightPlot(
   plotData:         PlotData,
