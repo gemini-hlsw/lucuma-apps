@@ -32,6 +32,7 @@ import explore.optics.ModelOptics
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.*
+import lucuma.ags.syntax.*
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosSouthFpu
@@ -345,8 +346,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          props.sciencePositionsAt(vizTime),
                                          props.obsTargets.blindOffsetSiderealTracking.flatMap(_.at(vizTime)),
                                          angles,
-                                         props.obsConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
-                                         props.obsConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply),
+                                         props.obsConf.flatMap(_.guidedAcqOffsets),
+                                         props.obsConf.flatMap(_.guidedSciOffsets),
                                          params,
                                          candidates
                                        )

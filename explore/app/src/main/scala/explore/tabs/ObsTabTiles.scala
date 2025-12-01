@@ -64,6 +64,7 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.TimeSpan
@@ -137,14 +138,20 @@ case class ObsTabTiles(
 
   def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
 
-  def acqOffset: Option[NonEmptyList[Offset]] =
+  def acqConfigs: Option[NonEmptyList[TelescopeConfig]] =
     NonEmptyList.fromList(
-      Execution.acqOffset.getOption(observation.get.execution).orEmpty.toList.distinct
+      Execution.acqConfigs
+        .getOption(observation.get.execution)
+        .orEmpty
+        .toList
     )
 
-  def sciOffset: Option[NonEmptyList[Offset]] =
+  def sciConfigs: Option[NonEmptyList[TelescopeConfig]] =
     NonEmptyList.fromList(
-      Execution.sciOffset.getOption(observation.get.execution).orEmpty.toList.distinct
+      Execution.sciConfigs
+        .getOption(observation.get.execution)
+        .orEmpty
+        .toList
     )
 
   def obsIQLikelihood(obsTime: Instant): Option[IntCentiPercent] =
@@ -445,8 +452,8 @@ object ObsTabTiles:
               paProps.some,
               props.constraintSet.get.some,
               props.centralWavelength,
-              props.sciOffset,
-              props.acqOffset,
+              props.sciConfigs,
+              props.acqConfigs,
               averagePA,
               obsDuration.map(_.toDuration),
               props.observation.get.needsAGS(props.obsTargets),

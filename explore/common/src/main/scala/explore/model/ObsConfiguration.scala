@@ -13,13 +13,14 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.enums.AgsState
 import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
+import lucuma.ags.syntax.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Angle
-import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import org.typelevel.cats.time.instances.duration.*
@@ -32,8 +33,8 @@ case class ObsConfiguration(
   posAngleProperties: Option[PAProperties],
   constraints:        Option[ConstraintSet],
   centralWavelength:  Option[CentralWavelength],
-  scienceOffsets:     Option[NonEmptyList[Offset]],
-  acquisitionOffsets: Option[NonEmptyList[Offset]],
+  scienceOffsets:     Option[NonEmptyList[TelescopeConfig]],
+  acquisitionOffsets: Option[NonEmptyList[TelescopeConfig]],
   averagePA:          Option[AveragePABasis],
   obsDuration:        Option[Duration],
   needGuideStar:      Boolean,
@@ -61,6 +62,12 @@ case class ObsConfiguration(
 
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
+
+  def guidedAcqOffsets =
+    acquisitionOffsets.flatMap(_.asAcqOffsets)
+
+  def guidedSciOffsets =
+    scienceOffsets.flatMap(_.asSciOffsets)
 
 object ObsConfiguration:
   def forPlainTarget(

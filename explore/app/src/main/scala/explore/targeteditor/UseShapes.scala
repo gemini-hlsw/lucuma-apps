@@ -12,13 +12,11 @@ import explore.model.PFVisibility
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
-import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
 import lucuma.ags.GeometryType
-import lucuma.ags.ScienceOffsets
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.ObservingModeType
@@ -101,8 +99,8 @@ def usePatrolFieldShapes(
         baseCoords,
         blindOffset,
         paAngles,
-        vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
-        vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
+        vizConf.flatMap(_.asAcqOffsets),
+        vizConf.flatMap(_.asSciOffsets)
       )
 
       val visualizations =
@@ -172,8 +170,8 @@ def useVisualizationShapes(
            Flamingos2Geometry.f2Geometry(
              baseCoords,
              blindOffset,
-             vizConf.flatMap(_.scienceOffsets),
-             vizConf.flatMap(_.acquisitionOffsets),
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.flatMap(_.guidedAcqOffsets),
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,
@@ -186,8 +184,8 @@ def useVisualizationShapes(
            GmosGeometry.gmosGeometry(
              baseCoords,
              blindOffset,
-             vizConf.flatMap(_.scienceOffsets),
-             vizConf.flatMap(_.acquisitionOffsets),
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.flatMap(_.guidedAcqOffsets),
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,
@@ -200,8 +198,8 @@ def useVisualizationShapes(
            GmosGeometry.gmosGeometry(
              baseCoords,
              blindOffset,
-             vizConf.flatMap(_.scienceOffsets),
-             vizConf.flatMap(_.acquisitionOffsets),
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.flatMap(_.guidedAcqOffsets),
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,

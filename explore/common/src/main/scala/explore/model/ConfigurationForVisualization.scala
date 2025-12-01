@@ -8,9 +8,12 @@ import cats.data.NonEmptyList
 import cats.derived.*
 import cats.implicits.*
 import explore.model.syntax.all.*
+import lucuma.ags.*
+import lucuma.ags.AcquisitionOffsets
+import lucuma.ags.syntax.*
 import lucuma.core.math.Angle
-import lucuma.core.math.Offset
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 
@@ -19,8 +22,8 @@ import lucuma.schemas.model.CentralWavelength
 // Or the minimal config from the modes table
 case class ConfigurationForVisualization private (
   configuration:              BasicConfiguration,
-  scienceOffsets:             Option[NonEmptyList[Offset]],
-  acquisitionOffsets:         Option[NonEmptyList[Offset]],
+  scienceOffsets:             Option[NonEmptyList[TelescopeConfig]],
+  acquisitionOffsets:         Option[NonEmptyList[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
   centralWavelength:          Option[CentralWavelength]
@@ -31,6 +34,18 @@ case class ConfigurationForVisualization private (
     selectedPosAngle.getOrElse(
       configuration.obsModeType.defaultPosAngleConstraint.fallbackPosAngle(none)
     )
+
+  def guidedAcqOffsets: Option[NonEmptyList[GuidedOffset]] =
+    acquisitionOffsets.flatMap(_.guidedOffsets)
+
+  def asAcqOffsets: Option[AcquisitionOffsets] =
+    acquisitionOffsets.flatMap(_.asAcqOffsets)
+
+  def guidedSciOffsets: Option[NonEmptyList[GuidedOffset]] =
+    scienceOffsets.flatMap(_.guidedOffsets)
+
+  def asSciOffsets: Option[ScienceOffsets] =
+    scienceOffsets.flatMap(_.asSciOffsets)
 
 object ConfigurationForVisualization:
   def fromObsConfiguration(

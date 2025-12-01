@@ -23,11 +23,9 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.GeometryType
-import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.Angle
@@ -285,9 +283,7 @@ object AladinContainer extends AladinCommon {
         agsPositions <- useMemo(
                           (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
                         ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
-                          for {
-                            baseCoordinates <- baseCoords.value._1
-                          } yield {
+                          baseCoords.value._1.map: baseCoordinates =>
                             val posAngle = selectedGS
                               .map(_.posAngle)
                               .orElse(vizConf.map(_.posAngle))
@@ -297,10 +293,9 @@ object AladinContainer extends AladinCommon {
                               baseCoordinates,
                               blindOffset,
                               NonEmptyList.one(posAngle),
-                              vizConf.flatMap(_.acquisitionOffsets).map(AcquisitionOffsets.apply),
-                              vizConf.flatMap(_.scienceOffsets).map(ScienceOffsets.apply)
+                              vizConf.flatMap(_.asAcqOffsets),
+                              vizConf.flatMap(_.asSciOffsets)
                             )
-                          }
                         }
         // resize detector
         resize       <- useResizeDetector
