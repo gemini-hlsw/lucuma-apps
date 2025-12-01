@@ -61,12 +61,17 @@ trait CatalogCache extends CatalogIDB {
     val start = ldt.`with`(ChronoField.DAY_OF_YEAR, 1L).`with`(ChronoField.NANO_OF_DAY, 0)
     val end   = start.plus(1, ChronoUnit.YEARS)
 
+    // If tracking returns None at start and/or end, it's probably because a non-sidereal is
+    // involved. In which case, we'll just use obs time.
     (tracking.at(start.toInstant(ZoneOffset.UTC)), tracking.at(end.toInstant(ZoneOffset.UTC)))
-      .mapN { (a, b) =>
-        // Make a query based on two coordinates of the base of an asterism over a year
+      .mapN(NonEmptyList.of(_, _))
+      .orElse(tracking.at(obsTime).map(NonEmptyList.one))
+      .map { coordsList =>
+        // Make a query based on two coordinates of the base of an asterism over a year,
+        // unless a non-sidereal is involved.
         val query: CoordinatesRangeQueryByADQL =
           CoordinatesRangeQueryByADQL(
-            NonEmptyList.of(a, b),
+            coordsList,
             candidatesArea,
             brightnessConstraints.some
           )

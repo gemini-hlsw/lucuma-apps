@@ -5,11 +5,7 @@ package lucuma.schemas.model
 
 import cats.kernel.laws.discipline.*
 import lucuma.schemas.model.arb.ArbTargetWithId.given
-import monocle.law.discipline.*
 import munit.DisciplineSuite
 
 class TargetWithIdSuite extends DisciplineSuite:
   checkAll("Eq[TargetWithId]", EqTests[TargetWithId].eqv)
-  checkAll("Eq[SiderealTargetWithId]", EqTests[SiderealTargetWithId].eqv)
-  checkAll("TargetWithId.sidereal", PrismTests(TargetWithId.sidereal))
-  checkAll("TargetWithId.nonsidereal", PrismTests(TargetWithId.nonsidereal))

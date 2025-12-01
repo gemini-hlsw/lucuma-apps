@@ -17,11 +17,11 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ElevationPlotScheduling
 import explore.model.GlobalPreferences
+import explore.model.deprecatedExtensions.*
 import explore.model.display.given
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
 import explore.model.enums.Visible
-import explore.model.extensions.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -204,7 +204,6 @@ object ElevationPlotTile:
               case PlotRange.Night | PlotRange.FullDay =>
                 NightPlot(
                   props.plotData,
-                  dateView.get.atStartOfDay.toInstant(ZoneOffset.UTC),
                   windowsNetExcludeIntervals,
                   props.obsTime,
                   props.obsDuration,
@@ -218,7 +217,7 @@ object ElevationPlotTile:
                     data.tracking
                       .at(semesterView.get.start.atSite(siteView.get).toInstant)
                       .getOrElse:
-                        data.tracking.baseCoordinates
+                        data.tracking.baseCoordinatesDeprecated
 
                   SemesterPlot(
                     plotOptions.get,

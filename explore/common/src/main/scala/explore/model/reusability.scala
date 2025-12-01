@@ -123,7 +123,8 @@ object reusability:
   given Reusability[ConfigSelection]                    = Reusability.byEq
   given Reusability[CentralWavelength]                  = Reusability.byEq
   given Reusability[Tracking]                           = Reusability.byEq
-  given Reusability[ObservationTargets]                 = Reusability.byEq[ObservationTargets]
+  given Reusability[ObservationTargets]                 = Reusability.byEq
+  given Reusability[ObservationTargetsCoordinatesAt]    = Reusability.byEq
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq
   given Reusability[PFVisibility]                       = Reusability.byEq

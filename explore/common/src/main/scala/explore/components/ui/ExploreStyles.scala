@@ -431,8 +431,6 @@ object ExploreStyles:
 
   val SelectColumns: Css = Css("explore-select-columns")
 
-  val VeryCompact: Css = Css("verycompact")
-
   val SharedEditWarning: Css = Css("explore-shared-edit-warning")
 
   val StickyColumn: Css            = Css("sticky-column")

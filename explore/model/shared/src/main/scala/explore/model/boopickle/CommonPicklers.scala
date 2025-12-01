@@ -29,6 +29,7 @@ import lucuma.core.math.WavelengthDelta
 import lucuma.core.model.AirMassBound
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
+import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.HourAngleBound
 import lucuma.core.model.Semester
 import lucuma.core.model.Target
@@ -207,6 +208,8 @@ trait CommonPicklers {
 
   given Pickler[Timestamp] =
     transformPickler((instant: Instant) => Timestamp.fromInstant(instant).get)(_.toInstant)
+
+  given Pickler[EphemerisCoordinates] = generatePickler
 }
 
 object CommonPicklers extends CommonPicklers

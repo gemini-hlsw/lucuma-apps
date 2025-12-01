@@ -20,8 +20,8 @@ import explore.model.ObsIdSet
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
+import explore.model.deprecatedExtensions.*
 import explore.model.enums.TableId
-import explore.model.extensions.*
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
@@ -178,7 +178,7 @@ object TargetTable extends AsterismModifier:
                      (props.obsTargets, props.obsAndTargets.get._2, vizTime.value)
                    ):
                      case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
-                       asterism.map(_.at(vizTime)).toList
+                       asterism.map(_.atDeprecated(vizTime)).toList
                      case _                                                => Nil
         table   <- useReactTableWithStateStore:
                      import ctx.given

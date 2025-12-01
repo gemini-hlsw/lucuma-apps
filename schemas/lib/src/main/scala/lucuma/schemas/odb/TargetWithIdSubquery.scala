@@ -26,6 +26,9 @@ object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetW
           objectType
         }
       }
+      nonsidereal {
+        key
+      }
       opportunity {
         region {
           rightAscensionArc {

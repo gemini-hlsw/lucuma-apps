@@ -8,6 +8,7 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.AngularSize
 import lucuma.catalog.CatalogTargetResult
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.SiderealTracking
@@ -22,9 +23,10 @@ case class TargetSearchResult(
   targetWithOptId: TargetWithOptId,
   angularSize:     Option[AngularSize]
 ) extends TargetWithMetadata:
-  val optId: Option[Target.Id]       = targetWithOptId.optId
-  val target: Target                 = targetWithOptId.target
-  val disposition: TargetDisposition = targetWithOptId.disposition
+  val optId: Option[Target.Id]                 = targetWithOptId.optId
+  val target: Target                           = targetWithOptId.target
+  val disposition: TargetDisposition           = targetWithOptId.disposition
+  val calibrationRole: Option[CalibrationRole] = targetWithOptId.calibrationRole
 
 object TargetSearchResult:
   def fromCatalogTargetResult(r: CatalogTargetResult): TargetSearchResult =

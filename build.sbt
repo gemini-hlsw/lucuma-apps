@@ -329,6 +329,7 @@ lazy val exploreCommonLibSettings = Seq(
       Http4sCore.value ++
       Kittens.value ++
       LucumaCore.value ++
+      LucumaHorizons.value ++
       LucumaOdbSchema.value ++
       LucumaAgs.value ++
       LucumaItcClient.value ++

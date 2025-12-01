@@ -44,7 +44,6 @@ import js.JSConverters.*
 
 case class NightPlot(
   plotData:         PlotData,
-  coordsTime:       Instant,
   excludeIntervals: List[BoundedInterval[Instant]],
   obsTime:          Option[Instant],
   obsDuration:      Option[Duration],

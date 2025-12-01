@@ -97,10 +97,11 @@ case class AppContext[F[_]](
   given WebSocketJsClient[F, UserPreferencesDB] = clients.preferencesDB
   given FetchJsClient[F, SSO]                   = clients.sso
 
-  given itcWorker: WorkerClient[F, ItcMessage.Request]         = workerClients.itc
-  given catalogWorker: WorkerClient[F, CatalogMessage.Request] = workerClients.catalog
-  given agsWorker: WorkerClient[F, AgsMessage.Request]         = workerClients.ags
-  given plotWorker: WorkerClient[F, PlotMessage.Request]       = workerClients.plot
+  given itcWorker: WorkerClient[F, ItcMessage.Request]           = workerClients.itc
+  given catalogWorker: WorkerClient[F, CatalogMessage.Request]   = workerClients.catalog
+  given agsWorker: WorkerClient[F, AgsMessage.Request]           = workerClients.ags
+  given plotWorker: WorkerClient[F, PlotMessage.Request]         = workerClients.plot
+  given horizonsWorker: WorkerClient[F, HorizonsMessage.Request] = workerClients.horizons
 
   given toastCtx: ToastCtx[F] = new ToastCtx(toastRef)
 

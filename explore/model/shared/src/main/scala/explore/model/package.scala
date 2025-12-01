@@ -58,11 +58,14 @@ private val NewTargetSiderealTracking =
     Parallax.Zero.some
   )
 
+val EmptySourceProfile: SourceProfile =
+  SourceProfile.Point(SpectralDefinition.BandNormalized(none, SortedMap.empty))
+
 val EmptySiderealTarget =
   Target.Sidereal(
     NewTargetName,
     NewTargetSiderealTracking,
-    SourceProfile.Point(SpectralDefinition.BandNormalized(none, SortedMap.empty)),
+    EmptySourceProfile,
     none
   )
 
@@ -70,7 +73,7 @@ val EmptyOpportunityTarget =
   Target.Opportunity(
     NewTargetName,
     Region.Full,
-    SourceProfile.Point(SpectralDefinition.BandNormalized(none, SortedMap.empty))
+    EmptySourceProfile
   )
 
 type AsterismGroupList             = SortedMap[ObsIdSet, SortedSet[Target.Id]]

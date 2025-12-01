@@ -8,6 +8,7 @@ import explore.Icons
 import explore.model.Group
 import explore.model.Observation
 import explore.model.ObservationTargets
+import explore.model.deprecatedExtensions.*
 import explore.model.extensions.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.VdomNode
@@ -68,7 +69,7 @@ enum ObsSummaryRow:
     twid:    TargetWithId,
     vizTime: Option[Instant]
   ): Option[Either[Coordinates, Region]] =
-    vizTime.fold(twid.target)(twid.target.at).coordsOrRegion
+    vizTime.fold(twid.target)(twid.target.atDeprecated).baseCoordsOrRegion
 
   private def asterismCoordsOrRegion(
     asterism: Option[ObservationTargets],
