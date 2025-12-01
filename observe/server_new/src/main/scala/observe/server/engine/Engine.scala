@@ -4,7 +4,6 @@
 package observe.server.engine
 
 import cats.Endo
-import cats.data.StateT
 import cats.effect.Concurrent
 import cats.effect.MonadCancelThrow
 import cats.effect.std.Queue
