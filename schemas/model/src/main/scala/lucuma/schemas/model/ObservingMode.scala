@@ -99,8 +99,8 @@ object ObservingMode:
     explicitRoi:               Option[GmosRoi],
     defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
-    defaultSpatialOffsets:     NonEmptyList[Offset.Q],
-    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]],
+    defaultOffsets:            NonEmptyList[Offset.Q],
+    explicitOffsets:           Option[NonEmptyList[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode,
     acquisition:               GmosNorthLongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosNorth) derives Eq:
@@ -117,7 +117,7 @@ object ObservingMode:
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
     val spatialOffsets: NonEmptyList[Offset.Q]            =
-      explicitSpatialOffsets.getOrElse(defaultSpatialOffsets)
+      explicitOffsets.getOrElse(defaultOffsets)
 
     def isCustomized: Boolean =
       initialGrating =!= grating ||
@@ -130,7 +130,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets) ||
+        explicitOffsets.exists(_ =!= defaultOffsets) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosNorthLongSlit =
@@ -145,7 +145,7 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitSpatialOffsets = None,
+        explicitOffsets = None,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -220,10 +220,10 @@ object ObservingMode:
       Focus[GmosNorthLongSlit](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosNorthLongSlit, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosNorthLongSlit](_.explicitWavelengthDithers)
-    val defaultSpatialOffsets: Lens[GmosNorthLongSlit, NonEmptyList[Offset.Q]]                     =
-      Focus[GmosNorthLongSlit](_.defaultSpatialOffsets)
-    val explicitSpatialOffsets: Lens[GmosNorthLongSlit, Option[NonEmptyList[Offset.Q]]]            =
-      Focus[GmosNorthLongSlit](_.explicitSpatialOffsets)
+    val defaultOffsets: Lens[GmosNorthLongSlit, NonEmptyList[Offset.Q]]                            =
+      Focus[GmosNorthLongSlit](_.defaultOffsets)
+    val explicitOffsets: Lens[GmosNorthLongSlit, Option[NonEmptyList[Offset.Q]]]                   =
+      Focus[GmosNorthLongSlit](_.explicitOffsets)
     val exposureTimeMode: Lens[GmosNorthLongSlit, ExposureTimeMode]                                =
       Focus[GmosNorthLongSlit](_.exposureTimeMode)
     val acquisition: Lens[GmosNorthLongSlit, GmosNorthLongSlit.Acquisition]                        =
@@ -250,8 +250,8 @@ object ObservingMode:
     explicitRoi:               Option[GmosRoi],
     defaultWavelengthDithers:  NonEmptyList[WavelengthDither],
     explicitWavelengthDithers: Option[NonEmptyList[WavelengthDither]],
-    defaultSpatialOffsets:     NonEmptyList[Offset.Q],
-    explicitSpatialOffsets:    Option[NonEmptyList[Offset.Q]],
+    defaultOffsets:            NonEmptyList[Offset.Q],
+    explicitOffsets:           Option[NonEmptyList[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode,
     acquisition:               GmosSouthLongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
@@ -268,7 +268,7 @@ object ObservingMode:
     val wavelengthDithers: NonEmptyList[WavelengthDither] =
       explicitWavelengthDithers.getOrElse(defaultWavelengthDithers)
     val spatialOffsets: NonEmptyList[Offset.Q]            =
-      explicitSpatialOffsets.getOrElse(defaultSpatialOffsets)
+      explicitOffsets.getOrElse(defaultOffsets)
 
     def isCustomized: Boolean =
       initialGrating =!= grating ||
@@ -281,7 +281,7 @@ object ObservingMode:
         explicitAmpGain.exists(_ =!= defaultAmpGain) ||
         explicitRoi.exists(_ =!= defaultRoi) ||
         explicitWavelengthDithers.exists(_ =!= defaultWavelengthDithers) ||
-        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets) ||
+        explicitOffsets.exists(_ =!= defaultOffsets) ||
         acquisition.isCustomized
 
     def revertCustomizations: GmosSouthLongSlit =
@@ -296,7 +296,7 @@ object ObservingMode:
         explicitAmpGain = None,
         explicitRoi = None,
         explicitWavelengthDithers = None,
-        explicitSpatialOffsets = None,
+        explicitOffsets = None,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -371,10 +371,10 @@ object ObservingMode:
       Focus[GmosSouthLongSlit](_.defaultWavelengthDithers)
     val explicitWavelengthDithers: Lens[GmosSouthLongSlit, Option[NonEmptyList[WavelengthDither]]] =
       Focus[GmosSouthLongSlit](_.explicitWavelengthDithers)
-    val defaultSpatialOffsets: Lens[GmosSouthLongSlit, NonEmptyList[Offset.Q]]                     =
-      Focus[GmosSouthLongSlit](_.defaultSpatialOffsets)
-    val explicitSpatialOffsets: Lens[GmosSouthLongSlit, Option[NonEmptyList[Offset.Q]]]            =
-      Focus[GmosSouthLongSlit](_.explicitSpatialOffsets)
+    val defaultOffsets: Lens[GmosSouthLongSlit, NonEmptyList[Offset.Q]]                            =
+      Focus[GmosSouthLongSlit](_.defaultOffsets)
+    val explicitOffsets: Lens[GmosSouthLongSlit, Option[NonEmptyList[Offset.Q]]]                   =
+      Focus[GmosSouthLongSlit](_.explicitOffsets)
     val exposureTimeMode: Lens[GmosSouthLongSlit, ExposureTimeMode]                                =
       Focus[GmosSouthLongSlit](_.exposureTimeMode)
     val acquisition: Lens[GmosSouthLongSlit, GmosSouthLongSlit.Acquisition]                        =
