@@ -70,9 +70,6 @@ input AddAtomEventInput {
   atomId: AtomId!
   atomStage: AtomStage!
 
-  """@deprecated: use idempotencyKey instead"""
-  clientId: ClientId
-
   """
   Idempotency key, if any.  The IdempotencyKey may be provided by clients when
   the event is created and is used to enable problem-free retry in the case of
@@ -94,9 +91,6 @@ input AddDatasetEventInput {
 
   """Dataset execution stage."""
   datasetStage: DatasetStage!
-
-  """@deprecated: use idempotencyKey instead"""
-  clientId: ClientId
 
   """
   Idempotency key, if any.  The IdempotencyKey may be provided by clients when
@@ -127,9 +121,6 @@ input AddSequenceEventInput {
   visitId: VisitId!
   command: SequenceCommand!
 
-  """@deprecated: use idempotencyKey instead"""
-  clientId: ClientId
-
   """
   Idempotency key, if any.  The IdempotencyKey may be provided by clients when
   the event is created and is used to enable problem-free retry in the case of
@@ -149,9 +140,6 @@ input AddSlewEventInput {
   observationId: ObservationId!
   slewStage: SlewStage!
 
-  """@deprecated: use idempotencyKey instead"""
-  clientId: ClientId
-
   """
   Idempotency key, if any.  The IdempotencyKey may be provided by clients when
   the event is created and is used to enable problem-free retry in the case of
@@ -170,9 +158,6 @@ type AddSlewEventResult {
 input AddStepEventInput {
   stepId: StepId!
   stepStage: StepStage!
-
-  """@deprecated: use idempotencyKey instead"""
-  clientId: ClientId
 
   """
   Idempotency key, if any.  The IdempotencyKey may be provided by clients when
@@ -1812,12 +1797,6 @@ input GmosNorthLongSlitInput {
   """
   explicitOffsets: [OffsetComponentInput!]
 
-  """
-  The explicitSpatialOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
-  @deprecated(reason: "Use 'explicitOffsets' instead.")
-  """
-  explicitSpatialOffsets: [OffsetComponentInput!]
-
   """Parameters that override acquisition defaults."""
   acquisition: GmosNorthLongSlitAcquisitionInput
 }
@@ -2170,12 +2149,6 @@ input GmosSouthLongSlitInput {
   The explicitOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
   """
   explicitOffsets: [OffsetComponentInput!]
-
-  """
-  The explicitSpatialOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
-  @deprecated(reason: "Use 'explicitOffsets' instead.")
-  """
-  explicitSpatialOffsets: [OffsetComponentInput!]
 
   """Parameters that override acquisition defaults."""
   acquisition: GmosSouthLongSlitAcquisitionInput
