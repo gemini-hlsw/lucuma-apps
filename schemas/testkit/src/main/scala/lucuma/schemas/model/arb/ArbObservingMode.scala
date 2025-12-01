@@ -114,8 +114,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultSpatialOffsets     <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitSpatialOffsets    <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
       } yield ObservingMode.GmosNorthLongSlit(
@@ -139,8 +139,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultSpatialOffsets,
-        explicitSpatialOffsets,
+        defaultOffsets,
+        explicitOffsets,
         exposureTimeMode,
         acquisition
       )
@@ -169,8 +169,8 @@ trait ArbObservingMode {
         explicitRoi               <- arbitrary[Option[GmosRoi]]
         defaultWavelengthDithers  <- arbitrary[NonEmptyList[WavelengthDither]]
         explicitWavelengthDithers <- arbitrary[Option[NonEmptyList[WavelengthDither]]]
-        defaultSpatialOffsets     <- arbitrary[NonEmptyList[Offset.Q]]
-        explicitSpatialOffsets    <- arbitrary[Option[NonEmptyList[Offset.Q]]]
+        defaultOffsets            <- arbitrary[NonEmptyList[Offset.Q]]
+        explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
       } yield ObservingMode.GmosSouthLongSlit(
@@ -194,8 +194,8 @@ trait ArbObservingMode {
         explicitRoi,
         defaultWavelengthDithers,
         explicitWavelengthDithers,
-        defaultSpatialOffsets,
-        explicitSpatialOffsets,
+        defaultOffsets,
+        explicitOffsets,
         exposureTimeMode,
         acquisition
       )
@@ -251,8 +251,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultSpatialOffsets,
-         (o.explicitSpatialOffsets, o.exposureTimeMode, o.acquisition)
+         o.defaultOffsets,
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
         )
       )
 
@@ -306,8 +306,8 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultSpatialOffsets,
-         (o.explicitSpatialOffsets, o.exposureTimeMode, o.acquisition)
+         o.defaultOffsets,
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
         )
       )
 

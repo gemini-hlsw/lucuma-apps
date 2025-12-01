@@ -6,7 +6,11 @@ package lucuma.ui.visualization
 import cats.data.NonEmptyList
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
+import lucuma.ags.AcquisitionOffsets
+import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.AgsParams
+import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
@@ -112,6 +116,7 @@ object Flamingos2Geometry:
   // Full geometry for flamingos2
   def f2Geometry(
     referenceCoordinates:    Coordinates,
+    blindOffset:             Option[Coordinates],
     scienceOffsets:          Option[NonEmptyList[Offset]],
     acquisitionOffsets:      Option[NonEmptyList[Offset]],
     fallbackPosAngle:        Option[Angle],
@@ -131,29 +136,33 @@ object Flamingos2Geometry:
 
         // Don't show the probe if there is no usable GS
         val probe = gs
-          .map { gs =>
+          .map: gs =>
             val gsOffset   =
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
             val probeShape =
               probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, lyotWheel, Css.Empty)
 
-            val offsets =
-              (scienceOffsets |+| acquisitionOffsets)
-                .orElse(NonEmptyList.one(Offset.Zero).some)
+            val positions = Ags.generatePositions(
+              referenceCoordinates,
+              blindOffset,
+              NonEmptyList.one(posAngle),
+              acquisitionOffsets.map(AcquisitionOffsets.apply),
+              scienceOffsets.map(ScienceOffsets.apply)
+            )
+
+            val fpu =
+              conf match
+                case Some(BasicConfiguration.Flamingos2LongSlit(fpu = fpu)) => fpu.some
+                case _                                                      => none
 
             val patrolFieldIntersection =
-              for {
-                conf <- conf
-                o    <- offsets
-              } yield Flamingos2Geometry.patrolFieldIntersection(posAngle,
-                                                                 o.distinct,
-                                                                 conf,
-                                                                 port,
-                                                                 lyotWheel
-              )
+              (conf, fpu).mapN: (_, fpu) =>
+                val fpuMask   = Flamingos2FpuMask.Builtin(fpu)
+                val agsParams = AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port)
+                val calcs     = agsParams.posCalculations(positions)
+                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
-          }
 
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])
       }
