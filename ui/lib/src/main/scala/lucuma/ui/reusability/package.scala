@@ -159,7 +159,7 @@ trait TableReusabilityInstances:
   given Reusability[Map[ColumnId, Visibility]] = Reusability.map
   given Reusability[ColumnVisibility]          = Reusability.by(_.value)
   given Reusability[SortDirection]             = Reusability.by(_.toDescending)
-  given Reusability[ColumnSort]                = Reusability.derive
+  given Reusability[ColumnSort]                = Reusability.by(cs => (cs.columnId, cs.direction))
   given Reusability[Sorting]                   = Reusability.by(_.value)
   given [TF]: Reusability[TableState[TF]]      =
     Reusability.by(state => (state.columnVisibility, state.sorting))

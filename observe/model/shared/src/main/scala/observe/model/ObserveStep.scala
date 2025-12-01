@@ -16,7 +16,6 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.odb.json.offset.transport.given
 import lucuma.odb.json.stepconfig.given
-import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 import monocle.Prism
