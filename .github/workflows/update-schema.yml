@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout current branch (full)
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Generate token
@@ -36,12 +36,10 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter lucuma-schemas
+        run: pnpm install --frozen-lockfile --filter lucuma-schemas --prefer-offline
 
       - name: Install dependencies and fetch latest ODB schema
         run: pnpm schemas fetch-schema dev
-        env:
-          ODB_API_KEY: ${{ secrets.LUCUMA_DEV_API_KEY }}
       - name: Create Pull Request
         id: cpr
         uses: peter-evans/create-pull-request@v7

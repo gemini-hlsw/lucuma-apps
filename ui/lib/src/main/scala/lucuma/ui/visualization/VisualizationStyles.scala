@@ -32,6 +32,7 @@ object VisualizationStyles:
   val JtsPolygon       = Css("viz-polygon")
   val JtsCollection    = Css("viz-collecttion")
   val VisualizationSvg = Css("visualization-overlay-svg")
+  val Anchor           = Css("visualization-anchor")
 
   // GMOS-specific styles
   val GmosScienceCcd: Css            = Css("gmos-science-ccd")
@@ -57,3 +58,11 @@ object VisualizationStyles:
   val Flamingos2ProbeArmVisible: Css       = Css("flamingos2-probe-arm-visible")
   val Flamingos2PatrolField: Css           = Css("flamingos2-patrol-field")
   val Flamingos2PatrolFieldVisible: Css    = Css("flamingos2-patrol-field-visible")
+
+  // Debug patrol fields
+  val PatrolFieldBase: Css              = Css("patrol-field-base")
+  val PatrolFieldBlindOffset: Css       = Css("patrol-field-blind-offset")
+  val PatrolFieldAcquisitionOffset: Css = Css("patrol-field-acquisition-offset")
+  val PatrolFieldScienceOffset: Css     = Css("patrol-field-science-offset")
+  val PatrolFieldIntersectionDebug: Css = Css("patrol-field-intersected-debug")
+  val DebugScienceVignetting: Css       = Css("science-vignetting-debug")

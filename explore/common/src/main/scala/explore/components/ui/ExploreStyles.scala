@@ -503,6 +503,11 @@ object ExploreStyles:
   val ButtonOnAladin               = Css("explore-aladin-button")
   val AladinFullScreenButton       = Css("explore-aladin-fullscreen-button")
   val AladinSettingsMenu           = Css("explore-aladin-settings-menu")
+  val PatrolFieldBase              = Css("patrol-field-base")
+  val PatrolFieldBlindOffset       = Css("patrol-field-blind-offset")
+  val PatrolFieldAcqOffset         = Css("patrol-field-acq-offset")
+  val PatrolFieldSciOffset         = Css("patrol-field-sci-offset")
+  val PatrolFieldIntersection      = Css("patrol-field-intersection")
   val BlendedSVG                   = Css("blended-svg")
 
   val ExplorePromptToast = Css("explore-prompt-toast")

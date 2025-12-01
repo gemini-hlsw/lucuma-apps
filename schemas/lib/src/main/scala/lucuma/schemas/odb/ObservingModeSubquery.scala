@@ -32,8 +32,8 @@ object ObservingModeSubquery
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultSpatialOffsets $AngleSubquery
-            explicitSpatialOffsets $AngleSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
@@ -64,8 +64,8 @@ object ObservingModeSubquery
             explicitRoi
             defaultWavelengthDithers $WavelengthDitherSubquery
             explicitWavelengthDithers $WavelengthDitherSubquery
-            defaultSpatialOffsets $AngleSubquery
-            explicitSpatialOffsets $AngleSubquery
+            defaultOffsets $AngleSubquery
+            explicitOffsets $AngleSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
