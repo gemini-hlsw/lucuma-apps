@@ -143,7 +143,7 @@ object GmosLongslitConfigPanel {
       Option[NonEmptyList[WavelengthDither]]
     ]
 
-    protected def explicitSpatialOffsets(aligner: AA)(using
+    protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
@@ -182,7 +182,7 @@ object GmosLongslitConfigPanel {
     protected val defaultReadModeGainLens: Lens[T, (GmosAmpReadMode, GmosAmpGain)]
     protected val defaultRoiLens: Lens[T, GmosRoi]
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
-    protected val defaultSpatialOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
+    protected val defaultOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
 
     protected val excludedAcquisitionFilters: Set[Filter]
     protected val defaultAcquisitionFilterLens: Lens[T, Filter]
@@ -295,8 +295,8 @@ object GmosLongslitConfigPanel {
                   allowRevertCustomization = allowRevertCustomization
                 ),
                 OffsetsControl(
-                  explicitSpatialOffsets(props.observingMode),
-                  defaultSpatialOffsetsLens.get(props.observingMode.get),
+                  explicitOffsets(props.observingMode),
+                  defaultOffsetsLens.get(props.observingMode.get),
                   props.sequenceChanged,
                   disableSimpleEdit,
                   showCustomization = showCustomization,
@@ -607,14 +607,14 @@ object GmosLongslitConfigPanel {
       )
       .view(_.map(_.map(_.toInput).toList).orUnassign)
 
-    inline override protected def explicitSpatialOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[NonEmptyList[Offset.Q]]] = aligner
       .zoom(
-        ObservingMode.GmosNorthLongSlit.explicitSpatialOffsets,
-        GmosNorthLongSlitInput.explicitSpatialOffsets.modify
+        ObservingMode.GmosNorthLongSlit.explicitOffsets,
+        GmosNorthLongSlitInput.explicitOffsets.modify
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
@@ -689,8 +689,8 @@ object GmosLongslitConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosNorthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosNorthLongSlit.defaultWavelengthDithers
-    override protected val defaultSpatialOffsetsLens    =
-      ObservingMode.GmosNorthLongSlit.defaultSpatialOffsets
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosNorthLongSlit.defaultOffsets
 
     override protected val excludedAcquisitionFilters: Set[GmosNorthFilter] =
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
@@ -870,14 +870,14 @@ object GmosLongslitConfigPanel {
         ).orUnassign
       )
 
-    inline override protected def explicitSpatialOffsets(aligner: AA)(using
+    inline override protected def explicitOffsets(aligner: AA)(using
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
     ): View[Option[NonEmptyList[Offset.Q]]] = aligner
       .zoom(
-        ObservingMode.GmosSouthLongSlit.explicitSpatialOffsets,
-        GmosSouthLongSlitInput.explicitSpatialOffsets.modify
+        ObservingMode.GmosSouthLongSlit.explicitOffsets,
+        GmosSouthLongSlitInput.explicitOffsets.modify
       )
       .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
@@ -955,8 +955,8 @@ object GmosLongslitConfigPanel {
     protected val defaultRoiLens                        = ObservingMode.GmosSouthLongSlit.defaultRoi
     override protected val defaultWavelengthDithersLens =
       ObservingMode.GmosSouthLongSlit.defaultWavelengthDithers
-    override protected val defaultSpatialOffsetsLens    =
-      ObservingMode.GmosSouthLongSlit.defaultSpatialOffsets
+    override protected val defaultOffsetsLens           =
+      ObservingMode.GmosSouthLongSlit.defaultOffsets
 
     override protected val defaultAcquisitionFilterLens
       : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter] =
