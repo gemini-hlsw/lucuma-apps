@@ -2,8 +2,6 @@
   "name": "lucuma-ui-demo",
   "private": true,
   "devDependencies": {
-    "@fortawesome/fontawesome-svg-core": "7.1.0",
-    "@fortawesome/pro-solid-svg-icons": "7.1.0",
     "@react-hook/resize-observer": "2.0.2",
     "@vitejs/plugin-react": "5.1.1",
     "loglevel": "1.9.2",
@@ -17,6 +15,8 @@
     "vite-plugin-env-compatible": "2.0.1"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "7.1.0",
+    "@fortawesome/pro-solid-svg-icons": "7.1.0",
     "@fortawesome/pro-light-svg-icons": "7.1.0",
     "@fortawesome/pro-thin-svg-icons": "7.1.0",
     "aladin-lite": "3.7.2-beta"
