@@ -11,8 +11,9 @@ minimumReleaseAge: 2880
 # https://pnpm.io/settings#trustpolicy
 trustPolicy: no-downgrade
 trustPolicyExclude:
-  - semver
   - chokidar
+  - semver
+  - ua-parser-js
 
 onlyBuiltDependencies:
   - '@parcel/watcher'
