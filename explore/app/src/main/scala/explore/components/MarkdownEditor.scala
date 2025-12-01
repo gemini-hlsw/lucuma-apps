@@ -3,7 +3,6 @@
 
 package explore.components
 
-import cats.syntax.all.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
@@ -33,15 +32,15 @@ object MarkdownEditor
         val placeholder    = if (props.readonly) "" else props.placeholder
         val markdownViewer = ReactMarkdown(
           content = props.value.get.map(_.value).getOrElse(placeholder),
-          clazz = ExploreStyles.HelpMarkdownBody |+|
-            ExploreStyles.MarkdownPlaceholder.when_(props.value.get.isEmpty),
           remarkPlugins = List(RemarkPlugin.RemarkMath, RemarkPlugin.RemarkGFM),
           rehypePlugins = List(RehypePlugin.RehypeExternalLinks, RehypePlugin.RehypeKatex)
         )
 
-        <.div(
-          ExploreStyles.MarkdownEditor,
-          markdownViewer.when(props.readonly),
+        <.div(ExploreStyles.MarkdownEditor)(
+          <.div(
+            ExploreStyles.HelpMarkdownBody,
+            ExploreStyles.MarkdownPlaceholder.when_(props.value.get.isEmpty)
+          )(markdownViewer).when(props.readonly),
           TabView(
             clazz = ExploreStyles.FullHeightTabView,
             panels = List(
