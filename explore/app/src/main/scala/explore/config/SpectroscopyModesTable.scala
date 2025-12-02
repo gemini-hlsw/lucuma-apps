@@ -170,9 +170,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       .withTooltip(tooltip = width, placement = Placement.RightStart)
 
   private def columns(units: WavelengthUnits) =
-
     given Display[BoundedInterval[Wavelength]] = wavelengthIntervalDisplay(units)
-
     List(
       column(
         InstrumentColumnId,
@@ -236,74 +234,88 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       //   .sortable
     )
 
+  private def useColumns(
+    expTimeModeType: Option[ExposureTimeModeType],
+    units:           WavelengthUnits
+  ): HookResult[
+    Reusable[List[ColumnDef.Single.WithTableMeta[SpectroscopyModeRowWithResult, ?, TableMeta]]]
+  ] =
+    useMemo(expTimeModeType, units): (m, u) =>
+      m match
+        case Some(ExposureTimeModeType.SignalToNoise) | None =>
+          columns(u).filterNot(_.id.value === SNColumnId.value)
+        case Some(ExposureTimeModeType.TimeAndCount)         =>
+          columns(u).filterNot(_.id.value === TimeColumnId.value)
+
+  private def useRows(
+    props:      Props,
+    itcResults: View[ItcResultsCache]
+  ): HookResult[Reusable[List[SpectroscopyModeRowWithResult]]] =
+    useMemo(
+      (props.matrix,
+       props.exposureTimeMode,
+       props.spectroscopyRequirements,
+       props.baseCoordinates.map(_.dec),
+       itcResults.get.cache.size,
+       props.targets,
+       props.constraints,
+       props.customSedTimestamps
+      )
+    ) { (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps) =>
+      val rows: List[SpectroscopyModeRow] =
+        matrix
+          .filtered(
+            focalPlane = s.focalPlane,
+            capability = s.capability,
+            wavelength = s.wavelength,
+            slitLength = s.focalPlaneAngle.map(s => SlitLength(ModeSlitSize(s))),
+            resolution = s.resolution,
+            range = s.wavelengthCoverage,
+            declination = dec
+          )
+
+      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(_.enabled)
+      // Computes the mode overrides for the current parameters
+      val fixedModeRows: List[SpectroscopyModeRow] =
+        sortedRows
+          .map(
+            _.withModeOverridesFor(
+              // Should this wv come from the grating, or is the obs wavelength?
+              s.wavelength,
+              targets.toOption.map(_.map(_.sourceProfile)),
+              constraints.imageQuality
+            )
+          )
+          .flattenOption
+
+      fixedModeRows.map: row =>
+        val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
+          (s.wavelength, etm).mapN: (_, exposureMode) =>
+            targets.flatMap: asterism =>
+              itcResults.get.forRow(
+                exposureMode,
+                constraints,
+                asterism.some,
+                customSedTimestamps,
+                row
+              )
+
+        SpectroscopyModeRowWithResult(
+          row,
+          Pot.fromOption(result),
+          s.wavelength.flatMap: w =>
+            row.wavelengthInterval(w)
+        )
+    }
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for {
         ctx            <- useContext(AppContext.ctx)
         itcResults     <- useStateView(ItcResultsCache.Empty)
         itcProgress    <- useStateView(none[Progress])
-        rows           <- useMemo(
-                            (props.matrix,
-                             props.exposureTimeMode,
-                             props.spectroscopyRequirements,
-                             props.baseCoordinates.map(_.dec),
-                             itcResults.get.cache.size,
-                             props.targets,
-                             props.constraints,
-                             props.customSedTimestamps
-                            )
-                          ): (matrix, etm, s, dec, _, targets, constraints, customSedTimestamps) =>
-
-                            val rows: List[SpectroscopyModeRow] =
-                              matrix
-                                .filtered(
-                                  focalPlane = s.focalPlane,
-                                  capability = s.capability,
-                                  wavelength = s.wavelength,
-                                  slitLength = s.focalPlaneAngle.map(s => SlitLength(ModeSlitSize(s))),
-                                  resolution = s.resolution,
-                                  range = s.wavelengthCoverage,
-                                  declination = dec
-                                )
-
-                            val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(_.enabled)
-                            // Computes the mode overrides for the current parameters
-                            val fixedModeRows: List[SpectroscopyModeRow] =
-                              sortedRows
-                                .map(
-                                  _.withModeOverridesFor(
-                                    // Should this wv come from the grating, or is the obs wavelength?
-                                    s.wavelength,
-                                    targets.toOption.map(_.map(_.sourceProfile)),
-                                    constraints.imageQuality
-                                  )
-                                )
-                                .flattenOption
-
-                            fixedModeRows.map: row =>
-                              val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-                                (s.wavelength, etm).mapN: (_, exposureMode) =>
-                                  targets.flatMap: asterism =>
-                                    itcResults.get.forRow(
-                                      exposureMode,
-                                      constraints,
-                                      asterism.some,
-                                      customSedTimestamps,
-                                      row
-                                    )
-
-                              SpectroscopyModeRowWithResult(
-                                row,
-                                Pot.fromOption(result),
-                                s.wavelength.flatMap: w =>
-                                  row.wavelengthInterval(w)
-                              )
-        cols           <- useMemo((props.exposureTimeMode.map(_.modeType), props.units)): (m, u) =>
-                            m match
-                              case Some(ExposureTimeModeType.SignalToNoise) | None =>
-                                columns(u).filterNot(_.id.value === SNColumnId.value)
-                              case Some(ExposureTimeModeType.TimeAndCount)         =>
-                                columns(u).filterNot(_.id.value === TimeColumnId.value)
+        rows           <- useRows(props, itcResults)
+        cols           <- useColumns(props.exposureTimeMode.map(_.modeType), props.units)
         table          <- useReactTableWithStateStore:
                             import ctx.given
 
@@ -368,12 +380,12 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         // scroll to the currently selected row.
         _              <- useEffectWithDeps((scrollTo.reuseByValue, selectedIndex.value, rows)):
                             (scrollTo, selectedIndex, _) =>
-                              Callback.when(scrollTo.get === ScrollTo.Scroll)(
-                                selectedIndex.traverse_(scrollToVirtualizedIndex(_, virtualizerRef)) >>
-                                  scrollTo.set(ScrollTo.NoScroll)
-                              )
+                              Callback.log(s"SpectroscopyModesTable: scrollTo: ${}") >>
+                                Callback.when(scrollTo.get === ScrollTo.Scroll)(
+                                  selectedIndex.traverse_(scrollToVirtualizedIndex(_, virtualizerRef)) >>
+                                    scrollTo.set(ScrollTo.NoScroll)
+                                )
       } yield
-
         val errLabel = itcHookData.errorLabel(props.spectroscopyRequirements.wavelength.isDefined)
 
         val selectedTarget: Option[VdomNode] = findSelectedTarget(
@@ -383,13 +395,11 @@ private object SpectroscopyModesTable extends ModesTableCommon:
 
         React.Fragment(
           <.div(ExploreStyles.ModesTableTitle)(
-            <.label(
-              ExploreStyles.ModesTableCount,
+            <.label(ExploreStyles.ModesTableCount)(
               s"${rows.length} available configurations",
               HelpIcon("configuration/table.md".refined)
             ),
-            <.div(
-              ExploreStyles.ModesTableInfo,
+            <.div(ExploreStyles.ModesTableInfo)(
               errLabel.toTagMod,
               selectedTarget
             )
