@@ -251,8 +251,9 @@ trait ArbObservingMode {
          o.explicitRoi,
          o.defaultWavelengthDithers,
          o.explicitWavelengthDithers,
-         o.defaultOffsets
-        )(o.explicitOffsets, o.exposureTimeMode, o.acquisition)
+         o.defaultOffsets,
+         (o.explicitOffsets, o.exposureTimeMode, o.acquisition)
+        )
       )
 
   given Cogen[ObservingMode.GmosSouthLongSlit] =
