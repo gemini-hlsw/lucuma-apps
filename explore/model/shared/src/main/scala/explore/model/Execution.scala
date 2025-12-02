@@ -4,7 +4,7 @@
 package explore.model
 
 import cats.Eq
-import cats.Order.*
+import cats.Order.catsKernelOrderingForOrder
 import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ProgramTime
@@ -27,8 +27,8 @@ case class Execution(
   digest:            CalculatedValue[Option[ExecutionDigest]],
   programTimeCharge: ProgramTime
 ) derives Eq:
-  def acqOffset = digest.value.foldMap(_.acquisition.configs.map(_.offset))
-  def sciOffset = digest.value.foldMap(_.science.configs.map(_.offset))
+  def acqOffset = digest.value.foldMap(_.acquisition.telescopeConfigs.map(_.offset))
+  def sciOffset = digest.value.foldMap(_.science.telescopeConfigs.map(_.offset))
 
 object Execution:
   val digest: Lens[Execution, CalculatedValue[Option[ExecutionDigest]]] =
