@@ -189,6 +189,9 @@ importers:
       '@fortawesome/pro-solid-svg-icons':
         specifier: 7.1.0
         version: 7.1.0
+      '@fortawesome/pro-thin-svg-icons':
+        specifier: 7.1.0
+        version: 7.1.0
       '@fortawesome/sharp-solid-svg-icons':
         specifier: 7.1.0
         version: 7.1.0
