@@ -14,6 +14,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
@@ -106,6 +107,8 @@ trait CatalogPicklers extends CommonPicklers:
   given Pickler[ConstantTracking] = generatePickler
 
   given Pickler[EphemerisCoordinates] = generatePickler
+
+  given Pickler[GuidedOffset] = picklerNewType(GuidedOffset)
 
   given Pickler[AcquisitionOffsets] = picklerNewType(AcquisitionOffsets)
 

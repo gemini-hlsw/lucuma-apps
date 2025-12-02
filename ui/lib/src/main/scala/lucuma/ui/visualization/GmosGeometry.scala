@@ -10,6 +10,7 @@ import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
+import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
@@ -131,8 +132,8 @@ object GmosGeometry:
   def gmosGeometry(
     referenceCoordinates:    Coordinates,
     blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptyList[Offset]],
-    acquisitionOffsets:      Option[NonEmptyList[Offset]],
+    scienceOffsets:          Option[NonEmptyList[GuidedOffset]],
+    acquisitionOffsets:      Option[NonEmptyList[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,

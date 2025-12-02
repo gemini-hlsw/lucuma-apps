@@ -45,7 +45,10 @@ object SequenceDigestSubquery
           nonCharged $TimeSpanSubquery
           total $TimeSpanSubquery
         }
-        offsets $OffsetSubquery
+        telescopeConfigs {
+          offset $OffsetSubquery
+          guiding
+        }
         executionState
       }
   """
