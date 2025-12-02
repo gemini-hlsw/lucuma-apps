@@ -31,17 +31,16 @@ object tracking:
     target match
       case Target.Nonsidereal(_, key, _)      =>
         key.horizonsKey.fold(
-          "User defined Ephemeris Keys are not supported.".asLeft[Tracking].pure[IO]
+          "User defined Ephemeris Keys are not supported".asLeft[Tracking].pure[IO]
         )(hk =>
           val interval = ObservingNight.fromSiteAndInstant(site, when).interval
           val start    = interval.lowerBound.a
           val end      = interval.upperBound.a
-          println(s"observing night start: $start, end: $end")
           HorizonsClient[IO]
             .requestSingle(
               HorizonsMessage.EphemerisRequest(hk, site, start, end, totalPoints)
             )
-            .map(_.fold("Error calling HorizonsClient.".asLeft)(_.map(_.ephemerisTracking)))
+            .map(_.fold("Error calling HorizonsClient".asLeft)(_.map(_.ephemerisTracking)))
         )
       case Target.Opportunity(_, _, _)        => "Targets of Opportunity have no coordinates".asLeft.pure
       case Target.Sidereal(_, tracking, _, _) => tracking.asRight.pure

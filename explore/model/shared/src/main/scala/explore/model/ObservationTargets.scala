@@ -91,7 +91,10 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
       .map: nel =>
         nel
           .traverse(twid => trackings.get(twid.id))
-          .fold("Missing tracking information".asLeft)(CompositeTracking(_).asRight)
+          .map(CompositeTracking(_).asRight)
+          .getOrElse:
+            val missingIds = nel.filterNot(twid => trackings.contains(twid.id)).map(_.id)
+            s"Missing tracking for target(s): ${missingIds.mkString(", ")}".asLeft
 
   def mapScience[B](f: TargetWithId => B): List[B] =
     science.map(f)

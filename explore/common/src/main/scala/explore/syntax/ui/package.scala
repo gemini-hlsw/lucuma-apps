@@ -213,7 +213,7 @@ extension (target: Target)
     case o: Target.Opportunity  => none
   def catalogName: Option[String]       = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.catalog.shortName)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName
+    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
     case o: Target.Opportunity  => none
   def catalogUriString: Option[String]  = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.objectUrl.toString)
@@ -225,10 +225,10 @@ extension (target: Target)
     case o: Target.Opportunity  => none
 
 extension (ek: EphemerisKey)
-  def catalogName: Option[String]                = ek match
-    case EphemerisKey.UserSupplied(_) => none
-    case _                            => "HORIZONS".some
-  def queryCommand: String                       = ek match
+  def catalogName: String                        = ek match
+    case k: EphemerisKey.Horizons     => "HORIZONS"
+    case EphemerisKey.UserSupplied(_) => ek.keyType.shortName
+  def horizonsQueryCommand: String               = ek match
     case a: EphemerisKey.AsteroidOld => s"'${a.des};'"
     case _                           => s"'${ek.des}'"
   def catalogUri: Option[Uri]                    = ek match
@@ -236,7 +236,7 @@ extension (ek: EphemerisKey)
     case h                             =>
       HorizonsConstants.HorizonsUri
         .withQueryParam(HorizonsConstants.Format, "text")
-        .withQueryParam(HorizonsConstants.Command, queryCommand)
+        .withQueryParam(HorizonsConstants.Command, horizonsQueryCommand)
         .withQueryParam(HorizonsConstants.Ephemeris, HorizonsConstants.No)
         .some
   def horizonsKey: Option[EphemerisKey.Horizons] = ek match

@@ -201,7 +201,7 @@ object AladinContainer extends AladinCommon {
     target:        TargetWithId,
     isSelected:    Boolean,
     obsTimeCoords: Coordinates,
-    linePoints:    List[Coordinates] = ???
+    linePoints:    List[Coordinates]
   ):
     val targetName: String = target.target.name.value
 

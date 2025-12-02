@@ -49,6 +49,7 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
@@ -539,36 +540,38 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        <.div(
-          ExploreStyles.AladinContainerColumn,
-          AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
-          <.div(
-            ExploreStyles.AladinToolbox,
-            Button(onClickE = menuRef.toggle).withMods(
-              ExploreStyles.ButtonOnAladin,
-              Icons.ThinSliders
-            )
-          ),
-          (options.get, trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot(
-            (opt, etr, eco) =>
-              (etr, eco).tupled.fold(
-                err => <.div(err), // Better error display?
-                (tr, co) =>
-                  React.Fragment(renderAladin(opt, tr, co),
-                                 renderToolbar(opt),
-                                 renderAgsOverlay(opt)
+        (trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot(
+          (etr, eco) =>
+            (etr, eco).tupled.fold(
+              err => Message(severity = Message.Severity.Error, text = err),
+              (tr, co) =>
+                <.div(
+                  ExploreStyles.AladinContainerColumn,
+                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
+                  <.div(
+                    ExploreStyles.AladinToolbox,
+                    Button(onClickE = menuRef.toggle).withMods(
+                      ExploreStyles.ButtonOnAladin,
+                      Icons.ThinSliders
+                    )
+                  ),
+                  options.get.renderPot(opt =>
+                    React.Fragment(renderAladin(opt, tr, co),
+                                   renderToolbar(opt),
+                                   renderAgsOverlay(opt)
+                    )
                   )
+                )
+            ),
+          options
+            .zoom(Pot.readyPrism[AsterismVisualOptions])
+            .mapValue: options =>
+              AladinPreferencesMenu(
+                props.uid,
+                props.obsTargets.ids,
+                globalPreferences,
+                options,
+                menuRef
               )
-          )
-        ),
-        options
-          .zoom(Pot.readyPrism[AsterismVisualOptions])
-          .mapValue: options =>
-            AladinPreferencesMenu(
-              props.uid,
-              props.obsTargets.ids,
-              globalPreferences,
-              options,
-              menuRef
-            )
+        )
       )

@@ -53,8 +53,7 @@ object HorizonsServer extends WorkerServer[IO, HorizonsMessage.Request] with Hor
           cache.clear *> invocation.respond(())
 
         case req: HorizonsMessage.EphemerisRequest =>
-          Logger[IO].error(s"Received ephemeris request for ${req.key}") *>
-            HorizonsRequests.ephemerisRequest[IO](req, client, cache, invocation.respond(_))
+          HorizonsRequests.ephemerisRequest[IO](req, client, cache, invocation.respond(_))
 
         case req: HorizonsMessage.AlignedEphemerisRequest =>
           HorizonsRequests.alignedEphemerisRequest[IO](req, client, cache, invocation.respond(_))

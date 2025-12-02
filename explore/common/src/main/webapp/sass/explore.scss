@@ -903,6 +903,10 @@ thead tr th.sticky-header {
 
   .target-aladin-cell {
     grid-area: aladin;
+
+    & > .p-inline-message {
+      width: 100%;
+    }
   }
 
   .target-form {

@@ -13,7 +13,6 @@ import explore.events.HorizonsMessage
 import explore.events.HorizonsMessage.given
 import lucuma.horizons.HorizonsClient
 import lucuma.horizons.HorizonsEphemeris
-import org.typelevel.log4cats.Logger
 
 object HorizonsRequests:
   val cacheVersion = CacheVersion(1)
@@ -29,24 +28,23 @@ object HorizonsRequests:
   extension [A](e: Either[Error, A])
     private def asResponse: Either[String, A] = e.leftMap(_.message)
 
-  def ephemerisRequest[F[_]: {Concurrent, Logger}](
+  def ephemerisRequest[F[_]: Concurrent](
     request:  HorizonsMessage.EphemerisRequest,
     client:   HorizonsClient[F],
     cache:    Cache[F],
     callback: Either[String, HorizonsEphemeris] => F[Unit]
   ): F[Unit] =
     def doRequest(request: HorizonsMessage.EphemerisRequest): F[Either[Error, HorizonsEphemeris]] =
-      Logger[F].error(s"Fetching Horizons ephemeris for ${request.key}") *>
-        client
-          .ephemeris(
-            request.key,
-            request.site,
-            request.start,
-            request.stop,
-            request.elements
-          )
-          .map(_.asError(true))
-          .handleError(t => Error(s"Error getting Ephemeris: ${t.getMessage}", false).asLeft)
+      client
+        .ephemeris(
+          request.key,
+          request.site,
+          request.start,
+          request.stop,
+          request.elements
+        )
+        .map(_.asError(true))
+        .handleError(t => Error(s"Error getting Ephemeris: ${t.getMessage}", false).asLeft)
 
     val cacheableRequest =
       Cacheable(

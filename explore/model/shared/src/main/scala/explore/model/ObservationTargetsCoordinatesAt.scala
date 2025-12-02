@@ -15,7 +15,7 @@ import lucuma.schemas.model.syntax.*
 
 import java.time.Instant
 
-// The Coordidinates of the observation targets at a given epoch
+// The Coordinates of the observation targets at a given epoch
 final case class ObservationTargetsCoordinatesAt(
   at:                Epoch,
   baseCoords:        Option[Coordinates],

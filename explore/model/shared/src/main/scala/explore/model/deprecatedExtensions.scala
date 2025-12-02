@@ -42,7 +42,7 @@ object deprecatedExtensions:
       TargetWithId.target.replace(targetWithId.target.atDeprecated(i))(targetWithId)
 
   extension (tracking: Tracking)
-    // see lucuma.schemas.model.syntax.baseCoordinates for replacment
+    // see lucuma.schemas.model.syntax.baseCoordinates for replacement
     def baseCoordinatesDeprecated: Coordinates = tracking match
       case SiderealTracking(baseCoordinates, _, _, _, _) => baseCoordinates
       case ConstantTracking(coordinates)                 => coordinates
