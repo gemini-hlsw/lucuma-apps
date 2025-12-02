@@ -61,18 +61,17 @@ case class IntegratedSpectralDefinitionEditor(
   ] =
     spectralDefinition.zoomOpt(
       SpectralDefinition.bandNormalized[Integrated],
-      forceAssign(SpectralDefinitionIntegratedInput.bandNormalized.modify)(
-        BandNormalizedIntegratedInput()
-      )
+      SpectralDefinitionIntegratedInput.bandNormalized
+        .andThen(SpectralDefinitionIntegratedInput.BandNormalized.value)
+        .modify
     )
 
   val sedAlignerOpt: Option[Aligner[UnnormalizedSED, UnnormalizedSedInput]] =
     bandNormalizedAlignerOpt.flatMap(
       _.zoomOpt(
         SpectralDefinition.BandNormalized.sed[Integrated].some,
-        forceAssign(BandNormalizedIntegratedInput.sed.modify)(
-          UnnormalizedSedInput()
-        )
+        forceAssign(BandNormalizedIntegratedInput.sed.modify):
+          DefaultUnnormalizedSedInput
       )
     )
 
@@ -90,9 +89,9 @@ case class IntegratedSpectralDefinitionEditor(
   ] =
     spectralDefinition.zoomOpt(
       SpectralDefinition.emissionLines[Integrated],
-      forceAssign(SpectralDefinitionIntegratedInput.emissionLines.modify)(
-        EmissionLinesIntegratedInput()
-      )
+      SpectralDefinitionIntegratedInput.emissionLines
+        .andThen(SpectralDefinitionIntegratedInput.EmissionLines.value)
+        .modify
     )
 
   override val emissionLinesViewOpt: Option[View[SortedMap[Wavelength, EmissionLine[Integrated]]]] =

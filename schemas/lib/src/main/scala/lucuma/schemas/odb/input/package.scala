@@ -94,11 +94,11 @@ extension (ids: List[ConfigurationRequest.Id])
 
 extension (a: Angle)
   def toInput: AngleInput =
-    AngleInput(microarcseconds = a.toMicroarcseconds.assign)
+    AngleInput.Microarcseconds(a.toMicroarcseconds)
 
 extension (w: Wavelength)
   def toInput: WavelengthInput =
-    WavelengthInput(picometers = w.toPicometers.value.assign)
+    WavelengthInput.Picometers(w.toPicometers.value)
 
 extension (info: CatalogInfo)
   def toInput: CatalogInfoInput =
@@ -106,62 +106,57 @@ extension (info: CatalogInfo)
 
 extension (ra: RightAscension)
   def toInput: RightAscensionInput =
-    RightAscensionInput(microseconds = ra.toHourAngle.toMicroseconds.assign)
+    RightAscensionInput.Microseconds(ra.toHourAngle.toMicroseconds)
 
 extension (dec: Declination)
   def toInput: DeclinationInput =
-    DeclinationInput(microarcseconds = dec.toAngle.toMicroarcseconds.assign)
+    DeclinationInput.Microarcseconds(dec.toAngle.toMicroarcseconds)
 
 extension (pm: ProperMotion)
   def toInput: ProperMotionInput =
     ProperMotionInput(
-      ra = ProperMotionComponentInput(microarcsecondsPerYear = pm.ra.μasy.value.assign),
-      dec = ProperMotionComponentInput(microarcsecondsPerYear = pm.dec.μasy.value.assign)
+      ra = ProperMotionComponentInput.MicroarcsecondsPerYear(pm.ra.μasy.value),
+      dec = ProperMotionComponentInput.MicroarcsecondsPerYear(pm.dec.μasy.value)
     )
 
 extension (rv: RadialVelocity)
   def toInput: RadialVelocityInput =
-    RadialVelocityInput(metersPerSecond = rv.rv.value.assign)
+    RadialVelocityInput.MetersPerSecond(rv.rv.value)
 
 extension (p: Parallax)
   def toInput: ParallaxInput =
-    ParallaxInput(microarcseconds = p.μas.value.value.assign)
+    ParallaxInput.Microarcseconds(p.μas.value.value)
 
 extension (u: UnnormalizedSED)
   def toInput: UnnormalizedSedInput =
-    u match {
+    u match
       case UnnormalizedSED.StellarLibrary(librarySpectrum)          =>
-        UnnormalizedSedInput(stellarLibrary = librarySpectrum.assign)
+        UnnormalizedSedInput.StellarLibrary(librarySpectrum)
       case UnnormalizedSED.CoolStarModel(temperature)               =>
-        UnnormalizedSedInput(coolStar = temperature.assign)
+        UnnormalizedSedInput.CoolStar(temperature)
       case UnnormalizedSED.Galaxy(galaxySpectrum)                   =>
-        UnnormalizedSedInput(galaxy = galaxySpectrum.assign)
+        UnnormalizedSedInput.Galaxy(galaxySpectrum)
       case UnnormalizedSED.Planet(planetSpectrum)                   =>
-        UnnormalizedSedInput(planet = planetSpectrum.assign)
+        UnnormalizedSedInput.Planet(planetSpectrum)
       case UnnormalizedSED.Quasar(quasarSpectrum)                   =>
-        UnnormalizedSedInput(quasar = quasarSpectrum.assign)
+        UnnormalizedSedInput.Quasar(quasarSpectrum)
       case UnnormalizedSED.HIIRegion(hiiRegionSpectrum)             =>
-        UnnormalizedSedInput(hiiRegion = hiiRegionSpectrum.assign)
+        UnnormalizedSedInput.HiiRegion(hiiRegionSpectrum)
       case UnnormalizedSED.PlanetaryNebula(planetaryNebulaSpectrum) =>
-        UnnormalizedSedInput(planetaryNebula = planetaryNebulaSpectrum.assign)
+        UnnormalizedSedInput.PlanetaryNebula(planetaryNebulaSpectrum)
       case UnnormalizedSED.PowerLaw(index)                          =>
-        UnnormalizedSedInput(powerLaw = index.assign)
+        UnnormalizedSedInput.PowerLaw(index)
       case UnnormalizedSED.BlackBody(temperature)                   =>
-        UnnormalizedSedInput(blackBodyTempK = temperature.value.assign)
+        UnnormalizedSedInput.BlackBodyTempK(temperature.value)
       case UnnormalizedSED.UserDefined(fluxDensities)               =>
-        UnnormalizedSedInput(fluxDensities =
+        UnnormalizedSedInput.FluxDensities:
           fluxDensities.toSortedMap.toList
-            .map { case (wavelength, value) =>
-              (wavelength, PosBigDecimal.from(value).toOption)
-            }
-            .collect { case (wavelength, Some(value)) =>
-              FluxDensity(wavelength.toInput, value.value)
-            }
-            .assign
-        )
+            .map:
+              case (wavelength, value) => (wavelength, PosBigDecimal.from(value).toOption)
+            .collect:
+              case (wavelength, Some(value)) => FluxDensity(wavelength.toInput, value.value)
       case UnnormalizedSED.UserDefinedAttachment(attachmentId)      =>
-        UnnormalizedSedInput(fluxDensitiesAttachment = attachmentId.assign)
-    }
+        UnnormalizedSedInput.FluxDensitiesAttachment(attachmentId)
 
 extension (bs: SortedMap[Band, BrightnessMeasure[Integrated]])
   @targetName("IntegratedBrightnessMap_toInput")
@@ -259,29 +254,27 @@ extension (s: SpectralDefinition[Integrated])
   def toInput: SpectralDefinitionIntegratedInput =
     s match
       case b @ SpectralDefinition.BandNormalized(_, _) =>
-        SpectralDefinitionIntegratedInput(bandNormalized = b.toInput.assign)
+        SpectralDefinitionIntegratedInput.BandNormalized(b.toInput)
       case e @ SpectralDefinition.EmissionLines(_, _)  =>
-        SpectralDefinitionIntegratedInput(emissionLines = e.toInput.assign)
+        SpectralDefinitionIntegratedInput.EmissionLines(e.toInput)
 
 extension (s: SpectralDefinition[Surface])
   def toInput: SpectralDefinitionSurfaceInput =
     s match
       case b @ SpectralDefinition.BandNormalized(_, _) =>
-        SpectralDefinitionSurfaceInput(bandNormalized = b.toInput.assign)
+        SpectralDefinitionSurfaceInput.BandNormalized(b.toInput)
       case e @ SpectralDefinition.EmissionLines(_, _)  =>
-        SpectralDefinitionSurfaceInput(emissionLines = e.toInput.assign)
+        SpectralDefinitionSurfaceInput.EmissionLines(e.toInput)
 
 extension (s: SourceProfile)
   def toInput: SourceProfileInput =
     s match
       case SourceProfile.Point(definition)          =>
-        SourceProfileInput(point = definition.toInput.assign)
+        SourceProfileInput.Point(definition.toInput)
       case SourceProfile.Uniform(definition)        =>
-        SourceProfileInput(uniform = definition.toInput.assign)
+        SourceProfileInput.Uniform(definition.toInput)
       case SourceProfile.Gaussian(fwhm, definition) =>
-        SourceProfileInput(
-          gaussian = GaussianInput(fwhm.toInput.assign, definition.toInput.assign).assign
-        )
+        SourceProfileInput.Gaussian(GaussianInput(fwhm.toInput.assign, definition.toInput.assign))
 
 extension (p: PosAngleConstraint)
   def toInput: PosAngleConstraintInput =
@@ -308,22 +301,21 @@ extension (p: PosAngleConstraint)
       case PosAngleConstraint.Unbounded                  =>
         PosAngleConstraintInput(mode = PosAngleConstraintMode.Unbounded.assign)
 
-extension (ts: TimeSpan)
-  def toInput: TimeSpanInput = TimeSpanInput(microseconds = ts.toMicroseconds.assign)
+extension (ts: TimeSpan) def toInput: TimeSpanInput = TimeSpanInput.Microseconds(ts.toMicroseconds)
 
 extension (etm: ExposureTimeMode)
   def toInput: ExposureTimeModeInput = etm match
     case TimeAndCountMode(time, count, at) =>
-      ExposureTimeModeInput(timeAndCount =
+      ExposureTimeModeInput.TimeAndCount(
         TimeAndCountExposureTimeModeInput(
           count = count,
           time = time.toInput,
           at = at.toInput
-        ).assign
+        )
       )
     case SignalToNoiseMode(value, at)      =>
-      ExposureTimeModeInput(signalToNoise =
-        SignalToNoiseExposureTimeModeInput(value = value, at = at.toInput).assign
+      ExposureTimeModeInput.SignalToNoise(
+        SignalToNoiseExposureTimeModeInput(value = value, at = at.toInput)
       )
 
 extension (pl: PartnerLink)
@@ -438,11 +430,11 @@ extension (t: Target)
 
 extension (d: WavelengthDither)
   def toInput: WavelengthDitherInput =
-    WavelengthDitherInput(picometers = d.toPicometers.value.assign)
+    WavelengthDitherInput.Picometers(d.toPicometers.value)
 
 extension [A](o: Offset.Component[A])
   def toInput: OffsetComponentInput =
-    OffsetComponentInput(microarcseconds = o.toAngle.toMicroarcseconds.assign)
+    OffsetComponentInput.Microarcseconds(o.toAngle.toMicroarcseconds)
 
 extension (o: Offset) def toInput: OffsetInput = OffsetInput(o.p.toInput, o.q.toInput)
 
@@ -548,55 +540,55 @@ extension (o: ObservingMode.Flamingos2LongSlit)
 extension (b: ObservingMode)
   def toInput: ObservingModeInput = b match
     case o: ObservingMode.GmosNorthLongSlit  =>
-      ObservingModeInput(gmosNorthLongSlit = o.toInput.assign)
+      ObservingModeInput.GmosNorthLongSlit(o.toInput)
     case o: ObservingMode.GmosSouthLongSlit  =>
-      ObservingModeInput(gmosSouthLongSlit = o.toInput.assign)
+      ObservingModeInput.GmosSouthLongSlit(o.toInput)
     case o: ObservingMode.GmosNorthImaging   =>
-      ObservingModeInput(gmosNorthImaging = o.toInput.assign)
+      ObservingModeInput.GmosNorthImaging(o.toInput)
     case o: ObservingMode.GmosSouthImaging   =>
-      ObservingModeInput(gmosSouthImaging = o.toInput.assign)
+      ObservingModeInput.GmosSouthImaging(o.toInput)
     case o: ObservingMode.Flamingos2LongSlit =>
-      ObservingModeInput(flamingos2LongSlit = o.toInput.assign)
+      ObservingModeInput.Flamingos2LongSlit(o.toInput)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
     case o: BasicConfiguration.GmosNorthLongSlit  =>
-      ObservingModeInput(
-        gmosNorthLongSlit = GmosNorthLongSlitInput(
+      ObservingModeInput.GmosNorthLongSlit(
+        GmosNorthLongSlitInput(
           grating = o.grating.assign,
           filter = o.filter.orUnassign,
           fpu = o.fpu.assign,
           centralWavelength = o.centralWavelength.value.toInput.assign
-        ).assign
+        )
       )
     case o: BasicConfiguration.GmosSouthLongSlit  =>
-      ObservingModeInput(
-        gmosSouthLongSlit = GmosSouthLongSlitInput(
+      ObservingModeInput.GmosSouthLongSlit(
+        GmosSouthLongSlitInput(
           grating = o.grating.assign,
           filter = o.filter.orUnassign,
           fpu = o.fpu.assign,
           centralWavelength = o.centralWavelength.value.toInput.assign
-        ).assign
+        )
       )
     case o: BasicConfiguration.GmosNorthImaging   =>
-      ObservingModeInput(
-        gmosNorthImaging = GmosNorthImagingInput(
+      ObservingModeInput.GmosNorthImaging(
+        GmosNorthImagingInput(
           filters = o.filter.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign
-        ).assign
+        )
       )
     case o: BasicConfiguration.GmosSouthImaging   =>
-      ObservingModeInput(
-        gmosSouthImaging = GmosSouthImagingInput(
+      ObservingModeInput.GmosSouthImaging(
+        GmosSouthImagingInput(
           filters = o.filter.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign
-        ).assign
+        )
       )
     case o: BasicConfiguration.Flamingos2LongSlit =>
-      ObservingModeInput(
-        flamingos2LongSlit = Flamingos2LongSlitInput(
+      ObservingModeInput.Flamingos2LongSlit(
+        Flamingos2LongSlitInput(
           disperser = o.disperser.assign,
           filter = o.filter.assign,
           fpu = o.fpu.assign
-        ).assign
+        )
       )
 
 extension (er: ElevationRange)
@@ -662,11 +654,12 @@ extension (tw: TimingWindow)
 
 extension (ccd: GmosCcdMode)
   def toInput: GmosCcdModeInput =
-    GmosCcdModeInput(xBin = ccd.xBin.value.assign,
-                     yBin = ccd.yBin.value.assign,
-                     ampCount = ccd.ampCount.assign,
-                     ampGain = ccd.ampGain.assign,
-                     ampReadMode = ccd.ampReadMode.assign
+    GmosCcdModeInput(
+      xBin = ccd.xBin.value.assign,
+      yBin = ccd.yBin.value.assign,
+      ampCount = ccd.ampCount.assign,
+      ampGain = ccd.ampGain.assign,
+      ampReadMode = ccd.ampReadMode.assign
     )
 
 extension (g: GmosGratingConfig.South)
@@ -791,10 +784,10 @@ extension (f2Dynamic: Flamingos2DynamicConfig)
 extension (sc: StepConfig)
   def toInput: StepConfigInput = sc match
     case StepConfig.Bias =>
-      StepConfigInput(bias = true.assign)
+      StepConfigInput.Bias(true)
 
     case StepConfig.Dark =>
-      StepConfigInput(dark = true.assign)
+      StepConfigInput.Dark(true)
 
     case StepConfig.Gcal(lamp, filter, diffuser, shutter) =>
       val gcal = StepConfigGcalInput(
@@ -804,14 +797,14 @@ extension (sc: StepConfig)
         diffuser = diffuser,
         shutter = shutter
       )
-      StepConfigInput(gcal = gcal.assign)
+      StepConfigInput.Gcal(gcal)
 
     case StepConfig.Science =>
-      StepConfigInput(science = true.assign)
+      StepConfigInput.Science(true)
 
     case StepConfig.SmartGcal(smartGcalType) =>
       val smartGcal = StepConfigSmartGcalInput(smartGcalType = smartGcalType)
-      StepConfigInput(smartGcal = smartGcal.assign)
+      StepConfigInput.SmartGcal(smartGcal)
 
 extension (tc: TelescopeConfig)
   def toInput: TelescopeConfigInput =

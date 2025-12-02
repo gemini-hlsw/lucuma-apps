@@ -74,16 +74,12 @@ object ScienceQueries:
       input.runS(_).value
 
     def angle(w: Angle): AngleInput =
-      (AngleInput.microarcseconds := w.toMicroarcseconds.assign)
-        .runS(AngleInput())
-        .value
+      AngleInput.Microarcseconds(w.toMicroarcseconds)
 
     def wavelength(w: Wavelength): WavelengthInput =
-      (WavelengthInput.micrometers :=
+      WavelengthInput.Micrometers:
         // This will always work because Wavelength.toPicometers is refined Positive
-        refineV[Positive](Wavelength.decimalMicrometers.reverseGet(w)).toOption.orIgnore)
-        .runS(WavelengthInput())
-        .value
+        refineV[Positive](Wavelength.decimalMicrometers.reverseGet(w)).toOption.get
 
     def wavelengthDelta(wc: WavelengthDelta): WavelengthInput =
       wavelength(Wavelength(wc.pm))

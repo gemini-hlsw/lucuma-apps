@@ -866,7 +866,7 @@ object GmosLongslitConfigPanel {
       )
       .view(
         _.map(
-          _.map(d => WavelengthDitherInput(picometers = d.toPicometers.value.assign)).toList
+          _.map(d => WavelengthDitherInput.Picometers(d.toPicometers.value)).toList
         ).orUnassign
       )
 

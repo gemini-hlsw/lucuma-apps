@@ -76,51 +76,51 @@ enum ObservingModeSummary:
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
-      ObservingModeInput(
-        gmosNorthLongSlit = GmosNorthLongSlitInput(
+      ObservingModeInput.GmosNorthLongSlit(
+        GmosNorthLongSlitInput(
           grating = grating.assign,
           filter = filter.orUnassign,
           fpu = fpu.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
-        ).assign
+        )
       )
     case GmosSouthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
-      ObservingModeInput(
-        gmosSouthLongSlit = GmosSouthLongSlitInput(
+      ObservingModeInput.GmosSouthLongSlit(
+        GmosSouthLongSlitInput(
           grating = grating.assign,
           filter = filter.orUnassign,
           fpu = fpu.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
-        ).assign
+        )
       )
     case Flamingos2LongSlit(disperser, filter, fpu)                                   =>
-      ObservingModeInput(
-        flamingos2LongSlit = Flamingos2LongSlitInput(
+      ObservingModeInput.Flamingos2LongSlit(
+        Flamingos2LongSlitInput(
           disperser = disperser.assign,
           filter = filter.assign,
           fpu = fpu.assign
-        ).assign
+        )
       )
     case GmosNorthImaging(filters, ampReadMode, roi)                                  =>
-      ObservingModeInput(
-        gmosNorthImaging = GmosNorthImagingInput(
+      ObservingModeInput.GmosNorthImaging(
+        GmosNorthImagingInput(
           filters = filters.toList.map(_.toInput).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
-        ).assign
+        )
       )
     case GmosSouthImaging(filters, ampReadMode, roi)                                  =>
-      ObservingModeInput(
-        gmosSouthImaging = GmosSouthImagingInput(
+      ObservingModeInput.GmosSouthImaging(
+        GmosSouthImagingInput(
           // no etm yet
           filters = filters.toList.map(_.toInput).assign,
           explicitAmpReadMode = ampReadMode.assign,
           explicitRoi = roi.assign
-        ).assign
+        )
       )
 
 object ObservingModeSummary:

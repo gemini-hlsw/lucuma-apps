@@ -137,6 +137,10 @@ object TargetEditor:
         )
     }
 
+  private val DefaultSourceProfileInput: SourceProfileInput =
+    SourceProfileInput.Point:
+      SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -203,8 +207,7 @@ object TargetEditor:
         val siderealLens      = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.sidereal)
         val nonsideralLens    = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.nonsidereal)
         val opportunityLens   = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.opportunity)
-        val sourceProfileLens =
-          UpdateTargetsInput.SET.andThen(TargetPropertiesInput.sourceProfile)
+        val sourceProfileLens = UpdateTargetsInput.SET.andThen(TargetPropertiesInput.sourceProfile)
 
         extension [A, B](prism: Prism[A, B])
           def optReplace[I](a: A, f: B => (I => I)): I => I =
@@ -259,7 +262,7 @@ object TargetEditor:
         val sourceProfileAligner: Aligner[SourceProfile, SourceProfileInput] =
           targetAligner.zoom(
             Target.sourceProfile,
-            forceAssign(sourceProfileLens.modify)(SourceProfileInput())
+            forceAssign(sourceProfileLens.modify)(DefaultSourceProfileInput)
           )
 
         def siderealCoordinates(
