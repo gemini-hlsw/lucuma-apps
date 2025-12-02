@@ -5,8 +5,6 @@ package explore.targeteditor.spectralDefinition
 
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.Input
-import clue.data.syntax.*
 import coulomb.*
 import coulomb.units.si.Kelvin
 import crystal.react.View
@@ -119,75 +117,91 @@ private abstract class SpectralDefinitionEditorBuilder[
         sedType.get.isDefined && (!isCustomSed || customSedAttachmentId.get.isDefined)
 
       val stellarLibrarySpectrumAlignerOpt
-        : Option[Aligner[StellarLibrarySpectrum, Input[StellarLibrarySpectrum]]] =
+        : Option[Aligner[StellarLibrarySpectrum, StellarLibrarySpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.stellarLibrary
               .andThen:
                 UnnormalizedSED.StellarLibrary.librarySpectrum
             ,
-            UnnormalizedSedInput.stellarLibrary.modify
+            UnnormalizedSedInput.stellarLibrary
+              .andThen(UnnormalizedSedInput.StellarLibrary.value)
+              .modify
           )
 
-      val coolStarTemperatureAlignerOpt
-        : Option[Aligner[CoolStarTemperature, Input[CoolStarTemperature]]] =
+      val coolStarTemperatureAlignerOpt: Option[Aligner[CoolStarTemperature, CoolStarTemperature]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.coolStarModel.andThen(UnnormalizedSED.CoolStarModel.temperature),
-            UnnormalizedSedInput.coolStar.modify
+            UnnormalizedSedInput.coolStar
+              .andThen(UnnormalizedSedInput.CoolStar.value)
+              .modify
           )
 
-      val galaxySpectrumAlignerOpt: Option[Aligner[GalaxySpectrum, Input[GalaxySpectrum]]] =
+      val galaxySpectrumAlignerOpt: Option[Aligner[GalaxySpectrum, GalaxySpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.galaxy.andThen(UnnormalizedSED.Galaxy.galaxySpectrum),
-            UnnormalizedSedInput.galaxy.modify
+            UnnormalizedSedInput.galaxy
+              .andThen(UnnormalizedSedInput.Galaxy.value)
+              .modify
           )
 
-      val planetSpectrumAlignerOpt: Option[Aligner[PlanetSpectrum, Input[PlanetSpectrum]]] =
+      val planetSpectrumAlignerOpt: Option[Aligner[PlanetSpectrum, PlanetSpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.planet.andThen(UnnormalizedSED.Planet.planetSpectrum),
-            UnnormalizedSedInput.planet.modify
+            UnnormalizedSedInput.planet
+              .andThen(UnnormalizedSedInput.Planet.value)
+              .modify
           )
 
-      val quasarSpectrumAlignerOpt: Option[Aligner[QuasarSpectrum, Input[QuasarSpectrum]]] =
+      val quasarSpectrumAlignerOpt: Option[Aligner[QuasarSpectrum, QuasarSpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.quasar.andThen(UnnormalizedSED.Quasar.quasarSpectrum),
-            UnnormalizedSedInput.quasar.modify
+            UnnormalizedSedInput.quasar
+              .andThen(UnnormalizedSedInput.Quasar.value)
+              .modify
           )
 
-      val hiiRegionSpectrumAlignerOpt
-        : Option[Aligner[HIIRegionSpectrum, Input[HIIRegionSpectrum]]] =
+      val hiiRegionSpectrumAlignerOpt: Option[Aligner[HIIRegionSpectrum, HIIRegionSpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.hiiRegion.andThen(UnnormalizedSED.HIIRegion.hiiRegionSpectrum),
-            UnnormalizedSedInput.hiiRegion.modify
+            UnnormalizedSedInput.hiiRegion
+              .andThen(UnnormalizedSedInput.HiiRegion.value)
+              .modify
           )
 
       val planetaryNebulaSpectrumAlignerOpt
-        : Option[Aligner[PlanetaryNebulaSpectrum, Input[PlanetaryNebulaSpectrum]]] =
+        : Option[Aligner[PlanetaryNebulaSpectrum, PlanetaryNebulaSpectrum]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.planetaryNebula.andThen:
               UnnormalizedSED.PlanetaryNebula.planetaryNebulaSpectrum
             ,
-            UnnormalizedSedInput.planetaryNebula.modify
+            UnnormalizedSedInput.planetaryNebula
+              .andThen(UnnormalizedSedInput.PlanetaryNebula.value)
+              .modify
           )
 
-      val powerLawIndexAlignerOpt: Option[Aligner[BigDecimal, Input[BigDecimal]]] =
+      val powerLawIndexAlignerOpt: Option[Aligner[BigDecimal, BigDecimal]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.powerLaw.andThen(UnnormalizedSED.PowerLaw.index),
-            UnnormalizedSedInput.powerLaw.modify
+            UnnormalizedSedInput.powerLaw
+              .andThen(UnnormalizedSedInput.PowerLaw.value)
+              .modify
           )
 
-      val blackBodyTemperatureAlignerOpt: Option[Aligner[Quantity[PosInt, Kelvin], Input[PosInt]]] =
+      val blackBodyTemperatureAlignerOpt: Option[Aligner[Quantity[PosInt, Kelvin], PosInt]] =
         props.sedAlignerOpt.flatMap:
           _.zoomOpt(
             UnnormalizedSED.blackBody.andThen(UnnormalizedSED.BlackBody.temperature),
-            UnnormalizedSedInput.blackBodyTempK.modify
+            UnnormalizedSedInput.blackBodyTempK
+              .andThen(UnnormalizedSedInput.BlackBodyTempK.value)
+              .modify
           )
 
       def spectrumRow[T: {Enumerated, Display}](id: string.NonEmptyString, view: View[T]) =
@@ -233,24 +247,24 @@ private abstract class SpectralDefinitionEditorBuilder[
           if (isFullyDefined)
             React.Fragment(
               stellarLibrarySpectrumAlignerOpt
-                .map(rsu => spectrumRow("slSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("slSpectrum".refined, rsu.view(identity))),
               coolStarTemperatureAlignerOpt
-                .map(rsu => spectrumRow("csTemp".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("csTemp".refined, rsu.view(identity))),
               galaxySpectrumAlignerOpt
-                .map(rsu => spectrumRow("gSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("gSpectrum".refined, rsu.view(identity))),
               planetSpectrumAlignerOpt
-                .map(rsu => spectrumRow("pSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("pSpectrum".refined, rsu.view(identity))),
               quasarSpectrumAlignerOpt
-                .map(rsu => spectrumRow("qSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("qSpectrum".refined, rsu.view(identity))),
               hiiRegionSpectrumAlignerOpt
-                .map(rsu => spectrumRow("hiirSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("hiirSpectrum".refined, rsu.view(identity))),
               planetaryNebulaSpectrumAlignerOpt
-                .map(rsu => spectrumRow("pnSpectrum".refined, rsu.view(_.assign))),
+                .map(rsu => spectrumRow("pnSpectrum".refined, rsu.view(identity))),
               powerLawIndexAlignerOpt
                 .map(rsu =>
                   FormInputTextView( // Power-law index can be any decimal
                     id = "powerLawIndex".refined,
-                    value = rsu.view(_.assign),
+                    value = rsu.view(identity),
                     label = "Index",
                     validFormat = InputValidSplitEpi.bigDecimal,
                     changeAuditor =
@@ -262,7 +276,7 @@ private abstract class SpectralDefinitionEditorBuilder[
                 .map(rsu =>
                   FormInputTextView( // Temperature is in K, a positive integer
                     id = "bbTempK".refined,
-                    value = rsu.view(_.value.assign).stripQuantity,
+                    value = rsu.view(_.value).stripQuantity,
                     label = "Temperature",
                     validFormat = InputValidSplitEpi.posInt,
                     changeAuditor = ChangeAuditor

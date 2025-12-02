@@ -59,6 +59,7 @@ import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
 import lucuma.ui.syntax.all.given
 import monocle.Iso
@@ -264,14 +265,11 @@ object ConfigurationTile:
      * Handles the case where `A.Input[B]` not have an assigned value, but it needs to be created
      * for the `mod` function to work on.
      */
-    private def modOrAssignAndMap[A, B](
-      ifNotAssigned: => B
-    )(mod: (Input[B] => Input[B]) => A => A): (B => B) => Input[A] => Input[A] =
-      f =>
-        _.map(mod { ib =>
-          val bAssign = ib.orAssign(ifNotAssigned)
-          bAssign.map(f)
-        })
+    private def modInput[A, B](mod: (B => B) => A => A): (B => B) => Input[A] => Input[A] =
+      f => inputA => inputA.map(a => mod(f)(a))
+
+    private val DefaultObservingModeInput: ObservingModeInput =
+      ObservingModeInput.GmosNorthLongSlit(GmosNorthLongSlitInput())
 
     private val component =
       ScalaFnComponent[Props] { props =>
@@ -303,7 +301,7 @@ object ConfigurationTile:
               props.mode,
               UpdateObservationsInput(
                 WHERE = props.obsId.toWhereObservation.assign,
-                SET = ObservationPropertiesInput(observingMode = ObservingModeInput().assign)
+                SET = ObservationPropertiesInput(observingMode = DefaultObservingModeInput.assign)
               ),
               (ctx.odbApi.updateObservations(_)).andThen(_.void)
             ).zoom( // Can we avoid the zoom and make an Aligner constructor that takes an input value?
@@ -322,52 +320,58 @@ object ConfigurationTile:
               props.selectedConfig
             ).runAsyncAndForget
 
-          val optModeAligner = modeAligner.toOption
+          val optModeAligner: Option[Aligner[ObservingMode, Input[ObservingModeInput]]] =
+            modeAligner.toOption
 
-          val optGmosNorthAligner = optModeAligner.flatMap {
-            _.zoomOpt(
-              ObservingMode.gmosNorthLongSlit,
-              modOrAssignAndMap(GmosNorthLongSlitInput())(
-                ObservingModeInput.gmosNorthLongSlit.modify
+          val optGmosNorthAligner: Option[Aligner[GmosNorthLongSlit, GmosNorthLongSlitInput]] =
+            optModeAligner.flatMap:
+              _.zoomOpt(
+                ObservingMode.gmosNorthLongSlit,
+                modInput:
+                  ObservingModeInput.gmosNorthLongSlit
+                    .andThen(ObservingModeInput.GmosNorthLongSlit.value)
+                    .modify
               )
-            )
-          }
 
-          val optGmosSouthAligner = optModeAligner.flatMap {
-            _.zoomOpt(
-              ObservingMode.gmosSouthLongSlit,
-              modOrAssignAndMap(GmosSouthLongSlitInput())(
-                ObservingModeInput.gmosSouthLongSlit.modify
+          val optGmosSouthAligner: Option[Aligner[GmosSouthLongSlit, GmosSouthLongSlitInput]] =
+            optModeAligner.flatMap:
+              _.zoomOpt(
+                ObservingMode.gmosSouthLongSlit,
+                modInput:
+                  ObservingModeInput.gmosSouthLongSlit
+                    .andThen(ObservingModeInput.GmosSouthLongSlit.value)
+                    .modify
               )
-            )
-          }
 
-          val optFlamingos2Aligner = optModeAligner.flatMap {
-            _.zoomOpt(
-              ObservingMode.flamingos2LongSlit,
-              modOrAssignAndMap(Flamingos2LongSlitInput())(
-                ObservingModeInput.flamingos2LongSlit.modify
+          val optFlamingos2Aligner: Option[Aligner[Flamingos2LongSlit, Flamingos2LongSlitInput]] =
+            optModeAligner.flatMap:
+              _.zoomOpt(
+                ObservingMode.flamingos2LongSlit,
+                modInput:
+                  ObservingModeInput.flamingos2LongSlit
+                    .andThen(ObservingModeInput.Flamingos2LongSlit.value)
+                    .modify
               )
-            )
-          }
 
-          val optGmosNorthImagingAligner = optModeAligner.flatMap {
-            _.zoomOpt(
-              ObservingMode.gmosNorthImaging,
-              modOrAssignAndMap(GmosNorthImagingInput())(
-                ObservingModeInput.gmosNorthImaging.modify
+          val optGmosNorthImagingAligner: Option[Aligner[GmosNorthImaging, GmosNorthImagingInput]] =
+            optModeAligner.flatMap:
+              _.zoomOpt(
+                ObservingMode.gmosNorthImaging,
+                modInput:
+                  ObservingModeInput.gmosNorthImaging
+                    .andThen(ObservingModeInput.GmosNorthImaging.value)
+                    .modify
               )
-            )
-          }
 
-          val optGmosSouthImagingAligner = optModeAligner.flatMap {
-            _.zoomOpt(
-              ObservingMode.gmosSouthImaging,
-              modOrAssignAndMap(GmosSouthImagingInput())(
-                ObservingModeInput.gmosSouthImaging.modify
+          val optGmosSouthImagingAligner: Option[Aligner[GmosSouthImaging, GmosSouthImagingInput]] =
+            optModeAligner.flatMap:
+              _.zoomOpt(
+                ObservingMode.gmosSouthImaging,
+                modInput:
+                  ObservingModeInput.gmosSouthImaging
+                    .andThen(ObservingModeInput.GmosSouthImaging.value)
+                    .modify
               )
-            )
-          }
 
           val requirementsViewSet: ScienceRequirementsUndoView =
             ScienceRequirementsUndoView(props.obsId, props.requirements)

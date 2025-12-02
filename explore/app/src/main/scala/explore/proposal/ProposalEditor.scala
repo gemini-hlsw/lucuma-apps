@@ -140,19 +140,16 @@ object ProposalEditor
             mentor:   Input[ProgramUser.Id]
           ): Callback =
             ctx.odbApi
-              .updateProposal(
+              .updateProposal:
                 UpdateProposalInput(
                   programId = props.programId.assign,
                   SET = ProposalPropertiesInput(
-                    `type` = ProposalTypeInput(
-                      fastTurnaround = FastTurnaroundInput(
-                        reviewerId = reviewer,
-                        mentorId = mentor
-                      ).assign
-                    ).assign
+                    `type` = ProposalTypeInput
+                      .FastTurnaround:
+                        FastTurnaroundInput(reviewerId = reviewer, mentorId = mentor)
+                      .assign
                   )
                 )
-              )
               .void
               .runAsyncAndForget
 

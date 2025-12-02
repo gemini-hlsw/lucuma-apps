@@ -59,16 +59,16 @@ case class SurfaceSpectralDefinitionEditor(
   ] =
     spectralDefinition.zoomOpt(
       SpectralDefinition.bandNormalized[Surface],
-      forceAssign(SpectralDefinitionSurfaceInput.bandNormalized.modify)(
-        BandNormalizedSurfaceInput()
-      )
+      SpectralDefinitionSurfaceInput.bandNormalized
+        .andThen(SpectralDefinitionSurfaceInput.BandNormalized.value)
+        .modify
     )
 
   val sedAlignerOpt: Option[Aligner[UnnormalizedSED, UnnormalizedSedInput]] =
     bandNormalizedAlignerOpt.flatMap(
       _.zoomOpt(
         SpectralDefinition.BandNormalized.sed[Surface].some,
-        forceAssign(BandNormalizedSurfaceInput.sed.modify)(UnnormalizedSedInput())
+        forceAssign(BandNormalizedSurfaceInput.sed.modify)(DefaultUnnormalizedSedInput)
       )
     )
 
@@ -86,9 +86,9 @@ case class SurfaceSpectralDefinitionEditor(
   ] =
     spectralDefinition.zoomOpt(
       SpectralDefinition.emissionLines[Surface],
-      forceAssign(SpectralDefinitionSurfaceInput.emissionLines.modify)(
-        EmissionLinesSurfaceInput()
-      )
+      SpectralDefinitionSurfaceInput.emissionLines
+        .andThen(SpectralDefinitionSurfaceInput.EmissionLines.value)
+        .modify
     )
 
   override val emissionLinesViewOpt: Option[View[SortedMap[Wavelength, EmissionLine[Surface]]]] =

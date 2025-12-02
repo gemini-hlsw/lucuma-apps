@@ -49,6 +49,9 @@ case class SourceProfileEditor(
 
 object SourceProfileEditor
     extends ReactFnComponent[SourceProfileEditor](props =>
+      val DefaultSpectralDefinitionIntegratedInput: SpectralDefinitionIntegratedInput =
+        SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
+
       for
         ctx                <- useContext(AppContext.ctx)
         brightnessExpanded <- useStateView(IsExpanded(true))
@@ -58,7 +61,7 @@ object SourceProfileEditor
         val gaussianAlignerOpt: Option[Aligner[Gaussian, GaussianInput]] =
           props.sourceProfile.zoomOpt(
             SourceProfile.gaussian,
-            forceAssign(SourceProfileInput.gaussian.modify)(GaussianInput())
+            SourceProfileInput.gaussian.andThen(SourceProfileInput.Gaussian.value).modify
           )
 
         React.Fragment(
@@ -76,7 +79,7 @@ object SourceProfileEditor
           props.sourceProfile
             .zoomOpt(
               SourceProfile.point.andThen(Point.spectralDefinition),
-              forceAssign(SourceProfileInput.point.modify)(SpectralDefinitionIntegratedInput())
+              SourceProfileInput.point.andThen(SourceProfileInput.Point.value).modify
             )
             .map(pointSpectralDefinitionAccess =>
               IntegratedSpectralDefinitionEditor(
@@ -94,7 +97,7 @@ object SourceProfileEditor
           props.sourceProfile
             .zoomOpt(
               SourceProfile.uniform.andThen(Uniform.spectralDefinition),
-              forceAssign(SourceProfileInput.uniform.modify)(SpectralDefinitionSurfaceInput())
+              SourceProfileInput.uniform.andThen(SourceProfileInput.Uniform.value).modify
             )
             .map(uniformSpectralDefinitionAccess =>
               SurfaceSpectralDefinitionEditor(
@@ -130,9 +133,8 @@ object SourceProfileEditor
                   props.programId,
                   gaussianAligner.zoom(
                     Gaussian.spectralDefinition,
-                    forceAssign(GaussianInput.spectralDefinition.modify)(
-                      SpectralDefinitionIntegratedInput()
-                    )
+                    forceAssign(GaussianInput.spectralDefinition.modify):
+                      DefaultSpectralDefinitionIntegratedInput
                   ),
                   props.catalogInfo,
                   brightnessExpanded,

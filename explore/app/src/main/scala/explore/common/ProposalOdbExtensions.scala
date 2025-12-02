@@ -28,33 +28,33 @@ import lucuma.schemas.ObservationDB.Types.TimeSpanInput
 trait ProposalOdbExtensions:
   // This is on import lucuma.schemas.odb.input.* but it is not picked up for some reason
   extension (ts: TimeSpan)
-    def toInput: TimeSpanInput = TimeSpanInput(microseconds = ts.toMicroseconds.assign)
+    def toInput: TimeSpanInput = TimeSpanInput.Microseconds(ts.toMicroseconds)
 
   extension (proposalType: ProposalType)
     def toInput: ProposalTypeInput =
       proposalType match
         case ProposalType.DemoScience(_, toOActivation, minPercentTime)                      =>
-          ProposalTypeInput(demoScience =
+          ProposalTypeInput.DemoScience(
             DemoScienceInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign
-            ).assign
+            )
           )
         case ProposalType.DirectorsTime(_, toOActivation, minPercentTime)                    =>
-          ProposalTypeInput(directorsTime =
+          ProposalTypeInput.DirectorsTime(
             DirectorsTimeInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign
-            ).assign
+            )
           )
         case ProposalType.FastTurnaround(_, toOActivation, minPercentTime, reviewer, mentor) =>
-          ProposalTypeInput(fastTurnaround =
+          ProposalTypeInput.FastTurnaround(
             FastTurnaroundInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
               reviewerId = reviewer.orUnassign,
               mentorId = mentor.orUnassign
-            ).assign
+            )
           )
         case ProposalType.LargeProgram(
               _,
@@ -63,40 +63,40 @@ trait ProposalOdbExtensions:
               minPercentTotalTime,
               totalTime
             ) =>
-          ProposalTypeInput(largeProgram =
+          ProposalTypeInput.LargeProgram(
             LargeProgramInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
               minPercentTotalTime = minPercentTotalTime.assign,
               totalTime = totalTime.toInput.assign
-            ).assign
+            )
           )
         case ProposalType.Classical(_, minPercentTime, partnerSplits)                        =>
-          ProposalTypeInput(classical =
+          ProposalTypeInput.Classical(
             ClassicalInput(
               minPercentTime = minPercentTime.assign,
               partnerSplits =
                 if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign
-            ).assign
+            )
           )
         case ProposalType.Queue(_, toOActivation, minPercentTime, partnerSplits)             =>
-          ProposalTypeInput(queue =
+          ProposalTypeInput.Queue(
             QueueInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
               partnerSplits =
                 if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign
-            ).assign
+            )
           )
         case ProposalType.SystemVerification(_, toOActivation, minPercentTime)               =>
-          ProposalTypeInput(systemVerification =
+          ProposalTypeInput.SystemVerification(
             SystemVerificationInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign
-            ).assign
+            )
           )
         case ProposalType.PoorWeather(scienceSubtype)                                        =>
-          ProposalTypeInput(poorWeather = PoorWeatherInput().assign)
+          ProposalTypeInput.PoorWeather(PoorWeatherInput())
 
   // Used to reset the proposal type when the call changes
   extension (cfpType: CallForProposalsType)
