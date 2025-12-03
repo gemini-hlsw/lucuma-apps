@@ -369,10 +369,10 @@ trait ModesTableCommon:
                                 )
                                 .to[IO] >>
                                 // Update the cache
-                                itcResults.mod(_.updateN(itcResponseChunk.toList)).to[IO] >>
-                                // Enable scrolling to the selected row (which might have moved due to sorting)
-                                onNewItc.to[IO]
-                            .onComplete(fs2.Stream.eval(itcProgress.set(none).to[IO]))
+                                itcResults.mod(_.updateN(itcResponseChunk.toList)).to[IO]
+                            .onComplete:
+                              // Enable scrolling to the selected row (which might have moved due to sorting)
+                              fs2.Stream.eval(itcProgress.set(none).to[IO] >> onNewItc.to[IO])
                   } yield request
             }
             .flatten
