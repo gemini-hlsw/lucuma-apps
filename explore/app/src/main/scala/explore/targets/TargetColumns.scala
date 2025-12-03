@@ -34,7 +34,6 @@ import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
 import lucuma.core.math.dimensional.Measure
 import lucuma.core.math.validation.MathValidators
-import lucuma.core.model.CatalogInfo
 import lucuma.core.model.Target
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
@@ -42,7 +41,6 @@ import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.TargetWithMetadata
 import lucuma.ui.react.given
-import monocle.std.option.*
 
 import scala.collection.immutable.TreeSeqMap
 
@@ -117,6 +115,14 @@ object TargetColumns:
           .map(b => bandColumnId(b))).map(_ -> Visibility.Hidden)*
     )
 
+  extension (target: Target)
+    def catalogLink: VdomNode =
+      (target.catalogId, target.catalogUriString) match
+        case (Some(id), Some(uri)) =>
+          <.a(^.href := uri, ^.target.blank)(id)
+        case (Some(id), None)      => id
+        case _                     => ""
+
   object Builder:
     trait Common[D <: TargetWithMetadata, TM, CM, TF](
       colDef: ColumnDef.Applied[D, TM, CM, TF]
@@ -134,28 +140,18 @@ object TargetColumns:
         List(
           baseColumn(
             CatalogId,
-            Target.catalogInfo.andThen(some).getOption(_).map(info => (info.id, info.objectUrl))
+            identity
           ).withCell(
-            _.value
-              .map((id, uriOpt) =>
-                uriOpt.fold[VdomNode](id.value)(uri =>
-                  <.a(^.href := uri.toString, ^.target.blank)(id.value)
-                )
-              )
-              .orEmpty
+            _.value.catalogLink
           ).withSize(100.toPx)
-            .sortableBy(_.map(_._1).toString),
+            .sortableBy(_.catalogId),
           baseColumn(
             CatalogObjectType,
-            Target.catalogInfo
-              .andThen(some)
-              .andThen(CatalogInfo.objectType)
-              .getOption
-              .andThen(_.flatten)
+            _.catalogObjectType
           )
-            .withCell(_.value.map(_.value).orEmpty)
+            .withCell(_.value.orEmpty)
             .withSize(100.toPx)
-            .sortableBy(_.map(_.toString))
+            .sortable
         )
 
     trait CommonRaDec[D, TM, CM, TF](
@@ -257,7 +253,7 @@ object TargetColumns:
     case class ForProgram[D <: TargetWithMetadata, TM, CM, TF](
       colDef: ColumnDef.Applied[D, TM, CM, TF]
     ) extends Common(colDef)
-        with CommonRaDec(colDef, _.target.coordsOrRegion)
+        with CommonRaDec(colDef, _.target.baseCoordsOrRegion)
         with CommonBand(colDef)
         with CommonSidereal(colDef):
       def icon(t: TargetWithMetadata): VdomNode =
@@ -272,11 +268,11 @@ object TargetColumns:
           NameColumn,
           baseColumn(
             CatalogName,
-            Target.catalogInfo.andThen(some).andThen(CatalogInfo.catalog).getOption
+            _.catalogName
           )
-            .withCell(_.value.map(_.shortName).orEmpty)
+            .withCell(_.value.orEmpty)
             .withSize(100.toPx)
-            .sortableBy(_.map(_.toString))
+            .sortable
         )
 
       val ProgramColumns: List[colDef.Type] = List(
@@ -311,7 +307,10 @@ object TargetColumns:
     case class ForSimbad[D <: TargetWithMetadata, TM, CM, TF](
       colDef: ColumnDef.Applied[D, TM, CM, TF]
     ) extends Common(colDef)
-        with CommonRaDec(colDef, _.target.coordsOrRegion)
+        with CommonRaDec(
+          colDef,
+          t => Target.sidereal.getOption(t.target).map(_.tracking.baseCoordinates.asLeft)
+        )
         with CommonBand(colDef)
         with CommonSidereal(colDef):
       lazy val AllColumns: List[colDef.Type] =

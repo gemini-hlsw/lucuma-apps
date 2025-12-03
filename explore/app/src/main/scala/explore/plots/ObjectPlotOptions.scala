@@ -7,9 +7,9 @@ import cats.*
 import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ElevationPlotScheduling
+import explore.model.deprecatedExtensions.*
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
-import explore.model.extensions.*
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.Site
@@ -107,7 +107,7 @@ object ObjectPlotOptions:
       for
         time <- observationTime
         t    <- tracking
-      yield t.at(time).getOrElse(t.baseCoordinates)
+      yield t.at(time).getOrElse(t.baseCoordinatesDeprecated)
     val site: Site                  =
       predefinedSite
         .orElse:

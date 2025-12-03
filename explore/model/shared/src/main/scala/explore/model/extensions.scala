@@ -10,52 +10,35 @@ import lucuma.core.enums.ArcType
 import lucuma.core.math.Arc
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
-import lucuma.core.math.Epoch
 import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
-import lucuma.core.model.CompositeTracking
-import lucuma.core.model.ConstantTracking
-import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithId
+import lucuma.schemas.model.syntax.*
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import scala.annotation.targetName
 
 object extensions:
-  // TODO Move this to lucuma-schemas (and remove this logic from TargetWithId)
-  extension (target: Target.Sidereal)
-    def at(i: Instant): Target.Sidereal = {
-      val epoch          = Epoch.Julian.fromInstant(i).getOrElse(target.tracking.epoch)
-      val trackingUpdate = (tracking: SiderealTracking) =>
-        tracking.at(i).fold(tracking) { c =>
-          val update = SiderealTracking.baseCoordinates.replace(c) >>> SiderealTracking.epoch
-            .replace(epoch)
-          update(tracking)
-        }
-
-      Target.Sidereal.tracking.modify(trackingUpdate)(target)
-    }
 
   extension (target: Target)
-    // If the target is sidereal, update it to the given instant.
-    // Someday we may need to handle nonsidereal targets...
-    def at(i: Instant): Target = target match
-      case st @ Target.Sidereal(_, _, _, _) => st.at(i)
-      case Target.Nonsidereal(_, _, _)      => target
-      case Target.Opportunity(_, _, _)      => target
-
-    // When we have nonsidereals...
-    def coordsOrRegion: Option[Either[Coordinates, Region]] = target match
+    def baseCoordsOrRegion: Option[Either[Coordinates, Region]] = target match
       case Target.Sidereal(_, tracking, _, _) => tracking.baseCoordinates.asLeft.some
       case Target.Nonsidereal(_, _, _)        => none
       case Target.Opportunity(_, region, _)   => region.asRight.some
 
   extension (targetWithId: TargetWithId)
-    def at(i: Instant): TargetWithId =
-      TargetWithId.target.replace(targetWithId.target.at(i))(targetWithId)
+    def at(
+      at:        Instant,
+      trackings: Map[Target.Id, Tracking]
+    ): Either[String, CoordinatesAt] =
+      trackings
+        .get(targetWithId.id)
+        .fold(s"No tracking information for target ${targetWithId.id}".asLeft): tr =>
+          tr.coordinatesAt(at)
 
   extension [A](arc: Arc[A])
     def format(f: A => String): String = arc match
@@ -86,27 +69,6 @@ object extensions:
       case None                               => ""
       case Some(Left(dec))                    => f(dec)
       case Some(Right(arc: Arc[Declination])) => arc.format(f)
-
-  extension (tracking: Tracking)
-    def baseCoordinates: Coordinates = tracking match
-      case SiderealTracking(baseCoordinates, _, _, _, _) => baseCoordinates
-      case ConstantTracking(coordinates)                 => coordinates
-      case CompositeTracking(nel)                        => Coordinates.centerOf(nel.map(_.baseCoordinates))
-      case _                                             => sys.error("Non sidereals are not supported")
-
-    // Calculate positions from tracking considering target epoch and observation time
-    // Useful to put a from/to in the viz
-    // By convention we call the return epochCoords, obsTimeCoords
-    def trackedPositions(
-      targetEpoch: Option[Epoch],
-      obsTime:     Instant
-    ): (Option[Coordinates], Coordinates) =
-      (targetEpoch.flatMap: epoch =>
-         tracking.at(epoch.toInstant),
-       tracking
-         .at(obsTime)
-         .getOrElse(tracking.baseCoordinates)
-      )
 
   extension [F[_]: {MonadThrow, Logger}, A](f: F[A])
     def logErrors(msg: String = ""): F[A] =

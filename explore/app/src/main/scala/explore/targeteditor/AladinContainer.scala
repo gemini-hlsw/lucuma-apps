@@ -8,7 +8,6 @@ import cats.data.NonEmptyMap
 import cats.syntax.all.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
@@ -16,8 +15,8 @@ import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
 import explore.model.ObservationTargets
+import explore.model.ObservationTargetsCoordinatesAt
 import explore.model.enums.Visible
-import explore.model.extensions.*
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
@@ -28,12 +27,17 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.GeometryType
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.Site
+import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.EphemerisTracking
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
@@ -53,6 +57,8 @@ import scala.scalajs.LinkingInfo
 case class AladinContainer(
   obsTargets:             ObservationTargets,
   obsTime:                Instant,
+  obsTimeTracking:        Map[Target.Id, Tracking],
+  obsTimeCoords:          ObservationTargetsCoordinatesAt,
   vizConf:                Option[ConfigurationForVisualization],
   globalPreferences:      GlobalPreferences,
   options:                AsterismVisualOptions,
@@ -66,8 +72,7 @@ case class AladinContainer(
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
 
-  val blindOffset: Option[Coordinates] =
-    obsTargets.blindOffsetSiderealTracking.flatMap(_.at(obsTime))
+  val site = vizConf.map(_.configuration.siteFor).getOrElse(Site.GN)
 
   val pfVisibility = GlobalPreferences.pfVisibility.get(globalPreferences)
 
@@ -84,6 +89,21 @@ object AladinContainer extends AladinCommon {
   private val GuideStarCandidateSize = 3
   private val GuideStarCrowdedSize   = 2.7
 
+  extension (tr: SiderealTracking)
+    private def coordsAtEpoch(epoch: Epoch): Option[Coordinates] =
+      tr.at(epoch.toInstant)
+    private def atOrBase(at: Instant): Coordinates               =
+      tr.at(at).getOrElse(tr.baseCoordinates)
+
+  // We need to detect if the selected GS deserves a refresh, this could be if the
+  // selected target changes or if e.g. the pos angle change for the same target
+  private given Reusability[AgsAnalysis.Usable] =
+    Reusability.by(u => (u.target, u.posAngle))
+
+  private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
+
+  private given Reusability[Map[Target.Id, Tracking]] = Reusability.by(_.toList)
+
   private def speedCss(gs: GuideSpeed): Css =
     gs match
       case GuideSpeed.Fast   =>
@@ -95,19 +115,17 @@ object AladinContainer extends AladinCommon {
 
   private def svgTargetAndLine(
     obsTimeCoords: Coordinates,
-    surveyCoords:  Option[Coordinates],
+    linePoints:    List[Coordinates],
     targetSVG:     Coordinates => SVGTarget,
     lineStyle:     Css
   ): List[SVGTarget] =
     targetSVG(obsTimeCoords) ::
-      surveyCoords
-        .map: source =>
-          SVGTarget.LineTo(source, obsTimeCoords, lineStyle)
-        .toList
+      linePoints.sliding2.map: (from, to) =>
+        SVGTarget.LineTo(from, to, lineStyle)
 
   private def guideStarsSVG(
     g:                          AgsAnalysis.Usable,
-    candidates:                 List[AgsAnalysis.Usable],
+    numberOfCandidates:         Int,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
@@ -119,8 +137,9 @@ object AladinContainer extends AladinCommon {
     val candidateCss =
       if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
 
-    val (epochCoords, obsTimeCoords) =
-      tracking.trackedPositions(surveyEpoch.some, siderealDiscretizedObsTime.obsTime)
+    val obsTimeCoords: Coordinates    = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
+    val linePoints: List[Coordinates] =
+      tracking.coordsAtEpoch(surveyEpoch).foldMap(List(_, obsTimeCoords))
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
@@ -128,17 +147,17 @@ object AladinContainer extends AladinCommon {
       } else {
         val css  =
           candidateCss |+| candidatesVisibility |+|
-            ExploreStyles.GuideStarCandidateCrowded.unless_(candidates.length < 500)
+            ExploreStyles.GuideStarCandidateCrowded.unless_(numberOfCandidates < 500)
         val size =
-          if (candidates.length < 500) calcSize(GuideStarCandidateSize)
+          if (numberOfCandidates < 500) calcSize(GuideStarCandidateSize)
           else calcSize(GuideStarCrowdedSize)
         SVGTarget.GuideStarCandidateTarget(coords, css, size, g)
       }
 
-    if (candidates.length < 500) {
+    if (numberOfCandidates < 500) {
       svgTargetAndLine(
         obsTimeCoords,
-        epochCoords,
+        linePoints,
         guideTargetSVG,
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
@@ -168,7 +187,7 @@ object AladinContainer extends AladinCommon {
       .flatMap:
         guideStarsSVG(
           _,
-          candidates,
+          candidates.length,
           siderealDiscretizedObsTime,
           configuration,
           selectedGS,
@@ -178,48 +197,40 @@ object AladinContainer extends AladinCommon {
         )
   }
 
-  private def renderTargets(
-    targets:      List[TargetWithId],
-    obsTime:      Instant,
-    focusId:      Target.Id,
-    targetSVG:    (TargetWithId, Boolean, Coordinates) => SVGTarget,
-    lineStyle:    Css,
-    isSelectable: Boolean,
-    surveyEpoch:  Epoch
-  ): List[SVGTarget] =
-    targets.flatMap: t =>
-      t.toSidereal.toList.flatMap: siderealT =>
-        val (epochCoords, obsTimeCoords) =
-          siderealT.target.tracking.trackedPositions(surveyEpoch.some, obsTime)
+  private case class TargetCoords(
+    target:        TargetWithId,
+    isSelected:    Boolean,
+    obsTimeCoords: Coordinates,
+    linePoints:    List[Coordinates]
+  ):
+    val targetName: String = target.target.name.value
 
-        val isSelected = isSelectable && t.id === focusId
-
-        svgTargetAndLine(
-          obsTimeCoords,
-          epochCoords,
-          targetSVG(t, isSelected, _),
-          lineStyle
-        )
-
-  private def baseAndScience(
-    p:           Props,
+  private def targetCoordinates(
+    obsTargets:  ObservationTargets,
+    trackingMap: Map[Target.Id, Tracking],
+    obsCoords:   ObservationTargetsCoordinatesAt,
     surveyEpoch: Epoch
-  ): (Option[Coordinates], List[(Boolean, NonEmptyString, Option[Coordinates], Coordinates)]) = {
-    // selected, name, start coords, end coords
-    val baseObsTimeCoords =
-      p.obsTargets.baseTracking
-        .flatMap(_.at(p.obsTime))
+  ): List[TargetCoords] =
+    obsTargets
+      .map: t =>
+        obsCoords
+          .forTarget(t.id)
+          .map: coords =>
+            val linePoints: List[Coordinates] = trackingMap
+              .get(t.id)
+              .foldMap: tracking =>
+                tracking match
+                  case EphemerisTracking(toMap) =>
+                    // Show a line for the entire ephemeris - should be the observing day
+                    toMap.map((_, ec) => ec.coord).toList
+                  case s: SiderealTracking      =>
+                    // Show a line from coords at the epoch to the current coords
+                    s.coordsAtEpoch(surveyEpoch).foldMap(List(_, coords))
+                  case _                        => List.empty
 
-    val science = p.obsTargets.mapScience: t =>
-      t.toSidereal.map: siderealT =>
-        val (epochCoords, obsTimeCoords) =
-          siderealT.target.tracking
-            .trackedPositions(surveyEpoch.some, p.obsTime)
-
-        (t.id === p.obsTargets.focus.id, t.target.name, epochCoords, obsTimeCoords)
-
-    (baseObsTimeCoords, science.flattenOption)
-  }
+            TargetCoords(t, t.id === obsTargets.focus.id, coords, linePoints)
+      .toList
+      .flattenOption
 
   private val CutOff = Wavelength.fromIntMicrometers(1).get
 
@@ -229,45 +240,51 @@ object AladinContainer extends AladinCommon {
     else
       ImageSurvey.DSS
 
+  private def positionFromBaseAndOffset(
+    base:   Option[Coordinates],
+    offset: Offset
+  ): Option[Coordinates] =
+    base.flatMap(_.offsetBy(Angle.Angle0, offset))
+
   private val component =
     ScalaFnComponent[Props]: props =>
-      val initialSurvey = props.vizConf
-        .flatMap(_.centralWavelength)
-        .map(w => surveyForWavelength(w.value))
-        .getOrElse(ImageSurvey.DSS)
-
       for {
-        // Base coordinates and science targets with pm correction if possible
-        baseCoords   <- useState(baseAndScience(props, initialSurvey.epoch))
-        // View coordinates base coordinates with pm correction + user panning
         currentPos   <-
-          useState(baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset)))
-        // Survey
-        survey       <- useState(initialSurvey)
+          useState[Option[Coordinates]](
+            positionFromBaseAndOffset(props.obsTimeCoords.baseCoords, props.options.viewOffset)
+          )
+        survey       <- useMemo(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
+                          _.map(surveyForWavelength).getOrElse(ImageSurvey.DSS)
+        targetCoords <-
+          useMemo(
+            (props.obsTargets, survey, props.obsTimeTracking, props.obsTimeCoords)
+          ): (obsTargets, s, trackingMap, coords) =>
+            targetCoordinates(obsTargets, trackingMap, coords, s.value.epoch)
         // Update coordinates if obsTargets or obsTime or survey changes
-        _            <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, s) =>
-                          val (base, science) = baseAndScience(props, s.value.epoch)
-                          baseCoords.setState((base, science)) *>
-                            currentPos.setState(
-                              base
-                                .flatMap(_.offsetBy(Angle.Angle0, props.options.viewOffset))
-                            )
+        // NOTE: Do not update the dependencies, or you might break sh@t. If this updates
+        // too often, `Center on Target` will not work.
+        _            <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, _) =>
+                          currentPos.setState(
+                            positionFromBaseAndOffset(props.obsTimeCoords.baseCoords, props.options.viewOffset)
+                          )
         aladinRef    <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
-        _            <- useEffectWithDeps((baseCoords, props.options.viewOffset)): (_, offset) =>
-                          val newCoords = baseCoords.value._1.flatMap(_.offsetBy(Angle.Angle0, offset))
-                          newCoords
-                            .map: coords =>
-                              aladinRef.value
-                                .traverse(_.gotoRaDecCB(coords))
-                                .void
-                                .when_(offset === Offset.Zero)
-                            .getOrEmpty
+        _            <-
+          useEffectWithDeps((props.obsTimeCoords.baseCoords, props.options.viewOffset)):
+            (baseCoords, offset) =>
+              val newCoords = positionFromBaseAndOffset(baseCoords, offset)
+              newCoords
+                .map: coords =>
+                  aladinRef.value
+                    .traverse(_.gotoRaDecCB(coords))
+                    .void
+                    .when_(offset === Offset.Zero)
+                .getOrEmpty
         // Memoized svg for visualization shapes
         shapes       <- useVisualizationShapes(
                           props.vizConf,
-                          baseCoords.value._1,
-                          props.blindOffset,
+                          props.obsTimeCoords.baseCoords,
+                          props.obsTimeCoords.blindOffsetCoords,
                           props.globalPreferences.agsOverlay,
                           props.selectedGuideStar
                         )
@@ -275,15 +292,19 @@ object AladinContainer extends AladinCommon {
         pfShapes     <- usePatrolFieldShapes(
                           props.vizConf,
                           props.selectedGuideStar,
-                          baseCoords.value._1,
-                          props.blindOffset,
+                          props.obsTimeCoords.baseCoords,
+                          props.obsTimeCoords.blindOffsetCoords,
                           props.pfVisibility,
                           props.anglesToTest
                         )
         agsPositions <- useMemo(
-                          (props.vizConf, props.selectedGuideStar, baseCoords, props.blindOffset)
-                        ) { (vizConf, selectedGS, baseCoords, blindOffset) =>
-                          baseCoords.value._1.map: baseCoordinates =>
+                          (props.vizConf,
+                           props.selectedGuideStar,
+                           props.obsTimeCoords.baseCoords,
+                           props.obsTimeCoords.blindOffsetCoords
+                          )
+                        ): (vizConf, selectedGS, baseCoords, blindOffset) =>
+                          baseCoords.map: baseCoordinates =>
                             val posAngle = selectedGS
                               .map(_.posAngle)
                               .orElse(vizConf.map(_.posAngle))
@@ -296,7 +317,6 @@ object AladinContainer extends AladinCommon {
                               vizConf.flatMap(_.asAcqOffsets),
                               vizConf.flatMap(_.asSciOffsets)
                             )
-                        }
         // resize detector
         resize       <- useResizeDetector
         // memoized catalog targets with their proper motions corrected
@@ -308,7 +328,6 @@ object AladinContainer extends AladinCommon {
                            props.siderealDiscretizedObsTime,
                            props.vizConf.map(_.configuration),
                            props.selectedGuideStar,
-                           baseCoords,
                            survey
                           )
                         ):
@@ -320,11 +339,9 @@ object AladinContainer extends AladinCommon {
                             siderealDiscretizedObsTime,
                             configuration,
                             selectedGS,
-                            baseCoords,
                             survey
                           ) =>
                             selectedGS.posAngle.foldMap: _ =>
-                              val (_, scienceTargets) = baseCoords.value
                               guideStars(
                                 candidates,
                                 visible,
@@ -336,11 +353,8 @@ object AladinContainer extends AladinCommon {
                               )
         // Use fov from aladin
         fov          <- useState(none[Fov])
-        // Update survey if conf changes
-        _            <- useEffectWithDeps(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
-                          _.map(w => survey.setState(surveyForWavelength(w))).getOrEmpty
       } yield {
-        val (baseCoordinates, scienceTargets) = baseCoords.value
+        val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseCoords
 
         /**
          * Called when the position changes, i.e. aladin pans. We want to offset the visualization
@@ -383,25 +397,28 @@ object AladinContainer extends AladinCommon {
               SVGTarget.CrosshairTarget(c, Css.Empty, CrosshairSize)
             )
 
-        val targetPositions = renderTargets(
-          props.obsTargets.mapScience(identity),
-          props.obsTime,
-          props.obsTargets.focus.id,
-          (t, selected, coords) =>
-            SVGTarget.ScienceTarget(
-              coords,
-              ExploreStyles.ScienceTarget,
-              ExploreStyles.ScienceSelectedTarget,
-              TargetSize,
-              selected,
-              t.target.name.value.some
-            ),
-          ExploreStyles.PMCorrectionLine,
-          props.obsTargets.length > 1,
-          survey.value.epoch
-        )
+        val isSelectable: Boolean = props.obsTargets.length > 1
 
-        // Offset indicators calculated and rotated directly bby ags
+        val scienceTargets: List[SVGTarget] =
+          targetCoords
+            .filterNot(_.target.disposition === TargetDisposition.BlindOffset)
+            .flatMap: tc =>
+              def targetSvg(coords: Coordinates) = SVGTarget.ScienceTarget(
+                coords,
+                ExploreStyles.ScienceTarget,
+                ExploreStyles.ScienceSelectedTarget,
+                TargetSize,
+                tc.isSelected && isSelectable,
+                tc.targetName.some
+              )
+              svgTargetAndLine(
+                tc.obsTimeCoords,
+                tc.linePoints,
+                targetSvg,
+                lineStyle = ExploreStyles.PMCorrectionLine
+              )
+
+        // Offset indicators calculated and rotated directly by ags
         val offsetPositions = agsPositions.value.toList.flatMap { positions =>
           // Science offsets
           val scienceOffsets =
@@ -451,27 +468,24 @@ object AladinContainer extends AladinCommon {
           acquisitionOffsets ++ scienceOffsets
         }
 
-        // Render blind offset targets from obsTargets separately
-        val blindOffsetTargets = renderTargets(
-          props.obsTargets.blindOffsetTargets,
-          props.obsTime,
-          props.obsTargets.focus.id,
-          (t, selected, coords) =>
-            SVGTarget.BlindOffsetTarget(
-              coords,
-              Css.Empty,
-              ExploreStyles.BlindOffsetSelectedTarget,
-              TargetSize,
-              selected,
-              t.target.name.value.some
-            ),
-          ExploreStyles.BlindOffsetLine,
-          props.obsTargets.length > 1,
-          survey.value.epoch
-        )
-
-        val screenOffset =
-          (currentPos.value, baseCoordinates).mapN(_.diff(_).offset).getOrElse(Offset.Zero)
+        val blindOffsets: List[SVGTarget] =
+          targetCoords
+            .filter(tc => tc.target.disposition === TargetDisposition.BlindOffset)
+            .flatMap: tc =>
+              def targetSvg(coords: Coordinates) = SVGTarget.BlindOffsetTarget(
+                coords,
+                Css.Empty,
+                ExploreStyles.BlindOffsetSelectedTarget,
+                TargetSize,
+                tc.isSelected && isSelectable,
+                tc.targetName.some
+              )
+              svgTargetAndLine(
+                tc.obsTimeCoords,
+                tc.linePoints,
+                targetSvg,
+                ExploreStyles.BlindOffsetLine
+              )
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
@@ -482,6 +496,9 @@ object AladinContainer extends AladinCommon {
           // will take it as 1. This height ends up being a denominator, which, if low,
           // will make aladin request a large amount of tiles and end up freeze explore.
           if (resize.height.exists(_ >= 100)) {
+            val screenOffset =
+              (currentPos.value, baseCoordinates).mapN(_.diff(_).offset).getOrElse(Offset.Zero)
+
             ReactFragment(
               aladinRef.value.map(AladinZoomControl(_)),
               HelpIcon("aladin-cell.md".refined, ExploreStyles.AladinHelpIcon),
@@ -495,7 +512,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    candidates ++ blindOffsetTargets ++ targetPositions ++ basePosition ++ offsetPositions
+                    candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ offsetPositions
                   )
                 ),
               (resize.width,

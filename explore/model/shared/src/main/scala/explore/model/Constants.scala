@@ -4,6 +4,8 @@
 package explore.model
 
 import lucuma.core.math.Angle
+import org.http4s.Uri
+import org.http4s.syntax.all.*
 
 import java.time.ZoneOffset
 
@@ -37,5 +39,8 @@ trait Constants:
   val P1TemplatesUrl     = "https://www.gemini.edu/observing/phase-i/pit/pit-description#PDF"
 
   val SignalToNoiseAtLabel = "λ for S/N"
+
+  // TODO: Replace with real proxy
+  val HorizonsProxy: Uri = uri"http://localhost:8010/proxy/api/horizons.api"
 
 object Constants extends Constants

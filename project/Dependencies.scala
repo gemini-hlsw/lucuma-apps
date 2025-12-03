@@ -278,6 +278,10 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-core-testkit")(lucumaCore)
   )
 
+  val LucumaHorizons = Def.setting(
+    deps("edu.gemini" %%% "lucuma-horizons")(lucumaCore)
+  )
+
   val LucumaOdbSchema = Def.setting(
     deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
   )

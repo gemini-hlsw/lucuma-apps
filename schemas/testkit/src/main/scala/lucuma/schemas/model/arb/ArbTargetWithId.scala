@@ -29,32 +29,4 @@ trait ArbTargetWithId:
       (x.id, x.target, x.disposition, x.calibrationRole)
     )
 
-  given Arbitrary[SiderealTargetWithId] = Arbitrary {
-    for {
-      id <- arbitrary[Target.Id]
-      t  <- arbitrary[Target.Sidereal]
-      d  <- arbitrary[TargetDisposition]
-      cr <- arbitrary[Option[CalibrationRole]]
-    } yield SiderealTargetWithId(id, t, d, cr)
-  }
-
-  given Cogen[SiderealTargetWithId] =
-    Cogen[(Target.Id, Target.Sidereal, TargetDisposition, Option[CalibrationRole])].contramap(x =>
-      (x.id, x.target, x.disposition, x.calibrationRole)
-    )
-
-  given Arbitrary[NonsiderealTargetWithId] = Arbitrary {
-    for {
-      id <- arbitrary[Target.Id]
-      t  <- arbitrary[Target.Nonsidereal]
-      d  <- arbitrary[TargetDisposition]
-      cr <- arbitrary[Option[CalibrationRole]]
-    } yield NonsiderealTargetWithId(id, t, d, cr)
-  }
-
-  given Cogen[NonsiderealTargetWithId] =
-    Cogen[(Target.Id, Target.Nonsidereal, TargetDisposition, Option[CalibrationRole])].contramap(
-      x => (x.id, x.target, x.disposition, x.calibrationRole)
-    )
-
 object ArbTargetWithId extends ArbTargetWithId

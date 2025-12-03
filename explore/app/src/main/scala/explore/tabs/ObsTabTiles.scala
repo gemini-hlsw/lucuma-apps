@@ -116,6 +116,7 @@ case class ObsTabTiles(
   val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     programSummaries.obsAttachmentAssignments
 
+  // TODO: Remove as part of support non-sidereals
   val asterismTracking: Option[Tracking] =
     observation.get.asterismTracking(obsTargets)
 
@@ -338,6 +339,7 @@ object ObsTabTiles:
 
           val averagePA: Option[AveragePABasis] =
             (basicConfiguration.map(_.siteFor),
+             // TODO: Modify to support non-sidereals
              props.asterismAsNel.flatMap(_.baseTracking),
              obsDuration,
              setupTime
@@ -461,6 +463,7 @@ object ObsTabTiles:
               props.observation.get.calibrationRole
             )
 
+          // TODO: non-sidereals are currently ignored because Observation.asterismTracking ignores them
           val plotData: Option[PlotData] =
             props.asterismTracking.map: tracking =>
               PlotData:

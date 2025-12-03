@@ -106,8 +106,6 @@ trait CatalogPicklers extends CommonPicklers:
 
   given Pickler[ConstantTracking] = generatePickler
 
-  given Pickler[EphemerisCoordinates] = generatePickler
-
   given Pickler[GuidedOffset] = picklerNewType(GuidedOffset)
 
   given Pickler[AcquisitionOffsets] = picklerNewType(AcquisitionOffsets)

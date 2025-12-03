@@ -14,6 +14,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.Constants
+import explore.model.display.given
 import explore.model.syntax.all.*
 import explore.optics.GetAdjust
 import explore.utils.*
@@ -25,17 +26,21 @@ import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Partner
 import lucuma.core.enums.TimeAccountingCategory
+import lucuma.core.model.EphemerisKey
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
 import lucuma.core.model.User
+import lucuma.core.syntax.display.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
+import lucuma.horizons.HorizonsConstants
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.pot.*
+import org.http4s.Uri
 import org.http4s.headers.Authorization
 import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.Window
@@ -196,9 +201,44 @@ extension (icon: FontAwesomeIcon)
     <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
 
 extension (target: Target)
-  def iconWithTooltip: VdomNode =
+  def iconWithTooltip: VdomNode         =
     target match
       case Target.Sidereal(_, _, _, _) => Icons.Star.fixedWidthWithTooltip("Sidereal")
       case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
       case Target.Opportunity(_, _, _) =>
         Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")
+  def catalogId: Option[String]         = target match
+    case s: Target.Sidereal     => s.catalogInfo.map(_.id.value)
+    case ns: Target.Nonsidereal => ns.ephemerisKey.des.some
+    case o: Target.Opportunity  => none
+  def catalogName: Option[String]       = target match
+    case s: Target.Sidereal     => s.catalogInfo.map(_.catalog.shortName)
+    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
+    case o: Target.Opportunity  => none
+  def catalogUriString: Option[String]  = target match
+    case s: Target.Sidereal     => s.catalogInfo.map(_.objectUrl.toString)
+    case ns: Target.Nonsidereal => ns.ephemerisKey.catalogUri.map(_.toString)
+    case o: Target.Opportunity  => none
+  def catalogObjectType: Option[String] = target match
+    case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
+    case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.shortName.some
+    case o: Target.Opportunity  => none
+
+extension (ek: EphemerisKey)
+  def catalogName: String                        = ek match
+    case k: EphemerisKey.Horizons     => "HORIZONS"
+    case EphemerisKey.UserSupplied(_) => ek.keyType.shortName
+  def horizonsQueryCommand: String               = ek match
+    case a: EphemerisKey.AsteroidOld => s"'${a.des};'"
+    case _                           => s"'${ek.des}'"
+  def catalogUri: Option[Uri]                    = ek match
+    case EphemerisKey.UserSupplied(id) => None
+    case h                             =>
+      HorizonsConstants.HorizonsUri
+        .withQueryParam(HorizonsConstants.Format, "text")
+        .withQueryParam(HorizonsConstants.Command, horizonsQueryCommand)
+        .withQueryParam(HorizonsConstants.Ephemeris, HorizonsConstants.No)
+        .some
+  def horizonsKey: Option[EphemerisKey.Horizons] = ek match
+    case k: EphemerisKey.Horizons => k.some
+    case _                        => none

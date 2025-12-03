@@ -20,10 +20,11 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
 case class WorkerClients[F[_]](
-  itc:     WorkerClient[F, ItcMessage.Request],
-  catalog: WorkerClient[F, CatalogMessage.Request],
-  ags:     WorkerClient[F, AgsMessage.Request],
-  plot:    WorkerClient[F, PlotMessage.Request]
+  itc:      WorkerClient[F, ItcMessage.Request],
+  catalog:  WorkerClient[F, CatalogMessage.Request],
+  ags:      WorkerClient[F, AgsMessage.Request],
+  plot:     WorkerClient[F, PlotMessage.Request],
+  horizons: WorkerClient[F, HorizonsMessage.Request]
 ) {
   def clearAll(andThen: F[Unit])(using FlatMap[F]): F[Unit] =
     for {
@@ -31,6 +32,7 @@ case class WorkerClients[F[_]](
       _ <- plot.requestSingle(PlotMessage.CleanCache)
       _ <- ags.requestSingle(AgsMessage.CleanCache)
       _ <- catalog.requestSingle(CatalogMessage.CleanCache)
+      _ <- horizons.requestSingle(HorizonsMessage.CleanCache)
       _ <- andThen
     } yield ()
 }
@@ -81,12 +83,21 @@ object WorkerClients {
 
   object PlotClient extends WorkerClientBuilder[PlotMessage.Request](PlotWorker())
 
+  @js.native
+  @JSImport("/horizonsworker.js?worker", JSImport.Default)
+  private object HorizonsWorker extends js.Object {
+    def apply(): dom.Worker = js.native
+  }
+
+  object HorizonsClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
+
   def build[F[_]: {Async, Logger, SecureRandom}](
     dispatcher: Dispatcher[F]
   ): Resource[F, WorkerClients[F]] =
     (ItcClient.build[F](dispatcher),
      CatalogClient.build[F](dispatcher),
      AgsClient.build[F](dispatcher),
-     PlotClient.build[F](dispatcher)
+     PlotClient.build[F](dispatcher),
+     HorizonsClient.build[F](dispatcher)
     ).parMapN(WorkerClients.apply)
 }

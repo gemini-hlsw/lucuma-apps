@@ -8,7 +8,7 @@ import cats.Order
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.extensions.*
+import explore.model.deprecatedExtensions.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
 import lucuma.core.math.skycalc.SkyCalcResults
@@ -53,7 +53,7 @@ case class ObjectPlotData(
         // and could be optimized for sidereals, but it's probably necessary for non-sidereals.
         tracking
           .at(_)
-          .getOrElse(tracking.baseCoordinates)
+          .getOrElse(tracking.baseCoordinatesDeprecated)
       )
 
 object ObjectPlotData:

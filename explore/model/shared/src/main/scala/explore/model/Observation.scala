@@ -301,12 +301,15 @@ case class Observation(
     if (newConfigurationRequestApplies(request.configuration)) updateToPending(request.id)
     else this
 
+  // TODO: Remove as part of support of non-sidereals.
+  // For now, ignore non-sidereals....
   def asterismTracking(allTargets: TargetList): Option[Tracking] =
     NonEmptyList
       .fromList:
         scienceTargetIds.toList
           .map(id => allTargets.get(id).map(_.target))
           .flattenOption
+          .filterNot(t => Target.nonsidereal.getOption(t).isDefined)
       .flatMap(Tracking.fromAsterism(_))
 
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =

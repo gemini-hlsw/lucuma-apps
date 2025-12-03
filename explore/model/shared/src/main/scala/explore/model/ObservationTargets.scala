@@ -7,15 +7,15 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
-import explore.model.extensions.*
 import lucuma.core.data.Zipper
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Region
-import lucuma.core.model.SiderealTracking
+import lucuma.core.model.CompositeTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.*
+import lucuma.schemas.model.syntax.*
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
@@ -25,7 +25,7 @@ import scala.collection.immutable.SortedSet
  */
 case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives Eq {
 
-  private val allTargets = targets.toNel
+  val allTargets = targets.toNel
 
   // science targets (science + calibration)
   private val science: List[TargetWithId] =
@@ -36,15 +36,25 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   // This uses ObjectTracking.orRegionFromAsterism, which treats any asterism with a
   // ToO as a ToO and returns the region of the first ToO it finds. Since we "shouldn't"
   // have asterisms with multiple TOs, this is probably fine.
+  // TODO: Not use Tracking.orRegionFromAsterism which blows up for non sidereals. Will need
+  // something that takes Tracking information and potentially return an error.
+  // See commented code in tracking.scala
   def coordsOrRegionAt(vizTime: Option[Instant]): Option[Either[Coordinates, Region]] =
+    // for now, to keep explore from blowing up, ignore non-sidereals
+    val targets = science.map(_.target).filter(t => Target.nonsidereal.getOption(t).isEmpty)
     NonEmptyList
-      .fromList(science.map(_.target))
+      .fromList(targets)
       .flatMap: science =>
         Tracking
           .orRegionFromAsterism(science) match
           case Left(tracking) =>
-            vizTime.fold(tracking.baseCoordinates.asLeft.some)(v => tracking.at(v).map(_.asLeft))
+            vizTime.fold(tracking.baseCoordinates.toOption.map(_.asLeft))(v =>
+              tracking.at(v).map(_.asLeft)
+            )
           case Right(region)  => region.asRight.some
+
+  lazy val hasTargetOfOpportunity: Boolean =
+    science.collect { case TargetWithId(_, Target.Opportunity(_, _, _), _, _) => true }.nonEmpty
 
   // checks if the science targets are of different kind
   def isMixed: Boolean =
@@ -66,12 +76,25 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
     targets.findFocus(_.id === tid).map(ObservationTargets.apply).getOrElse(this)
 
   // Tracking of the base of science, don't consider blind offsets
+  // TODO: Remove/replace as part of non sidereal support - Tracking.fromAsterism doesn't support them
+  // Switch to asterismTracking below
   def baseTracking: Option[Tracking] =
-    NonEmptyList.fromList(science.map(_.target)).flatMap(Tracking.fromAsterism)
+    // for now, to keep explore from blowing up, ignore non-sidereals
+    val targets = science.map(_.target).filter(t => Target.nonsidereal.getOption(t).isEmpty)
+    NonEmptyList.fromList(targets).flatMap(Tracking.fromAsterism)
 
-  // try science tracking, else blind offset tracking
-  def tracking: Option[Tracking] =
-    baseTracking.orElse(blindOffsetSiderealTracking)
+  def asterismTracking(
+    trackings: Map[Target.Id, Tracking]
+  ): Option[Either[String, Tracking]] =
+    NonEmptyList
+      .fromList(science)
+      .map: nel =>
+        nel
+          .traverse(twid => trackings.get(twid.id))
+          .map(CompositeTracking(_).asRight)
+          .getOrElse:
+            val missingIds = nel.filterNot(twid => trackings.contains(twid.id)).map(_.id)
+            s"Missing tracking for target(s): ${missingIds.mkString(", ")}".asLeft
 
   def mapScience[B](f: TargetWithId => B): List[B] =
     science.map(f)
@@ -83,14 +106,11 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   def blindOffsetTargets: List[TargetWithId] =
     allTargets.filter(_.disposition === TargetDisposition.BlindOffset)
 
-  // Tracking of the first blind offset, the table allows any but
-  // only one is ever in the db.
-  // we can use it for trackirng only if sidereal
-  def blindOffsetSiderealTracking: Option[SiderealTracking] =
-    blindOffsetTargets
-      .map(_.toSidereal)
-      .collectFirst:
-        case Some(SiderealTargetWithId(target = target)) => target.tracking
+  def coordinatesAt(
+    at:          Instant,
+    trackingMap: Map[Target.Id, Tracking]
+  ): Either[String, ObservationTargetsCoordinatesAt] =
+    ObservationTargetsCoordinatesAt.fromTargetsAndTracking(at, this, trackingMap)
 }
 
 object ObservationTargets:
