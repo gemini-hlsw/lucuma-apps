@@ -6,10 +6,12 @@ package navigate.server.tcs
 import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
+import fs2.concurrent.SignallingRef
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import navigate.model.AcMechsState
+import navigate.model.AllWfsConfiguration
 import navigate.model.PwfsMechsState
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
@@ -18,12 +20,19 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 
 class TcsNorthControllerSim[F[_]: Async](
-  guideRef:    Ref[F, GuideState],
-  telStateRef: Ref[F, TelescopeState],
-  acMechRef:   Ref[F, AcMechsState],
-  p1MechRef:   Ref[F, PwfsMechsState],
-  p2MechRef:   Ref[F, PwfsMechsState]
-) extends TcsBaseControllerSim[F](guideRef, telStateRef, acMechRef, p1MechRef, p2MechRef)
+  guideRef:      Ref[F, GuideState],
+  telStateRef:   Ref[F, TelescopeState],
+  acMechRef:     Ref[F, AcMechsState],
+  p1MechRef:     Ref[F, PwfsMechsState],
+  p2MechRef:     Ref[F, PwfsMechsState],
+  wfsConfigsRef: SignallingRef[F, AllWfsConfiguration]
+) extends TcsBaseControllerSim[F](guideRef,
+                                  telStateRef,
+                                  acMechRef,
+                                  p1MechRef,
+                                  p2MechRef,
+                                  wfsConfigsRef
+    )
     with TcsNorthController[F] {
 
   override val acValidNdFilters: List[AcNdFilter] = List(AcNdFilter.Open,
@@ -66,5 +75,6 @@ object TcsNorthControllerSim {
     u <- Ref.of(AcMechsState(AcLens.Ac.some, AcNdFilter.Open.some, AcFilter.Neutral.some))
     v <- Ref.of(PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
     w <- Ref.of(PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
-  } yield new TcsNorthControllerSim(x, y, u, v, w)
+    c <- SignallingRef.of(AllWfsConfiguration.default)
+  } yield new TcsNorthControllerSim(x, y, u, v, w, c)
 }

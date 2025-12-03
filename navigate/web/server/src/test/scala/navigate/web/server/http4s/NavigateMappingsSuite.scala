@@ -12,6 +12,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.classic.spi.IThrowableProxy
 import ch.qos.logback.classic.spi.LoggerContextVO
 import fs2.Stream
+import fs2.concurrent.SignallingRef
 import fs2.concurrent.Topic
 import io.circe.Decoder
 import io.circe.Decoder.Result
@@ -41,6 +42,7 @@ import munit.CatsEffectSuite
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AcquisitionAdjustment
+import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
@@ -2769,9 +2771,10 @@ object NavigateMappingsTest {
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
     w <-
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w),
-    new TcsNorthControllerSim[IO](r, p, u, v, w),
+    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
+    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
     g
   )
 
@@ -2786,9 +2789,10 @@ object NavigateMappingsTest {
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
     w <-
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w),
-    new TcsNorthControllerSim[IO](r, p, u, v, w),
+    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
+    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
     g
   ) {
     override def oiwfsPark: IO[CommandResult] = CommandResult.CommandFailure("Error").pure[IO]
@@ -2805,9 +2809,10 @@ object NavigateMappingsTest {
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
     w <-
       Ref.of[IO, PwfsMechsState](PwfsMechsState(PwfsFilter.Neutral.some, PwfsFieldStop.Open1.some))
+    c <- SignallingRef[IO].of(AllWfsConfiguration.default)
   } yield new NavigateEngineTest(
-    new TcsSouthControllerSim[IO](r, p, u, v, w),
-    new TcsNorthControllerSim[IO](r, p, u, v, w),
+    new TcsSouthControllerSim[IO](r, p, u, v, w, c),
+    new TcsNorthControllerSim[IO](r, p, u, v, w, c),
     g
   ) {
     override def getAcMechsState: IO[AcMechsState] = AcMechsState(none, none, none).pure[IO]
