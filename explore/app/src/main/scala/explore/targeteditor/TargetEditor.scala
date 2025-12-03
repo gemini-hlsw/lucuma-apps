@@ -39,6 +39,7 @@ import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
+import lucuma.core.model.EphemerisKey
 import lucuma.core.model.Program
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
@@ -51,6 +52,7 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.primereact.FormInputText
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
@@ -308,6 +310,26 @@ object TargetEditor:
               .view(_.toOpportunityInput.assign)
           RegionEditor(regionView, disabled)
 
+        val ephemerisKey: Option[VdomNode] =
+          Target.nonsidereal
+            .getOption(targetAligner.get)
+            .map(_.ephemerisKey)
+            .map: key =>
+              val (label, value) = key match
+                case EphemerisKey.UserSupplied(id) =>
+                  ("User Supplied", id.toString)
+                case h: EphemerisKey.Horizons      =>
+                  ("Horizons", s"${key.keyType.shortName} ${h.des}")
+              FormInputText(
+                id = "ephemeris-key".refined,
+                value = value,
+                label = React.Fragment(
+                  label,
+                  HelpIcon("target/main/ephemeris-key.md".refined)
+                ),
+                disabled = true
+              )
+
         def siderealTracking(
           siderealTargetAligner: Aligner[Target.Sidereal, SiderealInput]
         ): VdomElement = {
@@ -440,7 +462,8 @@ object TargetEditor:
                 disableSearch = props.targetWithId.get.disposition === TargetDisposition.BlindOffset
               ),
               optSiderealAligner.map(siderealCoordinates),
-              optOpportunityAligner.map(opportunityRegion)
+              optOpportunityAligner.map(opportunityRegion),
+              ephemerisKey
             ),
             optSiderealAligner.map(siderealTracking),
             <.div(
