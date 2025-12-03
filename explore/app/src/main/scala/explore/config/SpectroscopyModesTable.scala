@@ -380,11 +380,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         // scroll to the currently selected row.
         _              <- useEffectWithDeps((scrollTo.reuseByValue, selectedIndex.value, rows)):
                             (scrollTo, selectedIndex, _) =>
-                              Callback.log(s"SpectroscopyModesTable: scrollTo: ${}") >>
-                                Callback.when(scrollTo.get === ScrollTo.Scroll)(
-                                  selectedIndex.traverse_(scrollToVirtualizedIndex(_, virtualizerRef)) >>
-                                    scrollTo.set(ScrollTo.NoScroll)
-                                )
+                              Callback.when(scrollTo.get === ScrollTo.Scroll)(
+                                selectedIndex.traverse_(scrollToVirtualizedIndex(_, virtualizerRef)) >>
+                                  scrollTo.set(ScrollTo.NoScroll)
+                              )
       } yield
         val errLabel = itcHookData.errorLabel(props.spectroscopyRequirements.wavelength.isDefined)
 
