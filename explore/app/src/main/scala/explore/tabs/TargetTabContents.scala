@@ -328,6 +328,8 @@ object TargetTabContents extends TwoPanels:
                 .flatMap: targetId =>
                   props.targets.get
                     .get(targetId)
+                    // TODO: Handle non-sidereal targets in plots - filter them out for now
+                    .filterNot(twid => Target.nonsidereal.getOption(twid.target).isDefined)
                     .flatMap: targetWithId =>
                       Tracking
                         .fromTarget(targetWithId.target)
