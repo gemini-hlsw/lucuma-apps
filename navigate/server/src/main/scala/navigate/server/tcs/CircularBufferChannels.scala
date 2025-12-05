@@ -34,12 +34,12 @@ object CircularBufferChannels {
                server.getChannel[String](top, "health.VAL").map(TelltaleChannel(sysName, _)),
              Resource.pure
            )
-    dir <- server.getChannel[CadDirective](top, ":dc:detSigSaveCb.DIR")
-    imp <- server.getChannel[String](top, ":dc:detSigSaveCb.A")
-    aop <- server.getChannel[String](top, ":dc:detSigSaveCb.B")
-    fgp <- server.getChannel[String](top, ":dc:detSigSaveCb.C")
-    ims <- server.getChannel[String](top, ":dc:aoSaveCbIm.VAL")
-    aos <- server.getChannel[String](top, ":dc:aoSaveCbAoCtrl.VAL")
-    fgs <- server.getChannel[String](top, ":dc:aoSaveCbFgCtrl.VAL")
+    dir <- server.getChannel[CadDirective](top, "dc:detSigSaveCb.DIR")
+    imp <- server.getChannel[String](top, "dc:detSigSaveCb.A")
+    aop <- server.getChannel[String](top, "dc:detSigSaveCb.B")
+    fgp <- server.getChannel[String](top, "dc:detSigSaveCb.C")
+    ims <- server.getChannel[String](top, "dc:aoSaveCbIm.VAL")
+    aos <- server.getChannel[String](top, "dc:aoSaveCbAoCtrl.VAL")
+    fgs <- server.getChannel[String](top, "dc:aoSaveCbFgCtrl.VAL")
   } yield CircularBufferChannels(tt, dir, imp, aop, fgp, ims, aos, fgs)
 }
