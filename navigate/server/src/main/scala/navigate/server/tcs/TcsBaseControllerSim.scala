@@ -10,6 +10,7 @@ import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.syntax.all.*
 import fs2.Stream
+import fs2.concurrent.SignallingRef
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.math.Angle
@@ -26,6 +27,7 @@ import monocle.Lens
 import mouse.boolean.*
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
+import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
 import navigate.model.HandsetAdjustment
@@ -62,11 +64,12 @@ import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
 
 abstract class TcsBaseControllerSim[F[_]: Async](
-  guideRef:    Ref[F, GuideState],
-  telStateRef: Ref[F, TelescopeState],
-  acMechRef:   Ref[F, AcMechsState],
-  p1MechRef:   Ref[F, PwfsMechsState],
-  p2MechRef:   Ref[F, PwfsMechsState]
+  guideRef:      Ref[F, GuideState],
+  telStateRef:   Ref[F, TelescopeState],
+  acMechRef:     Ref[F, AcMechsState],
+  p1MechRef:     Ref[F, PwfsMechsState],
+  p2MechRef:     Ref[F, PwfsMechsState],
+  wfsConfigsRef: SignallingRef[F, AllWfsConfiguration]
 ) extends TcsBaseController[F] {
 
   val acValidNdFilters: List[AcNdFilter] = Enumerated[AcNdFilter].all
@@ -427,27 +430,44 @@ abstract class TcsBaseControllerSim[F[_]: Async](
       )
       .as(ApplyCommandResult.Completed)
 
-  override def pwfs1CircularBuffer(enable: Boolean): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  private val pwfs1ConfigsRef = SignallingRef.lens(wfsConfigsRef)(
+    AllWfsConfiguration.pwfs1.get,
+    w => p1 => AllWfsConfiguration.pwfs1.replace(p1)(w)
+  )
+  private val pwfs2ConfigsRef = SignallingRef.lens(wfsConfigsRef)(
+    AllWfsConfiguration.pwfs2.get,
+    w => p2 => AllWfsConfiguration.pwfs2.replace(p2)(w)
+  )
+  private val oiwfsConfigsRef = SignallingRef.lens(wfsConfigsRef)(
+    AllWfsConfiguration.oiwfs.get,
+    w => oi => AllWfsConfiguration.oiwfs.replace(oi)(w)
+  )
 
-  override def pwfs2CircularBuffer(enable: Boolean): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs1CircularBuffer(enable: Boolean): F[ApplyCommandResult] = pwfs1ConfigsRef
+    .update(WfsConfiguration.saving.replace(enable))
+    .as(ApplyCommandResult.Completed)
 
-  override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] =
-    ApplyCommandResult.Completed.pure[F]
+  override def pwfs2CircularBuffer(enable: Boolean): F[ApplyCommandResult] = pwfs2ConfigsRef
+    .update(WfsConfiguration.saving.replace(enable))
+    .as(ApplyCommandResult.Completed)
 
-  override def getPwfs1Config: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+  override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] = oiwfsConfigsRef
+    .update(WfsConfiguration.saving.replace(enable))
+    .as(ApplyCommandResult.Completed)
 
-  override def getPwfs2Config: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+  override def getPwfs1Config: F[WfsConfiguration] = pwfs1ConfigsRef.get
 
-  override def getOiwfsConfig: F[WfsConfiguration] = WfsConfiguration.default.pure[F]
+  override def getPwfs2Config: F[WfsConfiguration] = pwfs2ConfigsRef.get
+
+  override def getOiwfsConfig: F[WfsConfiguration] = pwfs2ConfigsRef.get
 
   override def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]] =
-    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
+    pwfs1ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
 
   override def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]] =
-    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
+    pwfs2ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
 
   override def oiwfsConfigStream: F[Stream[F, WfsConfiguration]] =
-    (Stream.emit(WfsConfiguration.default) ++ Stream.never).pure[F]
+    oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
+
 }
