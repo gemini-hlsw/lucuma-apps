@@ -49,6 +49,9 @@ object ConfigurationSubquery
         gmosSouthLongSlit {
           grating
         }
+        flamingos2LongSlit {
+          disperser
+        }
       }
     }
   """
