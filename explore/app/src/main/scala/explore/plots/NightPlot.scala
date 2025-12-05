@@ -202,19 +202,26 @@ object NightPlot:
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip) =>
-        val x: Double        = point.x
-        val y: Double        = point.y.toOption.orEmpty
-        val time: String     = timeFormat(x)
-        // HACK. TODO Think of something better
-        val seriesIndex: Int = point.series.index.toInt / chartData.size.toInt
-        val value: String    = seriesIndex match
-          case 0 =>                        // Target elevation with airmass
-            formatAngle(y) +
-              s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
-          case 2 => "%.2f".format(point.y) // Sky Brightness
-          case _ => formatAngle(y)         // Other elevations
+        val x: Double    = point.x
+        val y: Double    = point.y.toOption.orEmpty
+        val time: String = timeFormat(x)
+        Callback.log(point.series).runNow() // For debugging
+        val seriesIndex: Int                      = point.series.index.toInt
+        // First batch of series has moon, therefore there are 4; others have just 3
+        val seriesType: Int                       =
+          if seriesIndex < 4 then seriesIndex
+          else (seriesIndex - 4) % 3
+        val (seriesName, value): (String, String) = seriesType match
+          case 0 =>                                            // Target elevation with airmass
+            ("Elevation",
+             formatAngle(y) +
+               s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
+            )
+          case 1 => ("Parallactic Angle", formatAngle(y))      // Other elevations
+          case 2 => ("Sky Brightness", "%.2f".format(point.y)) // Sky Brightness
+          case 3 => ("Elevation", formatAngle(y))              // Moon elevation
 
-        s"<strong>$time ($timeDisplayStr)</strong><br/>${point.series.name}: $value"
+        s"<strong>${point.series.name}</strong><br/>$time ($timeDisplayStr)<br/>$seriesName: $value"
 
     val dusk: String = instantFormat(tbNauticalNight.start)
     val dawn: String = instantFormat(tbNauticalNight.end)
