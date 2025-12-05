@@ -39,7 +39,7 @@ case class GlobalPreferences(
   elevationPlotSkyBrightnessVisible:    Visible,
   elevationPlotLunarElevationVisible:   Visible,
   wavelengthUnits:                      WavelengthUnits,
-  patrolFieldVisibility:                Option[PFVisibility] = None
+  patrolFieldVisibility:                Option[AGSDebugVisibility] = None
 ) derives Eq,
       Decoder
 
@@ -64,7 +64,7 @@ object GlobalPreferences:
     Focus[GlobalPreferences](_.elevationPlotLunarElevationVisible)
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
   val pfVisibility                         =
-    Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(PFVisibility.Default)
+    Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(AGSDebugVisibility.Default)
 
   val Default =
     GlobalPreferences(
