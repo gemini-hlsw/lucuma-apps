@@ -376,6 +376,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                        (params, props.anglesToTest).mapN((params, angles) =>
                                          AgsMessage.AgsRequest(
                                            focusedId,
+                                           props.obsTime,
                                            constraints,
                                            centralWavelength.value,
                                            baseCoords,

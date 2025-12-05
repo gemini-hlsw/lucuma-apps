@@ -15,6 +15,7 @@ import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
+import org.http4s.client.middleware.RequestLogger
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
@@ -40,7 +41,8 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
       idb       <- IO(self.indexedDB.toOption)
       stores     = CacheIDBStores()
       cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
-      httpClient = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
+      rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
+      httpClient = RequestLogger(logHeaders = true, logBody = true)(rawClient)
       client     = GaiaClient.build(httpClient)
     yield invocation =>
       invocation.data match
