@@ -24,7 +24,10 @@ import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.AgsParams
 import lucuma.ags.GeometryType
+import lucuma.ags.GuideStarCandidate
+import lucuma.core.model.ConstraintSet
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
@@ -67,7 +70,10 @@ case class AladinContainer(
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
   guideStarCandidates:    List[AgsAnalysis.Usable],
-  anglesToTest:           Option[NonEmptyList[Angle]]
+  allCatalogStars:        List[GuideStarCandidate],
+  anglesToTest:           Option[NonEmptyList[Angle]],
+  constraints:            Option[ConstraintSet],
+  agsParams:              Option[AgsParams]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -88,6 +94,7 @@ object AladinContainer extends AladinCommon {
   private val GuideStarSize          = 4
   private val GuideStarCandidateSize = 3
   private val GuideStarCrowdedSize   = 2.7
+  private val CrowdedThreshold       = 500
 
   extension (tr: SiderealTracking)
     private def coordsAtEpoch(epoch: Epoch): Option[Coordinates] =
@@ -121,11 +128,12 @@ object AladinContainer extends AladinCommon {
   ): List[SVGTarget] =
     targetSVG(obsTimeCoords) ::
       linePoints.sliding2.map: (from, to) =>
+        pprint.pprintln(s" line ${Angle.arcseconds.get(from.angularDistance(to))} mas $from to $from")
         SVGTarget.LineTo(from, to, lineStyle)
 
   private def guideStarsSVG(
     g:                          AgsAnalysis.Usable,
-    numberOfCandidates:         Int,
+    isCrowded:                  Boolean,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
@@ -141,28 +149,32 @@ object AladinContainer extends AladinCommon {
     val linePoints: List[Coordinates] =
       tracking.coordsAtEpoch(surveyEpoch).foldMap(List(_, obsTimeCoords))
 
+    pprint.pprintln(s"guidestars $isCrowded $surveyEpoch ${siderealDiscretizedObsTime.obsTime}")
+    pprint.pprintln(s"gaia id: ${g.target.id}")
+    pprint.pprintln(linePoints)
+
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
         SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), g)
       } else {
         val css  =
           candidateCss |+| candidatesVisibility |+|
-            ExploreStyles.GuideStarCandidateCrowded.unless_(numberOfCandidates < 500)
+            ExploreStyles.GuideStarCandidateCrowded.when_(isCrowded)
         val size =
-          if (numberOfCandidates < 500) calcSize(GuideStarCandidateSize)
-          else calcSize(GuideStarCrowdedSize)
+          if (isCrowded) calcSize(GuideStarCrowdedSize)
+          else calcSize(GuideStarCandidateSize)
         SVGTarget.GuideStarCandidateTarget(coords, css, size, g)
       }
 
-    if (numberOfCandidates < 500) {
+    if (isCrowded) {
+      List(guideTargetSVG(obsTimeCoords))
+    } else {
       svgTargetAndLine(
         obsTimeCoords,
         linePoints,
         guideTargetSVG,
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
-    } else {
-      List(guideTargetSVG(obsTimeCoords))
     }
   }
 
@@ -183,11 +195,13 @@ object AladinContainer extends AladinCommon {
     val candidatesVisibility =
       ExploreStyles.GuideStarCandidateVisible.when_(visible)
 
-    candidates
+    val isCrowded = candidates.length >= CrowdedThreshold
+
+    val cd = candidates
       .flatMap:
         guideStarsSVG(
           _,
-          candidates.length,
+          isCrowded,
           siderealDiscretizedObsTime,
           configuration,
           selectedGS,
@@ -195,6 +209,31 @@ object AladinContainer extends AladinCommon {
           calcSize,
           surveyEpoch
         )
+    println(s"candidates ${cd.length}")
+    cd
+  }
+
+  private val CatalogStarSize = 4
+
+  private def debugCatalogStarsSVG(
+    analyses:                   List[AgsAnalysis],
+    fovRA:                      Angle,
+    siderealDiscretizedObsTime: SiderealDiscretizedObsTime
+  ): List[SVGTarget] = {
+    val fov                            = fovRA.toMicroarcseconds / 1e6
+    def calcSize(size: Double): Double = size.max(size * (225 / fov))
+
+    analyses.map { analysis =>
+      val coords = analysis.target.tracking
+        .at(siderealDiscretizedObsTime.obsTime)
+        .getOrElse(analysis.target.tracking.baseCoordinates)
+      SVGTarget.DebugCatalogStarTarget(
+        coords,
+        Css.Empty,
+        calcSize(CatalogStarSize),
+        analysis
+      )
+    }
   }
 
   private case class TargetCoords(
@@ -309,14 +348,17 @@ object AladinContainer extends AladinCommon {
                               .map(_.posAngle)
                               .orElse(vizConf.map(_.posAngle))
                               .getOrElse(Angle.Angle0)
+                            // println(s"posAngle $posAngle")
 
-                            Ags.generatePositions(
+                            val pos = Ags.generatePositions(
                               baseCoordinates,
                               blindOffset,
                               NonEmptyList.one(posAngle),
                               vizConf.flatMap(_.asAcqOffsets),
                               vizConf.flatMap(_.asSciOffsets)
                             )
+                            // println(s"pos $pos")
+                            pos
         // resize detector
         resize       <- useResizeDetector
         // memoized catalog targets with their proper motions corrected
@@ -341,6 +383,7 @@ object AladinContainer extends AladinCommon {
                             selectedGS,
                             survey
                           ) =>
+                            // println(selectedGS.posAngle)
                             selectedGS.posAngle.foldMap: _ =>
                               guideStars(
                                 candidates,
@@ -351,6 +394,57 @@ object AladinContainer extends AladinCommon {
                                 selectedGS,
                                 survey.value.epoch
                               )
+        // memoized all catalog stars with AGS analysis (debug only)
+        allCatalog   <- useMemo(
+                          (props.allCatalogStars,
+                           props.pfVisibility.showAllCatalogStars,
+                           props.options.fovRA,
+                           props.siderealDiscretizedObsTime,
+                           props.obsTimeCoords,
+                           props.vizConf,
+                           props.anglesToTest,
+                           props.constraints,
+                           props.agsParams
+                          )
+                        ):
+                          (
+                            allStars,
+                            showAll,
+                            fovRA,
+                            siderealDiscretizedObsTime,
+                            obsTimeCoords,
+                            vizConf,
+                            anglesToTest,
+                            constraints,
+                            agsParams
+                          ) =>
+                            if (showAll.value && allStars.nonEmpty)
+                              // Run AGS analysis locally for debug visualization
+                              // Apply PM correction to candidates before analysis
+                              val correctedStars              =
+                                allStars.map(_.at(siderealDiscretizedObsTime.obsTime))
+                              val analyses: List[AgsAnalysis] =
+                                (obsTimeCoords.baseCoords,
+                                 vizConf.flatMap(_.centralWavelength.map(_.value)),
+                                 anglesToTest,
+                                 constraints,
+                                 agsParams
+                                ).mapN: (baseCoords, wavelength, angles, constraints, params) =>
+                                  Ags.agsAnalysis(
+                                    constraints,
+                                    wavelength,
+                                    baseCoords,
+                                    obsTimeCoords.scienceCoords,
+                                    obsTimeCoords.blindOffsetCoords,
+                                    angles,
+                                    vizConf.flatMap(_.asAcqOffsets),
+                                    vizConf.flatMap(_.asSciOffsets),
+                                    params,
+                                    correctedStars
+                                  )
+                                .getOrElse(List.empty)
+                              debugCatalogStarsSVG(analyses, fovRA, siderealDiscretizedObsTime)
+                            else List.empty
         // Use fov from aladin
         fov          <- useState(none[Fov])
       } yield {
@@ -511,8 +605,8 @@ object AladinContainer extends AladinCommon {
                     _,
                     screenOffset,
                     _,
-                    // Order matters
-                    candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ offsetPositions
+                    // Order matters - allCatalog first so it's rendered behind other targets
+                    allCatalog ++ candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ offsetPositions
                   )
                 ),
               (resize.width,

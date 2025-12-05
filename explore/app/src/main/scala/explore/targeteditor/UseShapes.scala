@@ -8,7 +8,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.ConfigurationForVisualization
-import explore.model.PFVisibility
+import explore.model.AGSDebugVisibility
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
@@ -40,7 +40,7 @@ def usePatrolFieldShapes(
   selectedGS:      Option[AgsAnalysis.Usable],
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
-  pfVisibility:    PFVisibility,
+  pfVisibility:    AGSDebugVisibility,
   anglesToTest:    Option[NonEmptyList[Angle]]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 

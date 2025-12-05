@@ -240,6 +240,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           // We should have trackings for all the targets, so we'll ignore errors here.
           val oBaseTracking: Option[Tracking] =
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
+          println(s"$obsModeType $oBaseTracking")
 
           (obsModeType, oBaseTracking)
             .mapN: (_, baseTracking) =>
@@ -342,6 +343,10 @@ object AladinCell extends ModelOptics with AladinCommon:
                                      candidates
                                    ) if props.needsAGS && candidates.nonEmpty =>
                                  import ctx.given
+
+                                 println(s"run ags with ${candidates.foldMap(_.length)}")
+                                 // println(acqOffsets)
+                                 // println(sciOffsets)
 
                                  val runAgs: IO[Unit] =
                                    (oObsCoords,
@@ -485,6 +490,29 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val agsResultsList = agsResults.value.toOption.getOrElse(List.empty)
 
+      val catalogStarsList = candidates.value.toOption.flatten.getOrElse(List.empty)
+
+      val agsParams: Option[AgsParams] =
+        for
+          obsConf     <- props.obsConf
+          obsModeType <- obsConf.obsModeType
+          params      <- obsModeType match
+                           case ObservingModeType.Flamingos2LongSlit =>
+                             val fpu = obsConf.configuration.collect:
+                               case m: BasicConfiguration.Flamingos2LongSlit => m.fpu
+                             fpu.map(f =>
+                               AgsParams.Flamingos2AgsParams(Flamingos2LyotWheel.F16,
+                                                             Flamingos2FpuMask.Builtin(f),
+                                                             PortDisposition.Side
+                               )
+                             )
+                           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+                             val fpu = obsConf.configuration.flatMap(_.gmosFpuAlternative)
+                             AgsParams.GmosAgsParams(fpu, PortDisposition.Side).some
+                           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
+                             none
+        yield params
+
       def renderAladin(
         opts:        AsterismVisualOptions,
         trackingMap: Map[Target.Id, Tracking],
@@ -503,7 +531,10 @@ object AladinCell extends ModelOptics with AladinCommon:
           offsetChangeInAladin.reuseAlways,
           guideStar,
           agsResultsList,
-          props.anglesToTest
+          catalogStarsList,
+          props.anglesToTest,
+          props.obsConf.flatMap(_.constraints),
+          agsParams
         )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =
@@ -541,38 +572,37 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot(
-          (etr, eco) =>
-            (etr, eco).tupled.fold(
-              err => Message(severity = Message.Severity.Error, text = err),
-              (tr, co) =>
+        (trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot((etr, eco) =>
+          (etr, eco).tupled.fold(
+            err => Message(severity = Message.Severity.Error, text = err),
+            (tr, co) =>
+              <.div(
+                ExploreStyles.AladinContainerColumn,
+                AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
                 <.div(
-                  ExploreStyles.AladinContainerColumn,
-                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
-                  <.div(
-                    ExploreStyles.AladinToolbox,
-                    Button(onClickE = menuRef.toggle).withMods(
-                      ExploreStyles.ButtonOnAladin,
-                      Icons.ThinSliders
-                    )
-                  ),
-                  options.get.renderPot(opt =>
-                    React.Fragment(renderAladin(opt, tr, co),
-                                   renderToolbar(opt),
-                                   renderAgsOverlay(opt)
-                    )
+                  ExploreStyles.AladinToolbox,
+                  Button(onClickE = menuRef.toggle).withMods(
+                    ExploreStyles.ButtonOnAladin,
+                    Icons.ThinSliders
                   )
-                )
-            ),
-          options
-            .zoom(Pot.readyPrism[AsterismVisualOptions])
-            .mapValue: options =>
-              AladinPreferencesMenu(
-                props.uid,
-                props.obsTargets.ids,
-                globalPreferences,
-                options,
-                menuRef
+                ),
+                options.get.renderPot(opt =>
+                  React.Fragment(renderAladin(opt, tr, co),
+                                 renderToolbar(opt),
+                                 renderAgsOverlay(opt)
+                  )
+                ),
+                options
+                  .zoom(Pot.readyPrism[AsterismVisualOptions])
+                  .mapValue: options =>
+                    AladinPreferencesMenu(
+                      props.uid,
+                      props.obsTargets.ids,
+                      globalPreferences,
+                      options,
+                      menuRef
+                    )
               )
+          )
         )
       )

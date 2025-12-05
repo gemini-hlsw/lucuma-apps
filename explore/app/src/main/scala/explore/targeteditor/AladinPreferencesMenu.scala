@@ -138,12 +138,13 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
 
         val pfView = props.globalPreferences.zoom(GlobalPreferences.pfVisibility)
 
-        val showBaseView         = pfView.zoom(PFVisibility.showBase).as(Visible.Value)
-        val showBlindOffsetView  = pfView.zoom(PFVisibility.showBlindOffset).as(Visible.Value)
-        val showSciOffsetView    = pfView.zoom(PFVisibility.showScienceOffset).as(Visible.Value)
-        val showAcqOffsetView    = pfView.zoom(PFVisibility.showAcquisitionOffset).as(Visible.Value)
-        val showIntersectionView = pfView.zoom(PFVisibility.showIntersection).as(Visible.Value)
-        val showAllAngles        = pfView.zoom(PFVisibility.showAllAngles).as(Visible.Value)
+        val showBaseView            = pfView.zoom(AGSDebugVisibility.showBase).as(Visible.Value)
+        val showBlindOffsetView     = pfView.zoom(AGSDebugVisibility.showBlindOffset).as(Visible.Value)
+        val showSciOffsetView       = pfView.zoom(AGSDebugVisibility.showScienceOffset).as(Visible.Value)
+        val showAcqOffsetView       = pfView.zoom(AGSDebugVisibility.showAcquisitionOffset).as(Visible.Value)
+        val showIntersectionView    = pfView.zoom(AGSDebugVisibility.showIntersection).as(Visible.Value)
+        val showAllAngles           = pfView.zoom(AGSDebugVisibility.showAllAngles).as(Visible.Value)
+        val showAllCatalogStarsView = pfView.zoom(AGSDebugVisibility.showAllCatalogStars).as(Visible.Value)
 
         def menuItem(content: VdomNode): MenuItem =
           MenuItem.Custom(
@@ -230,6 +231,19 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
                       id = "patrol-field-all-angles".refined,
                       value = showAllAngles,
                       label = "All PAs"
+                    )
+                  )
+                ),
+                MenuItem.SubMenu(
+                  label = "Candidates",
+                  expanded = false,
+                  icon = Icons.Stars
+                )(
+                  menuItem(
+                    CheckboxView(
+                      id = "all-catalog-stars".refined,
+                      value = showAllCatalogStarsView,
+                      label = "All Catalog Stars"
                     )
                   )
                 ),

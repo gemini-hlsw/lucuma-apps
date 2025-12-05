@@ -315,6 +315,36 @@
     display: inline;
   }
 
+  .catalog-star-target {
+    display: inline;
+    stroke-width: 1.5px;
+    pointer-events: stroke;
+
+    &.catalog-star-usable {
+      stroke: hsl(120deg 70% 50% / 90%); // green - usable
+    }
+
+    &.catalog-star-not-reachable {
+      stroke: hsl(0deg 70% 50% / 90%); // red - outside patrol field
+    }
+
+    &.catalog-star-vignetted {
+      stroke: hsl(30deg 100% 50% / 90%); // orange - vignettes science
+    }
+
+    &.catalog-star-too-faint {
+      stroke: hsl(0deg 0% 50% / 70%); // gray - too faint
+    }
+
+    &.catalog-star-too-bright {
+      stroke: hsl(300deg 70% 60% / 90%); // magenta - too bright
+    }
+
+    &.catalog-star-other {
+      stroke: hsl(50deg 100% 50% / 90%); // yellow - other issues
+    }
+  }
+
   .guide-star-candidate-target-base {
     display: none;
     stroke: black;

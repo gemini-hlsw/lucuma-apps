@@ -99,6 +99,14 @@ object SVGTarget {
     title:       Option[String] = None
   ) extends SelectableProgramTarget derives Eq
 
+  case class DebugCatalogStarTarget(
+    coordinates: Coordinates,
+    css:         Css,
+    radius:      Double,
+    analysis:    AgsAnalysis,
+    title:       Option[String] = None
+  ) extends SVGTarget derives Eq
+
   given Reusability[SVGTarget] = Reusability.byEq
 }
 
@@ -257,6 +265,35 @@ object TargetsOverlay
                   ^.y2 := scale(destQ),
                   pointCss,
                   title.map(<.title(_))
+                )
+
+              case (offP, offQ, SVGTarget.DebugCatalogStarTarget(_, css, radius, analysis, title)) =>
+                val analysisCss = analysis match
+                  case _: AgsAnalysis.Usable              => VisualizationStyles.CatalogStarUsable
+                  case _: AgsAnalysis.NotReachableAtPosition => VisualizationStyles.CatalogStarNotReachable
+                  case _: AgsAnalysis.VignettesScience    => VisualizationStyles.CatalogStarVignetted
+                  case _: AgsAnalysis.MagnitudeTooFaint   => VisualizationStyles.CatalogStarTooFaint
+                  case _: AgsAnalysis.MagnitudeTooBright  => VisualizationStyles.CatalogStarTooBright
+                  case _                                  => VisualizationStyles.CatalogStarOther
+                val pointCss = VisualizationStyles.CatalogStarTarget |+| analysisCss |+| css
+                val size     = scale(maxP * radius)
+                val tooltip  = title.getOrElse(s"${analysis.target.name.value}: ${analysis.message(false)}")
+                <.g(
+                  <.line(
+                    ^.x1 := scale(offP) - size,
+                    ^.x2 := scale(offP) + size,
+                    ^.y1 := scale(offQ) - size,
+                    ^.y2 := scale(offQ) + size,
+                    pointCss
+                  ),
+                  <.line(
+                    ^.x1 := scale(offP) - size,
+                    ^.x2 := scale(offP) + size,
+                    ^.y1 := scale(offQ) + size,
+                    ^.y2 := scale(offQ) - size,
+                    pointCss
+                  ),
+                  <.title(tooltip)
                 )
             }
             .toTagMod
