@@ -19,6 +19,8 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import workers.WorkerRequest
 
+import java.time.Instant
+
 object AgsMessage {
   sealed trait Request extends WorkerRequest
 
@@ -28,6 +30,7 @@ object AgsMessage {
 
   case class AgsRequest(
     id:                 Target.Id,
+    vizTime:            Instant,
     constraints:        ConstraintSet,
     wavelength:         Wavelength,
     baseCoordinates:    Coordinates,

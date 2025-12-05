@@ -23,12 +23,13 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 24
+  private val AgsCacheVersion: Int = 25
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
   def agsCalculation(r: AgsMessage.AgsRequest): IO[List[AgsAnalysis.Usable]] =
-    IO.blocking(
+    IO.blocking:
+      val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
         .agsAnalysis(r.constraints,
                      r.wavelength,
@@ -39,10 +40,9 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
                      r.acqOffsets,
                      r.sciOffsets,
                      r.params,
-                     r.candidates
+                     correctedCandidates
         )
         .sortUsablePositions
-    )
 
   protected val handler: Logger[IO] ?=> IO[Invocation => IO[Unit]] =
     for
