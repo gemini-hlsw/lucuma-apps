@@ -81,13 +81,16 @@ case class ObsTree(
   private val selectedObsIdSet: Option[ObsIdSet] =
     focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
+  // We need the whole group (not just the id), in order to know if it's a callibration group.
+  private val focusedGroup: Option[Group] = focusedGroupId
+    .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
+    .flatMap(groups.get.get(_))
+
   private val activeGroup: Option[Group.Id] =
-    val focusedGroup: Option[Group] = focusedGroupId.flatMap(groups.get.get(_))
     focusedGroup
       .filterNot(_.isTelluricCalibration)
       .map(_.id)
       .orElse(focusedGroup.flatMap(_.parentId)) // For telluric groups, use parent
-      .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
 
   private val focusedObsOrGroup: Option[Either[Observation.Id, Group.Id]] =
     focusedObsId.map(_.asLeft).orElse(focusedGroupId.map(_.asRight))
@@ -457,8 +460,7 @@ object ObsTree:
                         tooltipOptions = ToolbarTooltipOptions.Default,
                         onClick = insertGroup(
                           props.programId,
-                          // Set the focused group as the new group parent if it is selected
-                          props.focusedGroupId,
+                          props.activeGroup, // Set the active group as the new group parent if it is selected
                           props.groups,
                           adding,
                           ctx
