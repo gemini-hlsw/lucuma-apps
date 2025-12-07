@@ -111,13 +111,12 @@ object NightPlot:
     seriesType:             SeriesType,
     objectPlotData:         ObjectPlotData,
     objectSeriesData:       ObjectPlotData.SeriesData,
-    visiblePlots:           List[SeriesType],
+    visible:                Boolean,
     shouldHideTargetLabels: Boolean
   ):
     lazy val name: String               =
       if (seriesType === SeriesType.LunarElevation) "Moon" else objectPlotData.name.value
     lazy val yAxis: Int                 = seriesType.yAxis
-    lazy val visible: Boolean           = visiblePlots.contains_(seriesType)
     // Moon elevation plot is always solid
     lazy val sites: List[Site]          =
       if (seriesType === SeriesType.LunarElevation) Enumerated[Site].all else objectPlotData.sites
@@ -126,10 +125,8 @@ object NightPlot:
     // Hide elevation and parallactic angle labels when there's only one target or all targets have the same observation ID.
     // Sky brightness band labels remain visible as they provide valuable sky condition context.
     lazy val showLabel: Boolean         = seriesType match
-      case SeriesType.Elevation        =>
-        !shouldHideTargetLabels
-      case SeriesType.ParallacticAngle =>
-        !shouldHideTargetLabels
+      case SeriesType.Elevation        => !shouldHideTargetLabels
+      case SeriesType.ParallacticAngle => !shouldHideTargetLabels
       case SeriesType.SkyBrightness    =>
         !shouldHideTargetLabels && data.exists: point =>
           point
@@ -202,19 +199,21 @@ object NightPlot:
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
       (point: Point, _: Tooltip) =>
-        val x: Double        = point.x
-        val y: Double        = point.y.toOption.orEmpty
-        val time: String     = timeFormat(x)
-        // HACK. TODO Think of something better
-        val seriesIndex: Int = point.series.index.toInt / chartData.size.toInt
-        val value: String    = seriesIndex match
-          case 0 =>                        // Target elevation with airmass
-            formatAngle(y) +
-              s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
-          case 2 => "%.2f".format(point.y) // Sky Brightness
-          case _ => formatAngle(y)         // Other elevations
+        val x: Double                             = point.x
+        val y: Double                             = point.y.toOption.orEmpty
+        val time: String                          = timeFormat(x)
+        val seriesType: SeriesType                = SeriesType.fromSeriesIndex(point.series.index.toInt)
+        val (seriesName, value): (String, String) = seriesType match
+          case SeriesType.Elevation        =>
+            ("Elevation",
+             formatAngle(y) +
+               s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
+            )
+          case SeriesType.ParallacticAngle => ("Parallactic Angle", formatAngle(y))
+          case SeriesType.SkyBrightness    => ("Sky Brightness", "%.2f".format(point.y))
+          case SeriesType.LunarElevation   => ("Elevation", formatAngle(y))
 
-        s"<strong>$time ($timeDisplayStr)</strong><br/>${point.series.name}: $value"
+        s"<strong>${point.series.name}</strong><br/>$time ($timeDisplayStr)<br/>$seriesName: $value"
 
     val dusk: String = instantFormat(tbNauticalNight.start)
     val dawn: String = instantFormat(tbNauticalNight.end)
@@ -237,7 +236,7 @@ object NightPlot:
               seriesType,
               targetPlotData,
               targetChartData,
-              opts.visiblePlots,
+              opts.visiblePlots.contains_(seriesType),
               shouldHideTargetLabels
             )
 
@@ -404,26 +403,30 @@ object NightPlot:
           )
       .setSeries:
         seriesToPlot
-          .map: series =>
+          .map: seriesData =>
             val baseSeries: SeriesAreaOptions =
               SeriesAreaOptions((), (), area, ())
-                .setName(if (series.showLabel) series.name else "")
+                .setName(if (seriesData.showLabel) seriesData.name else "")
                 .setLabel:
                   SeriesLabelOptionsObject()
-                    .setEnabled(series.showLabel)
+                    .setEnabled:
+                      seriesData.showLabel && List(SeriesType.Elevation, SeriesType.LunarElevation)
+                        .contains_(seriesData.seriesType)
                     .setOnArea(false)
                 .setClassName:
                   "elevation-plot-series" +
-                    (if (!series.sites.contains_(site)) " highcharts-dashed-series"
+                    (if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"
+                     else "") +
+                    (if (seriesData.seriesType =!= SeriesType.Elevation)
+                       s" highcharts-color-${seriesData.seriesType.ordinal}"
                      else "")
-                .setYAxis(series.yAxis)
-                .setData(series.data)
-                .setVisible(series.visible)
+                .setYAxis(seriesData.yAxis)
+                .setData(seriesData.data)
+                .setVisible(seriesData.visible)
                 .setFillOpacity(0)
                 .setZoneAxis("x")
                 .setThreshold: // Ensure that the zones are always painted towards the bottom
-                  if (series.seriesType === SeriesType.SkyBrightness)
-                    Double.PositiveInfinity
+                  if (seriesData.seriesType === SeriesType.SkyBrightness) Double.PositiveInfinity
                   else Double.NegativeInfinity
 
             zones
