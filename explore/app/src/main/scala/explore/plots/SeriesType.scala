@@ -53,3 +53,8 @@ enum SeriesType(
 
 object SeriesType:
   given Display[SeriesType] = Display.byShortName(_.name)
+
+  def fromSeriesIndex(seriesIndex: Int): SeriesType =
+    fromOrdinal:
+      if seriesIndex < 4 then seriesIndex
+      else (seriesIndex - 4) % 3
