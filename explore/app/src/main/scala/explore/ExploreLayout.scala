@@ -16,6 +16,7 @@ import explore.cache.ModesCacheController
 import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
+import explore.common.UserPreferencesQueries
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
@@ -140,7 +141,7 @@ object ExploreLayout:
 
   private val component =
     ScalaFnComponent[Props]: props =>
-      for
+      for {
         helpCtx              <- useContext(HelpContext.ctx)
         ctx                  <- useContext(AppContext.ctx)
         _                    <- useEffectWithDeps(
@@ -173,12 +174,33 @@ object ExploreLayout:
         // Reset the program cache when the program changes.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
                                   ctx.resetProgramCache(none)
+        // Track last opened programs
+        _                    <- useEffectWithDeps(routingInfo.flatMap(_.optProgramId)): optProgramId =>
+                                  import ctx.given
+
+                                  println(optProgramId)
+                                  (for {
+                                    programId <- optProgramId
+                                    uid       <- props.model.userId
+                                  } yield
+                                    val act = props.model.rootModel
+                                      .zoom(RootModel.globalPreferences)
+                                      .withOnMod: gp =>
+                                        gp
+                                          .map: gp =>
+                                            UserPreferencesQueries.LastOpenProgramsPreference
+                                              .setPrograms[IO](uid, gp.lastOpenPrograms)
+                                              .runAsync
+                                          .getOrEmpty
+
+                                    act.mod(_.openedProgram(programId))
+                                  ).getOrElse(Callback.empty)
         // Reset the program cache when there's an error signal.
         _                    <- useEffectStreamResourceOnMount:
                                   ctx.resetProgramCacheTopic.subscribeAwaitUnbounded.map:
                                     _.unNone.evalMap: err =>
                                       programError.setStateAsync(err.some)
-      yield
+      } yield
         import ctx.given
 
         val view: View[RootModel] = props.model.rootModel

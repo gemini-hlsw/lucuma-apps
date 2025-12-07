@@ -13,23 +13,23 @@ import explore.common.UserPreferencesQueries.GridLayouts
 import explore.model.ExploreGridLayouts
 import explore.model.GlobalPreferences
 import explore.model.UserPreferences
-import log4cats.loglevel.LogLevelLogger
-import org.typelevel.log4cats.extras.LogLevel
-import typings.loglevel.mod.LogLevelDesc
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.LineOfSightMotion
 import explore.model.layout
 import explore.model.layout.LayoutsMap
 import explore.utils.*
 import japgolly.scalajs.react.*
+import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
+import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.TargetPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates
 import queries.common.UserPreferencesQueriesGQL.UserPreferencesUpdates
 import queries.schemas.UserPreferencesDB
+import typings.loglevel.mod.LogLevelDesc
 
 import scala.concurrent.duration.*
 

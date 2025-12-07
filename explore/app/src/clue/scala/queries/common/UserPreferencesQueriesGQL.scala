@@ -217,6 +217,7 @@ object UserPreferencesQueriesGQL {
           elevationPlotLunarElevationVisible
           wavelengthUnits
           logLevel
+          lastOpenPrograms
         }
       }
     """
@@ -247,6 +248,7 @@ object UserPreferencesQueriesGQL {
           elevationPlotLunarElevationVisible
           wavelengthUnits
           logLevel
+          lastOpenPrograms
         }
       }
     """
@@ -388,6 +390,20 @@ object UserPreferencesQueriesGQL {
               itcDetailsOpen
             ]
           }
+        ) {
+          userId
+        }
+      }
+    """
+  }
+
+  @GraphQL
+  trait UserLastOpenProgramsUpdate extends GraphQLOperation[UserPreferencesDB] {
+    val document = """
+      mutation userLastOpenProgramsUpdate($userId: String!, $lastOpenPrograms: jsonb!) {
+        updateLucumaUserPreferencesByPk(
+          pk_columns: { userId: $userId },
+          _set: { lastOpenPrograms: $lastOpenPrograms }
         ) {
           userId
         }

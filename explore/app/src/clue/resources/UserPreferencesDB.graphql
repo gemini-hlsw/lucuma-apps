@@ -1302,6 +1302,41 @@ input ItcChartType_streamCursorValueInput {
   id: String
 }
 
+input JsonbCastExp {
+  String: StringComparisonExp
+}
+
+"""
+Boolean expression to compare columns of type "jsonb". All fields are combined with logical 'AND'.
+"""
+input JsonbComparisonExp {
+  _cast: JsonbCastExp
+
+  """is the column contained in the given json value"""
+  _containedIn: jsonb
+
+  """does the column contain the given json value at the top level"""
+  _contains: jsonb
+  _eq: jsonb
+  _gt: jsonb
+  _gte: jsonb
+
+  """does the string exist as a top-level key in the column"""
+  _hasKey: String
+
+  """do all of these strings exist as top-level keys in the column"""
+  _hasKeysAll: [String!]
+
+  """do any of these strings exist as top-level keys in the column"""
+  _hasKeysAny: [String!]
+  _in: [jsonb!]
+  _isNull: Boolean
+  _lt: jsonb
+  _lte: jsonb
+  _neq: jsonb
+  _nin: [jsonb!]
+}
+
 """
 columns and relationships of "lucumaAsterism"
 """
@@ -3251,6 +3286,10 @@ type LucumaUserPreferences {
   fullScreen: Boolean!
   itcChartType: ItcChartTypeEnum!
   itcDetailsOpen: Boolean!
+  lastOpenPrograms(
+    """JSON select path"""
+    path: String
+  ): jsonb!
   logLevel: String!
 
   """An object relationship"""
@@ -3279,6 +3318,11 @@ type LucumaUserPreferencesAggregateFields {
   min: LucumaUserPreferencesMinFields
 }
 
+"""append existing jsonb value of filtered columns with new jsonb value"""
+input LucumaUserPreferencesAppendInput {
+  lastOpenPrograms: jsonb
+}
+
 """
 Boolean expression to filter rows from the table "lucumaUserPreferences". All fields are combined with a logical 'AND'.
 """
@@ -3301,6 +3345,7 @@ input LucumaUserPreferencesBoolExp {
   fullScreen: BooleanComparisonExp
   itcChartType: ItcChartTypeEnumComparisonExp
   itcDetailsOpen: BooleanComparisonExp
+  lastOpenPrograms: JsonbComparisonExp
   logLevel: StringComparisonExp
   lucuma_user: LucumaUserBoolExp
   scienceOffsets: BooleanComparisonExp
@@ -3318,6 +3363,27 @@ enum LucumaUserPreferencesConstraint {
   unique or primary key constraint on columns "userId"
   """
   lucuma_user_preferences_pkey
+}
+
+"""
+delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+"""
+input LucumaUserPreferencesDeleteAtPathInput {
+  lastOpenPrograms: [String!]
+}
+
+"""
+delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+"""
+input LucumaUserPreferencesDeleteElemInput {
+  lastOpenPrograms: Int
+}
+
+"""
+delete key/value pair or string element. key/value pairs are matched based on their key value
+"""
+input LucumaUserPreferencesDeleteKeyInput {
+  lastOpenPrograms: String
 }
 
 """
@@ -3339,6 +3405,7 @@ input LucumaUserPreferencesInsertInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
   logLevel: String
   lucuma_user: LucumaUserObjRelInsertInput
   scienceOffsets: Boolean
@@ -3401,6 +3468,7 @@ input LucumaUserPreferencesOrderBy {
   fullScreen: OrderBy
   itcChartType: OrderBy
   itcDetailsOpen: OrderBy
+  lastOpenPrograms: OrderBy
   logLevel: OrderBy
   lucuma_user: LucumaUserOrderBy
   scienceOffsets: OrderBy
@@ -3413,6 +3481,11 @@ input LucumaUserPreferencesOrderBy {
 """primary key columns input for table: lucumaUserPreferences"""
 input LucumaUserPreferencesPkColumnsInput {
   userId: String!
+}
+
+"""prepend existing jsonb value of filtered columns with new jsonb value"""
+input LucumaUserPreferencesPrependInput {
+  lastOpenPrograms: jsonb
 }
 
 """
@@ -3465,6 +3538,9 @@ enum LucumaUserPreferencesSelectColumn {
   itcDetailsOpen
 
   """column name"""
+  lastOpenPrograms
+
+  """column name"""
   logLevel
 
   """column name"""
@@ -3502,6 +3578,7 @@ input LucumaUserPreferencesSetInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
   logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
@@ -3560,6 +3637,9 @@ enum LucumaUserPreferencesUpdateColumn {
   itcDetailsOpen
 
   """column name"""
+  lastOpenPrograms
+
+  """column name"""
   logLevel
 
   """column name"""
@@ -3579,6 +3659,27 @@ enum LucumaUserPreferencesUpdateColumn {
 }
 
 input LucumaUserPreferencesUpdates {
+  """append existing jsonb value of filtered columns with new jsonb value"""
+  _append: LucumaUserPreferencesAppendInput
+
+  """
+  delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+  """
+  _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+  """
+  delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+  """
+  _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+  """
+  delete key/value pair or string element. key/value pairs are matched based on their key value
+  """
+  _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+  """prepend existing jsonb value of filtered columns with new jsonb value"""
+  _prepend: LucumaUserPreferencesPrependInput
+
   """sets the columns of the filtered rows to the given values"""
   _set: LucumaUserPreferencesSetInput
   where: LucumaUserPreferencesBoolExp!
@@ -4044,6 +4145,8 @@ input explorePlotTime_streamCursorValueInput {
   id: String
 }
 
+scalar jsonb
+
 """
 order by avg() on columns of table "lucumaAsterism"
 """
@@ -4323,6 +4426,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
   logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
@@ -5540,6 +5644,27 @@ type Mutation {
   update data of the table: "lucumaUserPreferences"
   """
   updateLucumaUserPreferences(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaUserPreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaUserPreferencesPrependInput
+
     """sets the columns of the filtered rows to the given values"""
     _set: LucumaUserPreferencesSetInput
 
@@ -5551,6 +5676,27 @@ type Mutation {
   update single row of the table: "lucumaUserPreferences"
   """
   updateLucumaUserPreferencesByPk(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaUserPreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaUserPreferencesPrependInput
+
     """sets the columns of the filtered rows to the given values"""
     _set: LucumaUserPreferencesSetInput
     pk_columns: LucumaUserPreferencesPkColumnsInput!

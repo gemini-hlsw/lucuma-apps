@@ -30,7 +30,6 @@ import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
-import org.typelevel.log4cats.syntax.*
 import lucuma.core.model.Program
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.ToastRef
@@ -42,6 +41,7 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*

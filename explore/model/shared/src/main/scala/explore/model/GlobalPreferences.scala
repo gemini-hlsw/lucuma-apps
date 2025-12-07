@@ -5,12 +5,14 @@ package explore.model
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.eq.*
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
 import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.PlotDetails
 import io.circe.Decoder
+import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.itc.GraphType
 import monocle.Focus
@@ -41,9 +43,16 @@ case class GlobalPreferences(
   elevationPlotLunarElevationVisible:   Visible,
   wavelengthUnits:                      WavelengthUnits,
   logLevel:                             LogLevel,
+  lastOpenPrograms:                     List[Program.Id] = List.empty,
   patrolFieldVisibility:                Option[PFVisibility] = None
 ) derives Eq,
-      Decoder
+      Decoder:
+  def openedProgram(pid: Program.Id): GlobalPreferences =
+    GlobalPreferences.lastOpenPrograms
+      .modify(pids =>
+        (pid :: pids.filterNot(_ === pid))
+          .take(GlobalPreferences.MaxLastOpenPrograms)
+      )(this)
 
 object GlobalPreferences:
   val aladinMouseScroll                    = Focus[GlobalPreferences](_.aladinMouseScroll)
@@ -66,10 +75,16 @@ object GlobalPreferences:
     Focus[GlobalPreferences](_.elevationPlotLunarElevationVisible)
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
   val logLevel                             = Focus[GlobalPreferences](_.logLevel)
+  val lastOpenPrograms                     = Focus[GlobalPreferences](_.lastOpenPrograms)
   val pfVisibility                         =
     Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(PFVisibility.Default)
 
+  private val MaxLastOpenPrograms = 5
+
   private given Eq[LogLevel] = Eq.fromUniversalEquals
+
+  private given Decoder[List[Program.Id]] =
+    Decoder.decodeList[String].map(_.flatMap(Program.Id.parse)).or(Decoder.const(List.empty))
 
   private given Decoder[LogLevel] = Decoder.decodeString.map {
     case "TRACE" => LogLevel.Trace
@@ -97,6 +112,5 @@ object GlobalPreferences:
       Visible.Shown,
       Visible.Hidden,
       WavelengthUnits.Nanometers,
-      LogLevel.Info,
-      None
+      LogLevel.Info
     )

@@ -15,6 +15,7 @@ import explore.modes.ScienceModes
 import explore.syntax.ui.*
 import explore.undo.UndoStacks
 import lucuma.core.model.GuestUser
+import lucuma.core.model.Program
 import lucuma.core.model.ServiceUser
 import lucuma.core.model.StandardUser
 import lucuma.core.model.Target
@@ -37,7 +38,12 @@ case class RootModel(
   undoStacks:           UndoStacks[IO, ProgramSummaries] = UndoStacks.empty[IO, ProgramSummaries],
   otherUndoStacks:      ModelUndoStacks[IO] = ModelUndoStacks[IO]()
 ) derives Eq:
-  lazy val isStaffOrAdmin = vault.isStaffOrAdmin
+  lazy val isStaffOrAdmin                       = vault.isStaffOrAdmin
+  def openedProgram(pid: Program.Id): RootModel =
+    RootModel.userPreferences
+      .andThen(Pot.readyPrism)
+      .andThen(UserPreferences.globalPreferences)
+      .modify(_.openedProgram(pid))(this)
 
 object RootModel:
   val vault                = Focus[RootModel](_.vault)
@@ -49,6 +55,11 @@ object RootModel:
   val cfps                 = Focus[RootModel](_.cfps)
   val undoStacks           = Focus[RootModel](_.undoStacks)
   val otherUndoStacks      = Focus[RootModel](_.otherUndoStacks)
+
+  val globalPreferences: Optional[RootModel, GlobalPreferences] =
+    RootModel.userPreferences
+      .andThen(Pot.readyPrism)
+      .andThen(UserPreferences.globalPreferences)
 
   val userUserId = Lens[User, User.Id](_.id)(s =>
     a =>

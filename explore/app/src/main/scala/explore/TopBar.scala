@@ -7,10 +7,10 @@ import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
+import explore.common.UserPreferencesQueries
 import explore.components.ConnectionsStatus
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.common.UserPreferencesQueries
 import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries

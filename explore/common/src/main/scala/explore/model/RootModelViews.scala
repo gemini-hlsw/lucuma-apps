@@ -41,8 +41,11 @@ case class RootModelViews(
       programSummariesValue.toOption.flatMap(_.optProgramDetails).flatMap(_.pi).flatMap(_.user)
     (thisUserId, pi).mapN(_ === _.id).getOrElse(false)
 
+  lazy val userId: Option[User.Id] = RootModel.userId.getOption(rootModel.get)
+
 object RootModelViews:
-  val rootModel: Lens[RootModelViews, View[RootModel]]                              =
+  val rootModel: Lens[RootModelViews, View[RootModel]] =
     Focus[RootModelViews](_.rootModel)
+
   val programSummaries: Lens[RootModelViews, ThrottlingView[Pot[ProgramSummaries]]] =
     Focus[RootModelViews](_.programSummaries)
