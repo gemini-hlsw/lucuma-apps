@@ -1,3 +1,9 @@
+schema {
+  query: query_root
+  mutation: mutation_root
+  subscription: subscription_root
+}
+
 """whether this query should be cached (Hasura Cloud only)"""
 directive @cached(
   """measured in seconds"""
@@ -739,6 +745,126 @@ type ExploreFinderChartVarianceFields {
   rotate: Float
   scaleX: Float
   scaleY: Float
+}
+
+"""
+columns and relationships of "exploreLogLevel"
+"""
+type ExploreLogLevel {
+  id: String!
+}
+
+"""
+aggregated selection of "exploreLogLevel"
+"""
+type ExploreLogLevelAggregate {
+  aggregate: ExploreLogLevelAggregateFields
+  nodes: [ExploreLogLevel!]!
+}
+
+"""
+aggregate fields of "exploreLogLevel"
+"""
+type ExploreLogLevelAggregateFields {
+  count(columns: [ExploreLogLevelSelectColumn!], distinct: Boolean): Int!
+  max: ExploreLogLevelMaxFields
+  min: ExploreLogLevelMinFields
+}
+
+"""
+Boolean expression to filter rows from the table "exploreLogLevel". All fields are combined with a logical 'AND'.
+"""
+input ExploreLogLevelBoolExp {
+  _and: [ExploreLogLevelBoolExp!]
+  _not: ExploreLogLevelBoolExp
+  _or: [ExploreLogLevelBoolExp!]
+  id: StringComparisonExp
+}
+
+"""
+unique or primary key constraints on table "exploreLogLevel"
+"""
+enum ExploreLogLevelConstraint {
+  """
+  unique or primary key constraint on columns "id"
+  """
+  exploreLogLevel_pkey
+}
+
+"""
+input type for inserting data into table "exploreLogLevel"
+"""
+input ExploreLogLevelInsertInput {
+  id: String
+}
+
+"""aggregate max on columns"""
+type ExploreLogLevelMaxFields {
+  id: String
+}
+
+"""aggregate min on columns"""
+type ExploreLogLevelMinFields {
+  id: String
+}
+
+"""
+response of any mutation on the table "exploreLogLevel"
+"""
+type ExploreLogLevelMutationResponse {
+  """number of rows affected by the mutation"""
+  affected_rows: Int!
+
+  """data from the rows affected by the mutation"""
+  returning: [ExploreLogLevel!]!
+}
+
+"""
+on_conflict condition type for table "exploreLogLevel"
+"""
+input ExploreLogLevelOnConflict {
+  constraint: ExploreLogLevelConstraint!
+  update_columns: [ExploreLogLevelUpdateColumn!]! = []
+  where: ExploreLogLevelBoolExp
+}
+
+"""Ordering options when selecting data from "exploreLogLevel"."""
+input ExploreLogLevelOrderBy {
+  id: OrderBy
+}
+
+"""primary key columns input for table: exploreLogLevel"""
+input ExploreLogLevelPkColumnsInput {
+  id: String!
+}
+
+"""
+select columns of table "exploreLogLevel"
+"""
+enum ExploreLogLevelSelectColumn {
+  """column name"""
+  id
+}
+
+"""
+input type for updating data in table "exploreLogLevel"
+"""
+input ExploreLogLevelSetInput {
+  id: String
+}
+
+"""
+update columns of table "exploreLogLevel"
+"""
+enum ExploreLogLevelUpdateColumn {
+  """column name"""
+  id
+}
+
+input ExploreLogLevelUpdates {
+  """sets the columns of the filtered rows to the given values"""
+  _set: ExploreLogLevelSetInput
+  where: ExploreLogLevelBoolExp!
 }
 
 """
@@ -3118,6 +3244,7 @@ columns and relationships of "lucumaUserPreferences"
 type LucumaUserPreferences {
   acquisitionOffsets: Boolean!
   agsOverlay: Boolean!
+  aladinLegend: Boolean!
   aladinMouseScroll: Boolean!
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean!
@@ -3130,6 +3257,7 @@ type LucumaUserPreferences {
   fullScreen: Boolean!
   itcChartType: ItcChartTypeEnum!
   itcDetailsOpen: Boolean!
+  logLevel: String!
 
   """An object relationship"""
   lucuma_user: LucumaUser!
@@ -3166,6 +3294,7 @@ input LucumaUserPreferencesBoolExp {
   _or: [LucumaUserPreferencesBoolExp!]
   acquisitionOffsets: BooleanComparisonExp
   agsOverlay: BooleanComparisonExp
+  aladinLegend: BooleanComparisonExp
   aladinMouseScroll: BooleanComparisonExp
   createdAt: TimestamptzComparisonExp
   elevationPlotElevationVisible: BooleanComparisonExp
@@ -3178,6 +3307,7 @@ input LucumaUserPreferencesBoolExp {
   fullScreen: BooleanComparisonExp
   itcChartType: ItcChartTypeEnumComparisonExp
   itcDetailsOpen: BooleanComparisonExp
+  logLevel: StringComparisonExp
   lucuma_user: LucumaUserBoolExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
@@ -3202,6 +3332,7 @@ input type for inserting data into table "lucumaUserPreferences"
 input LucumaUserPreferencesInsertInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -3214,6 +3345,7 @@ input LucumaUserPreferencesInsertInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  logLevel: String
   lucuma_user: LucumaUserObjRelInsertInput
   scienceOffsets: Boolean
   showCatalog: Boolean
@@ -3225,6 +3357,7 @@ input LucumaUserPreferencesInsertInput {
 """aggregate max on columns"""
 type LucumaUserPreferencesMaxFields {
   createdAt: timestamptz
+  logLevel: String
   updatedAt: timestamptz
   userId: String
 }
@@ -3232,6 +3365,7 @@ type LucumaUserPreferencesMaxFields {
 """aggregate min on columns"""
 type LucumaUserPreferencesMinFields {
   createdAt: timestamptz
+  logLevel: String
   updatedAt: timestamptz
   userId: String
 }
@@ -3260,6 +3394,7 @@ input LucumaUserPreferencesOnConflict {
 input LucumaUserPreferencesOrderBy {
   acquisitionOffsets: OrderBy
   agsOverlay: OrderBy
+  aladinLegend: OrderBy
   aladinMouseScroll: OrderBy
   createdAt: OrderBy
   elevationPlotElevationVisible: OrderBy
@@ -3272,6 +3407,7 @@ input LucumaUserPreferencesOrderBy {
   fullScreen: OrderBy
   itcChartType: OrderBy
   itcDetailsOpen: OrderBy
+  logLevel: OrderBy
   lucuma_user: LucumaUserOrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
@@ -3296,6 +3432,9 @@ enum LucumaUserPreferencesSelectColumn {
   agsOverlay
 
   """column name"""
+  aladinLegend
+
+  """column name"""
   aladinMouseScroll
 
   """column name"""
@@ -3330,6 +3469,9 @@ enum LucumaUserPreferencesSelectColumn {
 
   """column name"""
   itcDetailsOpen
+
+  """column name"""
+  logLevel
 
   """column name"""
   scienceOffsets
@@ -3353,6 +3495,7 @@ input type for updating data in table "lucumaUserPreferences"
 input LucumaUserPreferencesSetInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -3365,6 +3508,7 @@ input LucumaUserPreferencesSetInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -3381,6 +3525,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   agsOverlay
+
+  """column name"""
+  aladinLegend
 
   """column name"""
   aladinMouseScroll
@@ -3417,6 +3564,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   itcDetailsOpen
+
+  """column name"""
+  logLevel
 
   """column name"""
   scienceOffsets
@@ -3853,6 +4003,22 @@ input exploreFinderChart_variance_order_by {
 }
 
 """
+Streaming cursor of the table "exploreLogLevel"
+"""
+input exploreLogLevel_streamCursorInput {
+  """Stream column input with initial value"""
+  initialValue: exploreLogLevel_streamCursorValueInput!
+
+  """cursor ordering"""
+  ordering: CursorOrdering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input exploreLogLevel_streamCursorValueInput {
+  id: String
+}
+
+"""
 Streaming cursor of the table "explorePlotRange"
 """
 input explorePlotRange_streamCursorInput {
@@ -4150,6 +4316,7 @@ input lucumaUserPreferences_streamCursorInput {
 input lucumaUserPreferences_streamCursorValueInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -4162,6 +4329,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -4202,7 +4370,7 @@ input lucumaWavelengthUnits_streamCursorValueInput {
 }
 
 """mutation root"""
-type Mutation {
+type mutation_root {
   """
   delete data from the table: "exploreAsterismPreferences"
   """
@@ -4228,6 +4396,19 @@ type Mutation {
   delete single row from the table: "exploreFinderChart"
   """
   deleteExploreFinderChartByPk(attachmentId: String!, observationId: String!): ExploreFinderChart
+
+  """
+  delete data from the table: "exploreLogLevel"
+  """
+  deleteExploreLogLevel(
+    """filter the rows which have to be deleted"""
+    where: ExploreLogLevelBoolExp!
+  ): ExploreLogLevelMutationResponse
+
+  """
+  delete single row from the table: "exploreLogLevel"
+  """
+  deleteExploreLogLevelByPk(id: String!): ExploreLogLevel
 
   """
   delete data from the table: "explorePlotRange"
@@ -4480,6 +4661,28 @@ type Mutation {
     """upsert condition"""
     onConflict: ExploreFinderChartOnConflict
   ): ExploreFinderChart
+
+  """
+  insert data into the table: "exploreLogLevel"
+  """
+  insertExploreLogLevel(
+    """the rows to be inserted"""
+    objects: [ExploreLogLevelInsertInput!]!
+
+    """upsert condition"""
+    onConflict: ExploreLogLevelOnConflict
+  ): ExploreLogLevelMutationResponse
+
+  """
+  insert a single row into the table: "exploreLogLevel"
+  """
+  insertExploreLogLevelOne(
+    """the row to be inserted"""
+    object: ExploreLogLevelInsertInput!
+
+    """upsert condition"""
+    onConflict: ExploreLogLevelOnConflict
+  ): ExploreLogLevel
 
   """
   insert data into the table: "explorePlotRange"
@@ -4900,6 +5103,34 @@ type Mutation {
     """updates to execute, in order"""
     updates: [ExploreFinderChartUpdates!]!
   ): [ExploreFinderChartMutationResponse]
+
+  """
+  update data of the table: "exploreLogLevel"
+  """
+  updateExploreLogLevel(
+    """sets the columns of the filtered rows to the given values"""
+    _set: ExploreLogLevelSetInput
+
+    """filter the rows which have to be updated"""
+    where: ExploreLogLevelBoolExp!
+  ): ExploreLogLevelMutationResponse
+
+  """
+  update single row of the table: "exploreLogLevel"
+  """
+  updateExploreLogLevelByPk(
+    """sets the columns of the filtered rows to the given values"""
+    _set: ExploreLogLevelSetInput
+    pk_columns: ExploreLogLevelPkColumnsInput!
+  ): ExploreLogLevel
+
+  """
+  update multiples rows of table: "exploreLogLevel"
+  """
+  updateExploreLogLevelMany(
+    """updates to execute, in order"""
+    updates: [ExploreLogLevelUpdates!]!
+  ): [ExploreLogLevelMutationResponse]
 
   """
   update data of the table: "explorePlotRange"
@@ -5368,7 +5599,7 @@ type Mutation {
   ): [LucumaWavelengthUnitsMutationResponse]
 }
 
-type Query {
+type query_root {
   """
   fetch data from the table: "exploreAsterismPreferences"
   """
@@ -5458,6 +5689,49 @@ type Query {
   fetch data from the table: "exploreFinderChart" using primary key columns
   """
   exploreFinderChartByPk(attachmentId: String!, observationId: String!): ExploreFinderChart
+
+  """
+  fetch data from the table: "exploreLogLevel"
+  """
+  exploreLogLevel(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
+
+  """
+  fetch aggregated fields from the table: "exploreLogLevel"
+  """
+  exploreLogLevelAggregate(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): ExploreLogLevelAggregate!
+
+  """fetch data from the table: "exploreLogLevel" using primary key columns"""
+  exploreLogLevelByPk(id: String!): ExploreLogLevel
 
   """
   fetch data from the table: "explorePlotRange"
@@ -6168,7 +6442,7 @@ type Query {
   lucumaWavelengthUnitsByPk(id: String!): LucumaWavelengthUnits
 }
 
-type Subscription {
+type subscription_root {
   """
   fetch data from the table: "exploreAsterismPreferences"
   """
@@ -6286,6 +6560,63 @@ type Subscription {
     """filter the rows returned"""
     where: ExploreFinderChartBoolExp
   ): [ExploreFinderChart!]!
+
+  """
+  fetch data from the table: "exploreLogLevel"
+  """
+  exploreLogLevel(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
+
+  """
+  fetch aggregated fields from the table: "exploreLogLevel"
+  """
+  exploreLogLevelAggregate(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): ExploreLogLevelAggregate!
+
+  """fetch data from the table: "exploreLogLevel" using primary key columns"""
+  exploreLogLevelByPk(id: String!): ExploreLogLevel
+
+  """
+  fetch data from the table in a streaming manner : "exploreLogLevel"
+  """
+  exploreLogLevelStream(
+    """maximum number of rows returned in a single batch"""
+    batchSize: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [exploreLogLevel_streamCursorInput]!
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
 
   """
   fetch data from the table: "explorePlotRange"
