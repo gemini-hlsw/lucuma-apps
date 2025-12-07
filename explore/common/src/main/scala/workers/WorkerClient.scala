@@ -29,7 +29,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
     worker.subscribe
       .use:
         _.map(decodeFromTransferableEither[FromServer]).rethrow
-          .evalTap(msg => Logger[F].debug(s"<<< Received msg from server: [$msg]"))
+          .evalTap(msg => Logger[F].trace(s"<<< Received msg from server: [$msg]"))
           .collectFirst { case FromServer.ServerReady => initLatch.complete(()) }
           .evalMap(identity) // Runs latch.complete
           .compile
@@ -48,12 +48,12 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
       _            <- Resource.eval(initLatch.get) // Ensure server is initialized
       id           <- Resource.eval(UUIDGen.randomUUID).map(WorkerProcessId(_))
       _            <- Resource.make(
-                        Logger[F].debug(s">>> Starting request with id [$id]. Request: [$requestMessage]") >>
+                        Logger[F].trace(s">>> Starting request with id [$id]. Request: [$requestMessage]") >>
                           worker.postTransferable(
                             asTypedArray[FromClient](FromClient.Start(id, Pickled(asBytes[R](requestMessage))))
                           )
                       )(_ =>
-                        Logger[F].debug(s">>> Ending request with id [$id]. Request: [$requestMessage]") >>
+                        Logger[F].trace(s">>> Ending request with id [$id]. Request: [$requestMessage]") >>
                           worker.postTransferable(
                             asTypedArray[FromClient](FromClient.End(id))
                           )
@@ -69,7 +69,7 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
           none
         case FromServer.Error(mid, error) if mid === id  =>
           error.asLeft.some
-      .evalTap(msg => Logger[F].debug(s"<<< Received msg from server with id [$id]: [$msg]"))
+      .evalTap(msg => Logger[F].trace(s"<<< Received msg from server with id [$id]: [$msg]"))
       .unNoneTerminate
       .rethrow
       .onErrorLog(s"Error in worker client request with id [$id]")
