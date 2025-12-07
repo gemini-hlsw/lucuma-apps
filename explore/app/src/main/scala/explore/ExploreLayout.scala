@@ -338,7 +338,6 @@ object ExploreLayout:
                               routingInfo.optProgramId,
                               programSummaries.toOption
                                 .flatMap(_.programOrProposalReference),
-                              view.zoom(RootModel.localPreferences).get,
                               view.zoom(RootModel.undoStacks),
                               props.model.programSummaries.throttlerView
                                 .zoom(Pot.readyPrism)

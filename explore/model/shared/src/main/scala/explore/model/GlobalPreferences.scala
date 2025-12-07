@@ -14,6 +14,7 @@ import io.circe.Decoder
 import lucuma.core.util.NewBoolean
 import lucuma.itc.GraphType
 import monocle.Focus
+import org.typelevel.log4cats.extras.LogLevel
 
 object AladinMouseScroll extends NewBoolean:
   inline def Allowed = True; inline def Disabled = False
@@ -39,6 +40,7 @@ case class GlobalPreferences(
   elevationPlotSkyBrightnessVisible:    Visible,
   elevationPlotLunarElevationVisible:   Visible,
   wavelengthUnits:                      WavelengthUnits,
+  logLevel:                             LogLevel,
   patrolFieldVisibility:                Option[PFVisibility] = None
 ) derives Eq,
       Decoder
@@ -63,8 +65,19 @@ object GlobalPreferences:
   val elevationPlotLunarElevationVisible   =
     Focus[GlobalPreferences](_.elevationPlotLunarElevationVisible)
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
+  val logLevel                             = Focus[GlobalPreferences](_.logLevel)
   val pfVisibility                         =
     Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(PFVisibility.Default)
+
+  private given Eq[LogLevel] = Eq.fromUniversalEquals
+
+  private given Decoder[LogLevel] = Decoder.decodeString.map {
+    case "TRACE" => LogLevel.Trace
+    case "DEBUG" => LogLevel.Debug
+    case "WARN"  => LogLevel.Warn
+    case "ERROR" => LogLevel.Error
+    case _       => LogLevel.Info
+  }
 
   val Default =
     GlobalPreferences(
@@ -84,5 +97,6 @@ object GlobalPreferences:
       Visible.Shown,
       Visible.Hidden,
       WavelengthUnits.Nanometers,
+      LogLevel.Info,
       None
     )

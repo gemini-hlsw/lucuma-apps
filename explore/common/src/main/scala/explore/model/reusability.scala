@@ -68,24 +68,23 @@ object reusability:
   given idListReuse[Id, A: Reusability]: Reusability[KeyedIndexedList[Id, A]] =
     Reusability.by(_.toList)
 
-  given Reusability[ObsIdSet]                = Reusability.byEq
-  given Reusability[Proposal]                = Reusability.byEq
-  given Reusability[ProposalType]            = Reusability.byEq
-  given Reusability[TargetEditObsInfo]       = Reusability.byEq
-  given Reusability[TargetIdSet]             = Reusability.byEq
-  given Reusability[TargetWithId]            = Reusability.byEq
-  given Reusability[TargetWithObs]           = Reusability.byEq
-  given Reusability[ConstraintGroup]         = Reusability.byEq
-  given Reusability[Observation]             = Reusability.byEq
-  given Reusability[ExploreLocalPreferences] = Reusability.byEq
-  given Reusability[Attachment]              = Reusability.byEq
-  given Reusability[ProgramInfo]             = Reusability.byEq
-  given Reusability[ProgramDetails]          = Reusability.byEq
-  given Reusability[Execution]               = Reusability.byEq
-  given Reusability[BandedProgramTime]       = Reusability.byEq
-  given Reusability[Group]                   = Reusability.byEq
-  given Reusability[GroupWarning]            = Reusability.byEq
-  given [V: Eq]: Reusability[Perishable[V]]  = Reusability.byEq
+  given Reusability[ObsIdSet]               = Reusability.byEq
+  given Reusability[Proposal]               = Reusability.byEq
+  given Reusability[ProposalType]           = Reusability.byEq
+  given Reusability[TargetEditObsInfo]      = Reusability.byEq
+  given Reusability[TargetIdSet]            = Reusability.byEq
+  given Reusability[TargetWithId]           = Reusability.byEq
+  given Reusability[TargetWithObs]          = Reusability.byEq
+  given Reusability[ConstraintGroup]        = Reusability.byEq
+  given Reusability[Observation]            = Reusability.byEq
+  given Reusability[Attachment]             = Reusability.byEq
+  given Reusability[ProgramInfo]            = Reusability.byEq
+  given Reusability[ProgramDetails]         = Reusability.byEq
+  given Reusability[Execution]              = Reusability.byEq
+  given Reusability[BandedProgramTime]      = Reusability.byEq
+  given Reusability[Group]                  = Reusability.byEq
+  given Reusability[GroupWarning]           = Reusability.byEq
+  given [V: Eq]: Reusability[Perishable[V]] = Reusability.byEq
 
   /**
    */

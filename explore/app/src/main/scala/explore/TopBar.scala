@@ -10,8 +10,7 @@ import crystal.react.hooks.*
 import explore.components.ConnectionsStatus
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
-import explore.model.ExploreLocalPreferences
-import explore.model.ExploreLocalPreferences.*
+import explore.common.UserPreferencesQueries
 import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
@@ -44,7 +43,8 @@ import lucuma.ui.layout.LayoutStyles
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom.window
-import typings.loglevel.mod.LogLevelDesc
+import org.typelevel.log4cats.extras.LogLevel
+import org.typelevel.log4cats.extras.LogLevel.logLevelOrder
 
 import scala.scalajs.LinkingInfo
 
@@ -52,7 +52,6 @@ case class TopBar(
   vault:                      View[UserVault],
   programId:                  Option[Program.Id],
   programOrProposalReference: Option[String],
-  preferences:                ExploreLocalPreferences,
   undoStacks:                 View[UndoStacks[IO, ProgramSummaries]],
   programInfos:               ViewOpt[ProgramInfoList],
   theme:                      View[Theme],
@@ -92,15 +91,14 @@ object TopBar:
 
           val user  = props.vault.get.user
           val role  = user.role
-          val level = props.preferences.level
+          val level = props.globalPreferences.get.logLevel
 
           def logout: IO[Unit] = ctx.sso.logout >> props.onLogout
 
-          def setLogLevel(l: LogLevelDesc): Callback =
-            (ExploreLocalPreferences
-              .storePreferences[IO](
-                props.preferences.copy(level = l)
-              ) *> IO(window.location.reload())).runAsync
+          def setLogLevel(l: LogLevel): Callback =
+            UserPreferencesQueries.LogLevelPreference
+              .updateLogLevel[IO](user.id, l)
+              .runAsync
 
           val firstItems =
             MenuItem.Item(
@@ -136,24 +134,24 @@ object TopBar:
               .SubMenu(
                 label = "Log Level",
                 icon = Icons.BarCodeRead,
-                visible = ctx.environment =!= ExecutionEnvironment.Production
+                visible = ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
               )(
                 MenuItem.Item(
                   label = "Info",
-                  command = setLogLevel(LogLevelDesc.INFO),
-                  disabled = level =!= LogLevelDesc.DEBUG,
+                  command = setLogLevel(LogLevel.Info),
+                  disabled = level === LogLevel.Info,
                   icon = Icons.Info
                 ),
                 MenuItem.Item(
                   label = "Debug",
-                  command = setLogLevel(LogLevelDesc.DEBUG),
-                  disabled = level === LogLevelDesc.DEBUG,
+                  command = setLogLevel(LogLevel.Debug),
+                  disabled = level === LogLevel.Debug,
                   icon = Icons.Bug
                 ),
                 MenuItem.Item(
                   label = "Trace",
-                  command = setLogLevel(LogLevelDesc.TRACE),
-                  disabled = level === LogLevelDesc.TRACE,
+                  command = setLogLevel(LogLevel.Trace),
+                  disabled = level === LogLevel.Trace,
                   icon = Icons.Pencil
                 )
               )

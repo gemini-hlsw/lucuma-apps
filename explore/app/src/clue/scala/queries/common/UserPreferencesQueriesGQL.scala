@@ -216,6 +216,7 @@ object UserPreferencesQueriesGQL {
           elevationPlotSkyBrightnessVisible
           elevationPlotLunarElevationVisible
           wavelengthUnits
+          logLevel
         }
       }
     """
@@ -245,6 +246,7 @@ object UserPreferencesQueriesGQL {
           elevationPlotSkyBrightnessVisible
           elevationPlotLunarElevationVisible
           wavelengthUnits
+          logLevel
         }
       }
     """
@@ -292,6 +294,31 @@ object UserPreferencesQueriesGQL {
             constraint: lucuma_user_preferences_pkey,
             update_columns: [
               wavelengthUnits
+            ]
+          }
+        ) {
+          userId
+        }
+      }
+    """
+  }
+
+  @GraphQL
+  trait UserLogLevelUpdate extends GraphQLOperation[UserPreferencesDB] {
+    val document = """
+      mutation userPreferencesUpsert(
+        $userId: String = "",
+        $logLevel: String = ""
+      ) {
+        insertLucumaUserPreferencesOne(
+          object: {
+            userId: $userId,
+            logLevel: $logLevel
+          },
+          onConflict: {
+            constraint: lucuma_user_preferences_pkey,
+            update_columns: [
+              logLevel
             ]
           }
         ) {

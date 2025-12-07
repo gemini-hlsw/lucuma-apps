@@ -44,6 +44,7 @@ import lucuma.react.gridlayout.*
 import lucuma.react.table.*
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.*
 import queries.common.UserPreferencesQueriesGQL.AsterismPreferencesQuery.Data.ExploreAsterismPreferences
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates.Data.LucumaGridLayoutPositions
@@ -434,6 +435,20 @@ object UserPreferencesQueries:
         .attempt
         .void
   end WavelengthUnitsPreference
+
+  object LogLevelPreference:
+    def updateLogLevel[F[_]: ApplicativeThrow](
+      userId:   User.Id,
+      logLevel: LogLevel
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserLogLevelUpdate[F]
+        .execute(
+          userId = userId.show.assign,
+          logLevel = logLevel.show.toUpperCase.assign
+        )
+        .attempt
+        .void
+  end LogLevelPreference
 
   object ElevationPlotPreference:
     def updatePlotPreferences[F[_]: ApplicativeThrow](
