@@ -30,7 +30,6 @@ import explore.model.ObservingModeGroupList
 import explore.model.ObservingModeSummary
 import explore.model.PosAngleConstraintAndObsMode
 import explore.model.ScienceRequirements
-import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.TargetList
 import explore.model.enums.PosAngleOptions
 import explore.model.enums.WavelengthUnits
@@ -385,9 +384,6 @@ object ConfigurationTile:
           val reqsExposureTimeMode: Option[ExposureTimeMode] =
             props.requirements.get.exposureTimeMode
 
-          val spectroscopy: Option[Spectroscopy] =
-            ScienceRequirements.spectroscopy.getOption(requirementsView.get)
-
           React.Fragment(
             <.div(ExploreStyles.ConfigurationGrid)(
               props.obsConf.agsState
@@ -419,10 +415,11 @@ object ConfigurationTile:
                       props.selectedConfig.get
                         .toBasicConfiguration()
                         .map: bc =>
-                          updateConfiguration(props.obsId,
-                                              props.pacAndMode,
-                                              bc.toInput,
-                                              bc.obsModeType.defaultPosAngleOptions
+                          updateConfiguration(
+                            props.obsId,
+                            props.pacAndMode,
+                            bc.toInput,
+                            bc.obsModeType.defaultPosAngleOptions
                           )
                         .orEmpty,
                       props.modes,
@@ -435,37 +432,33 @@ object ConfigurationTile:
               else
                 React.Fragment(
                   // Gmos North Long Slit
-                  (optGmosNorthAligner, spectroscopy).mapN((northAligner, spec) =>
+                  optGmosNorthAligner.map: northAligner =>
                     GmosLongslitConfigPanel
                       .GmosNorthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         northAligner,
-                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.obsIsReadonly,
                         props.units
-                      )
-                  ),
+                      ),
                   // Gmos South Long Slit
-                  (optGmosSouthAligner, spectroscopy).mapN((southAligner, spec) =>
+                  optGmosSouthAligner.map: southAligner =>
                     GmosLongslitConfigPanel
                       .GmosSouthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         southAligner,
-                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.obsIsReadonly,
                         props.units
-                      )
-                  ),
+                      ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(
@@ -493,13 +486,12 @@ object ConfigurationTile:
                       props.units
                     ),
                   // Flamingos2 Long Slit
-                  (optFlamingos2Aligner, spectroscopy).mapN((f2Aligner, spec) =>
+                  optFlamingos2Aligner.map: f2Aligner =>
                     Flamingos2LongslitConfigPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
                       f2Aligner,
-                      spec,
                       revertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
@@ -507,7 +499,6 @@ object ConfigurationTile:
                       props.units,
                       props.isStaffOrAdmin
                     )
-                  )
                 )
             )
           )
