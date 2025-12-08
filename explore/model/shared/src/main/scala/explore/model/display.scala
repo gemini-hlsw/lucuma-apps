@@ -221,9 +221,10 @@ trait DisplayImplicits:
           "%.3f".format(v)
 
   given Display[CatalogName] = Display.byShortName:
-    case CatalogName.Simbad => "SIMBAD"
-    case CatalogName.Gaia   => "GAIA"
-    case CatalogName.Import => "IMPORT"
+    case CatalogName.Simbad   => "SIMBAD"
+    case CatalogName.Gaia     => "GAIA"
+    case CatalogName.Import   => "IMPORT"
+    case CatalogName.Telluric => "TELLURIC"
 
   given Display[Semester] = Display.by(_.formatShort, _.format)
 
