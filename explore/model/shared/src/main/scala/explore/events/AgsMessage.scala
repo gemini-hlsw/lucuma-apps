@@ -42,7 +42,7 @@ object AgsMessage {
     params:             AgsParams,
     candidates:         List[GuideStarCandidate]
   ) extends Request {
-    type ResponseType = List[AgsAnalysis.Usable]
+    type ResponseType = List[AgsAnalysis]
   }
 
   private given Pickler[CleanCache.type] = generatePickler

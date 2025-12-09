@@ -98,7 +98,19 @@ trait CatalogPicklers extends CommonPicklers:
       _.toMicroarcsecondsSquared
     )
 
-  given Pickler[AgsAnalysis.Usable] = generatePickler
+  given Pickler[AgsAnalysis.Usable]              = generatePickler
+  given Pickler[AgsAnalysis.NotReachableAtPosition] = generatePickler
+  given Pickler[AgsAnalysis.VignettesScience]    = generatePickler
+  given Pickler[AgsAnalysis.MagnitudeTooFaint]   = generatePickler
+  given Pickler[AgsAnalysis.MagnitudeTooBright]  = generatePickler
+
+  given Pickler[AgsAnalysis] =
+    compositePickler[AgsAnalysis]
+      .addConcreteType[AgsAnalysis.Usable]
+      .addConcreteType[AgsAnalysis.NotReachableAtPosition]
+      .addConcreteType[AgsAnalysis.VignettesScience]
+      .addConcreteType[AgsAnalysis.MagnitudeTooFaint]
+      .addConcreteType[AgsAnalysis.MagnitudeTooBright]
 
   given Pickler[SiderealTracking] = generatePickler
 
