@@ -862,11 +862,27 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
               setM2Guide(TipTiltSource.PWFS2, p2) *>
               setM2Guide(TipTiltSource.OIWFS, oi)).verifiedRun(ConnectionTimeout),
             ApplyCommandResult.Completed.pure[F]
-          )
+          ) <*
+            Logger[F]
+              .debug(
+                "Cannot configure M2 guiding with OIWFS without a nod/chop guide configuration"
+              )
+              .whenA(cfg.sources.contains(TipTiltSource.OIWFS) && oi === M2BeamConfig.None) <*
+            Logger[F]
+              .debug(
+                "Cannot configure M2 guiding with PWFS1 without a nod/chop guide configuration"
+              )
+              .whenA(cfg.sources.contains(TipTiltSource.PWFS1) && p1 === M2BeamConfig.None) <*
+            Logger[F]
+              .debug(
+                "Cannot configure M2 guiding with PWFS2 without a nod/chop guide configuration"
+              )
+              .whenA(cfg.sources.contains(TipTiltSource.PWFS2) && p2 === M2BeamConfig.None)
         }
       } yield r
     ) *>
       sys.tcsEpics.startCommand(timeout).m2GuideCommand.state(true).post
+
   }
 
   override def enableGuide(config: TelescopeGuideConfig): F[ApplyCommandResult] = {
