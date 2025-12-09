@@ -916,35 +916,20 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     probeGuide = none
   )
 
-  private val p1GuideConfig: TelescopeGuideConfig = TelescopeGuideConfig(
-    mountGuide = MountGuideOption.MountGuideOn,
-    m1Guide = M1GuideConfig.M1GuideOn(M1Source.PWFS1),
-    m2Guide = M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.PWFS1)),
-    dayTimeMode = Some(false),
-    probeGuide = none
-  )
-
-  private val p2GuideConfig: TelescopeGuideConfig = TelescopeGuideConfig(
-    mountGuide = MountGuideOption.MountGuideOn,
-    m1Guide = M1GuideConfig.M1GuideOn(M1Source.PWFS2),
-    m2Guide = M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.PWFS2)),
-    dayTimeMode = Some(false),
-    probeGuide = none
-  )
-
-  private val oiGuideConfig: TelescopeGuideConfig = TelescopeGuideConfig(
-    mountGuide = MountGuideOption.MountGuideOn,
-    m1Guide = M1GuideConfig.M1GuideOn(M1Source.OIWFS),
-    m2Guide = M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.OIWFS)),
-    dayTimeMode = Some(false),
-    probeGuide = none
-  )
+  private def guideConfig(m2Source: TipTiltSource, m1Source: M1Source): TelescopeGuideConfig =
+    TelescopeGuideConfig(
+      mountGuide = MountGuideOption.MountGuideOn,
+      m1Guide = M1GuideConfig.M1GuideOn(m1Source),
+      m2Guide = M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(m2Source)),
+      dayTimeMode = Some(false),
+      probeGuide = none
+    )
 
   test("Enable and disable guiding with default gains") {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(oiGuideConfig)
+      _         <- ctr.enableGuide(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
       r1        <- st.tcs.get
       p1_1      <- st.p1.get
       p2_1      <- st.p2.get
@@ -952,7 +937,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       _         <- ctr.disableGuide
       r2        <- st.tcs.get
     } yield {
-      checkGuide(r1, oiGuideConfig)
+      checkGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
       assert(p1_1.reset.connected)
       assert(p2_1.reset.connected)
       assert(oi_1.reset.connected)
@@ -964,7 +949,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   test("Enable and disable guiding in day mode at GS") {
-    val guideCfg = oiGuideConfig.copy(dayTimeMode = true.some)
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(dayTimeMode = true.some)
 
     for {
       (st, ctr) <- createController(Site.GS)
@@ -1008,7 +993,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   test("Enable and disable guiding in day mode at GN") {
-    val guideCfg = oiGuideConfig.copy(dayTimeMode = true.some)
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(dayTimeMode = true.some)
 
     for {
       (st, ctr) <- createController(Site.GN)
@@ -1047,22 +1032,36 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  test("Enable and disable guiding") {
-    for {
-      (st, ctr) <- createController()
-      _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(oiGuideConfig)
-      r1        <- st.tcs.get
-      _         <- ctr.disableGuide
-      r2        <- st.tcs.get
-    } yield {
-      checkGuide(r1, oiGuideConfig)
-      checkGuide(r2, noGuideConfig)
-    }
+  private def testGuiding(
+    m2Source: TipTiltSource,
+    m1Source: M1Source,
+    l:        Lens[State, ProbeTrackingStateState]
+  ): IO[Unit] = for {
+    (st, ctr) <- createController()
+    _         <- setWfsTrackingState(st.tcs, l)
+    _         <- ctr.enableGuide(guideConfig(m2Source, m1Source))
+    r1        <- st.tcs.get
+    _         <- ctr.disableGuide
+    r2        <- st.tcs.get
+  } yield {
+    checkGuide(r1, guideConfig(m2Source, m1Source))
+    checkGuide(r2, noGuideConfig)
+  }
+
+  test("Enable and disable OI guiding") {
+    testGuiding(TipTiltSource.OIWFS, M1Source.OIWFS, Focus[State](_.oiwfsTrackingState))
+  }
+
+  test("Enable and disable P1 guiding") {
+    testGuiding(TipTiltSource.PWFS1, M1Source.PWFS1, Focus[State](_.pwfs1TrackingState))
+  }
+
+  test("Enable and disable P2 guiding") {
+    testGuiding(TipTiltSource.PWFS2, M1Source.PWFS2, Focus[State](_.pwfs2TrackingState))
   }
 
   test("Set guide mode OIWFS to OIWFS") {
-    val guideCfg = oiGuideConfig.copy(
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(
       probeGuide = ProbeGuide(GuideProbe.GmosOIWFS, GuideProbe.GmosOIWFS).some
     )
 
@@ -1082,7 +1081,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
   }
 
   test("Set guide mode PWFS1 to PWFS2") {
-    val guideCfg = oiGuideConfig.copy(
+    val guideCfg = guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS).copy(
       probeGuide = ProbeGuide(GuideProbe.PWFS1, GuideProbe.PWFS2).some
     )
 
@@ -1836,10 +1835,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(oiGuideConfig)
+      _         <- ctr.enableGuide(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.acquisitionAdj(Offset(Offset.P(pOffset), Offset.Q(qOffset)), none, none)(
-                     GuideConfig(oiGuideConfig, none)
+                     GuideConfig(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS), none)
                    )
       r1        <- st.tcs.get
     } yield {
@@ -1864,7 +1863,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
         .flatMap(_.toIntOption)
         .map(x => assertEquals(x, expVt))
         .getOrElse(fail("No value for parameter vt"))
-      checkGuide(r1, oiGuideConfig)
+      checkGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
     }
   }
 
@@ -1906,7 +1905,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   test("Take PWFS1 sky") {
     testWfsSky(
-      p1GuideConfig,
+      guideConfig(TipTiltSource.PWFS1, M1Source.PWFS1),
       Focus[State](_.pwfs1TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs1Sky),
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs1.dark)),
@@ -1916,7 +1915,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   test("Take PWFS2 sky") {
     testWfsSky(
-      p2GuideConfig,
+      guideConfig(TipTiltSource.PWFS2, M1Source.PWFS2),
       Focus[State](_.pwfs2TrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.pwfs2Sky),
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.tcs.get.map(_.pwfs2.dark)),
@@ -1926,7 +1925,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   test("Take OIWFS sky") {
     testWfsSky(
-      oiGuideConfig,
+      guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS),
       Focus[State](_.oiwfsTrackingState),
       Getter[TcsBaseController[IO], TimeSpan => GuideConfig => IO[ApplyCommandResult]](_.oiwfsSky),
       Getter[StateRefs[IO], IO[TestChannel.State[String]]](_.oi.get.map(_.seqDarkFilename))
@@ -1937,14 +1936,14 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       (st, ctr) <- createController()
       _         <- setWfsTrackingState(st.tcs, Focus[State](_.oiwfsTrackingState))
-      _         <- ctr.enableGuide(oiGuideConfig)
+      _         <- ctr.enableGuide(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
       _         <- st.tcs.update(_.focus(_.inPosition.value).replace("TRUE".some))
       _         <- ctr.targetAdjust(VirtualTelescope.SourceA,
                                     HandsetAdjustment.EquatorialAdjustment(Angle.fromDoubleArcseconds(-8.0),
                                                                            Angle.fromDoubleArcseconds(6.0)
                                     ),
                                     true
-                   )(GuideConfig(oiGuideConfig, none))
+                   )(GuideConfig(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS), none))
       r1        <- st.tcs.get
       _         <- ctr.targetAdjust(
                      VirtualTelescope.Oiwfs,
@@ -1954,10 +1953,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        )
                      ),
                      true
-                   )(GuideConfig(oiGuideConfig, none))
+                   )(GuideConfig(guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS), none))
       r2        <- st.tcs.get
     } yield {
-      checkGuide(r1, oiGuideConfig)
+      checkGuide(r1, guideConfig(TipTiltSource.OIWFS, M1Source.OIWFS))
 
       assert(r1.targetAdjust.frame.connected)
       assert(r1.targetAdjust.size.connected)
