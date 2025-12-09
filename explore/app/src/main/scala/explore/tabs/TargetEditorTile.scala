@@ -31,6 +31,7 @@ object TargetEditorTile:
   def noObsTargetEditorTile(
     programId:          Program.Id,
     userId:             Option[User.Id],
+    isStaff:            Boolean,
     target:             UndoSetter[TargetWithId],
     obsAndTargets:      UndoSetter[ObservationsAndTargets],
     searching:          View[Set[Target.Id]],
@@ -59,6 +60,7 @@ object TargetEditorTile:
             TargetEditor(
               programId,
               uid,
+              isStaff,
               target,
               obsAndTargets,
               ObservationTargets.one(target.get),

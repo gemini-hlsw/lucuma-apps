@@ -525,6 +525,7 @@ object ObsTabTiles:
           val targetTile =
             ObservationTargetsEditorTile(
               props.vault.userId,
+              props.isStaffOrAdmin,
               ObsTabTileIds.TargetId.id,
               props.programId,
               ObsIdSet.one(props.obsId),

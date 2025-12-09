@@ -63,6 +63,7 @@ import scala.scalajs.LinkingInfo
 case class TargetTabContents(
   programId:        Program.Id,
   userId:           Option[User.Id],
+  isStaff:          Boolean,
   programSummaries: UndoContext[ProgramSummaries],
   userPreferences:  View[UserPreferences],
   focused:          Focused,
@@ -522,6 +523,7 @@ object TargetTabContents extends TwoPanels:
             val asterismEditorTile =
               ObservationTargetsEditorTile(
                 props.userId,
+                props.isStaff,
                 TargetTabTileIds.AsterismEditor.id,
                 props.programId,
                 idsToEdit,
@@ -592,6 +594,7 @@ object TargetTabContents extends TwoPanels:
                 TargetEditorTile.noObsTargetEditorTile(
                   props.programId,
                   props.userId,
+                  props.isStaff,
                   target,
                   props.obsAndTargets,
                   props.searching,
@@ -603,7 +606,7 @@ object TargetTabContents extends TwoPanels:
                   props.authToken,
                   props.readonly,
                   getObsInfo(none)(targetId),
-                  onCloneTarget4Target
+                  onCloneTarget4Target,
                 )
           }
 

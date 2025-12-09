@@ -67,6 +67,7 @@ import java.time.Instant
 case class TargetEditor(
   programId:           Program.Id,
   userId:              User.Id,
+  isStaff:             Boolean,
   targetWithId:        UndoSetter[TargetWithId],
   obsAndTargets:       UndoSetter[ObservationsAndTargets],
   // TODO, we may derive obsTargets from obsAndTargets
@@ -438,6 +439,7 @@ object TargetEditor:
             obsTime.value.renderPot(ot =>
               AladinCell(
                 props.userId,
+                props.isStaff,
                 oid,
                 props.obsTargets,
                 ot,

@@ -35,6 +35,7 @@ import scala.scalajs.LinkingInfo
 
 case class AladinPreferencesMenu(
   uid:               User.Id,
+  isStaff:           Boolean,
   tids:              NonEmptyList[Target.Id],
   globalPreferences: View[GlobalPreferences],
   targetPreferences: View[AsterismVisualOptions],
@@ -136,20 +137,106 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
               GlobalUserPreferences.storeAladinPreferences[IO](props.uid, z.some).runAsync
             )
 
-        val pfView = props.globalPreferences.zoom(GlobalPreferences.pfVisibility)
+        val pfView = props.globalPreferences.zoom(GlobalPreferences.agsDebugVisibility)
 
         val showBaseView            = pfView.zoom(AGSDebugVisibility.showBase).as(Visible.Value)
         val showBlindOffsetView     = pfView.zoom(AGSDebugVisibility.showBlindOffset).as(Visible.Value)
         val showSciOffsetView       = pfView.zoom(AGSDebugVisibility.showScienceOffset).as(Visible.Value)
-        val showAcqOffsetView       = pfView.zoom(AGSDebugVisibility.showAcquisitionOffset).as(Visible.Value)
-        val showIntersectionView    = pfView.zoom(AGSDebugVisibility.showIntersection).as(Visible.Value)
+        val showAcqOffsetView       =
+          pfView.zoom(AGSDebugVisibility.showAcquisitionOffset).as(Visible.Value)
+        val showIntersectionView    =
+          pfView.zoom(AGSDebugVisibility.showIntersection).as(Visible.Value)
         val showAllAngles           = pfView.zoom(AGSDebugVisibility.showAllAngles).as(Visible.Value)
-        val showAllCatalogStarsView = pfView.zoom(AGSDebugVisibility.showAllCatalogStars).as(Visible.Value)
+        val showAllCatalogStarsView =
+          pfView.zoom(AGSDebugVisibility.showAllCatalogStars).as(Visible.Value)
 
         def menuItem(content: VdomNode): MenuItem =
           MenuItem.Custom(
             <.div(^.onClick ==> (e => e.stopPropagationCB >> e.preventDefaultCB))(content)
           )
+
+        val agsMenu: Option[MenuItem] =
+          Option
+            .when(props.isStaff || LinkingInfo.developmentMode)(
+              MenuItem
+                .SubMenu(
+                  label = "Patrol Fields",
+                  expanded = false,
+                  icon = Icons.ObjectIntersect
+                )(
+                  (List(
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-base".refined,
+                        value = showBaseView,
+                        label = <.span(ExploreStyles.PatrolFieldBase, "Base")
+                      )
+                    ),
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-blind".refined,
+                        value = showBlindOffsetView,
+                        label = <.span(ExploreStyles.PatrolFieldBlindOffset, "Blind Offset")
+                      )
+                    ),
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-acq".refined,
+                        value = showAcqOffsetView,
+                        label = <.span(ExploreStyles.PatrolFieldAcqOffset, "Acq. Offset")
+                      )
+                    ),
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-sci".refined,
+                        value = showSciOffsetView,
+                        label = <.span(ExploreStyles.PatrolFieldSciOffset, "Sci. Offset")
+                      )
+                    ),
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-intersection".refined,
+                        value = showIntersectionView,
+                        label = <.span(ExploreStyles.PatrolFieldIntersection, "Intersection")
+                      )
+                    )
+                  ) |+|
+                    Option
+                      .when(LinkingInfo.developmentMode)(
+                        List(MenuItem.Separator,
+                             menuItem(
+                               CheckboxView(
+                                 id = "patrol-field-all-angles".refined,
+                                 value = showAllAngles,
+                                 label = "All PAs"
+                               )
+                             )
+                        )
+                      )
+                      .orEmpty)*
+                )
+            )
+
+        val candidatesMenu: Option[MenuItem] =
+          Option
+            .when(props.isStaff || LinkingInfo.developmentMode)(
+              MenuItem.SubMenu(
+                label = "Candidates",
+                expanded = false,
+                icon = Icons.Stars
+              )(
+                menuItem(
+                  CheckboxView(
+                    id = "all-catalog-stars".refined,
+                    value = showAllCatalogStarsView,
+                    label = "All Catalog Stars"
+                  )
+                )
+              )
+            )
+
+        val debugMenuSeparator: Option[MenuItem] =
+          (agsMenu, candidatesMenu).mapN((_, _) => MenuItem.Separator)
 
         val menuItems = List(
           menuItem(
@@ -181,77 +268,7 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
             )
           ),
           MenuItem.Separator
-        ) ++
-          Option
-            .when(LinkingInfo.developmentMode)(
-              List(
-                MenuItem.SubMenu(
-                  label = "Patrol Fields",
-                  expanded = false,
-                  icon = Icons.ObjectIntersect
-                )(
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-base".refined,
-                      value = showBaseView,
-                      label = <.span(ExploreStyles.PatrolFieldBase, "Base")
-                    )
-                  ),
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-blind".refined,
-                      value = showBlindOffsetView,
-                      label = <.span(ExploreStyles.PatrolFieldBlindOffset, "Blind Offset")
-                    )
-                  ),
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-acq".refined,
-                      value = showAcqOffsetView,
-                      label = <.span(ExploreStyles.PatrolFieldAcqOffset, "Acq. Offset")
-                    )
-                  ),
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-sci".refined,
-                      value = showSciOffsetView,
-                      label = <.span(ExploreStyles.PatrolFieldSciOffset, "Sci. Offset")
-                    )
-                  ),
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-intersection".refined,
-                      value = showIntersectionView,
-                      label = <.span(ExploreStyles.PatrolFieldIntersection, "Intersection")
-                    )
-                  ),
-                  MenuItem.Separator,
-                  menuItem(
-                    CheckboxView(
-                      id = "patrol-field-all-angles".refined,
-                      value = showAllAngles,
-                      label = "All PAs"
-                    )
-                  )
-                ),
-                MenuItem.SubMenu(
-                  label = "Candidates",
-                  expanded = false,
-                  icon = Icons.Stars
-                )(
-                  menuItem(
-                    CheckboxView(
-                      id = "all-catalog-stars".refined,
-                      value = showAllCatalogStarsView,
-                      label = "All Catalog Stars"
-                    )
-                  )
-                ),
-                MenuItem.Separator
-              )
-            )
-            .toList
-            .flatten ++
+        ) ++ agsMenu ++ candidatesMenu ++ debugMenuSeparator ++
           List(
             menuItem(
               SliderView(

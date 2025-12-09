@@ -93,6 +93,7 @@ object Routing:
               TargetTabContents(
                 routingInfo.programId,
                 model.rootModel.zoom(RootModel.userId).get,
+                model.rootModel.get.isStaffOrAdmin,
                 programSummaries,
                 userPrefs,
                 routingInfo.focused,

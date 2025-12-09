@@ -80,7 +80,7 @@ case class AladinContainer(
 
   val site = vizConf.map(_.configuration.siteFor).getOrElse(Site.GN)
 
-  val pfVisibility = GlobalPreferences.pfVisibility.get(globalPreferences)
+  val pfVisibility = GlobalPreferences.agsDebugVisibility.get(globalPreferences)
 
 object AladinContainer extends AladinCommon {
 
@@ -128,7 +128,6 @@ object AladinContainer extends AladinCommon {
   ): List[SVGTarget] =
     targetSVG(obsTimeCoords) ::
       linePoints.sliding2.map: (from, to) =>
-        pprint.pprintln(s" line ${Angle.arcseconds.get(from.angularDistance(to))} mas $from to $from")
         SVGTarget.LineTo(from, to, lineStyle)
 
   private def guideStarsSVG(
@@ -148,10 +147,6 @@ object AladinContainer extends AladinCommon {
     val obsTimeCoords: Coordinates    = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
     val linePoints: List[Coordinates] =
       tracking.coordsAtEpoch(surveyEpoch).foldMap(List(_, obsTimeCoords))
-
-    pprint.pprintln(s"guidestars $isCrowded $surveyEpoch ${siderealDiscretizedObsTime.obsTime}")
-    pprint.pprintln(s"gaia id: ${g.target.id}")
-    pprint.pprintln(linePoints)
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === g.target.id)) {
@@ -197,7 +192,7 @@ object AladinContainer extends AladinCommon {
 
     val isCrowded = candidates.length >= CrowdedThreshold
 
-    val cd = candidates
+    candidates
       .flatMap:
         guideStarsSVG(
           _,
@@ -209,8 +204,6 @@ object AladinContainer extends AladinCommon {
           calcSize,
           surveyEpoch
         )
-    println(s"candidates ${cd.length}")
-    cd
   }
 
   private val CatalogStarSize = 4

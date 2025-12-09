@@ -59,6 +59,7 @@ import scala.collection.immutable.SortedSet
 object ObservationTargetsEditorTile:
   def apply(
     userId:              Option[User.Id],
+    isStaff:             Boolean,
     tileId:              Tile.TileId,
     programId:           Program.Id,
     obsIds:              ObsIdSet,
@@ -146,6 +147,7 @@ object ObservationTargetsEditorTile:
             authToken,
             readonly,
             allowEditingOngoing,
+            isStaff,
             sequenceChanged,
             blindOffset,
             tileState.zoom(TileState.columnVisibility),
@@ -202,6 +204,7 @@ object ObservationTargetsEditorTile:
     authToken:           Option[NonEmptyString],
     readonly:            Boolean,
     allowEditingOngoing: Boolean,
+    isStaff:             Boolean,
     sequenceChanged:     Callback,
     blindOffset:         Option[View[BlindOffset]], // only pass for a single observation
     columnVisibility:    View[ColumnVisibility],
@@ -290,6 +293,7 @@ object ObservationTargetsEditorTile:
                     TargetEditor(
                       props.programId,
                       props.userId,
+                      props.isStaff,
                       targetWithId,
                       props.obsAndTargets,
                       targets.focusOn(focusedTargetId),

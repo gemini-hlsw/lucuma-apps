@@ -68,6 +68,7 @@ import scala.concurrent.duration.*
 
 case class AladinCell(
   uid:                User.Id,
+  isStaff:            Boolean,
   obsId:              Option[Observation.Id],
   obsTargets:         ObservationTargets,
   obsTime:            Instant,
@@ -240,7 +241,6 @@ object AladinCell extends ModelOptics with AladinCommon:
           // We should have trackings for all the targets, so we'll ignore errors here.
           val oBaseTracking: Option[Tracking] =
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
-          println(s"$obsModeType $oBaseTracking")
 
           (obsModeType, oBaseTracking)
             .mapN: (_, baseTracking) =>
@@ -343,10 +343,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                                      candidates
                                    ) if props.needsAGS && candidates.nonEmpty =>
                                  import ctx.given
-
-                                 println(s"run ags with ${candidates.foldMap(_.length)}")
-                                 // println(acqOffsets)
-                                 // println(sciOffsets)
 
                                  val runAgs: IO[Unit] =
                                    (oObsCoords,
@@ -506,10 +502,12 @@ object AladinCell extends ModelOptics with AladinCommon:
                                                              PortDisposition.Side
                                )
                              )
-                           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+                           case ObservingModeType.GmosNorthLongSlit |
+                               ObservingModeType.GmosSouthLongSlit =>
                              val fpu = obsConf.configuration.flatMap(_.gmosFpuAlternative)
                              AgsParams.GmosAgsParams(fpu, PortDisposition.Side).some
-                           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
+                           case ObservingModeType.GmosNorthImaging |
+                               ObservingModeType.GmosSouthImaging =>
                              none
         yield params
 
@@ -597,6 +595,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                   .mapValue: options =>
                     AladinPreferencesMenu(
                       props.uid,
+                      props.isStaff,
                       props.obsTargets.ids,
                       globalPreferences,
                       options,

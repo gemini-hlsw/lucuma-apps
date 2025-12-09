@@ -77,7 +77,7 @@ trait CatalogCache extends CatalogIDB:
             brightnessConstraints.some
           )
 
-        debug"reequested catalog $query" *>
+        debug"requested catalog $query" *>
           // Try to find it in the db
           readGuideStarCandidatesFromCache(idb, stores, query)
             .toF[IO]
