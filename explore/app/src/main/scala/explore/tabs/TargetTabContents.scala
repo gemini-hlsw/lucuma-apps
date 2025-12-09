@@ -68,8 +68,8 @@ case class TargetTabContents(
   focused:          Focused,
   searching:        View[Set[Target.Id]],
   expandedIds:      View[SortedSet[ObsIdSet]],
-  // attachments:      View[AttachmentList],
   authToken:        Option[NonEmptyString],
+  isStaff:          Boolean,
   readonly:         Boolean
 ) extends ReactFnProps(TargetTabContents.component):
   private val targets: UndoSetter[TargetList] = programSummaries.zoom(ProgramSummaries.targets)
@@ -317,7 +317,8 @@ object TargetTabContents extends TwoPanels:
               props.focusedSummaryTargetId,
               focusTargetId,
               props.readonly,
-              backButton
+              backButton,
+              props.isStaff
             )
 
           val plotData: PlotData =
