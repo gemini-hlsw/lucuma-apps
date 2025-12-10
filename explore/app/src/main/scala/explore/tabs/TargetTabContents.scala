@@ -606,7 +606,7 @@ object TargetTabContents extends TwoPanels:
                   props.authToken,
                   props.readonly,
                   getObsInfo(none)(targetId),
-                  onCloneTarget4Target,
+                  onCloneTarget4Target
                 )
           }
 

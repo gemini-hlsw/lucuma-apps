@@ -14,8 +14,7 @@ case class AGSDebugVisibility(
   showAcquisitionOffset: Visible,
   showScienceOffset:     Visible,
   showIntersection:      Visible,
-  showAllAngles:         Visible,
-  showAllCatalogStars:   Visible
+  showAllAngles:         Visible
 ) derives Decoder
 
 object AGSDebugVisibility:

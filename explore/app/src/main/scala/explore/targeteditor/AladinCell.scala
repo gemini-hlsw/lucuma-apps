@@ -58,6 +58,7 @@ import lucuma.ui.aladin.Fov
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import explore.model.CandidateAnalysis
 import monocle.Iso
 import monocle.Lens
 import org.typelevel.log4cats.Logger
@@ -268,7 +269,7 @@ object AladinCell extends ModelOptics with AladinCommon:
               else none.pure
             .getOrElse(List.empty.some.pure[IO])
       // Analysis results
-      agsResults          <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
+      agsResults          <- useSerialState(Pot.pending[List[CandidateAnalysis]])
       // Reference to root
       root                <- useMemo(())(_ => domRoot)
       // target options, will be read from the user preferences
@@ -286,10 +287,14 @@ object AladinCell extends ModelOptics with AladinCommon:
       // In case the selected name changes remotely
       _                   <- useEffectWithDeps((props.selectedGSName, agsResults)): (n, resultsPot) =>
                                // Go to the first analysis if present or pick the name from the selection
+                               // Only usable analyses can be selected
                                resultsPot.value.value.toOption.foldMap: results =>
-                                 val newGss =
-                                   n.fold(AgsSelection(results.headOption.tupleLeft(0))):
-                                     results.pick
+                                 val usableResults = results.collect {
+                                   case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _) => c
+                                 }
+                                 val newGss        =
+                                   n.fold(AgsSelection(usableResults.headOption.tupleLeft(0))):
+                                     usableResults.pick
                                  props.guideStarSelection.set(newGss)
       mouseCoords         <- useState[Option[Coordinates]](none)
       _                   <- useEffectWithDeps(
@@ -384,6 +389,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                            obsCoords.scienceCoords,
                                            oObsCoords.flatMap(_.blindOffsetCoords),
                                            angles,
+                                           UnconstrainedAngles,
                                            acqOffsets,
                                            sciOffsets,
                                            params,
@@ -391,14 +397,18 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          )
                                        )
 
-                                     def processResults(r: Option[List[AgsAnalysis.Usable]]): IO[Unit] =
+                                     def processResults(r: Option[List[CandidateAnalysis]]): IO[Unit] =
                                        (for
-                                         // Store the analysis
+                                         // Store the analysis (all results including non-usable)
                                          _ <- r.map(l => agsResults.setState(Pot.Ready(l))).getOrEmpty
-                                         // set the selected index to the first entry
+                                         // set the selected index to the first usable entry
                                          _ <-
-                                           val index      = 0.some.filter(_ => r.exists(_.nonEmpty))
-                                           val selectedGS = index.flatMap(i => r.flatMap(_.lift(i)))
+                                           val usableResults = r.map(_.collect {
+                                             case c if c.analysis.isUsable =>
+                                               c.analysis.asInstanceOf[AgsAnalysis.Usable]
+                                           })
+                                           val index         = 0.some.filter(_ => usableResults.exists(_.nonEmpty))
+                                           val selectedGS    = index.flatMap(i => usableResults.flatMap(_.lift(i)))
                                            props.guideStarSelection
                                              .mod:
                                                case AgsSelection(_)               =>
@@ -406,7 +416,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                                case rem @ RemoteGSSelection(name) =>
                                                  // Recover the analysis for the remotely selected star
                                                  // It is hydrating the name with the selection results
-                                                 r.map(_.pick(name)).getOrElse(rem)
+                                                 usableResults.map(_.pick(name)).getOrElse(rem)
                                                case a: AgsOverride                =>
                                                  // If overriden ignore
                                                  a
@@ -486,31 +496,6 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val agsResultsList = agsResults.value.toOption.getOrElse(List.empty)
 
-      val catalogStarsList = candidates.value.toOption.flatten.getOrElse(List.empty)
-
-      val agsParams: Option[AgsParams] =
-        for
-          obsConf     <- props.obsConf
-          obsModeType <- obsConf.obsModeType
-          params      <- obsModeType match
-                           case ObservingModeType.Flamingos2LongSlit =>
-                             val fpu = obsConf.configuration.collect:
-                               case m: BasicConfiguration.Flamingos2LongSlit => m.fpu
-                             fpu.map(f =>
-                               AgsParams.Flamingos2AgsParams(Flamingos2LyotWheel.F16,
-                                                             Flamingos2FpuMask.Builtin(f),
-                                                             PortDisposition.Side
-                               )
-                             )
-                           case ObservingModeType.GmosNorthLongSlit |
-                               ObservingModeType.GmosSouthLongSlit =>
-                             val fpu = obsConf.configuration.flatMap(_.gmosFpuAlternative)
-                             AgsParams.GmosAgsParams(fpu, PortDisposition.Side).some
-                           case ObservingModeType.GmosNorthImaging |
-                               ObservingModeType.GmosSouthImaging =>
-                             none
-        yield params
-
       def renderAladin(
         opts:        AsterismVisualOptions,
         trackingMap: Map[Target.Id, Tracking],
@@ -529,10 +514,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           offsetChangeInAladin.reuseAlways,
           guideStar,
           agsResultsList,
-          catalogStarsList,
-          props.anglesToTest,
-          props.obsConf.flatMap(_.constraints),
-          agsParams
+          props.anglesToTest
         )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =
@@ -560,7 +542,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                   ExploreStyles.AgsOverlay,
                   AgsOverlay(
                     props.guideStarSelection,
-                    agsResultsList.filter(_.isUsable),
+                    agsResultsList.collect {
+                      case c if c.analysis.isUsable => c.analysis.asInstanceOf[AgsAnalysis.Usable]
+                    },
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,

@@ -16,6 +16,7 @@ import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
+import explore.model.CandidateAnalysis
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
@@ -98,11 +99,11 @@ trait CatalogPicklers extends CommonPicklers:
       _.toMicroarcsecondsSquared
     )
 
-  given Pickler[AgsAnalysis.Usable]              = generatePickler
+  given Pickler[AgsAnalysis.Usable]                 = generatePickler
   given Pickler[AgsAnalysis.NotReachableAtPosition] = generatePickler
-  given Pickler[AgsAnalysis.VignettesScience]    = generatePickler
-  given Pickler[AgsAnalysis.MagnitudeTooFaint]   = generatePickler
-  given Pickler[AgsAnalysis.MagnitudeTooBright]  = generatePickler
+  given Pickler[AgsAnalysis.VignettesScience]       = generatePickler
+  given Pickler[AgsAnalysis.MagnitudeTooFaint]      = generatePickler
+  given Pickler[AgsAnalysis.MagnitudeTooBright]     = generatePickler
 
   given Pickler[AgsAnalysis] =
     compositePickler[AgsAnalysis]
@@ -111,6 +112,8 @@ trait CatalogPicklers extends CommonPicklers:
       .addConcreteType[AgsAnalysis.VignettesScience]
       .addConcreteType[AgsAnalysis.MagnitudeTooFaint]
       .addConcreteType[AgsAnalysis.MagnitudeTooBright]
+
+  given Pickler[CandidateAnalysis] = generatePickler
 
   given Pickler[SiderealTracking] = generatePickler
 

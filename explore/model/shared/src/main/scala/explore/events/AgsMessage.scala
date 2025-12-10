@@ -6,9 +6,9 @@ package explore.events
 import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.data.NonEmptyList
+import explore.model.CandidateAnalysis
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.AcquisitionOffsets
-import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.ScienceOffsets
@@ -29,20 +29,21 @@ object AgsMessage {
   }
 
   case class AgsRequest(
-    id:                 Target.Id,
-    vizTime:            Instant,
-    constraints:        ConstraintSet,
-    wavelength:         Wavelength,
-    baseCoordinates:    Coordinates,
-    scienceCoordinates: List[Coordinates],
-    blindOffset:        Option[Coordinates],
-    posAngles:          NonEmptyList[Angle],
-    acqOffsets:         Option[AcquisitionOffsets],
-    sciOffsets:         Option[ScienceOffsets],
-    params:             AgsParams,
-    candidates:         List[GuideStarCandidate]
+    id:                  Target.Id,
+    vizTime:             Instant,
+    constraints:         ConstraintSet,
+    wavelength:          Wavelength,
+    baseCoordinates:     Coordinates,
+    scienceCoordinates:  List[Coordinates],
+    blindOffset:         Option[Coordinates],
+    posAngles:           NonEmptyList[Angle],
+    unconstrainedAngles: NonEmptyList[Angle],
+    acqOffsets:          Option[AcquisitionOffsets],
+    sciOffsets:          Option[ScienceOffsets],
+    params:              AgsParams,
+    candidates:          List[GuideStarCandidate]
   ) extends Request {
-    type ResponseType = List[AgsAnalysis]
+    type ResponseType = List[CandidateAnalysis]
   }
 
   private given Pickler[CleanCache.type] = generatePickler
