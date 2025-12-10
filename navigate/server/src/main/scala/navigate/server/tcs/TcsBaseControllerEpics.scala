@@ -864,17 +864,17 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
             ApplyCommandResult.Completed.pure[F]
           ) <*
             Logger[F]
-              .debug(
+              .info(
                 "Cannot configure M2 guiding with OIWFS without a nod/chop guide configuration"
               )
               .whenA(cfg.sources.contains(TipTiltSource.OIWFS) && oi === M2BeamConfig.None) <*
             Logger[F]
-              .debug(
+              .info(
                 "Cannot configure M2 guiding with PWFS1 without a nod/chop guide configuration"
               )
               .whenA(cfg.sources.contains(TipTiltSource.PWFS1) && p1 === M2BeamConfig.None) <*
             Logger[F]
-              .debug(
+              .info(
                 "Cannot configure M2 guiding with PWFS2 without a nod/chop guide configuration"
               )
               .whenA(cfg.sources.contains(TipTiltSource.PWFS2) && p2 === M2BeamConfig.None)
