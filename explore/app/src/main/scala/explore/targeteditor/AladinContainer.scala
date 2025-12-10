@@ -12,11 +12,11 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
 import explore.model.AsterismVisualOptions
+import explore.model.CandidateAnalysis
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
 import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
-import explore.model.enums.Visible
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
@@ -24,10 +24,7 @@ import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.AgsParams
 import lucuma.ags.GeometryType
-import lucuma.ags.GuideStarCandidate
-import lucuma.core.model.ConstraintSet
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
@@ -149,7 +146,7 @@ object AladinContainer extends AladinCommon {
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === candidate.analysis.target.id)) {
-        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), candidate.analysis, candidate.reachableAtOtherPAs)
+        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), candidate.analysis, candidate.reachableAtOtherPAs, candidate.exampleUsableAngle)
       } else {
         val css  =
           candidateCss |+| candidatesVisibility |+|
@@ -157,7 +154,7 @@ object AladinContainer extends AladinCommon {
         val size =
           if (isCrowded) calcSize(GuideStarCrowdedSize)
           else calcSize(GuideStarCandidateSize)
-        SVGTarget.GuideStarCandidateTarget(coords, css, size, candidate.analysis, candidate.reachableAtOtherPAs)
+        SVGTarget.GuideStarCandidateTarget(coords, css, size, candidate.analysis, candidate.reachableAtOtherPAs, candidate.exampleUsableAngle)
       }
 
     if (isCrowded) {

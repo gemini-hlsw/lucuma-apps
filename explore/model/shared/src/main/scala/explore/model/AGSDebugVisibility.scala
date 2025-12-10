@@ -26,7 +26,6 @@ object AGSDebugVisibility:
   val showScienceOffset     = Focus[AGSDebugVisibility](_.showScienceOffset)
   val showIntersection      = Focus[AGSDebugVisibility](_.showIntersection)
   val showAllAngles         = Focus[AGSDebugVisibility](_.showAllAngles)
-  val showAllCatalogStars   = Focus[AGSDebugVisibility](_.showAllCatalogStars)
 
   val Default = AGSDebugVisibility(
     showBase = Visible.Hidden,
@@ -34,6 +33,5 @@ object AGSDebugVisibility:
     showAcquisitionOffset = Visible.Hidden,
     showScienceOffset = Visible.Hidden,
     showIntersection = Visible.Hidden,
-    showAllAngles = Visible.Hidden,
-    showAllCatalogStars = Visible.Shown
+    showAllAngles = Visible.Hidden
   )

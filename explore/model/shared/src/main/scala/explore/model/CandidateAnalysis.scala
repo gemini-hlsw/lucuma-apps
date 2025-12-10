@@ -6,12 +6,14 @@ package explore.model
 import cats.Eq
 import cats.derived.*
 import lucuma.ags.AgsAnalysis
+import lucuma.core.math.Angle
 
 case class CandidateAnalysis(
   analysis:            AgsAnalysis,
-  reachableAtOtherPAs: Boolean
+  reachableAtOtherPAs: Boolean,
+  exampleUsableAngle:  Option[Angle]
 ) derives Eq
 
 object CandidateAnalysis:
   def fromAnalysis(analysis: AgsAnalysis): CandidateAnalysis =
-    CandidateAnalysis(analysis, reachableAtOtherPAs = false)
+    CandidateAnalysis(analysis, reachableAtOtherPAs = false, exampleUsableAngle = None)

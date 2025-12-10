@@ -217,26 +217,8 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
                 )
             )
 
-        val candidatesMenu: Option[MenuItem] =
-          Option
-            .when(props.isStaff || LinkingInfo.developmentMode)(
-              MenuItem.SubMenu(
-                label = "Candidates",
-                expanded = false,
-                icon = Icons.Stars
-              )(
-                menuItem(
-                  CheckboxView(
-                    id = "all-catalog-stars".refined,
-                    value = showAllCatalogStarsView,
-                    label = "All Catalog Stars"
-                  )
-                )
-              )
-            )
-
         val debugMenuSeparator: Option[MenuItem] =
-          (agsMenu, candidatesMenu).mapN((_, _) => MenuItem.Separator)
+          agsMenu.map(_ => MenuItem.Separator)
 
         val menuItems = List(
           menuItem(
@@ -268,7 +250,7 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
             )
           ),
           MenuItem.Separator
-        ) ++ agsMenu ++ candidatesMenu ++ debugMenuSeparator ++
+        ) ++ agsMenu ++ debugMenuSeparator ++
           List(
             menuItem(
               SliderView(

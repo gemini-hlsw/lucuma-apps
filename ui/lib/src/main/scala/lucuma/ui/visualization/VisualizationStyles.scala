@@ -23,6 +23,7 @@ object VisualizationStyles:
   val CatalogStarTooFaint             = Css("catalog-star-too-faint")
   val CatalogStarTooBright            = Css("catalog-star-too-bright")
   val CatalogStarOther                = Css("catalog-star-other")
+  val CatalogStarReachableAtOtherPAs  = Css("catalog-star-reachable-at-other-pas")
 
   val ScienceOffsetPosition     = Css("science-offset-position")
   val AcquisitionOffsetPosition = Css("acquisition-offset-position")

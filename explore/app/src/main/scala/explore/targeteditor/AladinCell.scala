@@ -140,6 +140,12 @@ object AladinCell extends ModelOptics with AladinCommon:
 
   private type Props = AladinCell
 
+  // Unconstrained angles - test at 10 degree intervals for the full range
+  private val UnconstrainedAngles: NonEmptyList[Angle] =
+    NonEmptyList.fromListUnsafe(
+      (0 until 360 by 10).map(d => Angle.fromDoubleDegrees(d.toDouble)).toList
+    )
+
   // only compare candidates by id
   private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
 
@@ -290,7 +296,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                // Only usable analyses can be selected
                                resultsPot.value.value.toOption.foldMap: results =>
                                  val usableResults = results.collect {
-                                   case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _) => c
+                                   case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _, _) => c
                                  }
                                  val newGss        =
                                    n.fold(AgsSelection(usableResults.headOption.tupleLeft(0))):
@@ -404,8 +410,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          // set the selected index to the first usable entry
                                          _ <-
                                            val usableResults = r.map(_.collect {
-                                             case c if c.analysis.isUsable =>
-                                               c.analysis.asInstanceOf[AgsAnalysis.Usable]
+                                             case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _, _) => c
                                            })
                                            val index         = 0.some.filter(_ => usableResults.exists(_.nonEmpty))
                                            val selectedGS    = index.flatMap(i => usableResults.flatMap(_.lift(i)))

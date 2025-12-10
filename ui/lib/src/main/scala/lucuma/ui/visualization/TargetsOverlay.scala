@@ -12,6 +12,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.svg_<^.*
 import lucuma.ags.AgsAnalysis
 import lucuma.core.enums.SequenceType
+import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.react.common.Css
@@ -65,19 +66,23 @@ object SVGTarget {
   ) extends SVGTarget derives Eq
 
   case class GuideStarCandidateTarget(
-    coordinates: Coordinates,
-    css:         Css,
-    radius:      Double,
-    analysis:    AgsAnalysis.Usable,
-    title:       Option[String] = None
+    coordinates:         Coordinates,
+    css:                 Css,
+    radius:              Double,
+    analysis:            AgsAnalysis,
+    reachableAtOtherPAs: Boolean,
+    exampleUsableAngle:  Option[Angle],
+    title:               Option[String] = None
   ) extends SVGTarget derives Eq
 
   case class GuideStarTarget(
-    coordinates: Coordinates,
-    css:         Css,
-    radius:      Double,
-    analysis:    AgsAnalysis.Usable,
-    title:       Option[String] = None
+    coordinates:         Coordinates,
+    css:                 Css,
+    radius:              Double,
+    analysis:            AgsAnalysis,
+    reachableAtOtherPAs: Boolean,
+    exampleUsableAngle:  Option[Angle],
+    title:               Option[String] = None
   ) extends SVGTarget derives Eq
 
   case class OffsetIndicator(
@@ -98,14 +103,6 @@ object SVGTarget {
     selected:    Boolean,
     title:       Option[String] = None
   ) extends SelectableProgramTarget derives Eq
-
-  case class DebugCatalogStarTarget(
-    coordinates: Coordinates,
-    css:         Css,
-    radius:      Double,
-    analysis:    AgsAnalysis,
-    title:       Option[String] = None
-  ) extends SVGTarget derives Eq
 
   given Reusability[SVGTarget] = Reusability.byEq
 }
@@ -159,17 +156,17 @@ object TargetsOverlay
 
       // 24 October 2024 - scalafix failing to parse with fewer braces
       val guideStarTooltips: List[VdomNode] = p.targets.collect {
-        case SVGTarget.GuideStarCandidateTarget(_, _, _, ags, _) =>
+        case SVGTarget.GuideStarCandidateTarget(_, _, _, ags, reachable, exampleAngle, _) =>
           Tooltip(clazz = VisualizationStyles.VisualizationTooltip,
                   targetCss = ags.target.selector
           )(
-            GuideStarTooltip(ags)
+            GuideStarTooltip(ags, reachable, exampleAngle)
           )
-        case SVGTarget.GuideStarTarget(_, _, _, ags, _)          =>
+        case SVGTarget.GuideStarTarget(_, _, _, ags, reachable, exampleAngle, _)          =>
           Tooltip(clazz = VisualizationStyles.VisualizationTooltip,
                   targetCss = ags.target.selector
           )(
-            GuideStarTooltip(ags)
+            GuideStarTooltip(ags, reachable, exampleAngle)
           )
       }
 
@@ -222,13 +219,13 @@ object TargetsOverlay
 
                 CrossTarget(offP, offQ, maxP, sidePx, pointCss, selectedCss, selected, title)
 
-              case (offP, offQ, SVGTarget.GuideStarCandidateTarget(_, css, radius, ags, _)) =>
+              case (offP, offQ, SVGTarget.GuideStarCandidateTarget(_, css, radius, ags, reachable, _, _)) =>
                 val pointCss = VisualizationStyles.GuideStarCandidateTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags)
+                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, reachable)
 
-              case (offP, offQ, SVGTarget.GuideStarTarget(_, css, radius, ags, _)) =>
+              case (offP, offQ, SVGTarget.GuideStarTarget(_, css, radius, ags, reachable, _, _)) =>
                 val pointCss = VisualizationStyles.GuideStarTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags)
+                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, reachable)
 
               case (offP, offQ, SVGTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
                 val pointCss = VisualizationStyles.OffsetPosition |+| css
@@ -265,35 +262,6 @@ object TargetsOverlay
                   ^.y2 := scale(destQ),
                   pointCss,
                   title.map(<.title(_))
-                )
-
-              case (offP, offQ, SVGTarget.DebugCatalogStarTarget(_, css, radius, analysis, title)) =>
-                val analysisCss = analysis match
-                  case _: AgsAnalysis.Usable              => VisualizationStyles.CatalogStarUsable
-                  case _: AgsAnalysis.NotReachableAtPosition => VisualizationStyles.CatalogStarNotReachable
-                  case _: AgsAnalysis.VignettesScience    => VisualizationStyles.CatalogStarVignetted
-                  case _: AgsAnalysis.MagnitudeTooFaint   => VisualizationStyles.CatalogStarTooFaint
-                  case _: AgsAnalysis.MagnitudeTooBright  => VisualizationStyles.CatalogStarTooBright
-                  case _                                  => VisualizationStyles.CatalogStarOther
-                val pointCss = VisualizationStyles.CatalogStarTarget |+| analysisCss |+| css
-                val size     = scale(maxP * radius)
-                val tooltip  = title.getOrElse(s"${analysis.target.name.value}: ${analysis.message(false)}")
-                <.g(
-                  <.line(
-                    ^.x1 := scale(offP) - size,
-                    ^.x2 := scale(offP) + size,
-                    ^.y1 := scale(offQ) - size,
-                    ^.y2 := scale(offQ) + size,
-                    pointCss
-                  ),
-                  <.line(
-                    ^.x1 := scale(offP) - size,
-                    ^.x2 := scale(offP) + size,
-                    ^.y1 := scale(offQ) + size,
-                    ^.y2 := scale(offQ) - size,
-                    pointCss
-                  ),
-                  <.title(tooltip)
                 )
             }
             .toTagMod
