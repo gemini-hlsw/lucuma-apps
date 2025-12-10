@@ -343,6 +343,10 @@
     &.catalog-star-other {
       stroke: hsl(50deg 100% 50% / 90%); // yellow - other issues
     }
+
+    &.catalog-star-reachable-at-other-pas {
+      stroke: hsl(200deg 80% 60% / 90%); // cyan - reachable at other position angles
+    }
   }
 
   .guide-star-candidate-target-base {

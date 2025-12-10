@@ -45,6 +45,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
+import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.User
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.*
@@ -384,6 +385,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          throw new NotImplementedError("Gmos Imaging not implemented")
                                      }
 
+                                     val isUnbounded = props.obsConf.flatMap(_.posAngleConstraint)
+                                       .exists(_ == PosAngleConstraint.Unbounded)
+
                                      val request: Option[AgsMessage.AgsRequest] =
                                        (params, props.anglesToTest).mapN((params, angles) =>
                                          AgsMessage.AgsRequest(
@@ -396,6 +400,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                            oObsCoords.flatMap(_.blindOffsetCoords),
                                            angles,
                                            UnconstrainedAngles,
+                                           isUnbounded,
                                            acqOffsets,
                                            sciOffsets,
                                            params,

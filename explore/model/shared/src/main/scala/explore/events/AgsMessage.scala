@@ -38,6 +38,7 @@ object AgsMessage {
     blindOffset:         Option[Coordinates],
     posAngles:           NonEmptyList[Angle],
     unconstrainedAngles: NonEmptyList[Angle],
+    isUnbounded:         Boolean,
     acqOffsets:          Option[AcquisitionOffsets],
     sciOffsets:          Option[ScienceOffsets],
     params:              AgsParams,
