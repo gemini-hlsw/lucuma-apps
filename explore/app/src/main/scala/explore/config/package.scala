@@ -93,21 +93,21 @@ def useModeData(
 ): HookResult[Reusable[Option[ModeData]]] = {
   // a reusablity based only on what is used here
   given Reusability[ObservingMode] = Reusability:
-    case (ObservingMode.GmosNorthLongSlit(grating = xGrating, filter = xFilter),
-          ObservingMode.GmosNorthLongSlit(grating = yGrating, filter = yFilter)
+    case (ObservingMode.GmosNorthLongSlit(grating = xGrating, filter = xFilter, fpu = xFpu),
+          ObservingMode.GmosNorthLongSlit(grating = yGrating, filter = yFilter, fpu = yFpu)
         ) =>
-      xGrating === yGrating && xFilter === yFilter
-    case (ObservingMode.GmosSouthLongSlit(grating = xGrating, filter = xFilter),
-          ObservingMode.GmosSouthLongSlit(grating = yGrating, filter = yFilter)
+      xGrating === yGrating && xFilter === yFilter && xFpu === yFpu
+    case (ObservingMode.GmosSouthLongSlit(grating = xGrating, filter = xFilter, fpu = xFpu),
+          ObservingMode.GmosSouthLongSlit(grating = yGrating, filter = yFilter, fpu = yFpu)
         ) =>
-      xGrating === yGrating && xFilter === yFilter
-    case (ObservingMode.Flamingos2LongSlit(disperser = xDisperser, filter = xFilter),
-          ObservingMode.Flamingos2LongSlit(disperser = yDisperser, filter = yFilter)
+      xGrating === yGrating && xFilter === yFilter && xFpu === yFpu
+    case (ObservingMode.Flamingos2LongSlit(disperser = xDisperser, filter = xFilter, fpu = xFpu),
+          ObservingMode.Flamingos2LongSlit(disperser = yDisperser, filter = yFilter, fpu = yFpu)
         ) =>
-      xDisperser === yDisperser && xFilter === yFilter
+      xDisperser === yDisperser && xFilter === yFilter && xFpu === yFpu
     case _ => false
 
   for row <- useMemo((obsMode, confMatrix.matrix.length)): (obsMode, _) =>
-               confMatrix.getRowByGratingAndFilter(obsMode)
+               confMatrix.getRowByInstrumentConfig(obsMode)
   yield row.map(_.map(ModeData.fromSpectroscopyModeRow(_)))
 }
