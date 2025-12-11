@@ -14,8 +14,8 @@ import explore.model.AppContext
 import explore.model.Focused
 import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
-import explore.model.enums.AppTab
 import explore.model.ProgramSummaries
+import explore.model.enums.AppTab
 import explore.programs.ProgramsPopup
 import explore.undo.UndoStacks
 import explore.users.RedeemInvitationsPopup
@@ -42,12 +42,12 @@ import lucuma.ui.components.LoginStyles
 import lucuma.ui.components.ThemeSubMenu
 import lucuma.ui.enums.Theme
 import lucuma.ui.layout.LayoutStyles
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
 import org.typelevel.log4cats.extras.LogLevel.logLevelOrder
-import lucuma.ui.primereact.LucumaPrimeStyles
 
 import scala.scalajs.LinkingInfo
 
@@ -106,11 +106,11 @@ object TopBar:
                 .map: programId =>
                   val progRef = (AppTab.Observations, programId, Focused.None).some
                   val name    =
-                    for
+                    for {
                       pis <- props.programInfos.get
                       p   <- pis.get(programId)
                       n   <- p.name
-                    yield n.value
+                    } yield n.value
 
                   val currentProg = props.programId.exists(_ === programId)
 
@@ -123,8 +123,8 @@ object TopBar:
                           (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(currentProg)
                       )
                     )(
-                      <.span(ExploreStyles.RecentProgramId)(programId.show),
-                      name.map(n => <.span(ExploreStyles.RecentProgramName)(n))
+                      <.div(ExploreStyles.RecentProgramId)(programId.show),
+                      name.map(n => <.div(ExploreStyles.RecentProgramName)(n))
                     ),
                     clazz = ExploreStyles.RecentProgramLink |+|
                       LucumaPrimeStyles.Disabled.when_(currentProg)

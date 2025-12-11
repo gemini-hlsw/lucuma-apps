@@ -35,11 +35,11 @@ import lucuma.refined.*
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.ui.aladin.*
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability
 import lucuma.ui.syntax.all.given
 import org.typelevel.log4cats.Logger
-import lucuma.ui.primereact.LucumaPrimeStyles
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*

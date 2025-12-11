@@ -18,8 +18,8 @@ import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.IconSize
-import lucuma.ui.syntax.all.given
 import lucuma.ui.primereact.LucumaPrimeStyles
+import lucuma.ui.syntax.all.given
 
 import scala.math.BigDecimal.RoundingMode
 
