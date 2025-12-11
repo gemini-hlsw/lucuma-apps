@@ -35,6 +35,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.ui.aladin.*
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability
 import lucuma.ui.syntax.all.given
@@ -299,7 +300,7 @@ object TargetSelectionPopup:
                     s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
 
                 React.Fragment.withKey(source.name)(
-                  <.div(ExploreStyles.SmallHeader, header),
+                  <.div(LucumaPrimeStyles.SmallHeader, header),
                   <.div(ExploreStyles.TargetSearchResults)(
                     TargetSelectionTable(
                       source,

@@ -17,6 +17,7 @@ import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import java.time.Duration
 import scala.concurrent.duration.*
@@ -54,10 +55,10 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
             _      <- ITCVersionsRequests.queryItc[IO](cache, client).andWait(1.hour).foreverM.start
           } yield ()).attempt.flatMap {
             case Right(_)  =>
-              Logger[IO].info("ITC client initialized successfully") >>
+              debug"ITC client initialized successfully" >>
                 invocation.respond(none[String])
             case Left(err) =>
-              Logger[IO].error("Failed to initialize ITC client") >>
+              error"Failed to initialize ITC client" >>
                 invocation.respond(
                   Some(s"ITC initialization failed: ${err.getMessage}")
                 )
@@ -73,7 +74,7 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
               customSedTimestamps,
               rows
             ) =>
-          Logger[IO].debug(s"ITC query ${rows.length}") >>
+          debug"ITC query ${rows.length}" >>
             itcClient.get >>= (implicit client =>
             ITCRequests
               .queryItc[IO](
@@ -94,7 +95,7 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
               customSedTimestamps,
               mode
             ) =>
-          Logger[IO].debug(s"ITC graph query ${mode}") >>
+          debug"ITC graph query $mode" >>
             itcClient.get >>= (implicit client =>
             ITCGraphRequests
               .queryItc[IO](

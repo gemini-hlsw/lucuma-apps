@@ -384,6 +384,10 @@ object Icons {
   @JSImport("@fortawesome/pro-light-svg-icons", "faObjectIntersect")
   val faObjectIntersect: FAIcon = js.native
 
+  @js.native
+  @JSImport("@fortawesome/pro-thin-svg-icons", "faListRadio")
+  val faListRadio: FAIcon = js.native
+
   // This is tedious but lets us do proper tree-shaking
   FontAwesome.library.add(
     faArrowDownLeft,
@@ -478,7 +482,8 @@ object Icons {
     faHourglassClock,
     faPlanetRinged,
     faEyeSlash,
-    faObjectIntersect
+    faObjectIntersect,
+    faListRadio
   )
 
   val ArrowDownLeft          = FontAwesomeIcon(faArrowDownLeft)
@@ -576,6 +581,7 @@ object Icons {
   val PlanetRinged           = FontAwesomeIcon(faPlanetRinged)
   val EyeSlash               = FontAwesomeIcon(faEyeSlash)
   val ObjectIntersect        = FontAwesomeIcon(faObjectIntersect)
+  val ListRadio              = FontAwesomeIcon(faListRadio)
 
   val MissingInfoIcon  = ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
   val ErrorIcon        = ExclamationTriangle.withClass(ExploreStyles.ErrorIcon)

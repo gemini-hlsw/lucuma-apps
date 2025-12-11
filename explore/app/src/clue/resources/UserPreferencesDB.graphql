@@ -742,6 +742,126 @@ type ExploreFinderChartVarianceFields {
 }
 
 """
+columns and relationships of "exploreLogLevel"
+"""
+type ExploreLogLevel {
+  id: String!
+}
+
+"""
+aggregated selection of "exploreLogLevel"
+"""
+type ExploreLogLevelAggregate {
+  aggregate: ExploreLogLevelAggregateFields
+  nodes: [ExploreLogLevel!]!
+}
+
+"""
+aggregate fields of "exploreLogLevel"
+"""
+type ExploreLogLevelAggregateFields {
+  count(columns: [ExploreLogLevelSelectColumn!], distinct: Boolean): Int!
+  max: ExploreLogLevelMaxFields
+  min: ExploreLogLevelMinFields
+}
+
+"""
+Boolean expression to filter rows from the table "exploreLogLevel". All fields are combined with a logical 'AND'.
+"""
+input ExploreLogLevelBoolExp {
+  _and: [ExploreLogLevelBoolExp!]
+  _not: ExploreLogLevelBoolExp
+  _or: [ExploreLogLevelBoolExp!]
+  id: StringComparisonExp
+}
+
+"""
+unique or primary key constraints on table "exploreLogLevel"
+"""
+enum ExploreLogLevelConstraint {
+  """
+  unique or primary key constraint on columns "id"
+  """
+  exploreLogLevel_pkey
+}
+
+"""
+input type for inserting data into table "exploreLogLevel"
+"""
+input ExploreLogLevelInsertInput {
+  id: String
+}
+
+"""aggregate max on columns"""
+type ExploreLogLevelMaxFields {
+  id: String
+}
+
+"""aggregate min on columns"""
+type ExploreLogLevelMinFields {
+  id: String
+}
+
+"""
+response of any mutation on the table "exploreLogLevel"
+"""
+type ExploreLogLevelMutationResponse {
+  """number of rows affected by the mutation"""
+  affected_rows: Int!
+
+  """data from the rows affected by the mutation"""
+  returning: [ExploreLogLevel!]!
+}
+
+"""
+on_conflict condition type for table "exploreLogLevel"
+"""
+input ExploreLogLevelOnConflict {
+  constraint: ExploreLogLevelConstraint!
+  update_columns: [ExploreLogLevelUpdateColumn!]! = []
+  where: ExploreLogLevelBoolExp
+}
+
+"""Ordering options when selecting data from "exploreLogLevel"."""
+input ExploreLogLevelOrderBy {
+  id: OrderBy
+}
+
+"""primary key columns input for table: exploreLogLevel"""
+input ExploreLogLevelPkColumnsInput {
+  id: String!
+}
+
+"""
+select columns of table "exploreLogLevel"
+"""
+enum ExploreLogLevelSelectColumn {
+  """column name"""
+  id
+}
+
+"""
+input type for updating data in table "exploreLogLevel"
+"""
+input ExploreLogLevelSetInput {
+  id: String
+}
+
+"""
+update columns of table "exploreLogLevel"
+"""
+enum ExploreLogLevelUpdateColumn {
+  """column name"""
+  id
+}
+
+input ExploreLogLevelUpdates {
+  """sets the columns of the filtered rows to the given values"""
+  _set: ExploreLogLevelSetInput
+  where: ExploreLogLevelBoolExp!
+}
+
+"""
 columns and relationships of "explorePlotRange"
 """
 type ExplorePlotRange {
@@ -1180,6 +1300,41 @@ input ItcChartType_streamCursorInput {
 """Initial value of the column from where the streaming should start"""
 input ItcChartType_streamCursorValueInput {
   id: String
+}
+
+input JsonbCastExp {
+  String: StringComparisonExp
+}
+
+"""
+Boolean expression to compare columns of type "jsonb". All fields are combined with logical 'AND'.
+"""
+input JsonbComparisonExp {
+  _cast: JsonbCastExp
+
+  """is the column contained in the given json value"""
+  _containedIn: jsonb
+
+  """does the column contain the given json value at the top level"""
+  _contains: jsonb
+  _eq: jsonb
+  _gt: jsonb
+  _gte: jsonb
+
+  """does the string exist as a top-level key in the column"""
+  _hasKey: String
+
+  """do all of these strings exist as top-level keys in the column"""
+  _hasKeysAll: [String!]
+
+  """do any of these strings exist as top-level keys in the column"""
+  _hasKeysAny: [String!]
+  _in: [jsonb!]
+  _isNull: Boolean
+  _lt: jsonb
+  _lte: jsonb
+  _neq: jsonb
+  _nin: [jsonb!]
 }
 
 """
@@ -3118,6 +3273,7 @@ columns and relationships of "lucumaUserPreferences"
 type LucumaUserPreferences {
   acquisitionOffsets: Boolean!
   agsOverlay: Boolean!
+  aladinLegend: Boolean!
   aladinMouseScroll: Boolean!
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean!
@@ -3130,6 +3286,11 @@ type LucumaUserPreferences {
   fullScreen: Boolean!
   itcChartType: ItcChartTypeEnum!
   itcDetailsOpen: Boolean!
+  lastOpenPrograms(
+    """JSON select path"""
+    path: String
+  ): jsonb!
+  logLevel: String!
 
   """An object relationship"""
   lucuma_user: LucumaUser!
@@ -3157,6 +3318,11 @@ type LucumaUserPreferencesAggregateFields {
   min: LucumaUserPreferencesMinFields
 }
 
+"""append existing jsonb value of filtered columns with new jsonb value"""
+input LucumaUserPreferencesAppendInput {
+  lastOpenPrograms: jsonb
+}
+
 """
 Boolean expression to filter rows from the table "lucumaUserPreferences". All fields are combined with a logical 'AND'.
 """
@@ -3166,6 +3332,7 @@ input LucumaUserPreferencesBoolExp {
   _or: [LucumaUserPreferencesBoolExp!]
   acquisitionOffsets: BooleanComparisonExp
   agsOverlay: BooleanComparisonExp
+  aladinLegend: BooleanComparisonExp
   aladinMouseScroll: BooleanComparisonExp
   createdAt: TimestamptzComparisonExp
   elevationPlotElevationVisible: BooleanComparisonExp
@@ -3178,6 +3345,8 @@ input LucumaUserPreferencesBoolExp {
   fullScreen: BooleanComparisonExp
   itcChartType: ItcChartTypeEnumComparisonExp
   itcDetailsOpen: BooleanComparisonExp
+  lastOpenPrograms: JsonbComparisonExp
+  logLevel: StringComparisonExp
   lucuma_user: LucumaUserBoolExp
   scienceOffsets: BooleanComparisonExp
   showCatalog: BooleanComparisonExp
@@ -3197,11 +3366,33 @@ enum LucumaUserPreferencesConstraint {
 }
 
 """
+delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+"""
+input LucumaUserPreferencesDeleteAtPathInput {
+  lastOpenPrograms: [String!]
+}
+
+"""
+delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+"""
+input LucumaUserPreferencesDeleteElemInput {
+  lastOpenPrograms: Int
+}
+
+"""
+delete key/value pair or string element. key/value pairs are matched based on their key value
+"""
+input LucumaUserPreferencesDeleteKeyInput {
+  lastOpenPrograms: String
+}
+
+"""
 input type for inserting data into table "lucumaUserPreferences"
 """
 input LucumaUserPreferencesInsertInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -3214,6 +3405,8 @@ input LucumaUserPreferencesInsertInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
+  logLevel: String
   lucuma_user: LucumaUserObjRelInsertInput
   scienceOffsets: Boolean
   showCatalog: Boolean
@@ -3225,6 +3418,7 @@ input LucumaUserPreferencesInsertInput {
 """aggregate max on columns"""
 type LucumaUserPreferencesMaxFields {
   createdAt: timestamptz
+  logLevel: String
   updatedAt: timestamptz
   userId: String
 }
@@ -3232,6 +3426,7 @@ type LucumaUserPreferencesMaxFields {
 """aggregate min on columns"""
 type LucumaUserPreferencesMinFields {
   createdAt: timestamptz
+  logLevel: String
   updatedAt: timestamptz
   userId: String
 }
@@ -3260,6 +3455,7 @@ input LucumaUserPreferencesOnConflict {
 input LucumaUserPreferencesOrderBy {
   acquisitionOffsets: OrderBy
   agsOverlay: OrderBy
+  aladinLegend: OrderBy
   aladinMouseScroll: OrderBy
   createdAt: OrderBy
   elevationPlotElevationVisible: OrderBy
@@ -3272,6 +3468,8 @@ input LucumaUserPreferencesOrderBy {
   fullScreen: OrderBy
   itcChartType: OrderBy
   itcDetailsOpen: OrderBy
+  lastOpenPrograms: OrderBy
+  logLevel: OrderBy
   lucuma_user: LucumaUserOrderBy
   scienceOffsets: OrderBy
   showCatalog: OrderBy
@@ -3285,6 +3483,11 @@ input LucumaUserPreferencesPkColumnsInput {
   userId: String!
 }
 
+"""prepend existing jsonb value of filtered columns with new jsonb value"""
+input LucumaUserPreferencesPrependInput {
+  lastOpenPrograms: jsonb
+}
+
 """
 select columns of table "lucumaUserPreferences"
 """
@@ -3294,6 +3497,9 @@ enum LucumaUserPreferencesSelectColumn {
 
   """column name"""
   agsOverlay
+
+  """column name"""
+  aladinLegend
 
   """column name"""
   aladinMouseScroll
@@ -3330,6 +3536,12 @@ enum LucumaUserPreferencesSelectColumn {
 
   """column name"""
   itcDetailsOpen
+
+  """column name"""
+  lastOpenPrograms
+
+  """column name"""
+  logLevel
 
   """column name"""
   scienceOffsets
@@ -3353,6 +3565,7 @@ input type for updating data in table "lucumaUserPreferences"
 input LucumaUserPreferencesSetInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -3365,6 +3578,8 @@ input LucumaUserPreferencesSetInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
+  logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -3381,6 +3596,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   agsOverlay
+
+  """column name"""
+  aladinLegend
 
   """column name"""
   aladinMouseScroll
@@ -3419,6 +3637,12 @@ enum LucumaUserPreferencesUpdateColumn {
   itcDetailsOpen
 
   """column name"""
+  lastOpenPrograms
+
+  """column name"""
+  logLevel
+
+  """column name"""
   scienceOffsets
 
   """column name"""
@@ -3435,6 +3659,27 @@ enum LucumaUserPreferencesUpdateColumn {
 }
 
 input LucumaUserPreferencesUpdates {
+  """append existing jsonb value of filtered columns with new jsonb value"""
+  _append: LucumaUserPreferencesAppendInput
+
+  """
+  delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+  """
+  _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+  """
+  delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+  """
+  _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+  """
+  delete key/value pair or string element. key/value pairs are matched based on their key value
+  """
+  _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+  """prepend existing jsonb value of filtered columns with new jsonb value"""
+  _prepend: LucumaUserPreferencesPrependInput
+
   """sets the columns of the filtered rows to the given values"""
   _set: LucumaUserPreferencesSetInput
   where: LucumaUserPreferencesBoolExp!
@@ -3853,6 +4098,22 @@ input exploreFinderChart_variance_order_by {
 }
 
 """
+Streaming cursor of the table "exploreLogLevel"
+"""
+input exploreLogLevel_streamCursorInput {
+  """Stream column input with initial value"""
+  initialValue: exploreLogLevel_streamCursorValueInput!
+
+  """cursor ordering"""
+  ordering: CursorOrdering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input exploreLogLevel_streamCursorValueInput {
+  id: String
+}
+
+"""
 Streaming cursor of the table "explorePlotRange"
 """
 input explorePlotRange_streamCursorInput {
@@ -3883,6 +4144,8 @@ input explorePlotTime_streamCursorInput {
 input explorePlotTime_streamCursorValueInput {
   id: String
 }
+
+scalar jsonb
 
 """
 order by avg() on columns of table "lucumaAsterism"
@@ -4150,6 +4413,7 @@ input lucumaUserPreferences_streamCursorInput {
 input lucumaUserPreferences_streamCursorValueInput {
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
+  aladinLegend: Boolean
   aladinMouseScroll: Boolean
   createdAt: timestamptz
   elevationPlotElevationVisible: Boolean
@@ -4162,6 +4426,8 @@ input lucumaUserPreferences_streamCursorValueInput {
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
+  lastOpenPrograms: jsonb
+  logLevel: String
   scienceOffsets: Boolean
   showCatalog: Boolean
   updatedAt: timestamptz
@@ -4228,6 +4494,19 @@ type Mutation {
   delete single row from the table: "exploreFinderChart"
   """
   deleteExploreFinderChartByPk(attachmentId: String!, observationId: String!): ExploreFinderChart
+
+  """
+  delete data from the table: "exploreLogLevel"
+  """
+  deleteExploreLogLevel(
+    """filter the rows which have to be deleted"""
+    where: ExploreLogLevelBoolExp!
+  ): ExploreLogLevelMutationResponse
+
+  """
+  delete single row from the table: "exploreLogLevel"
+  """
+  deleteExploreLogLevelByPk(id: String!): ExploreLogLevel
 
   """
   delete data from the table: "explorePlotRange"
@@ -4480,6 +4759,28 @@ type Mutation {
     """upsert condition"""
     onConflict: ExploreFinderChartOnConflict
   ): ExploreFinderChart
+
+  """
+  insert data into the table: "exploreLogLevel"
+  """
+  insertExploreLogLevel(
+    """the rows to be inserted"""
+    objects: [ExploreLogLevelInsertInput!]!
+
+    """upsert condition"""
+    onConflict: ExploreLogLevelOnConflict
+  ): ExploreLogLevelMutationResponse
+
+  """
+  insert a single row into the table: "exploreLogLevel"
+  """
+  insertExploreLogLevelOne(
+    """the row to be inserted"""
+    object: ExploreLogLevelInsertInput!
+
+    """upsert condition"""
+    onConflict: ExploreLogLevelOnConflict
+  ): ExploreLogLevel
 
   """
   insert data into the table: "explorePlotRange"
@@ -4902,6 +5203,34 @@ type Mutation {
   ): [ExploreFinderChartMutationResponse]
 
   """
+  update data of the table: "exploreLogLevel"
+  """
+  updateExploreLogLevel(
+    """sets the columns of the filtered rows to the given values"""
+    _set: ExploreLogLevelSetInput
+
+    """filter the rows which have to be updated"""
+    where: ExploreLogLevelBoolExp!
+  ): ExploreLogLevelMutationResponse
+
+  """
+  update single row of the table: "exploreLogLevel"
+  """
+  updateExploreLogLevelByPk(
+    """sets the columns of the filtered rows to the given values"""
+    _set: ExploreLogLevelSetInput
+    pk_columns: ExploreLogLevelPkColumnsInput!
+  ): ExploreLogLevel
+
+  """
+  update multiples rows of table: "exploreLogLevel"
+  """
+  updateExploreLogLevelMany(
+    """updates to execute, in order"""
+    updates: [ExploreLogLevelUpdates!]!
+  ): [ExploreLogLevelMutationResponse]
+
+  """
   update data of the table: "explorePlotRange"
   """
   updateExplorePlotRange(
@@ -5315,6 +5644,27 @@ type Mutation {
   update data of the table: "lucumaUserPreferences"
   """
   updateLucumaUserPreferences(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaUserPreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaUserPreferencesPrependInput
+
     """sets the columns of the filtered rows to the given values"""
     _set: LucumaUserPreferencesSetInput
 
@@ -5326,6 +5676,27 @@ type Mutation {
   update single row of the table: "lucumaUserPreferences"
   """
   updateLucumaUserPreferencesByPk(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaUserPreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaUserPreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaUserPreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaUserPreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaUserPreferencesPrependInput
+
     """sets the columns of the filtered rows to the given values"""
     _set: LucumaUserPreferencesSetInput
     pk_columns: LucumaUserPreferencesPkColumnsInput!
@@ -5458,6 +5829,49 @@ type Query {
   fetch data from the table: "exploreFinderChart" using primary key columns
   """
   exploreFinderChartByPk(attachmentId: String!, observationId: String!): ExploreFinderChart
+
+  """
+  fetch data from the table: "exploreLogLevel"
+  """
+  exploreLogLevel(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
+
+  """
+  fetch aggregated fields from the table: "exploreLogLevel"
+  """
+  exploreLogLevelAggregate(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): ExploreLogLevelAggregate!
+
+  """fetch data from the table: "exploreLogLevel" using primary key columns"""
+  exploreLogLevelByPk(id: String!): ExploreLogLevel
 
   """
   fetch data from the table: "explorePlotRange"
@@ -6286,6 +6700,63 @@ type Subscription {
     """filter the rows returned"""
     where: ExploreFinderChartBoolExp
   ): [ExploreFinderChart!]!
+
+  """
+  fetch data from the table: "exploreLogLevel"
+  """
+  exploreLogLevel(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
+
+  """
+  fetch aggregated fields from the table: "exploreLogLevel"
+  """
+  exploreLogLevelAggregate(
+    """distinct select on columns"""
+    distinctOn: [ExploreLogLevelSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreLogLevelOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): ExploreLogLevelAggregate!
+
+  """fetch data from the table: "exploreLogLevel" using primary key columns"""
+  exploreLogLevelByPk(id: String!): ExploreLogLevel
+
+  """
+  fetch data from the table in a streaming manner : "exploreLogLevel"
+  """
+  exploreLogLevelStream(
+    """maximum number of rows returned in a single batch"""
+    batchSize: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [exploreLogLevel_streamCursorInput]!
+
+    """filter the rows returned"""
+    where: ExploreLogLevelBoolExp
+  ): [ExploreLogLevel!]!
 
   """
   fetch data from the table: "explorePlotRange"

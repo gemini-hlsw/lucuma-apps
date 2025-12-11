@@ -19,14 +19,17 @@ import explore.model.layout
 import explore.model.layout.LayoutsMap
 import explore.utils.*
 import japgolly.scalajs.react.*
+import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
+import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.TargetPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates
 import queries.common.UserPreferencesQueriesGQL.UserPreferencesUpdates
 import queries.schemas.UserPreferencesDB
+import typings.loglevel.mod.LogLevelDesc
 
 import scala.concurrent.duration.*
 
@@ -42,6 +45,18 @@ case class PreferencesCacheController(
 
 object PreferencesCacheController
     extends CacheControllerComponent[UserPreferences, PreferencesCacheController]:
+
+  extension (level: LogLevel)
+    def toLogLevelDesc: LogLevelDesc =
+      level match
+        case LogLevel.Trace => LogLevelDesc.TRACE
+        case LogLevel.Debug => LogLevelDesc.DEBUG
+        case LogLevel.Info  => LogLevelDesc.INFO
+        case LogLevel.Warn  => LogLevelDesc.WARN
+        case LogLevel.Error => LogLevelDesc.ERROR
+
+  private def setLogLevel(prefs: GlobalPreferences): IO[Unit] =
+    IO(LogLevelLogger.setLevel(prefs.logLevel.toLogLevelDesc))
 
   override protected val initial: PreferencesCacheController => IO[
     (UserPreferences, fs2.Stream[IO, UserPreferences => UserPreferences])
@@ -59,11 +74,12 @@ object PreferencesCacheController
 
     val userPrefs = GlobalUserPreferences.loadPreferences[IO](props.userId)
 
-    // we could think of loading target preferences at the startup but the table maybe large
-    // instead we read it on the UI control on demand
-    (grids, userPrefs)
-      .parMapN((g, p) => UserPreferences(g, p, Map.empty))
-      .map(prefs => (prefs, fs2.Stream.empty))
+    for {
+      g    <- grids
+      p    <- userPrefs
+      _    <- setLogLevel(p)
+      prefs = UserPreferences(g, p, Map.empty)
+    } yield (prefs, fs2.Stream.empty)
 
   override protected val updateStream: PreferencesCacheController => Resource[
     cats.effect.IO,
@@ -85,9 +101,12 @@ object PreferencesCacheController
         .subscribe[IO](props.userId.show)
         .ignoreGraphQLErrors
         .map:
-          _.throttle(5.seconds).map: data =>
-            UserPreferences.globalPreferences
-              .modify(_ => data.lucumaUserPreferencesByPk.getOrElse(GlobalPreferences.Default))
+          _.throttle(5.seconds)
+            .evalTap: data =>
+              data.lucumaUserPreferencesByPk.traverse_(setLogLevel)
+            .map: data =>
+              UserPreferences.globalPreferences
+                .modify(_ => data.lucumaUserPreferencesByPk.getOrElse(GlobalPreferences.Default))
 
     val updateTargetPreferences: Resource[IO, fs2.Stream[IO, UserPreferences => UserPreferences]] =
       TargetPreferencesUpdates

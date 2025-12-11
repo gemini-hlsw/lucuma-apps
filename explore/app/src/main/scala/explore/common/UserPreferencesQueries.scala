@@ -34,8 +34,10 @@ import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.layout.*
+import io.circe.syntax.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
+import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
@@ -44,6 +46,7 @@ import lucuma.react.gridlayout.*
 import lucuma.react.table.*
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.*
 import queries.common.UserPreferencesQueriesGQL.AsterismPreferencesQuery.Data.ExploreAsterismPreferences
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates.Data.LucumaGridLayoutPositions
@@ -434,6 +437,35 @@ object UserPreferencesQueries:
         .attempt
         .void
   end WavelengthUnitsPreference
+
+  object LogLevelPreference:
+    def updateLogLevel[F[_]: ApplicativeThrow](
+      userId:   User.Id,
+      logLevel: LogLevel
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserLogLevelUpdate[F]
+        .execute(
+          userId = userId.show.assign,
+          logLevel = logLevel.show.toUpperCase.assign
+        )
+        .attempt
+        .void
+  end LogLevelPreference
+
+  object LastOpenProgramsPreference:
+
+    def setPrograms[F[_]: ApplicativeThrow](
+      userId:   User.Id,
+      programs: List[Program.Id]
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserLastOpenProgramsUpdate[F]
+        .execute(
+          userId = userId.show,
+          lastOpenPrograms = programs.map(_.show).asJson
+        )
+        .attempt
+        .void
+  end LastOpenProgramsPreference
 
   object ElevationPlotPreference:
     def updatePlotPreferences[F[_]: ApplicativeThrow](

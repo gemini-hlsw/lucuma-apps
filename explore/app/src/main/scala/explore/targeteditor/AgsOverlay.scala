@@ -18,6 +18,7 @@ import lucuma.core.enums.Band
 import lucuma.core.enums.GuideSpeed
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.IconSize
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.syntax.all.given
 
 import scala.math.BigDecimal.RoundingMode
@@ -81,13 +82,13 @@ object AgsOverlay:
               <.div(
                 ExploreStyles.AgsNavigation,
                 <.span(
-                  ExploreStyles.Disabled.unless(canGoPrev),
+                  LucumaPrimeStyles.Disabled.unless(canGoPrev),
                   ^.onClick -->? goPrev,
                   ExploreStyles.AgsNavigationButton,
                   Icons.ChevronLeft
                 ),
                 <.span(
-                  ExploreStyles.Disabled.unless(canGoNext),
+                  LucumaPrimeStyles.Disabled.unless(canGoNext),
                   ^.onClick -->? goNext,
                   ExploreStyles.AgsNavigationButton,
                   Icons.ChevronRight

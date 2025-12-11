@@ -4,11 +4,8 @@
 package explore.model
 
 import cats.kernel.laws.discipline.EqTests
-import explore.model.arb.ArbRootModel
+import explore.model.arb.ArbRootModel.given
 import munit.DisciplineSuite
 
-class RootModelSuite extends DisciplineSuite {
-  import ArbRootModel.*
-
+class RootModelSuite extends DisciplineSuite:
   checkAll("Eq[RootModel]", EqTests[RootModel].eqv)
-}
