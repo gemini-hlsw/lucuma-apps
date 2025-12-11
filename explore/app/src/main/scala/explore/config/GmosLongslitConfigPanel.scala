@@ -19,7 +19,6 @@ import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
-import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.modes.ModeWavelength
@@ -56,18 +55,18 @@ import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 object GmosLongslitConfigPanel {
-  sealed trait GmosLongslitConfigPanel[T <: ObservingMode, Input]:
+  sealed trait GmosLongslitConfigPanel[T <: ObservingMode, Input] {
     def programId: Program.Id
     def obsId: Observation.Id
     def calibrationRole: Option[CalibrationRole]
     def observingMode: Aligner[T, Input]
-    def spectroscopyRequirements: ScienceRequirements.Spectroscopy
     def revertConfig: Callback
     def confMatrix: SpectroscopyModesMatrix
     def sequenceChanged: Callback
     def readonly: Boolean
     def units: WavelengthUnits
     def instrument = observingMode.get.instrument
+  }
 
   sealed abstract class GmosLongslitConfigPanelBuilder[
     T <: ObservingMode,
@@ -200,11 +199,7 @@ object GmosLongslitConfigPanel {
       ScalaFnComponent[Props]: props =>
         for
           ctx       <- useContext(AppContext.ctx)
-          modeData  <- useModeData(
-                         props.confMatrix,
-                         props.spectroscopyRequirements,
-                         props.observingMode.get
-                       )
+          modeData  <- useModeData(props.confMatrix, props.observingMode.get)
           editState <- useStateView(ConfigEditState.View)
         yield
           import ctx.given
@@ -226,14 +221,14 @@ object GmosLongslitConfigPanel {
           val defaultAcquisitionFilter = defaultAcquisitionFilterLens.get(props.observingMode.get)
           val defaultAcquisitionRoi    = defaultAcquisitionRoiLens.get(props.observingMode.get)
 
-          val validDithers = modeData
-            .map(mode =>
-              ExploreModelValidators
-                .dithersValidWedge(centralWavelengthView.get, mode.λmin.value, mode.λmax.value)
-            )
-            .getOrElse(
-              ExploreModelValidators.ditherValidWedge
-            )
+          val validDithers = modeData.value
+            .map: mode =>
+              ExploreModelValidators.dithersValidWedge(
+                centralWavelengthView.get,
+                mode.λmin.value,
+                mode.λmax.value
+              )
+            .getOrElse(ExploreModelValidators.ditherValidWedge)
             .toNel(",".refined)
             .withErrorMessage(_ => "Invalid wavelength dither values".refined)
             .optional
@@ -322,7 +317,7 @@ object GmosLongslitConfigPanel {
                 dithersControl(props.sequenceChanged),
                 ExposureTimeModeEditor(
                   props.instrument.some,
-                  props.spectroscopyRequirements.wavelength,
+                  none,
                   exposureTimeMode(props.observingMode),
                   ScienceMode.Spectroscopy,
                   props.readonly,
@@ -393,8 +388,9 @@ object GmosLongslitConfigPanel {
             <.div(
               ExploreStyles.GmosLongSlitLowerGrid,
               Panel(
-                header = <.span("Acquisition",
-                                HelpIcon("configuration/gmos/acquisition-customization.md".refined)
+                header = <.span(
+                  "Acquisition",
+                  HelpIcon("configuration/gmos/acquisition-customization.md".refined)
                 ),
                 toggleable = true,
                 collapsed = true
@@ -431,7 +427,7 @@ object GmosLongslitConfigPanel {
                     LucumaPrimeStyles.FormColumnCompact,
                     ExposureTimeModeEditor(
                       props.observingMode.get.instrument.some,
-                      props.spectroscopyRequirements.wavelength,
+                      none,
                       acquisitionExposureTimeModeView(props.observingMode),
                       ScienceMode.Imaging,
                       props.readonly,
@@ -457,16 +453,15 @@ object GmosLongslitConfigPanel {
 
   // Gmos North Long Slit
   case class GmosNorthLongSlit(
-    programId:                Program.Id,
-    obsId:                    Observation.Id,
-    calibrationRole:          Option[CalibrationRole],
-    observingMode:            Aligner[ObservingMode.GmosNorthLongSlit, GmosNorthLongSlitInput],
-    spectroscopyRequirements: ScienceRequirements.Spectroscopy,
-    revertConfig:             Callback,
-    confMatrix:               SpectroscopyModesMatrix,
-    sequenceChanged:          Callback,
-    readonly:                 Boolean,
-    units:                    WavelengthUnits
+    programId:       Program.Id,
+    obsId:           Observation.Id,
+    calibrationRole: Option[CalibrationRole],
+    observingMode:   Aligner[ObservingMode.GmosNorthLongSlit, GmosNorthLongSlitInput],
+    revertConfig:    Callback,
+    confMatrix:      SpectroscopyModesMatrix,
+    sequenceChanged: Callback,
+    readonly:        Boolean,
+    units:           WavelengthUnits
   ) extends ReactFnProps[GmosLongslitConfigPanel.GmosNorthLongSlit](
         GmosLongslitConfigPanel.GmosNorthLongSlit.component
       )
@@ -719,16 +714,16 @@ object GmosLongslitConfigPanel {
 // Gmos South Long Slit
 
   case class GmosSouthLongSlit(
-    programId:                Program.Id,
-    obsId:                    Observation.Id,
-    calibrationRole:          Option[CalibrationRole],
-    observingMode:            Aligner[ObservingMode.GmosSouthLongSlit, GmosSouthLongSlitInput],
-    spectroscopyRequirements: ScienceRequirements.Spectroscopy,
-    revertConfig:             Callback,
-    confMatrix:               SpectroscopyModesMatrix,
-    sequenceChanged:          Callback,
-    readonly:                 Boolean,
-    units:                    WavelengthUnits
+    programId:       Program.Id,
+    obsId:           Observation.Id,
+    calibrationRole: Option[CalibrationRole],
+    observingMode:   Aligner[ObservingMode.GmosSouthLongSlit, GmosSouthLongSlitInput],
+    // spectroscopyRequirements: ScienceRequirements.Spectroscopy,
+    revertConfig:    Callback,
+    confMatrix:      SpectroscopyModesMatrix,
+    sequenceChanged: Callback,
+    readonly:        Boolean,
+    units:           WavelengthUnits
   ) extends ReactFnProps[GmosLongslitConfigPanel.GmosSouthLongSlit](
         GmosLongslitConfigPanel.GmosSouthLongSlit.component
       )
