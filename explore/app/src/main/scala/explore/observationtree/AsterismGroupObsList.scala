@@ -119,6 +119,22 @@ case class AsterismGroupObsList(
       case LocalClipboard.CopiedTargets(targets)           => targetsText(targets.idSet.toSortedSet).some
       case LocalClipboard.CopiedObservations(observations) => observationsText(observations).some
 
+  // private val isCalibrationSelected: Boolean =
+  //   selectedIdsOpt.flatMap(_.left.toOption)
+  //     .fold(false)(
+  //       _.fold(
+  //         targetIds =>
+  //           targetIds.idSet.exists { tid =>
+  //             programSummaries.get.targetsWithObs
+  //               .get(tid)
+  //               .exists(_.disposition.isCalibration)
+  //           },
+
+  //       )
+  //     )
+
+  println(selectedIdsOpt)
+
   private val selectedDisabled: Boolean =
     selectedIdsOpt.isEmpty
 

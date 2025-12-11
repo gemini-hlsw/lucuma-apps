@@ -9,10 +9,12 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Band
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.model.Target
 import lucuma.core.util.Gid
+import lucuma.schemas.model.enums.BlindOffsetType
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional
@@ -30,6 +32,16 @@ case class TargetWithId(
   calibrationRole: Option[CalibrationRole]
 ) extends TargetWithMetadata derives Eq:
   def toOptId: TargetWithOptId = TargetWithOptId(id.some, target, disposition, calibrationRole)
+
+  def isEditable(
+    programType:  ProgramType,
+    blindOffsets: Map[Target.Id, BlindOffsetType]
+  ): Boolean =
+    disposition match
+      case TargetDisposition.Calibration => programType === ProgramType.System
+      case TargetDisposition.BlindOffset =>
+        !blindOffsets.get(id).contains_(BlindOffsetType.Automatic)
+      case _                             => true
 
 object TargetWithId:
   val id: Lens[TargetWithId, Target.Id]        = Focus[TargetWithId](_.id)

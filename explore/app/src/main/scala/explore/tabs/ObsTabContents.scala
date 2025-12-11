@@ -34,6 +34,7 @@ import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.model.Group
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -77,6 +78,7 @@ case class ObsTabContents(
   private val targets: UndoSetter[TargetList]            = programSummaries.zoom(ProgramSummaries.targets)
   private val globalPreferences: View[GlobalPreferences] =
     userPreferences.zoom(UserPreferences.globalPreferences)
+  private val programType: Option[ProgramType]           = programSummaries.get.programType
 
 object ObsTabContents extends TwoPanels:
   private type Props = ObsTabContents
@@ -278,35 +280,37 @@ object ObsTabContents extends TwoPanels:
             val indexValue: Optional[ObservationList, Observation] =
               Iso.id[ObservationList].index(obsId)
 
-            props.observations.model
-              .zoom(indexValue)
-              .mapValue(obsView =>
-                // FIXME Find a better mechanism for this.
-                // Something like .mapValue but for UndoContext
-                val obsUndoSetter =
-                  props.observations.zoom(indexValue.getOption.andThen(_.get), indexValue.modify)
-                val obs           = obsUndoSetter.get
-                val obsIsReadonly =
-                  props.readonly || addingObservation.get.value || obs.isCalibration
-                ObsTabTiles(
-                  props.vault,
-                  props.programId,
-                  props.modes,
-                  backButton,
-                  obsUndoSetter,
-                  props.programSummaries
-                    .zoom((ProgramSummaries.observations, ProgramSummaries.targets).disjointZip),
-                  props.programSummaries.model.zoom(ProgramSummaries.attachments),
-                  props.programSummaries.get,
-                  props.focusedTarget,
-                  props.searching,
-                  // We need this as a separate view so it doesn't get in the way of undo and can be easily updated by AGS
-                  obsView.zoom(Observation.selectedGSName),
-                  resize,
-                  props.userPreferences,
-                  obsIsReadonly
-                ).withKey(s"${obsId.show}")
-              )
+            props.programType.map: programType =>
+              props.observations.model
+                .zoom(indexValue)
+                .mapValue(obsView =>
+                  // FIXME Find a better mechanism for this.
+                  // Something like .mapValue but for UndoContext
+                  val obsUndoSetter: UndoSetter[Observation] =
+                    props.observations.zoom(indexValue.getOption.andThen(_.get), indexValue.modify)
+                  val obs: Observation                       = obsUndoSetter.get
+                  val obsIsReadonly: Boolean                 =
+                    props.readonly || addingObservation.get.value || obs.isCalibration
+                  ObsTabTiles(
+                    props.vault,
+                    props.programId,
+                    programType,
+                    props.modes,
+                    backButton,
+                    obsUndoSetter,
+                    props.programSummaries
+                      .zoom((ProgramSummaries.observations, ProgramSummaries.targets).disjointZip),
+                    props.programSummaries.model.zoom(ProgramSummaries.attachments),
+                    props.programSummaries.get,
+                    props.focusedTarget,
+                    props.searching,
+                    // We need this as a separate view so it doesn't get in the way of undo and can be easily updated by AGS
+                    obsView.zoom(Observation.selectedGSName),
+                    resize,
+                    props.userPreferences,
+                    obsIsReadonly
+                  ).withKey(s"${obsId.show}")
+                )
           }
 
           def groupEditorTiles(groupId: Group.Id, resize: UseResizeDetectorReturn): VdomNode =

@@ -36,6 +36,7 @@ import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -61,6 +62,7 @@ object ObservationTargetsEditorTile:
     userId:              Option[User.Id],
     tileId:              Tile.TileId,
     programId:           Program.Id,
+    programType:         ProgramType,
     obsIds:              ObsIdSet,
     obsAndTargets:       UndoSetter[ObservationsAndTargets],
     obsTime:             View[Option[Instant]],
@@ -129,6 +131,7 @@ object ObservationTargetsEditorTile:
         userId.map: uid =>
           Body(
             programId,
+            programType,
             uid,
             obsIds,
             obsAndTargets,
@@ -185,6 +188,7 @@ object ObservationTargetsEditorTile:
 
   private case class Body(
     programId:           Program.Id,
+    programType:         ProgramType,
     userId:              User.Id,
     obsIds:              ObsIdSet,
     obsAndTargets:       UndoSetter[ObservationsAndTargets],
@@ -289,6 +293,7 @@ object ObservationTargetsEditorTile:
                   selectedTargetOpt.map: targetWithId =>
                     TargetEditor(
                       props.programId,
+                      props.programType,
                       props.userId,
                       targetWithId,
                       props.obsAndTargets,
