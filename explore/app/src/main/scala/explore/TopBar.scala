@@ -11,8 +11,10 @@ import explore.common.UserPreferencesQueries
 import explore.components.ConnectionsStatus
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.Focused
 import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
+import explore.model.enums.AppTab
 import explore.model.ProgramSummaries
 import explore.programs.ProgramsPopup
 import explore.undo.UndoStacks
@@ -45,6 +47,7 @@ import lucuma.ui.syntax.all.given
 import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
 import org.typelevel.log4cats.extras.LogLevel.logLevelOrder
+import lucuma.ui.primereact.LucumaPrimeStyles
 
 import scala.scalajs.LinkingInfo
 
@@ -100,6 +103,45 @@ object TopBar:
               .updateLogLevel[IO](user.id, l)
               .runAsync
 
+          val recentPrograms = props.globalPreferences.get.lastOpenPrograms
+
+          val recentProgramsItem: List[MenuItem] =
+            if recentPrograms.isEmpty then List.empty
+            else
+              val x =
+                recentPrograms
+                  .map: programId =>
+                    val progRef = (AppTab.Observations, programId, Focused.None).some
+                    // Add the name if in the cache
+                    val name    =
+                      for {
+                        pis <- props.programInfos.get
+                        p   <- pis.get(programId)
+                        n   <- p.name
+                      } yield n.value
+
+                    val label       = name.fold(programId.show)(n => s"${programId.show}: $n")
+                    val currentProg = props.programId.exists(_ === programId)
+
+                    MenuItem.Custom(
+                      <.a(
+                        LucumaPrimeStyles.MenuItemLink,
+                        ^.href := ctx.pageUrl(progRef),
+                        ^.onClick ==> (e =>
+                          e.preventDefaultCB >> e.stopPropagationCB >>
+                            (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(currentProg)
+                        )
+                      )(<.span(LucumaPrimeStyles.MenuItemText)(label)),
+                      clazz = ExploreStyles.RecentProgramLink |+|
+                        LucumaPrimeStyles.Disabled.when_(currentProg)
+                    )
+              List(
+                MenuItem.SubMenu(
+                  label = "Recent Progs",
+                  icon = Icons.ListRadio
+                )(x*)
+              )
+
           val firstItems =
             MenuItem.Item(
               label = "About Explore",
@@ -113,8 +155,8 @@ object TopBar:
                      icon = Icons.ListCheck,
                      command = isProgramsOpen.setState(IsProgramOpen(true))
                    )
-                 )
-               else List.empty)
+                 ) ::: recentProgramsItem
+               else recentProgramsItem)
 
           val lastCommonItems = List(
             MenuItem.Separator.some,

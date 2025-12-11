@@ -1586,6 +1586,22 @@ svg.fa-check.explore-success-icon {
   .p-menuitem-icon {
     width: 1.2rem;
   }
+
+  .recent-program-link .p-menuitem-content {
+    width: 100%;
+  }
+
+  .recent-program-link a.p-menuitem-link {
+    width: 100%;
+
+    .p-menuitem-text {
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
+    }
+  }
 }
 
 .group-edit-tile {

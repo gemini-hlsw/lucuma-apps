@@ -48,13 +48,10 @@ case class GlobalPreferences(
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
-    println(s"opened $pid")
     GlobalPreferences.lastOpenPrograms
       .modify(pids =>
-        val k = (pid :: pids.filterNot(_ === pid))
+        (pid :: pids.filterNot(_ === pid))
           .take(GlobalPreferences.MaxLastOpenPrograms)
-        println(k)
-        k
       )(this)
 
 object GlobalPreferences:

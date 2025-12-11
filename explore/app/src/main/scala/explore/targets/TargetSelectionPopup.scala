@@ -39,6 +39,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.reusability
 import lucuma.ui.syntax.all.given
 import org.typelevel.log4cats.Logger
+import lucuma.ui.primereact.LucumaPrimeStyles
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
@@ -299,7 +300,7 @@ object TargetSelectionPopup:
                     s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
 
                 React.Fragment.withKey(source.name)(
-                  <.div(ExploreStyles.SmallHeader, header),
+                  <.div(LucumaPrimeStyles.SmallHeader, header),
                   <.div(ExploreStyles.TargetSearchResults)(
                     TargetSelectionTable(
                       source,
