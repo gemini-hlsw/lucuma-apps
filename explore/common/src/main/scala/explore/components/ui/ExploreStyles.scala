@@ -14,6 +14,8 @@ object ExploreStyles:
   val HideReusability   = Css("hide-reusability")
   val TopMenu           = Css("explore-top-menu")
   val RecentProgramLink = Css("recent-program-link")
+  val RecentProgramId   = Css("recent-program-id")
+  val RecentProgramName = Css("recent-program-name")
   val GlobalErrorDialog = Css("explore-global-error-dialog")
 
   val Tile: Css                        = Css("explore-tile")

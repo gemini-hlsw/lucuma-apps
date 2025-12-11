@@ -74,12 +74,12 @@ object PreferencesCacheController
 
     val userPrefs = GlobalUserPreferences.loadPreferences[IO](props.userId)
 
-    for
+    for {
       g    <- grids
       p    <- userPrefs
       _    <- setLogLevel(p)
       prefs = UserPreferences(g, p, Map.empty)
-    yield (prefs, fs2.Stream.empty)
+    } yield (prefs, fs2.Stream.empty)
 
   override protected val updateStream: PreferencesCacheController => Resource[
     cats.effect.IO,

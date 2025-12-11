@@ -20,7 +20,6 @@ import explore.common.UserPreferencesQueries
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
-import explore.model.reusability.given
 import explore.model.enums.AppTab
 import explore.programs.ProgramsPopup
 import explore.shortcuts.*
@@ -175,31 +174,24 @@ object ExploreLayout:
         // Reset the program cache when the program changes.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
                                   ctx.resetProgramCache(none)
+        // Track recently opened programs and update prefs db
         _                    <- useEffectWithDeps(
-                                  (routingInfo.flatMap(_.optProgramId),
-                                   props.model.userId,
-                                   RootModel.globalPreferences.getOption(props.model.rootModel.get)
-                                  )
+                                  (routingInfo.flatMap(_.optProgramId), props.model.userId)
                                 ):
-                                  case (oPid, oUid, prefs) =>
+                                  case (Some(programId), Some(uid)) =>
                                     import ctx.given
 
-                                    (for {
-                                      programId <- oPid
-                                      uid       <- oUid
-                                      gp        <- prefs
-                                    } yield {
-                                      val act = props.model.rootModel
-                                        .zoom(RootModel.globalPreferences)
-                                        .withOnMod:
-                                          case Some(gp) =>
-                                            UserPreferencesQueries.LastOpenProgramsPreference
-                                              .setPrograms[IO](uid, gp.lastOpenPrograms)
-                                              .runAsync
-                                          case _        => Callback.empty
+                                    val act = props.model.rootModel
+                                      .zoom(RootModel.globalPreferences)
+                                      .withOnMod:
+                                        case Some(gp) =>
+                                          UserPreferencesQueries.LastOpenProgramsPreference
+                                            .setPrograms[IO](uid, gp.lastOpenPrograms)
+                                            .runAsync
+                                        case _        => Callback.empty
 
-                                      act.mod(_.openedProgram(programId))
-                                    }).getOrEmpty
+                                    act.mod(_.openedProgram(programId))
+                                  case _                            => Callback.empty
         // Reset the program cache when there's an error signal.
         _                    <- useEffectStreamResourceOnMount:
                                   ctx.resetProgramCacheTopic.subscribeAwaitUnbounded.map:

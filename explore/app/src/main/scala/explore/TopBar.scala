@@ -73,14 +73,14 @@ object TopBar:
 
   private val component =
     ScalaFnComponent[Props]: props =>
-      for
+      for {
         ctx                     <- useContext(AppContext.ctx)
         isProgramsOpen          <- useState(IsProgramOpen(false))
         isAboutOpen             <- useStateView(IsAboutOpen(false))
         isUserPropertiesOpen    <- useState(IsUserPropertiesOpen(false))
         isReedemInvitationsOpen <- useState(IsReedemInvitationsOpen(false))
         menuRef                 <- usePopupMenuRef
-      yield
+      } yield
         import ctx.given
 
         val user  = props.vault.get.user
@@ -94,7 +94,9 @@ object TopBar:
             .updateLogLevel[IO](user.id, l)
             .runAsync
 
-        val recentPrograms = props.globalPreferences.get.lastOpenPrograms
+        val recentPrograms =
+          val stored = props.globalPreferences.get.lastOpenPrograms
+          props.programId.fold(stored)(pid => pid :: stored.filterNot(_ === pid))
 
         val recentProgramsItem: List[MenuItem] =
           if recentPrograms.isEmpty then List.empty
@@ -110,7 +112,6 @@ object TopBar:
                       n   <- p.name
                     yield n.value
 
-                  val label       = name.fold(programId.show)(n => s"${programId.show}: $n")
                   val currentProg = props.programId.exists(_ === programId)
 
                   MenuItem.Custom(
@@ -121,7 +122,10 @@ object TopBar:
                         e.preventDefaultCB >> e.stopPropagationCB >>
                           (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(currentProg)
                       )
-                    )(<.span(LucumaPrimeStyles.MenuItemText)(label)),
+                    )(
+                      <.span(ExploreStyles.RecentProgramId)(programId.show),
+                      name.map(n => <.span(ExploreStyles.RecentProgramName)(n))
+                    ),
                     clazz = ExploreStyles.RecentProgramLink |+|
                       LucumaPrimeStyles.Disabled.when_(currentProg)
                   )

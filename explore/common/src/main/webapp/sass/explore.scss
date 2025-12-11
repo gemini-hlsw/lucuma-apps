@@ -1587,19 +1587,16 @@ svg.fa-check.explore-success-icon {
     width: 1.2rem;
   }
 
-  .recent-program-link .p-menuitem-content {
-    width: 100%;
-  }
+  // Style for recent programs custom menu items to match regular items
+  .recent-program-link a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    display: block;
+    padding: var(--inline-spacing) var(--content-padding);
 
-  .recent-program-link a.p-menuitem-link {
-    width: 100%;
-
-    .p-menuitem-text {
-      max-width: 250px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      display: block;
+    &:hover {
+      background: var(--highlight-bg);
     }
   }
 }
