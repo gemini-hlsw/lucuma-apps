@@ -77,6 +77,6 @@ trait SequenceTileHelper:
           // catch the latter case.
           refreshSequence.value
     yield LiveSequence(
-      (visits.value, sequenceData.value).tupled,
+      (visits.value.value, sequenceData.value.value).tupled,
       visits.isRunning || sequenceData.isRunning
     )
