@@ -522,6 +522,15 @@ object ObsTabTiles:
           // Blind offsets do not participate in undo/redo
           val blindOffsetUndoSetter = props.observation.model.zoom(Observation.blindOffset)
 
+          // Allow editing tellurics
+          val executedOrCompleted =
+            (props.observation.get.isExecuted && !props.isStaffOrAdmin) ||
+              props.observation.get.isCompleted
+
+          val targetReadonly =
+            executedOrCompleted ||
+              (props.obsIsReadonly && !props.calibrationRole.contains(CalibrationRole.Telluric))
+
           val targetTile =
             ObservationTargetsEditorTile(
               props.vault.userId,
@@ -544,7 +553,7 @@ object ObsTabTiles:
               guideStarSelection,
               props.attachments,
               props.vault.map(_.token),
-              props.obsIsReadonly,
+              targetReadonly,
               allowEditingOngoing = props.isStaffOrAdmin,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
