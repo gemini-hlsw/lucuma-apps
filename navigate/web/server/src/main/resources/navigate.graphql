@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site, TimeSpan from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan, DateInterval from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {
@@ -136,20 +136,6 @@ input ProbeTrackingInput {
     nodAchopB: Boolean!
     nodBchopA: Boolean!
     nodBchopB: Boolean!
-}
-
-type Target {
-  """Target ID"""
-  id: TargetId!
-
-  """Target name."""
-  name: NonEmptyString!
-
-  """Sidereal tracking information, if this is a sidereal target"""
-  sidereal: Sidereal
-
-  """Nonsidereal tracking information, if this is a nonsidereal target"""
-  nonsidereal: Nonsidereal
 }
 
 enum TipTiltSource {
@@ -553,6 +539,7 @@ type Mutation {
     acNdFilter(ndFilter: AcNdFilter!): OperationOutcome!
     acFilter(filter: AcFilter!): OperationOutcome!
     acWindowSize(size: AcWindowInput!): OperationOutcome!
+    refreshEphemerisFiles(dateInterval: DateInterval!): OperationOutcome!
 }
 
 type Subscription {
