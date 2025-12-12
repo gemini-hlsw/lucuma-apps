@@ -52,7 +52,6 @@ import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.TargetWithId
-import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputText
@@ -88,9 +87,7 @@ case class TargetEditor(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   invalidateSequence:  Callback = Callback.empty
-) extends ReactFnProps(TargetEditor.component):
-  private val blindOffsetTargets: Map[Target.Id, BlindOffsetType] =
-    obsAndTargets.get._1.values.flatMap(_.blindOffsetTarget).toMap
+) extends ReactFnProps(TargetEditor.component)
 
 object TargetEditor:
   private type Props = TargetEditor
@@ -205,7 +202,7 @@ object TargetEditor:
           props.searching.get.exists(
             _ === props.obsTargets.focus.id
           ) || cloning.get || props.readonly || readonlyForStatuses.get ||
-            !props.targetWithId.get.isEditable(props.programType, props.blindOffsetTargets)
+            props.targetWithId.get.isSystemManagedIn(props.programType)
 
         val oid: Option[Observation.Id] = props.obsInfo.current.map(_.head)
 
