@@ -15,9 +15,8 @@ import lucuma.ui.LucumaIcons
 import lucuma.ui.syntax.all.given
 
 case class GuideStarTooltip(
-  analysis:            AgsAnalysis,
-  reachableAtOtherPAs: Boolean,
-  exampleUsableAngle:  Option[Angle]
+  analysis: AgsAnalysis,
+  usableAt: Option[Angle]
 ) extends ReactFnProps(GuideStarTooltip)
 
 object GuideStarTooltip
@@ -54,15 +53,12 @@ object GuideStarTooltip
             )
           )
         case other                      =>
-          val message =
-            if p.reachableAtOtherPAs then
-              p.exampleUsableAngle match
-                case Some(angle) =>
-                  val degrees = angle.toDoubleDegrees
-                  f"Reachable at other position angles (e.g., $degrees%.0f°)"
-                case None        =>
-                  "Reachable at other position angles"
-            else other.message(false)
+          val message = p.usableAt match
+            case Some(angle) =>
+              val degrees = angle.toDoubleDegrees
+              f"Reachable at other position angles (e.g., $degrees%.0f°)"
+            case None        =>
+              other.message(false)
           <.div(VisualizationStyles.AgsTooltip)(
             <.div(id),
             <.div(message)

@@ -9,11 +9,11 @@ import lucuma.ags.AgsAnalysis
 import lucuma.core.math.Angle
 
 case class CandidateAnalysis(
-  analysis:            AgsAnalysis,
-  reachableAtOtherPAs: Boolean,
-  exampleUsableAngle:  Option[Angle]
-) derives Eq
+  analysis: AgsAnalysis,
+  usableAt: Option[Angle]
+) derives Eq:
+  def reachableAtOtherPAs: Boolean = usableAt.isDefined
 
 object CandidateAnalysis:
   def fromAnalysis(analysis: AgsAnalysis): CandidateAnalysis =
-    CandidateAnalysis(analysis, reachableAtOtherPAs = false, exampleUsableAngle = None)
+    CandidateAnalysis(analysis, usableAt = None)

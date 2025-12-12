@@ -66,23 +66,21 @@ object SVGTarget {
   ) extends SVGTarget derives Eq
 
   case class GuideStarCandidateTarget(
-    coordinates:         Coordinates,
-    css:                 Css,
-    radius:              Double,
-    analysis:            AgsAnalysis,
-    reachableAtOtherPAs: Boolean,
-    exampleUsableAngle:  Option[Angle],
-    title:               Option[String] = None
+    coordinates: Coordinates,
+    css:         Css,
+    radius:      Double,
+    analysis:    AgsAnalysis,
+    usableAt:    Option[Angle],
+    title:       Option[String] = None
   ) extends SVGTarget derives Eq
 
   case class GuideStarTarget(
-    coordinates:         Coordinates,
-    css:                 Css,
-    radius:              Double,
-    analysis:            AgsAnalysis,
-    reachableAtOtherPAs: Boolean,
-    exampleUsableAngle:  Option[Angle],
-    title:               Option[String] = None
+    coordinates: Coordinates,
+    css:         Css,
+    radius:      Double,
+    analysis:    AgsAnalysis,
+    usableAt:    Option[Angle],
+    title:       Option[String] = None
   ) extends SVGTarget derives Eq
 
   case class OffsetIndicator(
@@ -156,17 +154,17 @@ object TargetsOverlay
 
       // 24 October 2024 - scalafix failing to parse with fewer braces
       val guideStarTooltips: List[VdomNode] = p.targets.collect {
-        case SVGTarget.GuideStarCandidateTarget(_, _, _, ags, reachable, exampleAngle, _) =>
+        case SVGTarget.GuideStarCandidateTarget(_, _, _, ags, usableAt, _) =>
           Tooltip(clazz = VisualizationStyles.VisualizationTooltip,
                   targetCss = ags.target.selector
           )(
-            GuideStarTooltip(ags, reachable, exampleAngle)
+            GuideStarTooltip(ags, usableAt)
           )
-        case SVGTarget.GuideStarTarget(_, _, _, ags, reachable, exampleAngle, _)          =>
+        case SVGTarget.GuideStarTarget(_, _, _, ags, usableAt, _)          =>
           Tooltip(clazz = VisualizationStyles.VisualizationTooltip,
                   targetCss = ags.target.selector
           )(
-            GuideStarTooltip(ags, reachable, exampleAngle)
+            GuideStarTooltip(ags, usableAt)
           )
       }
 
@@ -219,13 +217,13 @@ object TargetsOverlay
 
                 CrossTarget(offP, offQ, maxP, sidePx, pointCss, selectedCss, selected, title)
 
-              case (offP, offQ, SVGTarget.GuideStarCandidateTarget(_, css, radius, ags, reachable, _, _)) =>
+              case (offP, offQ, SVGTarget.GuideStarCandidateTarget(_, css, radius, ags, usableAt, _)) =>
                 val pointCss = VisualizationStyles.GuideStarCandidateTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, reachable)
+                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, usableAt.isDefined)
 
-              case (offP, offQ, SVGTarget.GuideStarTarget(_, css, radius, ags, reachable, _, _)) =>
+              case (offP, offQ, SVGTarget.GuideStarTarget(_, css, radius, ags, usableAt, _)) =>
                 val pointCss = VisualizationStyles.GuideStarTarget |+| css
-                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, reachable)
+                GuideStarTarget(offP, offQ, maxP, radius, pointCss, ags, usableAt.isDefined)
 
               case (offP, offQ, SVGTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
                 val pointCss = VisualizationStyles.OffsetPosition |+| css

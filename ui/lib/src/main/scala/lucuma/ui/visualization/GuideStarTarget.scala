@@ -19,7 +19,7 @@ case class GuideStarTarget(
   radius:              Double,
   pointCss:            Css,
   analysis:            AgsAnalysis,
-  reachableAtOtherPAs: Boolean
+  reachableAtOtherPAs: Boolean  // derived from usableAt.isDefined
 ) extends ReactFnProps(GuideStarTarget)
 
 object GuideStarTarget

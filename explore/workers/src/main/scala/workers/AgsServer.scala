@@ -120,11 +120,10 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
     val nonUsable = constrainedResults.filterNot(_.isUsable)
 
     val usableCandidates = usable.map(a =>
-      CandidateAnalysis(a, reachableAtOtherPAs = false, exampleUsableAngle = None)
+      CandidateAnalysis(a, usableAt = None)
     )
     val nonUsableCandidates = nonUsable.map { a =>
-      val exampleAngle = usableAngleByTarget.get(a.target.id)
-      CandidateAnalysis(a, reachableAtOtherPAs = exampleAngle.isDefined, exampleUsableAngle = exampleAngle)
+      CandidateAnalysis(a, usableAt = usableAngleByTarget.get(a.target.id))
     }
 
     usableCandidates ++ nonUsableCandidates

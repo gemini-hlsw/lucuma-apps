@@ -297,7 +297,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                // Only usable analyses can be selected
                                resultsPot.value.value.toOption.foldMap: results =>
                                  val usableResults = results.collect {
-                                   case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _, _) => c
+                                   case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _) => c
                                  }
                                  val newGss        =
                                    n.fold(AgsSelection(usableResults.headOption.tupleLeft(0))):
@@ -415,7 +415,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          // set the selected index to the first usable entry
                                          _ <-
                                            val usableResults = r.map(_.collect {
-                                             case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _, _) => c
+                                             case CandidateAnalysis(c @ AgsAnalysis.Usable(target = _), _) => c
                                            })
                                            val index         = 0.some.filter(_ => usableResults.exists(_.nonEmpty))
                                            val selectedGS    = index.flatMap(i => usableResults.flatMap(_.lift(i)))

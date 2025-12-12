@@ -146,7 +146,7 @@ object AladinContainer extends AladinCommon {
 
     def guideTargetSVG(coords: Coordinates): SVGTarget =
       if (selectedGS.forall(_.target.id === candidate.analysis.target.id)) {
-        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), candidate.analysis, candidate.reachableAtOtherPAs, candidate.exampleUsableAngle)
+        SVGTarget.GuideStarTarget(coords, candidateCss, calcSize(GuideStarSize), candidate.analysis, candidate.usableAt)
       } else {
         val css  =
           candidateCss |+| candidatesVisibility |+|
@@ -154,7 +154,7 @@ object AladinContainer extends AladinCommon {
         val size =
           if (isCrowded) calcSize(GuideStarCrowdedSize)
           else calcSize(GuideStarCandidateSize)
-        SVGTarget.GuideStarCandidateTarget(coords, css, size, candidate.analysis, candidate.reachableAtOtherPAs, candidate.exampleUsableAngle)
+        SVGTarget.GuideStarCandidateTarget(coords, css, size, candidate.analysis, candidate.usableAt)
       }
 
     if (isCrowded) {
