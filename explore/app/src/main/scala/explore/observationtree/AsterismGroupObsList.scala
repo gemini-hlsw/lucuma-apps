@@ -37,6 +37,7 @@ import explore.undo.*
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -74,6 +75,8 @@ case class AsterismGroupObsList(
 ) extends ReactFnProps[AsterismGroupObsList](AsterismGroupObsList.component)
     with ViewCommon:
   private val programSummaries: View[ProgramSummaries] = undoCtx.model
+
+  private val programType: Option[ProgramType] = programSummaries.get.programType
 
   private val observations: UndoSetter[ObservationList] =
     undoCtx.zoom(ProgramSummaries.observations)
@@ -119,8 +122,17 @@ case class AsterismGroupObsList(
       case LocalClipboard.CopiedTargets(targets)           => targetsText(targets.idSet.toSortedSet).some
       case LocalClipboard.CopiedObservations(observations) => observationsText(observations).some
 
-  private val selectedDisabled: Boolean =
-    selectedIdsOpt.isEmpty
+  private val isDisabledSelected: Boolean =
+    (selectedIdsOpt.flatMap(_.left.toOption), programType).tupled.fold(false):
+      (targetIds, programType) =>
+        targetIds.idSet.exists: targetId =>
+          programSummaries.get.targets
+            .get(targetId)
+            .exists: targetWithId =>
+              targetWithId.isReadonlyForProgramType(programType)
+
+  private val copyDisabled: Boolean =
+    selectedIdsOpt.isEmpty || isDisabledSelected
 
   private val pasteDisabled: Boolean =
     readonly ||
@@ -129,18 +141,19 @@ case class AsterismGroupObsList(
 
   private val (deleteDisabled, deleteTooltip): (Boolean, Option[String]) =
     selectedIdsOpt
-      .map(
+      .map:
         _.fold(
           targetIds =>
             if (targetsHaveExecutedObs(targetIds))
               (true, " - Cannot delete targets with executed observations.".some)
+            else if (isDisabledSelected)
+              (true, " - Cannot delete system-managed targets.".some)
             else (false, none),
           obsIds =>
             if (hasExecutedObs(obsIds))
               (true, " - Cannot delete executed observations.".some)
             else (false, none)
         )
-      )
       .getOrElse((true, none))
 
   private val pasteIntoText: Option[String] =
@@ -593,7 +606,7 @@ object AsterismGroupObsList:
             ActionButtons(
               ActionButtons.ButtonProps(
                 props.copyCallback,
-                disabled = props.selectedDisabled,
+                disabled = props.copyDisabled,
                 tooltipExtra = props.selectedText
               ),
               ActionButtons.ButtonProps(

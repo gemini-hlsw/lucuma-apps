@@ -13,6 +13,7 @@ import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
@@ -47,10 +48,11 @@ case class ProgramSummaries(
   calculatedValueOrphans: CalculatedValueOrphanMap = Map.empty
 ) derives Eq:
   lazy val proposalStatus: Option[ProposalStatus] = optProgramDetails.map(_.proposalStatus)
-  lazy val proposalIsSubmitted                    = proposalStatus.exists(_ === ProposalStatus.Submitted)
-  lazy val proposalIsAccepted                     = proposalStatus.exists(_ === ProposalStatus.Accepted)
-  lazy val proposalIsNotAccepted                  = proposalStatus.exists(_ === ProposalStatus.NotAccepted)
-  lazy val programIsReadonly                      = proposalIsSubmitted || proposalIsNotAccepted
+  lazy val proposalIsSubmitted: Boolean           = proposalStatus.exists(_ === ProposalStatus.Submitted)
+  lazy val proposalIsAccepted: Boolean            = proposalStatus.exists(_ === ProposalStatus.Accepted)
+  lazy val proposalIsNotAccepted: Boolean         = proposalStatus.exists(_ === ProposalStatus.NotAccepted)
+  lazy val programIsReadonly: Boolean             = proposalIsSubmitted || proposalIsNotAccepted
+  lazy val programType: Option[ProgramType]       = optProgramDetails.map(_.programType)
 
   lazy val proposalId: Option[ProposalReference] =
     optProgramDetails.flatMap(_.proposal.flatMap(_.reference))

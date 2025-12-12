@@ -35,11 +35,13 @@ import explore.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
 import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
@@ -66,6 +68,7 @@ import java.time.Instant
 
 case class TargetEditor(
   programId:           Program.Id,
+  programType:         ProgramType,
   userId:              User.Id,
   targetWithId:        UndoSetter[TargetWithId],
   obsAndTargets:       UndoSetter[ObservationsAndTargets],
@@ -196,11 +199,11 @@ object TargetEditor:
         import ctx.given
 
         val disabled: Boolean =
-          props.searching.get.exists(
-            _ === props.obsTargets.focus.id
-          ) || cloning.get || props.readonly || readonlyForStatuses.get
+          props.searching.get.exists(_ === props.obsTargets.focus.id) ||
+            cloning.get || props.readonly || readonlyForStatuses.get ||
+            props.targetWithId.get.isReadonlyForProgramType(props.programType)
 
-        val oid = props.obsInfo.current.map(_.head)
+        val oid: Option[Observation.Id] = props.obsInfo.current.map(_.head)
 
         val catalogInfo: Option[CatalogInfo] =
           Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
@@ -428,10 +431,11 @@ object TargetEditor:
         }
 
         React.Fragment(
-          TargetCloneSelector(props.obsInfo,
-                              obsToCloneTo,
-                              readonlyForStatuses,
-                              props.allowEditingOngoing
+          TargetCloneSelector(
+            props.obsInfo,
+            obsToCloneTo,
+            readonlyForStatuses,
+            props.allowEditingOngoing
           ),
           <.div(ExploreStyles.TargetGrid)(
             // If there is a ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
@@ -457,7 +461,7 @@ object TargetEditor:
                 nameView,
                 allView.set,
                 props.searching,
-                props.readonly || readonlyForStatuses.get,
+                disabled,
                 cloning.get,
                 disableSearch = props.targetWithId.get.disposition === TargetDisposition.BlindOffset
               ),

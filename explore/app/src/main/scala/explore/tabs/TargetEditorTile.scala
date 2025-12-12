@@ -21,6 +21,7 @@ import explore.targeteditor.TargetEditor
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -30,6 +31,7 @@ object TargetEditorTile:
 
   def noObsTargetEditorTile(
     programId:          Program.Id,
+    programType:        ProgramType,
     userId:             Option[User.Id],
     target:             UndoSetter[TargetWithId],
     obsAndTargets:      UndoSetter[ObservationsAndTargets],
@@ -58,6 +60,7 @@ object TargetEditorTile:
           userId.map(uid =>
             TargetEditor(
               programId,
+              programType,
               uid,
               target,
               obsAndTargets,

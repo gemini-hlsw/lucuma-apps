@@ -88,6 +88,7 @@ import scala.collection.immutable.SortedSet
 case class ObsTabTiles(
   vault:            Option[UserVault],
   programId:        Program.Id,
+  programType:      ProgramType,
   modes:            ScienceModes,
   backButton:       VdomNode,
   observation:      UndoSetter[Observation],
@@ -527,6 +528,7 @@ object ObsTabTiles:
               props.vault.userId,
               ObsTabTileIds.TargetId.id,
               props.programId,
+              props.programType,
               ObsIdSet.one(props.obsId),
               props.obsAndTargets,
               obsTimeView,
