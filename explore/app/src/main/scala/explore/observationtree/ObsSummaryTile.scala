@@ -3,6 +3,7 @@
 
 package explore.observationtree
 
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
@@ -11,6 +12,7 @@ import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ColumnSelectorInTitle
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
+import explore.events.HorizonsMessage
 import explore.model.AppContext
 import explore.model.Constants
 import explore.model.Group
@@ -18,10 +20,12 @@ import explore.model.GroupList
 import explore.model.ObsSummaryTabTileIds
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.TargetList
 import explore.model.enums.TableId
 import explore.model.reusability.given
+import explore.model.syntax.all.*
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -43,7 +47,9 @@ import lucuma.ui.table.hooks.*
 import monocle.Focus
 import monocle.Iso
 import monocle.Lens
+import workers.WorkerClient
 
+import java.time.Instant
 import java.util.UUID
 
 object ObsSummaryTile extends ObsSummaryColumns:
@@ -113,34 +119,52 @@ object ObsSummaryTile extends ObsSummaryColumns:
             case g if g.isTelluricCalibration => obsGroup(g.parentId, groups)
             case g                            => g.some
 
+      def getObsRows(
+        obs:      Observation,
+        targets:  List[TargetWithId],
+        obsGroup: Option[Group],
+        now:      Instant // used if there is no observation time
+      )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Expandable[ObsSummaryRow]] =
+        val optObsTargets = ObservationTargets.fromTargets(targets)
+        optObsTargets
+          .fold(ObservationRegionsOrCoordinatesAt.Empty.pure[IO]): obsTargets =>
+            ObservationRegionsOrCoordinatesAt.build(
+              obsTargets,
+              obs.observationTime.getOrElse(now).some,
+              obs.observingMode.map(_.siteFor)
+            )
+          .map: regionsOrCoords =>
+            val headTarget = regionsOrCoords.science.headOption.map(_._1)
+            Expandable(
+              ObsRow(obs, headTarget, optObsTargets, regionsOrCoords.asterism, obsGroup),
+              if regionsOrCoords.science.size > 1 then
+                regionsOrCoords.science.map: (twid, rorcs) =>
+                  Expandable(
+                    ExpandedTargetRow(obs, twid, rorcs)
+                  )
+              else Nil
+            )
+
       for {
         ctx     <- useContext(AppContext.ctx)
-        cols    <- useMemo(()):                           // Columns
+        cols    <- useMemo(()): // Columns
                      _ => columns(props.programId, ctx)
-        rows    <- useMemo(
+        rowsPot <- useEffectKeepResultWithDeps(
                      (props.observations.get.values.toList, props.allTargets, props.groups.get)
                    ): (obsList, allTargets, groups) =>
-                     obsList
-                       .filterNot(_.isCalibration)
-                       .map: obs =>
-                         obs -> obs.scienceTargetIds.toList
-                           .map(id => allTargets.get(id))
-                           .flattenOption
-                       .map: (obs, targets) =>
-                         val asterism = ObservationTargets.fromTargets(targets)
-                         Expandable(
-                           ObsRow(
-                             obs,
-                             targets.headOption,
-                             asterism,
-                             obsGroup(obs.groupId, groups)
-                           ),
-                           // Only expand if there are multiple targets
-                           if (targets.sizeIs > 1)
-                             targets.map: target =>
-                               Expandable(ExpandedTargetRow(obs, target, obs.observationTime))
-                           else Nil
-                         )
+                     import ctx.given
+
+                     IO.now()
+                       .flatMap: now =>
+                         obsList
+                           .filterNot(_.isCalibration)
+                           .traverse: obs =>
+                             val targets = obs.scienceTargetIds.toList
+                               .map(id => allTargets.get(id))
+                               .flattenOption
+                             val group   = obsGroup(obs.groupId, groups)
+                             getObsRows(obs, targets, group, now)
+
         table   <- useReactTableWithStateStore:
                      import ctx.given
 
@@ -163,7 +187,7 @@ object ObsSummaryTile extends ObsSummaryColumns:
                      TableOptionsWithStateStore(
                        TableOptions(
                          cols,
-                         rows,
+                         rowsPot.value.map(_.toOption.orEmpty),
                          enableExpanding = true,
                          getSubRows = (row, _) => row.subRows,
                          getRowId = (row, _, _) =>
@@ -204,7 +228,7 @@ object ObsSummaryTile extends ObsSummaryColumns:
         compact = Compact.Very,
         innerContainerMod = ^.width := "100%",
         containerRef = resizer.ref,
-        hoverableRows = rows.nonEmpty,
+        hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
         tableMod =
           ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
         headerCellMod = _ => ExploreStyles.StickyHeader,

@@ -15,7 +15,7 @@ import lucuma.horizons.HorizonsClient
 import lucuma.horizons.HorizonsEphemeris
 
 object HorizonsRequests:
-  val cacheVersion = CacheVersion(1)
+  val cacheVersion = CacheVersion(2)
 
   private case class Error(message: String, isCacheable: Boolean)
 

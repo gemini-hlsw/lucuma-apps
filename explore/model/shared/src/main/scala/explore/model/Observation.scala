@@ -301,7 +301,7 @@ case class Observation(
     if (newConfigurationRequestApplies(request.configuration)) updateToPending(request.id)
     else this
 
-  // TODO: Remove as part of support of non-sidereals.
+  // TODO: NONSIDEREAL: Remove as part of support of non-sidereals.
   // For now, ignore non-sidereals....
   def asterismTracking(allTargets: TargetList): Option[Tracking] =
     NonEmptyList

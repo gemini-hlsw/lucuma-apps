@@ -124,6 +124,7 @@ object reusability:
   given Reusability[Tracking]                           = Reusability.byEq
   given Reusability[ObservationTargets]                 = Reusability.byEq
   given Reusability[ObservationTargetsCoordinatesAt]    = Reusability.byEq
+  given Reusability[RegionOrTrackingMap]                = Reusability.byEq
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq
   given Reusability[PFVisibility]                       = Reusability.byEq

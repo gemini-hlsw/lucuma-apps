@@ -8,34 +8,32 @@ import explore.Icons
 import explore.model.Group
 import explore.model.Observation
 import explore.model.ObservationTargets
-import explore.model.deprecatedExtensions.*
-import explore.model.extensions.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.math.Coordinates
 import lucuma.core.math.Region
 import lucuma.core.model.Target
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithId
-
-import java.time.Instant
 
 // 24 October 2024 - scalafix failing to parse with fewer braces
 // Helper ADT for table rows type
 enum ObsSummaryRow:
   val obs: Observation
+  val coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]]
 
   case ExpandedTargetRow(
-    obs:          Observation,
-    targetWithId: TargetWithId,
-    vizTime:      Option[Instant]
+    obs:            Observation,
+    targetWithId:   TargetWithId,
+    coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]]
   ) extends ObsSummaryRow
 
   case ObsRow(
-    obs:          Observation,
-    targetWithId: Option[TargetWithId],
-    asterism:     Option[ObservationTargets],
-    group:        Option[Group]
+    obs:            Observation,
+    targetWithId:   Option[TargetWithId],
+    asterism:       Option[ObservationTargets],
+    coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]],
+    group:          Option[Group]
   ) extends ObsSummaryRow
 
   def fold[A](f: ExpandedTargetRow => A, g: ObsRow => A): A =
@@ -49,13 +47,6 @@ enum ObsSummaryRow:
     _ => none
   )
 
-  // TODO: Update to handle ToOs/Regions
-  def coordsOrRegion: Option[Either[Coordinates, Region]] =
-    this match
-      case r: ExpandedTargetRow => targetCoordsOrRegion(r.targetWithId, r.vizTime)
-      case r: ObsRow            =>
-        asterismCoordsOrRegion(r.asterism, r.obs.observationTime)
-
   def iconWithTooltip: Option[VdomNode] = fold(
     e => e.targetWithId.target.iconWithTooltip.some,
     o =>
@@ -64,15 +55,3 @@ enum ObsSummaryRow:
         else a.focus.target.iconWithTooltip
       )
   )
-
-  private def targetCoordsOrRegion(
-    twid:    TargetWithId,
-    vizTime: Option[Instant]
-  ): Option[Either[Coordinates, Region]] =
-    vizTime.fold(twid.target)(twid.target.atDeprecated).baseCoordsOrRegion
-
-  private def asterismCoordsOrRegion(
-    asterism: Option[ObservationTargets],
-    vizTime:  Option[Instant]
-  ): Option[Either[Coordinates, Region]] =
-    asterism.flatMap(_.coordsOrRegionAt(vizTime))

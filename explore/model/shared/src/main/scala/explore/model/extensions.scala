@@ -13,33 +13,28 @@ import lucuma.core.math.Declination
 import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
 import lucuma.core.model.Target
-import lucuma.core.model.Tracking
 import lucuma.schemas.model.CoordinatesAt
-import lucuma.schemas.model.TargetWithId
-import lucuma.schemas.model.syntax.*
 import org.typelevel.log4cats.Logger
 
-import java.time.Instant
 import scala.annotation.targetName
 
 object extensions:
 
+  // TODO: HONSIDEREAL: Is this being used?
   extension (target: Target)
     def baseCoordsOrRegion: Option[Either[Coordinates, Region]] = target match
       case Target.Sidereal(_, tracking, _, _) => tracking.baseCoordinates.asLeft.some
       case Target.Nonsidereal(_, _, _)        => none
       case Target.Opportunity(_, region, _)   => region.asRight.some
 
-  extension (targetWithId: TargetWithId)
-    def at(
-      at:        Instant,
-      trackings: Map[Target.Id, Tracking]
-    ): Either[String, CoordinatesAt] =
-      trackings
-        .get(targetWithId.id)
-        .fold(s"No tracking information for target ${targetWithId.id}".asLeft): tr =>
-          tr.coordinatesAt(at)
+    def regionOrBaseCoords: Option[Either[Region, CoordinatesAt]] = target match
+      case Target.Sidereal(_, tracking, _, _) =>
+        CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.some
+      case Target.Nonsidereal(_, _, _)        => none
+      case Target.Opportunity(_, region, _)   => region.asLeft.some
 
+  // TODO: NONSIDEREAL: Moved to explore.syntax.ui until comment below, can remove when all
+  // the necessary target tables are updated.
   extension [A](arc: Arc[A])
     def format(f: A => String): String = arc match
       case Arc.Empty()             => "Empty"
@@ -69,6 +64,7 @@ object extensions:
       case None                               => ""
       case Some(Left(dec))                    => f(dec)
       case Some(Right(arc: Arc[Declination])) => arc.format(f)
+  // TODO: End of moved to explore.syntax.ui
 
   extension [F[_]: {MonadThrow, Logger}, A](f: F[A])
     def logErrors(msg: String = ""): F[A] =

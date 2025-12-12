@@ -29,7 +29,7 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
     ) = colDef(id, r => accessor(getConfiguration(r)), ColumnNames(id))
 
     List(
-      // TODO: Update first two columns to handle Regions
+      // TODO: NONSIDEREAL: Update first two columns to handle Regions
       configurationColumn(RAColumnId, _.target.swap.toOption.map(_.ra))
         .withCell(c => c.value.map(MathValidators.truncatedRA.reverseGet).orEmpty)
         .withSize(110.toPx)
