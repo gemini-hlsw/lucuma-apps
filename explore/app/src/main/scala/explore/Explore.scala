@@ -20,7 +20,6 @@ import explore.events.*
 import explore.events.ItcMessage.given
 import explore.model.AppConfig
 import explore.model.AppContext
-import explore.model.ExploreLocalPreferences
 import explore.model.Focused
 import explore.model.RootModel
 import explore.model.RoutingInfo
@@ -42,6 +41,7 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
@@ -56,8 +56,8 @@ object ExploreMain {
   def runIOApp(configJson: String): Unit =
     run(configJson).unsafeRunAndForget()
 
-  def setupLogger[F[_]: Sync](p: ExploreLocalPreferences): F[Logger[F]] = Sync[F].delay {
-    LogLevelLogger.setLevel(p.level)
+  def setupLogger[F[_]: Sync]: F[Logger[F]] = Sync[F].delay {
+    LogLevelLogger.setLevel(LogLevelLogger.Level.INFO)
     LogLevelLogger.createForRoot[F]
   }
 
@@ -67,8 +67,8 @@ object ExploreMain {
       .withCache(dom.RequestCache.`no-store`)
       .create
 
-  def initialModel(vault: Option[UserVault], pref: ExploreLocalPreferences): RootModel =
-    RootModel(vault = vault, localPreferences = pref)
+  def initialModel(vault: Option[UserVault]): RootModel =
+    RootModel(vault = vault)
 
   def setupDOM[F[_]: Sync]: F[Element] = Sync[F].delay(
     Option(dom.document.getElementById("root")).getOrElse {
@@ -108,18 +108,17 @@ object ExploreMain {
           case Some(Some(error)) =>
             toastCtx.showToast(error, Message.Severity.Error, true)
           case Some(None)        =>
-            Logger[IO].info("ITC client initialized")
+            info"ITC client initialized"
           case None              =>
-            Logger[IO].warn("ITC initialization: no response from worker")
+            warn"ITC initialization: no response from worker"
         .start
         .void
 
     def buildPage(
-      dispatcher:       Dispatcher[IO],
-      workerClients:    WorkerClients[IO],
-      localPreferences: ExploreLocalPreferences,
-      bc:               BroadcastChannel[IO, ExploreEvent],
-      configJson:       String
+      dispatcher:    Dispatcher[IO],
+      workerClients: WorkerClients[IO],
+      bc:            BroadcastChannel[IO, ExploreEvent],
+      configJson:    String
     )(using Logger[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
@@ -140,8 +139,8 @@ object ExploreMain {
         host                 <- IO(dom.window.location.host)
         appConfig             = AppConfig.parseConf(host, configJson)
         httpClient            = buildNonCachingHttpClient[IO]
-        _                    <- Logger[IO].info(s"Git Commit: [${utils.gitHash.getOrElse("NONE")}]")
-        _                    <- Logger[IO].info(s"Config: ${appConfig.show}")
+        _                    <- info"Git Commit: [${utils.gitHash.getOrElse("NONE")}]"
+        _                    <- info"Config: ${appConfig.show}"
         toastRef             <- Deferred[IO, ToastRef]
         ctx                  <- AppContext.from[IO](
                                   appConfig,
@@ -159,7 +158,7 @@ object ExploreMain {
       } yield ReactDOMClient
         .createRoot(container)
         .render:
-          RootComponent(ctx, router, initialModel(vault, localPreferences))
+          RootComponent(ctx, router, initialModel(vault))
 
     }.void
       .handleErrorWith { t =>
@@ -169,11 +168,10 @@ object ExploreMain {
 
     (for {
       dispatcher       <- Dispatcher.parallel[IO]
-      prefs            <- Resource.eval(ExploreLocalPreferences.loadPreferences[IO])
-      given Logger[IO] <- Resource.eval(setupLogger[IO](prefs))
+      given Logger[IO] <- Resource.eval(setupLogger[IO])
       workerClients    <- WorkerClients.build[IO](dispatcher)
       bc               <- BroadcastChannel[IO, ExploreEvent]("explore")
-      _                <- Resource.eval(buildPage(dispatcher, workerClients, prefs, bc, configJson))
+      _                <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
     } yield ()).useForever
   }
 

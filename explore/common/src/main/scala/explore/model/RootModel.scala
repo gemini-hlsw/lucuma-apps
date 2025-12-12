@@ -28,7 +28,6 @@ import scala.collection.immutable.HashSet
 
 case class RootModel(
   vault:                Option[UserVault],
-  localPreferences:     ExploreLocalPreferences,
   expandedIds:          ExpandedIds = ExpandedIds(),
   searchingTarget:      Set[Target.Id] = HashSet.empty,
   userSelectionMessage: Option[NonEmptyString] = none,
@@ -42,7 +41,6 @@ case class RootModel(
 
 object RootModel:
   val vault                = Focus[RootModel](_.vault)
-  val localPreferences     = Focus[RootModel](_.localPreferences)
   val expandedIds          = Focus[RootModel](_.expandedIds)
   val searchingTarget      = Focus[RootModel](_.searchingTarget)
   val userSelectionMessage = Focus[RootModel](_.userSelectionMessage)
@@ -51,6 +49,11 @@ object RootModel:
   val cfps                 = Focus[RootModel](_.cfps)
   val undoStacks           = Focus[RootModel](_.undoStacks)
   val otherUndoStacks      = Focus[RootModel](_.otherUndoStacks)
+
+  val globalPreferences: Optional[RootModel, GlobalPreferences] =
+    RootModel.userPreferences
+      .andThen(Pot.readyPrism)
+      .andThen(UserPreferences.globalPreferences)
 
   val userUserId = Lens[User, User.Id](_.id)(s =>
     a =>

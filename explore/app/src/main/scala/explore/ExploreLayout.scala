@@ -16,6 +16,7 @@ import explore.cache.ModesCacheController
 import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
+import explore.common.UserPreferencesQueries
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
@@ -140,7 +141,7 @@ object ExploreLayout:
 
   private val component =
     ScalaFnComponent[Props]: props =>
-      for
+      for {
         helpCtx              <- useContext(HelpContext.ctx)
         ctx                  <- useContext(AppContext.ctx)
         _                    <- useEffectWithDeps(
@@ -173,12 +174,30 @@ object ExploreLayout:
         // Reset the program cache when the program changes.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
                                   ctx.resetProgramCache(none)
+        // Track recently opened programs and update prefs db
+        _                    <- useEffectWithDeps(
+                                  (routingInfo.flatMap(_.optProgramId), props.model.userId)
+                                ):
+                                  case (Some(programId), Some(uid)) =>
+                                    import ctx.given
+
+                                    val act = props.model.rootModel
+                                      .zoom(RootModel.globalPreferences)
+                                      .withOnMod:
+                                        case Some(gp) =>
+                                          UserPreferencesQueries.LastOpenProgramsPreference
+                                            .setPrograms[IO](uid, gp.lastOpenPrograms)
+                                            .runAsync
+                                        case _        => Callback.empty
+
+                                    act.mod(_.openedProgram(programId))
+                                  case _                            => Callback.empty
         // Reset the program cache when there's an error signal.
         _                    <- useEffectStreamResourceOnMount:
                                   ctx.resetProgramCacheTopic.subscribeAwaitUnbounded.map:
                                     _.unNone.evalMap: err =>
                                       programError.setStateAsync(err.some)
-      yield
+      } yield
         import ctx.given
 
         val view: View[RootModel] = props.model.rootModel
@@ -338,7 +357,6 @@ object ExploreLayout:
                               routingInfo.optProgramId,
                               programSummaries.toOption
                                 .flatMap(_.programOrProposalReference),
-                              view.zoom(RootModel.localPreferences).get,
                               view.zoom(RootModel.undoStacks),
                               props.model.programSummaries.throttlerView
                                 .zoom(Pot.readyPrism)
