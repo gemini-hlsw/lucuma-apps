@@ -63,8 +63,7 @@ object TargetSummaryTile:
     focusedTargetId:    Option[Target.Id],
     focusTargetId:      Option[Target.Id] => Callback,
     readonly:           Boolean,
-    backButton:         VdomNode,
-    isStaff:            Boolean
+    backButton:         VdomNode
   ): Tile[TargetSummaryTile.TileState] =
     Tile(
       ObsTabTileIds.TargetSummaryId.id,
@@ -95,8 +94,7 @@ object TargetSummaryTile:
           tileState.zoom(TileState.columnVisibility),
           focusTargetId,
           tileState.get.toggleAllRowsSelected,
-          tileState.zoom(TileState.disposition),
-          isStaff
+          tileState.zoom(TileState.disposition)
         )
     )
 
@@ -135,8 +133,7 @@ object TargetSummaryTile:
     columnVisibility:      View[ColumnVisibility],
     focusTargetId:         Option[Target.Id] => Callback,
     toggleAllRowsSelected: Option[Boolean => Callback],
-    disposition:           View[TargetDisposition],
-    isStaff:               Boolean
+    disposition:           View[TargetDisposition]
   ) extends ReactFnProps(Title.component)
 
   private object Title {
@@ -191,12 +188,10 @@ object TargetSummaryTile:
                     onClick = props.focusTargetId(none) >> toggleAllRowsSelected(false)
                   ).compact
                 ),
-              if (props.isStaff)
-                EnumDropdownView(
-                  id = "target-disposition".refined,
-                  value = props.disposition
-                )
-              else EmptyVdom
+              EnumDropdownView(
+                id = "target-disposition".refined,
+                value = props.disposition
+              )
             )
           ),
           ColumnSelectorInTitle(ColNames.toList, props.columnVisibility)

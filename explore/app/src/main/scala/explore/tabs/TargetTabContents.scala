@@ -70,7 +70,6 @@ case class TargetTabContents(
   searching:        View[Set[Target.Id]],
   expandedIds:      View[SortedSet[ObsIdSet]],
   authToken:        Option[NonEmptyString],
-  isStaff:          Boolean,
   readonly:         Boolean
 ) extends ReactFnProps(TargetTabContents.component):
   private val programType: Option[ProgramType] = programSummaries.get.programType
@@ -320,8 +319,7 @@ object TargetTabContents extends TwoPanels:
               props.focusedSummaryTargetId,
               focusTargetId,
               props.readonly,
-              backButton,
-              props.isStaff
+              backButton
             )
 
           val plotData: PlotData =
