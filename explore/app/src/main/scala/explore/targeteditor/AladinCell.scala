@@ -215,7 +215,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  else
                                    // get it for the full observing night for visualization purposes.
                                    getTrackingForObservingNightMap(targets.allTargets.toList, s, at)
-      obsTargetsCoordsPot <- useMemo((props.obsTargets, props.obsTime, trackingMapResult.value)):
+      obsTargetsCoordsPot <- useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
                                (targets, at, trPot) =>
                                  trPot.map(tr =>
                                    // Don't need coords for TOO observations, either
@@ -535,13 +535,13 @@ object AladinCell extends ModelOptics with AladinCommon:
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,
-                    candidates.value.nonEmpty
+                    candidates.value.value.nonEmpty
                   )
                 )
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot(
+        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot(
           (etr, eco) =>
             (etr, eco).tupled.fold(
               err => Message(severity = Message.Severity.Error, text = err),

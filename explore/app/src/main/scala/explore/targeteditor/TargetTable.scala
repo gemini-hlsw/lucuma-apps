@@ -175,7 +175,7 @@ object TargetTable extends AsterismModifier:
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
         rows    <- useMemo(
-                     (props.obsTargets, props.obsAndTargets.get._2, vizTime.value)
+                     (props.obsTargets, props.obsAndTargets.get._2, vizTime.value.value)
                    ):
                      case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
                        asterism.map(_.atDeprecated(vizTime)).toList
