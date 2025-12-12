@@ -2774,7 +2774,9 @@ input SetObservationWorkflowStateInput {
   state: ObservationWorkflowState!
 }
 
-"""Nonsidereal target parameters.  Supply `keyType` and `des` or `key`"""
+"""
+Nonsidereal target parameters.  Supply (`keyType` and `des`) or (`key`)
+"""
 input NonsiderealInput {
   """
   The keyType field must be either specified or skipped altogether.  It cannot be unset with a null value.
