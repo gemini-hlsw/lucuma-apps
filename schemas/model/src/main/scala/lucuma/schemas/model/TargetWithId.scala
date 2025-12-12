@@ -32,7 +32,7 @@ case class TargetWithId(
 ) extends TargetWithMetadata derives Eq:
   def toOptId: TargetWithOptId = TargetWithOptId(id.some, target, disposition, calibrationRole)
 
-  def isSystemManagedIn(programType: ProgramType): Boolean =
+  def isReadonlyForProgramType(programType: ProgramType): Boolean =
     disposition match
       case TargetDisposition.Calibration => programType =!= ProgramType.System
       case _                             => false

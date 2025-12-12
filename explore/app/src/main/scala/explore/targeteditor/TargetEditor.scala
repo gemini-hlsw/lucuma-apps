@@ -199,10 +199,9 @@ object TargetEditor:
         import ctx.given
 
         val disabled: Boolean =
-          props.searching.get.exists(
-            _ === props.obsTargets.focus.id
-          ) || cloning.get || props.readonly || readonlyForStatuses.get ||
-            props.targetWithId.get.isSystemManagedIn(props.programType)
+          props.searching.get.exists(_ === props.obsTargets.focus.id) ||
+            cloning.get || props.readonly || readonlyForStatuses.get ||
+            props.targetWithId.get.isReadonlyForProgramType(props.programType)
 
         val oid: Option[Observation.Id] = props.obsInfo.current.map(_.head)
 

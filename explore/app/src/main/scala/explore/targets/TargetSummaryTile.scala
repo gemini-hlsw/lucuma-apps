@@ -157,22 +157,26 @@ object TargetSummaryTile:
             React.Fragment(
               if (props.readonly) EmptyVdom
               else
-                HelpIcon("target/main/target-import.md".refined),
-              <.label(
-                PrimeStyles.Component |+| PrimeStyles.Button |+|
-                  PrimeStyles.ButtonSmall |+| LucumaPrimeStyles.Compact |+| ExploreStyles.FileUpload,
-                ^.htmlFor := "target-import",
-                Icons.FileArrowUp.withClass(PrimeStyles.ButtonIcon |+| PrimeStyles.ButtonIconLeft),
-                "Import"
-              ),
-              <.input(
-                ^.tpe     := "file",
-                ^.onChange ==> onTextChange,
-                ^.id      := "target-import",
-                ^.name    := "file",
-                ^.accept  := ".csv"
-              ),
-              TargetImportPopup(props.programId, props.filesToImport),
+                React.Fragment(
+                  HelpIcon("target/main/target-import.md".refined),
+                  <.label(
+                    PrimeStyles.Component |+| PrimeStyles.Button |+|
+                      PrimeStyles.ButtonSmall |+| LucumaPrimeStyles.Compact |+| ExploreStyles.FileUpload,
+                    ^.htmlFor := "target-import"
+                  )(
+                    Icons.FileArrowUp
+                      .withClass(PrimeStyles.ButtonIcon |+| PrimeStyles.ButtonIconLeft),
+                    "Import"
+                  ),
+                  <.input(
+                    ^.tpe    := "file",
+                    ^.onChange ==> onTextChange,
+                    ^.id     := "target-import",
+                    ^.name   := "file",
+                    ^.accept := ".csv"
+                  ),
+                  TargetImportPopup(props.programId, props.filesToImport)
+                ),
               props.toggleAllRowsSelected.map: toggleAllRowsSelected =>
                 React.Fragment(
                   Button(

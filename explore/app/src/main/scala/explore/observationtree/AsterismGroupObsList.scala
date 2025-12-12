@@ -129,7 +129,7 @@ case class AsterismGroupObsList(
           programSummaries.get.targets
             .get(targetId)
             .exists: targetWithId =>
-              targetWithId.isSystemManagedIn(programType)
+              targetWithId.isReadonlyForProgramType(programType)
 
   private val copyDisabled: Boolean =
     selectedIdsOpt.isEmpty || isDisabledSelected

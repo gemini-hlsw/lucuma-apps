@@ -122,11 +122,6 @@ case class Observation(
       explicitAmpGain.foldMap(GmosCcdMode.ampGain.replace)
     ).reduce(_ >>> _)
 
-  lazy val blindOffsetTarget: Option[(Target.Id, BlindOffsetType)] =
-    blindOffset.blindOffsetTargetId
-      .map(id => (id, blindOffset.blindOffsetType))
-      .filter(_ => blindOffset.useBlindOffset)
-
   // Computes mode parameters locally, for quick invocation of ITC.
   def toModeOverride(targets: TargetList): Option[InstrumentOverrides] =
     observingMode.flatMap:

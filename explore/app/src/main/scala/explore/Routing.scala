@@ -99,7 +99,7 @@ object Routing:
                 model.rootModel.zoom(RootModel.searchingTarget),
                 model.rootModel.zoom(RootModel.expandedIds.andThen(ExpandedIds.asterismObsIds)),
                 model.rootModel.get.vault.map(_.token),
-                model.rootModel.get.vault.exists(_.isStaff)
+                programSummaries.get.programIsReadonly || model.userIsReadonlyCoi
               )
             .toOption
       .orEmpty
