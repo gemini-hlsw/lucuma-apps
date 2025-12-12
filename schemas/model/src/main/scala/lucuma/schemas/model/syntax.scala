@@ -39,7 +39,7 @@ object syntax:
     def coordinatesAt(at: Instant): Either[String, CoordinatesAt] =
       isValidAt(at).flatMap(isValid =>
         if (isValid)
-          // this shouldn't fail...
+          // we checked validity, so this shouldn't fail...
           tracking.at(at).map(CoordinatesAt(at, _)).toRight(s"Unable to get coordinates at $at")
         else s"Time $at out of range for tracking".asLeft
       )

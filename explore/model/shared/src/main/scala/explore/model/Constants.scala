@@ -40,7 +40,7 @@ trait Constants:
 
   val SignalToNoiseAtLabel = "λ for S/N"
 
-  // TODO: Replace with real proxy
+  // TODO: NONSIDEREAL: Replace with real proxy
   val HorizonsProxy: Uri = uri"http://localhost:8010/proxy/api/horizons.api"
 
 object Constants extends Constants

@@ -16,7 +16,6 @@ import explore.model.Group
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.AppTab
-import explore.model.extensions.*
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*

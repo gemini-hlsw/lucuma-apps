@@ -141,8 +141,6 @@ object AladinCell extends ModelOptics with AladinCommon:
   // only compare candidates by id
   private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
 
-  private given Reusability[Map[Target.Id, Tracking]] = Reusability.by(_.toList)
-
   private val fovLens: Lens[AsterismVisualOptions, Fov] =
     Lens[AsterismVisualOptions, Fov](t => Fov(t.fovRA, t.fovDec)): f =>
       t => t.copy(fovRA = f.x, fovDec = f.y)
@@ -211,19 +209,24 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  import ctx.given
                                  // if there is a TOO, don't bother getting tracking
                                  if (targets.hasTargetOfOpportunity)
-                                   Map.empty.asRight.pure
+                                   RegionOrTrackingMap.Empty.asRight.pure
                                  else
                                    // get it for the full observing night for visualization purposes.
-                                   getTrackingForObservingNightMap(targets.allTargets.toList, s, at)
-      obsTargetsCoordsPot <- useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
-                               (targets, at, trPot) =>
-                                 trPot.map(tr =>
-                                   // Don't need coords for TOO observations, either
-                                   if (targets.hasTargetOfOpportunity)
-                                     ObservationTargetsCoordinatesAt.emptyAt(at)
-                                   else
-                                     tr.flatMap(map => targets.coordinatesAt(at, map))
-                                 )
+                                   getRegionOrTrackingMapForObservingNight(
+                                     targets.allTargets.toList,
+                                     s,
+                                     at
+                                   )
+      obsTargetsCoordsPot <-
+        useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
+          (targets, at, trPot) =>
+            trPot.map(tr =>
+              // Don't need coords for TOO observations, either
+              if (targets.hasTargetOfOpportunity)
+                ObservationTargetsCoordinatesAt.emptyAt(at)
+              else
+                tr.flatMap(map => ObservationTargetsCoordinatesAt(at, targets, map))
+            )
       // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates          <-
         useEffectResultWithDeps(
@@ -487,7 +490,7 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       def renderAladin(
         opts:        AsterismVisualOptions,
-        trackingMap: Map[Target.Id, Tracking],
+        trackingMap: RegionOrTrackingMap,
         obsCoords:   ObservationTargetsCoordinatesAt
       ): VdomNode =
         AladinContainer(

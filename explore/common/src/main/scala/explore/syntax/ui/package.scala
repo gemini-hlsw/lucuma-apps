@@ -24,8 +24,13 @@ import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ArcType
 import lucuma.core.enums.Partner
 import lucuma.core.enums.TimeAccountingCategory
+import lucuma.core.math.Arc
+import lucuma.core.math.Declination
+import lucuma.core.math.Region
+import lucuma.core.math.RightAscension
 import lucuma.core.model.EphemerisKey
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
@@ -38,6 +43,7 @@ import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.pot.*
 import org.http4s.Uri
@@ -46,6 +52,7 @@ import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.Window
 import org.typelevel.log4cats.Logger
 
+import scala.annotation.targetName
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
@@ -242,3 +249,33 @@ extension (ek: EphemerisKey)
   def horizonsKey: Option[EphemerisKey.Horizons] = ek match
     case k: EphemerisKey.Horizons => k.some
     case _                        => none
+
+extension [A](arc: Arc[A])
+  def format(f: A => String): String = arc match
+    case Arc.Empty()             => "Empty"
+    case Arc.Full()              => "Full"
+    case Arc.Partial(start, end) => s"${f(start)} - ${f(end)}"
+  def toArcType: ArcType             = arc match
+    case Arc.Empty()       => ArcType.Empty
+    case Arc.Full()        => ArcType.Full
+    case Arc.Partial(_, _) => ArcType.Partial
+
+extension (regionOrCoords: Option[Either[String, Either[Region, CoordinatesAt]]])
+  def ra: Option[Either[String, Either[Arc[RightAscension], RightAscension]]] =
+    regionOrCoords.map(_.map(_.bimap(_.raArc, _.coordinates.ra)))
+  def dec: Option[Either[String, Either[Arc[Declination], Declination]]]      =
+    regionOrCoords.map(_.map(_.bimap(_.decArc, _.coordinates.dec)))
+
+extension (arcOrRa: Option[Either[String, Either[Arc[RightAscension], RightAscension]]])
+  @targetName("formatArcOrRa")
+  def format(f: RightAscension => String): VdomNode =
+    arcOrRa.fold(EmptyVdom)(
+      _.fold(err => <.span("<Error>").withTooltip(content = err), _.fold(_.format(f), f(_)))
+    )
+
+extension (arcOrDec: Option[Either[String, Either[Arc[Declination], Declination]]])
+  @targetName("formatArcOrDec")
+  def format(f: Declination => String): VdomNode =
+    arcOrDec.fold(EmptyVdom)(
+      _.fold(err => <.span("<Error>").withTooltip(content = err), _.fold(_.format(f), f(_)))
+    )
