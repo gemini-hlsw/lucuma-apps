@@ -16,6 +16,8 @@ import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
 import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
+import explore.model.RegionOrTrackingMap
+import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -57,7 +59,7 @@ import scala.scalajs.LinkingInfo
 case class AladinContainer(
   obsTargets:             ObservationTargets,
   obsTime:                Instant,
-  obsTimeTracking:        Map[Target.Id, Tracking],
+  obsTimeTracking:        RegionOrTrackingMap,
   obsTimeCoords:          ObservationTargetsCoordinatesAt,
   vizConf:                Option[ConfigurationForVisualization],
   globalPreferences:      GlobalPreferences,
@@ -101,8 +103,6 @@ object AladinContainer extends AladinCommon {
     Reusability.by(u => (u.target, u.posAngle))
 
   private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
-
-  private given Reusability[Map[Target.Id, Tracking]] = Reusability.by(_.toList)
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -207,7 +207,7 @@ object AladinContainer extends AladinCommon {
 
   private def targetCoordinates(
     obsTargets:  ObservationTargets,
-    trackingMap: Map[Target.Id, Tracking],
+    trackingMap: RegionOrTrackingMap,
     obsCoords:   ObservationTargetsCoordinatesAt,
     surveyEpoch: Epoch
   ): List[TargetCoords] =
@@ -217,7 +217,9 @@ object AladinContainer extends AladinCommon {
           .forTarget(t.id)
           .map: coords =>
             val linePoints: List[Coordinates] = trackingMap
-              .get(t.id)
+              .trackingFor(t.id)
+              // we should have tracking for all targets here
+              .toOption
               .foldMap: tracking =>
                 tracking match
                   case EphemerisTracking(toMap) =>
