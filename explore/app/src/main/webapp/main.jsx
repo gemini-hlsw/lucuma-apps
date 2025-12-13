@@ -52,7 +52,8 @@ fetch('/environments.conf.json').then((response) => {
       // Setup the Service Worker, after Explore is started
       if (
         'serviceWorker' in navigator &&
-        !/local.gemini.edu/.test(window.location)
+        !/local.gemini.edu/.test(window.location) &&
+        !/local.lucuma.xyz/.test(window.location)
       ) {
         ExplorePWA.runServiceWorker();
       }
