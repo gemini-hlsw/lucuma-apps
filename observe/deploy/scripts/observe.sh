@@ -23,6 +23,10 @@ case "$option" in
         echo "Stoping Observe"
         $SCRIPTS_DIR/stop.sh
         ;;
+    restart)
+        echo "Restarting Observe"
+        $SCRIPTS_DIR/restart.sh
+        ;;
     update)
         echo "Updating Observe"
         $SCRIPTS_DIR/update.sh
@@ -32,6 +36,7 @@ case "$option" in
         echo "Possible argument options are 'start', 'stop', 'update' and 'help'"
         echo -e "  ${bold}start${normal}: Will start Observe containers"
         echo -e "  ${bold}stop${normal}: Will stop Observe containers"
+        echo -e "  ${bold}restart${normal}: Will restart Observe containers"
         echo -e "  ${bold}update${normal}: Will stop and remove Observe containers, pull the latest version for each docker image and recreate the containers"
         echo -e "  ${bold}help${normal}: Will show this message"
         ;;
