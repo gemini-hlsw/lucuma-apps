@@ -258,7 +258,7 @@ object TargetColumns:
         with CommonSidereal(colDef):
       def icon(t: TargetWithMetadata): VdomNode =
         if (t.disposition === TargetDisposition.BlindOffset)
-          Icons.EyeSlash.fixedWidthWithTooltip("Blind Offset")
+          Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
         else t.target.iconWithTooltip
       val BaseColumns: List[colDef.Type]        =
         List(
