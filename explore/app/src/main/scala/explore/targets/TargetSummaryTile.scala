@@ -21,6 +21,7 @@ import explore.model.Observation
 import explore.model.TargetList
 import explore.model.enums.AppTab
 import explore.model.enums.TableId
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.TargetDisposition
@@ -263,7 +264,7 @@ object TargetSummaryTile:
             )
         ).sortable
       ) ++
-        TargetColumns.Builder.ForProgram(ColDef).AllColumns ++
+        TargetColumns.Builder.ForProgram(ColDef, _.target.regionOrBaseCoords).AllColumns ++
         List(
           column(
             CountColumnId,
