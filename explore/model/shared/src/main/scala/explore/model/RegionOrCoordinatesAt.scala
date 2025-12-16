@@ -5,6 +5,7 @@ package explore.model
 
 import cats.syntax.all.*
 import lucuma.core.math.Region
+import lucuma.core.model.Target
 import lucuma.schemas.model.CoordinatesAt
 
 type RegionOrCoordinatesAt = Either[Region, CoordinatesAt]
@@ -17,3 +18,8 @@ object ErrorOrRegionOrCoords:
 
   def fromCoordinatesAt(coords: CoordinatesAt): ErrorOrRegionOrCoords =
     coords.asRight.asRight
+
+  def siderealBaseCoords(sidereal: Target.Sidereal): ErrorOrRegionOrCoords =
+    fromCoordinatesAt(
+      CoordinatesAt(sidereal.tracking.epoch.toInstant, sidereal.tracking.baseCoordinates)
+    )

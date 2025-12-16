@@ -14,6 +14,7 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.Constants
+import explore.model.ErrorOrRegionOrCoords
 import explore.model.display.given
 import explore.model.syntax.all.*
 import explore.optics.GetAdjust
@@ -29,6 +30,7 @@ import lucuma.core.enums.Partner
 import lucuma.core.enums.TimeAccountingCategory
 import lucuma.core.math.Arc
 import lucuma.core.math.Declination
+import lucuma.core.math.Epoch
 import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
 import lucuma.core.model.EphemerisKey
@@ -208,28 +210,35 @@ extension (icon: FontAwesomeIcon)
     <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
 
 extension (target: Target)
-  def iconWithTooltip: VdomNode         =
+  def iconWithTooltip: VdomNode                         =
     target match
       case Target.Sidereal(_, _, _, _) => Icons.Star.fixedWidthWithTooltip("Sidereal")
       case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
       case Target.Opportunity(_, _, _) =>
         Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")
-  def catalogId: Option[String]         = target match
+  def catalogId: Option[String]                         = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.id.value)
     case ns: Target.Nonsidereal => ns.ephemerisKey.des.some
     case o: Target.Opportunity  => none
-  def catalogName: Option[String]       = target match
+  def catalogName: Option[String]                       = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.catalog.shortName)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
     case o: Target.Opportunity  => none
-  def catalogUriString: Option[String]  = target match
+  def catalogUriString: Option[String]                  = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.objectUrl.toString)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogUri.map(_.toString)
     case o: Target.Opportunity  => none
-  def catalogObjectType: Option[String] = target match
+  def catalogObjectType: Option[String]                 = target match
     case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
     case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.shortName.some
     case o: Target.Opportunity  => none
+  def regionOrBaseCoords: Option[ErrorOrRegionOrCoords] = target match
+    // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
+    // below, but there wll never be an error. Non-sidereals return a none.
+    case Target.Sidereal(_, tracking, _, _) =>
+      CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.asRight.some
+    case Target.Nonsidereal(_, _, _)        => none
+    case Target.Opportunity(_, region, _)   => region.asLeft.asRight.some
 
 extension (ek: EphemerisKey)
   def catalogName: String                        = ek match
@@ -265,6 +274,10 @@ extension (regionOrCoords: Option[Either[String, Either[Region, CoordinatesAt]]]
     regionOrCoords.map(_.map(_.bimap(_.raArc, _.coordinates.ra)))
   def dec: Option[Either[String, Either[Arc[Declination], Declination]]]      =
     regionOrCoords.map(_.map(_.bimap(_.decArc, _.coordinates.dec)))
+  def epoch: Option[Epoch]                                                    =
+    regionOrCoords
+      .flatMap(_.toOption.flatMap(_.toOption))
+      .flatMap(ca => Epoch.Julian.fromInstant(ca.at))
 
 extension (arcOrRa: Option[Either[String, Either[Arc[RightAscension], RightAscension]]])
   @targetName("formatArcOrRa")

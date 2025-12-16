@@ -8,8 +8,8 @@ import crystal.react.hooks.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.display.given
-import explore.model.extensions.*
 import explore.model.reusability.given
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ArcType

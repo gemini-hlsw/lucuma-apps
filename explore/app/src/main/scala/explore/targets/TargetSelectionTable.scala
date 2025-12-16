@@ -5,6 +5,7 @@ package explore.targets
 
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CatalogName
@@ -71,7 +72,7 @@ object TargetSelectionTable:
           case TargetSource.FromCatalog(CatalogName.Simbad, client) =>
             TargetColumns.Builder.ForSimbad(ColDef).AllColumns
           case _                                                    =>
-            TargetColumns.Builder.ForProgram(ColDef).AllColumns
+            TargetColumns.Builder.ForProgram(ColDef, _.target.regionOrBaseCoords).AllColumns
       )
     }
     // rows
