@@ -22,9 +22,11 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
+import lucuma.schemas.model.GmosImagingVariant
 
 trait ArbObservingMode {
   import ArbExposureTimeMode.given
+  import ArbGmosImagingVariant.given
   import ArbOffset.given
   import ArbWavelength.given
   import ArbWavelengthDither.given
@@ -93,7 +95,7 @@ trait ArbObservingMode {
 
   given Arbitrary[ObservingMode.GmosNorthLongSlit] =
     Arbitrary[ObservingMode.GmosNorthLongSlit](
-      for {
+      for
         initialGrating            <- arbitrary[GmosNorthGrating]
         grating                   <- arbitrary[GmosNorthGrating]
         initialFilter             <- arbitrary[Option[GmosNorthFilter]]
@@ -118,7 +120,7 @@ trait ArbObservingMode {
         explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosNorthLongSlit.Acquisition]
-      } yield ObservingMode.GmosNorthLongSlit(
+      yield ObservingMode.GmosNorthLongSlit(
         initialGrating,
         grating,
         initialFilter,
@@ -148,7 +150,7 @@ trait ArbObservingMode {
 
   given Arbitrary[ObservingMode.GmosSouthLongSlit] =
     Arbitrary[ObservingMode.GmosSouthLongSlit](
-      for {
+      for
         initialGrating            <- arbitrary[GmosSouthGrating]
         grating                   <- arbitrary[GmosSouthGrating]
         initialFilter             <- arbitrary[Option[GmosSouthFilter]]
@@ -173,7 +175,7 @@ trait ArbObservingMode {
         explicitOffsets           <- arbitrary[Option[NonEmptyList[Offset.Q]]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         acquisition               <- arbitrary[ObservingMode.GmosSouthLongSlit.Acquisition]
-      } yield ObservingMode.GmosSouthLongSlit(
+      yield ObservingMode.GmosSouthLongSlit(
         initialGrating,
         grating,
         initialFilter,
@@ -321,26 +323,23 @@ trait ArbObservingMode {
 
   given Arbitrary[ObservingMode.GmosNorthImaging] =
     Arbitrary[ObservingMode.GmosNorthImaging](
-      for {
-        initialFilters              <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
-        filters                     <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
-        defaultMultipleFiltersMode  <- arbitrary[MultipleFiltersMode]
-        explicitMultipleFiltersMode <- arbitrary[Option[MultipleFiltersMode]]
-        defaultBin                  <- arbitrary[GmosBinning]
-        explicitBin                 <- arbitrary[Option[GmosBinning]]
-        defaultAmpReadMode          <- arbitrary[GmosAmpReadMode]
-        explicitAmpReadMode         <- arbitrary[Option[GmosAmpReadMode]]
-        defaultAmpGain              <- arbitrary[GmosAmpGain]
-        explicitAmpGain             <- arbitrary[Option[GmosAmpGain]]
-        defaultRoi                  <- arbitrary[GmosRoi]
-        explicitRoi                 <- arbitrary[Option[GmosRoi]]
-        offsets                     <- arbitrary[List[Offset]]
-      } yield ObservingMode.GmosNorthImaging(
+      for
+        variant             <- arbitrary[GmosImagingVariant]
+        initialFilters      <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
+        filters             <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
+        defaultBin          <- arbitrary[GmosBinning]
+        explicitBin         <- arbitrary[Option[GmosBinning]]
+        defaultAmpReadMode  <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain      <- arbitrary[GmosAmpGain]
+        explicitAmpGain     <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi          <- arbitrary[GmosRoi]
+        explicitRoi         <- arbitrary[Option[GmosRoi]]
+        offsets             <- arbitrary[List[Offset]]
+      yield ObservingMode.GmosNorthImaging(
+        variant,
         initialFilters,
         filters,
-        offsets,
-        defaultMultipleFiltersMode,
-        explicitMultipleFiltersMode,
         defaultBin,
         explicitBin,
         defaultAmpReadMode,
@@ -362,26 +361,23 @@ trait ArbObservingMode {
 
   given Arbitrary[ObservingMode.GmosSouthImaging] =
     Arbitrary[ObservingMode.GmosSouthImaging](
-      for {
-        initialFilters              <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
-        filters                     <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
-        defaultMultipleFiltersMode  <- arbitrary[MultipleFiltersMode]
-        explicitMultipleFiltersMode <- arbitrary[Option[MultipleFiltersMode]]
-        defaultBin                  <- arbitrary[GmosBinning]
-        explicitBin                 <- arbitrary[Option[GmosBinning]]
-        defaultAmpReadMode          <- arbitrary[GmosAmpReadMode]
-        explicitAmpReadMode         <- arbitrary[Option[GmosAmpReadMode]]
-        defaultAmpGain              <- arbitrary[GmosAmpGain]
-        explicitAmpGain             <- arbitrary[Option[GmosAmpGain]]
-        defaultRoi                  <- arbitrary[GmosRoi]
-        explicitRoi                 <- arbitrary[Option[GmosRoi]]
-        offsets                     <- arbitrary[List[Offset]]
-      } yield ObservingMode.GmosSouthImaging(
+      for
+        variant             <- arbitrary[GmosImagingVariant]
+        initialFilters      <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
+        filters             <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
+        defaultBin          <- arbitrary[GmosBinning]
+        explicitBin         <- arbitrary[Option[GmosBinning]]
+        defaultAmpReadMode  <- arbitrary[GmosAmpReadMode]
+        explicitAmpReadMode <- arbitrary[Option[GmosAmpReadMode]]
+        defaultAmpGain      <- arbitrary[GmosAmpGain]
+        explicitAmpGain     <- arbitrary[Option[GmosAmpGain]]
+        defaultRoi          <- arbitrary[GmosRoi]
+        explicitRoi         <- arbitrary[Option[GmosRoi]]
+        offsets             <- arbitrary[List[Offset]]
+      yield ObservingMode.GmosSouthImaging(
+        variant,
         initialFilters,
         filters,
-        offsets,
-        defaultMultipleFiltersMode,
-        explicitMultipleFiltersMode,
         defaultBin,
         explicitBin,
         defaultAmpReadMode,
@@ -478,27 +474,25 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.GmosNorthImaging] =
     Cogen[
-      (NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
-       NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
-       MultipleFiltersMode,
-       Option[MultipleFiltersMode],
-       GmosBinning,
-       Option[GmosBinning],
-       GmosAmpReadMode,
-       Option[GmosAmpReadMode],
-       GmosAmpGain,
-       Option[GmosAmpGain],
-       GmosRoi,
-       Option[GmosRoi],
-       List[Offset]
+      (
+        GmosImagingVariant,
+        NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
+        NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
+        GmosBinning,
+        Option[GmosBinning],
+        GmosAmpReadMode,
+        Option[GmosAmpReadMode],
+        GmosAmpGain,
+        Option[GmosAmpGain],
+        GmosRoi,
+        Option[GmosRoi]
       )
     ]
       .contramap(o =>
         (
+          o.variant,
           o.initialFilters,
           o.filters,
-          o.defaultMultipleFiltersMode,
-          o.explicitMultipleFiltersMode,
           o.defaultBin,
           o.explicitBin,
           o.defaultAmpReadMode,
@@ -506,8 +500,7 @@ trait ArbObservingMode {
           o.defaultAmpGain,
           o.explicitAmpGain,
           o.defaultRoi,
-          o.explicitRoi,
-          o.offsets
+          o.explicitRoi
         )
       )
 
@@ -516,10 +509,9 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.GmosSouthImaging] =
     Cogen[
-      (NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
+      (GmosImagingVariant,
        NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
-       MultipleFiltersMode,
-       Option[MultipleFiltersMode],
+       NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
        GmosBinning,
        Option[GmosBinning],
        GmosAmpReadMode,
@@ -527,16 +519,14 @@ trait ArbObservingMode {
        GmosAmpGain,
        Option[GmosAmpGain],
        GmosRoi,
-       Option[GmosRoi],
-       List[Offset]
+       Option[GmosRoi]
       )
     ]
       .contramap(o =>
         (
+          o.variant,
           o.initialFilters,
           o.filters,
-          o.defaultMultipleFiltersMode,
-          o.explicitMultipleFiltersMode,
           o.defaultBin,
           o.explicitBin,
           o.defaultAmpReadMode,
@@ -544,8 +534,7 @@ trait ArbObservingMode {
           o.defaultAmpGain,
           o.explicitAmpGain,
           o.defaultRoi,
-          o.explicitRoi,
-          o.offsets
+          o.explicitRoi
         )
       )
 

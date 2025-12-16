@@ -180,5 +180,6 @@ trait ObservationDB {
     type TimingWindowInclusion               = enums.TimingWindowInclusion
     type ToOActivation                       = enums.ToOActivation
     type WaterVapor                          = enums.WaterVapor
+    type WavelengthOrder                     = enums.WavelengthOrder
   }
 }
