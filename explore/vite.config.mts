@@ -60,24 +60,25 @@ const imageCache = ({
 });
 
 /**
- * Configuration to cache enum metadata from ODB
- * Cache calls with a 1h TTL but return immediately if stale
- * We also force a cache cleanup when SW gets updates
+ * Factory for StaleWhileRevalidate cache with 1-hour TTL and 1 entry limit
  */
-const enumMetadataCache = (): RuntimeCaching => ({
-  urlPattern: ({ url }) => url.pathname.endsWith('/export/enumMetadata'),
+const metadataCache = (pathEnding: string, cacheName: string): RuntimeCaching => ({
+  urlPattern: ({ url }) => url.pathname.endsWith(pathEnding),
   handler: 'StaleWhileRevalidate',
   options: {
-    cacheName: 'enum-metadata',
+    cacheName,
     expiration: {
       maxAgeSeconds: 60 * 60, // 1 hour
-      maxEntries: 5,
+      maxEntries: 1,
     },
     cacheableResponse: {
       statuses: [200],
     },
   },
 });
+
+const enumMetadataCache = () => metadataCache('/export/enumMetadata', 'enum-metadata');
+const environmentsCache = () => metadataCache('/environments.conf.json', 'environments-config');
 
 /**
  * Check if a file or directory exists
@@ -345,13 +346,14 @@ export default defineConfig(async ({ mode }) => {
         injectRegister: 'inline',
         selfDestroying: false,
         workbox: {
-          globPatterns: ['**/*.{js,css,html,wasm}'],
+          globPatterns: ['**/*.{js,css,html,wasm,woff2,woff,ttf,otf}'],
           globIgnores: ['**/uninstall.html'],
           maximumFileSizeToCacheInBytes: 30000000, // sjs produce large ffiles
           navigateFallbackDenylist: [/\/uninstall\.html$/],
           // Cache aladin images
           runtimeCaching: [
             enumMetadataCache(),
+            environmentsCache(),
             imageCache({
               pattern: /^https:\/\/simbad.u-strasbg.fr\/simbad\/sim-id/,
               name: 'simbad',

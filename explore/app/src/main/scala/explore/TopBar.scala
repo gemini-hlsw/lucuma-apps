@@ -10,6 +10,7 @@ import crystal.react.hooks.*
 import explore.common.UserPreferencesQueries
 import explore.components.ConnectionsStatus
 import explore.components.ui.ExploreStyles
+import explore.events.ExploreEvent
 import explore.model.AppContext
 import explore.model.Focused
 import explore.model.GlobalPreferences
@@ -165,39 +166,53 @@ object TopBar:
               command = ctx.sso.switchToORCID.runAsync
             )
             .some,
-          MenuItem.Item(label = "Logout", icon = Icons.Logout, command = logout.runAsync).some,
-          MenuItem
-            .SubMenu(
-              label = "Log Level",
-              icon = Icons.BarCodeRead,
-              visible = ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
-            )(
-              MenuItem.Item(
-                label = "Info",
-                command = setLogLevel(LogLevel.Info),
-                disabled = level === LogLevel.Info,
-                icon = Icons.Info
-              ),
-              MenuItem.Item(
-                label = "Debug",
-                command = setLogLevel(LogLevel.Debug),
-                disabled = level === LogLevel.Debug,
-                icon = Icons.Bug
-              ),
-              MenuItem.Item(
-                label = "Trace",
-                command = setLogLevel(LogLevel.Trace),
-                disabled = level === LogLevel.Trace,
-                icon = Icons.Pencil
-              )
-            )
-            .some
+          MenuItem.Item(label = "Logout", icon = Icons.Logout, command = logout.runAsync).some
         ).flattenOption
 
         val lastItems =
-          if LinkingInfo.developmentMode
-          then lastCommonItems :+ ThemeSubMenu(props.theme)
-          else lastCommonItems
+          lastCommonItems :::
+            (if LinkingInfo.developmentMode then
+               List(
+                 // Used to test pwa toast via message, you can't see it on the same tab
+                 // Click on one but will be visible in other explore tabs
+                 MenuItem
+                   .Item(
+                     label = "Test PWA Toast",
+                     icon = Icons.CloudArrowUp,
+                     command =
+                       ctx.broadcastChannel.postMessage(ExploreEvent.PWATestToast).runAsyncAndForget
+                   )
+                   .some,
+                 MenuItem
+                   .SubMenu(
+                     label = "Log Level",
+                     icon = Icons.BarCodeRead,
+                     visible =
+                       ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
+                   )(
+                     MenuItem.Item(
+                       label = "Info",
+                       command = setLogLevel(LogLevel.Info),
+                       disabled = level === LogLevel.Info,
+                       icon = Icons.Info
+                     ),
+                     MenuItem.Item(
+                       label = "Debug",
+                       command = setLogLevel(LogLevel.Debug),
+                       disabled = level === LogLevel.Debug,
+                       icon = Icons.Bug
+                     ),
+                     MenuItem.Item(
+                       label = "Trace",
+                       command = setLogLevel(LogLevel.Trace),
+                       disabled = level === LogLevel.Trace,
+                       icon = Icons.Pencil
+                     )
+                   )
+                   .some,
+                 ThemeSubMenu(props.theme).some
+               ).flattenOption
+             else List.empty)
 
         val menuItems =
           if role =!= GuestRole then
