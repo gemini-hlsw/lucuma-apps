@@ -93,7 +93,7 @@ trait CatalogCache extends CatalogIDB:
                     }
                   )
                   .flatMap { candidates =>
-                    debug"Catalog results from remote catalog: ${candidates.length} candidates" *>
+                    info"Catalog results from remote catalog: ${candidates.length} candidates" *>
                       respond(candidates) *>
                       storeGuideStarCandidates(idb, stores, query, candidates)
                         .toF[IO]
@@ -102,7 +102,7 @@ trait CatalogCache extends CatalogIDB:
                   .void
               ) { c =>
                 // Cache hit!
-                debug"Catalog results from cache: ${c.length} candidates" *>
+                info"Catalog results from cache: ${c.length} candidates" *>
                   respond(c)
               }
             )
