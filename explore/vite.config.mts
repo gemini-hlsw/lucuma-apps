@@ -63,7 +63,7 @@ const imageCache = ({
  * Factory for StaleWhileRevalidate cache with 1-hour TTL and 1 entry limit
  */
 const metadataCache = (pathEnding: string, cacheName: string): RuntimeCaching => ({
-  urlPattern: ({ url }) => url.pathname.endsWith(pathEnding),
+  urlPattern: new RegExp(`${pathEnding.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`),
   handler: 'StaleWhileRevalidate',
   options: {
     cacheName,

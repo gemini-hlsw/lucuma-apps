@@ -27,7 +27,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 100
-  private val CacheVersion: Int = 6
+  private val CacheVersion: Int = 7
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -77,7 +77,7 @@ trait CatalogCache extends CatalogIDB:
             brightnessConstraints.some
           )
 
-        debug"requested catalog $query" *>
+        info"requested catalog $query" *>
           // Try to find it in the db
           readGuideStarCandidatesFromCache(idb, stores, query)
             .toF[IO]
