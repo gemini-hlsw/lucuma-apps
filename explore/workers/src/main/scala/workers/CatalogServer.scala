@@ -49,7 +49,7 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
                      logHeaders = false,
                      logBody = false,
                      logAction = Some((msg: String) =>
-                       log.debug(URLDecoder.decode(msg, StandardCharsets.UTF_8))
+                       log.info(URLDecoder.decode(msg, StandardCharsets.UTF_8))
                      )
                    )(rawClient)
       client     = GaiaClient.build(httpClient)
