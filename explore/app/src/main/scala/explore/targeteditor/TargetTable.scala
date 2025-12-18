@@ -5,9 +5,7 @@ package explore.targeteditor
 
 import cats.effect.IO
 import cats.syntax.all.*
-import crystal.Pot
 import crystal.react.*
-import crystal.react.given
 import crystal.react.hooks.*
 import explore.Icons
 import explore.common.UserPreferencesQueries.TableStore
@@ -17,18 +15,20 @@ import explore.model.AppContext
 import explore.model.BlindOffset
 import explore.model.Constants
 import explore.model.ObsIdSet
+import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
-import explore.model.deprecatedExtensions.*
 import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
+import explore.targets.CorrectedProgramTarget
 import explore.targets.TargetColumns
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
@@ -65,6 +65,7 @@ case class TargetTable(
   selectedTarget:   View[Option[Target.Id]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
   vizTime:          Option[Instant],
+  site:             Option[Site],
   fullScreen:       AladinFullScreen,
   readOnly:         Boolean,
   blindOffset:      Option[View[BlindOffset]] = None,
@@ -80,7 +81,7 @@ object TargetTable extends AsterismModifier:
     onAsterismUpdate: OnAsterismUpdateParams => Callback
   )
 
-  private val ColDef = ColumnDef[TargetWithId].WithTableMeta[TableMeta]
+  private val ColDef = ColumnDef[CorrectedProgramTarget].WithTableMeta[TableMeta]
 
   private val DeleteColumnId: ColumnId = ColumnId("delete")
 
@@ -160,7 +161,7 @@ object TargetTable extends AsterismModifier:
                                      deleteTarget(
                                        m.obsIds,
                                        m.obsAndTargets,
-                                       cell.row.original,
+                                       cell.row.original.targetWithId,
                                        m.onAsterismUpdate,
                                        props.blindOffset
                                      )
@@ -171,22 +172,27 @@ object TargetTable extends AsterismModifier:
                          )
                        )
                        .toList ++
-                       TargetColumns.Builder.ForProgram(ColDef).AllColumns
+                       TargetColumns.Builder.ForProgram(ColDef, _.regionOrCoords).AllColumns
         vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                      IO(vizTime.getOrElse(Instant.now()))
-        rows    <- useMemo(
-                     (props.obsTargets, props.obsAndTargets.get._2, vizTime.value.value)
-                   ):
-                     case (Some(asterism), targetInfo, Pot.Ready(vizTime)) =>
-                       asterism.map(_.atDeprecated(vizTime)).toList
-                     case _                                                => Nil
+        rowsPot <-
+          useEffectKeepResultWithDeps((vizTime.value.toOption, props.obsTargets, props.site)):
+            (vt, optObsTargets, site) =>
+              import ctx.given
+
+              optObsTargets.foldMap: obsTargets =>
+                ObservationRegionsOrCoordinatesAt
+                  .build(obsTargets, vt, site)
+                  .map: rorc =>
+                    // we want the blind offset last (sc-7428)
+                    (rorc.science ++ rorc.blindOffset.toList).map(CorrectedProgramTarget.apply)
         table   <- useReactTableWithStateStore:
                      import ctx.given
 
                      TableOptionsWithStateStore(
                        TableOptions(
                          cols,
-                         rows,
+                         rowsPot.value.map(_.toOption.orEmpty),
                          getRowId = (row, _, _) => RowId(row.id.toString),
                          enableSorting = true,
                          enableColumnResizing = true,
@@ -201,7 +207,7 @@ object TargetTable extends AsterismModifier:
       yield
         import ctx.given
 
-        if (rows.isEmpty)
+        if (rowsPot.value.map(_.toOption.orEmpty).isEmpty)
           if (props.readOnly)
             <.div(LucumaStyles.HVCenter)(Constants.NoTargets)
           else

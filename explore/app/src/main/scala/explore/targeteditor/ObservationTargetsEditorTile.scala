@@ -94,10 +94,9 @@ object ObservationTargetsEditorTile:
         (f, cb) =>
           val oldValue = obsTime.get
           val newValue = f(oldValue.getOrElse(Instant.now)).some
-          Callback.log(s"set time from: $oldValue to: $newValue") >>
-            obsTime.set(newValue) >> cb(oldValue.getOrElse(Instant.now),
-                                        newValue.getOrElse(Instant.now)
-            )
+          obsTime.set(newValue) >> cb(oldValue.getOrElse(Instant.now),
+                                      newValue.getOrElse(Instant.now)
+          )
       ).withOnMod(ct =>
         Callback
           .log(s"to the db $ct") *> odbApi.updateVisualizationTime(obsIds.toList, ct.some).runAsync
@@ -216,30 +215,36 @@ object ObservationTargetsEditorTile:
   private object Body
       extends ReactFnComponent[Body](props =>
         for
-          obsEditInfo <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
-                           ObsIdSetEditInfo.fromObservationList
-          _           <- useLayoutEffectWithDeps(obsEditInfo): roei =>
-                           props.obsEditInfo.set(roei.value.some)
-          scienceIds  <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
-                           // all of the selected observations must have the same asterism
-                           obses.get(ids.head).fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
+          obsEditInfo  <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
+                            ObsIdSetEditInfo.fromObservationList
+          _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
+                            props.obsEditInfo.set(roei.value.some)
+          observations <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+                            ids.idSet.toList.map(obses.get).flatten
+          scienceIds   <- useMemo(observations): os =>
+                            // all of the selected observations must have the same asterism
+                            os.headOption.fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
+          distinctSite <- useMemo(observations):
+                            _.value.map(_.site) match
+                              case head :: Nil => head
+                              case _           => none
           // Build asterism IDs that include blind offset
-          targetIds   <- useMemo(
-                           (scienceIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
-                         ): (scienceIds, oBlindId) =>
-                           // Include blind offset target in the IDs if present
-                           scienceIds.value ++ oBlindId.toList
-          allTargets  <- useMemo(targetIds): ids =>
-                           ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
-          _           <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
-                           (allTargetIds, focusedTargetId) =>
-                             // If the selected targetId is None, or not in the target list, select the first target (if any).
-                             // Need to replace history here.
-                             focusedTargetId.filter(allTargetIds.contains) match
-                               case None =>
-                                 props.setTarget(allTargetIds.headOption, SetRouteVia.HistoryReplace)
-                               case _    => Callback.empty
-          fullScreen  <- useStateView(AladinFullScreen.Normal)
+          targetIds    <- useMemo(
+                            (scienceIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
+                          ): (scienceIds, oBlindId) =>
+                            // Include blind offset target in the IDs if present
+                            scienceIds.value ++ oBlindId.toList
+          allTargets   <- useMemo(targetIds): ids =>
+                            ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
+          _            <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
+                            (allTargetIds, focusedTargetId) =>
+                              // If the selected targetId is None, or not in the target list, select the first target (if any).
+                              // Need to replace history here.
+                              focusedTargetId.filter(allTargetIds.contains) match
+                                case None =>
+                                  props.setTarget(allTargetIds.headOption, SetRouteVia.HistoryReplace)
+                                case _    => Callback.empty
+          fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -274,6 +279,7 @@ object ObservationTargetsEditorTile:
                   selectedTargetView,
                   props.onAsterismUpdate,
                   props.obsTime,
+                  distinctSite,
                   fullScreen.get,
                   props.readonly || obsEditInfo.allAreExecuted,
                   props.blindOffset,
