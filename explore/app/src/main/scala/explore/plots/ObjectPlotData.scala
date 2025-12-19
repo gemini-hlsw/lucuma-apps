@@ -5,17 +5,19 @@ package explore.plots
 
 import cats.Eq
 import cats.Order
+import cats.data.NonEmptyList
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.deprecatedExtensions.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
+import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.SkyCalcResults
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.util.NewType
+import lucuma.schemas.model.syntax.*
 import lucuma.typed.highcharts.mod.Point
 import lucuma.typed.highcharts.mod.PointOptionsObject
 import lucuma.ui.utils.unzip4
@@ -36,13 +38,18 @@ trait ElevationPointWithAirmass extends Point:
 
 // Can wrap data for a target or an asterism.
 case class ObjectPlotData(
-  name:     NonEmptyString,
-  tracking: Tracking,
-  sites:    List[Site]
+  name:    NonEmptyString,
+  targets: NonEmptyList[Target],
+  sites:   List[Site]
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
 
-  def pointsAtInstant(site: Site, start: Instant, end: Instant): ObjectPlotData.Points =
+  def pointsAtInstant(
+    site:     Site,
+    start:    Instant,
+    end:      Instant,
+    tracking: Tracking
+  ): ObjectPlotData.Points =
     ObjectPlotData.Points:
       SkyCalc.forInterval(
         site,
@@ -53,7 +60,8 @@ case class ObjectPlotData(
         // and could be optimized for sidereals, but it's probably necessary for non-sidereals.
         tracking
           .at(_)
-          .getOrElse(tracking.baseCoordinatesDeprecated)
+          .orElse(tracking.baseCoordinates.toOption)
+          .getOrElse(Coordinates.Zero)
       )
 
 object ObjectPlotData:

@@ -4,6 +4,7 @@
 package explore.syntax.ui
 
 import cats.*
+import cats.data.NonEmptyList
 import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import clue.ResponseException
@@ -15,6 +16,7 @@ import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.Constants
 import explore.model.ErrorOrRegionOrCoords
+import explore.model.RegionOrTracking
 import explore.model.display.given
 import explore.model.syntax.all.*
 import explore.optics.GetAdjust
@@ -36,6 +38,7 @@ import lucuma.core.math.RightAscension
 import lucuma.core.model.EphemerisKey
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.core.util.CalculatedValue
@@ -292,3 +295,7 @@ extension (arcOrDec: Option[Either[String, Either[Arc[Declination], Declination]
     arcOrDec.fold(EmptyVdom)(
       _.fold(err => <.span("<Error>").withTooltip(content = err), _.fold(_.format(f), f(_)))
     )
+
+extension (erots: NonEmptyList[Either[String, RegionOrTracking]])
+  def compositeTracking: Either[String, RegionOrTracking] =
+    erots.sequence.map(_.sequence.map(Tracking.fromNel))

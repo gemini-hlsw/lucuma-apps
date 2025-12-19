@@ -211,8 +211,9 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  if (targets.hasTargetOfOpportunity)
                                    RegionOrTrackingMap.Empty.asRight.pure
                                  else
-                                   // get it for the full observing night for visualization purposes.
-                                   getRegionOrTrackingMapForObservingNight(
+                                   // get it for the full semester for visualization purposes, with
+                                   // high resolution around the obsTime.
+                                   getMixedResolutionRegionOrTrackingMap(
                                      targets.allTargets.toList,
                                      s,
                                      at

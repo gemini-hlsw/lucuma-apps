@@ -4,11 +4,20 @@
 package explore.plots
 
 import cats.Semigroupal
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
+import crystal.react.hooks.*
 import explore.*
+import explore.events.HorizonsMessage
 import explore.highcharts.*
+import explore.model.AppContext
+import explore.model.RegionOrTracking
 import explore.model.enums.TimeDisplay
+import explore.model.reusability.given
+import explore.syntax.ui.*
+import explore.utils.ToastCtx
+import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
@@ -17,12 +26,14 @@ import lucuma.core.math.Angle
 import lucuma.core.math.BoundedInterval
 import lucuma.core.math.skycalc.ImprovedSkyCalc
 import lucuma.core.model.ObservingNight
+import lucuma.core.model.Tracking
 import lucuma.core.model.TwilightBoundedNight
 import lucuma.core.util.Enumerated
 import lucuma.core.util.time.*
 import lucuma.core.util.time.format.GppTimeFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
+import lucuma.react.primereact.Message
 import lucuma.typed.highcharts.highchartsStrings.area
 import lucuma.typed.highcharts.mod as Highcharts
 import lucuma.typed.highcharts.mod.*
@@ -33,12 +44,14 @@ import org.typelevel.cats.time.given
 
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import scala.collection.MapView
 import scala.scalajs.js
+import workers.WorkerClient
 
 import js.JSConverters.*
 
@@ -434,7 +447,53 @@ object NightPlot:
               .asInstanceOf[SeriesOptionsType]
           .toJSArray
 
+  private def trackingForOneObjectPlotData(
+    data: ObjectPlotData,
+    date: LocalDate,
+    site: Site
+  )(using
+    WorkerClient[IO, HorizonsMessage.Request]
+  ): IO[Either[String, RegionOrTracking]] =
+    data.targets
+      .traverse: target =>
+        getRegionOrTrackingForObservingNight(target, site, date) // .compositeTracking
+      .map(_.compositeTracking)
+
+  private def trackingForAllPlotData(
+    data: PlotData,
+    date: LocalDate,
+    site: Site
+  )(using
+    ToastCtx[IO],
+    WorkerClient[IO, HorizonsMessage.Request]
+  ): IO[Map[ObjectPlotData.Id, (ObjectPlotData, Tracking)]] =
+    def showToast(msg: String) =
+      ToastCtx[IO]
+        .showToast(msg, Message.Severity.Error)
+        .as(List.empty[(ObjectPlotData.Id, ObjectPlotData, Tracking)])
+
+    data.value.toList
+      .traverse: (id, objPlotData) =>
+        trackingForOneObjectPlotData(objPlotData, date, site).map(
+          _.map(_.map((id, objPlotData, _)))
+        )
+      .flatMap: list =>
+        list.sequence
+          .fold(
+            _ => showToast("Error getting ephemeris for elevation plot"),
+            _.sequence
+              // ToOs should already be filtered out, but just in case...
+              .fold(_ => showToast("Cannot show plots for Targets of Opportunity"), _.pure[IO])
+          )
+          .map: l =>
+            // .map: l =>
+            l.map: (id, obj, tr) =>
+              (id, (obj, tr))
+            .toMap
+
   private val component = ScalaFnComponent[Props]: props =>
+    given Reusability[Map[ObjectPlotData.Id, (ObjectPlotData, Tracking)]] = Reusability.map
+
     val observingNight =
       ObservingNight.fromSiteAndLocalDate(props.options.get.site, props.options.get.date)
 
@@ -442,11 +501,21 @@ object NightPlot:
     val end: Instant   = props.options.get.maxInstant
 
     for {
+      ctx              <- useContext(AppContext.ctx)
+      tracking         <- useEffectKeepResultWithDeps(
+                            (props.plotData, props.options.get.date, props.options.get.site)
+                          ): (plotData, date, site) =>
+                            import ctx.given
+                            trackingForAllPlotData(plotData, date, site)
       chartAndMoonData <-
-        useMemo((props.options.get.site, props.plotData, start, end)):
-          (site, plotData, start, end) =>
+        useMemo((props.options.get.site, tracking.value.toOption, start, end)):
+          (site, trackingMap, start, end) =>
             val seriesData: MapView[ObjectPlotData.Id, ObjectPlotData.Points] =
-              plotData.value.view.mapValues(_.pointsAtInstant(site, start, end))
+              trackingMap
+                .getOrElse(Map.empty)
+                .view
+                .mapValues: (objPlotData, tracking) =>
+                  objPlotData.pointsAtInstant(site, start, end, tracking)
 
             val chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData] =
               seriesData.mapValues(_.seriesData)

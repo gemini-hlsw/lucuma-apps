@@ -5,13 +5,13 @@ package explore.events
 
 import boopickle.DefaultBasic.*
 import boopickle.Pickler
-import explore.model.boopickle.CommonPicklers
+import explore.model.boopickle.CatalogPicklers
 import lucuma.core.enums.Site
-import lucuma.core.math.Coordinates
 import lucuma.core.model.Semester
+import lucuma.core.model.Tracking
 import workers.WorkerRequest
 
-object PlotMessage extends CommonPicklers {
+object PlotMessage extends CatalogPicklers {
 
   sealed trait Request   extends WorkerRequest
   case object CleanCache extends Request {
@@ -25,17 +25,17 @@ object PlotMessage extends CommonPicklers {
     given Pickler[SemesterPoint] = generatePickler
   }
 
-  case class RequestSemesterSidereal(
+  case class RequestSemester(
     semester: Semester,
     site:     Site,
-    coords:   Coordinates,
+    tracking: Tracking,
     dayRate:  Long
   ) extends Request {
     type ResponseType = SemesterPoint
   }
 
-  private given Pickler[RequestSemesterSidereal] = generatePickler
-  private given Pickler[CleanCache.type]         = generatePickler
+  private given Pickler[RequestSemester] = generatePickler
+  private given Pickler[CleanCache.type] = generatePickler
 
   given Pickler[Request] = generatePickler
 }

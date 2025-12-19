@@ -8,7 +8,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.given
 import cats.syntax.all.given
 import explore.events.PlotMessage
-import explore.model.boopickle.CommonPicklers.given
+import explore.model.boopickle.CatalogPicklers.given
 import lucuma.core.enums.Site
 import lucuma.core.enums.TwilightType
 import lucuma.core.math.BoundedInterval
@@ -18,6 +18,7 @@ import lucuma.core.math.skycalc.SkyCalcResults
 import lucuma.core.math.skycalc.solver.ElevationSolver
 import lucuma.core.math.skycalc.solver.Samples
 import lucuma.core.model.Semester
+import lucuma.core.model.Tracking
 import lucuma.core.model.TwilightBoundedNight
 import lucuma.core.syntax.time.*
 import org.scalajs.dom
@@ -51,7 +52,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
 
     def siderealVisibility(
       skyCalcSamples: Samples[SkyCalcResults]
-    ): Cacheable[IO, (Site, LocalDate, Coordinates), (Instant, Duration)] = {
+    ): Cacheable[IO, (Site, LocalDate, Tracking), (Instant, Duration)] = {
       val targetVisible: BoundedInterval[Instant] => IntervalSeq[Instant] =
         ElevationSolver(MinTargetElevation, Declination.Max).solve(skyCalcSamples)(_)
 
@@ -71,7 +72,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
       )
     }
 
-    def siderealSamples(coords: Coordinates, dayRate: Long): fs2.Stream[IO, (Instant, Duration)] = {
+    def siderealSamples(tracking: Tracking, dayRate: Long): fs2.Stream[IO, (Instant, Duration)] = {
       val skyCalcSamples = Samples
         .atFixedRate(
           BoundedInterval.unsafeOpenUpper(
@@ -79,7 +80,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
             semester.end.atSite(site).toInstant
           ),
           SampleRate
-        )(_ => coords)
+        )(i => tracking.at(i).getOrElse(Coordinates.Zero))
         .toSkyCalResultsAt(site.place)
 
       val visibilityCalc = siderealVisibility(skyCalcSamples)
@@ -94,7 +95,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
         .evalMap { date =>
           cache
             .eval(visibilityCalc)
-            .apply(site, date, coords)
+            .apply(site, date, tracking)
         }
     }
   }
@@ -106,11 +107,11 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
       _     <- cache.evict(CacheRetention).start
     yield invocation =>
       invocation.data match {
-        case PlotMessage.CleanCache                                               =>
+        case PlotMessage.CleanCache                                         =>
           cache.clear *> invocation.respond(())
-        case PlotMessage.RequestSemesterSidereal(semester, site, coords, dayRate) =>
+        case PlotMessage.RequestSemester(semester, site, tracking, dayRate) =>
           SemesterPlotCalc(semester, site, cache)
-            .siderealSamples(coords, dayRate)
+            .siderealSamples(tracking, dayRate)
             .evalMap { case (instant, visibilityDuration) =>
               invocation.respond(
                 PlotMessage.SemesterPoint(instant.toEpochMilli, visibilityDuration.toMillis)

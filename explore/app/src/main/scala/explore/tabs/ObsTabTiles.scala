@@ -63,7 +63,6 @@ import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
-import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
@@ -117,9 +116,8 @@ case class ObsTabTiles(
   val obsAttachmentAssignments: ObsAttachmentAssignmentMap =
     programSummaries.obsAttachmentAssignments
 
-  // TODO: NONSIDEREAL: Remove as part of support non-sidereals
-  val asterismTracking: Option[Tracking] =
-    observation.get.asterismTracking(obsTargets)
+  val scienceTargetsForTracking: Option[NonEmptyList[Target]] =
+    observation.get.scienceTargetsForTracking(obsTargets)
 
   val posAngleConstraint: PosAngleConstraint = observation.get.posAngleConstraint
 
@@ -464,15 +462,14 @@ object ObsTabTiles:
               props.observation.get.calibrationRole
             )
 
-          // TODO: NONSIDEREAL: non-sidereals are currently ignored because Observation.asterismTracking ignores them
           val plotData: Option[PlotData] =
-            props.asterismTracking.map: tracking =>
+            props.scienceTargetsForTracking.map: ts =>
               PlotData:
                 Map(
                   ObjectPlotData.Id(props.obsId.asLeft) ->
                     ObjectPlotData(
                       NonEmptyString.from(props.obsId.toString).getOrElse("Observation".refined),
-                      tracking,
+                      ts,
                       obsConf.configuration.foldMap(conf => List(conf.siteFor))
                     )
                 )

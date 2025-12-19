@@ -39,7 +39,6 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.TimingWindow
-import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.optics.syntax.lens.*
@@ -301,16 +300,16 @@ case class Observation(
     if (newConfigurationRequestApplies(request.configuration)) updateToPending(request.id)
     else this
 
-  // TODO: NONSIDEREAL: Remove as part of support of non-sidereals.
-  // For now, ignore non-sidereals....
-  def asterismTracking(allTargets: TargetList): Option[Tracking] =
-    NonEmptyList
-      .fromList:
-        scienceTargetIds.toList
-          .map(id => allTargets.get(id).map(_.target))
-          .flattenOption
-          .filterNot(t => Target.nonsidereal.getOption(t).isDefined)
-      .flatMap(Tracking.fromAsterism(_))
+  // The targets needed to find a tracking for the asterism. If there are any
+  // ToOs, a None is returned because the asterism can't be tracked.
+  def scienceTargetsForTracking(allTargets: TargetList): Option[NonEmptyList[Target]] =
+    scienceTargetIds.toList
+      .map(id => allTargets.get(id).map(_.target))
+      .flattenOption
+      .traverse:
+        case Target.Opportunity(_, _, _) => none
+        case t                           => t.some
+      .flatMap(NonEmptyList.fromList)
 
   def hasTargetOfOpportunity(allTargets: TargetList): Boolean =
     scienceTargetIds.toList

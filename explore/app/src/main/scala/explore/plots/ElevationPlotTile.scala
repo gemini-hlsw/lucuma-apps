@@ -17,7 +17,6 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ElevationPlotScheduling
 import explore.model.GlobalPreferences
-import explore.model.deprecatedExtensions.*
 import explore.model.display.given
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
@@ -27,7 +26,6 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.TimingWindowInclusion
 import lucuma.core.math.BoundedInterval
-import lucuma.core.math.Coordinates
 import lucuma.core.model.Semester
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.User
@@ -110,8 +108,7 @@ object ElevationPlotTile:
                      ObjectPlotOptions
                        .default(
                          props.site,
-                         props.obsTime,
-                         props.plotData.value.headOption.map(_._2.tracking)
+                         props.obsTime
                        )
                        .copy(
                          range = props.globalPreferences.elevationPlotRange,
@@ -213,15 +210,9 @@ object ElevationPlotTile:
                 )
               case PlotRange.Semester                  =>
                 props.plotData.value.headOption.map { case (_, data) =>
-                  val coords: Coordinates =
-                    data.tracking
-                      .at(semesterView.get.start.atSite(siteView.get).toInstant)
-                      .getOrElse:
-                        data.tracking.baseCoordinatesDeprecated
-
                   SemesterPlot(
                     plotOptions.get,
-                    coords,
+                    data.targets,
                     windowsNetExcludeIntervals
                   )
                 }
