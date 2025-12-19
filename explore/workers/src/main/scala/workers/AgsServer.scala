@@ -11,7 +11,7 @@ import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import org.scalajs.dom
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 import workers.*
 
 import java.time.Duration
@@ -23,7 +23,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 26
+  private val AgsCacheVersion: Int = 27
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
@@ -44,7 +44,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
         )
         .sortUsablePositions
 
-  protected val handler: Logger[IO] ?=> IO[Invocation => IO[Unit]] =
+  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
     for
       self  <- IO(dom.DedicatedWorkerGlobalScope.self)
       cache <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")

@@ -22,7 +22,7 @@ import lucuma.core.model.TwilightBoundedNight
 import lucuma.core.syntax.time.*
 import org.scalajs.dom
 import org.typelevel.cats.time.given
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 import spire.math.extras.interval.IntervalSeq
 
 import java.time.Duration
@@ -99,7 +99,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
     }
   }
 
-  override protected val handler: Logger[IO] ?=> IO[Invocation => IO[Unit]] =
+  override protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
     for
       self  <- IO(dom.DedicatedWorkerGlobalScope.self)
       cache <- Cache.withIDB[IO](self.indexedDB.toOption, "explore-plots")
