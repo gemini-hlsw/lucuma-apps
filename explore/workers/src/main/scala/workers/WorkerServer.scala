@@ -14,11 +14,12 @@ import cats.effect.std.Dispatcher
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import explore.model.boopickle.Boopickle.*
-import log4cats.loglevel.LogLevelLogger
 import org.scalajs.dom
 import org.scalajs.dom.DedicatedWorkerGlobalScope
+import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.Logger
-import typings.loglevel.mod.LogLevelDesc
+import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.console.ConsoleLoggerFactory
 
 import WorkerMessage.*
 
@@ -29,9 +30,9 @@ import WorkerMessage.*
 trait WorkerServer[F[_]: Async, T: Pickler](using Monoid[F[Unit]]):
   protected val run: F[Unit] =
     (for {
-      dispatcher      <- Dispatcher.parallel[F]
-      given Logger[F] <- Resource.eval(setupLogger)
-      _               <- Resource.eval(runInternal(dispatcher))
+      dispatcher             <- Dispatcher.parallel[F]
+      given LoggerFactory[F] <- Resource.eval(setupLoggerFactory)
+      _                      <- Resource.eval(runInternal(dispatcher))
     } yield ()).useForever.void
 
   /**
@@ -45,20 +46,20 @@ trait WorkerServer[F[_]: Async, T: Pickler](using Monoid[F[Unit]]):
   /**
    * Handle server-specific messages.
    */
-  protected def handler: Logger[F] ?=> F[Invocation => F[Unit]]
+  protected def handler: LoggerFactory[F] ?=> F[Invocation => F[Unit]]
 
   protected val F = summon[Sync[F]]
 
-  protected def setupLogger: F[Logger[F]] = Sync[F].delay {
-    LogLevelLogger.setLevel(LogLevelDesc.INFO)
-    LogLevelLogger.createForRoot[F]
-  }
+  protected def setupLoggerFactory: F[LoggerFactory[F]] =
+    Sync[F].pure(ConsoleLoggerFactory.create[F])
 
   protected def mount(
     self:         DedicatedWorkerGlobalScope,
     handlerFn:    Invocation => F[Unit],
     cancelTokens: Ref[F, Map[WorkerProcessId, F[Unit]]]
-  )(dispatcher: Dispatcher[F])(using Logger[F]): F[Unit] =
+  )(dispatcher: Dispatcher[F])(using LoggerFactory[F]): F[Unit] =
+    given Logger[F] = LoggerFactory[F].getLoggerFromName("worker-server")
+
     F.delay(
       self.onmessage = (msg: dom.MessageEvent) =>
         dispatcher.unsafeRunAndForget(
@@ -109,19 +110,22 @@ trait WorkerServer[F[_]: Async, T: Pickler](using Monoid[F[Unit]]):
         )
     ).handleErrorWith(e => Logger[F].error(e)("Error initializing worker"))
 
-  protected def runInternal(dispatcher: Dispatcher[F])(using Logger[F]): F[Unit] =
+  protected def runInternal(dispatcher: Dispatcher[F])(using LoggerFactory[F]): F[Unit] =
+    given Logger[F] = LoggerFactory[F].getLoggerFromName("worker-server")
+
     for {
       self         <- F.delay(dom.DedicatedWorkerGlobalScope.self)
       handlerFn    <- handler
       cancelTokens <- Ref[F].of(Map.empty[WorkerProcessId, F[Unit]])
-      _            <- Logger[F].debug("Mounting")
+      logger       <- F.delay(LoggerFactory[F].getLogger)
+      _            <- debug"Mounting"
       _            <- mount(self, handlerFn, cancelTokens)(dispatcher)
-      _            <- Logger[F].debug("Mounted, sending ready")
+      _            <- debug"Mounted, sending ready"
       // Because of racing conditions, the server may have missed the client's ClientReady
       // message by the time it initializes. So, we force send a ServerReady here just in case.
       // This assures that the client will get at least one ServerReady. We cannot just send
       // this one since the client may not be ready yet, so we must also send the one in
       // response to ClientReady above.
       _            <- postAsTransferable[F, FromServer](self, FromServer.ServerReady)
-      _            <- Logger[F].debug("Ready sent!")
+      _            <- debug"Ready sent!"
     } yield ()

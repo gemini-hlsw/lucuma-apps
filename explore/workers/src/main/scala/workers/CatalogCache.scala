@@ -18,6 +18,7 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
 import lucuma.core.model.Target
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.syntax.*
 
 import java.time.LocalDateTime
@@ -52,7 +53,9 @@ trait CatalogCache extends CatalogIDB:
     request:        CatalogMessage.GSRequest,
     candidatesArea: ShapeExpression,
     respond:        List[GuideStarCandidate] => IO[Unit]
-  )(using L: Logger[IO]): IO[Unit] = {
+  )(using LF: LoggerFactory[IO]): IO[Unit] = {
+    given Logger[IO] = LF.getLoggerFromName("catalog-cache")
+
     val CatalogMessage.GSRequest(tracking, obsTime, _) = request
 
     val brightnessConstraints = ags.widestConstraints
@@ -97,7 +100,7 @@ trait CatalogCache extends CatalogIDB:
                       respond(candidates) *>
                       storeGuideStarCandidates(idb, stores, query, candidates)
                         .toF[IO]
-                        .handleError(e => L.error(e)("Error storing guidestar candidates"))
+                        .handleError(e => Logger[IO].error(e)("Error storing guidestar candidates"))
                   }
                   .void
               ) { c =>
