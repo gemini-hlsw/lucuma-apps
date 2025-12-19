@@ -51,14 +51,6 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   def focusOn(tid: Target.Id): ObservationTargets =
     targets.findFocus(_.id === tid).map(ObservationTargets.apply).getOrElse(this)
 
-  // Tracking of the base of science, don't consider blind offsets
-  // TODO: NONSIDEREAL: Remove/replace as part of non sidereal support - Tracking.fromAsterism doesn't support them
-  // Switch to asterismTracking below
-  def baseTracking: Option[Tracking] =
-    // for now, to keep explore from blowing up, ignore non-sidereals
-    val targets = science.map(_.target).filter(t => Target.nonsidereal.getOption(t).isEmpty)
-    NonEmptyList.fromList(targets).flatMap(Tracking.fromAsterism)
-
   // Will return a Left[String] if there are any ToOs
   def asterismTracking(
     trackingMap: RegionOrTrackingMap
@@ -67,6 +59,10 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
       .fromList(science)
       .map: nel =>
         trackingMap.trackingFor(nel.map(_.id))
+
+  // Will return a None if there are any ToOs
+  def optAsterismTracking(trackingMap: RegionOrTrackingMap): Option[Tracking] =
+    asterismTracking(trackingMap).flatMap(_.toOption)
 
   def mapScience[B](f: TargetWithId => B): List[B] =
     science.map(f)

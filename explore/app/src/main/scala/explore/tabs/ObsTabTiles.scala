@@ -47,6 +47,8 @@ import explore.services.OdbObservationApi
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.undo.UndoSetter
+import explore.utils.ToastCtx
+import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -63,12 +65,14 @@ import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Dropdown
+import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
 import lucuma.react.resizeDetector.*
 import lucuma.refined.*
@@ -132,9 +136,8 @@ case class ObsTabTiles(
     ObservationTargets.fromTargets:
       obsTargets.toList.map((_, t) => t)
 
-  def targetCoords(obsTime: Instant): Option[Coordinates] =
-    asterismAsNel
-      .flatMap(_.baseTracking.flatMap(_.at(obsTime)))
+  def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
+    optTracking.flatMap(_.at(obsTime))
 
   def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
 
@@ -154,16 +157,20 @@ case class ObsTabTiles(
         .toList
     )
 
-  def obsIQLikelihood(obsTime: Instant): Option[IntCentiPercent] =
-    (centralWavelength, targetCoords(obsTime).map(_.dec), site).mapN((cw, dec, site) =>
+  def obsIQLikelihood(
+    optCoordinates: Option[Coordinates]
+  ): Option[IntCentiPercent] =
+    (centralWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
       site
         .minimumAirMassFor(dec)
         .fold(IntCentiPercent.Min): airMass =>
           constraintSet.get.imageQuality.toImageQuality.percentile(cw.value, airMass)
     )
 
-  def obsConditionsLikelihood(obsTime: Instant): Option[IntCentiPercent] =
-    (centralWavelength, targetCoords(obsTime).map(_.dec), site).mapN((cw, dec, site) =>
+  def obsConditionsLikelihood(
+    optCoordinates: Option[Coordinates]
+  ): Option[IntCentiPercent] =
+    (centralWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
       conditionsLikelihood(
         constraintSet.get.skyBackground,
         constraintSet.get.cloudExtinction.toCloudExtinction,
@@ -253,6 +260,22 @@ object ObsTabTiles:
                                  sequenceChanged.set(pending)
         obsTimeOrNowPot     <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
                                  vizTime => IO(vizTime.getOrElse(Instant.now()))
+        trackingOptMapPot   <-
+          useEffectKeepResultWithDeps(props.observation.get.observingMode.map(_.siteFor),
+                                      obsTimeOrNowPot.value.toOption,
+                                      props.asterismAsNel.map(_.science)
+          ): (site, obsTime, targets) =>
+            import ctx.given
+            (site, obsTime, targets)
+              .traverseN: (s, i, ts) =>
+                getRegionOrTrackingMapForObservingNight(ts, s, i)
+                  .flatMap(
+                    _.fold(
+                      err => ToastCtx[IO].showToast(err, Message.Severity.Error).as(None),
+                      _.some.pure[IO]
+                    )
+                  )
+              .map(_.flatten)
         // Store guide star selection in a view for fast local updates
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
@@ -336,13 +359,12 @@ object ObsTabTiles:
             if (paProps.selectedPA.exists(a => angle.forall(_ === a.flip))) paProps.selectedPA
             else angle
 
+          val optAsterismTracking =
+            trackingOptMapPot.value.toOption.flatten.flatMap: trackingMap =>
+              props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
+
           val averagePA: Option[AveragePABasis] =
-            (basicConfiguration.map(_.siteFor),
-             // TODO: NONSIDEREAL: Modify to support non-sidereals
-             props.asterismAsNel.flatMap(_.baseTracking),
-             obsDuration,
-             setupTime
-            )
+            (basicConfiguration.map(_.siteFor), optAsterismTracking, obsDuration, setupTime)
               .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
                 // science duration is the obsDuration - setup time
                 fullDuration
@@ -562,8 +584,11 @@ object ObsTabTiles:
           // so that the constraints selector dropdown always appears in front of any other tiles. If more
           // than one tile ends up having dropdowns in the tile header, we'll need something more complex such
           // as changing the css classes on the various tiles when the dropdown is clicked to control z-index.
+          val optAsterismCoords: Option[Coordinates] =
+            props.targetCoords(obsTimeOrNow, optAsterismTracking)
 
-          val conditionsLikelihood = props.obsConditionsLikelihood(obsTimeOrNow)
+          val conditionsLikelihood =
+            props.obsConditionsLikelihood(optAsterismCoords)
           val constraintsTile      =
             Tile(
               ObsTabTileIds.ConstraintsId.id,
@@ -572,7 +597,7 @@ object ObsTabTiles:
               _ =>
                 ConstraintsPanel(
                   ObsIdSet.one(props.obsId),
-                  props.obsIQLikelihood(obsTimeOrNow),
+                  props.obsIQLikelihood(optAsterismCoords),
                   conditionsLikelihood,
                   props.centralWavelength,
                   props.observation.zoom(Observation.constraints),
@@ -597,7 +622,7 @@ object ObsTabTiles:
               props.observation
                 .zoom((Observation.posAngleConstraint, Observation.observingMode).disjointZip),
               props.observation.get.scienceTargetIds,
-              props.targetCoords(obsTimeOrNow),
+              optAsterismCoords,
               obsConf,
               selectedConfig,
               itcOdbConfiguration,

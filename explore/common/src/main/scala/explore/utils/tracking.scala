@@ -107,6 +107,20 @@ object tracking:
     val night = ObservingNight.fromSiteAndLocalDate(site, when)
     getRegionOrTrackingForObservingNight(target, site, night)
 
+  def getRegionOrTrackingMapForObservingNight(
+    targetWithIds: List[TargetWithId],
+    site:          Site,
+    when:          Instant
+  )(using
+    WorkerClient[IO, HorizonsMessage.Request]
+  ): IO[Either[String, RegionOrTrackingMap]] =
+    targetWithIds
+      .traverse(twid =>
+        getRegionOrTrackingForObservingNight(twid.target, site, when)
+          .map(_.map(t => (twid.id, t)))
+      )
+      .map(_.sequence.map(RegionOrTrackingMap.from(_)))
+
   // Get low resolution tracking for the semester.
   def getRegionOrTrackingForSemester(
     target:   Target,
