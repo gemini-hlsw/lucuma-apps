@@ -28,7 +28,7 @@
     "process": "0.11.10",
     "sass": "1.97.0",
     "unplugin-fonts": "1.4.0",
-    "vite": "7.2.7",
+    "vite": "7.3.0",
     "vite-plugin-mkcert": "1.17.9"
   },
   "scripts": {
