@@ -54,8 +54,8 @@ importers:
         specifier: 7.1.0
         version: 7.1.0
       '@honeycombio/opentelemetry-web':
-        specifier: 1.1.0
-        version: 1.1.0(@opentelemetry/auto-instrumentations-web@0.54.0(@opentelemetry/api@1.9.0)(zone.js@0.15.1))
+        specifier: 1.2.0
+        version: 1.2.0(@opentelemetry/auto-instrumentations-web@0.54.0(@opentelemetry/api@1.9.0)(zone.js@0.15.1))
       '@opentelemetry/auto-instrumentations-web':
         specifier: 0.54.0
         version: 0.54.0(@opentelemetry/api@1.9.0)(zone.js@0.15.1)
@@ -1148,8 +1148,8 @@ packages:
     resolution: {integrity: sha512-8WBfuFMAtFYJH2vmO/PmB+5YW3VplgNI/rqvQa1+8L516k7TcVE7retV7RVtm2bQqhAwElF51ZJQy34BohhulA==}
     engines: {node: '>=6'}
 
-  '@honeycombio/opentelemetry-web@1.1.0':
-    resolution: {integrity: sha512-QgDxIVvjS+YWByCR6HbR+dIBMJFeCKSSlqGuSDsu1w/z65kQaViLoX5ycuR3KeFQ7uD9Sv5qbVSTlbcDyn9/0A==}
+  '@honeycombio/opentelemetry-web@1.2.0':
+    resolution: {integrity: sha512-vr1VAnNOA/x42VkL+Diito/A5HptPpPwOneZWAxcM0yHPscZLcnFlODUUNyvxjgfQeZPrW6nkWsT+lEXYeIMvA==}
     peerDependencies:
       '@opentelemetry/auto-instrumentations-web': ^0.49.0
       '@opentelemetry/context-zone': ^2.0.0
@@ -4836,7 +4836,7 @@ snapshots:
     dependencies:
       '@fortawesome/fontawesome-common-types': 7.1.0
 
-  '@honeycombio/opentelemetry-web@1.1.0(@opentelemetry/auto-instrumentations-web@0.54.0(@opentelemetry/api@1.9.0)(zone.js@0.15.1))':
+  '@honeycombio/opentelemetry-web@1.2.0(@opentelemetry/auto-instrumentations-web@0.54.0(@opentelemetry/api@1.9.0)(zone.js@0.15.1))':
     dependencies:
       '@babel/runtime': 7.28.4
       '@opentelemetry/api': 1.9.0
