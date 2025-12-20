@@ -27,8 +27,8 @@ importers:
   explore:
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
-        specifier: 2.0.9
-        version: 2.0.9(@types/react@19.2.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 2.0.10
+        version: 2.0.10(@types/react@19.2.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@floating-ui/react':
         specifier: 0.27.16
         version: 0.27.16(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -319,8 +319,8 @@ packages:
     peerDependencies:
       react: ^18.2.0
 
-  '@atlaskit/ds-lib@5.2.0':
-    resolution: {integrity: sha512-ud0Vn/JHyZeHsdWGXue1XPTYSR/Br7VZEJkhisWMtRqLe0VRbUlRMH20fjC/24vlSBqjcUBK2L8gWd3SywU49A==}
+  '@atlaskit/ds-lib@5.3.0':
+    resolution: {integrity: sha512-j3DLHqBACSJsG3XqSgCIwZqvJhYkpSC8i+24n/JYCRjIxYEJMsuSXOtdeu0qBajREwgzmAFP6AVfVZh1zAWG/A==}
     peerDependencies:
       react: ^18.2.0
 
@@ -336,8 +336,8 @@ packages:
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.1':
     resolution: {integrity: sha512-PX8PKE6C+SBZ0B1uaCknEfV83Ar37ctWbnMvpcrMMpPnDFtIKCuGCKUrMpV6j9z2TXi9F5EFs/dD3evEUmCIxw==}
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.9':
-    resolution: {integrity: sha512-bnNKh/YvbjcsoARhYTTCO6oGIcjjHPnNBTGhOTkZ56dxcUk2/ATpU7FdirZAnT89HMKmu/ULIOxw3AOItRKgpw==}
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.10':
+    resolution: {integrity: sha512-UhanCD4HkQJl+ZtiX3/zxjvCIUWitvdQewx4kic/N0laRnwQ6ipK3QxiPN6Brr+pAAE1tS8WSDx48onw7lCzXw==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -345,8 +345,8 @@ packages:
   '@atlaskit/pragmatic-drag-and-drop@1.7.7':
     resolution: {integrity: sha512-jX+68AoSTqO/fhCyJDTZ38Ey6/wyL2Iq+J/moanma0YyktpnoHxevjY1UNJHYp0NCburdQDZSL1ZFac1mO1osQ==}
 
-  '@atlaskit/tokens@8.0.0':
-    resolution: {integrity: sha512-Y8bOPN+ByEJ7Nd3XoWLEkY4bdD3Za29I3l9rVKsEK2IbMXPl6n62zWSZh2Nt4j4N58wKKuOk1X3zO5ib+HWfrQ==}
+  '@atlaskit/tokens@9.0.0':
+    resolution: {integrity: sha512-PybCOqn2NnifV3RL/t4PQEsK2iGDnTH+83Kr2RUJvOVBMPwwuxCnwC1h+OupC/ripgcUp3Q2/vyUORERaGoBTw==}
     peerDependencies:
       react: ^18.2.0
 
@@ -3868,7 +3868,7 @@ snapshots:
       '@babel/runtime': 7.28.4
       react: 18.3.1
 
-  '@atlaskit/ds-lib@5.2.0(@types/react@19.2.5)(react@18.3.1)':
+  '@atlaskit/ds-lib@5.3.0(@types/react@19.2.5)(react@18.3.1)':
     dependencies:
       '@atlaskit/platform-feature-flags': 1.1.2(react@18.3.1)
       '@babel/runtime': 7.28.4
@@ -3907,12 +3907,12 @@ snapshots:
       '@babel/runtime': 7.28.4
       css-box-model: 1.2.1
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.9(@types/react@19.2.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.10(@types/react@19.2.5)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.7.7
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll': 2.0.1
-      '@atlaskit/tokens': 8.0.0(@types/react@19.2.5)(react@18.3.1)
+      '@atlaskit/tokens': 9.0.0(@types/react@19.2.5)(react@18.3.1)
       '@babel/runtime': 7.28.4
       '@emotion/react': 11.14.0(@types/react@19.2.5)(react@18.3.1)
       bind-event-listener: 3.0.0
@@ -3929,9 +3929,9 @@ snapshots:
       bind-event-listener: 3.0.0
       raf-schd: 4.0.3
 
-  '@atlaskit/tokens@8.0.0(@types/react@19.2.5)(react@18.3.1)':
+  '@atlaskit/tokens@9.0.0(@types/react@19.2.5)(react@18.3.1)':
     dependencies:
-      '@atlaskit/ds-lib': 5.2.0(@types/react@19.2.5)(react@18.3.1)
+      '@atlaskit/ds-lib': 5.3.0(@types/react@19.2.5)(react@18.3.1)
       '@atlaskit/platform-feature-flags': 1.1.2(react@18.3.1)
       '@babel/runtime': 7.28.4
       '@babel/traverse': 7.28.5
