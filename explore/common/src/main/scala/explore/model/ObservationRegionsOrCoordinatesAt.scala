@@ -104,9 +104,8 @@ object ObservationRegionsOrCoordinatesAt:
     // try to get the epoch from the first non-sidereal
     val at: Option[Instant] = obsTargets.allTargets
       .map(_.target)
-      .collect:
+      .collectFirst:
         case Target.Sidereal(tracking = tracking) => tracking.epoch.toInstant
-      .headOption
     atInstant(obsTargets, at)
 
   private def atInstant(
