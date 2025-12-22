@@ -25,7 +25,7 @@ enum ObsSummaryRow:
   case ExpandedTargetRow(
     obs:            Observation,
     targetWithId:   TargetWithId,
-    coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]]
+    coordsOrRegion: Option[ErrorOrRegionOrCoords]
   ) extends ObsSummaryRow
 
   case ObsRow(
