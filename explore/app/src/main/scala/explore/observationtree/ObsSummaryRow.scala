@@ -32,7 +32,7 @@ enum ObsSummaryRow:
     obs:            Observation,
     targetWithId:   Option[TargetWithId],
     asterism:       Option[ObservationTargets],
-    coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]],
+    coordsOrRegion: Option[ErrorOrRegionOrCoords],
     group:          Option[Group]
   ) extends ObsSummaryRow
 
