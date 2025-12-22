@@ -10,8 +10,9 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
-import explore.model.ErrorOrRegionOrCoords
+import explore.model.ErrorMsgOr
 import explore.model.ExploreModelValidators.*
+import explore.model.RegionOrCoordinatesAt
 import explore.model.conversions.*
 import explore.model.display.given
 import explore.model.enums.SourceProfileType
@@ -37,6 +38,7 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithMetadata
 import lucuma.ui.react.given
 
@@ -154,7 +156,7 @@ object TargetColumns:
 
     trait CommonRaDec[D, TM, CM, TF](
       colDef:      ColumnDef.Applied[D, TM, CM, TF],
-      getLocation: D => Option[ErrorOrRegionOrCoords]
+      getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ):
       val RaDecColumns: List[colDef.Type] =
         List(
@@ -247,7 +249,7 @@ object TargetColumns:
 
     case class ForProgram[D <: TargetWithMetadata, TM, CM, TF](
       colDef:      ColumnDef.Applied[D, TM, CM, TF],
-      getLocation: D => Option[ErrorOrRegionOrCoords]
+      getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ) extends Common(colDef)
         with CommonRaDec(colDef, getLocation)
         with CommonBand(colDef)
@@ -305,7 +307,14 @@ object TargetColumns:
     ) extends Common(colDef)
         with CommonRaDec(
           colDef,
-          t => Target.sidereal.getOption(t.target).map(ErrorOrRegionOrCoords.siderealBaseCoords)
+          t =>
+            Target.sidereal
+              .getOption(t.target)
+              .map: sidereal =>
+                CoordinatesAt(
+                  sidereal.tracking.epoch.toInstant,
+                  sidereal.tracking.baseCoordinates
+                ).asRight.asRight
         )
         with CommonBand(colDef)
         with CommonSidereal(colDef):

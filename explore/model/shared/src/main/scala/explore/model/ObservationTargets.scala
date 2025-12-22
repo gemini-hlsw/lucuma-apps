@@ -54,7 +54,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
   // Will return a Left[String] if there are any ToOs
   def asterismTracking(
     trackingMap: RegionOrTrackingMap
-  ): Option[Either[String, Tracking]] =
+  ): Option[ErrorMsgOr[Tracking]] =
     NonEmptyList
       .fromList(science)
       .map: nel =>

@@ -7,6 +7,7 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
+import explore.model.ErrorMsgOr
 import explore.model.RegionOrTrackingMap.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -30,7 +31,7 @@ final case class ObservationTargetsCoordinatesAt(
   def forTarget(id: Target.Id): Option[Coordinates] = allTargetsMap.get(id)
 
 object ObservationTargetsCoordinatesAt:
-  def emptyAt(at: Instant): Either[String, ObservationTargetsCoordinatesAt] =
+  def emptyAt(at: Instant): ErrorMsgOr[ObservationTargetsCoordinatesAt] =
     Epoch.Julian
       .fromInstant(at)
       .toRight(s"Invalid epoch: $at")
@@ -42,14 +43,14 @@ object ObservationTargetsCoordinatesAt:
     at:          Instant,
     obsTargets:  ObservationTargets,
     trackingMap: RegionOrTrackingMap
-  ): Either[String, ObservationTargetsCoordinatesAt] =
-    val eEpoch: Either[String, Epoch]                                 = Epoch.Julian.fromInstant(at).toRight(s"Invalid epoch: $at")
-    val eScienceMap: Either[String, Map[Target.Id, Coordinates]]      =
+  ): ErrorMsgOr[ObservationTargetsCoordinatesAt] =
+    val eEpoch: ErrorMsgOr[Epoch]                                 = Epoch.Julian.fromInstant(at).toRight(s"Invalid epoch: $at")
+    val eScienceMap: ErrorMsgOr[Map[Target.Id, Coordinates]]      =
       obsTargets
         .mapScience(t => trackingMap.coordinatesForAt(t.id, at).map(ca => (t.id, ca.coordinates)))
         .sequence
         .map(_.toMap)
-    val eBlindTuple: Either[String, Option[(Target.Id, Coordinates)]] =
+    val eBlindTuple: ErrorMsgOr[Option[(Target.Id, Coordinates)]] =
       obsTargets.blindOffset.traverse(t =>
         trackingMap.coordinatesForAt(t.id, at).map(ca => (t.id, ca.coordinates))
       )

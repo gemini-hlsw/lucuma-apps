@@ -37,11 +37,11 @@ import java.time.Instant
  */
 case class ObservationRegionsOrCoordinatesAt(
   at:          Option[Instant],
-  asterism:    Option[ErrorOrRegionOrCoords],
-  science:     List[(TargetWithId, Option[ErrorOrRegionOrCoords])],
-  blindOffset: Option[(TargetWithId, Option[ErrorOrRegionOrCoords])]
+  asterism:    Option[ErrorMsgOr[RegionOrCoordinatesAt]],
+  science:     List[(TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]])],
+  blindOffset: Option[(TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]])]
 ) derives Eq:
-  val allTargets: List[(TargetWithId, Option[ErrorOrRegionOrCoords])] =
+  val allTargets: List[(TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]])] =
     science ++ blindOffset.toList
 
 object ObservationRegionsOrCoordinatesAt:
@@ -76,12 +76,11 @@ object ObservationRegionsOrCoordinatesAt:
     )
 
   private def getAsterism(
-    science: List[Option[ErrorOrRegionOrCoords]]
-  ): Option[ErrorOrRegionOrCoords] =
+    science: List[Option[ErrorMsgOr[RegionOrCoordinatesAt]]]
+  ): Option[ErrorMsgOr[RegionOrCoordinatesAt]] =
     science
-      .collect:
-        case Some(Right(Left(region))) => ErrorOrRegionOrCoords.fromRegion(region)
-      .headOption
+      .collectFirst:
+        case Some(eorc @ Right(Left(region))) => eorc
       .orElse:
         science
           .traverse: eorc =>
@@ -94,12 +93,14 @@ object ObservationRegionsOrCoordinatesAt:
               .map: nel =>
                 val coordsAt =
                   CoordinatesAt(nel.head.at, Coordinates.centerOf(nel.map(_.coordinates)))
-                ErrorOrRegionOrCoords.fromCoordinatesAt(coordsAt)
+                coordsAt.asRight.asRight
 
   private def forSiteAndTime(obsTargets: ObservationTargets, obsTime: Instant, site: Site)(using
     WorkerClient[IO, HorizonsMessage.Request]
   ): IO[ObservationRegionsOrCoordinatesAt] =
-    def forTarget(twid: TargetWithId): IO[(TargetWithId, Option[ErrorOrRegionOrCoords])] =
+    def forTarget(
+      twid: TargetWithId
+    ): IO[(TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]])] =
       getRegionOrTrackingForObservingNight(twid.target, site, obsTime).map: erot =>
         (twid, erot.flatMap(_.regionOrCoordinatesAt(obsTime)).some)
 
@@ -123,7 +124,7 @@ object ObservationRegionsOrCoordinatesAt:
     obsTargets: ObservationTargets,
     at:         Option[Instant]
   ): ObservationRegionsOrCoordinatesAt =
-    def forTarget(twid: TargetWithId): (TargetWithId, Option[ErrorOrRegionOrCoords]) =
+    def forTarget(twid: TargetWithId): (TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]]) =
       twid.target match
         case Target.Sidereal(tracking = tracking) =>
           // If there is no 'at', there are no sidereals
@@ -133,12 +134,12 @@ object ObservationRegionsOrCoordinatesAt:
               else tracking.coordinatesAt(a).toOption
             )
             .getOrElse(CoordinatesAt(Epoch.MinValue.toInstant, Coordinates.Zero))
-          (twid, ErrorOrRegionOrCoords.fromCoordinatesAt(coords).some)
+          (twid, coords.asRight.asRight.some)
         case Target.Nonsidereal(_, _, _)          => (twid, none)
         case Target.Opportunity(region = region)  =>
-          (twid, ErrorOrRegionOrCoords.fromRegion(region).some)
-    val science                                                                      = obsTargets.mapScience(forTarget)
-    val blind                                                                        = obsTargets.blindOffset.map(forTarget)
-    val asterism                                                                     = getAsterism(science.map(_._2))
+          (twid, region.asLeft.asRight.some)
+    val science                                                                                  = obsTargets.mapScience(forTarget)
+    val blind                                                                                    = obsTargets.blindOffset.map(forTarget)
+    val asterism                                                                                 = getAsterism(science.map(_._2))
 
     ObservationRegionsOrCoordinatesAt(at, asterism, science, blind)

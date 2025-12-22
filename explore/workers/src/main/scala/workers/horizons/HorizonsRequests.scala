@@ -11,6 +11,7 @@ import cats.effect.Concurrent
 import cats.syntax.all.*
 import explore.events.HorizonsMessage
 import explore.events.HorizonsMessage.given
+import explore.model.ErrorMsgOr
 import lucuma.horizons.HorizonsClient
 import lucuma.horizons.HorizonsEphemeris
 import org.typelevel.log4cats.Logger
@@ -23,18 +24,17 @@ object HorizonsRequests:
 
   private given Pickler[Error] = generatePickler
 
-  extension [A](resp: Either[String, A])
+  extension [A](resp: ErrorMsgOr[A])
     private def asError(isCacheable: Boolean): Either[Error, A] =
       resp.leftMap(Error(_, isCacheable))
 
-  extension [A](e: Either[Error, A])
-    private def asResponse: Either[String, A] = e.leftMap(_.message)
+  extension [A](e: Either[Error, A]) private def asResponse: ErrorMsgOr[A] = e.leftMap(_.message)
 
   def ephemerisRequest[F[_]: Concurrent: Logger](
     request:  HorizonsMessage.EphemerisRequest,
     client:   HorizonsClient[F],
     cache:    Cache[F],
-    callback: Either[String, HorizonsEphemeris] => F[Unit]
+    callback: ErrorMsgOr[HorizonsEphemeris] => F[Unit]
   ): F[Unit] =
     def doRequest(request: HorizonsMessage.EphemerisRequest): F[Either[Error, HorizonsEphemeris]] =
       client
@@ -65,7 +65,7 @@ object HorizonsRequests:
     request:  HorizonsMessage.AlignedEphemerisRequest,
     client:   HorizonsClient[F],
     cache:    Cache[F],
-    callback: Either[String, HorizonsEphemeris] => F[Unit]
+    callback: ErrorMsgOr[HorizonsEphemeris] => F[Unit]
   ): F[Unit] =
     def doRequest(
       request: HorizonsMessage.AlignedEphemerisRequest

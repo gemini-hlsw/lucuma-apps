@@ -5,35 +5,34 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
-import explore.model.ErrorOrRegionOrCoords
+import explore.model.ErrorMsgOr
 import explore.model.Group
 import explore.model.Observation
 import explore.model.ObservationTargets
+import explore.model.RegionOrCoordinatesAt
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.math.Region
 import lucuma.core.model.Target
-import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithId
 
 // 24 October 2024 - scalafix failing to parse with fewer braces
 // Helper ADT for table rows type
 enum ObsSummaryRow:
   val obs: Observation
-  val coordsOrRegion: Option[Either[String, Either[Region, CoordinatesAt]]]
+  val coordsOrRegion: Option[ErrorMsgOr[RegionOrCoordinatesAt]]
 
   case ExpandedTargetRow(
     obs:            Observation,
     targetWithId:   TargetWithId,
-    coordsOrRegion: Option[ErrorOrRegionOrCoords]
+    coordsOrRegion: Option[ErrorMsgOr[RegionOrCoordinatesAt]]
   ) extends ObsSummaryRow
 
   case ObsRow(
     obs:            Observation,
     targetWithId:   Option[TargetWithId],
     asterism:       Option[ObservationTargets],
-    coordsOrRegion: Option[ErrorOrRegionOrCoords],
+    coordsOrRegion: Option[ErrorMsgOr[RegionOrCoordinatesAt]],
     group:          Option[Group]
   ) extends ObsSummaryRow
 

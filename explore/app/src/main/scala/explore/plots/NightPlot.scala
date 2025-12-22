@@ -12,6 +12,7 @@ import explore.*
 import explore.events.HorizonsMessage
 import explore.highcharts.*
 import explore.model.AppContext
+import explore.model.ErrorMsgOr
 import explore.model.RegionOrTracking
 import explore.model.enums.TimeDisplay
 import explore.model.reusability.given
@@ -453,7 +454,7 @@ object NightPlot:
     site: Site
   )(using
     WorkerClient[IO, HorizonsMessage.Request]
-  ): IO[Either[String, RegionOrTracking]] =
+  ): IO[ErrorMsgOr[RegionOrTracking]] =
     data.targets
       .traverse: target =>
         getRegionOrTrackingForObservingNight(target, site, date) // .compositeTracking

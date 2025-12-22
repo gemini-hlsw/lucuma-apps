@@ -35,17 +35,17 @@ object RegionOrTrackingMap:
           case NonEmptyList(h, t)   => CompositeTracking(NonEmptyList(h, t))
 
   extension (trm: RegionOrTrackingMap)
-    inline def getFor(id: Target.Id): Either[String, RegionOrTracking] =
+    inline def getFor(id: Target.Id): ErrorMsgOr[RegionOrTracking] =
       trm.get(id).toRight(s"No tracking or region result for target $id")
 
-    inline def regionOrTrackingFor(ids: NonEmptyList[Target.Id]): Either[String, RegionOrTracking] =
+    inline def regionOrTrackingFor(ids: NonEmptyList[Target.Id]): ErrorMsgOr[RegionOrTracking] =
       ids.traverse(id => trm.getFor(id)).map(compositeRegionOrTracking)
 
-    inline def trackingFor(id: Target.Id): Either[String, Tracking] =
+    inline def trackingFor(id: Target.Id): ErrorMsgOr[Tracking] =
       getFor(id).flatMap(_.toTracking)
 
-    inline def trackingFor(ids: NonEmptyList[Target.Id]): Either[String, Tracking] =
+    inline def trackingFor(ids: NonEmptyList[Target.Id]): ErrorMsgOr[Tracking] =
       regionOrTrackingFor(ids).flatMap(_.toTracking)
 
-    inline def coordinatesForAt(id: Target.Id, at: Instant): Either[String, CoordinatesAt] =
+    inline def coordinatesForAt(id: Target.Id, at: Instant): ErrorMsgOr[CoordinatesAt] =
       getFor(id).flatMap(_.coordinatesForTrackingAt(at))

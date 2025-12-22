@@ -3,7 +3,6 @@
 
 package explore.model
 
-import lucuma.core.math.Region
-import lucuma.schemas.model.CoordinatesAt
+type ErrorMsg = String
 
-type RegionOrCoordinatesAt = Either[Region, CoordinatesAt]
+type ErrorMsgOr[A] = Either[ErrorMsg, A]

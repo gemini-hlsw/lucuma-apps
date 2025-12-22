@@ -20,15 +20,15 @@ object RegionOrTracking:
 
   extension (torR: RegionOrTracking)
     // If being a region is an error for your use case
-    def toTracking: Either[String, Tracking] =
+    def toTracking: ErrorMsgOr[Tracking] =
       torR.left.map(_ => "Targets of Opportunities have no coordinates")
 
     def toRegion: Option[Region] =
       // errors really only happen for ephemeris failures, so we can ignore them here
       torR.left.toOption
 
-    def coordinatesForTrackingAt(at: Instant): Either[String, CoordinatesAt] =
+    def coordinatesForTrackingAt(at: Instant): ErrorMsgOr[CoordinatesAt] =
       toTracking.flatMap(_.coordinatesAt(at))
 
-    def regionOrCoordinatesAt(at: Instant): ErrorOrRegionOrCoords =
+    def regionOrCoordinatesAt(at: Instant): ErrorMsgOr[RegionOrCoordinatesAt] =
       torR.fold(_.asLeft.asRight, _.coordinatesAt(at).map(_.asRight))

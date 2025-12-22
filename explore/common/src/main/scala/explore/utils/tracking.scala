@@ -34,7 +34,7 @@ object tracking:
     key:   EphemerisKey,
     site:  Site,
     night: ObservingNight
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, EphemerisTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[EphemerisTracking]] =
     val TotalPoints = 600
     key.horizonsKey.fold(
       "User defined Ephemeris Keys are not yet supported".asLeft.pure[IO]
@@ -56,7 +56,7 @@ object tracking:
     site:     Site,
     semester: Semester,
     cadence:  ElementsPerDay
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, EphemerisTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[EphemerisTracking]] =
     key.horizonsKey.fold(
       "User defined Ephemeris Keys are not yet supported".asLeft.pure[IO]
     )(hk =>
@@ -78,7 +78,7 @@ object tracking:
     target: Target,
     site:   Site,
     night:  ObservingNight
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, RegionOrTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     target match
       case Target.Nonsidereal(_, key, _) =>
         getEphemerisTrackingForObservingNight(key, site, night).map(
@@ -93,7 +93,7 @@ object tracking:
     target: Target,
     site:   Site,
     when:   Instant
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, RegionOrTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     val night = ObservingNight.fromSiteAndInstant(site, when)
     getRegionOrTrackingForObservingNight(target, site, night)
 
@@ -103,7 +103,7 @@ object tracking:
     target: Target,
     site:   Site,
     when:   LocalDate
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, RegionOrTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     val night = ObservingNight.fromSiteAndLocalDate(site, when)
     getRegionOrTrackingForObservingNight(target, site, night)
 
@@ -113,7 +113,7 @@ object tracking:
     when:          Instant
   )(using
     WorkerClient[IO, HorizonsMessage.Request]
-  ): IO[Either[String, RegionOrTrackingMap]] =
+  ): IO[ErrorMsgOr[RegionOrTrackingMap]] =
     targetWithIds
       .traverse(twid =>
         getRegionOrTrackingForObservingNight(twid.target, site, when)
@@ -127,7 +127,7 @@ object tracking:
     site:     Site,
     semester: Semester,
     cadence:  ElementsPerDay = 2
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, RegionOrTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     target match
       case Target.Nonsidereal(_, key, _) =>
         getEphemerisTrackingForSemester(key, site, semester, cadence).map(
@@ -143,7 +143,7 @@ object tracking:
     site:          Site,
     when:          Instant,
     lowResCadence: ElementsPerDay = 2
-  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[Either[String, RegionOrTracking]] =
+  )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     target match
       case Target.Nonsidereal(_, key, _) =>
         val semester = Semester
@@ -168,7 +168,7 @@ object tracking:
     lowResCadence: ElementsPerDay = 2
   )(using
     WorkerClient[IO, HorizonsMessage.Request]
-  ): IO[Either[String, RegionOrTrackingMap]] =
+  ): IO[ErrorMsgOr[RegionOrTrackingMap]] =
     targetWithIds
       .traverse(twid =>
         getMixedResolutionRegionOrTracking(twid.target, site, when, lowResCadence)

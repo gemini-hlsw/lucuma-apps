@@ -5,6 +5,7 @@ package explore.events
 
 import boopickle.DefaultBasic.*
 import boopickle.Pickler
+import explore.model.ErrorMsgOr
 import explore.model.boopickle.HorizonsPicklers
 import lucuma.core.enums.Site
 import lucuma.core.model.EphemerisKey
@@ -27,7 +28,7 @@ object HorizonsMessage extends HorizonsPicklers:
     stop:     Instant,
     elements: Int
   ) extends Request:
-    type ResponseType = Either[String, HorizonsEphemeris]
+    type ResponseType = ErrorMsgOr[HorizonsEphemeris]
 
   case class AlignedEphemerisRequest(
     key:     EphemerisKey.Horizons,
@@ -36,7 +37,7 @@ object HorizonsMessage extends HorizonsPicklers:
     days:    Int,
     cadence: ElementsPerDay
   ) extends Request:
-    type ResponseType = Either[String, HorizonsEphemeris]
+    type ResponseType = ErrorMsgOr[HorizonsEphemeris]
 
   given Pickler[EphemerisRequest] = generatePickler
 
