@@ -562,8 +562,8 @@ object GmosImagingConfigPanel {
     override protected val initialFiltersLens                    =
       ObservingMode.GmosNorthImaging.initialFilters
     override val filterTypeGetter: GmosNorthFilter => FilterType = _.filterType
-    protected val defaultMultipleFiltersModeLens                 =
-      ObservingMode.GmosNorthImaging.defaultMultipleFiltersMode
+    // protected val defaultMultipleFiltersModeLens                 =
+    //   ObservingMode.GmosNorthImaging.defaultMultipleFiltersMode
     protected val defaultBinningLens                             = ObservingMode.GmosNorthImaging.defaultBin
     protected val defaultReadModeGainLens                        =
       (ObservingMode.GmosNorthImaging.defaultAmpReadMode,
@@ -700,22 +700,22 @@ object GmosImagingConfigPanel {
       )
       .view(_.orUnassign)
 
-    override protected val filtersLens           = ObservingMode.GmosSouthImaging.filters
-    override protected val filtersFilterLens     = ObservingMode.GmosSouthImaging.ImagingFilter.filter
-    override protected val filtersEtmLens        =
+    override protected val filtersLens        = ObservingMode.GmosSouthImaging.filters
+    override protected val filtersFilterLens  = ObservingMode.GmosSouthImaging.ImagingFilter.filter
+    override protected val filtersEtmLens     =
       ObservingMode.GmosSouthImaging.ImagingFilter.exposureTimeMode
     // override protected val offsetLens            = ObservingMode.GmosSouthImaging.offsets
-    override protected val initialFiltersLens    =
+    override protected val initialFiltersLens =
       ObservingMode.GmosSouthImaging.initialFilters
-    override protected val filterTypeGetter      = _.filterType
-    protected val defaultMultipleFiltersModeLens =
-      ObservingMode.GmosSouthImaging.defaultMultipleFiltersMode
-    protected val defaultBinningLens             = ObservingMode.GmosSouthImaging.defaultBin
-    protected val defaultReadModeGainLens        =
+    override protected val filterTypeGetter   = _.filterType
+    // protected val defaultMultipleFiltersModeLens =
+    //   ObservingMode.GmosSouthImaging.defaultMultipleFiltersMode
+    protected val defaultBinningLens          = ObservingMode.GmosSouthImaging.defaultBin
+    protected val defaultReadModeGainLens     =
       (ObservingMode.GmosSouthImaging.defaultAmpReadMode,
        ObservingMode.GmosSouthImaging.defaultAmpGain
       ).disjointZip
-    protected val defaultRoiLens                 = ObservingMode.GmosSouthImaging.defaultRoi
+    protected val defaultRoiLens              = ObservingMode.GmosSouthImaging.defaultRoi
 
     inline override protected def resolvedReadModeGainGetter = mode =>
       val readMode = ObservingMode.GmosSouthImaging.explicitAmpReadMode
