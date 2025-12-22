@@ -22,7 +22,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import org.scalajs.dom
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 import workers.*
 
 import java.time.Duration
@@ -35,7 +35,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 32
+  private val AgsCacheVersion: Int = 29
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
@@ -78,7 +78,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   private def runUnconstrainedAgs(key: UnconstrainedCacheKey): IO[UnconstrainedResult] =
     IO.blocking {
       val correctedCandidates = key.candidates.map(_.at(key.vizTime))
-      val results = Ags.agsAnalysis(
+      val results             = Ags.agsAnalysis(
         key.constraints,
         key.wavelength,
         key.baseCoordinates,
@@ -90,8 +90,8 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
         key.params,
         correctedCandidates
       )
-      results.collect {
-        case u: AgsAnalysis.Usable => u.target.id -> u.posAngle
+      results.collect { case u: AgsAnalysis.Usable =>
+        u.target.id -> u.posAngle
       }.toMap
     }
 
@@ -119,9 +119,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
     val usable    = constrainedResults.sortUsablePositions
     val nonUsable = constrainedResults.filterNot(_.isUsable)
 
-    val usableCandidates = usable.map(a =>
-      CandidateAnalysis(a, usableAt = None)
-    )
+    val usableCandidates    = usable.map(a => CandidateAnalysis(a, usableAt = None))
     val nonUsableCandidates = nonUsable.map { a =>
       CandidateAnalysis(a, usableAt = usableAngleByTarget.get(a.target.id))
     }
@@ -129,7 +127,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
     usableCandidates ++ nonUsableCandidates
   }
 
-  protected val handler: Logger[IO] ?=> IO[Invocation => IO[Unit]] =
+  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
     for
       self  <- IO(dom.DedicatedWorkerGlobalScope.self)
       cache <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")

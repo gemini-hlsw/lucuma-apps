@@ -30,7 +30,6 @@ import explore.model.ObservingModeGroupList
 import explore.model.ObservingModeSummary
 import explore.model.PosAngleConstraintAndObsMode
 import explore.model.ScienceRequirements
-import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.TargetList
 import explore.model.enums.PosAngleOptions
 import explore.model.enums.WavelengthUnits
@@ -268,8 +267,16 @@ object ConfigurationTile:
     private def modInput[A, B](mod: (B => B) => A => A): (B => B) => Input[A] => Input[A] =
       f => inputA => inputA.map(a => mod(f)(a))
 
-    private val DefaultObservingModeInput: ObservingModeInput =
+    private val EmptyGmosNorthLongSlitInput: ObservingModeInput =
       ObservingModeInput.GmosNorthLongSlit(GmosNorthLongSlitInput())
+    private val EmptyGmosSouthLongSlitInput: ObservingModeInput =
+      ObservingModeInput.GmosSouthLongSlit(GmosSouthLongSlitInput())
+    private val EmptyF2LongSlitInput: ObservingModeInput        =
+      ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
+    private val EmptyGmosNorthImagingInput: ObservingModeInput  =
+      ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
+    private val EmptyGmosSouthImagingInput: ObservingModeInput  =
+      ObservingModeInput.GmosSouthImaging(GmosSouthImagingInput())
 
     private val component =
       ScalaFnComponent[Props] { props =>
@@ -296,22 +303,6 @@ object ConfigurationTile:
           val posAngleConstraintView: View[PosAngleConstraint] =
             posAngleConstraintAligner.view(_.toInput.assign)
 
-          val modeAligner: Aligner[Option[ObservingMode], Input[ObservingModeInput]] =
-            Aligner(
-              props.mode,
-              UpdateObservationsInput(
-                WHERE = props.obsId.toWhereObservation.assign,
-                SET = ObservationPropertiesInput(observingMode = DefaultObservingModeInput.assign)
-              ),
-              (ctx.odbApi.updateObservations(_)).andThen(_.void)
-            ).zoom( // Can we avoid the zoom and make an Aligner constructor that takes an input value?
-              Iso.id,
-              UpdateObservationsInput.SET.andThen(ObservationPropertiesInput.observingMode).modify
-            )
-
-          val optModeView: View[Option[ObservingMode]] =
-            modeAligner.view(_.map(_.toInput).orUnassign)
-
           val revertConfig: Callback =
             revertConfiguration(
               props.obsId,
@@ -320,11 +311,23 @@ object ConfigurationTile:
               props.selectedConfig
             ).runAsyncAndForget
 
-          val optModeAligner: Option[Aligner[ObservingMode, Input[ObservingModeInput]]] =
-            modeAligner.toOption
+          def optModeAligner(
+            input: ObservingModeInput
+          ): Option[Aligner[ObservingMode, Input[ObservingModeInput]]] =
+            Aligner(
+              props.mode,
+              UpdateObservationsInput(
+                WHERE = props.obsId.toWhereObservation.assign,
+                SET = ObservationPropertiesInput(observingMode = input.assign)
+              ),
+              (ctx.odbApi.updateObservations(_)).andThen(_.void)
+            ).zoom( // Can we avoid the zoom and make an Aligner constructor that takes an input value?
+              Iso.id,
+              UpdateObservationsInput.SET.andThen(ObservationPropertiesInput.observingMode).modify
+            ).toOption
 
           val optGmosNorthAligner: Option[Aligner[GmosNorthLongSlit, GmosNorthLongSlitInput]] =
-            optModeAligner.flatMap:
+            optModeAligner(EmptyGmosNorthLongSlitInput).flatMap:
               _.zoomOpt(
                 ObservingMode.gmosNorthLongSlit,
                 modInput:
@@ -334,7 +337,7 @@ object ConfigurationTile:
               )
 
           val optGmosSouthAligner: Option[Aligner[GmosSouthLongSlit, GmosSouthLongSlitInput]] =
-            optModeAligner.flatMap:
+            optModeAligner(EmptyGmosSouthLongSlitInput).flatMap:
               _.zoomOpt(
                 ObservingMode.gmosSouthLongSlit,
                 modInput:
@@ -344,7 +347,7 @@ object ConfigurationTile:
               )
 
           val optFlamingos2Aligner: Option[Aligner[Flamingos2LongSlit, Flamingos2LongSlitInput]] =
-            optModeAligner.flatMap:
+            optModeAligner(EmptyF2LongSlitInput).flatMap:
               _.zoomOpt(
                 ObservingMode.flamingos2LongSlit,
                 modInput:
@@ -354,7 +357,7 @@ object ConfigurationTile:
               )
 
           val optGmosNorthImagingAligner: Option[Aligner[GmosNorthImaging, GmosNorthImagingInput]] =
-            optModeAligner.flatMap:
+            optModeAligner(EmptyGmosNorthImagingInput).flatMap:
               _.zoomOpt(
                 ObservingMode.gmosNorthImaging,
                 modInput:
@@ -364,7 +367,7 @@ object ConfigurationTile:
               )
 
           val optGmosSouthImagingAligner: Option[Aligner[GmosSouthImaging, GmosSouthImagingInput]] =
-            optModeAligner.flatMap:
+            optModeAligner(EmptyGmosSouthImagingInput).flatMap:
               _.zoomOpt(
                 ObservingMode.gmosSouthImaging,
                 modInput:
@@ -385,9 +388,6 @@ object ConfigurationTile:
           val reqsExposureTimeMode: Option[ExposureTimeMode] =
             props.requirements.get.exposureTimeMode
 
-          val spectroscopy: Option[Spectroscopy] =
-            ScienceRequirements.spectroscopy.getOption(requirementsView.get)
-
           React.Fragment(
             <.div(ExploreStyles.ConfigurationGrid)(
               props.obsConf.agsState
@@ -404,7 +404,7 @@ object ConfigurationTile:
                     props.isStaffOrAdmin
                   )
                 ),
-              if (optModeView.get.isEmpty)
+              if (props.mode.get.isEmpty)
                 props.obsConf.constraints
                   .map(constraints =>
                     BasicConfigurationPanel(
@@ -419,10 +419,11 @@ object ConfigurationTile:
                       props.selectedConfig.get
                         .toBasicConfiguration()
                         .map: bc =>
-                          updateConfiguration(props.obsId,
-                                              props.pacAndMode,
-                                              bc.toInput,
-                                              bc.obsModeType.defaultPosAngleOptions
+                          updateConfiguration(
+                            props.obsId,
+                            props.pacAndMode,
+                            bc.toInput,
+                            bc.obsModeType.defaultPosAngleOptions
                           )
                         .orEmpty,
                       props.modes,
@@ -435,37 +436,33 @@ object ConfigurationTile:
               else
                 React.Fragment(
                   // Gmos North Long Slit
-                  (optGmosNorthAligner, spectroscopy).mapN((northAligner, spec) =>
+                  optGmosNorthAligner.map: northAligner =>
                     GmosLongslitConfigPanel
                       .GmosNorthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         northAligner,
-                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.obsIsReadonly,
                         props.units
-                      )
-                  ),
+                      ),
                   // Gmos South Long Slit
-                  (optGmosSouthAligner, spectroscopy).mapN((southAligner, spec) =>
+                  optGmosSouthAligner.map: southAligner =>
                     GmosLongslitConfigPanel
                       .GmosSouthLongSlit(
                         props.programId,
                         props.obsId,
                         props.obsConf.calibrationRole,
                         southAligner,
-                        spec,
                         revertConfig,
                         props.modes.spectroscopy,
                         props.sequenceChanged,
                         props.obsIsReadonly,
                         props.units
-                      )
-                  ),
+                      ),
                   // Gmos North Imaging
                   optGmosNorthImagingAligner.map: aligner =>
                     GmosImagingConfigPanel.GmosNorthImaging(
@@ -493,13 +490,12 @@ object ConfigurationTile:
                       props.units
                     ),
                   // Flamingos2 Long Slit
-                  (optFlamingos2Aligner, spectroscopy).mapN((f2Aligner, spec) =>
+                  optFlamingos2Aligner.map: f2Aligner =>
                     Flamingos2LongslitConfigPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
                       f2Aligner,
-                      spec,
                       revertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,
@@ -507,7 +503,6 @@ object ConfigurationTile:
                       props.units,
                       props.isStaffOrAdmin
                     )
-                  )
                 )
             )
           )

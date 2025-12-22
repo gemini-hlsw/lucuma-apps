@@ -43,4 +43,11 @@ trait LucumaPrimeStyles:
 
   val TimeSpanInput: Css = Css("p-time-span-input")
 
+  val Header: Css      = Css("pl-header")
+  val SmallHeader: Css = Header |+| Small
+  val Disabled: Css    = Css("p-disabled")
+
+  val MenuItemLink: Css = Css("p-menuitem-link")
+  val MenuItemText: Css = Css("p-menuitem-text")
+
 object LucumaPrimeStyles extends LucumaPrimeStyles

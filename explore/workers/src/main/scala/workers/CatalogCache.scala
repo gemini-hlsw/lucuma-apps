@@ -18,6 +18,10 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
 import lucuma.core.model.Target
 import org.typelevel.log4cats.Logger
+<<<<<<< HEAD
+=======
+import org.typelevel.log4cats.LoggerFactory
+>>>>>>> main
 import org.typelevel.log4cats.syntax.*
 
 import java.time.LocalDateTime
@@ -27,7 +31,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 100
-  private val CacheVersion: Int = 6
+  private val CacheVersion: Int = 7
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -52,7 +56,9 @@ trait CatalogCache extends CatalogIDB:
     request:        CatalogMessage.GSRequest,
     candidatesArea: ShapeExpression,
     respond:        List[GuideStarCandidate] => IO[Unit]
-  )(using L: Logger[IO]): IO[Unit] = {
+  )(using LF: LoggerFactory[IO]): IO[Unit] = {
+    given Logger[IO] = LF.getLoggerFromName("catalog-cache")
+
     val CatalogMessage.GSRequest(tracking, obsTime, _) = request
 
     val brightnessConstraints = ags.widestConstraints
@@ -77,7 +83,7 @@ trait CatalogCache extends CatalogIDB:
             brightnessConstraints.some
           )
 
-        debug"requested catalog $query" *>
+        info"requested catalog $query" *>
           // Try to find it in the db
           readGuideStarCandidatesFromCache(idb, stores, query)
             .toF[IO]
@@ -88,17 +94,15 @@ trait CatalogCache extends CatalogIDB:
                 client
                   .queryGuideStars(query)
                   .map(
-                    _.collect { case Right(s) =>
+                    _.collect: case Right(s) =>
                       GuideStarCandidate.siderealTarget.get(s)
-                    }
                   )
-                  .flatMap { candidates =>
-                    debug"Catalog results from remote catalog: ${candidates.length} candidates" *>
+                  .flatMap: candidates =>
+                    info"Catalog results from remote catalog contain ${candidates.length} candidates" *>
                       respond(candidates) *>
                       storeGuideStarCandidates(idb, stores, query, candidates)
                         .toF[IO]
                         .handleError(e => L.error(e)("Error storing guidestar candidates"))
-                  }
                   .void
               ) { c =>
                 // Cache hit!

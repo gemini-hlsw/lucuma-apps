@@ -834,6 +834,7 @@ lazy val navigate_web_server = project
         JuliSlf4j.value ++
         Log4s.value ++
         Logback.value ++
+        LucumaHorizons.value ++
         Grackle.value ++
         In(Test)(
           MUnit.value ++

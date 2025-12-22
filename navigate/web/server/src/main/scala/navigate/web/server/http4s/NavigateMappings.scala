@@ -33,6 +33,7 @@ import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.EphemerisKey
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
@@ -40,6 +41,7 @@ import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Gid
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
 import mouse.boolean.given
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
@@ -600,6 +602,22 @@ class NavigateMappings[F[_]: Sync](
           .pure[F]
       )
 
+  def refreshEphemerisFiles(@annotation.unused env: Env): F[Result[OperationOutcome]] =
+    Result.success(OperationOutcome.success).pure[F]
+//    env
+//      .get[DateInterval]("dateInterval")
+//      .map(
+//        ephemerisUpdater.refreshEphemerides(_).attempt.map{
+//          case Right(()) => Result.success(OperationOutcome.success)
+//          case Left(e) => Result.internalError(e)
+//        }
+//      )
+//      .getOrElse(
+//        Result
+//          .failure[OperationOutcome]("Ephemeris file refresh parameter could not be parsed.")
+//          .pure[F]
+//      )
+
   def parameterlessCommand(cmd: F[CommandResult]): F[Result[OperationOutcome]] =
     cmd.attempt
       .map(convertResult)
@@ -1133,7 +1151,10 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("acWindowSize")((_, env) => acWindowSize(env)),
           RootEffect.computeEncodable("pwfs1CircularBuffer")((_, env) => pwfs1CircularBuffer(env)),
           RootEffect.computeEncodable("pwfs2CircularBuffer")((_, env) => pwfs2CircularBuffer(env)),
-          RootEffect.computeEncodable("oiwfsCircularBuffer")((_, env) => oiwfsCircularBuffer(env))
+          RootEffect.computeEncodable("oiwfsCircularBuffer")((_, env) => oiwfsCircularBuffer(env)),
+          RootEffect.computeEncodable("refreshEphemerisFiles")((_, env) =>
+            refreshEphemerisFiles(env)
+          )
         )
       ),
       ObjectMapping(
@@ -1378,10 +1399,20 @@ object NavigateMappings extends GrackleParsers {
   )
 
   def parseNonSiderealTarget(
-    @annotation.unused name: String,
-    @annotation.unused w:    Option[Wavelength],
-    @annotation.unused l:    List[(String, Value)]
-  ): Option[Target.SiderealTarget] = none
+    name: String,
+    w:    Option[Wavelength],
+    l:    List[(String, Value)]
+  ): Option[Target.EphemerisTarget] = (for {
+    keyType <- l.collectFirst { case ("keyType", EnumValue(v)) =>
+                 parseEnumerated[EphemerisKeyType](v)
+               }.flatten
+    des     <- l.collectFirst { case ("des", StringValue(v)) => v }
+    key     <- EphemerisKey.fromTypeAndDes.getOption(keyType, des)
+  } yield key)
+    .orElse(l.collectFirst { case ("key", StringValue(v)) =>
+      EphemerisKey.fromString.getOption(v)
+    }.flatten)
+    .map(k => Target.EphemerisTarget(name, w, navigate.web.server.ephemeris.ephemerisFileName(k)))
 
   def parseAzElTarget(
     name: String,
@@ -1612,7 +1643,7 @@ object NavigateMappings extends GrackleParsers {
                    }.flatten
           du    <- n.collectFirst { case ("deltaU", ObjectValue(m)) => parseAngle(m) }.flatten
           dv    <- n.collectFirst { case ("deltaV", ObjectValue(m)) => parseAngle(m) }.flatten
-          aa    <- n.collectFirst { case ("deltaV", ObjectValue(m)) => m } match {
+          aa    <- n.collectFirst { case ("alignAngle", ObjectValue(m)) => m } match {
                      case None    => Some(None)
                      case Some(x) => parseAngle(x).map(_.some)
                    }

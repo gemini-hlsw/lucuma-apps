@@ -16,6 +16,8 @@ import explore.cache.ModesCacheController
 import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
+import explore.common.UserPreferencesQueries
+import explore.components.ToastPortal
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
@@ -39,7 +41,6 @@ import lucuma.react.hotkeys.hooks.*
 import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Sidebar
-import lucuma.react.primereact.Toast
 import lucuma.react.primereact.ToastRef
 import lucuma.react.primereact.hooks.all.*
 import lucuma.refined.*
@@ -115,8 +116,7 @@ object ExploreLayout:
       bc.messages.evalMap:
         // This is coming from the js world, we can't match the type
         _.data.event match
-          // TODO: Handle logout events
-          case ExploreEvent.PWAUpdateId =>
+          case ExploreEvent.PWAUpdateId | ExploreEvent.PWATestToastId =>
             // Clear other toasts first
             toastRef.clear().toAsync *>
               toastRef
@@ -136,11 +136,11 @@ object ExploreLayout:
                     .runAsyncAndForget
                 )
                 .toAsync
-          case _                        => IO.unit
+          case _                                                      => IO.unit
 
   private val component =
     ScalaFnComponent[Props]: props =>
-      for
+      for {
         helpCtx              <- useContext(HelpContext.ctx)
         ctx                  <- useContext(AppContext.ctx)
         _                    <- useEffectWithDeps(
@@ -173,12 +173,30 @@ object ExploreLayout:
         // Reset the program cache when the program changes.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
                                   ctx.resetProgramCache(none)
+        // Track recently opened programs and update prefs db
+        _                    <- useEffectWithDeps(
+                                  (routingInfo.flatMap(_.optProgramId), props.model.userId)
+                                ):
+                                  case (Some(programId), Some(uid)) =>
+                                    import ctx.given
+
+                                    val act = props.model.rootModel
+                                      .zoom(RootModel.globalPreferences)
+                                      .withOnMod:
+                                        case Some(gp) =>
+                                          UserPreferencesQueries.LastOpenProgramsPreference
+                                            .setPrograms[IO](uid, gp.lastOpenPrograms)
+                                            .runAsync
+                                        case _        => Callback.empty
+
+                                    act.mod(_.openedProgram(programId))
+                                  case _                            => Callback.empty
         // Reset the program cache when there's an error signal.
         _                    <- useEffectStreamResourceOnMount:
                                   ctx.resetProgramCacheTopic.subscribeAwaitUnbounded.map:
                                     _.unNone.evalMap: err =>
                                       programError.setStateAsync(err.some)
-      yield
+      } yield
         import ctx.given
 
         val view: View[RootModel] = props.model.rootModel
@@ -192,7 +210,6 @@ object ExploreLayout:
         val userVault: View[Option[UserVault]] = view.zoom(RootModel.vault)
 
         React.Fragment(
-          Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(toastRef.ref),
           // On Error we show a modal dialog with the error message while we reload.
           programError.value
             .map(error =>
@@ -338,7 +355,6 @@ object ExploreLayout:
                               routingInfo.optProgramId,
                               programSummaries.toOption
                                 .flatMap(_.programOrProposalReference),
-                              view.zoom(RootModel.localPreferences).get,
                               view.zoom(RootModel.undoStacks),
                               props.model.programSummaries.throttlerView
                                 .zoom(Pot.readyPrism)
@@ -398,5 +414,6 @@ object ExploreLayout:
               }
               .getOrElse:
                 props.resolution.renderP(props.model)
-          )
+          ),
+          ToastPortal(toastRef)
         )

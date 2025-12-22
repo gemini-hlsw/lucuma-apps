@@ -37,6 +37,7 @@ import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -69,10 +70,11 @@ case class TargetTabContents(
   focused:          Focused,
   searching:        View[Set[Target.Id]],
   expandedIds:      View[SortedSet[ObsIdSet]],
-  // attachments:      View[AttachmentList],
   authToken:        Option[NonEmptyString],
   readonly:         Boolean
 ) extends ReactFnProps(TargetTabContents.component):
+  private val programType: Option[ProgramType] = programSummaries.get.programType
+
   private val targets: UndoSetter[TargetList] = programSummaries.zoom(ProgramSummaries.targets)
 
   private val focusedIds: Option[Either[Target.Id, ObsIdSet]] =
@@ -329,6 +331,8 @@ object TargetTabContents extends TwoPanels:
                 .flatMap: targetId =>
                   props.targets.get
                     .get(targetId)
+                    // TODO: Handle non-sidereal targets in plots - filter them out for now
+                    .filterNot(twid => Target.nonsidereal.getOption(twid.target).isDefined)
                     .flatMap: targetWithId =>
                       Tracking
                         .fromTarget(targetWithId.target)
@@ -521,38 +525,39 @@ object TargetTabContents extends TwoPanels:
                 )
 
             val asterismEditorTile =
-              ObservationTargetsEditorTile(
-                props.userId,
-                props.isStaff,
-                TargetTabTileIds.AsterismEditor.id,
-                props.programId,
-                idsToEdit,
-                props.obsAndTargets,
-                obsTimeView,
-                obsDurationView,
-                ObsConfiguration.forPlainTarget(
-                  configuration,
-                  constraints,
-                  wavelength,
-                  needsAGS
-                ),
-                none[ExecutionDigest].asReady,
-                props.focused.target,
-                setCurrentTarget(idsToEdit.some),
-                onCloneTarget4Asterism,
-                onAsterismUpdate,
-                getObsInfo(idsToEdit.some),
-                props.searching,
-                title,
-                props.userPreferences,
-                guideStarSelection,
-                props.attachments,
-                props.authToken,
-                props.readonly,
-                allowEditingOngoing =
-                  false, // only allow editing of ongoing observations from the obs tab
-                backButton = backButton.some
-              )
+              props.programType.map: programType =>
+                ObservationTargetsEditorTile(
+                  props.userId,
+                  TargetTabTileIds.AsterismEditor.id,
+                  props.programId,
+                  programType,
+                  idsToEdit,
+                  props.obsAndTargets,
+                  obsTimeView,
+                  obsDurationView,
+                  ObsConfiguration.forPlainTarget(
+                    configuration,
+                    constraints,
+                    wavelength,
+                    needsAGS
+                  ),
+                  none[ExecutionDigest].asReady,
+                  props.focused.target,
+                  setCurrentTarget(idsToEdit.some),
+                  onCloneTarget4Asterism,
+                  onAsterismUpdate,
+                  getObsInfo(idsToEdit.some),
+                  props.searching,
+                  title,
+                  props.userPreferences,
+                  guideStarSelection,
+                  props.attachments,
+                  props.authToken,
+                  props.readonly,
+                  allowEditingOngoing =
+                    false, // only allow editing of ongoing observations from the obs tab
+                  backButton = backButton.some
+                )
 
             val skyPlotTile: Tile[?] =
               ElevationPlotTile(
@@ -566,9 +571,9 @@ object TargetTabContents extends TwoPanels:
                 Nil,
                 props.globalPreferences.get,
                 Constants.NoTargetSelected
-              )
+              ).some
 
-            List(asterismEditorTile, skyPlotTile)
+            List(asterismEditorTile, skyPlotTile).flattenOption
           }
 
           // We still want to render these 2 tiles, even when not shown, so as not to mess up the stored layout.
@@ -588,11 +593,11 @@ object TargetTabContents extends TwoPanels:
                 ctx.replacePage:
                   (AppTab.Targets, props.programId, Focused.target(params.idToAdd)).some
 
-            props.targets
-              .zoom(Iso.id[TargetList].index(targetId))
-              .map: target =>
+            (props.targets.zoom(Iso.id[TargetList].index(targetId)), props.programType)
+              .mapN: (target, programType) =>
                 TargetEditorTile.noObsTargetEditorTile(
                   props.programId,
+                  programType,
                   props.userId,
                   props.isStaff,
                   target,

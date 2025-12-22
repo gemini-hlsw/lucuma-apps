@@ -16,7 +16,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.geom.OffsetGenerator.*
+// import lucuma.core.geom.OffsetGenerator.*
 import lucuma.core.math.*
 import lucuma.core.util.Display
 import lucuma.react.common.*
@@ -54,30 +54,30 @@ object OffsetEditor {
     val side  = math.ceil(math.sqrt(count.toDouble)).toInt
     PosInt.from(side).getOrElse(1.refined)
 
-  private def generateCurrentGrid(
-    currentParams: GridParams,
-    pointCount:    PosInt,
-    updatePreview: List[Offset] => Callback
-  )(using Logger[IO]): Callback =
-    currentParams match {
-      case r: RectangularParams =>
-        val dim     = squareGridDimension(pointCount)
-        val newGrid = grid(dim, dim, r.stepP, r.stepQ)
-        updatePreview(newGrid.toList)
-
-      case s: SpiralParams =>
-        spiral[IO](pointCount, s.size)
-          .flatMap(offsets => updatePreview(offsets.toList).to[IO])
-          .runAsync
-
-      case r: RandomParams =>
-        random[IO](pointCount, r.size)
-          .flatMap(offsets => updatePreview(offsets.toList).to[IO])
-          .runAsync
-    }
+  // private def generateCurrentGrid(
+  //   currentParams: GridParams,
+  //   pointCount:    PosInt,
+  //   updatePreview: List[Offset] => Callback
+  // )(using Logger[IO]): Callback =
+  // currentParams match {
+  //   case r: RectangularParams =>
+  //     val dim     = squareGridDimension(pointCount)
+  //     val newGrid = grid(dim, dim, r.stepP, r.stepQ)
+  //     updatePreview(newGrid.toList)
+  //
+  //   case s: SpiralParams =>
+  //     spiral[IO](pointCount, s.size)
+  //       .flatMap(offsets => updatePreview(offsets.toList).to[IO])
+  //       .runAsync
+  //
+  //   case r: RandomParams =>
+  //     random[IO](pointCount, r.size)
+  //       .flatMap(offsets => updatePreview(offsets.toList).to[IO])
+  //       .runAsync
+  // }
 
   val component = ScalaFnComponent[Props]: props =>
-    import props.given
+    // import props.given
 
     val dim = squareGridDimension(props.pointCount)
 
@@ -97,14 +97,14 @@ object OffsetEditor {
                         }
       updateOffsets   =
         (offsets: List[Offset]) => previewOffsets.setState(offsets.some) *> props.onUpdate(offsets)
-      _              <- useEffectOnMount {
-                          generateCurrentGrid(params, props.pointCount, updateOffsets)
-                            .unless_(props.hasOffsets)
-                        }
-      _              <- useEffectWithDeps(params): params =>
-                          isInitialMount.setState(false) *>
-                            generateCurrentGrid(params, props.pointCount, updateOffsets)
-                              .unless_(isInitialMount.value && props.hasOffsets)
+      // _              <- useEffectOnMount {
+      //                     generateCurrentGrid(params, props.pointCount, updateOffsets)
+      //                       .unless_(props.hasOffsets)
+      //                   }
+      // _              <- useEffectWithDeps(params): params =>
+      //                     isInitialMount.setState(false) *>
+      //                       generateCurrentGrid(params, props.pointCount, updateOffsets)
+      //                         .unless_(isInitialMount.value && props.hasOffsets)
       _              <- useEffectWithDeps(props.pointCount): pointCount =>
                           val dim = squareGridDimension(pointCount)
                           rectParams.mod(_.copy(rows = dim, cols = dim))
@@ -255,8 +255,8 @@ object OffsetEditor {
                       text = false,
                       icon = Icons.ArrowsRepeat,
                       severity = Button.Severity.Success,
-                      clazz = ExploreStyles.OffsetRegenerate,
-                      onClick = generateCurrentGrid(params, props.pointCount, updateOffsets)
+                      clazz = ExploreStyles.OffsetRegenerate
+                      // onClick = generateCurrentGrid(params, props.pointCount, updateOffsets)
                     ).mini.compact
                   )
               },

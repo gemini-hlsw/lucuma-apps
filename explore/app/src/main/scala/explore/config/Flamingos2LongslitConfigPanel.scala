@@ -13,7 +13,6 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Observation
-import explore.model.ScienceRequirements
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
@@ -38,17 +37,16 @@ import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
 final case class Flamingos2LongslitConfigPanel(
-  programId:                Program.Id,
-  obsId:                    Observation.Id,
-  calibrationRole:          Option[CalibrationRole],
-  observingMode:            Aligner[ObservingMode.Flamingos2LongSlit, Flamingos2LongSlitInput],
-  spectroscopyRequirements: ScienceRequirements.Spectroscopy,
-  revertConfig:             Callback,
-  confMatrix:               SpectroscopyModesMatrix,
-  sequenceChanged:          Callback,
-  readonly:                 Boolean,
-  units:                    WavelengthUnits,
-  isStaff:                  Boolean
+  programId:       Program.Id,
+  obsId:           Observation.Id,
+  calibrationRole: Option[CalibrationRole],
+  observingMode:   Aligner[ObservingMode.Flamingos2LongSlit, Flamingos2LongSlitInput],
+  revertConfig:    Callback,
+  confMatrix:      SpectroscopyModesMatrix,
+  sequenceChanged: Callback,
+  readonly:        Boolean,
+  units:           WavelengthUnits,
+  isStaff:         Boolean
 ) extends ReactFnProps(Flamingos2LongslitConfigPanel)
 
 object Flamingos2LongslitConfigPanel
@@ -56,7 +54,7 @@ object Flamingos2LongslitConfigPanel
       for
         ctx       <- useContext(AppContext.ctx)
         modeData  <-
-          useModeData(props.confMatrix, props.spectroscopyRequirements, props.observingMode.get)
+          useModeData(props.confMatrix, props.observingMode.get)
         editState <- useStateView(ConfigEditState.View)
       yield
         import ctx.given
@@ -182,7 +180,7 @@ object Flamingos2LongslitConfigPanel
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
                 props.observingMode.get.instrument.some,
-                props.spectroscopyRequirements.wavelength,
+                none,
                 exposureTimeMode,
                 ScienceMode.Spectroscopy,
                 props.readonly,
@@ -232,7 +230,7 @@ object Flamingos2LongslitConfigPanel
                   LucumaPrimeStyles.FormColumnCompact,
                   ExposureTimeModeEditor(
                     props.observingMode.get.instrument.some,
-                    props.spectroscopyRequirements.wavelength,
+                    none,
                     acquisitionExposureTimeView,
                     ScienceMode.Imaging,
                     props.readonly,

@@ -105,6 +105,14 @@ object ObsSummaryTile extends ObsSummaryColumns:
     given Reusability[UUID] = Reusability.byEq
 
     private val component = ScalaFnComponent[Body]: props =>
+      // If it's in a calibration group, we use its parent.
+      def obsGroup(groupId: Option[Group.Id], groups: GroupList): Option[Group] =
+        groupId
+          .flatMap(id => props.groups.get.get(id))
+          .flatMap:
+            case g if g.isTelluricCalibration => obsGroup(g.parentId, groups)
+            case g                            => g.some
+
       for {
         ctx     <- useContext(AppContext.ctx)
         cols    <- useMemo(()):                           // Columns
@@ -125,7 +133,7 @@ object ObsSummaryTile extends ObsSummaryColumns:
                              obs,
                              targets.headOption,
                              asterism,
-                             obs.groupId.flatMap(groups.get)
+                             obsGroup(obs.groupId, groups)
                            ),
                            // Only expand if there are multiple targets
                            if (targets.sizeIs > 1)

@@ -1586,6 +1586,37 @@ svg.fa-check.explore-success-icon {
   .p-menuitem-icon {
     width: 1.2rem;
   }
+
+  .recent-program-link.p-menuitem {
+    width: 100%;
+    max-width: 200px;
+
+    .p-menuitem-content {
+      width: 100%;
+    }
+  }
+
+  .recent-program-link a {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    display: flex;
+    padding: var(--inline-spacing) var(--content-padding);
+    justify-content: space-between;
+
+    .recent-program-id {
+      margin-right: 1rem;
+      width: 80px;
+    }
+
+    .recent-program-name {
+      @include lucumaUICommon.text-ellipsis;
+    }
+
+    &:hover {
+      background: var(--highlight-bg);
+    }
+  }
 }
 
 .group-edit-tile {
@@ -3498,11 +3529,10 @@ div.spectroscopy-table-emptymessage {
   }
 }
 
-// Needed to make sure the PWA update toast is always on top
-.p-toast,
-// has not working properely on FF
-.p-toast:has(.explore-prompt-toast) {
-  z-index: 2000;
+.toast-portal {
+  .p-toast {
+    z-index: 2147483647 !important;
+  }
 }
 
 a.explore-upgrade-link {

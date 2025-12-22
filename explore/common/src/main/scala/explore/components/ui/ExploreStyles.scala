@@ -13,6 +13,9 @@ object ExploreStyles:
 
   val HideReusability   = Css("hide-reusability")
   val TopMenu           = Css("explore-top-menu")
+  val RecentProgramLink = Css("recent-program-link")
+  val RecentProgramId   = Css("recent-program-id")
+  val RecentProgramName = Css("recent-program-name")
   val GlobalErrorDialog = Css("explore-global-error-dialog")
 
   val Tile: Css                        = Css("explore-tile")
@@ -515,12 +518,7 @@ object ExploreStyles:
 
   val SummaryTableToolbar: Css = Css("summary-table-toolbar")
 
-  // TODO: to lucuma-ui
-  val Header: Css      = Css("pl-header")
-  val SmallHeader: Css = Header |+| lucuma.ui.primereact.LucumaPrimeStyles.Small
-  // Move to PrimeReactStyles
-  val Disabled: Css    = Css("p-disabled")
-  val FormValue: Css   = Css("explore-value-field")
+  val FormValue: Css = Css("explore-value-field")
 
   // Timing Windows
   val TimingWindowsBody: Css                    = Css("timing-windows-body")

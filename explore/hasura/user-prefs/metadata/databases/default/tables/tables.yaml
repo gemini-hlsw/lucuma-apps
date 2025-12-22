@@ -1,6 +1,7 @@
 - "!include public_ItcChartType.yaml"
 - "!include public_exploreAsterismPreferences.yaml"
 - "!include public_exploreFinderChart.yaml"
+- "!include public_exploreLogLevel.yaml"
 - "!include public_explorePlotRange.yaml"
 - "!include public_explorePlotTime.yaml"
 - "!include public_lucumaAsterism.yaml"

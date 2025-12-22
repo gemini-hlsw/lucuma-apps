@@ -36,6 +36,7 @@ import lucuma.core.util.NewType
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.ObservingMode
 import monocle.Getter
 import monocle.Lens
 import monocle.macros.GenLens
@@ -46,9 +47,7 @@ trait ModeCommonWavelengths {
   val λmax: ModeWavelength
   val λdelta: WavelengthDelta
 
-  def wavelengthInterval(
-    λ: Wavelength
-  ): Option[BoundedInterval[Wavelength]] =
+  def wavelengthInterval(λ: Wavelength): Option[BoundedInterval[Wavelength]] =
     val λr      = λdelta
     // Coverage of allowed wavelength
     // Can be simplified once coulomb-refined is available
@@ -261,6 +260,41 @@ object SpectroscopyModeRow {
 case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq {
   val ScoreBump   = Rational(1, 2)
   val FilterLimit = Wavelength.fromIntNanometers(650)
+
+  // Retrieves a row by grating and filter from an observing mode.
+  def getRowByInstrumentConfig(observingMode: ObservingMode): Option[SpectroscopyModeRow] =
+    observingMode match
+      case ObservingMode.GmosNorthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
+        matrix.find: row =>
+          row.instrument match
+            case ItcInstrumentConfig.GmosNorthSpectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = rFpu
+                ) =>
+              rGrating === grating && rFilter === filter && rFpu === fpu
+            case _ => false
+      case ObservingMode.GmosSouthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
+        matrix.find: row =>
+          row.instrument match
+            case ItcInstrumentConfig.GmosSouthSpectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = rFpu
+                ) =>
+              rGrating === grating && rFilter === filter && rFpu === fpu
+            case _ => false
+      case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
+        matrix.find: row =>
+          row.instrument match
+            case ItcInstrumentConfig.Flamingos2Spectroscopy(
+                  grating = rGrating,
+                  filter = rFilter,
+                  fpu = rFpu
+                ) =>
+              rGrating === disperser && rFilter === filter && rFpu === fpu
+            case _ => false
+      case _                                                                                   => none
 
   def filtered(
     focalPlane:  Option[FocalPlane] = None,

@@ -18,8 +18,10 @@ import lucuma.core.geom.gmos
 import org.http4s.client.middleware.RequestLogger
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
-import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.LoggerFactory
 
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -35,16 +37,23 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
   private val Expiration: Duration           = Duration.ofDays(30)
   private val RequestTimeout: FiniteDuration = FiniteDuration(300, TimeUnit.SECONDS)
 
-  protected val handler: Logger[IO] ?=> IO[Invocation => IO[Unit]] =
-    for
+  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
+    for {
       self      <- IO(dom.DedicatedWorkerGlobalScope.self)
       idb       <- IO(self.indexedDB.toOption)
       stores     = CacheIDBStores()
       cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
       rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
-      httpClient = RequestLogger(logHeaders = true, logBody = true)(rawClient)
+      log       <- IO(summon[LoggerFactory[IO]].getLoggerFromName("catalog-server"))
+      httpClient = RequestLogger(
+                     logHeaders = true,
+                     logBody = false,
+                     logAction = Some((msg: String) =>
+                       log.info(URLDecoder.decode(msg, StandardCharsets.UTF_8))
+                     )
+                   )(rawClient)
       client     = GaiaClient.build(httpClient)
-    yield invocation =>
+    } yield invocation =>
       invocation.data match
         case CatalogMessage.CleanCache                     =>
           cacheDb.traverse(stores.clean(_).toF[IO]).void
@@ -62,9 +71,9 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
           readFromGaia(client, cacheDb, stores, req, candidatesArea, c => invocation.respond(c)) *>
             expireGuideStarCandidates(cacheDb, stores, Expiration)
               .toF[IO]
-              .handleErrorWith(e => Logger[IO].error(e)("Error expiring guidestar candidates"))
+              .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))
 
         case CatalogMessage.GSCacheCleanupRequest(expTime) =>
           expireGuideStarCandidates(cacheDb, stores, expTime)
             .toF[IO]
-            .handleErrorWith(e => Logger[IO].error(e)("Error expiring guidestar candidates"))
+            .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))

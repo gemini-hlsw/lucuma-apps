@@ -430,6 +430,81 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Process slew command with ephemeris target") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+          |mutation { slew (
+          |  slewOptions: {
+          |    zeroChopThrow: true
+          |    zeroSourceOffset: true
+          |    zeroSourceDiffTrack: true
+          |    zeroMountOffset: true
+          |    zeroMountDiffTrack: true
+          |    shortcircuitTargetFilter: true
+          |    shortcircuitMountFilter: true
+          |    resetPointing: true
+          |    stopGuide: true
+          |    zeroGuideOffset: true
+          |    zeroInstrumentOffset: true
+          |    autoparkPwfs1: true
+          |    autoparkPwfs2: true
+          |    autoparkOiwfs: true
+          |    autoparkGems: true
+          |    autoparkAowfs: true
+          |  },
+          |  config: {
+          |    sourceATarget: {
+          |      id: "T0001"
+          |      name: "Dummy"
+          |      nonsidereal: {
+          |        keyType: ASTEROID_NEW
+          |        des: "Dummy"
+          |      }
+          |    }
+          |    instParams: {
+          |      iaa: {
+          |        degrees: 178.38
+          |      }
+          |      focusOffset: {
+          |         micrometers: 1234
+          |      }
+          |      agName: "gmos"
+          |      origin: {
+          |        x: {
+          |          milliarcseconds: 3012
+          |        }
+          |        y: {
+          |          milliarcseconds: -1234
+          |        }
+          |      }
+          |    }
+          |    rotator: {
+          |      ipa: {
+          |        degrees: 89.76
+          |      }
+          |      mode: TRACKING
+          |    }
+          |    instrument: GMOS_NORTH
+          |    baffles: {
+          |      manualConfig: {
+          |        centralBaffle: OPEN
+          |        deployableBaffle: VISIBLE
+          |      }
+          |    }
+          |  },
+          |  obsId: null
+          |) {
+          |  result
+          |} }
+          |""".stripMargin
+            )
+    } yield assert(
+      extractResult[OperationOutcome](r, "slew").exists(_ === OperationOutcome.success)
+    )
+  }
+
   test("Process TCS configure command") {
     for {
       mp <- buildMapping()

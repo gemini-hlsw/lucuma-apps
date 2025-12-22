@@ -224,15 +224,16 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  else
                                    // get it for the full observing night for visualization purposes.
                                    getTrackingForObservingNightMap(targets.allTargets.toList, s, at)
-      obsTargetsCoordsPot <- useMemo((props.obsTargets, props.obsTime, trackingMapResult.value)):
-                               (targets, at, trPot) =>
-                                 trPot.map(tr =>
-                                   // Don't need coords for TOO observations, either
-                                   if (targets.hasTargetOfOpportunity)
-                                     ObservationTargetsCoordinatesAt.emptyAt(at)
-                                   else
-                                     tr.flatMap(map => targets.coordinatesAt(at, map))
-                                 )
+      obsTargetsCoordsPot <-
+        useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
+          (targets, at, trPot) =>
+            trPot.map(tr =>
+              // Don't need coords for TOO observations, either
+              if (targets.hasTargetOfOpportunity)
+                ObservationTargetsCoordinatesAt.emptyAt(at)
+              else
+                tr.flatMap(map => targets.coordinatesAt(at, map))
+            )
       // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates          <-
         useEffectResultWithDeps(
@@ -385,7 +386,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          throw new NotImplementedError("Gmos Imaging not implemented")
                                      }
 
-                                     val isUnbounded = props.obsConf.flatMap(_.posAngleConstraint)
+                                     val isUnbounded = props.obsConf
+                                       .flatMap(_.posAngleConstraint)
                                        .exists(_ == PosAngleConstraint.Unbounded)
 
                                      val request: Option[AgsMessage.AgsRequest] =
@@ -558,7 +560,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                     agsState.get,
                     props.modeSelected,
                     props.durationAvailable,
-                    candidates.value.nonEmpty
+                    candidates.value.value.nonEmpty
                   )
                 )
           else EmptyVdom

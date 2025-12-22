@@ -6,6 +6,7 @@ package queries.schemas
 import clue.annotation.GraphQLSchema
 import io.circe.Decoder
 import io.circe.Encoder
+import io.circe.Json
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
@@ -36,6 +37,7 @@ trait UserPreferencesDB:
     type TargetId      = Target.Id
     type ResizableArea = String
     type Bigint        = Long
+    type Jsonb         = Json
 
   object Enums:
     type ItcChartTypeEnum             = lucuma.itc.GraphType
