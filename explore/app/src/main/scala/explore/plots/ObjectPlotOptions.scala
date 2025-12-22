@@ -7,7 +7,6 @@ import cats.*
 import cats.derived.*
 import cats.syntax.all.*
 import explore.model.ElevationPlotScheduling
-import explore.model.deprecatedExtensions.*
 import explore.model.enums.PlotRange
 import explore.model.enums.TimeDisplay
 import japgolly.scalajs.react.ReactCats.*
@@ -15,10 +14,8 @@ import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.Site
 import lucuma.core.enums.TwilightType
 import lucuma.core.math.BoundedInterval
-import lucuma.core.math.Coordinates
 import lucuma.core.model.ObservingNight
 import lucuma.core.model.Semester
-import lucuma.core.model.Tracking
 import monocle.Focus
 import org.typelevel.cats.time.given
 
@@ -100,22 +97,10 @@ object ObjectPlotOptions:
 
   def default(
     predefinedSite:  Option[Site],
-    observationTime: Option[Instant],
-    tracking:        Option[Tracking]
+    observationTime: Option[Instant]
   ) =
-    val coords: Option[Coordinates] =
-      for
-        time <- observationTime
-        t    <- tracking
-      yield t.at(time).getOrElse(t.baseCoordinatesDeprecated)
-    val site: Site                  =
-      predefinedSite
-        .orElse:
-          coords
-            .map: c =>
-              if (c.dec.toAngle.toSignedDoubleDegrees > -5) Site.GN else Site.GS
-        .getOrElse(Site.GN)
-    val (date, semester)            = dateAndSemesterOf(observationTime, site)
+    val site: Site       = predefinedSite.getOrElse(Site.GN)
+    val (date, semester) = dateAndSemesterOf(observationTime, site)
 
     ObjectPlotOptions(
       site,

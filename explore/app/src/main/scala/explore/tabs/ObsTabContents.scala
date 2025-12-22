@@ -241,12 +241,12 @@ object ObsTabContents extends TwoPanels:
                 .flattenOption
                 .map: obs =>
                   obs
-                    .asterismTracking(props.programSummaries.get.targets)
-                    .map: tracking =>
+                    .scienceTargetsForTracking(props.programSummaries.get.targets)
+                    .map: targets =>
                       ObjectPlotData.Id(obs.id.asLeft) ->
                         ObjectPlotData(
                           NonEmptyString.unsafeFrom(s"${obs.title} (${obs.id.toString})"),
-                          tracking,
+                          targets,
                           obs.basicConfiguration.foldMap(conf => List(conf.siteFor))
                         )
                 .flattenOption

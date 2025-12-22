@@ -10,11 +10,12 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.ErrorMsgOr
 import explore.model.ExploreModelValidators.*
+import explore.model.RegionOrCoordinatesAt
 import explore.model.conversions.*
 import explore.model.display.given
 import explore.model.enums.SourceProfileType
-import explore.model.extensions.*
 import explore.model.formats.*
 import explore.optics.all.*
 import explore.syntax.ui.*
@@ -24,13 +25,11 @@ import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.ApparentRadialVelocity
 import lucuma.core.math.Arc
 import lucuma.core.math.BrightnessValue
-import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
 import lucuma.core.math.Epoch
 import lucuma.core.math.Parallax
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Redshift
-import lucuma.core.math.Region
 import lucuma.core.math.RightAscension
 import lucuma.core.math.dimensional.Measure
 import lucuma.core.math.validation.MathValidators
@@ -39,6 +38,7 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.schemas.model.TargetWithMetadata
 import lucuma.ui.react.given
 
@@ -76,8 +76,9 @@ object TargetColumns:
 
   val RaDecColNames: TreeSeqMap[ColumnId, String] =
     TreeSeqMap(
-      RAColumnId  -> "RA",
-      DecColumnId -> "Dec"
+      RAColumnId    -> "RA",
+      DecColumnId   -> "Dec",
+      EpochColumnId -> "Epoch"
     )
 
   val BandColNames: TreeSeqMap[ColumnId, String] =
@@ -85,7 +86,6 @@ object TargetColumns:
 
   val SiderealColNames: TreeSeqMap[ColumnId, String] =
     TreeSeqMap(
-      EpochColumnId      -> "Epoch",
       PMRAColumnId       -> "µ RA",
       PMDecColumnId      -> "µ Dec",
       RVColumnId         -> "RV",
@@ -156,7 +156,7 @@ object TargetColumns:
 
     trait CommonRaDec[D, TM, CM, TF](
       colDef:      ColumnDef.Applied[D, TM, CM, TF],
-      getLocation: D => Option[Either[Coordinates, Region]]
+      getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ):
       val RaDecColumns: List[colDef.Type] =
         List(
@@ -167,6 +167,12 @@ object TargetColumns:
           colDef(DecColumnId, d => getLocation(d).dec, RaDecColNames(DecColumnId))
             .withCell(_.value.format(MathValidators.truncatedDec.reverseGet))
             .withSize(100.toPx)
+            .sortable,
+          colDef(EpochColumnId, d => getLocation(d).epoch, RaDecColNames(EpochColumnId))
+            .withCell(
+              _.value.map(Epoch.fromString.reverseGet).orEmpty
+            )
+            .withSize(90.toPx)
             .sortable
         )
 
@@ -216,15 +222,6 @@ object TargetColumns:
 
       val SiderealColumns: List[colDef.Type] =
         List(
-          siderealColumn(EpochColumnId, Target.Sidereal.epoch.get)
-            .withCell(
-              _.value
-                .map: value =>
-                  s"${value.scheme.prefix}${Epoch.fromStringNoScheme.reverseGet(value)}"
-                .orEmpty
-            )
-            .withSize(90.toPx)
-            .sortable,
           siderealColumnOpt(PMRAColumnId, Target.Sidereal.properMotionRA.getOption)
             .withCell(_.value.map(pmRAValidWedge.reverseGet).orEmpty)
             .withSize(90.toPx)
@@ -251,14 +248,15 @@ object TargetColumns:
         )
 
     case class ForProgram[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+      colDef:      ColumnDef.Applied[D, TM, CM, TF],
+      getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ) extends Common(colDef)
-        with CommonRaDec(colDef, _.target.baseCoordsOrRegion)
+        with CommonRaDec(colDef, getLocation)
         with CommonBand(colDef)
         with CommonSidereal(colDef):
       def icon(t: TargetWithMetadata): VdomNode =
         if (t.disposition === TargetDisposition.BlindOffset)
-          Icons.EyeSlash.fixedWidthWithTooltip("Blind Offset")
+          Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
         else t.target.iconWithTooltip
       val BaseColumns: List[colDef.Type]        =
         List(
@@ -309,7 +307,14 @@ object TargetColumns:
     ) extends Common(colDef)
         with CommonRaDec(
           colDef,
-          t => Target.sidereal.getOption(t.target).map(_.tracking.baseCoordinates.asLeft)
+          t =>
+            Target.sidereal
+              .getOption(t.target)
+              .map: sidereal =>
+                CoordinatesAt(
+                  sidereal.tracking.epoch.toInstant,
+                  sidereal.tracking.baseCoordinates
+                ).asRight.asRight
         )
         with CommonBand(colDef)
         with CommonSidereal(colDef):

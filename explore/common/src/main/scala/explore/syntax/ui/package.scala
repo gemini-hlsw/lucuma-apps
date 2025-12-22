@@ -4,6 +4,7 @@
 package explore.syntax.ui
 
 import cats.*
+import cats.data.NonEmptyList
 import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import clue.ResponseException
@@ -14,6 +15,9 @@ import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.components.ui.PartnerFlags
 import explore.model.Constants
+import explore.model.ErrorMsgOr
+import explore.model.RegionOrCoordinatesAt
+import explore.model.RegionOrTracking
 import explore.model.display.given
 import explore.model.syntax.all.*
 import explore.optics.GetAdjust
@@ -24,11 +28,17 @@ import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ArcType
 import lucuma.core.enums.Partner
 import lucuma.core.enums.TimeAccountingCategory
+import lucuma.core.math.Arc
+import lucuma.core.math.Declination
+import lucuma.core.math.Epoch
+import lucuma.core.math.RightAscension
 import lucuma.core.model.EphemerisKey
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.core.util.CalculatedValue
@@ -38,6 +48,7 @@ import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
+import lucuma.schemas.model.CoordinatesAt
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.pot.*
 import org.http4s.Uri
@@ -46,6 +57,7 @@ import org.scalajs.dom.HTMLElement
 import org.scalajs.dom.Window
 import org.typelevel.log4cats.Logger
 
+import scala.annotation.targetName
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
 
@@ -201,28 +213,35 @@ extension (icon: FontAwesomeIcon)
     <.span(icon.withFixedWidth()).withTooltip(content = tooltip)
 
 extension (target: Target)
-  def iconWithTooltip: VdomNode         =
+  def iconWithTooltip: VdomNode                                     =
     target match
       case Target.Sidereal(_, _, _, _) => Icons.Star.fixedWidthWithTooltip("Sidereal")
       case Target.Nonsidereal(_, _, _) => Icons.PlanetRinged.fixedWidthWithTooltip("Non-sidereal")
       case Target.Opportunity(_, _, _) =>
         Icons.HourglassClock.fixedWidthWithTooltip("Target of Opportunity")
-  def catalogId: Option[String]         = target match
+  def catalogId: Option[String]                                     = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.id.value)
     case ns: Target.Nonsidereal => ns.ephemerisKey.des.some
     case o: Target.Opportunity  => none
-  def catalogName: Option[String]       = target match
+  def catalogName: Option[String]                                   = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.catalog.shortName)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
     case o: Target.Opportunity  => none
-  def catalogUriString: Option[String]  = target match
+  def catalogUriString: Option[String]                              = target match
     case s: Target.Sidereal     => s.catalogInfo.map(_.objectUrl.toString)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogUri.map(_.toString)
     case o: Target.Opportunity  => none
-  def catalogObjectType: Option[String] = target match
+  def catalogObjectType: Option[String]                             = target match
     case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
     case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.shortName.some
     case o: Target.Opportunity  => none
+  def regionOrBaseCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = target match
+    // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
+    // below, but there wll never be an error. Non-sidereals return a none.
+    case Target.Sidereal(_, tracking, _, _) =>
+      CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.asRight.some
+    case Target.Nonsidereal(_, _, _)        => none
+    case Target.Opportunity(_, region, _)   => region.asLeft.asRight.some
 
 extension (ek: EphemerisKey)
   def catalogName: String                        = ek match
@@ -242,3 +261,41 @@ extension (ek: EphemerisKey)
   def horizonsKey: Option[EphemerisKey.Horizons] = ek match
     case k: EphemerisKey.Horizons => k.some
     case _                        => none
+
+extension [A](arc: Arc[A])
+  def format(f: A => String): String = arc match
+    case Arc.Empty()             => "Empty"
+    case Arc.Full()              => "Full"
+    case Arc.Partial(start, end) => s"${f(start)} - ${f(end)}"
+  def toArcType: ArcType             = arc match
+    case Arc.Empty()       => ArcType.Empty
+    case Arc.Full()        => ArcType.Full
+    case Arc.Partial(_, _) => ArcType.Partial
+
+extension (regionOrCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]])
+  def ra: Option[ErrorMsgOr[Either[Arc[RightAscension], RightAscension]]] =
+    regionOrCoords.map(_.map(_.bimap(_.raArc, _.coordinates.ra)))
+  def dec: Option[ErrorMsgOr[Either[Arc[Declination], Declination]]]      =
+    regionOrCoords.map(_.map(_.bimap(_.decArc, _.coordinates.dec)))
+  def epoch: Option[Epoch]                                                =
+    regionOrCoords
+      .flatMap(_.toOption.flatMap(_.toOption))
+      .flatMap(ca => Epoch.Julian.fromInstant(ca.at))
+
+extension (arcOrRa: Option[ErrorMsgOr[Either[Arc[RightAscension], RightAscension]]])
+  @targetName("formatArcOrRa")
+  def format(f: RightAscension => String): VdomNode =
+    arcOrRa.fold(EmptyVdom)(
+      _.fold(err => <.span("<Error>").withTooltip(content = err), _.fold(_.format(f), f(_)))
+    )
+
+extension (arcOrDec: Option[ErrorMsgOr[Either[Arc[Declination], Declination]]])
+  @targetName("formatArcOrDec")
+  def format(f: Declination => String): VdomNode =
+    arcOrDec.fold(EmptyVdom)(
+      _.fold(err => <.span("<Error>").withTooltip(content = err), _.fold(_.format(f), f(_)))
+    )
+
+extension (erots: NonEmptyList[ErrorMsgOr[RegionOrTracking]])
+  def compositeTracking: ErrorMsgOr[RegionOrTracking] =
+    erots.sequence.map(_.sequence.map(Tracking.fromNel))

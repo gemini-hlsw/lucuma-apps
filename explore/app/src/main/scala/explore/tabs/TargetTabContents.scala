@@ -4,6 +4,7 @@
 package explore.tabs
 
 import cats.Order.given
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*
@@ -41,7 +42,6 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.model.Program
 import lucuma.core.model.Target
-import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
@@ -330,17 +330,13 @@ object TargetTabContents extends TwoPanels:
                 .flatMap: targetId =>
                   props.targets.get
                     .get(targetId)
-                    // TODO: Handle non-sidereal targets in plots - filter them out for now
-                    .filterNot(twid => Target.nonsidereal.getOption(twid.target).isDefined)
-                    .flatMap: targetWithId =>
-                      Tracking
-                        .fromTarget(targetWithId.target)
-                        .map: tracking =>
-                          ObjectPlotData.Id(targetId.asRight) -> ObjectPlotData(
-                            targetWithId.target.name,
-                            tracking,
-                            props.sitesForTarget(targetId)
-                          )
+                    .filterNot(twid => Target.opportunity.getOption(twid.target).isDefined)
+                    .map: targetWithId =>
+                      ObjectPlotData.Id(targetId.asRight) -> ObjectPlotData(
+                        targetWithId.target.name,
+                        NonEmptyList.one(targetWithId.target),
+                        props.sitesForTarget(targetId)
+                      )
                 .toMap
 
           /**

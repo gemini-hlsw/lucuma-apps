@@ -3,10 +3,13 @@
 
 package lucuma.schemas.model
 
+import cats.Eq
+import cats.derived.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
+import org.typelevel.cats.time.given
 
 import java.time.Instant
 
-case class CoordinatesAt(at: Instant, coordinates: Coordinates):
+case class CoordinatesAt(at: Instant, coordinates: Coordinates) derives Eq:
   lazy val epoch: Option[Epoch] = Epoch.Julian.fromInstant(at)
