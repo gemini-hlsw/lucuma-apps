@@ -16,10 +16,10 @@ import cats.syntax.all.*
 import explore.model.boopickle.Boopickle.*
 import org.scalajs.dom
 import org.scalajs.dom.DedicatedWorkerGlobalScope
-import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.Logger
-import org.typelevel.log4cats.syntax.*
+import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.console.ConsoleLoggerFactory
+import org.typelevel.log4cats.syntax.*
 
 import WorkerMessage.*
 

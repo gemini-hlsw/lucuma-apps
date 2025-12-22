@@ -42,6 +42,7 @@ import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given
+import workers.WorkerClient
 
 import java.time.Duration
 import java.time.Instant
@@ -52,7 +53,6 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import scala.collection.MapView
 import scala.scalajs.js
-import workers.WorkerClient
 
 import js.JSConverters.*
 
