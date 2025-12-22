@@ -8,7 +8,7 @@ import cats.effect.*
 import cats.syntax.all.*
 import explore.events.HorizonsMessage
 import explore.model.*
-import explore.model.WorkerClients.HorizonsClient
+import explore.model.WorkerClients.HorizonsWorkerClient
 import explore.model.boopickle.HorizonsPicklers.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
@@ -42,7 +42,7 @@ object tracking:
       val interval = night.interval
       val start    = interval.lower.minus(Duration.ofHours(12))
       val end      = interval.upper.plus(Duration.ofHours(12))
-      HorizonsClient[IO]
+      HorizonsWorkerClient[IO]
         .requestSingle(
           HorizonsMessage.EphemerisRequest(hk, site, start, end, TotalPoints)
         )
@@ -63,7 +63,7 @@ object tracking:
       val start = semester.start.atSite(site).toInstant
       val end   = semester.end.atSite(site).toInstant
       val days  = ChronoUnit.DAYS.between(start, end) + 1
-      HorizonsClient[IO]
+      HorizonsWorkerClient[IO]
         .requestSingle(
           HorizonsMessage.AlignedEphemerisRequest(hk, site, start, days.toInt, cadence)
         )

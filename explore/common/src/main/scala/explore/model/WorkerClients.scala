@@ -89,7 +89,7 @@ object WorkerClients {
     def apply(): dom.Worker = js.native
   }
 
-  object HorizonsClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
+  object HorizonsWorkerClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
 
   def build[F[_]: {Async, Logger, SecureRandom}](
     dispatcher: Dispatcher[F]
@@ -98,6 +98,6 @@ object WorkerClients {
      CatalogClient.build[F](dispatcher),
      AgsClient.build[F](dispatcher),
      PlotClient.build[F](dispatcher),
-     HorizonsClient.build[F](dispatcher)
+     HorizonsWorkerClient.build[F](dispatcher)
     ).parMapN(WorkerClients.apply)
 }
