@@ -23,7 +23,7 @@ import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
-import explore.targets.CorrectedProgramTarget
+import explore.targets.MotionCorrectedTarget
 import explore.targets.TargetColumns
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
@@ -81,7 +81,7 @@ object TargetTable extends AsterismModifier:
     onAsterismUpdate: OnAsterismUpdateParams => Callback
   )
 
-  private val ColDef = ColumnDef[CorrectedProgramTarget].WithTableMeta[TableMeta]
+  private val ColDef = ColumnDef[MotionCorrectedTarget].WithTableMeta[TableMeta]
 
   private val DeleteColumnId: ColumnId = ColumnId("delete")
 
@@ -185,7 +185,7 @@ object TargetTable extends AsterismModifier:
                   .build(obsTargets, vt, site)
                   .map: rorc =>
                     // we want the blind offset last (sc-7428)
-                    (rorc.science ++ rorc.blindOffset.toList).map(CorrectedProgramTarget.apply)
+                    (rorc.science ++ rorc.blindOffset.toList).map(MotionCorrectedTarget.apply)
         table   <- useReactTableWithStateStore:
                      import ctx.given
 

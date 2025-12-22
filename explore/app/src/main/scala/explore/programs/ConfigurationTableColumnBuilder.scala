@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.TargetList
+import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.validation.MathValidators
@@ -28,14 +29,16 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
       accessor: Configuration => V
     ) = colDef(id, r => accessor(getConfiguration(r)), ColumnNames(id))
 
+    val raFormat  = MathValidators.truncatedRA.reverseGet
+    val decFormat = MathValidators.truncatedDec.reverseGet
+
     List(
-      // TODO: NONSIDEREAL: Update first two columns to handle Regions
-      configurationColumn(RAColumnId, _.target.swap.toOption.map(_.ra))
-        .withCell(c => c.value.map(MathValidators.truncatedRA.reverseGet).orEmpty)
+      configurationColumn(RAColumnId, _.target.bimap(_.ra, _.raArc))
+        .withCell(_.value.fold(raFormat(_), _.format(raFormat)))
         .withSize(110.toPx)
         .sortable,
-      configurationColumn(DecColumnId, _.target.swap.toOption.map(_.dec))
-        .withCell(c => c.value.map(MathValidators.truncatedDec.reverseGet).orEmpty)
+      configurationColumn(DecColumnId, _.target.bimap(_.dec, _.decArc))
+        .withCell(_.value.fold(decFormat(_), _.format(decFormat)))
         .withSize(110.toPx)
         .sortable,
       configurationColumn(InstrumentColumnId, _.observingMode.tpe.instrument.shortName)

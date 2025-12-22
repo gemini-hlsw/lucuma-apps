@@ -168,10 +168,7 @@ object TargetColumns:
             .sortable,
           colDef(EpochColumnId, d => getLocation(d).epoch, RaDecColNames(EpochColumnId))
             .withCell(
-              _.value
-                .map: epoch =>
-                  s"${epoch.scheme.prefix}${Epoch.fromStringNoScheme.reverseGet(epoch)}"
-                .orEmpty
+              _.value.map(Epoch.fromString.reverseGet).orEmpty
             )
             .withSize(90.toPx)
             .sortable

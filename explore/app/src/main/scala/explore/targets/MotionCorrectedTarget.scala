@@ -9,14 +9,10 @@ import lucuma.core.model.Target
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithMetadata
 
-case class CorrectedProgramTarget(
+case class MotionCorrectedTarget(
   targetWithId:   TargetWithId,
   regionOrCoords: Option[ErrorOrRegionOrCoords]
 ) extends TargetWithMetadata:
   val id: Target.Id                  = targetWithId.id
   val target: Target                 = targetWithId.target
   val disposition: TargetDisposition = targetWithId.disposition
-
-object CorrectedProgramTarget:
-  def apply(tuple: (TargetWithId, Option[ErrorOrRegionOrCoords])): CorrectedProgramTarget =
-    CorrectedProgramTarget(tuple._1, tuple._2)

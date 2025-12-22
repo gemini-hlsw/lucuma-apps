@@ -5,6 +5,7 @@ package explore.observationtree
 
 import cats.syntax.all.*
 import explore.Icons
+import explore.model.ErrorOrRegionOrCoords
 import explore.model.Group
 import explore.model.Observation
 import explore.model.ObservationTargets

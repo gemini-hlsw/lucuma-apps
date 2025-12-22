@@ -21,11 +21,11 @@ object RegionOrTracking:
   extension (torR: RegionOrTracking)
     // If being a region is an error for your use case
     def toTracking: Either[String, Tracking] =
-      torR.toOption.toRight("Targets of Opportunities have no coordinates")
+      torR.left.map(_ => "Targets of Opportunities have no coordinates")
 
     def toRegion: Option[Region] =
       // errors really only happen for ephemeris failures, so we can ignore them here
-      torR.swap.toOption
+      torR.left.toOption
 
     def coordinatesForTrackingAt(at: Instant): Either[String, CoordinatesAt] =
       toTracking.flatMap(_.coordinatesAt(at))

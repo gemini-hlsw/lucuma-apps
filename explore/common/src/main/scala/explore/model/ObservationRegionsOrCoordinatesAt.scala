@@ -25,6 +25,16 @@ import workers.WorkerClient
 
 import java.time.Instant
 
+/**
+ * Holds the information about ObservationTargets at a given time. What this means differs based on
+ * the information available at the time `build` is called. See the documentation for `build` below.
+ *
+ * This class encapsulates the complexity of all of the possbilities in `build`.
+ * @param at - the time for which the coordinates were calculated.
+ * @param asterism - this is the location of the center of all the science targets.
+ * @param science - the location of all of the science targets.
+ * @param blindOffset - the location of the blind offset, if any.
+ */
 case class ObservationRegionsOrCoordinatesAt(
   at:          Option[Instant],
   asterism:    Option[ErrorOrRegionOrCoords],
@@ -42,7 +52,8 @@ object ObservationRegionsOrCoordinatesAt:
    * There are a lot of scenarios to contemplate here:
    *
    * 1) If we have both an obsTime AND a site, we can get ephemeris data and process all targets
-   * including non-sidereals, "moving" all targets to the obsTime
+   * including non-sidereals, "moving" all targets to the obsTime. If there are non-sidereals this
+   * requires a call to Horizons (or maybe from the cache). That is why this method is effectful.
    *
    * 2) If we have an obsTime, but not a site, we can't deal with non-sidereals, so the
    * ErrorOrRegionCoords for non-sidereals will be None, and the the asterism will be None UNLESS it
@@ -112,7 +123,7 @@ object ObservationRegionsOrCoordinatesAt:
     obsTargets: ObservationTargets,
     at:         Option[Instant]
   ): ObservationRegionsOrCoordinatesAt =
-    def forTarget(twid: TargetWithId) =
+    def forTarget(twid: TargetWithId): (TargetWithId, Option[ErrorOrRegionOrCoords]) =
       twid.target match
         case Target.Sidereal(tracking = tracking) =>
           // If there is no 'at', there are no sidereals
@@ -126,8 +137,8 @@ object ObservationRegionsOrCoordinatesAt:
         case Target.Nonsidereal(_, _, _)          => (twid, none)
         case Target.Opportunity(region = region)  =>
           (twid, ErrorOrRegionOrCoords.fromRegion(region).some)
-    val science                       = obsTargets.mapScience(forTarget)
-    val blind                         = obsTargets.blindOffset.map(forTarget)
-    val asterism                      = getAsterism(science.map(_._2))
+    val science                                                                      = obsTargets.mapScience(forTarget)
+    val blind                                                                        = obsTargets.blindOffset.map(forTarget)
+    val asterism                                                                     = getAsterism(science.map(_._2))
 
     ObservationRegionsOrCoordinatesAt(at, asterism, science, blind)
