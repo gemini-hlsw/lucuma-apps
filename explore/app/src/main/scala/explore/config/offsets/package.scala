@@ -13,40 +13,40 @@
 // import monocle.Focus
 // import monocle.Lens
 
-sealed trait GridParams derives Eq:
-  def gridType: GridType
+// sealed trait GridParams derives Eq:
+//   def gridType: GridType
 
-case class RectangularParams(
-  rows:  PosInt,
-  cols:  PosInt,
-  stepP: Angle,
-  stepQ: Angle
-) extends GridParams derives Eq:
-  def gridType: GridType = GridType.Rectangular
+// case class RectangularParams(
+//   rows:  PosInt,
+//   cols:  PosInt,
+//   stepP: Angle,
+//   stepQ: Angle
+// ) extends GridParams derives Eq:
+//   def gridType: GridType = GridType.Rectangular
 
-object RectangularParams:
-  val rows: Lens[RectangularParams, PosInt] = Focus[RectangularParams](_.rows)
-  val cols: Lens[RectangularParams, PosInt] = Focus[RectangularParams](_.cols)
-  val stepP: Lens[RectangularParams, Angle] = Focus[RectangularParams](_.stepP)
-  val stepQ: Lens[RectangularParams, Angle] = Focus[RectangularParams](_.stepQ)
+// object RectangularParams:
+//   val rows: Lens[RectangularParams, PosInt] = Focus[RectangularParams](_.rows)
+//   val cols: Lens[RectangularParams, PosInt] = Focus[RectangularParams](_.cols)
+//   val stepP: Lens[RectangularParams, Angle] = Focus[RectangularParams](_.stepP)
+//   val stepQ: Lens[RectangularParams, Angle] = Focus[RectangularParams](_.stepQ)
 
-case class SpiralParams(
-  size: Angle
-) extends GridParams derives Eq:
-  def gridType: GridType = GridType.Spiral
+// case class SpiralParams(
+//   size: Angle
+// ) extends GridParams derives Eq:
+//   def gridType: GridType = GridType.Spiral
 
-object SpiralParams:
-  val size: Lens[SpiralParams, Angle] = Focus[SpiralParams](_.size)
+// object SpiralParams:
+//   val size: Lens[SpiralParams, Angle] = Focus[SpiralParams](_.size)
 
-case class RandomParams(
-  size: Angle // area radius
-) extends GridParams derives Eq:
-  def gridType: GridType = GridType.Random
+// case class RandomParams(
+//   size: Angle // area radius
+// ) extends GridParams derives Eq:
+//   def gridType: GridType = GridType.Random
 
-object RandomParams:
-  val size: Lens[RandomParams, Angle] = Focus[RandomParams](_.size)
+// object RandomParams:
+//   val size: Lens[RandomParams, Angle] = Focus[RandomParams](_.size)
 
-enum GridType(val tag: String) derives Enumerated:
-  case Rectangular extends GridType("rectangular")
-  case Spiral      extends GridType("spiral")
-  case Random      extends GridType("random")
+// enum GridType(val tag: String) derives Enumerated:
+//   case Rectangular extends GridType("rectangular")
+//   case Spiral      extends GridType("spiral")
+//   case Random      extends GridType("random")

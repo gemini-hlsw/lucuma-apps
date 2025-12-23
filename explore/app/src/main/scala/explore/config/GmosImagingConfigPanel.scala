@@ -29,10 +29,10 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.math.Offset
+// import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
-import lucuma.core.math.syntax.int.*
+// import lucuma.core.math.syntax.int.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
@@ -41,7 +41,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.Dialog
+// import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
@@ -50,7 +50,7 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.primereact.*
-import lucuma.ui.primereact.FormLabel
+// import lucuma.ui.primereact.FormLabel
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -153,7 +153,7 @@ object GmosImagingConfigPanel {
         { case (r, g) => s"${r.longName}, ${g.longName} Gain" }
       )
 
-    private val OffsetRadius = 30.arcseconds
+    // private val OffsetRadius = 30.arcseconds
 
     val component =
       ScalaFnComponent[Props]: props =>
@@ -490,27 +490,27 @@ object GmosImagingConfigPanel {
       )
       .view(_.toList.map(_.toInput).assign)
 
-    override protected def offsets(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[List[Offset]] = aligner
-      .zoom(
-        ObservingMode.GmosNorthImaging.offsets,
-        GmosNorthImagingInput.offsets.modify
-      )
-      .view(_.map(_.toInput).assign)
+    // override protected def offsets(aligner: AA)(using
+    //   MonadError[IO, Throwable],
+    //   Effect.Dispatch[IO],
+    //   Logger[IO]
+    // ): View[List[Offset]] = aligner
+    //   .zoom(
+    //     ObservingMode.GmosNorthImaging.offsets,
+    //     GmosNorthImagingInput.offsets.modify
+    //   )
+    //   .view(_.map(_.toInput).assign)
 
-    inline override protected def explicitMultipleFiltersMode(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[Option[MultipleFiltersMode]] = aligner
-      .zoom(
-        ObservingMode.GmosNorthImaging.explicitMultipleFiltersMode,
-        GmosNorthImagingInput.explicitMultipleFiltersMode.modify
-      )
-      .view(_.orUnassign)
+    // inline override protected def explicitMultipleFiltersMode(aligner: AA)(using
+    //   MonadError[IO, Throwable],
+    //   Effect.Dispatch[IO],
+    //   Logger[IO]
+    // ): View[Option[MultipleFiltersMode]] = aligner
+    //   .zoom(
+    //     ObservingMode.GmosNorthImaging.explicitMultipleFiltersMode,
+    //     GmosNorthImagingInput.explicitMultipleFiltersMode.modify
+    //   )
+    //   .view(_.orUnassign)
 
     inline override protected def explicitBinning(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -563,7 +563,7 @@ object GmosImagingConfigPanel {
     override protected val filtersFilterLens                     = ObservingMode.GmosNorthImaging.ImagingFilter.filter
     override protected val filtersEtmLens                        =
       ObservingMode.GmosNorthImaging.ImagingFilter.exposureTimeMode
-    override protected val offsetLens                            = ObservingMode.GmosNorthImaging.offsets
+    // override protected val offsetLens                            = ObservingMode.GmosNorthImaging.offsets
     override protected val initialFiltersLens                    =
       ObservingMode.GmosNorthImaging.initialFilters
     override val filterTypeGetter: GmosNorthFilter => FilterType = _.filterType
@@ -636,27 +636,27 @@ object GmosImagingConfigPanel {
         )
         .view(_.toList.map(_.toInput).assign)
 
-    inline override protected def offsets(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[List[Offset]] = aligner
-      .zoom(
-        ObservingMode.GmosSouthImaging.offsets,
-        GmosSouthImagingInput.offsets.modify
-      )
-      .view(_.map(_.toInput).assign)
+    // inline override protected def offsets(aligner: AA)(using
+    //   MonadError[IO, Throwable],
+    //   Effect.Dispatch[IO],
+    //   Logger[IO]
+    // ): View[List[Offset]] = aligner
+    //   .zoom(
+    //     ObservingMode.GmosSouthImaging.offsets,
+    //     GmosSouthImagingInput.offsets.modify
+    //   )
+    //   .view(_.map(_.toInput).assign)
 
-    inline override protected def explicitMultipleFiltersMode(aligner: AA)(using
-      MonadError[IO, Throwable],
-      Effect.Dispatch[IO],
-      Logger[IO]
-    ): View[Option[MultipleFiltersMode]] = aligner
-      .zoom(
-        ObservingMode.GmosSouthImaging.explicitMultipleFiltersMode,
-        GmosSouthImagingInput.explicitMultipleFiltersMode.modify
-      )
-      .view(_.orUnassign)
+    // inline override protected def explicitMultipleFiltersMode(aligner: AA)(using
+    //   MonadError[IO, Throwable],
+    //   Effect.Dispatch[IO],
+    //   Logger[IO]
+    // ): View[Option[MultipleFiltersMode]] = aligner
+    //   .zoom(
+    //     ObservingMode.GmosSouthImaging.explicitMultipleFiltersMode,
+    //     GmosSouthImagingInput.explicitMultipleFiltersMode.modify
+    //   )
+    //   .view(_.orUnassign)
 
     inline override protected def explicitBinning(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -709,7 +709,7 @@ object GmosImagingConfigPanel {
     override protected val filtersFilterLens     = ObservingMode.GmosSouthImaging.ImagingFilter.filter
     override protected val filtersEtmLens        =
       ObservingMode.GmosSouthImaging.ImagingFilter.exposureTimeMode
-    override protected val offsetLens            = ObservingMode.GmosSouthImaging.offsets
+    // override protected val offsetLens            = ObservingMode.GmosSouthImaging.offsets
     override protected val initialFiltersLens    =
       ObservingMode.GmosSouthImaging.initialFilters
     override protected val filterTypeGetter      = _.filterType
