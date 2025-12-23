@@ -126,7 +126,7 @@ lazy val schemas_testkit =
     .dependsOn(schemas_model)
     .settings(
       name := "lucuma-schemas-testkit",
-      libraryDependencies ++= LucumaCore.value
+      libraryDependencies ++= LucumaCore.value ++ LucumaCoreTestkit.value
     )
 
 lazy val schemas_tests =

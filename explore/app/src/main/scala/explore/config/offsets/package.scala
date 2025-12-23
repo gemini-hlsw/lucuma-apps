@@ -1,17 +1,17 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.config.offsets
+// package explore.config.offsets
 
-import cats.Eq
-import cats.data.NonEmptyList
-import cats.derived.*
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.numeric.PosInt
-import lucuma.core.math.*
-import lucuma.core.util.Enumerated
-import monocle.Focus
-import monocle.Lens
+// import cats.Eq
+// import cats.data.NonEmptyList
+// import cats.derived.*
+// import eu.timepit.refined.cats.*
+// import eu.timepit.refined.types.numeric.PosInt
+// import lucuma.core.math.*
+// import lucuma.core.util.Enumerated
+// import monocle.Focus
+// import monocle.Lens
 
 sealed trait GridParams derives Eq:
   def gridType: GridType
