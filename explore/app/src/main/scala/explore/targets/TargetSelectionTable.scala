@@ -8,7 +8,6 @@ import explore.components.ui.ExploreStyles
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CatalogName
 import lucuma.react.common.*
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -69,9 +68,11 @@ object TargetSelectionTable:
         ).withColumnSize(FixedSize(70.toPx))
       ) ++ (
         props.source match
-          case TargetSource.FromCatalog(CatalogName.Simbad, client) =>
-            TargetColumns.Builder.ForSimbad(ColDef).AllColumns
-          case _                                                    =>
+          case TargetSource.FromSimbad(_)   =>
+            TargetColumns.Builder.ForSiderealCatalog(ColDef).AllColumns
+          case TargetSource.FromHorizons(_) =>
+            TargetColumns.Builder.ForHorizons(ColDef).AllColumns
+          case TargetSource.FromProgram(_)  =>
             TargetColumns.Builder.ForProgram(ColDef, _.target.regionOrBaseCoords).AllColumns
       )
     }

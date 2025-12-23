@@ -72,7 +72,7 @@ case class TargetTable(
   columnVisibility: View[ColumnVisibility]
 ) extends ReactFnProps(TargetTable.component)
 
-object TargetTable extends AsterismModifier:
+object TargetTable:
   private type Props = TargetTable
 
   case class TableMeta(
@@ -205,22 +205,19 @@ object TargetTable extends AsterismModifier:
                      )
         adding  <- useStateView(AreAdding(false))
       yield
-        import ctx.given
-
         if (rowsPot.value.map(_.toOption.orEmpty).isEmpty)
           if (props.readOnly)
             <.div(LucumaStyles.HVCenter)(Constants.NoTargets)
           else
             <.div(LucumaStyles.HVCenter)(
-              targetSelectionPopup(
+              AddTargetButton(
                 "Add a target",
                 props.programId,
                 props.obsIds,
                 props.obsAndTargets,
                 adding,
                 props.onAsterismUpdate,
-                buttonClass = LucumaPrimeStyles.Massive,
-                client = ctx.simbadClient
+                buttonClass = LucumaPrimeStyles.Massive
               )
             )
         else
