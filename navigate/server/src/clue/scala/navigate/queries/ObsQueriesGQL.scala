@@ -74,7 +74,7 @@ object ObsQueriesGQL:
         }
       }
     """
-    
+
     object Data {
       object Observations {
         object Matches {
@@ -82,15 +82,15 @@ object ObsQueriesGQL:
             object FirstScienceTarget {
               type Nonsidereal = navigate.model.OdbNonsidereal
             }
-            object GuideEnvironment {
+            object GuideEnvironment   {
               object GuideTargets {
                 type Nonsidereal = navigate.model.OdbNonsidereal
               }
             }
-            object BlindOffsetTarget {
+            object BlindOffsetTarget  {
               type Nonsidereal = navigate.model.OdbNonsidereal
             }
-          }            
+          }
         }
       }
     }
