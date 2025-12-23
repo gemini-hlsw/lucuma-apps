@@ -47,5 +47,5 @@ object syntax:
     def baseCoordinates: Either[String, Coordinates] = tracking match
       case ConstantTracking(coordinates)                 => coordinates.asRight
       case CompositeTracking(nel)                        => nel.traverse(_.baseCoordinates).map(Coordinates.centerOf(_))
-      case EphemerisTracking(toMap)                      => "Non-sidereal targets don't have base coordinates.".asLeft
+      case EphemerisTracking(toMap)                      => "Non-sidereal targets don't have base coordinates".asLeft
       case SiderealTracking(baseCoordinates, _, _, _, _) => baseCoordinates.asRight

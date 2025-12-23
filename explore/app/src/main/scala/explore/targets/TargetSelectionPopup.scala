@@ -46,12 +46,12 @@ import scala.concurrent.duration.*
 
 case class TargetSelectionPopup(
   title:               String,
+  popupState:          View[PopupState],
   targetSources:       NonEmptyList[TargetSource[IO]],
   selectExistingLabel: String,
   selectExistingIcon:  FontAwesomeIcon,
   selectNewLabel:      String,
   selectNewIcon:       FontAwesomeIcon,
-  trigger:             Callback => VdomNode,
   onSelected:          TargetWithOptId => Callback,
   onCancel:            Callback = Callback.empty,
   initialSearch:       Option[NonEmptyString] = None
@@ -142,200 +142,177 @@ object TargetSelectionPopup:
       )
       .orEmpty
 
-  private val component = ScalaFnComponent
-    .withHooks[Props]
-    .useContext(AppContext.ctx)
-    // inputValue
-    .useStateViewBy((props, _) => props.initialSearch.map(_.value).orEmpty)
-    // results
-    .useStateView(SortedMap.empty[TargetSource[IO], NonEmptyList[Result]])
-    // searching
-    .useStateView(SearchingState.Idle)
-    // singleEffect
-    .useSingleEffect
-    // isOpen
-    .useState(PopupState.Closed)
-    // selectedTarget
-    .useStateView(none[SelectedTarget])
-    // aladinRef
-    .useState(none[Aladin])
-    // re render when selected changes
-    .useEffectWithDepsBy((_, _, _, _, _, _, _, selectedTarget, _) => selectedTarget.get)(
-      (_, _, _, _, _, _, _, _, aladinRef) =>
-        sel =>
-          aladinRef.value
-            .map(a =>
-              sel
+  private val component = ScalaFnComponent[Props]: props =>
+    for
+      ctx            <- useContext(AppContext.ctx)
+      inputValue     <- useStateView(props.initialSearch.map(_.value).orEmpty)
+      results        <- useStateView(SortedMap.empty[TargetSource[IO], NonEmptyList[Result]])
+      searching      <- useStateView(SearchingState.Idle)
+      singleEffect   <- useSingleEffect
+      selectedTarget <- useStateView(none[SelectedTarget])
+      aladinRef      <- useState(none[Aladin])
+      // re render when selected changes
+      _              <- useEffectWithDeps(selectedTarget.get)(sel =>
+                          aladinRef.value
+                            .map(a =>
+                              sel
+                                .collect { case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
+                                  tracking.baseCoordinates
+                                }
+                                .map(a.gotoRaDecCB)
+                                .orEmpty
+                            )
+                            .orEmpty
+                            // We need to do this callback delayed or it miss calculates aladin div size
+                            .delayMs(10)
+                        )
+      cleanResults    = selectedTarget.set(none) >> results.set(SortedMap.empty)
+      cleanState      = inputValue.set("") >> searching.set(SearchingState.Idle) >> cleanResults
+      _              <- useEffectWithDeps(props.popupState.get.value): isOpen =>
+                          import ctx.given
+                          cleanState >> props.initialSearch
+                            .map(name =>
+                              inputValue.set(name.value) >>
+                                singleEffect
+                                  .submit(
+                                    search(name.value, props.targetSources, results, selectedTarget, searching)
+                                  )
+                                  .runAsync
+                            )
+                            .orEmpty
+                            .when_(isOpen)
+    yield
+      import ctx.given
+
+      def searchName(name: String): IO[Unit] =
+        cleanResults.toAsync >>
+          search(name, props.targetSources, results, selectedTarget, searching)
+
+      val cancel = props.popupState.set(PopupState.Closed) >> props.onCancel
+
+      // don't show aladin preview if none of the target sources support it
+      val showPreview = props.targetSources.exists(_.canPreview)
+
+      Dialog(
+        closable = false,
+        clazz = ExploreStyles.TargetSearchForm |+| LucumaPrimeStyles.Dialog.Large,
+        contentClass = ExploreStyles.TargetSearchContent |+|
+          ExploreStyles.TargetSearchHasPreview.when_(showPreview),
+        footer = <.div(
+          Button(
+            label = "Close",
+            icon = Icons.Close,
+            severity = Button.Severity.Danger,
+            onClick = cancel
+          ).small
+        ),
+        position = DialogPosition.Top,
+        visible = props.popupState.get.value,
+        dismissableMask = true,
+        onHide = singleEffect.cancel.runAsync >> cancel,
+        header = props.title
+      )(
+        React.Fragment(
+          <.span(ExploreStyles.TargetSearchTop)(
+            <.form(ExploreStyles.TargetSearchInput)(
+              FormInputTextView(
+                id = "target-search-name".refined,
+                placeholder = "Name",
+                value = inputValue,
+                preAddons =
+                  List(if (searching.get.value) Icons.Spinner.withSpin(true) else Icons.Search),
+                onTextChange = (t: String) =>
+                  inputValue.set(t) >>
+                    singleEffect
+                      .submit(
+                        IO.sleep(700.milliseconds) >> searchName(t)
+                      )
+                      .runAsync
+              ).withMods(^.autoFocus := true)
+            )(
+              ^.autoComplete.off,
+              ^.onSubmit ==> (e =>
+                e.preventDefaultCB >>
+                  singleEffect
+                    .submit(searchName(inputValue.get))
+                    .runAsync
+                    .whenA(searching.get == SearchingState.Searching)
+              )
+            )
+          ),
+          Option.when(showPreview):
+            <.div(ExploreStyles.TargetSearchPreview)(
+              aladinRef.value.map(AladinZoomControl(_, factor = 1.5)),
+              selectedTarget.get
                 .collect { case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
                   tracking.baseCoordinates
                 }
-                .map(a.gotoRaDecCB)
-                .orEmpty
+                .map[VdomNode] { case coordinates =>
+                  ReactAladin(
+                    ExploreStyles.TargetSearchAladin, // required placeholder
+                    AladinOptions(
+                      showReticle = false,
+                      showLayersControl = false,
+                      target = Coordinates.fromHmsDms.reverseGet(coordinates),
+                      fov = Constants.PreviewFov,
+                      fullScreen = false,
+                      showZoomControl = false,
+                      showFullscreenControl = false,
+                      showGotoControl = false,
+                      showProjectionControl = false,
+                      showSimbadPointerControl = false,
+                      showCooLocation = false,
+                      showFov = false
+                    ),
+                    customize = v => aladinRef.setState(v.some)
+                  )(^.key := selectedTarget.get.foldMap(t => s"${t.source}-${t.resultIndex}"))
+                }
+                .getOrElse(<.div(ExploreStyles.TargetSearchPreviewPlaceholder, "Preview"))
             )
-            .orEmpty
-            // We need to do this callback delayed or it miss calculates aladin div size
-            .delayMs(10)
-    )
-    .render {
-      (
-        props,
-        ctx,
-        inputValue,
-        results,
-        searching,
-        singleEffect,
-        isOpen,
-        selectedTarget,
-        aladinRef
-      ) =>
-        import ctx.given
+          ,
+          results.get.map { case (source, sourceResults) =>
+            val fmtdCount = s"(${showCount(sourceResults.length, "result")})"
 
-        val cleanResults = selectedTarget.set(none) >> results.set(SortedMap.empty)
+            val header =
+              if (source.existing)
+                s"Link an existing target $fmtdCount"
+              else
+                s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
 
-        val cleanState =
-          inputValue.set("") >> searching.set(SearchingState.Idle) >> cleanResults
-
-        def searchName(name: String): IO[Unit] =
-          cleanResults.toAsync >>
-            search(name, props.targetSources, results, selectedTarget, searching)
-
-        val onOpen: Callback =
-          cleanState >>
-            isOpen.setState(PopupState.Open) >>
-            props.initialSearch
-              .map(name =>
-                inputValue.set(name.value) >>
-                  singleEffect
-                    .submit(
-                      search(name.value, props.targetSources, results, selectedTarget, searching)
+            React.Fragment.withKey(source.name)(
+              <.div(LucumaPrimeStyles.SmallHeader, header),
+              <.div(ExploreStyles.TargetSearchResults)(
+                TargetSelectionTable(
+                  source,
+                  sourceResults.toList.map(_.target),
+                  props.selectExistingLabel,
+                  props.selectExistingIcon,
+                  props.selectNewLabel,
+                  props.selectNewIcon,
+                  onSelected = t =>
+                    props.onSelected(t.targetWithOptId) >>
+                      props.popupState.set(PopupState.Closed),
+                  selectedIndex = selectedTarget.get
+                    .filter(_.source === source)
+                    .map(_.resultIndex),
+                  onClick = (result, index) =>
+                    selectedTarget.set(
+                      if (
+                        selectedTarget.get
+                          .exists(st => st.source === source && st.resultIndex === index)
+                      )
+                        none
+                      else
+                        SelectedTarget(
+                          result.target,
+                          source,
+                          index,
+                          result.angularSize
+                        ).some
                     )
-                    .runAsync
+                )
               )
-              .orEmpty
-
-        React.Fragment(
-          props.trigger(onOpen),
-          Dialog(
-            closable = false,
-            clazz = ExploreStyles.TargetSearchForm |+| LucumaPrimeStyles.Dialog.Large,
-            contentClass = ExploreStyles.TargetSearchContent,
-            footer = <.div(
-              Button(
-                label = "Close",
-                icon = Icons.Close,
-                severity = Button.Severity.Danger,
-                onClick = isOpen.setState(PopupState.Closed) >> props.onCancel
-              ).small
-            ),
-            position = DialogPosition.Top,
-            visible = isOpen.value.value,
-            dismissableMask = true,
-            onHide = singleEffect.cancel.runAsync >> isOpen
-              .setState(PopupState.Closed) >> cleanState >> props.onCancel,
-            header = props.title
-          )(
-            React.Fragment(
-              <.span(ExploreStyles.TargetSearchTop)(
-                <.form(ExploreStyles.TargetSearchInput)(
-                  FormInputTextView(
-                    id = "target-search-name".refined,
-                    placeholder = "Name",
-                    value = inputValue,
-                    preAddons =
-                      List(if (searching.get.value) Icons.Spinner.withSpin(true) else Icons.Search),
-                    onTextChange = (t: String) =>
-                      inputValue.set(t) >>
-                        singleEffect
-                          .submit(
-                            IO.sleep(700.milliseconds) >> searchName(t)
-                          )
-                          .runAsync
-                  ).withMods(^.autoFocus := true)
-                )(
-                  ^.autoComplete.off,
-                  ^.onSubmit ==> (e =>
-                    e.preventDefaultCB >>
-                      singleEffect
-                        .submit(searchName(inputValue.get))
-                        .runAsync
-                        .whenA(searching.get == SearchingState.Searching)
-                  )
-                )
-              ),
-              <.div(ExploreStyles.TargetSearchPreview)(
-                aladinRef.value.map(AladinZoomControl(_, factor = 1.5)),
-                selectedTarget.get
-                  .collect { case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
-                    tracking.baseCoordinates
-                  }
-                  .map[VdomNode] { case coordinates =>
-                    ReactAladin(
-                      ExploreStyles.TargetSearchAladin, // required placeholder
-                      AladinOptions(
-                        showReticle = false,
-                        showLayersControl = false,
-                        target = Coordinates.fromHmsDms.reverseGet(coordinates),
-                        fov = Constants.PreviewFov,
-                        fullScreen = false,
-                        showZoomControl = false,
-                        showFullscreenControl = false,
-                        showGotoControl = false,
-                        showProjectionControl = false,
-                        showSimbadPointerControl = false,
-                        showCooLocation = false,
-                        showFov = false
-                      ),
-                      customize = v => aladinRef.setState(v.some)
-                    )(^.key := selectedTarget.get.foldMap(t => s"${t.source}-${t.resultIndex}"))
-                  }
-                  .getOrElse(<.div(ExploreStyles.TargetSearchPreviewPlaceholder, "Preview"))
-              ),
-              results.get.map { case (source, sourceResults) =>
-                val fmtdCount = s"(${showCount(sourceResults.length, "result")})"
-
-                val header =
-                  if (source.existing)
-                    s"Link an existing target $fmtdCount"
-                  else
-                    s"Add a new target from ${source.name} (${showCount(sourceResults.length, "result")})"
-
-                React.Fragment.withKey(source.name)(
-                  <.div(LucumaPrimeStyles.SmallHeader, header),
-                  <.div(ExploreStyles.TargetSearchResults)(
-                    TargetSelectionTable(
-                      source,
-                      sourceResults.toList.map(_.target),
-                      props.selectExistingLabel,
-                      props.selectExistingIcon,
-                      props.selectNewLabel,
-                      props.selectNewIcon,
-                      onSelected = t =>
-                        props.onSelected(t.targetWithOptId) >>
-                          isOpen.setState(PopupState.Closed) >>
-                          cleanState,
-                      selectedIndex = selectedTarget.get
-                        .filter(_.source === source)
-                        .map(_.resultIndex),
-                      onClick = (result, index) =>
-                        selectedTarget.set(
-                          if (
-                            selectedTarget.get
-                              .exists(st => st.source === source && st.resultIndex === index)
-                          )
-                            none
-                          else
-                            SelectedTarget(
-                              result.target,
-                              source,
-                              index,
-                              result.angularSize
-                            ).some
-                        )
-                    )
-                  )
-                )
-              }.toVdomArray
             )
-          )
+          }.toVdomArray
         )
-    }
+      )

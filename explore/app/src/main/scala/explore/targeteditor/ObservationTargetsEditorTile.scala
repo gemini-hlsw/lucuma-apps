@@ -338,7 +338,7 @@ object ObservationTargetsEditorTile:
     tileSize:               TileSizeState
   ) extends ReactFnProps(Title.component)
 
-  private object Title extends AsterismModifier:
+  private object Title:
     private type Props = Title
 
     private val component =
@@ -347,7 +347,6 @@ object ObservationTargetsEditorTile:
           ctx    <- useContext(AppContext.ctx)
           adding <- useStateView(AreAdding(false))
         yield
-          import ctx.given
 
           val obsTimeEditor = ObsTimeEditor(
             props.obsTimeView,
@@ -367,7 +366,7 @@ object ObservationTargetsEditorTile:
                 <.span(
                   (props.obsEditInfo, props.obsEditInfo.map(_.unExecuted.getOrElse(props.obsIds)))
                     .mapN: (obsEditInfo, unexecutedObs) =>
-                      targetSelectionPopup(
+                      AddTargetButton(
                         "Target",
                         props.programId,
                         unexecutedObs,
@@ -376,7 +375,6 @@ object ObservationTargetsEditorTile:
                         props.onAsterismUpdate,
                         props.readonly || obsEditInfo.allAreExecuted,
                         buttonClass = ExploreStyles.AddTargetButton,
-                        client = ctx.simbadClient,
                         blindOffset = props.blindOffset
                       )
                 ),

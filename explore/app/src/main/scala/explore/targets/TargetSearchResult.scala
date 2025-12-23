@@ -4,6 +4,8 @@
 package explore.targets
 
 import cats.Eq
+import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.EmptySourceProfile
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.catalog.AngularSize
@@ -11,6 +13,7 @@ import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.CatalogInfo
+import lucuma.core.model.EphemerisKey
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.schemas.model.TargetWithMetadata
@@ -33,6 +36,14 @@ object TargetSearchResult:
     TargetSearchResult(
       TargetWithOptId.newScience(r.target),
       r.angularSize
+    )
+
+  def fromHorizonsSearchResult(name: NonEmptyString, ek: EphemerisKey): TargetSearchResult =
+    TargetSearchResult(
+      TargetWithOptId.newScience(
+        Target.Nonsidereal(name = name, ephemerisKey = ek, sourceProfile = EmptySourceProfile)
+      ),
+      None
     )
 
   given Eq[TargetSearchResult] =

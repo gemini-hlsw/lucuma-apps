@@ -465,6 +465,7 @@ object ExploreStyles:
   val TargetSearchForm: Css               = Css("explore-target-search-form")
   val TargetSearchTop: Css                = Css("explore-target-search-top")
   val TargetSearchContent: Css            = Css("explore-target-search-content")
+  val TargetSearchHasPreview: Css         = Css("explore-target-search-has-preview")
   val TargetSearchInput: Css              = Css("explore-target-search-input")
   val TargetSearchPreview: Css            = Css("explore-target-search-preview")
   val TargetSearchAladin: Css             = Css("aladin-search-target")

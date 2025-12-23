@@ -8,7 +8,6 @@ import clue.data.Input
 import clue.data.syntax.*
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
-import io.circe.syntax.*
 import lucuma.core.enums.ArcType
 import lucuma.core.enums.Band
 import lucuma.core.enums.GmosNorthFpu
@@ -380,7 +379,9 @@ extension (sidereal: Target.Sidereal)
 
 extension (nonsidereal: Target.Nonsidereal)
   def toInput: NonsiderealInput = NonsiderealInput(
-    key = NonEmptyString.unsafeFrom(nonsidereal.ephemerisKey.asJson.toString).assign
+    keyType = nonsidereal.ephemerisKey.keyType.assign,
+    // will trigger an API error if des is empty (which it shouldn't be), but better than crashing here
+    des = NonEmptyString.from(nonsidereal.ephemerisKey.des).toOption.orIgnore
   )
 
   def toTargetPropertiesInput: TargetPropertiesInput =
