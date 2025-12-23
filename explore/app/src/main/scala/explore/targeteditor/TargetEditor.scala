@@ -142,9 +142,17 @@ object TargetEditor:
         )
     }
 
-  private val DefaultSourceProfileInput: SourceProfileInput =
-    SourceProfileInput.Point:
-      SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
+  private def emptySourceProfileInput(sp: SourceProfile): SourceProfileInput =
+    sp match
+      case SourceProfile.Point(_)       =>
+        SourceProfileInput.Point:
+          SpectralDefinitionIntegratedInput.BandNormalized(BandNormalizedIntegratedInput())
+      case SourceProfile.Uniform(_)     =>
+        SourceProfileInput.Uniform:
+          SpectralDefinitionSurfaceInput.BandNormalized(BandNormalizedSurfaceInput())
+      case SourceProfile.Gaussian(_, _) =>
+        SourceProfileInput.Gaussian:
+          GaussianInput()
 
   private val component =
     ScalaFnComponent[Props]: props =>
@@ -267,7 +275,9 @@ object TargetEditor:
         val sourceProfileAligner: Aligner[SourceProfile, SourceProfileInput] =
           targetAligner.zoom(
             Target.sourceProfile,
-            forceAssign(sourceProfileLens.modify)(DefaultSourceProfileInput)
+            forceAssign(sourceProfileLens.modify)(
+              emptySourceProfileInput(targetAligner.get.sourceProfile)
+            )
           )
 
         def siderealCoordinates(
