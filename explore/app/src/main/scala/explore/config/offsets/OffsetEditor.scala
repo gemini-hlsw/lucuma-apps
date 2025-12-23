@@ -64,12 +64,12 @@
 //       val dim     = squareGridDimension(pointCount)
 //       val newGrid = grid(dim, dim, r.stepP, r.stepQ)
 //       updatePreview(newGrid.toList)
-  
+
 //     case s: SpiralParams =>
 //       spiral[IO](pointCount, s.size)
 //         .flatMap(offsets => updatePreview(offsets.toList).to[IO])
 //         .runAsync
-  
+
 //     case r: RandomParams =>
 //       random[IO](pointCount, r.size)
 //         .flatMap(offsets => updatePreview(offsets.toList).to[IO])
