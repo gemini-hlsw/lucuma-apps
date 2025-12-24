@@ -29,8 +29,8 @@ object SequenceData:
     itc: SequenceQuery.Data.Observation.Itc
   ): Map[SequenceType, (SingleSN, TotalSN)] =
     val acq: Option[(SequenceType, (SingleSN, TotalSN))] =
-      (itc.acquisition.selected.signalToNoiseAt.map(_.single),
-       itc.acquisition.selected.signalToNoiseAt.map(_.total)
+      (itc.acquisition.flatMap(_.selected.signalToNoiseAt.map(_.single)),
+       itc.acquisition.flatMap(_.selected.signalToNoiseAt.map(_.total))
       ).mapN: (s, t) =>
         SequenceType.Acquisition -> (SingleSN(s), TotalSN(t))
 
