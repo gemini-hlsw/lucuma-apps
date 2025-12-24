@@ -84,8 +84,6 @@ object ObservingModeSubquery
               filter
               exposureTimeMode $ExposureTimeModeSubquery
             }
-            defaultMultipleFiltersMode
-            explicitMultipleFiltersMode
             defaultBin
             explicitBin
             defaultAmpReadMode
@@ -94,7 +92,6 @@ object ObservingModeSubquery
             explicitAmpGain
             defaultRoi
             explicitRoi
-            offsets $OffsetSubquery
           }
           gmosSouthImaging {
             initialFilters {
@@ -105,8 +102,6 @@ object ObservingModeSubquery
               filter
               exposureTimeMode $ExposureTimeModeSubquery
             }
-            defaultMultipleFiltersMode
-            explicitMultipleFiltersMode
             defaultBin
             explicitBin
             defaultAmpReadMode
@@ -115,7 +110,6 @@ object ObservingModeSubquery
             explicitAmpGain
             defaultRoi
             explicitRoi
-            offsets $OffsetSubquery
           }
           flamingos2LongSlit {
             initialDisperser
