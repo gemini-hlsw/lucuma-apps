@@ -116,7 +116,8 @@ lazy val schemas_model =
           CirceRefined.value ++
           Kittens.value ++
           LucumaCore.value ++
-          LucumaOdbSchema.value
+          LucumaOdbSchema.value ++
+          LucumaRefined.value
     )
 
 lazy val schemas_testkit =

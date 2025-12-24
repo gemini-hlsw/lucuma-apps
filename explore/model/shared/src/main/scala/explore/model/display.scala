@@ -27,6 +27,7 @@ import lucuma.itc.GraphType
 import lucuma.schemas.model.BasicConfiguration
 
 import java.text.DecimalFormat
+import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 
 trait DisplayImplicits:
   given Display[ArcType] =
@@ -304,5 +305,7 @@ trait DisplayImplicits:
       s"GMOS-S Imaging $filterStr"
     case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)        =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
+
+  given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 
 object display extends DisplayImplicits

@@ -128,6 +128,7 @@ trait ObservationDB {
     type GmosGratingOrder                    = enums.GmosGratingOrder
     type GmosDtax                            = enums.GmosDtax
     type GmosEOffsetting                     = enums.GmosEOffsetting
+    type GmosImagingVariantType              = enums.GmosImagingVariantType
     type GmosNorthBuiltinFpu                 = enums.GmosNorthFpu
     type GmosNorthDetector                   = enums.GmosNorthDetector
     type GmosNorthGrating                    = enums.GmosNorthGrating

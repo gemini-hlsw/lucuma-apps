@@ -76,6 +76,26 @@ object ObservingModeSubquery
             }
           }
           gmosNorthImaging {
+            variant {
+              variantType
+              grouped {
+                order
+                offsets $TelescopeConfigGeneratorSubquery
+                skyCount
+                skyOffsets $TelescopeConfigGeneratorSubquery
+              }
+              interleaved {
+                offsets $TelescopeConfigGeneratorSubquery
+                skyCount
+                skyOffsets $TelescopeConfigGeneratorSubquery
+              }
+              preImaging { 
+                offset1 $OffsetSubquery
+                offset2 $OffsetSubquery
+                offset3 $OffsetSubquery
+                offset4 $OffsetSubquery
+              }
+            }
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
