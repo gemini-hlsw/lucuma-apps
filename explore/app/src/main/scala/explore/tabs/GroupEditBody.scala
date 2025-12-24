@@ -65,16 +65,16 @@ object GroupEditBody
       val intervalsLens: Lens[Group, (Option[TimeSpan], Option[TimeSpan])] =
         Group.minimumInterval.disjointZip(Group.maximumInterval)
 
+      val minRequiredAndIntervalsLens
+        : Lens[Group, (Option[NonNegShort], Option[TimeSpan], Option[TimeSpan])] =
+        (Group.minimumRequired, Group.minimumInterval, Group.maximumInterval).disjointZip
+
       def isIntervalError(min: Option[TimeSpan], max: TimeSpan, useMax: Boolean): Boolean =
         // If either is unset, the API is fine with it
         min.exists(m => useMax && (m > max))
 
       val intervalErrorString: NonEmptyString =
         "Mininum delay must be <= Maximum delay".refined
-
-      def minimumForGroup(t: GroupEditType): Option[NonNegShort] =
-        if t === GroupEditType.And then none
-        else NonNegShort.from(1).toOption
 
       def groupModViewBase[A](
         group:     UndoSetter[Group],
@@ -149,6 +149,27 @@ object GroupEditBody
         val orderedV     =
           groupModView(Group.ordered, o => GroupPropertiesInput(ordered = o.assign))
 
+        val minRequiredAndIntervalsV =
+          groupModView(
+            minRequiredAndIntervalsLens,
+            (r, n, x) =>
+              GroupPropertiesInput(minimumRequired = r.orUnassign,
+                                   minimumInterval = n.map(_.toInput).orUnassign,
+                                   maximumInterval = x.map(_.toInput).orUnassign
+              )
+          )
+
+        // sc-7398 When switching to And, default the maximumInterval to zero (immediate execution).
+        // But, if there is a minimumInterval set, it can be no less than the minimumInterval.
+        // Also when switching to AND, if there isn't already a minimumInterval, set it to zero
+        // instead of null.
+        def setForEditType(t: GroupEditType): Callback =
+          if t === GroupEditType.And then
+            val newMin = minIntervalV.get.orEmpty
+            val newMax = newMin.max(maxIntervalV.get)
+            minRequiredAndIntervalsV.set(none, newMin.some, newMax.some)
+          else minRequiredV.set(NonNegShort.from(1).toOption)
+
         val changeGroupTypeButtons =
           <.div(ExploreStyles.GroupChangeButtons)(
             SelectButtonEnumView(
@@ -160,7 +181,7 @@ object GroupEditBody
                 case GroupEditType.And => <.span("AND (Scheduling)")
                 case GroupEditType.Or  => <.span("OR (Choose ", <.i("n"), ")")
               ,
-              onChange = tp => minRequiredV.set(minimumForGroup(tp))
+              onChange = setForEditType
             )
           )
 

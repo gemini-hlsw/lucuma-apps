@@ -11,6 +11,7 @@ import clue.data.syntax.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import explore.model.Group
 import lucuma.core.model.Program
+import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
@@ -58,7 +59,14 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
       .execute:
         CreateGroupInput(
           programId = programId.assign,
-          SET = parentId.map(gId => GroupPropertiesInput(parentGroup = gId.assign)).orIgnore
+          SET = parentId
+            .map(gId =>
+              GroupPropertiesInput(parentGroup = gId.assign,
+                                   minimumInterval = TimeSpan.Zero.toInput.assign,
+                                   maximumInterval = TimeSpan.Zero.toInput.assign
+              )
+            )
+            .orIgnore
         )
       .processErrors
       .map: result =>
