@@ -11,10 +11,8 @@ import lucuma.core.math.Angle
 import lucuma.core.model.PosAngleConstraint
 import lucuma.odb.json.angle.decoder.given
 
-trait PosAngleDecoders {
-
+trait PosAngleDecoders:
   given Decoder[PosAngleConstraint] = {
-
     def missingAngle[A](kind: String, ops: => List[CursorOp]): Decoder.Result[A] =
       DecodingFailure(s"The $kind PosAngleConstraint requires an angle", ops).asLeft[A]
 
@@ -43,5 +41,3 @@ trait PosAngleDecoders {
       } yield p
     }
   }
-
-}

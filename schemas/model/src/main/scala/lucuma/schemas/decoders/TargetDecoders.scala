@@ -10,14 +10,11 @@ import lucuma.core.model.Target
 import lucuma.odb.json.all.query.given
 import lucuma.schemas.model.TargetWithId
 
-trait TargetDecoders {
-
-  given Decoder[TargetWithId] = Decoder.instance(c =>
-    for {
+trait TargetDecoders:
+  given Decoder[TargetWithId] = Decoder.instance: c =>
+    for
       id          <- c.get[Target.Id]("id")
       target      <- c.as[Target]
       disposition <- c.get[TargetDisposition]("disposition")
       calibRole   <- c.get[Option[CalibrationRole]]("calibrationRole")
-    } yield TargetWithId(id, target, disposition, calibRole)
-  )
-}
+    yield TargetWithId(id, target, disposition, calibRole)

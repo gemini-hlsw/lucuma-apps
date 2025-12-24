@@ -605,44 +605,51 @@ extension (b: ObservingMode)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
-    case o: BasicConfiguration.GmosNorthLongSlit  =>
-      ObservingModeInput.GmosNorthLongSlit(
+    case BasicConfiguration.GmosNorthLongSlit(
+          grating = grating,
+          filter = filter,
+          fpu = fpu,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosNorthLongSlit:
         GmosNorthLongSlitInput(
-          grating = o.grating.assign,
-          filter = o.filter.orUnassign,
-          fpu = o.fpu.assign,
-          centralWavelength = o.centralWavelength.value.toInput.assign
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          fpu = fpu.assign,
+          centralWavelength = centralWavelength.value.toInput.assign
         )
-      )
-    case o: BasicConfiguration.GmosSouthLongSlit  =>
-      ObservingModeInput.GmosSouthLongSlit(
+    case BasicConfiguration.GmosSouthLongSlit(
+          grating = grating,
+          filter = filter,
+          fpu = fpu,
+          centralWavelength = centralWavelength
+        ) =>
+      ObservingModeInput.GmosSouthLongSlit:
         GmosSouthLongSlitInput(
-          grating = o.grating.assign,
-          filter = o.filter.orUnassign,
-          fpu = o.fpu.assign,
-          centralWavelength = o.centralWavelength.value.toInput.assign
+          grating = grating.assign,
+          filter = filter.orUnassign,
+          fpu = fpu.assign,
+          centralWavelength = centralWavelength.value.toInput.assign
         )
-      )
-    case o: BasicConfiguration.GmosNorthImaging   =>
-      ObservingModeInput.GmosNorthImaging(
+    case BasicConfiguration.GmosNorthImaging(filter = filter)                                     =>
+      ObservingModeInput.GmosNorthImaging:
         GmosNorthImagingInput(
-          filters = o.filter.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign
+          variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
+          filters = filter.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign
         )
-      )
-    case o: BasicConfiguration.GmosSouthImaging   =>
-      ObservingModeInput.GmosSouthImaging(
+    case BasicConfiguration.GmosSouthImaging(filter = filter)                                     =>
+      ObservingModeInput.GmosSouthImaging:
         GmosSouthImagingInput(
-          filters = o.filter.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign
+          variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
+          filters = filter.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign
         )
-      )
-    case o: BasicConfiguration.Flamingos2LongSlit =>
-      ObservingModeInput.Flamingos2LongSlit(
+    case BasicConfiguration.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
+      ObservingModeInput.Flamingos2LongSlit:
         Flamingos2LongSlitInput(
-          disperser = o.disperser.assign,
-          filter = o.filter.assign,
-          fpu = o.fpu.assign
+          disperser = disperser.assign,
+          filter = filter.assign,
+          fpu = fpu.assign
         )
-      )
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =
