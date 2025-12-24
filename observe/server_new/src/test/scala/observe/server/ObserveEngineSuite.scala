@@ -437,7 +437,7 @@ class ObserveEngineSuite extends TestCommon {
         reqConditions,
         List.empty,
         ODBObservation.Itc(
-          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)),
+          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)).some,
           ODBObservation.Itc.Science(ODBObservation.Itc.Science.Selected(none))
         )
       ),
@@ -688,7 +688,7 @@ class ObserveEngineSuite extends TestCommon {
         reqConditions,
         List.empty,
         ODBObservation.Itc(
-          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)),
+          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)).some,
           ODBObservation.Itc.Science(ODBObservation.Itc.Science.Selected(none))
         )
       ),
