@@ -18,7 +18,6 @@ import explore.Icons
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
-// import explore.config.offsets.OffsetEditor
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
@@ -29,10 +28,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-// import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
-// import lucuma.core.math.syntax.int.*
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
@@ -41,7 +38,6 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
-// import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
@@ -50,7 +46,6 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.primereact.*
-// import lucuma.ui.primereact.FormLabel
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given

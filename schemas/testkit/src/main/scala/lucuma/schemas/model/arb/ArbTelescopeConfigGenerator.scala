@@ -5,13 +5,13 @@ package lucuma.schemas.model.arb
 
 import cats.data.NonEmptyList
 import cats.laws.discipline.arbitrary.*
+import lucuma.core.geom.arb.ArbOffsetGenerator.given
+import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
+import lucuma.schemas.model.TelescopeConfigGenerator
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
-import lucuma.schemas.model.TelescopeConfigGenerator
-import lucuma.core.geom.arb.ArbOffsetGenerator.given
-import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
 
 trait ArbTelescopeConfigGenerator:
 
