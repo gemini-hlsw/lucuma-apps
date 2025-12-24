@@ -3,20 +3,21 @@
 
 package lucuma.schemas.model.arb
 
+import eu.timepit.refined.scalacheck.all.given
+import eu.timepit.refined.types.numeric.NonNegInt
+import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
+import lucuma.core.math.arb.ArbOffset.given
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.TelescopeConfigGenerator
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
-import lucuma.core.enums.WavelengthOrder
-import lucuma.schemas.model.TelescopeConfigGenerator
-import lucuma.schemas.model.GmosImagingVariant
+
 import ArbTelescopeConfigGenerator.given
-import eu.timepit.refined.types.numeric.NonNegInt
-import eu.timepit.refined.scalacheck.all.given
-import lucuma.core.math.arb.ArbOffset.given
 
 trait ArbGmosImagingVariant:
   val genGrouped: Gen[GmosImagingVariant.Grouped] =

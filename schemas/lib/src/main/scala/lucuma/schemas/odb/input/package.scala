@@ -33,8 +33,8 @@ import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TelescopeConfigGenerator
 
 import scala.annotation.targetName

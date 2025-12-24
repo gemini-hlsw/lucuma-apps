@@ -6,8 +6,8 @@ package lucuma.schemas.model
 import cats.Eq
 import cats.data.NonEmptyList
 import cats.derived.*
-import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.geom.OffsetGenerator
+import lucuma.core.model.sequence.TelescopeConfig
 
 enum TelescopeConfigGenerator derives Eq:
   case Enumerated(values: NonEmptyList[TelescopeConfig])     extends TelescopeConfigGenerator

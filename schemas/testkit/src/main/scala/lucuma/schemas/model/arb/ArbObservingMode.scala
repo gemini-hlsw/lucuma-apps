@@ -17,12 +17,12 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
-import lucuma.schemas.model.GmosImagingVariant
 
 trait ArbObservingMode {
   import ArbExposureTimeMode.given
