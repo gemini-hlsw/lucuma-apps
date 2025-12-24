@@ -309,6 +309,10 @@ object Dependencies {
     )(lucumaReact)
   )
 
+  val LucumaRefined = Def.setting(
+    deps("edu.gemini" %%% "lucuma-refined")(lucumaRefined)
+  )
+
   val LucumaSsoFrontendClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-sso-frontend-client")(lucumaServers)
   )

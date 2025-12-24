@@ -12,7 +12,7 @@ import lucuma.core.model.ElevationRange
 import lucuma.core.model.HourAngleBound
 import lucuma.core.refined.given
 
-trait ConstraintSetDecoders {
+trait ConstraintSetDecoders:
   given Decoder[ElevationRange.ByAirMass] = c =>
     for {
       min <- c.downField("min").as[AirMassBound]
@@ -31,4 +31,3 @@ trait ConstraintSetDecoders {
       .orElse(c.downField("hourAngle").as[ElevationRange.ByHourAngle])
 
   given Decoder[ConstraintSet] = semiauto.deriveDecoder
-}

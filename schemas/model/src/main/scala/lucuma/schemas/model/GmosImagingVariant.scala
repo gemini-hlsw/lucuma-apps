@@ -4,27 +4,55 @@
 package lucuma.schemas.model
 
 import cats.Eq
+import lucuma.refined.*
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
 import io.circe.Decoder
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
+import lucuma.core.enums.GmosImagingVariantType
+import io.circe.generic.semiauto.*
+import io.circe.refined.given
+import lucuma.odb.json.offset.decoder.given
+import lucuma.schemas.decoders.given
 
-enum GmosImagingVariant derives Eq:
+enum GmosImagingVariant(val variantType: GmosImagingVariantType) derives Eq:
   case Grouped(
     order:      WavelengthOrder,
     offsets:    Option[TelescopeConfigGenerator],
     skyCount:   NonNegInt,
     skyOffsets: Option[TelescopeConfigGenerator]
-  ) extends GmosImagingVariant
+  ) extends GmosImagingVariant(GmosImagingVariantType.Grouped)
   case Interleaved(
     offsets:    Option[TelescopeConfigGenerator],
     skyCount:   NonNegInt,
     skyOffsets: Option[TelescopeConfigGenerator]
-  ) extends GmosImagingVariant
+  ) extends GmosImagingVariant(GmosImagingVariantType.Interleaved)
   case PreImaging(offset1: Offset, offset2: Offset, offset3: Offset, offset4: Offset)
-      extends GmosImagingVariant
+      extends GmosImagingVariant(GmosImagingVariantType.PreImaging)
+
+  def toVariantType(newVariantType: GmosImagingVariantType): GmosImagingVariant =
+    this match
+      case Grouped(order, offsets, skyCount, skyOffsets)  =>
+        newVariantType match
+          case GmosImagingVariantType.Grouped     => this
+          case GmosImagingVariantType.Interleaved => Interleaved(offsets, skyCount, skyOffsets)
+          case GmosImagingVariantType.PreImaging  =>
+            PreImaging(Offset.Zero, Offset.Zero, Offset.Zero, Offset.Zero)
+      case Interleaved(offsets, skyCount, skyOffsets)     =>
+        newVariantType match
+          case GmosImagingVariantType.Grouped     =>
+            Grouped(WavelengthOrder.Increasing, offsets, skyCount, skyOffsets)
+          case GmosImagingVariantType.Interleaved => this
+          case GmosImagingVariantType.PreImaging  =>
+            PreImaging(Offset.Zero, Offset.Zero, Offset.Zero, Offset.Zero)
+      case PreImaging(offset1, offset2, offset3, offset4) =>
+        newVariantType match
+          case GmosImagingVariantType.Grouped     =>
+            Grouped(WavelengthOrder.Increasing, None, 0.refined, None)
+          case GmosImagingVariantType.Interleaved => Interleaved(None, 0.refined, None)
+          case GmosImagingVariantType.PreImaging  => this
 
 object GmosImagingVariant:
-  given Decoder[GmosImagingVariant] = ???
+  given Decoder[GmosImagingVariant] = deriveDecoder
