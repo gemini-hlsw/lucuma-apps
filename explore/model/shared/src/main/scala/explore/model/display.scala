@@ -308,4 +308,8 @@ trait DisplayImplicits:
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 
+  given Display[WavelengthOrder] = Display.byShortName:
+    case WavelengthOrder.Increasing => "Increasing"
+    case WavelengthOrder.Decreasing => "Decreasing"
+
 object display extends DisplayImplicits

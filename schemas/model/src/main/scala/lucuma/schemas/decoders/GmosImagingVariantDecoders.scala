@@ -25,39 +25,41 @@ import scala.annotation.targetName
 trait GmosImagingVariantDecoders:
   @targetName("TelescopeConfigGeneratorDecoder")
   given Decoder[Option[TelescopeConfigGenerator]] = Decoder.instance: c =>
-    c.downField("generatorType")
-      .as[TelescopeConfigGeneratorType]
-      .flatMap:
-        case TelescopeConfigGeneratorType.NoGenerator => Right(none)
-        case TelescopeConfigGeneratorType.Enumerated  =>
-          for configs <- c.downField("enumerated")
-                           .downField("values")
-                           .as[NonEmptyList[lucuma.core.model.sequence.TelescopeConfig]]
-          yield TelescopeConfigGenerator.Enumerated(configs).some
-        case TelescopeConfigGeneratorType.Random      =>
-          val random = c.downField("random")
-          for
-            size   <- random.downField("size").as[Angle]
-            center <- random.downField("center").as[Offset]
-          yield TelescopeConfigGenerator
-            .FromOffsetGenerator(OffsetGenerator.Random(size, center))
-            .some
-        case TelescopeConfigGeneratorType.Spiral      =>
-          val spiral = c.downField("spiral")
-          for
-            size   <- spiral.downField("size").as[Angle]
-            center <- spiral.downField("center").as[Offset]
-          yield TelescopeConfigGenerator
-            .FromOffsetGenerator(OffsetGenerator.Spiral(size, center))
-            .some
-        case TelescopeConfigGeneratorType.Uniform     =>
-          val uniform = c.downField("uniform")
-          for
-            cornerA <- uniform.downField("cornerA").as[Offset]
-            cornerB <- uniform.downField("cornerB").as[Offset]
-          yield TelescopeConfigGenerator
-            .FromOffsetGenerator(OffsetGenerator.Uniform(cornerA, cornerB))
-            .some
+    if c.value.isNull then Right(none)
+    else
+      c.downField("generatorType")
+        .as[TelescopeConfigGeneratorType]
+        .flatMap:
+          case TelescopeConfigGeneratorType.NoGenerator => Right(none)
+          case TelescopeConfigGeneratorType.Enumerated  =>
+            for configs <- c.downField("enumerated")
+                             .downField("values")
+                             .as[NonEmptyList[lucuma.core.model.sequence.TelescopeConfig]]
+            yield TelescopeConfigGenerator.Enumerated(configs).some
+          case TelescopeConfigGeneratorType.Random      =>
+            val random = c.downField("random")
+            for
+              size   <- random.downField("size").as[Angle]
+              center <- random.downField("center").as[Offset]
+            yield TelescopeConfigGenerator
+              .FromOffsetGenerator(OffsetGenerator.Random(size, center))
+              .some
+          case TelescopeConfigGeneratorType.Spiral      =>
+            val spiral = c.downField("spiral")
+            for
+              size   <- spiral.downField("size").as[Angle]
+              center <- spiral.downField("center").as[Offset]
+            yield TelescopeConfigGenerator
+              .FromOffsetGenerator(OffsetGenerator.Spiral(size, center))
+              .some
+          case TelescopeConfigGeneratorType.Uniform     =>
+            val uniform = c.downField("uniform")
+            for
+              cornerA <- uniform.downField("cornerA").as[Offset]
+              cornerB <- uniform.downField("cornerB").as[Offset]
+            yield TelescopeConfigGenerator
+              .FromOffsetGenerator(OffsetGenerator.Uniform(cornerA, cornerB))
+              .some
 
   given Decoder[GmosImagingVariant] = Decoder.instance: c =>
     c.downField("variantType")
@@ -79,7 +81,7 @@ trait GmosImagingVariantDecoders:
             skyOffsets <- interleaved.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
           yield GmosImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
         case GmosImagingVariantType.PreImaging  =>
-          val preimaging = c.downField("preimaging")
+          val preimaging = c.downField("preImaging")
           for
             offset1 <- preimaging.downField("offset1").as[Offset]
             offset2 <- preimaging.downField("offset2").as[Offset]

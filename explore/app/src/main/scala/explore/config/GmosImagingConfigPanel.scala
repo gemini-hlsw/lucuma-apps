@@ -41,7 +41,6 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
-import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
@@ -203,10 +202,6 @@ object GmosImagingConfigPanel {
             initialFiltersLens.get(props.observingMode.get)
 
           val localVariantView: View[GmosImagingVariant] = variant(props.observingMode)
-          val variantType: GmosImagingVariantType        = localVariantView.get match
-            case GmosImagingVariant.Grouped(_, _, _, _)    => GmosImagingVariantType.Grouped
-            case GmosImagingVariant.Interleaved(_, _, _)   => GmosImagingVariantType.Interleaved
-            case GmosImagingVariant.PreImaging(_, _, _, _) => GmosImagingVariantType.PreImaging
 
           // val offsetReadOnly = props.readonly || editState.get === ConfigEditState.View
           // val offsetsCount   = offsets(props.observingMode).get.size
@@ -218,36 +213,7 @@ object GmosImagingConfigPanel {
           React.Fragment(
             <.div(ExploreStyles.GmosImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
-// EnumDropdown[SourceProfileType](
-//             id = "profile-type".refined,
-//             value = SourceProfileType.fromSourceProfile(props.sourceProfile.get),
-//             onChange = sp => props.sourceProfile.view(_.toInput).mod(sp.convert),
-//             clazz = LucumaPrimeStyles.FormField,
-//             disabled = props.disabled
-//           ),
-
-                // TODO Customized version
-                // TODO FormEnumDropdown
-                EnumDropdown[GmosImagingVariantType](
-                  id = "variant-type".refined,
-                  value = variantType,
-                  onChange = vt => localVariantView.mod(_.toVariantType(vt)),
-                  // label = "Variant".some,
-                  // helpId = Some("configuration/imaging/variant-type.md".refined),
-                  clazz = LucumaPrimeStyles.FormField,
-                  disabled = disableSimpleEdit
-                )
-                // CustomizableEnumSelectOptional(
-                //   id = "explicitMultipleFiltersMode".refined,
-                //   view = explicitMultipleFiltersMode(props.observingMode)
-                //     .withDefault(defaultMultipleFiltersMode),
-                //   defaultValue = defaultMultipleFiltersMode.some,
-                //   label = "Multiple Filters".some,
-                //   helpId = Some("configuration/imaging/multiple-filters-mode.md".refined),
-                //   disabled = disableSimpleEdit,
-                //   showCustomization = showCustomization,
-                //   allowRevertCustomization = allowRevertCustomization
-                // )
+                GmosImagingVariantEditor(localVariantView, disableSimpleEdit)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 // FormLabel(htmlFor = "spatial-offsets-button".refined)("Offsets"),
