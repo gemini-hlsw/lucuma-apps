@@ -3,7 +3,10 @@
 
 package lucuma.schemas.model
 
+import cats.syntax.option.*
 import io.circe.parser.decode
+import lucuma.core.enums.WavelengthOrder
+import lucuma.refined.*
 import munit.FunSuite
 
 class ObservingModeSuite extends FunSuite:
@@ -16,18 +19,37 @@ class ObservingModeSuite extends FunSuite:
     val result = decode[ObservingMode](json)
 
     result match {
-      case Right(gni: ObservingMode.GmosNorthImaging) =>
-      // assertEquals(gni.initialFilters.size, 1)
-      // assertEquals(gni.filters.size, 1)
-      // assertEquals(gni.explicitBin, None)
-      // assertEquals(gni.explicitAmpReadMode, None)
-      // assertEquals(gni.explicitAmpGain, None)
-      // assertEquals(gni.explicitRoi, None)
-      case Right(_)                                   =>
+      case Right(
+            ObservingMode.GmosNorthImaging(
+              variant = variant,
+              initialFilters = initialFilters,
+              filters = filters,
+              explicitBin = explicitBin,
+              explicitAmpReadMode = explicitAmpReadMode,
+              explicitAmpGain = explicitAmpGain,
+              explicitRoi = explicitRoi
+            )
+          ) =>
+        assertEquals(
+          variant,
+          GmosImagingVariant.Grouped(
+            order = WavelengthOrder.Increasing,
+            offsets = none,
+            skyCount = 0.refined,
+            skyOffsets = none
+          )
+        )
+        assertEquals(initialFilters.size, 1)
+        assertEquals(filters.size, 1)
+        assertEquals(explicitBin, none)
+        assertEquals(explicitAmpReadMode, none)
+        assertEquals(explicitAmpGain, none)
+        assertEquals(explicitRoi, none)
+      case Right(_)    =>
         assert(
           false,
           s"Decoded $json but got wrong ObservingMode subtype: ${result.toString}"
         )
-      case Left(error)                                =>
+      case Left(error) =>
         assert(false, s"Failed to decode - Error: $error")
     }

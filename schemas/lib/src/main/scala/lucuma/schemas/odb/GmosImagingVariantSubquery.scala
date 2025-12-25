@@ -10,7 +10,7 @@ import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.odb.*
 
 object GmosImagingVariantSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GmosImagingVariant]("GmosImagingVariant") {
+    extends GraphQLSubquery.Typed[ObservationDB, GmosImagingVariant]("GmosImagingVariant"):
   override val subquery: String = s"""
     {
       variantType
@@ -33,4 +33,3 @@ object GmosImagingVariantSubquery
       }
     }
   """
-}
