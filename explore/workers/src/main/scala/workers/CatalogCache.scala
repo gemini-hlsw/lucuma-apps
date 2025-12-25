@@ -18,10 +18,7 @@ import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
 import lucuma.core.model.Target
 import org.typelevel.log4cats.Logger
-<<<<<<< HEAD
-=======
 import org.typelevel.log4cats.LoggerFactory
->>>>>>> main
 import org.typelevel.log4cats.syntax.*
 
 import java.time.LocalDateTime
@@ -94,15 +91,16 @@ trait CatalogCache extends CatalogIDB:
                 client
                   .queryGuideStars(query)
                   .map(
-                    _.collect: case Right(s) =>
-                      GuideStarCandidate.siderealTarget.get(s)
+                    _.collect:
+                      case Right(s) =>
+                        GuideStarCandidate.siderealTarget.get(s)
                   )
                   .flatMap: candidates =>
                     info"Catalog results from remote catalog contain ${candidates.length} candidates" *>
                       respond(candidates) *>
                       storeGuideStarCandidates(idb, stores, query, candidates)
                         .toF[IO]
-                        .handleError(e => L.error(e)("Error storing guidestar candidates"))
+                        .handleError(e => Logger[IO].error(e)("Error storing guidestar candidates"))
                   .void
               ) { c =>
                 // Cache hit!

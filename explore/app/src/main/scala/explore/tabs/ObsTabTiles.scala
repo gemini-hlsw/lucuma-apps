@@ -544,7 +544,6 @@ object ObsTabTiles:
               props.searching,
               "Targets",
               props.userPreferences,
-              guideStarSelection,
               props.attachments,
               props.vault.map(_.token),
               props.obsIsReadonly,

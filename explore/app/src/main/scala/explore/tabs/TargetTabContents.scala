@@ -528,6 +528,7 @@ object TargetTabContents extends TwoPanels:
               props.programType.map: programType =>
                 ObservationTargetsEditorTile(
                   props.userId,
+                  props.isStaff,
                   TargetTabTileIds.AsterismEditor.id,
                   props.programId,
                   programType,
@@ -550,7 +551,6 @@ object TargetTabContents extends TwoPanels:
                   props.searching,
                   title,
                   props.userPreferences,
-                  guideStarSelection,
                   props.attachments,
                   props.authToken,
                   props.readonly,
@@ -571,9 +571,9 @@ object TargetTabContents extends TwoPanels:
                 Nil,
                 props.globalPreferences.get,
                 Constants.NoTargetSelected
-              ).some
+              )
 
-            List(asterismEditorTile, skyPlotTile).flattenOption
+            List(asterismEditorTile, skyPlotTile.some).flattenOption
           }
 
           // We still want to render these 2 tiles, even when not shown, so as not to mess up the stored layout.

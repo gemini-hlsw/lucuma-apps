@@ -141,12 +141,6 @@ object AladinCell extends ModelOptics with AladinCommon:
 
   private type Props = AladinCell
 
-  // Unconstrained angles - test at 10 degree intervals for the full range
-  private val UnconstrainedAngles: NonEmptyList[Angle] =
-    NonEmptyList.fromListUnsafe(
-      (0 until 360 by 10).map(d => Angle.fromDoubleDegrees(d.toDouble)).toList
-    )
-
   // only compare candidates by id
   private given Reusability[GuideStarCandidate] = Reusability.by(_.id)
 
@@ -401,7 +395,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                            obsCoords.scienceCoords,
                                            oObsCoords.flatMap(_.blindOffsetCoords),
                                            angles,
-                                           UnconstrainedAngles,
+                                           UnconstrainedAngles.get,
                                            isUnbounded,
                                            acqOffsets,
                                            sciOffsets,
@@ -566,7 +560,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value, obsTargetsCoordsPot.value).tupled.renderPot((etr, eco) =>
+        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot((etr, eco) =>
           (etr, eco).tupled.fold(
             err => Message(severity = Message.Severity.Error, text = err),
             (tr, co) =>

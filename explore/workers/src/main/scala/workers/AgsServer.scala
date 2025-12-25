@@ -117,7 +117,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
     usableAngleByTarget: UnconstrainedResult
   ): List[CandidateAnalysis] = {
     val usable    = constrainedResults.sortUsablePositions
-    val nonUsable = constrainedResults.filterNot(_.isUsable)
+    val nonUsable = constrainedResults.filterNot(_.isUsable).distinctBy(_.target.id)
 
     val usableCandidates    = usable.map(a => CandidateAnalysis(a, usableAt = None))
     val nonUsableCandidates = nonUsable.map { a =>

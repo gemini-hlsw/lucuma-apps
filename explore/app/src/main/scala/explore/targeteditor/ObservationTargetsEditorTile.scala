@@ -18,6 +18,7 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.GuideStarSelection
+import explore.model.GuideStarSelection.AgsSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
@@ -78,7 +79,6 @@ object ObservationTargetsEditorTile:
     searching:           View[Set[Target.Id]],
     title:               String,
     userPreferences:     View[UserPreferences],
-    guideStarSelection:  View[GuideStarSelection],
     attachments:         View[AttachmentList],
     authToken:           Option[NonEmptyString],
     readonly:            Boolean,
@@ -145,7 +145,6 @@ object ObservationTargetsEditorTile:
             obsInfo,
             searching,
             userPreferences,
-            guideStarSelection,
             attachments,
             authToken,
             readonly,
@@ -203,7 +202,6 @@ object ObservationTargetsEditorTile:
     obsInfo:             Target.Id => TargetEditObsInfo,
     searching:           View[Set[Target.Id]],
     userPreferences:     View[UserPreferences],
-    guideStarSelection:  View[GuideStarSelection],
     attachments:         View[AttachmentList],
     authToken:           Option[NonEmptyString],
     readonly:            Boolean,
@@ -242,7 +240,9 @@ object ObservationTargetsEditorTile:
                                case None =>
                                  props.setTarget(allTargetIds.headOption, SetRouteVia.HistoryReplace)
                                case _    => Callback.empty
-          fullScreen  <- useStateView(AladinFullScreen.Normal)
+          fullScreen             <- useStateView(AladinFullScreen.Normal)
+          fallbackGSSelection    <- useStateView[GuideStarSelection](AgsSelection(none))
+          guideStarSelection      = props.obsConf.guideStarSelection.getOrElse(fallbackGSSelection)
         yield
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -309,7 +309,7 @@ object ObservationTargetsEditorTile:
                       obsInfo = obsInfo,
                       fullScreen = fullScreen,
                       userPreferences = props.userPreferences,
-                      guideStarSelection = props.guideStarSelection,
+                      guideStarSelection = guideStarSelection,
                       attachments = props.attachments,
                       authToken = props.authToken,
                       readonly = props.readonly,
