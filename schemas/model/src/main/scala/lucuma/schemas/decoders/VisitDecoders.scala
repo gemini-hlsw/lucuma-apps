@@ -29,6 +29,7 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.model.*
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
+
 import scala.annotation.targetName
 
 trait VisitDecoders:

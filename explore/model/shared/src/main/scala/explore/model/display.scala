@@ -24,10 +24,10 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
+import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.BasicConfiguration
 
 import java.text.DecimalFormat
-import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 
 trait DisplayImplicits:
   given Display[ArcType] =

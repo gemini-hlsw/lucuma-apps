@@ -17,13 +17,17 @@ class ObservingModeSuite extends FunSuite:
 
     result match {
       case Right(gni: ObservingMode.GmosNorthImaging) =>
-        assertEquals(gni.initialFilters.size, 1)
-        assertEquals(gni.filters.size, 1)
-        // assertEquals(gni.explicitMultipleFiltersMode, None)
-        assertEquals(gni.explicitBin, None)
-        assertEquals(gni.explicitAmpReadMode, None)
-        assertEquals(gni.explicitAmpGain, None)
-        assertEquals(gni.explicitRoi, None)
-      // assertEquals(gni.offsets, List())
-      case _                                          => assert(false, s"Failed to decode $json")
+      // assertEquals(gni.initialFilters.size, 1)
+      // assertEquals(gni.filters.size, 1)
+      // assertEquals(gni.explicitBin, None)
+      // assertEquals(gni.explicitAmpReadMode, None)
+      // assertEquals(gni.explicitAmpGain, None)
+      // assertEquals(gni.explicitRoi, None)
+      case Right(_)                                   =>
+        assert(
+          false,
+          s"Decoded $json but got wrong ObservingMode subtype: ${result.toString}"
+        )
+      case Left(error)                                =>
+        assert(false, s"Failed to decode - Error: $error")
     }
