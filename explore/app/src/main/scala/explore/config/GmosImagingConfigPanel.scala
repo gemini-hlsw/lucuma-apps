@@ -41,7 +41,9 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
+import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
@@ -53,8 +55,6 @@ import lucuma.ui.utils.*
 import lucuma.ui.utils.given
 import monocle.Lens
 import org.typelevel.log4cats.Logger
-import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
-import lucuma.schemas.model.GmosImagingVariant
 
 object GmosImagingConfigPanel {
   // These displays are allowing the display of the short name in the chips of the

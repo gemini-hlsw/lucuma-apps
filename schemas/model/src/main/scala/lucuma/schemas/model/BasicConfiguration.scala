@@ -8,6 +8,7 @@ import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
 import io.circe.Decoder
+import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
@@ -57,7 +58,10 @@ object BasicConfiguration:
                     c.downField("gmosSouthImaging")
                       .as[GmosSouthImaging]
                       .orElse:
-                        c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
+                        c.downField("flamingos2LongSlit")
+                          .as[Flamingos2LongSlit]
+                          .orElse:
+                            DecodingFailure("Could not decode BasicConfiguration", c.history).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,

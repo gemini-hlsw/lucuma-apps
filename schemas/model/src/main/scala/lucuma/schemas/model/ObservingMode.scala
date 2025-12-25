@@ -8,6 +8,7 @@ import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
 import io.circe.Decoder
+import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
 import lucuma.core.math.Offset
@@ -77,6 +78,8 @@ object ObservingMode:
             c.downField("gmosSouthImaging").as[GmosSouthImaging]
           .orElse:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
+          .orElse:
+            DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
   case class GmosNorthLongSlit(
     initialGrating:            GmosNorthGrating,

@@ -4,8 +4,9 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.decoders.given
+import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.odb.*
 
 object GmosImagingVariantSubquery

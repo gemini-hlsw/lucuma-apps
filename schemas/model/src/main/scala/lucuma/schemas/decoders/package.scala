@@ -11,4 +11,4 @@ package object decoders
     with ExposureTimeModeDecoders
     with VisitDecoders
     with TimingWindowDecoders
-    with TelescopeConfigGeneratorDecoders
+    with GmosImagingVariantDecoders
