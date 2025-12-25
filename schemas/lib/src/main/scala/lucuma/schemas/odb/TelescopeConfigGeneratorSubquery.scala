@@ -4,9 +4,9 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
+import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.schemas.odb.*
 
 object TelescopeConfigGeneratorSubquery

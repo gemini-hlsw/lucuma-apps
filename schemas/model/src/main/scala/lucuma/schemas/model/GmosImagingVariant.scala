@@ -4,18 +4,13 @@
 package lucuma.schemas.model
 
 import cats.Eq
-import lucuma.refined.*
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
-import io.circe.Decoder
+import lucuma.core.enums.GmosImagingVariantType
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
-import lucuma.core.enums.GmosImagingVariantType
-import io.circe.generic.semiauto.*
-import io.circe.refined.given
-import lucuma.odb.json.offset.decoder.given
-import lucuma.schemas.decoders.given
+import lucuma.refined.*
 
 enum GmosImagingVariant(val variantType: GmosImagingVariantType) derives Eq:
   case Grouped(
@@ -53,6 +48,3 @@ enum GmosImagingVariant(val variantType: GmosImagingVariantType) derives Eq:
             Grouped(WavelengthOrder.Increasing, None, 0.refined, None)
           case GmosImagingVariantType.Interleaved => Interleaved(None, 0.refined, None)
           case GmosImagingVariantType.PreImaging  => this
-
-object GmosImagingVariant:
-  given Decoder[GmosImagingVariant] = deriveDecoder
