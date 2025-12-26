@@ -3,11 +3,11 @@
 
 package explore.config.offsets
 
-import lucuma.react.common.*
 import crystal.react.View
-import lucuma.core.math.Offset
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.math.Offset
+import lucuma.react.common.*
 
 final case class OffsetInput(offset: View[Offset], readonly: Boolean)
     extends ReactFnProps(OffsetInput)

@@ -34,6 +34,7 @@ import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GmosSouthGrating
+import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.Arc
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
@@ -51,7 +52,6 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.SequenceRow
-import lucuma.core.geom.OffsetGenerator
 
 /**
  * Reusability instances for model classes

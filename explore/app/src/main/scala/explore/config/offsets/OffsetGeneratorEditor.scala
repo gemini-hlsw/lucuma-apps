@@ -7,9 +7,10 @@ import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
-import lucuma.ui.syntax.all.*
+import crystal.react.hooks.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.ExploreModelValidators.*
@@ -18,26 +19,24 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
-// import lucuma.core.geom.OffsetGenerator.*
+import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.util.Display
+import lucuma.core.util.NewBoolean
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Checkbox
+import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Divider
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
+import lucuma.schemas.model.TelescopeConfigGenerator
+import lucuma.typed.react.reactStrings.p
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.all.*
 import org.typelevel.log4cats.Logger
-import lucuma.core.geom.OffsetGenerator
-import lucuma.core.util.NewBoolean
-import lucuma.react.primereact.Dialog
-import lucuma.typed.react.reactStrings.p
-import lucuma.schemas.model.TelescopeConfigGenerator
-import eu.timepit.refined.types.string.NonEmptyString
-import crystal.react.hooks.*
 
 case class OffsetGeneratorEditor(
   id:       NonEmptyString,
@@ -69,14 +68,37 @@ object OffsetGeneratorEditor
 
       for
         isDialogOpen <- useState(IsOpen.False)
-        offsets      <- useEffectResultWithDeps(props.value.get):
-                          _.foldMap(_.generate[IO](1.refined).map(_.some))
+        offsets      <- useEffectResultWithDeps(props.value.get): og =>
+                          IO.println(s"Generating offsets for generator: $og") >>
+                            og.foldMap(_.generate[IO](1.refined).map(_.some))
+                              .handleErrorWith: e =>
+                                IO.println(s"Error generating offsets: ${e.getMessage}") >>
+                                  IO.pure(none)
+                              .flatTap(of => IO.println(s"Generated offsets: $of"))
         showNumbers  <- useStateView(false)
         showArrows   <- useStateView(true)
         resize       <- useResizeDetector
       yield
-        val dialogSize: Option[PosInt]   =
+        val dialogSize: Option[PosInt] =
           (resize.width, resize.height).mapN(_.min(_)).map(PosInt.from).flatMap(_.toOption)
+
+        println(offsets.value)
+        println(dialogSize)
+
+        val gridSection: VdomNode =
+          <.div(OffsetEditorStyles.GridDisplay)(
+            offsets.value.value.renderPot: readyOffsets =>
+              // (readyOffsets, dialogSize).mapN: (o, s) =>
+              readyOffsets.map: o =>
+                OffsetGridDisplay(
+                  o.toList,
+                  // svgSize = s,
+                  svgSize = 400.refined, // Temporary fixed size until we fix the resize detector
+                  showNumbers = showNumbers.get || o.size < 30,
+                  showArrows = showArrows.get
+                )
+          ).withRef(resize.ref)
+
         val viewOptionsSection: VdomNode =
           ReactFragment(
             <.div(
@@ -144,42 +166,25 @@ object OffsetGeneratorEditor
           (
             if (props.readonly)
               <.div(OffsetEditorStyles.ContentReadOnly)(
-                <.div(OffsetEditorStyles.GridDisplay)(
-                  offsets.value.value.renderPot: readyOffsets =>
-                    (readyOffsets, dialogSize).mapN: (o, s) =>
-                      OffsetGridDisplay(
-                        o.toList,
-                        svgSize = s,
-                        showNumbers = showNumbers.get || o.size < 30,
-                        showArrows = showArrows.get
-                      )
-                ).withRef(resize.ref),
+                gridSection,
                 viewOptionsSection
               )
             else
               <.div(OffsetEditorStyles.Content)(
-                <.div(OffsetEditorStyles.GridDisplay)(
-//             (previewOffsets.value, size).mapN((o, s) =>
-//               OffsetGridDisplay(o,
-//                                 svgSize = s,
-//                                 showNumbers = showNumbers.get || o.size < 30,
-//                                 showArrows = showArrows.get
-//               )
-//             )
-//           ).withRef(resize.ref),
-//           <.div(
-//             OffsetEditorStyles.GridControls,
-//             ReactFragment(
-//               <.h4("Generator Parameters"),
-//               <.div(
-//                 OffsetEditorStyles.FormRow,
-//                 <.label(^.htmlFor := "grid-type", "Type:"),
-//                 FormEnumDropdownView(
-//                   id = "grid-type".refined,
-//                   value = gridType,
-//                   placeholder = "Select grid type"
-//                 )
-//               ),
+                gridSection,
+                <.div(OffsetEditorStyles.GridControls)(
+                  ReactFragment(
+                    <.h4("Generator Parameters"),
+                    <.div(
+                      OffsetEditorStyles.FormRow,
+                      <.label(^.htmlFor := "grid-type", "Type:"),
+                      EnumDropdown(
+                        id = "grid-type".refined,
+                        value = GridType.fromOffsetGenerator(props.value.get),
+                        onChange = gt => props.value.set(gt.init),
+                        placeholder = "Select grid type"
+                      )
+                    )
 //               gridType.get match {
 //                 case GridType.Rectangular =>
 //                   ReactFragment(
@@ -265,7 +270,7 @@ object OffsetGeneratorEditor
 //               },
 //               Divider(),
 //               viewOptionsSection
-//             )
+                  )
                 )
               )
           )

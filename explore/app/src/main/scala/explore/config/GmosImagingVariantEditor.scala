@@ -3,28 +3,28 @@
 
 package explore.config
 
+import cats.Endo
 import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
+import explore.config.offsets.OffsetGeneratorEditor
+import explore.model.AsterismVisualOptions.id
 import explore.model.display.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.geom.OffsetGenerator
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import lucuma.core.geom.OffsetGenerator
-import explore.config.offsets.OffsetGeneratorEditor
-import lucuma.schemas.model.TelescopeConfigGenerator
-import cats.Endo
-import explore.model.AsterismVisualOptions.id
 
 final case class GmosImagingVariantEditor(variant: View[GmosImagingVariant], readonly: Boolean)
     extends ReactFnProps(GmosImagingVariantEditor):

@@ -8,10 +8,10 @@ import cats.data.NonEmptyList
 import cats.derived.*
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.model.sequence.TelescopeConfig
-import monocle.macros.GenPrism
-import monocle.Prism
-import monocle.Iso
 import monocle.Focus
+import monocle.Iso
+import monocle.Prism
+import monocle.macros.GenPrism
 
 enum TelescopeConfigGenerator derives Eq:
   case Enumerated(values: NonEmptyList[TelescopeConfig])     extends TelescopeConfigGenerator
