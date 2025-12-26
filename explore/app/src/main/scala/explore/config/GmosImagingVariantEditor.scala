@@ -20,6 +20,11 @@ import lucuma.schemas.model.GmosImagingVariant
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import lucuma.core.geom.OffsetGenerator
+import explore.config.offsets.OffsetGeneratorEditor
+import lucuma.schemas.model.TelescopeConfigGenerator
+import cats.Endo
+import explore.model.AsterismVisualOptions.id
 
 final case class GmosImagingVariantEditor(variant: View[GmosImagingVariant], readonly: Boolean)
     extends ReactFnProps(GmosImagingVariantEditor):
@@ -36,6 +41,15 @@ object GmosImagingVariantEditor
         props.variant.zoom(GmosImagingVariant.interleaved).toOptionView
       val preImagingView: Option[View[GmosImagingVariant.PreImaging]]   =
         props.variant.zoom(GmosImagingVariant.preImaging).toOptionView
+
+      val offsetGeneratorGetter: Option[TelescopeConfigGenerator] => Option[OffsetGenerator] =
+        _.flatMap(TelescopeConfigGenerator.fromOffsetGenerator.getOption).map(_.offsetGenerator)
+
+      val offsetGeneratorModder
+        : Endo[Option[OffsetGenerator]] => Endo[Option[TelescopeConfigGenerator]] =
+        mod =>
+          tcOpt =>
+            mod(offsetGeneratorGetter(tcOpt)).map(TelescopeConfigGenerator.FromOffsetGenerator(_))
 
       React.Fragment(
         // TODO Customized version
@@ -59,19 +73,36 @@ object GmosImagingVariantEditor
               clazz = LucumaPrimeStyles.FormField,
               disabled = props.readonly
             ),
-            <.label(^.htmlFor := "sky-count", "SkyCount:"),
+            OffsetGeneratorEditor(
+              id = "grouped-offsets".refined,
+              label = "Offsets",
+              value = grouped
+                .zoom(GmosImagingVariant.Grouped.offsets)
+                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+              readonly = props.readonly
+            ),
+            <.label(^.htmlFor := "grouped-sky-count", "Sky Count"),
             FormInputTextView(
-              id = "sky-count".refined,
+              id = "grouped-sky-count".refined,
               value = grouped.zoom(GmosImagingVariant.Grouped.skyCount),
               validFormat = InputValidSplitEpi.nonNegInt,
               placeholder = "0",
               disabled = props.readonly
+            ),
+            OffsetGeneratorEditor(
+              id = "grouped-sky-offsets".refined,
+              label = "Sky Offsets",
+              value = grouped
+                .zoom(GmosImagingVariant.Grouped.skyOffsets)
+                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+              readonly = props.readonly
             )
           ),
         interleavedView.map[VdomNode]: interleaved =>
           React.Fragment(
+            <.label(^.htmlFor := "interleaved-sky-count", "Sky Count"),
             FormInputTextView(
-              id = "sky-count".refined,
+              id = "interleaved-sky-count".refined,
               value = interleaved.zoom(GmosImagingVariant.Interleaved.skyCount),
               validFormat = InputValidSplitEpi.nonNegInt,
               placeholder = "0",
@@ -80,6 +111,7 @@ object GmosImagingVariantEditor
           ),
         preImagingView.map[VdomNode]: preImaging =>
           React.Fragment(
+            // OffsetInput
             <.div(preImaging.get.toString)
           )
       )

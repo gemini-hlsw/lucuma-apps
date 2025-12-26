@@ -51,6 +51,7 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.SequenceRow
+import lucuma.core.geom.OffsetGenerator
 
 /**
  * Reusability instances for model classes
@@ -198,6 +199,7 @@ object reusability:
   given Reusability[ObservingMode.GmosNorthImaging]     = Reusability.byEq
   given Reusability[ObservingMode.GmosSouthImaging]     = Reusability.byEq
   given Reusability[ObservingMode.Flamingos2LongSlit]   = Reusability.byEq
+  given Reusability[OffsetGenerator]                    = Reusability.byEq
 
   given reuseGmosNorthImagingFilter: Reusability[ObservingMode.GmosNorthImaging.ImagingFilter] =
     Reusability.byEq
