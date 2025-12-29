@@ -143,16 +143,18 @@ object AddTargetButton
           TargetSource.FromSimbad[IO](ctx.simbadClient)
         )
 
-        val horizons = NonEmptyList.one(
-          TargetSource.FromHorizons[IO](ctx.horizonsClient)
-        )
+        // TODO: NONSIDEREAL Uncomment when we have a proxy for Horizons
+        // val horizons = NonEmptyList.one(
+        //   TargetSource.FromHorizons[IO](ctx.horizonsClient)
+        // )
 
         val menuItems = List(
-          MenuItem.Item("Non-Sidereal Target Search",
-                        icon = Icons.PlanetRinged,
-                        command = onSelected.set(insertTargetCB) >>
-                          sources.set(horizons) >> popupState.set(PopupState.Open)
-          ),
+          // TODO: NONSIDEREAL Uncomment when we have a proxy for Horizons
+          // MenuItem.Item("Non-Sidereal Target Search",
+          //               icon = Icons.PlanetRinged,
+          //               command = onSelected.set(insertTargetCB) >>
+          //                 sources.set(horizons) >> popupState.set(PopupState.Open)
+          // ),
           MenuItem.Item("Empty Sidereal Target",
                         icon = Icons.Star,
                         command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
@@ -168,13 +170,13 @@ object AddTargetButton
               List(
                 MenuItem.Item(
                   "Blind Offset Search",
-                  icon = Icons.Star,
+                  icon = Icons.LocationDot,
                   command = onSelected.set(insertManualBlindOffsetCB) >>
                     sources.set(simbad) >> popupState.set(PopupState.Open)
                 ),
                 MenuItem.Item(
                   "Empty Blind Offset",
-                  icon = Icons.Star,
+                  icon = Icons.LocationDot,
                   command = insertManualBlindOffsetCB(
                     TargetWithOptId(None, EmptySiderealTarget, TargetDisposition.BlindOffset, None)
                   )
