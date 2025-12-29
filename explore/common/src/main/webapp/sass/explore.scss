@@ -1587,9 +1587,14 @@ svg.fa-check.explore-success-icon {
     width: 1.2rem;
   }
 
+  .p-submenu-list {
+    right: 100%;
+    left: auto;
+  }
+
   .recent-program-link.p-menuitem {
     width: 100%;
-    max-width: 200px;
+    max-width: 500px;
 
     .p-menuitem-content {
       width: 100%;
@@ -1606,7 +1611,7 @@ svg.fa-check.explore-success-icon {
 
     .recent-program-id {
       margin-right: 1rem;
-      width: 80px;
+      width: 120px;
     }
 
     .recent-program-name {
@@ -1615,6 +1620,12 @@ svg.fa-check.explore-success-icon {
 
     &:hover {
       background: var(--highlight-bg);
+    }
+  }
+
+  .recent-program-link.p-disabled a {
+    .recent-program-id::after {
+      content: ' *';
     }
   }
 }

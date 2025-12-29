@@ -79,7 +79,7 @@ object GlobalPreferences:
   val pfVisibility                         =
     Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(PFVisibility.Default)
 
-  private val MaxLastOpenPrograms = 5
+  private val MaxLastOpenPrograms = 6
 
   private given Eq[LogLevel] = Eq.fromUniversalEquals
 
