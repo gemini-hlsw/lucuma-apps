@@ -8,7 +8,7 @@ import explore.model.enums.Visible
 import io.circe.Decoder
 import monocle.Focus
 
-case class PFVisibility(
+case class AGSVisibility(
   showBase:              Visible,
   showBlindOffset:       Visible,
   showAcquisitionOffset: Visible,
@@ -17,17 +17,17 @@ case class PFVisibility(
   showAllAngles:         Visible
 ) derives Decoder
 
-object PFVisibility:
-  given Eq[PFVisibility] = Eq.fromUniversalEquals
+object AGSVisibility:
+  given Eq[AGSVisibility] = Eq.fromUniversalEquals
 
-  val showBase              = Focus[PFVisibility](_.showBase)
-  val showBlindOffset       = Focus[PFVisibility](_.showBlindOffset)
-  val showAcquisitionOffset = Focus[PFVisibility](_.showAcquisitionOffset)
-  val showScienceOffset     = Focus[PFVisibility](_.showScienceOffset)
-  val showIntersection      = Focus[PFVisibility](_.showIntersection)
-  val showAllAngles         = Focus[PFVisibility](_.showAllAngles)
+  val showBase          = Focus[AGSVisibility](_.showBase)
+  val showBlindOffset   = Focus[AGSVisibility](_.showBlindOffset)
+  val showAcqOffset     = Focus[AGSVisibility](_.showAcquisitionOffset)
+  val showScienceOffset = Focus[AGSVisibility](_.showScienceOffset)
+  val showIntersection  = Focus[AGSVisibility](_.showIntersection)
+  val showAllAngles     = Focus[AGSVisibility](_.showAllAngles)
 
-  val Default = PFVisibility(
+  val Default = AGSVisibility(
     showBase = Visible.Hidden,
     showBlindOffset = Visible.Hidden,
     showAcquisitionOffset = Visible.Hidden,

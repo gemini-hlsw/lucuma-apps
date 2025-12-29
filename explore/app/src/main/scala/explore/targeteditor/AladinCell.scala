@@ -74,7 +74,8 @@ case class AladinCell(
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
-  guideStarSelection: View[GuideStarSelection]
+  guideStarSelection: View[GuideStarSelection],
+  isStaffOrAdmin:     Boolean
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -576,7 +577,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                 props.obsTargets.ids,
                 globalPreferences,
                 options,
-                menuRef
+                menuRef,
+                props.isStaffOrAdmin
               )
         )
       )

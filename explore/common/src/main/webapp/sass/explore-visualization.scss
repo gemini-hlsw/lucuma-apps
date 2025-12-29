@@ -140,11 +140,15 @@ $brightness: var(--aladin-image-brightness);
     aspect-ratio: 1;
   }
 
-  .aladin-help-icon {
-    @include aladin-button-mixin;
-
-    right: 5px;
-    top: 40px;
+  @mixin hud {
+    position: absolute;
+    z-index: 120;
+    padding: 0.3em 1em;
+    margin: 1em;
+    color: var(--hud-color);
+    border: 1px solid var(--hud-color);
+    border-radius: 3px;
+    background: var(--hud-background-color);
   }
 
   .aladin-survey {
@@ -194,100 +198,6 @@ $brightness: var(--aladin-image-brightness);
     .p-button.p-button-icon-only.explore-aladin-button,
     .p-button.explore-aladin-button {
       position: absolute;
-    }
-  }
-
-  @mixin hud {
-    position: absolute;
-    z-index: 120;
-    padding: 0.3em 1em;
-    margin: 1em;
-    color: var(--hud-color);
-    border: 1px solid var(--hud-color);
-    border-radius: 3px;
-    background: var(--hud-background-color);
-  }
-
-  .ags-overlay {
-    @include hud;
-
-    bottom: 30px;
-    font-size: smaller;
-    user-select: none;
-
-    .fa-bahai {
-      color: var(--ags-icon-color);
-      padding-top: 0.3em;
-    }
-
-    .ags-description {
-      @include lucumaUICommon.text-ellipsis;
-
-      display: flex;
-      gap: 0.1em;
-      align-items: baseline;
-
-      .ags-navigation {
-        margin-left: 0.3em;
-      }
-
-      .ags-navigation-button {
-        cursor: pointer;
-        padding: {
-          left: 0.2em !important;
-          right: 0.2em !important;
-        }
-
-        /* stylelint-disable-next-line selector-class-pattern */
-        svg.svg-inline--fa {
-          color: var(--gray-50);
-          width: auto;
-          margin-right: 0;
-        }
-      }
-
-      .ags-guide-speed {
-        text-transform: capitalize;
-      }
-
-      .ags-g-brightness {
-        margin-left: 0.3em;
-      }
-
-      .ags-coordinates {
-        margin-left: 0.3em;
-        font-weight: bold;
-      }
-
-      /* stylelint-disable-next-line selector-class-pattern */
-      .svg-inline--fa {
-        margin-right: 0.3em;
-        align-self: center;
-        padding-top: 0;
-      }
-    }
-
-    .ags-not-found,
-    .ags-medium-color,
-    .ags-fast-color,
-    .ags-slow-color {
-      padding-top: 0.3em;
-    }
-
-    .ags-fast-color {
-      color: var(--ags-fast-guide-speed-color);
-    }
-
-    .ags-not-found {
-      color: var(--negative-background-color);
-    }
-
-    .ags-medium-color {
-      color: var(--ags-medium-guide-speed-color);
-    }
-
-    .ags-slow-color {
-      color: var(--ags-slow-guide-speed-color);
     }
   }
 

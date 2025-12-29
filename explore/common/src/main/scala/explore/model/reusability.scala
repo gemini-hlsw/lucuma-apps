@@ -127,7 +127,7 @@ object reusability:
   given Reusability[RegionOrTrackingMap]                = Reusability.byEq
   given Reusability[TargetWithOptId]                    = Reusability.byEq
   given Reusability[GlobalPreferences]                  = Reusability.byEq
-  given Reusability[PFVisibility]                       = Reusability.byEq
+  given Reusability[AGSVisibility]                      = Reusability.byEq
   given Reusability[SelectedPanel]                      = Reusability.byEq
   given Reusability[Configuration]                      = Reusability.byEq
   given Reusability[ConfigurationRequest]               = Reusability.byEq

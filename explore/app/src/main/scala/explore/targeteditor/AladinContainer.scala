@@ -76,7 +76,7 @@ case class AladinContainer(
 
   val site = vizConf.map(_.configuration.siteFor).getOrElse(Site.GN)
 
-  val pfVisibility = GlobalPreferences.pfVisibility.get(globalPreferences)
+  val agsVisibility = GlobalPreferences.agsVisibility.get(globalPreferences)
 
 object AladinContainer extends AladinCommon {
 
@@ -296,7 +296,7 @@ object AladinContainer extends AladinCommon {
                           props.selectedGuideStar,
                           props.obsTimeCoords.baseCoords,
                           props.obsTimeCoords.blindOffsetCoords,
-                          props.pfVisibility,
+                          props.agsVisibility,
                           props.anglesToTest
                         )
         agsPositions <- useMemo(
