@@ -3,18 +3,12 @@
 
 package explore.config.offsets
 
-import cats.Eq
 import cats.data.NonEmptyList
-import cats.derived.*
 import cats.syntax.option.*
-import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import monocle.Focus
-import monocle.Lens
 
 enum GridType(val tag: String, val shortName: String, val init: Option[OffsetGenerator])
     derives Enumerated:
