@@ -16,8 +16,13 @@ import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-final case class OffsetInput(id: NonEmptyString, offset: View[Offset], readonly: Boolean)
-    extends ReactFnProps(OffsetInput):
+final case class OffsetInput(
+  id:         NonEmptyString,
+  offset:     View[Offset],
+  readonly:   Boolean,
+  inputClass: Css = Css.Empty,
+  labelClass: Css = Css.Empty
+) extends ReactFnProps(OffsetInput):
   val pId: NonEmptyString = NonEmptyString.unsafeFrom(s"${id.value}-p")
   val qId: NonEmptyString = NonEmptyString.unsafeFrom(s"${id.value}-q")
 
@@ -30,7 +35,10 @@ object OffsetInput
           value = props.offset.zoom(Offset.pAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
-          placeholder = "0.0"
+          placeholder = "0.0",
+          disabled = props.readonly,
+          inputClass = props.inputClass,
+          labelClass = props.labelClass
         ),
         <.label(^.htmlFor := props.qId.value, "q:"),
         FormInputTextView(
@@ -38,7 +46,10 @@ object OffsetInput
           value = props.offset.zoom(Offset.qAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
-          placeholder = "0.0"
+          placeholder = "0.0",
+          disabled = props.readonly,
+          inputClass = props.inputClass,
+          labelClass = props.labelClass
         )
       )
     )

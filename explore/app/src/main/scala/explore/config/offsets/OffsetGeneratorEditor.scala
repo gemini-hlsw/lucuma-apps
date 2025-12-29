@@ -30,21 +30,11 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
 
 case class OffsetGeneratorEditor(
-  id:       NonEmptyString,
-  label:    String,
-  value:    View[Option[OffsetGenerator]],
-  readonly: Boolean
+  id:           NonEmptyString,
+  label:        String,
+  initialValue: View[Option[OffsetGenerator]],
+  readonly:     Boolean
 ) extends ReactFnProps(OffsetGeneratorEditor)
-//   offsets:     View[List[Offset]],
-//   onUpdate:    List[Offset] => Callback,
-//   pointCount:  PosInt,
-//   defaultSize: Angle,
-//   readOnly:    Boolean = false
-// )(using L: Logger[IO])
-//     extends ReactFnProps[OffsetEditor](OffsetEditor.component):
-//   given Logger[IO] = L
-
-//   def hasOffsets = offsets.get.nonEmpty
 
 object OffsetGeneratorEditor
     extends ReactFnComponent[OffsetGeneratorEditor]({ props =>
@@ -57,17 +47,10 @@ object OffsetGeneratorEditor
       //   else if (offsetsCount == 1) "1 offset"
       //   else s"$offsetsCount offsets"
 
-      val valueOpt: Option[View[OffsetGenerator]]           = props.value.toOptionView
-      val randomOpt: Option[View[OffsetGenerator.Random]]   =
-        valueOpt.flatMap(_.zoom(OffsetGenerator.random).toOptionView)
-      val spiralOpt: Option[View[OffsetGenerator.Spiral]]   =
-        valueOpt.flatMap(_.zoom(OffsetGenerator.spiral).toOptionView)
-      val uniformOpt: Option[View[OffsetGenerator.Uniform]] =
-        valueOpt.flatMap(_.zoom(OffsetGenerator.uniform).toOptionView)
-
       for
         isDialogOpen <- useState(IsOpen.False)
-        offsets      <- useEffectResultWithDeps(props.value.get): og =>
+        value        <- useStateView(props.initialValue.get)
+        offsets      <- useEffectResultWithDeps(value.get): og =>
                           og.foldMap(_.generate[IO](1.refined).map(_.some))
                             .handleErrorWith: e =>
                               // TODO Toast
@@ -76,6 +59,14 @@ object OffsetGeneratorEditor
         showNumbers  <- useStateView(false)
         showArrows   <- useStateView(true)
       yield
+        val valueOpt: Option[View[OffsetGenerator]]           = value.toOptionView
+        val randomOpt: Option[View[OffsetGenerator.Random]]   =
+          valueOpt.flatMap(_.zoom(OffsetGenerator.random).toOptionView)
+        val spiralOpt: Option[View[OffsetGenerator.Spiral]]   =
+          valueOpt.flatMap(_.zoom(OffsetGenerator.spiral).toOptionView)
+        val uniformOpt: Option[View[OffsetGenerator.Uniform]] =
+          valueOpt.flatMap(_.zoom(OffsetGenerator.uniform).toOptionView)
+
         val gridSection: VdomNode =
           offsets.value.value.renderPot: readyOffsets =>
             readyOffsets.map: o =>
@@ -131,7 +122,24 @@ object OffsetGeneratorEditor
             header = if props.readonly then s"View ${props.label}" else props.label,
             modal = true,
             resizable = false,
-            clazz = ExploreStyles.OffsetsEditorDialog
+            clazz = ExploreStyles.OffsetsEditorDialog,
+            footer =
+              if props.readonly then EmptyVdom
+              else
+                <.div(
+                  Button(
+                    label = "Cancel",
+                    severity = Button.Severity.Danger,
+                    onClick = isDialogOpen.setState(IsOpen.False) >>
+                      value.set(props.initialValue.get)
+                  ).small.compact,
+                  Button(
+                    label = "Save",
+                    severity = Button.Severity.Success,
+                    onClick = props.initialValue.set(value.get) >>
+                      isDialogOpen.setState(IsOpen.False)
+                  ).small.compact
+                )
           ) // (<.div(props.value.get.toString))
           // <.div
           // OffsetEditor(
@@ -161,8 +169,8 @@ object OffsetGeneratorEditor
                       <.label(^.htmlFor := "grid-type", "Type:"),
                       EnumDropdown(
                         id = "grid-type".refined,
-                        value = GridType.fromOffsetGenerator(props.value.get),
-                        onChange = gt => props.value.set(gt.init),
+                        value = GridType.fromOffsetGenerator(value.get),
+                        onChange = gt => value.set(gt.init),
                         placeholder = "Select grid type"
                       )
                     ),
@@ -179,6 +187,7 @@ object OffsetGeneratorEditor
                         ),
                         <.div(OffsetEditorStyles.FormRow)(
                           <.label(^.htmlFor := "random-size", "Center (arcsec):"),
+                          <.span,
                           OffsetInput(
                             id = "random-center".refined,
                             offset = random.zoom(OffsetGenerator.Random.center),
@@ -200,6 +209,7 @@ object OffsetGeneratorEditor
                         ),
                         <.div(OffsetEditorStyles.FormRow)(
                           <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
+                          <.span,
                           OffsetInput(
                             id = "spiral-center".refined,
                             offset = spiral.zoom(OffsetGenerator.Spiral.center),
@@ -212,18 +222,22 @@ object OffsetGeneratorEditor
                       ReactFragment(
                         <.div(OffsetEditorStyles.FormRow)(
                           <.label(^.htmlFor := "uniform-corner-a", "Corner A (arcsec):"),
+                          <.span,
                           OffsetInput(
                             id = "uniform-corner-a".refined,
                             offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
-                            readonly = props.readonly
+                            readonly = props.readonly,
+                            inputClass = LucumaPrimeStyles.FormField
                           )
                         ),
                         <.div(OffsetEditorStyles.FormRow)(
                           <.label(^.htmlFor := "uniform-corner-b", "Corner B (arcsec):"),
+                          <.span,
                           OffsetInput(
                             id = "uniform-corner-b".refined,
                             offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
-                            readonly = props.readonly
+                            readonly = props.readonly,
+                            inputClass = LucumaPrimeStyles.FormField
                           )
                         )
                       )
