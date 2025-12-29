@@ -10,8 +10,8 @@ import cats.syntax.all.*
 import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.Constants.HorizonsProxy
 import explore.events.*
+import explore.model.Constants.HorizonsProxy
 import explore.model.enums.AppTab
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
