@@ -6,15 +6,16 @@ package explore.config.offsets
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.html_<^.< as html
 import japgolly.scalajs.react.vdom.svg_<^.*
 import lucuma.core.math.*
 import lucuma.react.common.*
+import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 
 case class OffsetGridDisplay(
   offsets:          List[Offset],
   id:               String = "offset-grid",
-  svgSize:          PosInt = 400.refined,
   padding:          PosInt = 40.refined,
   verticalLines:    PosInt = 11.refined,
   horizontalLines:  PosInt = 11.refined,
@@ -370,56 +371,79 @@ object OffsetGridDisplay {
 
     val (gridStrategy, axisExtent) = calculateRanges(pValues, qValues, props.borderLines)
 
-    // just a heuristic
-    val isSmall           = props.svgSize.value < 350
-    val showLabels        = props.showAxes && !isSmall
-    val gridLabelFontSize = if (isSmall) s"${math.max(7, props.svgSize.value / 40)}px" else "10px"
+    for resize <- useResizeDetector
+    yield
+      val svgSize: PosInt =
+        (resize.width, resize.height)
+          .mapN(_.min(_))
+          .map(PosInt.from)
+          .flatMap(_.toOption)
+          .getOrElse(400.refined)
 
-    val radius  = math.max(1, math.min(3, props.svgSize.value / 150)).toInt
-    val padding =
-      if (isSmall) math.max(20, props.svgSize.value / 16) else props.padding.value - 5
+      // just a heuristic
+      val isSmall           = svgSize.value < 350
+      val showLabels        = props.showAxes && !isSmall
+      val gridLabelFontSize = if (isSmall) s"${math.max(7, svgSize.value / 40)}px" else "10px"
 
-    val gridSize = props.svgSize.value - 2 * padding
-    val centerX  = padding + gridSize / 2.0
-    val centerY  = padding + gridSize / 2.0
+      val radius  = math.max(1, math.min(3, svgSize.value / 150)).toInt
+      val padding =
+        if (isSmall) math.max(20, svgSize.value / 16) else props.padding.value - 5
 
-    <.svg(
-      props.svgCss,
-      ^.width  := props.svgSize.value,
-      ^.height := props.svgSize.value,
-      <.rect(
-        props.backgroundCss,
-        ^.x      := 0,
-        ^.y      := 0,
-        ^.width  := props.svgSize.value,
-        ^.height := props.svgSize.value
-      ),
-      gridLines(centerX,
-                centerY,
-                gridSize,
-                padding.toInt,
-                gridStrategy,
-                axisExtent,
-                props.id,
-                props.gridCss,
-                gridLabelFontSize
-      ).when(props.showGrid),
-      axes(centerX, centerY, gridSize, padding.toInt, props.id, props.axesCss)
-        .when(props.showAxes),
-      axisLabels(gridSize, padding.toInt, props.id, props.labelsCss)
-        .when(showLabels),
-      offsetArrows(offsetValues, axisExtent, centerX, centerY, gridSize, props.id, props.arrowsCss)
-        .when(props.showArrows),
-      offsetPoints(offsetValues,
-                   axisExtent,
-                   centerX,
-                   centerY,
-                   gridSize,
-                   radius,
-                   props.showNumbers,
-                   props.id,
-                   props.pointsCss,
-                   gridLabelFontSize
-      ).when(props.showOffsetPoints)
-    )
+      val gridSize = svgSize.value - 2 * padding
+      val centerX  = padding + gridSize / 2.0
+      val centerY  = padding + gridSize / 2.0
+
+      html
+        .div(OffsetEditorStyles.GridDisplay)(
+          <.svg(
+            props.svgCss,
+            ^.width  := svgSize.value,
+            ^.height := svgSize.value,
+            <.rect(
+              props.backgroundCss,
+              ^.x      := 0,
+              ^.y      := 0,
+              ^.width  := svgSize.value,
+              ^.height := svgSize.value
+            ),
+            gridLines(
+              centerX,
+              centerY,
+              gridSize,
+              padding.toInt,
+              gridStrategy,
+              axisExtent,
+              props.id,
+              props.gridCss,
+              gridLabelFontSize
+            ).when(props.showGrid),
+            axes(centerX, centerY, gridSize, padding.toInt, props.id, props.axesCss)
+              .when(props.showAxes),
+            axisLabels(gridSize, padding.toInt, props.id, props.labelsCss)
+              .when(showLabels),
+            offsetArrows(
+              offsetValues,
+              axisExtent,
+              centerX,
+              centerY,
+              gridSize,
+              props.id,
+              props.arrowsCss
+            )
+              .when(props.showArrows),
+            offsetPoints(
+              offsetValues,
+              axisExtent,
+              centerX,
+              centerY,
+              gridSize,
+              radius,
+              props.showNumbers,
+              props.id,
+              props.pointsCss,
+              gridLabelFontSize
+            ).when(props.showOffsetPoints)
+          )
+        )
+        .withRef(resize.ref)
 }
