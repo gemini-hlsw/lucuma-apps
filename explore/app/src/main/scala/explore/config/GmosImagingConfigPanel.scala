@@ -201,7 +201,7 @@ object GmosImagingConfigPanel {
           val initialFilters: NonEmptyList[ImagingFilter] =
             initialFiltersLens.get(props.observingMode.get)
 
-          val localVariantView: View[GmosImagingVariant] = variant(props.observingMode)
+          val variantView: View[GmosImagingVariant] = variant(props.observingMode)
 
           // val offsetReadOnly = props.readonly || editState.get === ConfigEditState.View
           // val offsetsCount   = offsets(props.observingMode).get.size
@@ -213,29 +213,7 @@ object GmosImagingConfigPanel {
           React.Fragment(
             <.div(ExploreStyles.GmosImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
-                GmosImagingVariantEditor(localVariantView, disableSimpleEdit)
-              ),
-              <.div(LucumaPrimeStyles.FormColumnCompact)(
-                // FormLabel(htmlFor = "spatial-offsets-button".refined)("Offsets"),
-                // <.div(
-                //   ExploreStyles.FlexContainer,
-                //   Button(
-                //     icon = if (disableSimpleEdit) Icons.Eye else Icons.Edit,
-                //     text = true,
-                //     severity =
-                //       if (disableSimpleEdit) Button.Severity.Info else Button.Severity.Secondary,
-                //     clazz = ExploreStyles.OffsetEditorButton,
-                //     onClickE = _ => offsetDialogOpen.set(OffsetDialogOpen(true))
-                //   ).mini.compact
-                //     .withMods(
-                //       ^.id    := "spatial-offsets-button",
-                //       ^.title := (if (disableSimpleEdit) "View Offsets" else "Edit Offsets")
-                //     ),
-                //   <.span(
-                //     ExploreStyles.OffsetsCount,
-                //     s"($offsetsText)"
-                //   )
-                // )
+                GmosImagingVariantEditor(variantView, disableSimpleEdit)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableEnumSelectOptional(
@@ -378,53 +356,6 @@ object GmosImagingConfigPanel {
                 readonly = props.readonly
               )
             )
-            // Dialog(
-            //   visible = OffsetDialogOpen.value(offsetDialogOpen.get),
-            //   onHide = offsetDialogOpen.set(OffsetDialogOpen(false)),
-            //   header = if (offsetReadOnly) "View Offsets" else "Offsets",
-            //   modal = true,
-            //   resizable = false,
-            //   clazz = ExploreStyles.OffsetsEditorDialog,
-            //   footer =
-            //     if (offsetReadOnly)
-            //       <.div(
-            //         Button(
-            //           label = "Close",
-            //           severity = Button.Severity.Secondary,
-            //           onClick = offsetDialogOpen.set(OffsetDialogOpen(false))
-            //         ).small.compact
-            //       )
-            //     else
-            //       <.div(
-            //         Button(
-            //           label = "Cancel",
-            //           severity = Button.Severity.Danger,
-            //           onClick = offsetDialogOpen.set(OffsetDialogOpen(false))
-            //         ).small.compact,
-            //         Button(
-            //           label = "Save",
-            //           severity = Button.Severity.Success,
-            //           onClick = {
-            //             import ctx.given
-            //             offsets(props.observingMode).set(localOffsets.get) >>
-            //               offsetDialogOpen.set(OffsetDialogOpen(false))
-            //           }
-            //         ).small.compact
-            //       )
-            // )(
-            //   <.div
-            // OffsetEditor(
-            //   if (offsetReadOnly) offsets(props.observingMode) else localOffsets,
-            //   offsets => localOffsets.set(offsets).unless_(offsetReadOnly),
-            //   props.requirementsExposureTimeMode match {
-            //     case Some(ExposureTimeMode.TimeAndCountMode(_, c, _)) => c
-            //     case Some(ExposureTimeMode.SignalToNoiseMode(_, _))   => 1.refined // fixme
-            //     case _                                                => 1.refined
-            //   },
-            //   OffsetRadius,
-            //   readOnly = offsetReadOnly
-            // )
-            //   )
           )
   }
 
@@ -615,28 +546,6 @@ object GmosImagingConfigPanel {
           GmosSouthImagingInput.filters.modify
         )
         .view(_.toList.map(_.toInput).assign)
-
-    // inline override protected def offsets(aligner: AA)(using
-    //   MonadError[IO, Throwable],
-    //   Effect.Dispatch[IO],
-    //   Logger[IO]
-    // ): View[List[Offset]] = aligner
-    //   .zoom(
-    //     ObservingMode.GmosSouthImaging.offsets,
-    //     GmosSouthImagingInput.offsets.modify
-    //   )
-    //   .view(_.map(_.toInput).assign)
-
-    // inline override protected def explicitMultipleFiltersMode(aligner: AA)(using
-    //   MonadError[IO, Throwable],
-    //   Effect.Dispatch[IO],
-    //   Logger[IO]
-    // ): View[Option[MultipleFiltersMode]] = aligner
-    //   .zoom(
-    //     ObservingMode.GmosSouthImaging.explicitMultipleFiltersMode,
-    //     GmosSouthImagingInput.explicitMultipleFiltersMode.modify
-    //   )
-    //   .view(_.orUnassign)
 
     inline override protected def explicitBinning(aligner: AA)(using
       MonadError[IO, Throwable],
