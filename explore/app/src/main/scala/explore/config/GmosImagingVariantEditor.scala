@@ -7,8 +7,9 @@ import cats.Endo
 import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
+import explore.config.offsets.OffsetEditorStyles
 import explore.config.offsets.OffsetGeneratorEditor
-import explore.model.AsterismVisualOptions.id
+import explore.config.offsets.OffsetInput
 import explore.model.display.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
@@ -100,6 +101,14 @@ object GmosImagingVariantEditor
           ),
         interleavedView.map[VdomNode]: interleaved =>
           React.Fragment(
+            OffsetGeneratorEditor(
+              id = "interleaved-offsets".refined,
+              label = "Offsets",
+              value = interleaved
+                .zoom(GmosImagingVariant.Interleaved.offsets)
+                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+              readonly = props.readonly
+            ),
             <.label(^.htmlFor := "interleaved-sky-count", "Sky Count"),
             FormInputTextView(
               id = "interleaved-sky-count".refined,
@@ -107,12 +116,51 @@ object GmosImagingVariantEditor
               validFormat = InputValidSplitEpi.nonNegInt,
               placeholder = "0",
               disabled = props.readonly
+            ),
+            OffsetGeneratorEditor(
+              id = "interleaved-sky-offsets".refined,
+              label = "Sky Offsets",
+              value = interleaved
+                .zoom(GmosImagingVariant.Interleaved.skyOffsets)
+                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+              readonly = props.readonly
             )
           ),
         preImagingView.map[VdomNode]: preImaging =>
+          // TODO: Should this be shown in a grid?
           React.Fragment(
-            // OffsetInput
-            <.div(preImaging.get.toString)
+            <.div(OffsetEditorStyles.FormRow)(
+              <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
+              OffsetInput(
+                id = "preImaging-offset-1".refined,
+                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
+                readonly = props.readonly
+              )
+            ),
+            <.div(OffsetEditorStyles.FormRow)(
+              <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
+              OffsetInput(
+                id = "preImaging-offset-2".refined,
+                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
+                readonly = props.readonly
+              )
+            ),
+            <.div(OffsetEditorStyles.FormRow)(
+              <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
+              OffsetInput(
+                id = "preImaging-offset-3".refined,
+                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
+                readonly = props.readonly
+              )
+            ),
+            <.div(OffsetEditorStyles.FormRow)(
+              <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
+              OffsetInput(
+                id = "preImaging-offset-4".refined,
+                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
+                readonly = props.readonly
+              )
+            )
           )
       )
     })

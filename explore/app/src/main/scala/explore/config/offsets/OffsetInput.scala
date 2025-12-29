@@ -22,7 +22,7 @@ final case class OffsetInput(id: NonEmptyString, offset: View[Offset], readonly:
   val qId: NonEmptyString = NonEmptyString.unsafeFrom(s"${id.value}-q")
 
 object OffsetInput
-    extends ReactFnComponent[OffsetInput]({ props =>
+    extends ReactFnComponent[OffsetInput](props =>
       React.Fragment(
         <.label(^.htmlFor := props.pId.value, "p:"),
         FormInputTextView(
@@ -41,4 +41,4 @@ object OffsetInput
           placeholder = "0.0"
         )
       )
-    })
+    )
