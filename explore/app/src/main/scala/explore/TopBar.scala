@@ -113,7 +113,7 @@ object TopBar:
                       n   <- p.name
                     } yield n.value
 
-                  val currentProg = props.programId.exists(_ === programId)
+                  val isCurrent = props.programId.exists(_ === programId)
 
                   MenuItem.Custom(
                     <.a(
@@ -121,14 +121,14 @@ object TopBar:
                       ^.href := ctx.pageUrl(progRef),
                       ^.onClick ==> (e =>
                         e.preventDefaultCB >> e.stopPropagationCB >>
-                          (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(currentProg)
+                          (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(isCurrent)
                       )
                     )(
                       <.div(ExploreStyles.RecentProgramId)(programId.show),
-                      name.map(n => <.div(ExploreStyles.RecentProgramName)(n))
+                      name.map(n => <.div(ExploreStyles.RecentProgramName, ^.title := n)(n))
                     ),
                     clazz = ExploreStyles.RecentProgramLink |+|
-                      LucumaPrimeStyles.Disabled.when_(currentProg)
+                      LucumaPrimeStyles.Disabled.when_(isCurrent)
                   )
             List(
               MenuItem.SubMenu(

@@ -29,27 +29,33 @@ object ToastPortal:
     movePortalLast(portal)
   }
 
-  private def teardown(observer: dom.MutationObserver): CallbackTo[Unit] =
-    CallbackTo(Callback(observer.disconnect())).void
+  private def teardown(portal: dom.html.Element, observer: dom.MutationObserver): CallbackTo[Unit] =
+    CallbackTo(Callback(observer.disconnect()) >> Callback(body.removeChild(portal))).void
 
   private val component = ScalaFnComponent[Props]: props =>
-    // Only one node is ever needed
-    val elem: dom.html.Element =
-      dom.document.createElement("div") match
-        case e: dom.html.Element =>
-          e.className = "toast-portal"
-          body.appendChild(e)
-          e
+    for
+      state <- useState(Option.empty[dom.html.Element])
+      _     <- useEffectOnMount:
+                 val elem =
+                   Option(body.querySelector(".toast-portal"))
+                     .collect:
+                       case e: dom.html.Element => e
+                     .getOrElse:
+                       dom.document.createElement("div") match
+                         case e: dom.html.Element =>
+                           e.className = "toast-portal"
+                           body.appendChild(e)
+                           e
 
-    // MutationObserver to listen for don mchanges
-    val observer: dom.MutationObserver =
-      new dom.MutationObserver((_, _) => movePortalLast(elem))
-
-    useEffectOnMount(setup(elem, observer) *> teardown(observer)).map: _ =>
+                 val observer = new dom.MutationObserver((_, _) => movePortalLast(elem))
+                 state.setState(Some(elem)) *>
+                   setup(elem, observer) *>
+                   teardown(elem, observer)
+    yield state.value.fold(<.div()): portal =>
       <.div(
         Toast(
           position = Toast.Position.BottomRight,
           baseZIndex = 2000,
-          appendTo = AppendTo.Element(elem)
+          appendTo = AppendTo.Element(portal)
         ).withRef(props.toastRef.ref)
       )
