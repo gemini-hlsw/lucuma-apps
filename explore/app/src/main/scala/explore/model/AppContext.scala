@@ -11,6 +11,7 @@ import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.events.*
+import explore.model.Constants.HorizonsProxy
 import explore.model.enums.AppTab
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
@@ -26,6 +27,7 @@ import lucuma.catalog.clients.SimbadClient
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
+import lucuma.horizons.HorizonsClient
 import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.sso.SSOClient
@@ -111,7 +113,8 @@ case class AppContext[F[_]](
       notifyFatalError = errorMsg => notifyFatalError(errorMsg)
     )
 
-  val simbadClient = SimbadClient.build(httpClient, _.copy(scheme = Scheme.https.some))
+  val simbadClient   = SimbadClient.build(httpClient, _.copy(scheme = Scheme.https.some))
+  val horizonsClient = HorizonsClient(httpClient, modUri = _ => HorizonsProxy)
 
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value

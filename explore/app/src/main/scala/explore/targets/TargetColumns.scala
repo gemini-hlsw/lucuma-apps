@@ -302,7 +302,7 @@ object TargetColumns:
       lazy val AllColumns: List[colDef.Type] =
         BaseColumns ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns ++ ProgramColumns
 
-    case class ForSimbad[D <: TargetWithMetadata, TM, CM, TF](
+    case class ForSiderealCatalog[D <: TargetWithMetadata, TM, CM, TF](
       colDef: ColumnDef.Applied[D, TM, CM, TF]
     ) extends Common(colDef)
         with CommonRaDec(
@@ -320,3 +320,8 @@ object TargetColumns:
         with CommonSidereal(colDef):
       lazy val AllColumns: List[colDef.Type] =
         (NameColumn +: CatalogColumns) ++ RaDecColumns ++ BandColumns ++ SiderealColumns
+
+    case class ForHorizons[D <: TargetWithMetadata, TM, CM, TF](
+      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    ) extends Common(colDef):
+      lazy val AllColumns: List[colDef.Type] = NameColumn +: CatalogColumns
