@@ -59,14 +59,11 @@ trait OdbGroupApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB])
       .execute:
         CreateGroupInput(
           programId = programId.assign,
-          SET = parentId
-            .map(gId =>
-              GroupPropertiesInput(parentGroup = gId.assign,
-                                   minimumInterval = TimeSpan.Zero.toInput.assign,
-                                   maximumInterval = TimeSpan.Zero.toInput.assign
-              )
-            )
-            .orIgnore
+          SET = GroupPropertiesInput(
+            parentGroup = parentId.orIgnore,
+            minimumInterval = TimeSpan.Zero.toInput.assign,
+            maximumInterval = TimeSpan.Zero.toInput.assign
+          ).assign
         )
       .processErrors
       .map: result =>
