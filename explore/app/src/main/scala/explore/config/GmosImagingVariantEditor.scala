@@ -7,7 +7,6 @@ import cats.Endo
 import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
-import explore.config.offsets.OffsetEditorStyles
 import explore.config.offsets.OffsetGeneratorEditor
 import explore.config.offsets.OffsetInput
 import explore.model.display.given
@@ -77,7 +76,7 @@ object GmosImagingVariantEditor
             OffsetGeneratorEditor(
               id = "grouped-offsets".refined,
               label = "Offsets",
-              value = grouped
+              initialValue = grouped
                 .zoom(GmosImagingVariant.Grouped.offsets)
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
@@ -93,7 +92,7 @@ object GmosImagingVariantEditor
             OffsetGeneratorEditor(
               id = "grouped-sky-offsets".refined,
               label = "Sky Offsets",
-              value = grouped
+              initialValue = grouped
                 .zoom(GmosImagingVariant.Grouped.skyOffsets)
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
@@ -104,7 +103,7 @@ object GmosImagingVariantEditor
             OffsetGeneratorEditor(
               id = "interleaved-offsets".refined,
               label = "Offsets",
-              value = interleaved
+              initialValue = interleaved
                 .zoom(GmosImagingVariant.Interleaved.offsets)
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
@@ -120,7 +119,7 @@ object GmosImagingVariantEditor
             OffsetGeneratorEditor(
               id = "interleaved-sky-offsets".refined,
               label = "Sky Offsets",
-              value = interleaved
+              initialValue = interleaved
                 .zoom(GmosImagingVariant.Interleaved.skyOffsets)
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
@@ -129,37 +128,33 @@ object GmosImagingVariantEditor
         preImagingView.map[VdomNode]: preImaging =>
           // TODO: Should this be shown in a grid?
           React.Fragment(
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-1".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
-                readonly = props.readonly
-              )
+            <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
+            <.span,
+            OffsetInput(
+              id = "preImaging-offset-1".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
+              readonly = props.readonly
             ),
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-2".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
-                readonly = props.readonly
-              )
+            <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
+            <.span,
+            OffsetInput(
+              id = "preImaging-offset-2".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
+              readonly = props.readonly
             ),
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-3".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
-                readonly = props.readonly
-              )
+            <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
+            <.span,
+            OffsetInput(
+              id = "preImaging-offset-3".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
+              readonly = props.readonly
             ),
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-4".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
-                readonly = props.readonly
-              )
+            <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
+            <.span,
+            OffsetInput(
+              id = "preImaging-offset-4".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
+              readonly = props.readonly
             )
           )
       )
