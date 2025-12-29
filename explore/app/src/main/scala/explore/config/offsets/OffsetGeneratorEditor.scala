@@ -5,15 +5,14 @@ package explore.config.offsets
 
 import cats.effect.IO
 import cats.syntax.all.*
+import cats.tests.Helpers.Hsh.O
 import crystal.react.*
 import crystal.react.hooks.*
-import crystal.react.hooks.*
 import eu.timepit.refined.api.Refined
-import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
-import explore.model.ExploreModelValidators.*
+import explore.model.ExploreModelValidators
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability
@@ -28,15 +27,12 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Dialog
 import lucuma.react.primereact.Divider
-import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 import lucuma.schemas.model.TelescopeConfigGenerator
-import lucuma.typed.react.reactStrings.p
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
-import org.typelevel.log4cats.Logger
 
 case class OffsetGeneratorEditor(
   id:       NonEmptyString,
@@ -61,50 +57,43 @@ object OffsetGeneratorEditor
 
       // val offsetReadOnly = props.readonly || editState.get === ConfigEditState.View
       // val offsetsCount   = offsets(props.observingMode).get.size
-      val offsetsText: String = "??? offsets"
+      val offsetsText: String = "<count> offsets"
       //   if (offsetsCount == 0) "No offsets"
       //   else if (offsetsCount == 1) "1 offset"
       //   else s"$offsetsCount offsets"
 
+      val valueOpt: Option[View[OffsetGenerator]]           = props.value.toOptionView
+      val randomOpt: Option[View[OffsetGenerator.Random]]   =
+        valueOpt.flatMap(_.zoom(OffsetGenerator.random).toOptionView)
+      val spiralOpt: Option[View[OffsetGenerator.Spiral]]   =
+        valueOpt.flatMap(_.zoom(OffsetGenerator.spiral).toOptionView)
+      val uniformOpt: Option[View[OffsetGenerator.Uniform]] =
+        valueOpt.flatMap(_.zoom(OffsetGenerator.uniform).toOptionView)
+
       for
         isDialogOpen <- useState(IsOpen.False)
         offsets      <- useEffectResultWithDeps(props.value.get): og =>
-                          IO.println(s"Generating offsets for generator: $og") >>
-                            og.foldMap(_.generate[IO](1.refined).map(_.some))
-                              .handleErrorWith: e =>
-                                IO.println(s"Error generating offsets: ${e.getMessage}") >>
-                                  IO.pure(none)
-                              .flatTap(of => IO.println(s"Generated offsets: $of"))
+                          og.foldMap(_.generate[IO](1.refined).map(_.some))
+                            .handleErrorWith: e =>
+                              // TODO Toast
+                              IO.println(s"Error generating offsets: ${e.getMessage}") >>
+                                IO.pure(none)
         showNumbers  <- useStateView(false)
         showArrows   <- useStateView(true)
-        resize       <- useResizeDetector
       yield
-        val dialogSize: Option[PosInt] =
-          (resize.width, resize.height).mapN(_.min(_)).map(PosInt.from).flatMap(_.toOption)
-
-        println(offsets.value)
-        println(dialogSize)
-
         val gridSection: VdomNode =
-          <.div(OffsetEditorStyles.GridDisplay)(
-            offsets.value.value.renderPot: readyOffsets =>
-              // (readyOffsets, dialogSize).mapN: (o, s) =>
-              readyOffsets.map: o =>
-                OffsetGridDisplay(
-                  o.toList,
-                  // svgSize = s,
-                  svgSize = 400.refined, // Temporary fixed size until we fix the resize detector
-                  showNumbers = showNumbers.get || o.size < 30,
-                  showArrows = showArrows.get
-                )
-          ).withRef(resize.ref)
+          offsets.value.value.renderPot: readyOffsets =>
+            readyOffsets.map: o =>
+              OffsetGridDisplay(
+                o.toList,
+                showNumbers = showNumbers.get || o.size < 30,
+                showArrows = showArrows.get
+              )
 
         val viewOptionsSection: VdomNode =
           ReactFragment(
-            <.div(
-              OffsetEditorStyles.FormRow,
-              <.div(
-                OffsetEditorStyles.SmallCheckbox,
+            <.div(OffsetEditorStyles.FormRow)(
+              <.div(OffsetEditorStyles.SmallCheckbox)(
                 Checkbox(
                   inputId = "show-numbers",
                   checked = showNumbers.get || offsets.value.toOption.flatten.exists(_.size < 30),
@@ -112,8 +101,7 @@ object OffsetGeneratorEditor
                 ),
                 <.label(^.htmlFor := "show-numbers", " Offset numbers")
               ),
-              <.div(
-                OffsetEditorStyles.SmallCheckbox,
+              <.div(OffsetEditorStyles.SmallCheckbox)(
                 Checkbox(
                   inputId = "show-arrows",
                   checked = showArrows.get,
@@ -126,8 +114,7 @@ object OffsetGeneratorEditor
 
         React.Fragment(
           FormLabel(htmlFor = props.id)(props.label),
-          <.div(
-            ExploreStyles.FlexContainer,
+          <.div(ExploreStyles.FlexContainer)(
             Button(
               icon = if props.readonly then Icons.Eye else Icons.Edit,
               text = true,
@@ -173,10 +160,9 @@ object OffsetGeneratorEditor
               <.div(OffsetEditorStyles.Content)(
                 gridSection,
                 <.div(OffsetEditorStyles.GridControls)(
-                  ReactFragment(
+                  React.Fragment(
                     <.h4("Generator Parameters"),
-                    <.div(
-                      OffsetEditorStyles.FormRow,
+                    <.div(OffsetEditorStyles.FormRow)(
                       <.label(^.htmlFor := "grid-type", "Type:"),
                       EnumDropdown(
                         id = "grid-type".refined,
@@ -184,7 +170,26 @@ object OffsetGeneratorEditor
                         onChange = gt => props.value.set(gt.init),
                         placeholder = "Select grid type"
                       )
-                    )
+                    ),
+                    randomOpt.map: random =>
+                      ReactFragment(
+                        <.div(OffsetEditorStyles.FormRow)(
+                          <.label(^.htmlFor := "random-size", "Size (arcsec):"),
+                          FormInputTextView(
+                            id = "random-size".refined,
+                            value = random.zoom(OffsetGenerator.Random.size),
+                            validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+                            placeholder = "0.0"
+                          )
+                        ),
+                        <.div(OffsetEditorStyles.FormRow)(
+                          <.label(^.htmlFor := "random-size", "Center (arcsec):"),
+                          OffsetInput(
+                            id = "random-center".refined,
+                            offset = random.zoom(OffsetGenerator.Random.center),
+                            readonly = props.readonly
+                          )
+                        )
 //               gridType.get match {
 //                 case GridType.Rectangular =>
 //                   ReactFragment(
@@ -270,6 +275,7 @@ object OffsetGeneratorEditor
 //               },
 //               Divider(),
 //               viewOptionsSection
+                      )
                   )
                 )
               )
