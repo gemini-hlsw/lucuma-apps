@@ -228,7 +228,7 @@ extension (target: Target)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogName.some
     case o: Target.Opportunity  => none
   def catalogUriString: Option[String]                              = target match
-    case s: Target.Sidereal     => s.catalogInfo.map(_.objectUrl.toString)
+    case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectUrl).map(_.toString)
     case ns: Target.Nonsidereal => ns.ephemerisKey.catalogUri.map(_.toString)
     case o: Target.Opportunity  => none
   def catalogObjectType: Option[String]                             = target match
