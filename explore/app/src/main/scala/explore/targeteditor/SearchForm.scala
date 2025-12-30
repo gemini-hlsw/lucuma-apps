@@ -94,51 +94,51 @@ object SearchForm
 
         val searchIcon: VdomNode =
           if (enabled.value && !props.readonly && !props.disableSearch)
-            React.Fragment(
-              Button(
-                severity = Button.Severity.Success,
-                disabled = props.cloningTarget || props.searching.get.nonEmpty,
-                icon = Icons.Search,
-                loading = props.searching.get.nonEmpty,
-                onClick = onButtonClick >> searchPopupState.set(PopupState.Open),
-                modifiers = List(^.untypedRef := buttonRef)
-              ).tiny.compact,
-              TargetSelectionPopup(
-                "Replace Target Data",
-                searchPopupState,
-                NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
-                "",
-                Icons.Ban,
-                "Fetch",
-                Icons.ArrowDownLeft,
-                onSelected = targetWithId => props.targetSet(targetWithId.target) >> searchComplete,
-                onCancel = updateNameIfNeeded >> searchComplete,
-                initialSearch = term.get.some
-              )
-            )
+            Button(
+              severity = Button.Severity.Success,
+              disabled = props.cloningTarget || props.searching.get.nonEmpty,
+              icon = Icons.Search,
+              loading = props.searching.get.nonEmpty,
+              onClick = onButtonClick >> searchPopupState.set(PopupState.Open),
+              modifiers = List(^.untypedRef := buttonRef)
+            ).tiny.compact
           else Icons.Ban
 
         val disabled =
           props.searching.get.exists(_ === props.id) || props.readonly || props.cloningTarget
 
-        FormInputTextView(
-          id = "search".refined,
-          value = term.withOnMod(nes =>
-            // We submit to the singleEffect with a delay. If the user hit Enter or they
-            // click on the button before leaving the input field, this will get cancelled
-            // so that the name doesn't get updated and, more importantly, no target cloning
-            // occurs, which messed everything up.
-            singleEffect
-              .submit(IO.sleep(200.milliseconds) >> props.targetName.set(nes).toAsync)
-              .runAsync
-          ),
-          label = React.Fragment("Name", HelpIcon("target/main/search-target.md".refined)),
-          validFormat = InputValidSplitEpi.nonEmptyString,
-          error = error.value.orUndefined,
-          disabled = disabled,
-          postAddons = List(searchIcon).filterNot(_ => props.readonly || props.disableSearch),
-          onTextChange = (_: String) => error.setState(none),
-          onValidChange = valid => enabled.setState(valid),
-          placeholder = "Name"
-        ).withMods(^.onKeyPress ==> onKeyPress, ^.untypedRef := inputRef)
+        React.Fragment(
+          FormInputTextView(
+            id = "search".refined,
+            value = term.withOnMod(nes =>
+              // We submit to the singleEffect with a delay. If the user hit Enter or they
+              // click on the button before leaving the input field, this will get cancelled
+              // so that the name doesn't get updated and, more importantly, no target cloning
+              // occurs, which messed everything up.
+              singleEffect
+                .submit(IO.sleep(200.milliseconds) >> props.targetName.set(nes).toAsync)
+                .runAsync
+            ),
+            label = React.Fragment("Name", HelpIcon("target/main/search-target.md".refined)),
+            validFormat = InputValidSplitEpi.nonEmptyString,
+            error = error.value.orUndefined,
+            disabled = disabled,
+            postAddons = List(searchIcon).filterNot(_ => props.readonly || props.disableSearch),
+            onTextChange = (_: String) => error.setState(none),
+            onValidChange = valid => enabled.setState(valid),
+            placeholder = "Name"
+          ).withMods(^.onKeyPress ==> onKeyPress, ^.untypedRef := inputRef),
+          TargetSelectionPopup(
+            "Replace Target Data",
+            searchPopupState,
+            NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
+            "",
+            Icons.Ban,
+            "Fetch",
+            Icons.ArrowDownLeft,
+            onSelected = targetWithId => props.targetSet(targetWithId.target) >> searchComplete,
+            onCancel = updateNameIfNeeded >> searchComplete,
+            initialSearch = term.get.some
+          )
+        )
     )
