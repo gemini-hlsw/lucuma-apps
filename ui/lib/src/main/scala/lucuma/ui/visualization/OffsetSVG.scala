@@ -16,7 +16,7 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom.SVGGElement
 
-case class OffsetSVG(
+final case class OffsetSVG(
   p:        Double,
   q:        Double,
   maxP:     Long,

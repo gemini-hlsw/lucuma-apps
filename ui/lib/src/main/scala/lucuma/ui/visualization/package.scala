@@ -141,9 +141,11 @@ def offsetIndicators(
   css:             Css,
   visible:         Boolean
 ) =
-  offsets.foldMap(_.toList).zipWithIndex.map { case (o, i) =>
-    for {
-      idx <- refineV[NonNegative](i).toOption
-      c   <- baseCoordinates.offsetBy(posAngle, o) if visible
-    } yield SVGTarget.OffsetIndicator(c, idx, o, oType, css, 4)
-  }
+  offsets
+    .foldMap(_.toList)
+    .zipWithIndex
+    .map: (o, i) =>
+      for
+        idx <- refineV[NonNegative](i).toOption
+        c   <- baseCoordinates.offsetBy(posAngle, o) if visible
+      yield SvgTarget.OffsetIndicator(c, idx, o, oType, css, 4)

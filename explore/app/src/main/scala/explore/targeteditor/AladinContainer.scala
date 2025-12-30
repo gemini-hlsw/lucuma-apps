@@ -126,12 +126,12 @@ object AladinContainer extends AladinCommon {
   private def svgTargetAndLine(
     obsTimeCoords: Coordinates,
     linePoints:    List[Coordinates],
-    targetSVG:     Coordinates => SVGTarget,
+    targetSVG:     Coordinates => SvgTarget,
     lineStyle:     Css
-  ): List[SVGTarget] =
+  ): List[SvgTarget] =
     targetSVG(obsTimeCoords) ::
       linePoints.sliding2.map: (from, to) =>
-        SVGTarget.LineTo(from, to, lineStyle)
+        SvgTarget.LineTo(from, to, lineStyle)
 
   private def candidateSVG(
     g:                          AgsAnalysis.Usable,
@@ -275,10 +275,7 @@ object AladinContainer extends AladinCommon {
   private val CutOff = Wavelength.fromIntMicrometers(1).get
 
   private def surveyForWavelength(w: Wavelength) =
-    if (w > CutOff)
-      ImageSurvey.TWOMASS
-    else
-      ImageSurvey.DSS
+    if w > CutOff then ImageSurvey.TWOMASS else ImageSurvey.DSS
 
   private def positionFromBaseAndOffset(
     base:   Option[Coordinates],
@@ -456,17 +453,15 @@ object AladinContainer extends AladinCommon {
 
         def basePosition(css: Css) =
           baseCoordinates.foldMap: c =>
-            List(
-              SVGTarget.CrosshairTarget(c, css, CrosshairSize)
-            )
+            List(SvgTarget.CrosshairTarget(c, Css.Empty, CrosshairSize))
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
-        val scienceTargets: List[SVGTarget] =
+        val scienceTargets: List[SvgTarget] =
           targetCoords
             .filterNot(_.target.disposition === TargetDisposition.BlindOffset)
             .flatMap: tc =>
-              def targetSvg(coords: Coordinates) = SVGTarget.ScienceTarget(
+              def targetSvg(coords: Coordinates) = SvgTarget.ScienceTarget(
                 coords,
                 ExploreStyles.ScienceTarget,
                 ExploreStyles.ScienceSelectedTarget,
@@ -485,16 +480,16 @@ object AladinContainer extends AladinCommon {
         val offsetPositions = agsPositions.value.toList.flatMap { positions =>
           // Science offsets
           val scienceOffsets =
-            if (props.globalPreferences.scienceOffsets.value) {
+            if props.globalPreferences.scienceOffsets.value then
               positions.toList
                 .filter(_.geometryType == GeometryType.SciOffset)
                 .zipWithIndex
-                .flatMap { case (pos, i) =>
-                  for {
+                .flatMap: (pos, i) =>
+                  for
                     idx <- refineV[NonNegative](i).toOption
                     // pos.location is already rotated, apply with Angle0
                     c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
-                  } yield SVGTarget.OffsetIndicator(
+                  yield SvgTarget.OffsetIndicator(
                     c,
                     idx,
                     pos.offsetPos,
@@ -502,21 +497,20 @@ object AladinContainer extends AladinCommon {
                     ExploreStyles.ScienceOffsetPosition,
                     OffsetIndicatorSize
                   )
-                }
-            } else Nil
+            else Nil
 
           // Acquisition offsets
           val acquisitionOffsets =
-            if (props.globalPreferences.acquisitionOffsets.value) {
+            if props.globalPreferences.acquisitionOffsets.value then
               positions.toList
                 .filter(_.geometryType == GeometryType.AcqOffset)
                 .zipWithIndex
-                .flatMap { case (pos, i) =>
-                  for {
+                .flatMap: (pos, i) =>
+                  for
                     idx <- refineV[NonNegative](i).toOption
                     // pos.location is already rotated, apply with Angle0
                     c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
-                  } yield SVGTarget.OffsetIndicator(
+                  yield SvgTarget.OffsetIndicator(
                     c,
                     idx,
                     pos.offsetPos,
@@ -524,18 +518,17 @@ object AladinContainer extends AladinCommon {
                     ExploreStyles.AcquisitionOffsetPosition,
                     OffsetIndicatorSize
                   )
-                }
-            } else Nil
+            else Nil
 
           // order is important, science to be drawn above acq
           acquisitionOffsets ++ scienceOffsets
         }
 
-        val blindOffsets: List[SVGTarget] =
+        val blindOffsets: List[SvgTarget] =
           targetCoords
             .filter(tc => tc.target.disposition === TargetDisposition.BlindOffset)
             .flatMap: tc =>
-              def targetSvg(coords: Coordinates) = SVGTarget.BlindOffsetTarget(
+              def targetSvg(coords: Coordinates) = SvgTarget.BlindOffsetTarget(
                 coords,
                 Css.Empty,
                 ExploreStyles.BlindOffsetSelectedTarget,
