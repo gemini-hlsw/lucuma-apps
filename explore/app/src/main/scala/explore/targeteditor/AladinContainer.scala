@@ -55,9 +55,7 @@ import lucuma.ui.visualization.*
 import java.time.Instant
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
-import lucuma.core.enums.StepGuideState
-import lucuma.core.geom.OffsetGenerator
-import lucuma.core.model.sequence.TelescopeConfig
+import scala.collection.MapView
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,
@@ -347,6 +345,8 @@ object AladinContainer extends AladinCommon {
                                          .orElse(vizConf.map(_.posAngle))
                                          .getOrElse(Angle.Angle0)
 
+                                       // The AGS machinery is hacked to compute the positions. This has actually nothing to do with AGS.
+                                       // Maybe we should refactor the code to move the logic out of the AGS project.
                                        Ags.generatePositions(
                                          baseCoordinates,
                                          blindOffset,
@@ -481,15 +481,14 @@ object AladinContainer extends AladinCommon {
 
         println(props.globalPreferences.scienceOffsets.value)
         // Offset indicators calculated and rotated directly by AGS
-        val agsOffsets: List[SvgTarget.OffsetIndicator] =
-          agsPositions.value.toList.flatMap { positions =>
-            // Science offsets
-            val scienceOffsets: List[SvgTarget.OffsetIndicator] =
-              if props.globalPreferences.scienceOffsets.value then
-                positions.toList
-                  .filter(_.geometryType == GeometryType.SciOffset)
-                  .zipWithIndex
-                  .flatMap: (pos, i) =>
+        val configOffsets: List[SvgTarget.OffsetIndicator] =
+          offsetPositions.value.toList.flatMap { positions =>
+            val offsetIndicators: MapView[GeometryType, List[SvgTarget.OffsetIndicator]] =
+              positions
+                .groupBy(_.geometryType)
+                .view
+                .mapValues:
+                  _.toList.zipWithIndex.flatMap: (pos, i) =>
                     for
                       idx <- refineV[NonNegative](i).toOption
                       // pos.location is already rotated, apply with Angle0
@@ -498,35 +497,23 @@ object AladinContainer extends AladinCommon {
                       c,
                       idx,
                       pos.offsetPos,
-                      SequenceType.Science,
-                      ExploreStyles.ScienceOffsetPosition,
+                      if pos.geometryType == GeometryType.SciOffset then SequenceType.Science
+                      else SequenceType.Acquisition,
+                      // TODO: Yet another color for unguided offsets
+                      if pos.geometryType == GeometryType.SciOffset then
+                        ExploreStyles.ScienceOffsetPosition
+                      else ExploreStyles.AcquisitionOffsetPosition,
                       OffsetIndicatorSize
                     )
-              else Nil
-
-            // Acquisition offsets
-            val acquisitionOffsets: List[SvgTarget.OffsetIndicator] =
-              if props.globalPreferences.acquisitionOffsets.value then
-                positions.toList
-                  .filter(_.geometryType == GeometryType.AcqOffset)
-                  .zipWithIndex
-                  .flatMap: (pos, i) =>
-                    for
-                      idx <- refineV[NonNegative](i).toOption
-                      // pos.location is already rotated, apply with Angle0
-                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.location)
-                    yield SvgTarget.OffsetIndicator(
-                      c,
-                      idx,
-                      pos.offsetPos,
-                      SequenceType.Acquisition,
-                      ExploreStyles.AcquisitionOffsetPosition,
-                      OffsetIndicatorSize
-                    )
-              else Nil
-
             // order is important, science to be drawn above acq
-            acquisitionOffsets ++ scienceOffsets
+            offsetIndicators
+              .get(GeometryType.AcqOffset)
+              .filter(_ => props.globalPreferences.acquisitionOffsets.value)
+              .orEmpty ++
+              offsetIndicators
+                .get(GeometryType.SciOffset)
+                .filter(_ => props.globalPreferences.scienceOffsets.value)
+                .orEmpty
           }
 
         val blindOffsets: List[SvgTarget] =
@@ -575,8 +562,13 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    candidates ++ blindOffsets ++ scienceTargets ++
-                      basePosition(Css.Empty) ++ offsetPositions
+                    <<<<<<<.HEAD(
+                      candidates ++ blindOffsets ++ scienceTargets ++
+                        basePosition(Css.Empty) ++ offsetPositions
+                        =======
+                        candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ configOffsets
+                        >>>>>>> fc9f39a2c(unify.logic(when).computing(offsets))
+                    )
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)

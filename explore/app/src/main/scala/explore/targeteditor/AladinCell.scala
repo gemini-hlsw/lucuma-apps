@@ -59,8 +59,6 @@ import queries.schemas.UserPreferencesDB
 
 import java.time.Instant
 import scala.concurrent.duration.*
-import lucuma.core.enums.StepGuideState
-import lucuma.core.geom.OffsetGenerator
 
 case class AladinCell(
   uid:                User.Id,
@@ -401,11 +399,9 @@ object AladinCell extends ModelOptics with AladinCommon:
       val agsResultsList = agsResults.constrained.toOption.getOrElse(List.empty)
 
       def renderAladin(
-        opts:               AsterismVisualOptions,
-        trackingMap:        RegionOrTrackingMap,
-        obsCoords:          ObservationTargetsCoordinatesAt,
-        scienceOffsets:     Option[NonEmptyList[TelescopeConfig]],
-        acquisitionOffsets: Option[NonEmptyList[TelescopeConfig]]
+        opts:        AsterismVisualOptions,
+        trackingMap: RegionOrTrackingMap,
+        obsCoords:   ObservationTargetsCoordinatesAt
       ): VdomNode =
         AladinContainer(
           props.obsTargets,
