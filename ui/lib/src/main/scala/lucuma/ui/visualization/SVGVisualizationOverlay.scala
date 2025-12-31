@@ -22,17 +22,17 @@ import org.locationtech.jts.geom.util.PolygonExtracter
 
 import scala.jdk.CollectionConverters.*
 
-case class SVGVisualizationOverlay(
+case class SvgVisualizationOverlay(
   width:        Int,
   height:       Int,
   fov:          Fov,
   screenOffset: Offset,
   shapes:       NonEmptyMap[Css, ShapeExpression],
   clazz:        Css = Css.Empty
-) extends ReactFnProps(SVGVisualizationOverlay.component)
+) extends ReactFnProps(SvgVisualizationOverlay.component)
 
-object SVGVisualizationOverlay {
-  private type Props = SVGVisualizationOverlay
+object SvgVisualizationOverlay {
+  private type Props = SvgVisualizationOverlay
 
   extension (g: Geometry)
     // This deserves an explanation.

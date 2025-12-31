@@ -94,6 +94,49 @@ object GlobalPreferences:
     case _       => LogLevel.Info
   }
 
+  def apply(
+    aladinMouseScroll:                    AladinMouseScroll,
+    fullScreen:                           AladinFullScreen,
+    showCatalog:                          Visible,
+    agsOverlay:                           Visible,
+    scienceOffsets:                       Visible,
+    acquisitionOffsets:                   Visible,
+    elevationPlotRange:                   PlotRange,
+    elevationPlotTime:                    TimeDisplay,
+    elevationPlotScheduling:              ElevationPlotScheduling,
+    itcChartType:                         GraphType,
+    itcDetailsOpen:                       PlotDetails,
+    elevationPlotElevationVisible:        Visible,
+    elevationPlotParallacticAngleVisible: Visible,
+    elevationPlotSkyBrightnessVisible:    Visible,
+    elevationPlotLunarElevationVisible:   Visible,
+    wavelengthUnits:                      WavelengthUnits,
+    logLevel:                             LogLevel,
+    lastOpenPrograms:                     List[Program.Id] = List.empty,
+    patrolFieldVisibility:                Option[PFVisibility] = None
+  ): GlobalPreferences =
+    new GlobalPreferences(
+      aladinMouseScroll,
+      fullScreen,
+      showCatalog,
+      agsOverlay,
+      Visible.Shown,
+      Visible.Shown,
+      elevationPlotRange,
+      elevationPlotTime,
+      elevationPlotScheduling,
+      itcChartType,
+      itcDetailsOpen,
+      elevationPlotElevationVisible,
+      elevationPlotParallacticAngleVisible,
+      elevationPlotSkyBrightnessVisible,
+      elevationPlotLunarElevationVisible,
+      wavelengthUnits,
+      logLevel,
+      lastOpenPrograms,
+      patrolFieldVisibility
+    )
+
   val Default =
     GlobalPreferences(
       AladinMouseScroll.Allowed,

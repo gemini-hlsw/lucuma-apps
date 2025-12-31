@@ -55,6 +55,9 @@ import lucuma.ui.visualization.*
 import java.time.Instant
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
+import lucuma.core.enums.StepGuideState
+import lucuma.core.geom.OffsetGenerator
+import lucuma.core.model.sequence.TelescopeConfig
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,
@@ -116,12 +119,9 @@ object AladinContainer extends AladinCommon {
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
-      case GuideSpeed.Fast   =>
-        ExploreStyles.GuideSpeedFast
-      case GuideSpeed.Medium =>
-        ExploreStyles.GuideSpeedMedium
-      case GuideSpeed.Slow   =>
-        ExploreStyles.GuideSpeedSlow
+      case GuideSpeed.Fast   => ExploreStyles.GuideSpeedFast
+      case GuideSpeed.Medium => ExploreStyles.GuideSpeedMedium
+      case GuideSpeed.Slow   => ExploreStyles.GuideSpeedSlow
 
   private def svgTargetAndLine(
     obsTimeCoords: Coordinates,
@@ -460,69 +460,74 @@ object AladinContainer extends AladinCommon {
         val scienceTargets: List[SvgTarget] =
           targetCoords
             .filterNot(_.target.disposition === TargetDisposition.BlindOffset)
-            .flatMap: tc =>
-              def targetSvg(coords: Coordinates) = SvgTarget.ScienceTarget(
-                coords,
-                ExploreStyles.ScienceTarget,
-                ExploreStyles.ScienceSelectedTarget,
-                TargetSize,
-                tc.isSelected && isSelectable,
-                tc.targetName.some
-              )
+            .flatMap { tc =>
+              def targetSvg(coords: Coordinates) =
+                SvgTarget.ScienceTarget(
+                  coords,
+                  ExploreStyles.ScienceTarget,
+                  ExploreStyles.ScienceSelectedTarget,
+                  TargetSize,
+                  tc.isSelected && isSelectable,
+                  tc.targetName.some
+                )
+
               svgTargetAndLine(
                 tc.obsTimeCoords,
                 tc.linePoints,
                 targetSvg,
                 lineStyle = ExploreStyles.PMCorrectionLine
               )
+            }
 
-        // Offset indicators calculated and rotated directly by ags
-        val offsetPositions = agsPositions.value.toList.flatMap { positions =>
-          // Science offsets
-          val scienceOffsets =
-            if props.globalPreferences.scienceOffsets.value then
-              positions.toList
-                .filter(_.geometryType == GeometryType.SciOffset)
-                .zipWithIndex
-                .flatMap: (pos, i) =>
-                  for
-                    idx <- refineV[NonNegative](i).toOption
-                    // pos.location is already rotated, apply with Angle0
-                    c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
-                  yield SvgTarget.OffsetIndicator(
-                    c,
-                    idx,
-                    pos.offsetPos,
-                    SequenceType.Science,
-                    ExploreStyles.ScienceOffsetPosition,
-                    OffsetIndicatorSize
-                  )
-            else Nil
+        println(props.globalPreferences.scienceOffsets.value)
+        // Offset indicators calculated and rotated directly by AGS
+        val agsOffsets: List[SvgTarget.OffsetIndicator] =
+          agsPositions.value.toList.flatMap { positions =>
+            // Science offsets
+            val scienceOffsets: List[SvgTarget.OffsetIndicator] =
+              if props.globalPreferences.scienceOffsets.value then
+                positions.toList
+                  .filter(_.geometryType == GeometryType.SciOffset)
+                  .zipWithIndex
+                  .flatMap: (pos, i) =>
+                    for
+                      idx <- refineV[NonNegative](i).toOption
+                      // pos.location is already rotated, apply with Angle0
+                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.location)
+                    yield SvgTarget.OffsetIndicator(
+                      c,
+                      idx,
+                      pos.offsetPos,
+                      SequenceType.Science,
+                      ExploreStyles.ScienceOffsetPosition,
+                      OffsetIndicatorSize
+                    )
+              else Nil
 
-          // Acquisition offsets
-          val acquisitionOffsets =
-            if props.globalPreferences.acquisitionOffsets.value then
-              positions.toList
-                .filter(_.geometryType == GeometryType.AcqOffset)
-                .zipWithIndex
-                .flatMap: (pos, i) =>
-                  for
-                    idx <- refineV[NonNegative](i).toOption
-                    // pos.location is already rotated, apply with Angle0
-                    c   <- baseCoordinates.flatMap(_.offsetBy(Angle.Angle0, pos.location))
-                  yield SvgTarget.OffsetIndicator(
-                    c,
-                    idx,
-                    pos.offsetPos,
-                    SequenceType.Acquisition,
-                    ExploreStyles.AcquisitionOffsetPosition,
-                    OffsetIndicatorSize
-                  )
-            else Nil
+            // Acquisition offsets
+            val acquisitionOffsets: List[SvgTarget.OffsetIndicator] =
+              if props.globalPreferences.acquisitionOffsets.value then
+                positions.toList
+                  .filter(_.geometryType == GeometryType.AcqOffset)
+                  .zipWithIndex
+                  .flatMap: (pos, i) =>
+                    for
+                      idx <- refineV[NonNegative](i).toOption
+                      // pos.location is already rotated, apply with Angle0
+                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.location)
+                    yield SvgTarget.OffsetIndicator(
+                      c,
+                      idx,
+                      pos.offsetPos,
+                      SequenceType.Acquisition,
+                      ExploreStyles.AcquisitionOffsetPosition,
+                      OffsetIndicatorSize
+                    )
+              else Nil
 
-          // order is important, science to be drawn above acq
-          acquisitionOffsets ++ scienceOffsets
-        }
+            // order is important, science to be drawn above acq
+            acquisitionOffsets ++ scienceOffsets
+          }
 
         val blindOffsets: List[SvgTarget] =
           targetCoords
@@ -542,6 +547,8 @@ object AladinContainer extends AladinCommon {
                 targetSvg,
                 ExploreStyles.BlindOffsetLine
               )
+
+        // val configOffsets: List[]
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
@@ -593,7 +600,7 @@ object AladinContainer extends AladinCommon {
                shapes.map(_._1)
               )
                 .mapN(
-                  SVGVisualizationOverlay(
+                  SvgVisualizationOverlay(
                     _,
                     _,
                     _,
@@ -609,7 +616,7 @@ object AladinContainer extends AladinCommon {
                  pfShapes.flatMap(m => NonEmptyMap.fromMap(m))
                 )
                   .mapN(
-                    SVGVisualizationOverlay(
+                    SvgVisualizationOverlay(
                       _,
                       _,
                       _,

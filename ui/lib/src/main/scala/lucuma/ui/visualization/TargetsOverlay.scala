@@ -139,7 +139,7 @@ object TargetsOverlay
 
               case (offP, offQ, SvgTarget.OffsetIndicator(_, idx, o, oType, css, radius, title)) =>
                 val pointCss = VisualizationStyles.OffsetPosition |+| css
-                OffsetSVG(offP, offQ, maxP, radius, pointCss, oType, idx, o)
+                OffsetSvg(offP, offQ, maxP, radius, pointCss, oType, idx, o)
 
               case (offP,
                     offQ,

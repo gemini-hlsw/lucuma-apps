@@ -27,7 +27,7 @@ import org.typelevel.cats.time.instances.duration.*
 
 import java.time.Duration
 
-case class ObsConfiguration(
+final case class ObsConfiguration(
   configuration:      Option[BasicConfiguration],
   selectedConfig:     ConfigSelection, // selected row(s) in the modes table
   posAngleProperties: Option[PAProperties],
