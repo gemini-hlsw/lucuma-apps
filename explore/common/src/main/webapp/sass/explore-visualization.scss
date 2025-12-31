@@ -222,6 +222,14 @@ $brightness: var(--aladin-image-brightness);
       stroke: hsl(33deg 100% 50%);
       stroke-width: 2px;
     }
+
+    .guide-star-unconstrained {
+      display: inline;
+      stroke: hsl(30deg 100% 50%); // orange border
+      stroke-width: 0.5px;
+      fill: hsl(30deg 100% 50% / 30%);
+      pointer-events: fill;
+    }
   }
 
   .targets-overlay-svg .arrow-between-targets {
