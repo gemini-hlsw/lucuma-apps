@@ -148,6 +148,7 @@ case class ObsTabTiles(
         .orEmpty
         .toList
     )
+    // observation.configuration.observingMode
 
   def sciConfigs: Option[NonEmptyList[TelescopeConfig]] =
     NonEmptyList.fromList(
