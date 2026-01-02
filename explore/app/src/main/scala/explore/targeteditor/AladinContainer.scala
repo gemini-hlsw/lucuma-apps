@@ -193,9 +193,9 @@ object AladinContainer extends AladinCommon {
     selectedGS:                 Option[AgsAnalysis.Usable],
     surveyEpoch:                Epoch
   ): List[SVGTarget] =
-    val fov                  = fovRA.toMicroarcseconds / 1e6
+    val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
-    val candidatesVisibility = ExploreStyles.GuideStarCandidateVisible.when_(visible)
+    val candidatesVisibility           = ExploreStyles.GuideStarCandidateVisible.when_(visible)
 
     candidates.flatMap:
       guideStarsSVG(
@@ -215,9 +215,9 @@ object AladinContainer extends AladinCommon {
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     surveyEpoch:                Epoch
   ): List[SVGTarget] =
-    val fov                        = fovRA.toMicroarcseconds / 1e6
+    val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
-    val css                        = ExploreStyles.GuideStarUnconstrained
+    val css                            = ExploreStyles.GuideStarUnconstrained
 
     candidates.flatMap: g =>
       candidateSVG(
@@ -450,10 +450,10 @@ object AladinContainer extends AladinCommon {
           currentPos.value
             .foldMap(Coordinates.fromHmsDms.reverseGet)
 
-        val basePosition =
+        def basePosition(css: Css) =
           baseCoordinates.foldMap: c =>
             List(
-              SVGTarget.CrosshairTarget(c, Css.Empty, CrosshairSize)
+              SVGTarget.CrosshairTarget(c, css, CrosshairSize)
             )
 
         val isSelectable: Boolean = props.obsTargets.length > 1
@@ -571,7 +571,8 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ offsetPositions
+                    candidates ++ blindOffsets ++ scienceTargets ++
+                      basePosition(Css.Empty) ++ offsetPositions
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)
@@ -584,7 +585,7 @@ object AladinContainer extends AladinCommon {
                       _,
                       screenOffset,
                       _,
-                      unconstrainedCandidates
+                      basePosition(ExploreStyles.Hidden) ++ unconstrainedCandidates
                     )
                   )
               ),
