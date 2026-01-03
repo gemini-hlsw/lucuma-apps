@@ -550,7 +550,8 @@ object TargetTabContents extends TwoPanels:
                   props.attachments,
                   props.authToken,
                   props.readonly,
-                  allowEditingOngoing = false, // only allow editing of ongoing observations from the obs tab
+                  allowEditingOngoing =
+                    false, // only allow editing of ongoing observations from the obs tab
                   isStaffOrAdmin = props.isStaffOrAdmin,
                   backButton = backButton.some
                 )

@@ -12,6 +12,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import explore.events.*
 import explore.model.*
+import explore.model.GuideStarSelection.*
 import explore.model.WorkerClients.*
 import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
@@ -32,8 +33,6 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.reusability.given
 
 import java.time.Instant
-
-import explore.model.GuideStarSelection.*
 
 case class AgsCalcProps(
   focusedId:         Target.Id,
@@ -67,6 +66,7 @@ case class AgsCalculationResults(
 
 object AgsCalculationResults:
   given Reusability[AgsCalculationResults] = Reusability.by: r =>
+    // Should we reuse just by length too?
     (r.constrained.toOption, r.unconstrained.toOption)
 
 object UseAgsCalculation:
@@ -146,7 +146,7 @@ object UseAgsCalculation:
     for {
       constrainedResults   <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
       unconstrainedResults <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
-      // Constrained AGS calculation
+      // AGS calculation for the obs pa constraint
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, anglesToTest, needsAGS)
                               ):
@@ -178,7 +178,7 @@ object UseAgsCalculation:
                                     query.orEmpty.unlessA(guideStarSelection.get.isOverride)
 
                                 case _ => IO.unit
-      // Unconstrained AGS calculation
+      // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, hasConstraint, needsAGS)
                               ):

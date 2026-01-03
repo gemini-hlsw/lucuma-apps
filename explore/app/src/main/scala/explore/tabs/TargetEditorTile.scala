@@ -77,7 +77,8 @@ object TargetEditorTile:
               attachments = attachments,
               authToken = authToken,
               readonly = readonly,
-              allowEditingOngoing = false, // don't allow this when editing non-specifically for an observation
+              allowEditingOngoing =
+                false, // don't allow this when editing non-specifically for an observation
               isStaffOrAdmin = isStaffOrAdmin
             )
           )

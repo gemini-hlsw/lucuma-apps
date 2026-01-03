@@ -7,8 +7,8 @@ import cats.Order.*
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
-import explore.model.ConfigurationForVisualization
 import explore.model.AGSVisibility
+import explore.model.ConfigurationForVisualization
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*

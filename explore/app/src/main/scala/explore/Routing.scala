@@ -11,9 +11,9 @@ import crystal.react.View
 import eu.timepit.refined.types.numeric.PosInt
 import explore.model.*
 import explore.model.Page.*
-import explore.syntax.ui.*
 import explore.modes.ScienceModes
 import explore.proposal.ProposalTabContents
+import explore.syntax.ui.*
 import explore.tabs.*
 import explore.undo.UndoContext
 import explore.undo.Undoer

@@ -81,10 +81,11 @@ case class AladinContainer(
   val guideStarCandidates: List[AgsAnalysis.Usable] =
     agsResults.constrained.toOption.orEmpty
 
-  val guideStarCandidatesUnconstrained: List[AgsAnalysis.Usable] =
+  val guideStarsUnconstrained: List[AgsAnalysis.Usable] =
     val constrainedIds = guideStarCandidates.map(_.target.id).toSet
+    // remove from unconstrained stars present on the constrained set
     agsResults.unconstrained.toOption
-      .getOrElse(List.empty)
+      .orEmpty
       .filterNot(gs => constrainedIds.contains(gs.target.id))
 
 object AladinContainer extends AladinCommon {
@@ -93,12 +94,13 @@ object AladinContainer extends AladinCommon {
 
   // Relative sizes for targets passed to the svg layer, in terms of the side of
   // the svg projected onto the focal plane
-  private val TargetSize             = 6
-  private val CrosshairSize          = 10
-  private val OffsetIndicatorSize    = 4
-  private val GuideStarSize          = 4
-  private val GuideStarCandidateSize = 3
-  private val GuideStarCrowdedSize   = 2.7
+  private val TargetSize                 = 6
+  private val CrosshairSize              = 10
+  private val OffsetIndicatorSize        = 4
+  private val GuideStarSize              = 4
+  private val GuideStarCandidateSize     = 3
+  private val GuideStarCrowdedSize       = 2.7
+  private val CrowdedCandidatesThreshold = 500
 
   extension (tr: SiderealTracking)
     private def coordsAtEpoch(epoch: Epoch): Option[Coordinates] =
@@ -134,7 +136,7 @@ object AladinContainer extends AladinCommon {
 
   private def candidateSVG(
     g:                          AgsAnalysis.Usable,
-    numberOfCandidates:         Int,
+    isCrowded:                  Boolean,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     calcSize:                   Double => Double,
     surveyEpoch:                Epoch,
@@ -147,17 +149,17 @@ object AladinContainer extends AladinCommon {
       tracking.coordsAtEpoch(surveyEpoch).foldMap(List(_, obsTimeCoords))
 
     val size =
-      if (numberOfCandidates < 500) calcSize(GuideStarCandidateSize)
-      else calcSize(GuideStarCrowdedSize)
+      if (isCrowded) calcSize(GuideStarCrowdedSize)
+      else calcSize(GuideStarCandidateSize)
 
-    if (numberOfCandidates < 500)
-      svgTargetAndLine(obsTimeCoords, linePoints, targetBuilder(_, size), lineCss)
-    else
+    if (isCrowded)
       List(targetBuilder(obsTimeCoords, size))
+    else
+      svgTargetAndLine(obsTimeCoords, linePoints, targetBuilder(_, size), lineCss)
 
   private def guideStarsSVG(
     g:                          AgsAnalysis.Usable,
-    numberOfCandidates:         Int,
+    isCrowded:                  Boolean,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
@@ -173,10 +175,10 @@ object AladinContainer extends AladinCommon {
       List(SVGTarget.GuideStarTarget(obsTimeCoords, candidateCss, calcSize(GuideStarSize), g))
     else
       val css = candidateCss |+| candidatesVisibility |+|
-        ExploreStyles.GuideStarCandidateCrowded.unless_(numberOfCandidates < 500)
+        ExploreStyles.GuideStarCandidateCrowded.when_(isCrowded)
       candidateSVG(
         g,
-        numberOfCandidates,
+        isCrowded,
         siderealDiscretizedObsTime,
         calcSize,
         surveyEpoch,
@@ -196,11 +198,12 @@ object AladinContainer extends AladinCommon {
     val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
     val candidatesVisibility           = ExploreStyles.GuideStarCandidateVisible.when_(visible)
+    val isCrowded                      = candidates.length >= CrowdedCandidatesThreshold
 
     candidates.flatMap:
       guideStarsSVG(
         _,
-        candidates.length,
+        isCrowded,
         siderealDiscretizedObsTime,
         configuration,
         selectedGS,
@@ -211,23 +214,26 @@ object AladinContainer extends AladinCommon {
 
   private def unconstrainedGuideStars(
     candidates:                 List[AgsAnalysis.Usable],
+    visible:                    Boolean,
     fovRA:                      Angle,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     surveyEpoch:                Epoch
   ): List[SVGTarget] =
     val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
-    val css                            = ExploreStyles.GuideStarUnconstrained
+    val candidatesVisibility           = ExploreStyles.GuideStarUnconstrained.when_(visible)
+    val isCrowded                      = candidates.length >= CrowdedCandidatesThreshold
 
     candidates.flatMap: g =>
+      val css = candidatesVisibility |+| speedCss(g.guideSpeed)
       candidateSVG(
         g,
-        candidates.length,
+        isCrowded,
         siderealDiscretizedObsTime,
         calcSize,
         surveyEpoch,
         (coords, size) => SVGTarget.GuideStarCandidateTarget(coords, css, size, g),
-        ExploreStyles.PMGSCorrectionLine |+| css
+        ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
 
   private case class TargetCoords(
@@ -386,9 +392,9 @@ object AladinContainer extends AladinCommon {
                                            selectedGS,
                                            survey.value.epoch
                                          )
-        // memoized unconstrained guide star candidates (available at other PAs)
+        // memoized unconstrained guide star candidates
         unconstrainedCandidates <- useMemo(
-                                     (props.guideStarCandidatesUnconstrained,
+                                     (props.guideStarsUnconstrained,
                                       props.globalPreferences.showCatalog,
                                       props.options.fovRA,
                                       props.siderealDiscretizedObsTime,
@@ -402,14 +408,13 @@ object AladinContainer extends AladinCommon {
                                        siderealDiscretizedObsTime,
                                        survey
                                      ) =>
-                                       if (visible && candidates.nonEmpty)
-                                         unconstrainedGuideStars(
-                                           candidates,
-                                           fovRA,
-                                           siderealDiscretizedObsTime,
-                                           survey.value.epoch
-                                         )
-                                       else List.empty
+                                       unconstrainedGuideStars(
+                                         candidates,
+                                         visible,
+                                         fovRA,
+                                         siderealDiscretizedObsTime,
+                                         survey.value.epoch
+                                       )
         // Use fov from aladin
         fov                     <- useState(none[Fov])
       } yield {

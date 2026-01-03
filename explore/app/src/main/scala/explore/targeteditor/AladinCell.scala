@@ -55,6 +55,7 @@ import monocle.Iso
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 import queries.schemas.UserPreferencesDB
+import explore.targeteditor.UseAgsCalculation.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -264,7 +265,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                       .foldMap(_.async.set(AgsState.Idle))
               else none.pure
             .getOrElse(List.empty.some.pure[IO])
-      // Build AGS calculation props
       agsCalcProps        <- useMemo(
                                (props.obsTargets.focus.id,
                                 props.obsTime,
@@ -321,7 +321,7 @@ object AladinCell extends ModelOptics with AladinCommon:
       // Reset offset and gs if asterism change
       _                   <- useEffectWithDeps(props.obsTargets): targets =>
                                val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
-                               // if the coordinates change, reset offset
+                               // if the coordinates change, reset ags && offset
                                for
                                  _ <- props.guideStarSelection.set(GuideStarSelection.Default)
                                  _ <- offsetOnCenter.set(Offset.Zero)
@@ -335,8 +335,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  ) *> props.guideStarSelection
                                  .set(GuideStarSelection.Default))
                                  .whenA(props.needsAGS && candidates.value.toOption.flatten.nonEmpty)
-      // AGS calculation hook - handles both constrained and unconstrained
-      agsResults          <- UseAgsCalculation.useAgsCalculation(
+      // request AGS calculation
+      agsResults          <- useAgsCalculation(
                                obsTargetsCoordsPot.toOption.flatMap(_.toOption),
                                agsCalcProps.value,
                                props.anglesToTest,
@@ -459,39 +459,37 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot(
-          (etr, eco) =>
-            (etr, eco).tupled.fold(
-              err => Message(severity = Message.Severity.Error, text = err),
-              (tr, co) =>
+        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
+          (etr, eco).tupled.fold(
+            err => Message(severity = Message.Severity.Error, text = err),
+            (tr, co) =>
+              <.div(
+                ExploreStyles.AladinContainerColumn,
+                AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
                 <.div(
-                  ExploreStyles.AladinContainerColumn,
-                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
-                  <.div(
-                    ExploreStyles.AladinToolbox,
-                    Button(onClickE = menuRef.toggle).withMods(
-                      ExploreStyles.ButtonOnAladin,
-                      Icons.ThinSliders
-                    )
-                  ),
-                  options.get.renderPot(opt =>
-                    React.Fragment(renderAladin(opt, tr, co),
-                                   renderToolbar(opt),
-                                   renderAgsOverlay(opt)
-                    )
+                  ExploreStyles.AladinToolbox,
+                  Button(onClickE = menuRef.toggle).withMods(
+                    ExploreStyles.ButtonOnAladin,
+                    Icons.ThinSliders
                   )
-                )
-            ),
-          options
-            .zoom(Pot.readyPrism[AsterismVisualOptions])
-            .mapValue: options =>
-              AladinPreferencesMenu(
-                props.uid,
-                props.obsTargets.ids,
-                globalPreferences,
-                options,
-                menuRef,
-                props.isStaffOrAdmin
+                ),
+                options.get.renderPot(opt =>
+                  React.Fragment(renderAladin(opt, tr, co),
+                                 renderToolbar(opt),
+                                 renderAgsOverlay(opt)
+                  )
+                ),
+                options
+                  .zoom(Pot.readyPrism[AsterismVisualOptions])
+                  .mapValue: opts =>
+                    AladinPreferencesMenu(
+                      props.uid,
+                      props.obsTargets.ids,
+                      globalPreferences,
+                      opts,
+                      menuRef,
+                      props.isStaffOrAdmin
+                    )
               )
-        )
+          )
       )

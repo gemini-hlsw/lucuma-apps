@@ -225,10 +225,9 @@ $brightness: var(--aladin-image-brightness);
 
     .guide-star-unconstrained {
       display: inline;
-      stroke: hsl(30deg 100% 50%); // orange border
-      stroke-width: 0.5px;
-      fill: hsl(30deg 100% 50% / 30%);
-      pointer-events: fill;
+      stroke: hsl(30deg 100% 20% / 80%);
+      stroke-width: 1.5px;
+      pointer-events: fill; // Fill color comes from guide-star-fast/medium/slow classes
     }
   }
 
