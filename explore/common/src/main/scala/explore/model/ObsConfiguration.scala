@@ -27,6 +27,8 @@ import org.typelevel.cats.time.instances.duration.*
 
 import java.time.Duration
 
+// TODO RENAME this. Some of the options are NOT configuration, but come from the digest (eg offsets, duration)
+
 final case class ObsConfiguration(
   configuration:      Option[BasicConfiguration],
   selectedConfig:     ConfigSelection, // selected row(s) in the modes table

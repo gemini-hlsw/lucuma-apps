@@ -347,6 +347,7 @@ object AladinContainer extends AladinCommon {
 
                                        // The AGS machinery is hacked to compute the positions. This has actually nothing to do with AGS.
                                        // Maybe we should refactor the code to move the logic out of the AGS project.
+                                       // We should revise the logic anyway, since AGS only works with guided offsets, and now we want to show unguided ones as well.
                                        Ags.generatePositions(
                                          baseCoordinates,
                                          blindOffset,
@@ -499,9 +500,9 @@ object AladinContainer extends AladinCommon {
                       pos.offsetPos,
                       if pos.geometryType == GeometryType.SciOffset then SequenceType.Science
                       else SequenceType.Acquisition,
-                      // TODO: Yet another color for unguided offsets
                       if pos.geometryType == GeometryType.SciOffset then
-                        ExploreStyles.ScienceOffsetPosition
+                        if true then ExploreStyles.ScienceOffsetPosition // TODO check for unguided
+                        else ExploreStyles.ScienceUnguidedOffsetPosition
                       else ExploreStyles.AcquisitionOffsetPosition,
                       OffsetIndicatorSize
                     )
