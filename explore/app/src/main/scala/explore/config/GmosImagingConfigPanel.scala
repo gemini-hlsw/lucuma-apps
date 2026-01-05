@@ -203,13 +203,6 @@ object GmosImagingConfigPanel {
 
           val variantView: View[GmosImagingVariant] = variant(props.observingMode)
 
-          // val offsetReadOnly = props.readonly || editState.get === ConfigEditState.View
-          // val offsetsCount   = offsets(props.observingMode).get.size
-          // val offsetsText    =
-          //   if (offsetsCount == 0) "No offsets"
-          //   else if (offsetsCount == 1) "1 offset"
-          //   else s"$offsetsCount offsets"
-
           React.Fragment(
             <.div(ExploreStyles.GmosImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -250,8 +243,7 @@ object GmosImagingConfigPanel {
                 )
               )
             ),
-            <.div(
-              ExploreStyles.GmosImagingLowerGrid,
+            <.div(ExploreStyles.GmosImagingLowerGrid)(
               Panel(
                 header = <.span(
                   "Filters",

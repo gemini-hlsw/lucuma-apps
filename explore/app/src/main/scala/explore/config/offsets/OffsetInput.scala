@@ -29,9 +29,9 @@ final case class OffsetInput(
 object OffsetInput
     extends ReactFnComponent[OffsetInput](props =>
       React.Fragment(
-        <.label(^.htmlFor := props.pId.value, "p:"),
         FormInputTextView(
           id = props.pId,
+          label = "p:",
           value = props.offset.zoom(Offset.pAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
@@ -40,9 +40,9 @@ object OffsetInput
           inputClass = props.inputClass,
           labelClass = props.labelClass
         ),
-        <.label(^.htmlFor := props.qId.value, "q:"),
         FormInputTextView(
           id = props.qId,
+          label = "q:",
           value = props.offset.zoom(Offset.qAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),

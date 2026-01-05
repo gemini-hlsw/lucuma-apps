@@ -3901,64 +3901,20 @@ span.explore-offsets-count {
   }
 }
 
-.offset-editor-content-read-only,
 .offset-editor-content {
-  --offset-spacing-large: 20px;
+  // --offset-spacing-large: 20px;
 
-  display: flex;
-  flex-direction: column;
-  min-width: 90%;
+  grid-column: span 2;
 
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    flex-direction: row;
-    gap: var(--offset-spacing-large);
-    min-width: 50%;
-  }
+  display: grid;
+  width: 100%;
+  // min-width: 90%;
 
-  .offset-grid-display {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1;
-    min-height: 300px;
-    padding: 0.2em;
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      flex: 3;
-      min-height: 500px;
-      padding: unset;
-    }
-  }
-
-  .offset-grid-controls {
-    display: grid;
-    align-content: start;
-    overflow-y: auto;
-    gap: 0.1em 0;
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      flex: 2;
-    }
-
-    h4 {
-      margin: 0;
-      justify-self: center;
-    }
-
-    label.explore-offsets-count,
-    .explore-offsets-regenerate {
-      justify-self: end;
-    }
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      padding: 1em;
-      gap: 0.8em;
-
-      h4 {
-        margin-bottom: 1em;
-      }
-    }
-  }
+  // @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+  //   flex-direction: row;
+  //   gap: var(--offset-spacing-large);
+  //   min-width: 50%;
+  // }
 
   .offset-form-row {
     display: grid;
@@ -3967,104 +3923,17 @@ span.explore-offsets-count {
     align-items: center;
   }
 
-  .offset-grid-container {
-    --offset-border-radius: 4px;
+  .offsets-form-row {
+    display: grid;
+    grid-template-columns: auto repeat(4, 1fr);
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--tile-background);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--offset-border-radius);
-    padding: var(--offset-spacing-large);
-    width: 100%;
-    height: 100%;
-    min-height: 250px;
-  }
-
-  .offset-grid-svg {
-    display: block;
-  }
-
-  .offset-grid-background {
-    fill: var(--tile-background);
-  }
-
-  .offset-grid-lines {
-    line {
-      stroke: var(--gray-200);
-      stroke-width: 1;
-    }
-  }
-
-  .offset-grid-axes {
-    line {
-      stroke: var(--gray-100);
-      stroke-width: 2;
-    }
-  }
-
-  .offset-grid-labels {
-    text {
-      fill: var(--muted-color);
-      font-size: 12px;
-    }
-  }
-
-  .offset-grid-points {
-    circle {
-      fill: var(--explore-accent-color);
-      stroke: var(--explore-accent-color);
-      stroke-width: 1;
-    }
-  }
-
-  .offset-grid-crosshair {
-    line {
-      stroke: var(--negative-background-color);
-      stroke-width: 1.5;
-    }
-  }
-
-  .offset-grid-arrows {
-    --arrow-color: rgb(255 165 0 / 90%);
-
-    line {
-      stroke: var(--arrow-color);
-      stroke-width: 0.6;
+    .pl-form-field, .pl-form-field-label {
+      grid-column: unset !important;
     }
 
-    polygon {
-      fill: var(--arrow-color);
+    .offset-label {
+      justify-self: end;
+      padding-right: 0.5em;
     }
-  }
-}
-
-.offset-editor-content-read-only {
-  flex-direction: column;
-
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    flex-direction: column;
-  }
-
-  h4 {
-    margin: 0;
-    justify-self: center;
-  }
-}
-
-.offset-small-checkbox {
-  display: flex;
-  align-content: baseline;
-
-  .p-checkbox {
-    .p-checkbox-icon {
-      font-size: smaller;
-    }
-  }
-
-  label {
-    margin-left: 0.5em;
-    font-size: smaller;
   }
 }
