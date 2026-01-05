@@ -53,9 +53,9 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
 
 import java.time.Instant
+import scala.collection.MapView
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
-import scala.collection.MapView
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,

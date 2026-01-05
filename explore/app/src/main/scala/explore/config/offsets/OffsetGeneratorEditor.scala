@@ -34,84 +34,65 @@ object OffsetGeneratorEditor
       val uniformOpt: Option[View[OffsetGenerator.Uniform]] =
         valueOpt.flatMap(_.zoom(OffsetGenerator.uniform).toOptionView)
 
-      <.div(OffsetEditorStyles.Content)(
-        <.h4("Generator Parameters"),
-        <.div(OffsetEditorStyles.FormRow)(
-          <.label(^.htmlFor := "grid-type", "Type:"),
-          EnumDropdown(
-            id = "grid-type".refined,
-            value = GridType.fromOffsetGenerator(props.value.get),
-            onChange = gt => props.value.set(gt.init),
-            placeholder = "Select grid type"
-          )
+      React.Fragment(
+        FormEnumDropdown[GridType](
+          id = "grid-type".refined,
+          label = props.label,
+          value = GridType.fromOffsetGenerator(props.value.get),
+          onChange = gt => props.value.set(gt.init),
+          placeholder = "Select grid type"
         ),
         randomOpt.map { random =>
           ReactFragment(
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "random-size", "Size (arcsec):"),
-              FormInputTextView(
-                id = "random-size".refined,
-                value = random.zoom(OffsetGenerator.Random.size),
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-                placeholder = "0.0"
-              )
+            FormInputTextView(
+              id = "random-size".refined,
+              label = "Size (arcsec):",
+              value = random.zoom(OffsetGenerator.Random.size),
+              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              placeholder = "0.0"
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "random-size", "Center (arcsec):"),
-              OffsetInput(
-                id = "random-center".refined,
-                offset = random.zoom(OffsetGenerator.Random.center),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "random-size", "Center (arcsec):"),
+            OffsetInput(
+              id = "random-center".refined,
+              offset = random.zoom(OffsetGenerator.Random.center),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             )
           )
         },
         spiralOpt.map { spiral =>
           ReactFragment(
-            <.div(OffsetEditorStyles.FormRow)(
-              <.label(^.htmlFor := "spiral-size", "Size (arcsec):"),
-              FormInputTextView(
-                id = "spiral-size".refined,
-                value = spiral.zoom(OffsetGenerator.Spiral.size),
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-                placeholder = "0.0"
-              )
+            FormInputTextView(
+              id = "spiral-size".refined,
+              label = "Size (arcsec):",
+              value = spiral.zoom(OffsetGenerator.Spiral.size),
+              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              placeholder = "0.0"
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
-              OffsetInput(
-                id = "spiral-center".refined,
-                offset = spiral.zoom(OffsetGenerator.Spiral.center),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
+            OffsetInput(
+              id = "spiral-center".refined,
+              offset = spiral.zoom(OffsetGenerator.Spiral.center),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             )
           )
         },
         uniformOpt.map { uniform =>
           ReactFragment(
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "uniform-corner-a", "Corner A (arcsec):"),
-              OffsetInput(
-                id = "uniform-corner-a".refined,
-                offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "uniform-corner-a", "Corner A (arcsec):"),
+            OffsetInput(
+              id = "uniform-corner-a".refined,
+              offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "uniform-corner-b", "Corner B (arcsec):"),
-              OffsetInput(
-                id = "uniform-corner-b".refined,
-                offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "uniform-corner-b", "Corner B (arcsec):"),
+            OffsetInput(
+              id = "uniform-corner-b".refined,
+              offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             )
           )
         }

@@ -11,9 +11,9 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.*
 import lucuma.react.primereact.SelectItem
+import lucuma.react.primereact.TooltipOptions
 
 import scalajs.js
-import lucuma.react.primereact.TooltipOptions
 
 final case class FormEnumDropdown[A](
   id:              NonEmptyString,
