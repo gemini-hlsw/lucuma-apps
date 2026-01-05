@@ -12,6 +12,7 @@ logs/
 *.pkcs12
 *.jks
 yarn.lock
+package-lock.json
 .tags*
 .java-version
 calibrations/
