@@ -3901,39 +3901,13 @@ span.explore-offsets-count {
   }
 }
 
-.offset-editor-content {
-  // --offset-spacing-large: 20px;
-
-  grid-column: span 2;
-
-  display: grid;
+.offsets-input {
   width: 100%;
-  // min-width: 90%;
+  display: flex;
+  gap: 0.5em;
+}
 
-  // @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-  //   flex-direction: row;
-  //   gap: var(--offset-spacing-large);
-  //   min-width: 50%;
-  // }
-
-  .offset-form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5em;
-    align-items: center;
-  }
-
-  .offsets-form-row {
-    display: grid;
-    grid-template-columns: auto repeat(4, 1fr);
-
-    .pl-form-field, .pl-form-field-label {
-      grid-column: unset !important;
-    }
-
-    .offset-label {
-      justify-self: end;
-      padding-right: 0.5em;
-    }
-  }
+.offset-generator-separator {
+  grid-column: span 2;
+  width: 100%;
 }

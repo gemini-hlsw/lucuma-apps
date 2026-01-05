@@ -28,7 +28,7 @@ final case class OffsetInput(
 
 object OffsetInput
     extends ReactFnComponent[OffsetInput](props =>
-      React.Fragment(
+      <.div(OffsetGeneratorEditorStyles.OffsetsInput)(
         FormInputTextView(
           id = props.pId,
           label = "p:",

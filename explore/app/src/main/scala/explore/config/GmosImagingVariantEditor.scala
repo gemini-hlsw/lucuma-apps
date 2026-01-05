@@ -9,6 +9,7 @@ import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
 import explore.config.offsets.OffsetGeneratorEditor
+import explore.config.offsets.OffsetGeneratorEditorStyles
 import explore.config.offsets.OffsetInput
 import explore.model.display.given
 import japgolly.scalajs.react.*
@@ -26,7 +27,6 @@ import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import explore.config.offsets.OffsetEditorStyles
 
 final case class GmosImagingVariantEditor(variant: View[GmosImagingVariant], readonly: Boolean)
     extends ReactFnProps(GmosImagingVariantEditor):
@@ -54,13 +54,12 @@ object GmosImagingVariantEditor
             mod(offsetGeneratorGetter(tcOpt)).map(TelescopeConfigGenerator.FromOffsetGenerator(_))
 
       React.Fragment(
-        // TODO Customized version
-        // TODO FormEnumDropdown
+        // TODO Customized version???
         FormEnumDropdown[GmosImagingVariantType](
           id = "variant-type".refined,
           value = props.variantType,
           onChange = vt => props.variant.mod(_.toVariantType(vt)),
-          label = "Variant".some,
+          label = "Offset Variant".some,
           //   helpId = Some("configuration/imaging/variant-type.md".refined),
           clazz = LucumaPrimeStyles.FormField,
           disabled = props.readonly
@@ -83,9 +82,10 @@ object GmosImagingVariantEditor
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
             ),
-            <.label(^.htmlFor := "grouped-sky-count", "Sky Count"),
+            <.hr(OffsetGeneratorEditorStyles.Separator),
             FormInputTextView(
               id = "grouped-sky-count".refined,
+              label = "Sky Offset Count",
               value = grouped.zoom(GmosImagingVariant.Grouped.skyCount),
               validFormat = InputValidSplitEpi.nonNegInt,
               placeholder = "0",
@@ -110,9 +110,10 @@ object GmosImagingVariantEditor
                 .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
               readonly = props.readonly
             ),
-            <.label(^.htmlFor := "interleaved-sky-count", "Sky Count"),
+            <.hr(OffsetGeneratorEditorStyles.Separator),
             FormInputTextView(
               id = "interleaved-sky-count".refined,
+              label = "Sky Offset Count",
               value = interleaved.zoom(GmosImagingVariant.Interleaved.skyCount),
               validFormat = InputValidSplitEpi.nonNegInt,
               placeholder = "0",
@@ -128,48 +129,34 @@ object GmosImagingVariantEditor
             )
           ),
         preImagingView.map[VdomNode]: preImaging =>
-          // TODO: Should this be shown in a grid?
-          //   React.Fragment(
-          <.div(OffsetEditorStyles.Content)(
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-1".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+          React.Fragment(
+            <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
+            OffsetInput(
+              id = "preImaging-offset-1".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-2".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
+            OffsetInput(
+              id = "preImaging-offset-2".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-3".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
+            OffsetInput(
+              id = "preImaging-offset-3".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             ),
-            <.div(OffsetEditorStyles.OffsetsFormRow)(
-              <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
-              OffsetInput(
-                id = "preImaging-offset-4".refined,
-                offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
-                readonly = props.readonly,
-                inputClass = LucumaPrimeStyles.FormField,
-                labelClass = OffsetEditorStyles.OffsetLabel
-              )
+            <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
+            OffsetInput(
+              id = "preImaging-offset-4".refined,
+              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
+              readonly = props.readonly,
+              inputClass = LucumaPrimeStyles.FormField
             )
           )
       )
