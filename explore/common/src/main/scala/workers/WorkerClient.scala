@@ -47,17 +47,21 @@ class WorkerClient[F[_]: {Concurrent, UUIDGen, Logger}, R: Pickler] private (
     for {
       _            <- Resource.eval(initLatch.get) // Ensure server is initialized
       id           <- Resource.eval(UUIDGen.randomUUID).map(WorkerProcessId(_))
-      _            <- Resource.make(
-                        Logger[F].trace(s">>> Starting request with id [$id]. Request: [$requestMessage]") >>
-                          worker.postTransferable(
-                            asTypedArray[FromClient](FromClient.Start(id, Pickled(asBytes[R](requestMessage))))
-                          )
-                      )(_ =>
-                        Logger[F].trace(s">>> Ending request with id [$id]. Request: [$requestMessage]") >>
-                          worker.postTransferable(
-                            asTypedArray[FromClient](FromClient.End(id))
-                          )
-                      )
+      _            <-
+        Resource.make(
+          (Logger[F].trace(s">>> Starting request with id [$id]. Request: [$requestMessage]") >>
+            worker.postTransferable(
+              asTypedArray[FromClient](FromClient.Start(id, Pickled(asBytes[R](requestMessage))))
+            ))
+            .logErrors(
+              s">>> Error in request with id [$id]. Request: [$requestMessage]"
+            )
+        )(_ =>
+          Logger[F].trace(s">>> Ending request with id [$id]. Request: [$requestMessage]") >>
+            worker.postTransferable(
+              asTypedArray[FromClient](FromClient.End(id))
+            )
+        )
       workerStream <- worker.subscribe
     } yield workerStream
       .map(decodeFromTransferableEither[FromServer])
