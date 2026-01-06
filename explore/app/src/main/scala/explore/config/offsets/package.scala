@@ -7,25 +7,65 @@ import cats.data.NonEmptyList
 import cats.syntax.option.*
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
+import lucuma.schemas.model.TelescopeConfigGenerator
 
-enum GridType(val tag: String, val shortName: String, val init: Option[OffsetGenerator])
-    derives Enumerated:
-  case NoGrid extends GridType("none", "None", none)
+enum TelescopeConfigGeneratorType(
+  val tag:       String,
+  val shortName: String,
+  val init:      Option[TelescopeConfigGenerator]
+) derives Enumerated:
+  case NoOffsets extends TelescopeConfigGeneratorType("none", "No Offsets", none)
+  case Explicit
+      extends TelescopeConfigGeneratorType(
+        "explicit",
+        "Explicit",
+        TelescopeConfigGenerator.Enumerated(NonEmptyList.one(TelescopeConfig.Default)).some
+      )
   case Uniform
-      extends GridType("uniform", "Uniform", OffsetGenerator.Uniform(Offset.Zero, Offset.Zero).some)
+      extends TelescopeConfigGeneratorType(
+        "uniform",
+        "Uniform",
+        TelescopeConfigGenerator
+          .FromOffsetGenerator:
+            OffsetGenerator.Uniform(Offset.Zero, Offset.Zero)
+          .some
+      )
   case Spiral
-      extends GridType("spiral", "Spiral", OffsetGenerator.Spiral(Angle.Angle0, Offset.Zero).some)
+      extends TelescopeConfigGeneratorType(
+        "spiral",
+        "Spiral",
+        TelescopeConfigGenerator
+          .FromOffsetGenerator:
+            OffsetGenerator.Spiral(Angle.Angle0, Offset.Zero)
+          .some
+      )
   case Random
-      extends GridType("random", "Random", OffsetGenerator.Random(Angle.Angle0, Offset.Zero).some)
+      extends TelescopeConfigGeneratorType(
+        "random",
+        "Random",
+        TelescopeConfigGenerator
+          .FromOffsetGenerator:
+            OffsetGenerator.Random(Angle.Angle0, Offset.Zero)
+          .some
+      )
 
-object GridType:
-  def fromOffsetGenerator(og: Option[OffsetGenerator]): GridType =
+object TelescopeConfigGeneratorType:
+  def fromTelescopeConfigGenerator(
+    og: Option[TelescopeConfigGenerator]
+  ): TelescopeConfigGeneratorType =
     og match
-      case None                                => GridType.NoGrid
-      case Some(OffsetGenerator.Uniform(_, _)) => GridType.Uniform
-      case Some(OffsetGenerator.Spiral(_, _))  => GridType.Spiral
-      case Some(OffsetGenerator.Random(_, _))  => GridType.Random
+      case None                                                                              =>
+        TelescopeConfigGeneratorType.NoOffsets
+      case Some(TelescopeConfigGenerator.Enumerated(_))                                      =>
+        TelescopeConfigGeneratorType.Explicit
+      case Some(TelescopeConfigGenerator.FromOffsetGenerator(OffsetGenerator.Uniform(_, _))) =>
+        TelescopeConfigGeneratorType.Uniform
+      case Some(TelescopeConfigGenerator.FromOffsetGenerator(OffsetGenerator.Spiral(_, _)))  =>
+        TelescopeConfigGeneratorType.Spiral
+      case Some(TelescopeConfigGenerator.FromOffsetGenerator(OffsetGenerator.Random(_, _)))  =>
+        TelescopeConfigGeneratorType.Random
 
-  given Display[GridType] = Display.byShortName(_.shortName)
+  given Display[TelescopeConfigGeneratorType] = Display.byShortName(_.shortName)

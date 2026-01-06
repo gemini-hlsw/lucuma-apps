@@ -3,27 +3,24 @@
 
 package explore.config
 
-import cats.Endo
 import cats.syntax.option.*
 import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
-import explore.config.offsets.OffsetGeneratorEditor
 import explore.config.offsets.OffsetGeneratorEditorStyles
 import explore.config.offsets.OffsetInput
+import explore.config.offsets.TelescopeConfigGeneratorEditor
 import explore.model.display.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.geom.OffsetGenerator
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.GmosImagingVariant
-import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -44,17 +41,8 @@ object GmosImagingVariantEditor
       val preImagingView: Option[View[GmosImagingVariant.PreImaging]]   =
         props.variant.zoom(GmosImagingVariant.preImaging).toOptionView
 
-      val offsetGeneratorGetter: Option[TelescopeConfigGenerator] => Option[OffsetGenerator] =
-        _.flatMap(TelescopeConfigGenerator.fromOffsetGenerator.getOption).map(_.offsetGenerator)
-
-      val offsetGeneratorModder
-        : Endo[Option[OffsetGenerator]] => Endo[Option[TelescopeConfigGenerator]] =
-        mod =>
-          tcOpt =>
-            mod(offsetGeneratorGetter(tcOpt)).map(TelescopeConfigGenerator.FromOffsetGenerator(_))
-
       React.Fragment(
-        // TODO Customized version???
+        // TODO Do we need a customized version? Can these be "uncustomized"?
         FormEnumDropdown[GmosImagingVariantType](
           id = "variant-type".refined,
           value = props.variantType,
@@ -74,12 +62,10 @@ object GmosImagingVariantEditor
               clazz = LucumaPrimeStyles.FormField,
               disabled = props.readonly
             ),
-            OffsetGeneratorEditor(
+            TelescopeConfigGeneratorEditor(
               id = "grouped-offsets".refined,
               label = "Offsets",
-              value = grouped
-                .zoom(GmosImagingVariant.Grouped.offsets)
-                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+              value = grouped.zoom(GmosImagingVariant.Grouped.offsets),
               readonly = props.readonly
             ),
             <.hr(OffsetGeneratorEditorStyles.Separator),
@@ -91,23 +77,21 @@ object GmosImagingVariantEditor
               placeholder = "0",
               disabled = props.readonly
             ),
-            OffsetGeneratorEditor(
+            TelescopeConfigGeneratorEditor(
               id = "grouped-sky-offsets".refined,
               label = "Sky Offsets",
               value = grouped
-                .zoom(GmosImagingVariant.Grouped.skyOffsets)
-                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+                .zoom(GmosImagingVariant.Grouped.skyOffsets),
               readonly = props.readonly
             )
           ),
         interleavedView.map[VdomNode]: interleaved =>
           React.Fragment(
-            OffsetGeneratorEditor(
+            TelescopeConfigGeneratorEditor(
               id = "interleaved-offsets".refined,
               label = "Offsets",
               value = interleaved
-                .zoom(GmosImagingVariant.Interleaved.offsets)
-                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+                .zoom(GmosImagingVariant.Interleaved.offsets),
               readonly = props.readonly
             ),
             <.hr(OffsetGeneratorEditorStyles.Separator),
@@ -119,12 +103,11 @@ object GmosImagingVariantEditor
               placeholder = "0",
               disabled = props.readonly
             ),
-            OffsetGeneratorEditor(
+            TelescopeConfigGeneratorEditor(
               id = "interleaved-sky-offsets".refined,
               label = "Sky Offsets",
               value = interleaved
-                .zoom(GmosImagingVariant.Interleaved.skyOffsets)
-                .zoom(offsetGeneratorGetter)(offsetGeneratorModder),
+                .zoom(GmosImagingVariant.Interleaved.skyOffsets),
               readonly = props.readonly
             )
           ),

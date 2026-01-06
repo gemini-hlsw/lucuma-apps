@@ -43,12 +43,20 @@ extension [A, B, C, D](list: List[(A, B, C, D)])
 extension [F[_], A](listView: ViewF[F, List[A]])
   @targetName("ListView_toListOfViews")
   def toListOfViews: List[ViewF[F, A]] =
-    // It's safe to "get" since we are only invoking for existing indices.
-    listView.get.indices.toList.map { i =>
+    listView.get.indices.toList.map: i =>
       val atIndex = index[List[A], Int, A](i)
-      listView
-        .zoom(atIndex.getOption.andThen(_.get))(atIndex.modify)
-    }
+      // It's safe to "get" since we are only invoking for existing indices.
+      listView.zoom(atIndex.getOption.andThen(_.get))(atIndex.modify)
+
+extension [F[_], A](nelView: ViewF[F, NonEmptyList[A]])
+  @targetName("NelView_toNelOfViews")
+  def toNelOfViews: NonEmptyList[ViewF[F, A]] =
+    NonEmptyList // This is safe since we know the list to be non-empty
+      .fromListUnsafe(nelView.get.toList.indices.toList)
+      .map: i =>
+        val atIndex = index[NonEmptyList[A], Int, A](i)
+        // It's safe to "get" since we are only invoking for existing indices.
+        nelView.zoom(atIndex.getOption.andThen(_.get))(atIndex.modify)
 
 extension [F[_], K, V](mapView: ViewF[F, Map[K, V]])
   @targetName("MapView_toListOfViews")
