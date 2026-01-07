@@ -3918,8 +3918,9 @@ span.explore-offsets-count {
   align-items: center;
 }
 
-.offset-toggle-button {
+.offset-toggle-button.pl-form-field {
   height: 22px;
+  margin-left: 2px;
 }
 
 .offset-explicit-unguided {
