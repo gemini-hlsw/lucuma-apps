@@ -104,9 +104,11 @@ object TelescopeConfigGeneratorEditor
                       onChange = b => guiding.set(StepGuideState.fromBoolean(b))
                     ).mini.compact,
                     Button(
-                      icon = Icons.Trash,
+                      icon = Icons.Trash.addClass(
+                        OffsetGeneratorEditorStyles.RemoveOffsetFirstIcon.when_(idx === 0)
+                      ),
                       tooltip = "Remove Offset",
-                      disabled = props.readonly,
+                      disabled = props.readonly || idx === 0,
                       text = true,
                       clazz = LucumaPrimeStyles.FormField,
                       onClick = explicit.mod: offsets =>

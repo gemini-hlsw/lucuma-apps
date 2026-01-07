@@ -6,9 +6,10 @@ package explore.config.offsets
 import lucuma.react.common.Css
 
 object OffsetGeneratorEditorStyles:
-  val OffsetsInput: Css     = Css("offsets-input")
-  val Separator: Css        = Css("offset-generator-separator")
-  val ExplicitRow: Css      = Css("offset-explicit-row")
-  val AddOffset: Css        = Css("offset-add-offset-button")
-  val ToggleButton: Css     = Css("offset-toggle-button")
-  val ExplicitUnguided: Css = Css("offset-explicit-unguided")
+  val OffsetsInput: Css          = Css("offsets-input")
+  val Separator: Css             = Css("offset-generator-separator")
+  val ExplicitRow: Css           = Css("offset-explicit-row")
+  val AddOffset: Css             = Css("offset-add-offset-button")
+  val ToggleButton: Css          = Css("offset-toggle-button")
+  val RemoveOffsetFirstIcon: Css = Css("offset-remove-offset-first-icon")
+  val ExplicitUnguided: Css      = Css("offset-explicit-unguided")
