@@ -14,6 +14,7 @@ import lucuma.react.primereact.InputText
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectButtonOptional
 import lucuma.react.primereact.SplitButton
+import lucuma.react.primereact.ToggleButton
 
 import scalajs.js
 
@@ -76,6 +77,20 @@ extension [A](button: SelectButtonOptional[A])
     button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Huge)
   def massive(using Eq[A]) =
     button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Massive)
+
+extension (button: ToggleButton)
+  def compact     = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Compact)
+  def veryCompact =
+    button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.VeryCompact)
+
+  def mini    = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Mini)
+  def tiny    = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Tiny)
+  def small   = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Small)
+  def medium  = button // medium is the default
+  def large   = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Large)
+  def big     = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Big)
+  def huge    = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Huge)
+  def massive = button.copy(clazz = button.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Massive)
 
 extension (input: InputText)
   def mini    = input.copy(clazz = input.clazz.toOption.orEmpty |+| LucumaPrimeStyles.Mini)
