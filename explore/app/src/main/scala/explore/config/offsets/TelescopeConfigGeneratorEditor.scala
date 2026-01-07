@@ -4,7 +4,7 @@
 package explore.config.offsets
 
 import cats.data.NonEmptyList
-import cats.syntax.eq.*
+import cats.syntax.all.*
 import crystal.react.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.types.string.NonEmptyString
@@ -19,19 +19,22 @@ import lucuma.core.math.*
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.ToggleButton
 import lucuma.refined.*
 import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.sequence.SequenceIcons
+import lucuma.ui.sequence.SequenceStyles
 import lucuma.ui.utils.*
 
 case class TelescopeConfigGeneratorEditor(
-  id:       NonEmptyString,
-  label:    String,
-  value:    View[Option[TelescopeConfigGenerator]],
-  readonly: Boolean
+  id:         NonEmptyString,
+  label:      String,
+  value:      View[Option[TelescopeConfigGenerator]],
+  showCenter: Boolean,
+  readonly:   Boolean
 ) extends ReactFnProps(TelescopeConfigGeneratorEditor)
 
 object TelescopeConfigGeneratorEditor
@@ -68,7 +71,7 @@ object TelescopeConfigGeneratorEditor
           label = props.label,
           value = TelescopeConfigGeneratorType.fromTelescopeConfigGenerator(props.value.get),
           onChange = gt => props.value.set(gt.init),
-          placeholder = "Select grid type"
+          disabled = props.readonly
         ),
         explicitOpt.map { explicit =>
           React.Fragment(
@@ -78,7 +81,7 @@ object TelescopeConfigGeneratorEditor
                 val guiding: View[StepGuideState] = telescopeConfig.zoom(TelescopeConfig.guiding)
                 ReactFragment(
                   <.label(^.htmlFor := s"explicit-offsets-$idx", s"Offset ${idx + 1} (arcsec):"),
-                  <.div(
+                  <.div(OffsetGeneratorEditorStyles.ExplicitRow)(
                     OffsetInput(
                       id = NonEmptyString.unsafeFrom(s"explicit-offsets-$idx"),
                       offset = offset,
@@ -86,34 +89,46 @@ object TelescopeConfigGeneratorEditor
                       inputClass = LucumaPrimeStyles.FormField
                     ),
                     ToggleButton(
-                      onIcon = SequenceIcons.Crosshairs, // TODO
-                      offIcon = SequenceIcons.Crosshairs,
-                      // disabled = props.readonly,
-                      clazz = LucumaPrimeStyles.FormField,
+                      onIcon = SequenceIcons.Crosshairs.addClass(SequenceStyles.StepGuided),
+                      offIcon = SequenceIcons.Crosshairs.addClass(
+                        OffsetGeneratorEditorStyles.ExplicitUnguided
+                      ),
+                      onLabel = "",
+                      offLabel = "",
+                      tooltip = "Toggle Guiding",
+                      disabled = props.readonly,
+                      text = true,
+                      clazz = LucumaPrimeStyles.FormField |+| PrimeStyles.ButtonIconOnly |+|
+                        OffsetGeneratorEditorStyles.ToggleButton,
                       checked = guiding.get === StepGuideState.Enabled,
                       onChange = b => guiding.set(StepGuideState.fromBoolean(b))
-                    ), // .tiny.compact
+                    ).mini.compact,
                     Button(
                       icon = Icons.Trash,
+                      tooltip = "Remove Offset",
                       disabled = props.readonly,
+                      text = true,
                       clazz = LucumaPrimeStyles.FormField,
                       onClick = explicit.mod: offsets =>
                         NonEmptyList
                           .fromList:
                             offsets.take(idx) ++ offsets.toList.drop(idx + 1)
                           .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
-                    ).tiny.compact
+                    ).mini.compact
                   )
                 )
               .toList
               .toVdomArray,
             Button(
-              icon = Icons.New,
+              icon = Icons.ThinPlus,
+              severity = Button.Severity.Success,
               disabled = props.readonly,
-              clazz = LucumaPrimeStyles.FormField,
+              tooltip = "Add Offset",
+              text = true,
+              clazz = LucumaPrimeStyles.FormField |+| OffsetGeneratorEditorStyles.AddOffset,
               onClick = explicit.mod: offsets =>
                 offsets.append(TelescopeConfig.Default)
-            ).tiny.compact
+            ).mini.compact
           )
         },
         randomOpt.map { random =>
@@ -123,15 +138,20 @@ object TelescopeConfigGeneratorEditor
               label = "Size (arcsec):",
               value = random.zoom(OffsetGenerator.Random.size),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              disabled = props.readonly,
               placeholder = "0.0"
             ),
-            <.label(^.htmlFor := "random-size", "Center (arcsec):"),
-            OffsetInput(
-              id = "random-center".refined,
-              offset = random.zoom(OffsetGenerator.Random.center),
-              readonly = props.readonly,
-              inputClass = LucumaPrimeStyles.FormField
-            )
+            if props.showCenter then
+              ReactFragment(
+                <.label(^.htmlFor := "random-size", "Center (arcsec):"),
+                OffsetInput(
+                  id = "random-center".refined,
+                  offset = random.zoom(OffsetGenerator.Random.center),
+                  readonly = props.readonly,
+                  inputClass = LucumaPrimeStyles.FormField
+                )
+              )
+            else EmptyVdom
           )
         },
         spiralOpt.map { spiral =>
@@ -141,15 +161,20 @@ object TelescopeConfigGeneratorEditor
               label = "Size (arcsec):",
               value = spiral.zoom(OffsetGenerator.Spiral.size),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              disabled = props.readonly,
               placeholder = "0.0"
             ),
-            <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
-            OffsetInput(
-              id = "spiral-center".refined,
-              offset = spiral.zoom(OffsetGenerator.Spiral.center),
-              readonly = props.readonly,
-              inputClass = LucumaPrimeStyles.FormField
-            )
+            if props.showCenter then
+              ReactFragment(
+                <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
+                OffsetInput(
+                  id = "spiral-center".refined,
+                  offset = spiral.zoom(OffsetGenerator.Spiral.center),
+                  readonly = props.readonly,
+                  inputClass = LucumaPrimeStyles.FormField
+                )
+              )
+            else EmptyVdom
           )
         },
         uniformOpt.map { uniform =>

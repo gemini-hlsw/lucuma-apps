@@ -3904,10 +3904,29 @@ span.explore-offsets-count {
 .offsets-input {
   width: 100%;
   display: flex;
+  align-items: baseline;
   gap: 0.5em;
 }
 
 .offset-generator-separator {
   grid-column: span 2;
   width: 100%;
+}
+
+.offset-explicit-row {
+  display: flex;
+  align-items: center;
+}
+
+.offset-toggle-button {
+  height: 22px;
+}
+
+.offset-explicit-unguided {
+  opacity: 0.2;
+}
+
+.offset-add-offset-button.pl-form-field.p-button {
+  justify-self: end;
+  padding-right: 2px;
 }

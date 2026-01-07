@@ -66,6 +66,7 @@ object GmosImagingVariantEditor
               id = "grouped-offsets".refined,
               label = "Offsets",
               value = grouped.zoom(GmosImagingVariant.Grouped.offsets),
+              showCenter = false,
               readonly = props.readonly
             ),
             <.hr(OffsetGeneratorEditorStyles.Separator),
@@ -80,8 +81,8 @@ object GmosImagingVariantEditor
             TelescopeConfigGeneratorEditor(
               id = "grouped-sky-offsets".refined,
               label = "Sky Offsets",
-              value = grouped
-                .zoom(GmosImagingVariant.Grouped.skyOffsets),
+              value = grouped.zoom(GmosImagingVariant.Grouped.skyOffsets),
+              showCenter = true,
               readonly = props.readonly
             )
           ),
@@ -90,8 +91,8 @@ object GmosImagingVariantEditor
             TelescopeConfigGeneratorEditor(
               id = "interleaved-offsets".refined,
               label = "Offsets",
-              value = interleaved
-                .zoom(GmosImagingVariant.Interleaved.offsets),
+              value = interleaved.zoom(GmosImagingVariant.Interleaved.offsets),
+              showCenter = false,
               readonly = props.readonly
             ),
             <.hr(OffsetGeneratorEditorStyles.Separator),
@@ -106,8 +107,8 @@ object GmosImagingVariantEditor
             TelescopeConfigGeneratorEditor(
               id = "interleaved-sky-offsets".refined,
               label = "Sky Offsets",
-              value = interleaved
-                .zoom(GmosImagingVariant.Interleaved.skyOffsets),
+              value = interleaved.zoom(GmosImagingVariant.Interleaved.skyOffsets),
+              showCenter = true,
               readonly = props.readonly
             )
           ),
