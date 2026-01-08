@@ -79,7 +79,7 @@ object TelescopeConfigGeneratorEditor
               .map: (telescopeConfig, idx) =>
                 val offset: View[Offset]          = telescopeConfig.zoom(TelescopeConfig.offset)
                 val guiding: View[StepGuideState] = telescopeConfig.zoom(TelescopeConfig.guiding)
-                ReactFragment(
+                React.Fragment.withKey(s"explicit-offsets-row-$idx")(
                   <.label(^.htmlFor := s"explicit-offsets-$idx", s"Offset ${idx + 1} (arcsec):"),
                   <.div(OffsetGeneratorEditorStyles.ExplicitRow)(
                     OffsetInput(
