@@ -410,7 +410,6 @@ object ObservingMode:
 
     def revertCustomizations: GmosNorthImaging =
       this.copy(
-        variant = this.variant,
         filters = this.initialFilters,
         explicitBin = None,
         explicitAmpReadMode = None,
@@ -480,7 +479,6 @@ object ObservingMode:
 
     def revertCustomizations: GmosSouthImaging =
       this.copy(
-        variant = this.variant,
         filters = this.initialFilters,
         explicitBin = None,
         explicitAmpReadMode = None,
