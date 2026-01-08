@@ -37,15 +37,13 @@ enum GmosImagingVariant(val variantType: GmosImagingVariantType) derives Eq:
         newVariantType match
           case GmosImagingVariantType.Grouped     => this
           case GmosImagingVariantType.Interleaved => Interleaved(offsets, skyCount, skyOffsets)
-          case GmosImagingVariantType.PreImaging  =>
-            PreImaging(Offset.Zero, Offset.Zero, Offset.Zero, Offset.Zero)
+          case GmosImagingVariantType.PreImaging  => PreImaging.Default
       case Interleaved(offsets, skyCount, skyOffsets)     =>
         newVariantType match
           case GmosImagingVariantType.Grouped     =>
             Grouped(WavelengthOrder.Increasing, offsets, skyCount, skyOffsets)
           case GmosImagingVariantType.Interleaved => this
-          case GmosImagingVariantType.PreImaging  =>
-            PreImaging(Offset.Zero, Offset.Zero, Offset.Zero, Offset.Zero)
+          case GmosImagingVariantType.PreImaging  => PreImaging.Default
       case PreImaging(offset1, offset2, offset3, offset4) =>
         newVariantType match
           case GmosImagingVariantType.Grouped     =>
@@ -77,6 +75,14 @@ object GmosImagingVariant:
       Focus[Interleaved](_.skyOffsets)
 
   object PreImaging:
+    val Default: PreImaging =
+      PreImaging(
+        Offset.signedDecimalArcseconds.reverseGet(0, 0),
+        Offset.signedDecimalArcseconds.reverseGet(-4, -6),
+        Offset.signedDecimalArcseconds.reverseGet(4, -6),
+        Offset.signedDecimalArcseconds.reverseGet(8, 0)
+      )
+
     val offset1: Lens[PreImaging, Offset] = Focus[PreImaging](_.offset1)
     val offset2: Lens[PreImaging, Offset] = Focus[PreImaging](_.offset2)
     val offset3: Lens[PreImaging, Offset] = Focus[PreImaging](_.offset3)
