@@ -13,11 +13,9 @@ import japgolly.scalajs.react.callback.Callback
 import org.scalajs.dom
 import org.scalajs.dom.Request
 
-import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration.*
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
 
@@ -78,13 +76,14 @@ object ExplorePWA {
   }
 
   // Check every 10 min maybe too often but we are doing lots of development
-  val updateInteval = FiniteDuration(10, TimeUnit.MINUTES)
+  val updateInteval             = 10.minutes
+  val ServiceWorkerInstalledKey = "explore-sw-installed"
 
   def scheduleUpdateCheck(u: String, r: ServiceWorkerRegistration): IO[Unit] =
     Stream
       .awakeEvery[IO](updateInteval)
       .evalTap { _ =>
-        IO.println("Check for new explore version") >>
+        IO.println("[PWA] Check for new explore version") >>
           pingSW(u).ifM(IO(r.update()), IO.unit)
       }
       .compile
@@ -105,16 +104,25 @@ object ExplorePWA {
     lazy val updateSW: js.Function1[js.UndefOr[Boolean], js.Promise[Unit]] =
       registerSW(
         RegisterSWOptions(
-          onNeedRefresh =
-            // If a new version is detected, clear enum metadata cache and ask the user
-            Callback.log("New version available, clear the cache and ask the user to update") *>
-              Callback {
-                dom.window.caches.map(_.delete("enum-metadata"))
-              } *>
-              // Delay a bit to let the front setup the listener
-              requestUserConfirmation(bc),
-          onOfflineReady = Callback.log(s"Offline ready"),
-          onRegisterError = (x: js.Any) => Callback.log(s"Error on service worker registration", x),
+          onNeedRefresh = {
+            // Use localStorage to track if SW was ever installed
+            val hasKey = dom.window.localStorage.getItem(ServiceWorkerInstalledKey) != null
+
+            // check controller to further check if SW was installed
+            val sw               = dom.window.navigator.serviceWorker
+            val hasController    = !js.isUndefined(sw) && sw.controller != null
+            val alreadyInstalled = hasKey || hasController
+
+            if (alreadyInstalled)
+              Callback.log("[PWA] New version available") *>
+                Callback(dom.window.caches.map(_.delete("enum-metadata"))) *>
+                requestUserConfirmation(bc)
+            else
+              Callback.log("[PWA] First install, skipping update notification")
+          },
+          onOfflineReady = Callback.log(s"[PWA] Offline ready"),
+          onRegisterError =
+            (x: js.Any) => Callback.log(s"[PWA] Error on service worker registration", x),
           onRegisteredSW = (u: String, r: ServiceWorkerRegistration) =>
             import scala.concurrent.ExecutionContext.Implicits.global
             // https://vite-plugin-pwa.netlify.app/guide/periodic-sw-updates.html
@@ -122,23 +130,26 @@ object ExplorePWA {
               !(!(r.installing && !js.isUndefined(org.scalajs.dom.window.navigator)) ||
                 (dom.window.navigator.hasOwnProperty("connection") && dom.window.navigator.onLine))
             (IO.println(
-              s"Service worker registered, check for updates every $updateInteval, offline: $isOffline"
+              s"[PWA] Service worker registered, check for updates every $updateInteval, offline: $isOffline"
             ) *>
               // initial check
               pingSW(u)
-                .ifM(IO.sleep(Duration(2, TimeUnit.SECONDS)) >> IO(r.update()), IO.unit)
+                .ifM(IO.sleep(2.seconds) >> IO(r.update()), IO.unit)
                 .voidError *>
+              // Add a flag to localstore to remember SW was installed
+              IO(dom.window.localStorage.setItem(ServiceWorkerInstalledKey, "true")) *>
               scheduleUpdateCheck(u, r)).runAsyncAndForget
         )
       )
 
     bc.messages
-      .evalTap { me =>
+      .evalTap: me =>
         me.data.event match
-          case ExploreEvent.PWAReloadId      => IO.fromPromise(IO(updateSW(true))) // .void
-          case ExploreEvent.ExploreUIReadyId => IO.fromPromise(IO(updateSW(())))   // .void
+          case ExploreEvent.PWAReloadId      =>
+            IO.println("[PWA] Upgrading...") *>
+              IO.fromPromise(IO(updateSW(true)))
+          case ExploreEvent.ExploreUIReadyId => IO.fromPromise(IO(updateSW(())))
           case _                             => IO.unit
-      }
       .compile
       .drain
   }
