@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site, TimeSpan, DateInterval from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {
@@ -454,6 +454,11 @@ type WfsConfigState {
     saving: Boolean!
 }
 
+input DateIntervalInput {
+    start: Date!
+    end: Date!
+}
+
 type Query {
     telescopeState: TelescopeState!
     guideState: GuideConfigurationState!
@@ -539,7 +544,7 @@ type Mutation {
     acNdFilter(ndFilter: AcNdFilter!): OperationOutcome!
     acFilter(filter: AcFilter!): OperationOutcome!
     acWindowSize(size: AcWindowInput!): OperationOutcome!
-    refreshEphemerisFiles(dateInterval: DateInterval!): OperationOutcome!
+    refreshEphemerisFiles(dateInterval: DateIntervalInput!): OperationOutcome!
 }
 
 type Subscription {
