@@ -224,7 +224,7 @@ object ConfigurationTile:
       pacAndMode.zoom(PosAngleConstraintAndObsMode.observingMode)
     val posAngle: UndoSetter[PosAngleConstraint] =
       pacAndMode.zoom(PosAngleConstraintAndObsMode.posAngleConstraint)
-    val obsIsReadonly                            =
+    val obsIsReadonly: Boolean                   =
       readonly || (obsIdSetEditInfo.hasExecuted && !isStaffOrAdmin) || obsIdSetEditInfo.hasCompleted
 
   private object Body:
@@ -547,10 +547,11 @@ object ConfigurationTile:
             showClear = true,
             onChange = (om: Option[ObservingModeSummary]) =>
               om.fold(revertConfig)(m =>
-                updateConfiguration(props.obsId,
-                                    props.pacAndMode,
-                                    m.toInput,
-                                    m.obsModeType.defaultPosAngleOptions
+                updateConfiguration(
+                  props.obsId,
+                  props.pacAndMode,
+                  m.toInput,
+                  m.obsModeType.defaultPosAngleOptions
                 ).switching(isChanging.async).runAsync
               ),
             options = props.observingModeGroups.values.toList.sorted

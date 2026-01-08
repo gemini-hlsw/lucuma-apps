@@ -142,8 +142,6 @@ object GmosImagingConfigPanel {
         { case (r, g) => s"${r.longName}, ${g.longName} Gain" }
       )
 
-    // private val OffsetRadius = 30.arcseconds
-
     val component =
       ScalaFnComponent[Props]: props =>
         for {
@@ -151,11 +149,6 @@ object GmosImagingConfigPanel {
           editState           <- useStateView(ConfigEditState.View)
           unModdedFiltersView <- useStateView(List.empty[ImagingFilter])
           offsetDialogOpen    <- useStateView(OffsetDialogOpen(false))
-          // localOffsets        <- useStateView {
-          //                          import ctx.given
-          //                          offsets(props.observingMode).get
-          //                        }
-          // _                   <- useEffectWithDeps(offsetLens.get(props.observingMode.get))(localOffsets.set)
           _                   <-
             useEffectWithDeps(filtersLens.get(props.observingMode.get).toList)(
               unModdedFiltersView.set
@@ -206,7 +199,7 @@ object GmosImagingConfigPanel {
           React.Fragment(
             <.div(ExploreStyles.GmosImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
-                GmosImagingVariantEditor(variantView, disableSimpleEdit)
+                GmosImagingVariantEditor(variantView, props.readonly)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableEnumSelectOptional(
