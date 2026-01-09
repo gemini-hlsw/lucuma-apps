@@ -494,6 +494,7 @@ object ExploreStyles:
   val VignettedGS                  = Css("guide-star-vignetted")
   val GuideStarCandidateTargetBase = Css("guide-star-candidate-target-base")
   val GuideStarCandidateVisible    = Css("guide-star-candidate-target-visible")
+  val GuideStarUnconstrained       = Css("guide-star-unconstrained")
   val PMCorrectionLine             = Css("proper-motion-line")
   val PMGSCorrectionLine           = Css("proper-motion-line-gs")
   val BlindOffsetTarget            = Css("blind-offset-target")

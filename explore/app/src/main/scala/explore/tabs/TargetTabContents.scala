@@ -70,7 +70,8 @@ case class TargetTabContents(
   searching:        View[Set[Target.Id]],
   expandedIds:      View[SortedSet[ObsIdSet]],
   authToken:        Option[NonEmptyString],
-  readonly:         Boolean
+  readonly:         Boolean,
+  isStaffOrAdmin:   Boolean
 ) extends ReactFnProps(TargetTabContents.component):
   private val programType: Option[ProgramType] = programSummaries.get.programType
 
@@ -551,6 +552,7 @@ object TargetTabContents extends TwoPanels:
                   props.readonly,
                   allowEditingOngoing =
                     false, // only allow editing of ongoing observations from the obs tab
+                  isStaffOrAdmin = props.isStaffOrAdmin,
                   backButton = backButton.some
                 )
 
@@ -604,6 +606,7 @@ object TargetTabContents extends TwoPanels:
                   props.attachments,
                   props.authToken,
                   props.readonly,
+                  props.isStaffOrAdmin,
                   getObsInfo(none)(targetId),
                   onCloneTarget4Target
                 )

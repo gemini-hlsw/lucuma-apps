@@ -13,7 +13,7 @@ import 'primeicons/primeicons.css';
 import '/common/css/react-resizable.css';
 import '/common/css/react-grid-layout.css';
 import '/common/sass/explore-grid.scss';
-import '/common/sass/visualization.scss';
+import '/common/sass/explore-visualization.scss';
 import '/common/sass/tooltips.scss';
 import '/common/sass/aladin.scss';
 import '/common/sass/charts.scss';

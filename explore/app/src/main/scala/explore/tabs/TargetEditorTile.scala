@@ -43,6 +43,7 @@ object TargetEditorTile:
     attachments:        View[AttachmentList],
     authToken:          Option[NonEmptyString],
     readonly:           Boolean,
+    isStaffOrAdmin:     Boolean,
     obsInfo:            TargetEditObsInfo,
     onClone:            OnCloneParameters => Callback,
     backButton:         Option[VdomNode] = none
@@ -77,7 +78,8 @@ object TargetEditorTile:
               authToken = authToken,
               readonly = readonly,
               allowEditingOngoing =
-                false // don't allow this when editing non-specifically for an observation
+                false, // don't allow this when editing non-specifically for an observation
+              isStaffOrAdmin = isStaffOrAdmin
             )
           )
         )

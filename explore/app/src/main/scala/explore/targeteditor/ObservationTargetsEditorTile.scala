@@ -82,6 +82,7 @@ object ObservationTargetsEditorTile:
     authToken:           Option[NonEmptyString],
     readonly:            Boolean,
     allowEditingOngoing: Boolean,
+    isStaffOrAdmin:      Boolean,
     sequenceChanged:     Callback = Callback.empty,
     blindOffset:         Option[View[BlindOffset]] = None,
     backButton:          Option[VdomNode] = None
@@ -148,6 +149,7 @@ object ObservationTargetsEditorTile:
             authToken,
             readonly,
             allowEditingOngoing,
+            isStaffOrAdmin,
             sequenceChanged,
             blindOffset,
             tileState.zoom(TileState.columnVisibility),
@@ -205,6 +207,7 @@ object ObservationTargetsEditorTile:
     authToken:           Option[NonEmptyString],
     readonly:            Boolean,
     allowEditingOngoing: Boolean,
+    isStaffOrAdmin:      Boolean,
     sequenceChanged:     Callback,
     blindOffset:         Option[View[BlindOffset]], // only pass for a single observation
     columnVisibility:    View[ColumnVisibility],
@@ -316,6 +319,7 @@ object ObservationTargetsEditorTile:
                       authToken = props.authToken,
                       readonly = props.readonly,
                       allowEditingOngoing = props.allowEditingOngoing,
+                      isStaffOrAdmin = props.isStaffOrAdmin,
                       invalidateSequence = props.sequenceChanged
                     )
                 ).some

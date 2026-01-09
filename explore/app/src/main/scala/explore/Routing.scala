@@ -13,6 +13,7 @@ import explore.model.*
 import explore.model.Page.*
 import explore.modes.ScienceModes
 import explore.proposal.ProposalTabContents
+import explore.syntax.ui.*
 import explore.tabs.*
 import explore.undo.UndoContext
 import explore.undo.Undoer
@@ -99,7 +100,8 @@ object Routing:
                 model.rootModel.zoom(RootModel.searchingTarget),
                 model.rootModel.zoom(RootModel.expandedIds.andThen(ExpandedIds.asterismObsIds)),
                 model.rootModel.get.vault.map(_.token),
-                programSummaries.get.programIsReadonly || model.userIsReadonlyCoi
+                programSummaries.get.programIsReadonly || model.userIsReadonlyCoi,
+                model.rootModel.get.vault.isStaffOrAdmin
               )
             .toOption
       .orEmpty

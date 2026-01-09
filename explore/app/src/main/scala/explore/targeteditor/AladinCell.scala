@@ -34,11 +34,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.*
 import lucuma.ags.syntax.*
-import lucuma.core.enums.Flamingos2LyotWheel
-import lucuma.core.enums.GmosNorthFpu
-import lucuma.core.enums.GmosSouthFpu
-import lucuma.core.enums.ObservingModeType
-import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -46,12 +41,10 @@ import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.User
-import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
 import lucuma.ui.aladin.AladinFullScreenControl
 import lucuma.ui.aladin.Fov
@@ -62,6 +55,7 @@ import monocle.Iso
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 import queries.schemas.UserPreferencesDB
+import explore.targeteditor.UseAgsCalculation.*
 
 import java.time.Instant
 import scala.concurrent.duration.*
@@ -74,7 +68,8 @@ case class AladinCell(
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
-  guideStarSelection: View[GuideStarSelection]
+  guideStarSelection: View[GuideStarSelection],
+  isStaffOrAdmin:     Boolean
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
     obsConf.exists(_.needGuideStar)
@@ -270,8 +265,40 @@ object AladinCell extends ModelOptics with AladinCommon:
                       .foldMap(_.async.set(AgsState.Idle))
               else none.pure
             .getOrElse(List.empty.some.pure[IO])
-      // Analysis results
-      agsResults          <- useSerialState(Pot.pending[List[AgsAnalysis.Usable]])
+      agsCalcProps        <- useMemo(
+                               (props.obsTargets.focus.id,
+                                props.obsTime,
+                                props.obsConf.flatMap(_.constraints),
+                                props.obsConf.flatMap(_.centralWavelength),
+                                props.obsConf.flatMap(_.configuration),
+                                props.obsConf.flatMap(_.obsModeType),
+                                props.obsConf.flatMap(_.guidedAcqOffsets),
+                                props.obsConf.flatMap(_.guidedSciOffsets),
+                                candidates.value.toOption.flatten
+                               )
+                             ):
+                               case (focusedId,
+                                     obsTime,
+                                     Some(constraints),
+                                     Some(centralWavelength),
+                                     observingMode,
+                                     Some(obsModeType),
+                                     acqOffsets,
+                                     sciOffsets,
+                                     Some(cands)
+                                   ) =>
+                                 AgsCalcProps(
+                                   focusedId,
+                                   obsTime,
+                                   constraints,
+                                   centralWavelength,
+                                   observingMode,
+                                   obsModeType,
+                                   acqOffsets,
+                                   sciOffsets,
+                                   cands
+                                 ).some
+                               case _ => none
       // Reference to root
       root                <- useMemo(())(_ => domRoot)
       // target options, will be read from the user preferences
@@ -286,14 +313,6 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    (options.set(tp.ready) *>
                                      setVariable(root, "saturation", tp.saturation) *>
                                      setVariable(root, "brightness", tp.brightness)).toAsync
-      // In case the selected name changes remotely
-      _                   <- useEffectWithDeps((props.selectedGSName, agsResults)): (n, resultsPot) =>
-                               // Go to the first analysis if present or pick the name from the selection
-                               resultsPot.value.value.toOption.foldMap: results =>
-                                 val newGss =
-                                   n.fold(AgsSelection(results.headOption.tupleLeft(0))):
-                                     results.pick
-                                 props.guideStarSelection.set(newGss)
       mouseCoords         <- useState[Option[Coordinates]](none)
       _                   <- useEffectWithDeps(
                                obsTargetsCoordsPot.value.toOption.flatMap(_.toOption).flatMap(_.baseOrBlindCoords)
@@ -302,11 +321,9 @@ object AladinCell extends ModelOptics with AladinCommon:
       // Reset offset and gs if asterism change
       _                   <- useEffectWithDeps(props.obsTargets): targets =>
                                val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
-
-                               // if the coordinates change, reset ags & offset
+                               // if the coordinates change, reset ags && offset
                                for
                                  _ <- props.guideStarSelection.set(GuideStarSelection.Default)
-                                 _ <- agsResults.setState(Pot.pending)
                                  _ <- offsetOnCenter.set(Offset.Zero)
                                yield ()
       // Reset selection if pos angle changes except for manual selection changes
@@ -318,126 +335,23 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  ) *> props.guideStarSelection
                                  .set(GuideStarSelection.Default))
                                  .whenA(props.needsAGS && candidates.value.toOption.flatten.nonEmpty)
-      // Request ags calculation
-      _                   <- useEffectWithDeps(
-                               (obsTargetsCoordsPot.toOption.flatMap(_.toOption),
-                                props.obsTargets.focus.id,
-                                props.obsConf.flatMap(_.posAngleConstraint),
-                                props.obsConf.flatMap(_.constraints),
-                                props.obsConf.flatMap(_.centralWavelength),
-                                props.obsConf.flatMap(_.configuration),
-                                props.obsConf.flatMap(_.obsModeType),
-                                props.obsConf.flatMap(_.guidedAcqOffsets),
-                                props.obsConf.flatMap(_.guidedSciOffsets),
-                                props.obsTime,
-                                candidates.value.toOption.flatten
-                               )
-                             ):
-                               case (oObsCoords,
-                                     focusedId,
-                                     _,
-                                     Some(constraints),
-                                     Some(centralWavelength),
-                                     observingMode,
-                                     oObsModeType,
-                                     acqOffsets,
-                                     sciOffsets,
-                                     vizTime,
-                                     candidates
-                                   ) if props.needsAGS && candidates.nonEmpty =>
-                                 import ctx.given
-
-                                 val runAgs: IO[Unit] =
-                                   (oObsCoords,
-                                    oObsCoords.flatMap(_.baseCoords),
-                                    oObsModeType,
-                                    props.obsConf.flatMap(_.agsState),
-                                    candidates
-                                   ).mapN { (obsCoords, baseCoords, obsModeType, agsState, candidates) =>
-
-                                     val params = obsModeType match {
-                                       case ObservingModeType.Flamingos2LongSlit                                    =>
-                                         val fpu = observingMode.collect {
-                                           case m: BasicConfiguration.Flamingos2LongSlit =>
-                                             m.fpu
-                                         }
-                                         fpu.map(f =>
-                                           AgsParams.Flamingos2AgsParams(Flamingos2LyotWheel.F16,
-                                                                         Flamingos2FpuMask.Builtin(f),
-                                                                         PortDisposition.Side
-                                           )
-                                         )
-                                       case ObservingModeType.GmosNorthLongSlit |
-                                           ObservingModeType.GmosSouthLongSlit =>
-                                         val fpu: Option[Either[GmosNorthFpu, GmosSouthFpu]] =
-                                           observingMode.flatMap(_.gmosFpuAlternative)
-                                         AgsParams.GmosAgsParams(fpu, PortDisposition.Side).some
-                                       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-                                         throw new NotImplementedError("Gmos Imaging not implemented")
-                                     }
-
-                                     val request: Option[AgsMessage.AgsRequest] =
-                                       (params, props.anglesToTest).mapN((params, angles) =>
-                                         AgsMessage.AgsRequest(
-                                           focusedId,
-                                           props.obsTime,
-                                           constraints,
-                                           centralWavelength.value,
-                                           baseCoords,
-                                           obsCoords.scienceCoords,
-                                           oObsCoords.flatMap(_.blindOffsetCoords),
-                                           angles,
-                                           acqOffsets,
-                                           sciOffsets,
-                                           params,
-                                           candidates
-                                         )
-                                       )
-
-                                     def processResults(r: Option[List[AgsAnalysis.Usable]]): IO[Unit] =
-                                       (for
-                                         // Store the analysis
-                                         _ <- r.map(l => agsResults.setState(Pot.Ready(l))).getOrEmpty
-                                         // set the selected index to the first entry
-                                         _ <-
-                                           val index      = 0.some.filter(_ => r.exists(_.nonEmpty))
-                                           val selectedGS = index.flatMap(i => r.flatMap(_.lift(i)))
-                                           props.guideStarSelection
-                                             .mod:
-                                               case AgsSelection(_)               =>
-                                                 AgsSelection(selectedGS.tupleLeft(0)) // replace automatic selection
-                                               case rem @ RemoteGSSelection(name) =>
-                                                 // Recover the analysis for the remotely selected star
-                                                 // It is hydrating the name with the selection results
-                                                 r.map(_.pick(name)).getOrElse(rem)
-                                               case a: AgsOverride                =>
-                                                 // If overriden ignore
-                                                 a
-                                       yield ()).toAsync
-
-                                     val process: IO[Unit] =
-                                       for
-                                         _ <- agsState.set(AgsState.Calculating).toAsync
-                                         _ <-
-                                           request
-                                             .map(request =>
-                                               AgsClient[IO]
-                                                 .requestSingle(request)
-                                                 .flatMap(processResults(_))
-                                                 .unlessA(candidates.isEmpty)
-                                                 .handleErrorWith(t => Logger[IO].error(t)("ERROR IN AGS REQUEST"))
-                                             )
-                                             .getOrElse(IO.unit)
-                                       yield ()
-
-                                     process.guarantee(agsState.async.set(AgsState.Idle))
-                                   }.orEmpty
-
-                                 props.guideStarSelection
-                                   .set(AgsSelection(none))
-                                   .toAsync *>
-                                   runAgs.unlessA(props.guideStarSelection.get.isOverride)
-                               case _ => IO.unit
+      // request AGS calculation
+      agsResults          <- useAgsCalculation(
+                               obsTargetsCoordsPot.toOption.flatMap(_.toOption),
+                               agsCalcProps.value,
+                               props.anglesToTest,
+                               props.obsConf.flatMap(_.posAngleConstraint).isDefined,
+                               props.obsConf.flatMap(_.agsState),
+                               props.guideStarSelection,
+                               props.needsAGS
+                             )(ctx)
+      // In case the selected name changes remotely
+      _                   <- useEffectWithDeps((props.selectedGSName, agsResults.constrained)): (n, resultsPot) =>
+                               resultsPot.toOption.foldMap: results =>
+                                 val newGss =
+                                   n.fold(AgsSelection(results.headOption.tupleLeft(0))):
+                                     results.pick
+                                 props.guideStarSelection.set(newGss)
       menuRef             <- usePopupMenuRef
     } yield
       import ctx.given
@@ -487,7 +401,7 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val guideStar = props.guideStarSelection.get.analysis
 
-      val agsResultsList = agsResults.value.toOption.getOrElse(List.empty)
+      val agsResultsList = agsResults.constrained.toOption.getOrElse(List.empty)
 
       def renderAladin(
         opts:        AsterismVisualOptions,
@@ -506,7 +420,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           fovSetter,
           offsetChangeInAladin.reuseAlways,
           guideStar,
-          agsResultsList,
+          agsResults,
           props.anglesToTest
         )
 
@@ -545,38 +459,37 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       <.div(ExploreStyles.TargetAladinCell)(
-        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot(
-          (etr, eco) =>
-            (etr, eco).tupled.fold(
-              err => Message(severity = Message.Severity.Error, text = err),
-              (tr, co) =>
+        (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
+          (etr, eco).tupled.fold(
+            err => Message(severity = Message.Severity.Error, text = err),
+            (tr, co) =>
+              <.div(
+                ExploreStyles.AladinContainerColumn,
+                AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
                 <.div(
-                  ExploreStyles.AladinContainerColumn,
-                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
-                  <.div(
-                    ExploreStyles.AladinToolbox,
-                    Button(onClickE = menuRef.toggle).withMods(
-                      ExploreStyles.ButtonOnAladin,
-                      Icons.ThinSliders
-                    )
-                  ),
-                  options.get.renderPot(opt =>
-                    React.Fragment(renderAladin(opt, tr, co),
-                                   renderToolbar(opt),
-                                   renderAgsOverlay(opt)
-                    )
+                  ExploreStyles.AladinToolbox,
+                  Button(onClickE = menuRef.toggle).withMods(
+                    ExploreStyles.ButtonOnAladin,
+                    Icons.ThinSliders
                   )
-                )
-            ),
-          options
-            .zoom(Pot.readyPrism[AsterismVisualOptions])
-            .mapValue: options =>
-              AladinPreferencesMenu(
-                props.uid,
-                props.obsTargets.ids,
-                globalPreferences,
-                options,
-                menuRef
+                ),
+                options.get.renderPot(opt =>
+                  React.Fragment(renderAladin(opt, tr, co),
+                                 renderToolbar(opt),
+                                 renderAgsOverlay(opt)
+                  )
+                ),
+                options
+                  .zoom(Pot.readyPrism[AsterismVisualOptions])
+                  .mapValue: opts =>
+                    AladinPreferencesMenu(
+                      props.uid,
+                      props.obsTargets.ids,
+                      globalPreferences,
+                      opts,
+                      menuRef,
+                      props.isStaffOrAdmin
+                    )
               )
-        )
+          )
       )

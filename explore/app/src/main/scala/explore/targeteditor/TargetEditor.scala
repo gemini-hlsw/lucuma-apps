@@ -86,6 +86,7 @@ case class TargetEditor(
   authToken:           Option[NonEmptyString],
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
+  isStaffOrAdmin:      Boolean,
   invalidateSequence:  Callback = Callback.empty
 ) extends ReactFnProps(TargetEditor.component)
 
@@ -458,7 +459,8 @@ object TargetEditor:
                 props.obsConf,
                 props.fullScreen,
                 props.userPreferences,
-                props.guideStarSelection
+                props.guideStarSelection,
+                props.isStaffOrAdmin
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(

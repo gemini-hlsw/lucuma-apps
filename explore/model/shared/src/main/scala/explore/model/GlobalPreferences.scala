@@ -44,7 +44,7 @@ case class GlobalPreferences(
   wavelengthUnits:                      WavelengthUnits,
   logLevel:                             LogLevel,
   lastOpenPrograms:                     List[Program.Id] = List.empty,
-  patrolFieldVisibility:                Option[PFVisibility] = None
+  agsVisibility:                        Option[AGSVisibility] = None
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -76,8 +76,8 @@ object GlobalPreferences:
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
   val logLevel                             = Focus[GlobalPreferences](_.logLevel)
   val lastOpenPrograms                     = Focus[GlobalPreferences](_.lastOpenPrograms)
-  val pfVisibility                         =
-    Focus[GlobalPreferences](_.patrolFieldVisibility).withDefault(PFVisibility.Default)
+  val agsVisibility                        =
+    Focus[GlobalPreferences](_.agsVisibility).withDefault(AGSVisibility.Default)
 
   private val MaxLastOpenPrograms = 6
 

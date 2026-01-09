@@ -570,6 +570,7 @@ object ObsTabTiles:
               props.vault.map(_.token),
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdmin,
+              isStaffOrAdmin = props.isStaffOrAdmin,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffset = blindOffsetView.some
