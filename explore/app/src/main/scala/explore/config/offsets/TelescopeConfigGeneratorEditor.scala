@@ -11,7 +11,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.StepGuideState
 import lucuma.core.geom.OffsetGenerator
@@ -28,13 +27,15 @@ import lucuma.ui.primereact.given
 import lucuma.ui.sequence.SequenceIcons
 import lucuma.ui.sequence.SequenceStyles
 import lucuma.ui.utils.*
+import monocle.Iso
 
 case class TelescopeConfigGeneratorEditor(
-  id:         NonEmptyString,
-  label:      String,
-  value:      View[Option[TelescopeConfigGenerator]],
-  showCenter: Boolean,
-  readonly:   Boolean
+  id:          NonEmptyString,
+  label:       String,
+  value:       View[Option[TelescopeConfigGenerator]],
+  showCenter:  Boolean,
+  readonly:    Boolean,
+  maxExplicit: Int = Int.MaxValue
 ) extends ReactFnProps(TelescopeConfigGeneratorEditor)
 
 object TelescopeConfigGeneratorEditor
@@ -65,7 +66,18 @@ object TelescopeConfigGeneratorEditor
           case false => StepGuideState.Disabled
           case true  => StepGuideState.Enabled
 
-      React.Fragment(
+      for _ <- useEffectWithDeps(props.maxExplicit): maxExplicit =>
+                 props.value // If maxExplicit changes, ensure we trim the list if needed
+                   .zoom:
+                     Iso.id.some
+                       .andThen(TelescopeConfigGenerator.enumerated)
+                       .andThen(TelescopeConfigGenerator.Enumerated.values)
+                   .mod: oldList =>
+                     NonEmptyList
+                       .fromList:
+                         oldList.take(maxExplicit)
+                       .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
+      yield React.Fragment(
         FormEnumDropdown[TelescopeConfigGeneratorType](
           id = "grid-type".refined,
           label = props.label,
@@ -124,7 +136,7 @@ object TelescopeConfigGeneratorEditor
             Button(
               icon = Icons.ThinPlus,
               severity = Button.Severity.Success,
-              disabled = props.readonly,
+              disabled = props.readonly || explicit.get.length >= props.maxExplicit,
               tooltip = "Add Offset",
               text = true,
               clazz = LucumaPrimeStyles.FormField |+| OffsetGeneratorEditorStyles.AddOffset,
@@ -134,7 +146,7 @@ object TelescopeConfigGeneratorEditor
           )
         },
         randomOpt.map { random =>
-          ReactFragment(
+          React.Fragment(
             FormInputTextView(
               id = "random-size".refined,
               label = "Size (arcsec):",
@@ -144,7 +156,7 @@ object TelescopeConfigGeneratorEditor
               placeholder = "0.0"
             ),
             if props.showCenter then
-              ReactFragment(
+              React.Fragment(
                 <.label(^.htmlFor := "random-size", "Center (arcsec):"),
                 OffsetInput(
                   id = "random-center".refined,
@@ -157,7 +169,7 @@ object TelescopeConfigGeneratorEditor
           )
         },
         spiralOpt.map { spiral =>
-          ReactFragment(
+          React.Fragment(
             FormInputTextView(
               id = "spiral-size".refined,
               label = "Size (arcsec):",
@@ -167,7 +179,7 @@ object TelescopeConfigGeneratorEditor
               placeholder = "0.0"
             ),
             if props.showCenter then
-              ReactFragment(
+              React.Fragment(
                 <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
                 OffsetInput(
                   id = "spiral-center".refined,
@@ -180,7 +192,7 @@ object TelescopeConfigGeneratorEditor
           )
         },
         uniformOpt.map { uniform =>
-          ReactFragment(
+          React.Fragment(
             <.label(^.htmlFor := "uniform-corner-a", "Corner A (arcsec):"),
             OffsetInput(
               id = "uniform-corner-a".refined,

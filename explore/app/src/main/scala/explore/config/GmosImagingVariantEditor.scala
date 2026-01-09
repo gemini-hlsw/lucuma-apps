@@ -3,10 +3,11 @@
 
 package explore.config
 
-import cats.syntax.option.*
+import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.config.offsets.OffsetGeneratorEditorStyles
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.TelescopeConfigGeneratorEditor
@@ -21,6 +22,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -41,8 +43,41 @@ object GmosImagingVariantEditor
       val preImagingView: Option[View[GmosImagingVariant.PreImaging]]   =
         props.variant.zoom(GmosImagingVariant.preImaging).toOptionView
 
+      def commonInputs(
+        offsets:    View[Option[TelescopeConfigGenerator]],
+        skyCount:   View[NonNegInt],
+        skyOffsets: View[Option[TelescopeConfigGenerator]]
+      ): VdomElement =
+        React.Fragment(
+          TelescopeConfigGeneratorEditor(
+            id = "grouped-offsets".refined,
+            label = "Offsets",
+            value = offsets,
+            showCenter = false,
+            readonly = props.readonly
+          ),
+          <.hr(OffsetGeneratorEditorStyles.Separator),
+          FormInputTextView(
+            id = "grouped-sky-count".refined,
+            label = "Sky Offset Count",
+            value = skyCount.withOnMod: count =>
+              if count.value === 0 then skyOffsets.set(none) else Callback.empty,
+            validFormat = InputValidSplitEpi.nonNegInt,
+            placeholder = "0",
+            disabled = props.readonly
+          ),
+          TelescopeConfigGeneratorEditor(
+            id = "grouped-sky-offsets".refined,
+            label = "Sky Offsets",
+            value = skyOffsets,
+            showCenter = true,
+            readonly = props.readonly || skyCount.get.value === 0,
+            maxExplicit = skyCount.get.value.toInt * 2
+          )
+        )
+
       React.Fragment(
-        // TODO Do we need a customized version? Can these be "uncustomized"?
+        // TODO add help icon to label
         FormEnumDropdown[GmosImagingVariantType](
           id = "variant-type".refined,
           value = props.variantType,
@@ -62,55 +97,17 @@ object GmosImagingVariantEditor
               clazz = LucumaPrimeStyles.FormField,
               disabled = props.readonly
             ),
-            TelescopeConfigGeneratorEditor(
-              id = "grouped-offsets".refined,
-              label = "Offsets",
-              value = grouped.zoom(GmosImagingVariant.Grouped.offsets),
-              showCenter = false,
-              readonly = props.readonly
-            ),
-            <.hr(OffsetGeneratorEditorStyles.Separator),
-            FormInputTextView(
-              id = "grouped-sky-count".refined,
-              label = "Sky Offset Count",
-              value = grouped.zoom(GmosImagingVariant.Grouped.skyCount),
-              validFormat = InputValidSplitEpi.nonNegInt,
-              placeholder = "0",
-              disabled = props.readonly
-            ),
-            TelescopeConfigGeneratorEditor(
-              id = "grouped-sky-offsets".refined,
-              label = "Sky Offsets",
-              value = grouped.zoom(GmosImagingVariant.Grouped.skyOffsets),
-              showCenter = true,
-              readonly = props.readonly
+            commonInputs(
+              grouped.zoom(GmosImagingVariant.Grouped.offsets),
+              grouped.zoom(GmosImagingVariant.Grouped.skyCount),
+              grouped.zoom(GmosImagingVariant.Grouped.skyOffsets)
             )
           ),
         interleavedView.map[VdomNode]: interleaved =>
-          React.Fragment(
-            TelescopeConfigGeneratorEditor(
-              id = "interleaved-offsets".refined,
-              label = "Offsets",
-              value = interleaved.zoom(GmosImagingVariant.Interleaved.offsets),
-              showCenter = false,
-              readonly = props.readonly
-            ),
-            <.hr(OffsetGeneratorEditorStyles.Separator),
-            FormInputTextView(
-              id = "interleaved-sky-count".refined,
-              label = "Sky Offset Count",
-              value = interleaved.zoom(GmosImagingVariant.Interleaved.skyCount),
-              validFormat = InputValidSplitEpi.nonNegInt,
-              placeholder = "0",
-              disabled = props.readonly
-            ),
-            TelescopeConfigGeneratorEditor(
-              id = "interleaved-sky-offsets".refined,
-              label = "Sky Offsets",
-              value = interleaved.zoom(GmosImagingVariant.Interleaved.skyOffsets),
-              showCenter = true,
-              readonly = props.readonly
-            )
+          commonInputs(
+            interleaved.zoom(GmosImagingVariant.Interleaved.offsets),
+            interleaved.zoom(GmosImagingVariant.Interleaved.skyCount),
+            interleaved.zoom(GmosImagingVariant.Interleaved.skyOffsets)
           ),
         preImagingView.map[VdomNode]: preImaging =>
           React.Fragment(
