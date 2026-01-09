@@ -36,10 +36,10 @@ def renderProgressLabel(
         .mkString(" ")
 
   val stageStr: String = (isStopRequested, isPausedInStep, stage) match
+    case (_, _, ObserveStage.ReadingOut) => "Reading out..."
     case (true, _, _)                    => "Stopping..."
     case (_, true, _)                    => "Paused"
     case (_, _, ObserveStage.Preparing)  => "Preparing"
-    case (_, _, ObserveStage.ReadingOut) => "Reading out..."
     case _                               => ""
 
   // if (paused) s"$fileId - Paused$durationStr"
