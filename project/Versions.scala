@@ -36,7 +36,7 @@ object Versions {
   val logback                = "1.5.24"
   val lucumaCore             = "0.166.3"
   val lucumaPrimeStyles      = "0.5.0"
-  val lucumaReact            = "0.90.0-30-1d600f7-20260107T000452Z-SNAPSHOT"
+  val lucumaReact            = "0.91.0"
   val lucumaRefined          = "0.1.4"
   val lucumaServers          = "0.54.3"
   val monocle                = "3.3.0"

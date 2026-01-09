@@ -8,6 +8,7 @@ import crystal.react.View
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
+import explore.components.HelpIcon
 import explore.config.offsets.OffsetGeneratorEditorStyles
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.TelescopeConfigGeneratorEditor
@@ -59,7 +60,10 @@ object GmosImagingVariantEditor
           <.hr(OffsetGeneratorEditorStyles.Separator),
           FormInputTextView(
             id = "grouped-sky-count".refined,
-            label = "Sky Offset Count",
+            label = React.Fragment(
+              "Sky Offset Count",
+              HelpIcon("configuration/imaging/sky-offset.md".refined)
+            ),
             value = skyCount.withOnMod: count =>
               if count.value === 0 then skyOffsets.set(none) else Callback.empty,
             validFormat = InputValidSplitEpi.nonNegInt,
@@ -77,13 +81,14 @@ object GmosImagingVariantEditor
         )
 
       React.Fragment(
-        // TODO add help icon to label
         FormEnumDropdown[GmosImagingVariantType](
           id = "variant-type".refined,
           value = props.variantType,
           onChange = vt => props.variant.mod(_.toVariantType(vt)),
-          label = "Offset Variant".some,
-          //   helpId = Some("configuration/imaging/variant-type.md".refined),
+          label = React.Fragment(
+            "Offset Variant",
+            HelpIcon("configuration/imaging/variant-type.md".refined)
+          ),
           clazz = LucumaPrimeStyles.FormField,
           disabled = props.readonly
         ),
@@ -93,7 +98,6 @@ object GmosImagingVariantEditor
               id = "wavelength-order".refined,
               value = grouped.zoom(GmosImagingVariant.Grouped.order),
               label = "Wavelength Order".some,
-              //   helpId = Some("configuration/imaging/wavelength-order.md".refined),
               clazz = LucumaPrimeStyles.FormField,
               disabled = props.readonly
             ),
