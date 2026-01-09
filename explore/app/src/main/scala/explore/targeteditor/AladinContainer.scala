@@ -137,9 +137,9 @@ object AladinContainer extends AladinCommon {
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     calcSize:                   Double => Double,
     surveyEpoch:                Epoch,
-    targetBuilder:              (Coordinates, Double) => SVGTarget,
+    targetBuilder:              (Coordinates, Double) => SvgTarget,
     lineCss:                    Css
-  ): List[SVGTarget] =
+  ): List[SvgTarget] =
     val tracking                      = g.target.tracking
     val obsTimeCoords: Coordinates    = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
     val linePoints: List[Coordinates] =
@@ -163,13 +163,13 @@ object AladinContainer extends AladinCommon {
     candidatesVisibility:       Css,
     calcSize:                   Double => Double,
     surveyEpoch:                Epoch
-  ): List[SVGTarget] =
+  ): List[SvgTarget] =
     val tracking     = g.target.tracking
     val candidateCss = if (configuration.isEmpty) Css.Empty else speedCss(g.guideSpeed)
 
     if (selectedGS.forall(_.target.id === g.target.id))
       val obsTimeCoords = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
-      List(SVGTarget.GuideStarTarget(obsTimeCoords, candidateCss, calcSize(GuideStarSize), g))
+      List(SvgTarget.GuideStarTarget(obsTimeCoords, candidateCss, calcSize(GuideStarSize), g))
     else
       val css = candidateCss |+| candidatesVisibility |+|
         ExploreStyles.GuideStarCandidateCrowded.when_(isCrowded)
@@ -179,7 +179,7 @@ object AladinContainer extends AladinCommon {
         siderealDiscretizedObsTime,
         calcSize,
         surveyEpoch,
-        (coords, size) => SVGTarget.GuideStarCandidateTarget(coords, css, size, g),
+        (coords, size) => SvgTarget.GuideStarCandidateTarget(coords, css, size, g),
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
 
@@ -191,7 +191,7 @@ object AladinContainer extends AladinCommon {
     configuration:              Option[BasicConfiguration],
     selectedGS:                 Option[AgsAnalysis.Usable],
     surveyEpoch:                Epoch
-  ): List[SVGTarget] =
+  ): List[SvgTarget] =
     val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
     val candidatesVisibility           = ExploreStyles.GuideStarCandidateVisible.when_(visible)
@@ -215,7 +215,7 @@ object AladinContainer extends AladinCommon {
     fovRA:                      Angle,
     siderealDiscretizedObsTime: SiderealDiscretizedObsTime,
     surveyEpoch:                Epoch
-  ): List[SVGTarget] =
+  ): List[SvgTarget] =
     val fov                            = fovRA.toMicroarcseconds / 1e6
     def calcSize(size: Double): Double = size.max(size * (225 / fov))
     val candidatesVisibility           = ExploreStyles.GuideStarUnconstrained.when_(visible)
@@ -229,7 +229,7 @@ object AladinContainer extends AladinCommon {
         siderealDiscretizedObsTime,
         calcSize,
         surveyEpoch,
-        (coords, size) => SVGTarget.GuideStarCandidateTarget(coords, css, size, g),
+        (coords, size) => SvgTarget.GuideStarCandidateTarget(coords, css, size, g),
         ExploreStyles.PMGSCorrectionLine |+| candidatesVisibility
       )
 
@@ -332,7 +332,7 @@ object AladinContainer extends AladinCommon {
                                      props.agsVisibility,
                                      props.anglesToTest
                                    )
-        agsPositions            <- useMemo(
+        offsetPositions         <- useMemo(
                                      (props.vizConf,
                                       props.selectedGuideStar,
                                       props.obsTimeCoords.baseCoords,
@@ -454,7 +454,7 @@ object AladinContainer extends AladinCommon {
 
         def basePosition(css: Css) =
           baseCoordinates.foldMap: c =>
-            List(SvgTarget.CrosshairTarget(c, Css.Empty, CrosshairSize))
+            List(SvgTarget.CrosshairTarget(c, css, CrosshairSize))
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
@@ -480,7 +480,6 @@ object AladinContainer extends AladinCommon {
               )
             }
 
-        println(props.globalPreferences.scienceOffsets.value)
         // Offset indicators calculated and rotated directly by AGS
         val configOffsets: List[SvgTarget.OffsetIndicator] =
           offsetPositions.value.toList.flatMap { positions =>
@@ -536,8 +535,6 @@ object AladinContainer extends AladinCommon {
                 ExploreStyles.BlindOffsetLine
               )
 
-        // val configOffsets: List[]
-
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
 
@@ -563,13 +560,8 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    <<<<<<<.HEAD(
-                      candidates ++ blindOffsets ++ scienceTargets ++
-                        basePosition(Css.Empty) ++ offsetPositions
-                        =======
-                        candidates ++ blindOffsets ++ scienceTargets ++ basePosition ++ configOffsets
-                        >>>>>>> fc9f39a2c(unify.logic(when).computing(offsets))
-                    )
+                    candidates ++ blindOffsets ++ scienceTargets ++
+                      basePosition(Css.Empty) ++ configOffsets
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)
