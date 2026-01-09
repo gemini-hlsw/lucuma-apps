@@ -39,6 +39,13 @@ object OffsetSVG
       val tooltip = f"$prefix: ${p.idx}%s, p=${offP}%.0f, q=${offQ}%.0f"
 
       <.g(VisualizationStyles.VisualizationTooltipTarget)(
+        <.rect( // add transparent area for the tooltip, hidden but gets events
+          ^.x      := scale(p.p) - areaSize / 2,
+          ^.width  := areaSize,
+          ^.height := areaSize,
+          ^.y      := scale(p.q) - areaSize / 2,
+          ^.fill   := "transparent"
+        ),
         <.rect( // mark the offsset pos with a square
           ^.x      := scale(p.p) - areaSize / 2,
           ^.width  := areaSize,
