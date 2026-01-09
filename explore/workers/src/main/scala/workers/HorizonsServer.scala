@@ -7,7 +7,7 @@ import boopickle.DefaultBasic.*
 import cats.effect.*
 import cats.effect.unsafe.implicits.*
 import explore.events.*
-import explore.model.Constants.HorizonsProxy
+import explore.model.Constants.HorizonsProxyMod
 import explore.model.boopickle.HorizonsPicklers
 import lucuma.horizons.HorizonsClient
 import org.http4s.client.Client
@@ -48,7 +48,7 @@ object HorizonsServer extends WorkerServer[IO, HorizonsMessage.Request] with Hor
       client =
         HorizonsClient[IO](
           createClient,
-          modUri = _ => HorizonsProxy
+          modUri = HorizonsProxyMod
         )
     } yield { invocation =>
       invocation.data match
