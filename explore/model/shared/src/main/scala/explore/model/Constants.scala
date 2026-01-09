@@ -3,9 +3,9 @@
 
 package explore.model
 
+import cats.syntax.all.*
 import lucuma.core.math.Angle
 import org.http4s.Uri
-import org.http4s.syntax.all.*
 
 import java.time.ZoneOffset
 
@@ -40,7 +40,9 @@ trait Constants:
 
   val SignalToNoiseAtLabel = "λ for S/N"
 
-  // TODO: NONSIDEREAL: Replace with real proxy
-  val HorizonsProxy: Uri = uri"http://localhost:8010/proxy/api/horizons.api"
+  val HorizonsProxyMod: Uri => Uri = original =>
+    val newAuthority = Uri.Authority(host = Uri.RegName("gpp-horizons.noirlab.edu"))
+    val newScheme    = Uri.Scheme.https
+    original.copy(scheme = newScheme.some, authority = newAuthority.some, path = Uri.Path.empty)
 
 object Constants extends Constants

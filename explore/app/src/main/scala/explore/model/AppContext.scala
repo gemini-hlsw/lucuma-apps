@@ -11,7 +11,7 @@ import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.events.*
-import explore.model.Constants.HorizonsProxy
+import explore.model.Constants.HorizonsProxyMod
 import explore.model.enums.AppTab
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
@@ -114,7 +114,7 @@ case class AppContext[F[_]](
     )
 
   val simbadClient   = SimbadClient.build(httpClient, _.copy(scheme = Scheme.https.some))
-  val horizonsClient = HorizonsClient(httpClient, modUri = _ => HorizonsProxy)
+  val horizonsClient = HorizonsClient(httpClient, modUri = HorizonsProxyMod)
 
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value
