@@ -307,6 +307,7 @@ export default defineConfig(async ({ mode }) => {
         // Reduce HMR overhead
         overlay: false,
       },
+      // proxy: {}, // Uncomment for testing with firefox
       watch: {
         ignored: [
           function ignoreThisPath(_path) {
