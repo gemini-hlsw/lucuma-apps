@@ -10,8 +10,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 
-trait ExposureTimeModeDecoders {
-
+trait ExposureTimeModeDecoders:
   given Decoder[ExposureTimeMode.SignalToNoiseMode] =
     semiauto.deriveDecoder
 
@@ -23,4 +22,3 @@ trait ExposureTimeModeDecoders {
       .as[ExposureTimeMode.SignalToNoiseMode]
       .orElse(c.downField("timeAndCount").as[ExposureTimeMode.TimeAndCountMode])
   }
-}

@@ -259,7 +259,7 @@ object SeqTranslate {
       val signalToNoise: Option[SignalToNoise] =
         sequenceType match
           case SequenceType.Acquisition =>
-            observation.itc.acquisition.selected.signalToNoiseAt.map(_.single)
+            observation.itc.acquisition.flatMap(_.selected.signalToNoiseAt.map(_.single))
           case SequenceType.Science     =>
             observation.itc.science.selected.signalToNoiseAt.map(_.single)
 

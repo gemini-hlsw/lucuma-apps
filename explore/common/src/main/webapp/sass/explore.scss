@@ -3901,170 +3901,37 @@ span.explore-offsets-count {
   }
 }
 
-.offset-editor-content-read-only,
-.offset-editor-content {
-  --offset-spacing-large: 20px;
-
+.offsets-input {
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  min-width: 90%;
-
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    flex-direction: row;
-    gap: var(--offset-spacing-large);
-    min-width: 50%;
-  }
-
-  .offset-grid-display {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex: 1;
-    min-height: 300px;
-    padding: 0.2em;
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      flex: 3;
-      min-height: 500px;
-      padding: unset;
-    }
-  }
-
-  .offset-grid-controls {
-    display: grid;
-    align-content: start;
-    overflow-y: auto;
-    gap: 0.1em 0;
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      flex: 2;
-    }
-
-    h4 {
-      margin: 0;
-      justify-self: center;
-    }
-
-    label.explore-offsets-count,
-    .explore-offsets-regenerate {
-      justify-self: end;
-    }
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      padding: 1em;
-      gap: 0.8em;
-
-      h4 {
-        margin-bottom: 1em;
-      }
-    }
-  }
-
-  .offset-form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.5em;
-    align-items: center;
-  }
-
-  .offset-grid-container {
-    --offset-border-radius: 4px;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--tile-background);
-    border: 1px solid var(--gray-300);
-    border-radius: var(--offset-border-radius);
-    padding: var(--offset-spacing-large);
-    width: 100%;
-    height: 100%;
-    min-height: 250px;
-  }
-
-  .offset-grid-svg {
-    display: block;
-  }
-
-  .offset-grid-background {
-    fill: var(--tile-background);
-  }
-
-  .offset-grid-lines {
-    line {
-      stroke: var(--gray-200);
-      stroke-width: 1;
-    }
-  }
-
-  .offset-grid-axes {
-    line {
-      stroke: var(--gray-100);
-      stroke-width: 2;
-    }
-  }
-
-  .offset-grid-labels {
-    text {
-      fill: var(--muted-color);
-      font-size: 12px;
-    }
-  }
-
-  .offset-grid-points {
-    circle {
-      fill: var(--explore-accent-color);
-      stroke: var(--explore-accent-color);
-      stroke-width: 1;
-    }
-  }
-
-  .offset-grid-crosshair {
-    line {
-      stroke: var(--negative-background-color);
-      stroke-width: 1.5;
-    }
-  }
-
-  .offset-grid-arrows {
-    --arrow-color: rgb(255 165 0 / 90%);
-
-    line {
-      stroke: var(--arrow-color);
-      stroke-width: 0.6;
-    }
-
-    polygon {
-      fill: var(--arrow-color);
-    }
-  }
+  align-items: baseline;
+  gap: 0.5em;
 }
 
-.offset-editor-content-read-only {
-  flex-direction: column;
-
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    flex-direction: column;
-  }
-
-  h4 {
-    margin: 0;
-    justify-self: center;
-  }
+.offset-generator-separator {
+  grid-column: span 2;
+  width: 100%;
 }
 
-.offset-small-checkbox {
+.offset-explicit-row {
   display: flex;
-  align-content: baseline;
+  align-items: center;
+}
 
-  .p-checkbox {
-    .p-checkbox-icon {
-      font-size: smaller;
-    }
-  }
+.offset-toggle-button.pl-form-field {
+  height: 22px;
+  margin-left: 2px;
+}
 
-  label {
-    margin-left: 0.5em;
-    font-size: smaller;
-  }
+.offset-explicit-unguided {
+  opacity: 0.2;
+}
+
+.offset-remove-offset-first-icon {
+  opacity: 0;
+}
+
+.offset-add-offset-button.pl-form-field.p-button {
+  justify-self: end;
+  padding-right: 2px;
 }

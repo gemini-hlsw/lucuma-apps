@@ -22,21 +22,21 @@ import org.locationtech.jts.geom.util.PolygonExtracter
 
 import scala.jdk.CollectionConverters.*
 
-case class SVGVisualizationOverlay(
+case class SvgVisualizationOverlay(
   width:        Int,
   height:       Int,
   fov:          Fov,
   screenOffset: Offset,
   shapes:       NonEmptyMap[Css, ShapeExpression],
   clazz:        Css = Css.Empty
-) extends ReactFnProps(SVGVisualizationOverlay.component)
+) extends ReactFnProps(SvgVisualizationOverlay.component)
 
-object SVGVisualizationOverlay {
-  private type Props = SVGVisualizationOverlay
+object SvgVisualizationOverlay {
+  private type Props = SvgVisualizationOverlay
 
   extension (g: Geometry)
     // This deserves an explanation.
-    // In the visualization we have included several geometriens includig the patrol field which
+    // In the visualization we have included several geometries includig the patrol field which
     // can be the intersection between all the patrol fields geometries at each pos angle position.
     //
     // Normally the intersection would be a polygon but in some edge cases the intersection becomes

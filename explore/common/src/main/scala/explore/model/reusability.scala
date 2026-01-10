@@ -34,6 +34,7 @@ import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GmosSouthGrating
+import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.Arc
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
@@ -198,6 +199,7 @@ object reusability:
   given Reusability[ObservingMode.GmosNorthImaging]     = Reusability.byEq
   given Reusability[ObservingMode.GmosSouthImaging]     = Reusability.byEq
   given Reusability[ObservingMode.Flamingos2LongSlit]   = Reusability.byEq
+  given Reusability[OffsetGenerator]                    = Reusability.byEq
 
   given reuseGmosNorthImagingFilter: Reusability[ObservingMode.GmosNorthImaging.ImagingFilter] =
     Reusability.byEq
