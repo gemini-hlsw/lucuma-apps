@@ -5,6 +5,7 @@ package explore.config
 
 import cats.syntax.all.*
 import crystal.react.*
+import explore.Icons
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AveragePABasis
@@ -21,10 +22,12 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.refined.*
 import lucuma.ui.components.TimeSpanView
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.primereact.*
 import lucuma.ui.primereact.FormEnumDropdownView
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.LucumaPrimeStyles
@@ -129,15 +132,46 @@ object PAConfigurationPanel:
         else Set.empty
 
       def posAngleEditor(pa: View[Angle]) =
+        val AngleStep = Angle.fromDoubleDegrees(1.0)
+
+        def increment: Callback = pa.mod(_ + AngleStep)
+        def decrement: Callback = pa.mod(_ - AngleStep)
+
+        val spinnerButtons = List(
+          <.span(ExploreStyles.AngleSpinnerButtons)(
+            Button(
+              icon = Icons.AngleUp.withFixedWidth(),
+              text = true,
+              severity = Button.Severity.Secondary,
+              disabled = finalReadOnly,
+              onClick = increment
+            ).tiny.compact,
+            Button(
+              icon = Icons.AngleDown.withFixedWidth(),
+              text = true,
+              severity = Button.Severity.Secondary,
+              disabled = finalReadOnly,
+              onClick = decrement
+            ).tiny.compact
+          )
+        )
+
         <.div(
           FormInputTextView(
             id = "pos-angle-value".refined,
             groupClass = ExploreStyles.PAConfigurationAngle,
             value = pa,
             units = "° E of N",
+            postAddons = spinnerButtons,
             disabled = finalReadOnly,
             validFormat = MathValidators.truncatedAngleDegrees,
-            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined)
+            changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
+            onTextChange = text =>
+              MathValidators.truncatedAngleDegrees
+                .getValid(text)
+                .toOption
+                .filter(_ =!= pa.get)
+                .foldMap(pa.set)
           )(^.autoComplete.off)
         )
 

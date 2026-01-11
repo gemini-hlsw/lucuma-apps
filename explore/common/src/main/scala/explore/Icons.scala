@@ -349,6 +349,14 @@ object Icons {
   val faAngle: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faAngleUp")
+  val faAngleUp: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faAngleDown")
+  val faAngleDown: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-light-svg-icons", "faSquareMinus")
   val faSquareMinus: FAIcon = js.native
 
@@ -473,6 +481,8 @@ object Icons {
     faCircleHalfStroke,
     faFiles,
     faAngle,
+    faAngleUp,
+    faAngleDown,
     faSquareMinus,
     faSquarePlus,
     faCloudArrowUp,
@@ -570,6 +580,8 @@ object Icons {
   val CircleHalfStroke       = FontAwesomeIcon(faCircleHalfStroke)
   val Files                  = FontAwesomeIcon(faFiles)
   val Angle                  = FontAwesomeIcon(faAngle)
+  val AngleUp                = FontAwesomeIcon(faAngleUp)
+  val AngleDown              = FontAwesomeIcon(faAngleDown)
   val PaperPlaneTop          = FontAwesomeIcon(faPaperPlaneTop)
   val SquareMinus            = FontAwesomeIcon(faSquareMinus)
   val SquarePlus             = FontAwesomeIcon(faSquarePlus)
