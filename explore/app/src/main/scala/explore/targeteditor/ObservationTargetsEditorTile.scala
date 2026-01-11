@@ -241,11 +241,12 @@ object ObservationTargetsEditorTile:
                             ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
           _            <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
                             (allTargetIds, focusedTargetId) =>
-                              // If the selected targetId is None, or not in the target list, select the first target (if any).
+                              // If the selected targetId is None, or not in the target list, select the first scienc target (if any).
                               // Need to replace history here.
                               focusedTargetId.filter(allTargetIds.contains) match
                                 case None =>
-                                  props.setTarget(allTargetIds.headOption, SetRouteVia.HistoryReplace)
+                                  val tid = scienceIds.value.headOption.orElse(allTargetIds.headOption)
+                                  props.setTarget(tid, SetRouteVia.HistoryReplace)
                                 case _    => Callback.empty
           fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
