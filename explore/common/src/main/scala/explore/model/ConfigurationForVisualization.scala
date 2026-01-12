@@ -20,9 +20,6 @@ import lucuma.schemas.model.CentralWavelength
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
 // It is a subset of ObsConfiguration such that can be built out of either the db config
 // Or the minimal config from the modes table
-
-// TODO RENAME this. Some of the options are NOT configuration, but come from the digest (eg offsets)
-
 case class ConfigurationForVisualization private (
   configuration:              BasicConfiguration,
   scienceOffsets:             Option[NonEmptyList[TelescopeConfig]],
