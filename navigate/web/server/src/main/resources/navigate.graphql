@@ -1,7 +1,7 @@
 #import NonEmptyString, Offset, Angle, Sidereal, GuideProbe, TargetId, Nonsidereal from "lucuma/schemas/ObservationDB.graphql"
 #import SiderealInput, ObservationId, OffsetInput, NonsiderealInput, WavelengthInput, AngleInput from "lucuma/schemas/ObservationDB.graphql"
 #import Long, BigDecimal, Timestamp, TimeSpanInput from "lucuma/schemas/ObservationDB.graphql"
-#import Instrument, Site, TimeSpan from "lucuma/schemas/ObservationDB.graphql"
+#import Instrument, Site, TimeSpan, Date  from "lucuma/schemas/ObservationDB.graphql"
 
 """Target properties input"""
 input TargetPropertiesInput {

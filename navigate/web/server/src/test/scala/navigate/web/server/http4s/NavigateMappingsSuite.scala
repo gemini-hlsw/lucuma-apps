@@ -2552,6 +2552,30 @@ class NavigateMappingsSuite extends CatsEffectSuite {
     )
   }
 
+  test("Refresh ephemeris files in TCS") {
+    for {
+      mp <- buildMapping()
+      r  <- mp.compileAndRun(
+              """
+        | mutation {
+        |   refreshEphemerisFiles(
+        |     dateInterval: {
+        |       start: "2026-01-01"
+        |       end: "2026-01-02"
+        |     } ) { result } }
+        """.stripMargin
+            )
+    } yield assertEquals(
+      r.hcursor
+        .downField("data")
+        .downField("refreshEphemerisFiles")
+        .downField("result")
+        .as[String]
+        .toOption,
+      "SUCCESS".some
+    )
+  }
+
 }
 
 object NavigateMappingsTest {
