@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.common.UserPreferencesQueries.ObservationPreferences
 import explore.components.ColumnSelectorInTitle
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
@@ -214,10 +215,13 @@ object ObservationTargetsEditorTile:
     obsEditInfo:         View[Option[ObsIdSetEditInfo]]
   ) extends ReactFnProps(Body):
     val allTargets: UndoSetter[TargetList] = obsAndTargets.zoom(ObservationsAndTargets.targets)
+    val prefTargetId                       =
+      obsIds.single.flatMap(userPreferences.get.observationPreferences.get)
 
   private object Body
       extends ReactFnComponent[Body](props =>
         for
+          ctx          <- useContext(AppContext.ctx)
           obsEditInfo  <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
                             ObsIdSetEditInfo.fromObservationList
           _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
@@ -239,17 +243,25 @@ object ObservationTargetsEditorTile:
                             scienceIds.value ++ oBlindId.toList
           allTargets   <- useMemo(targetIds): ids =>
                             ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
-          _            <- useLayoutEffectWithDeps((targetIds.value.toList, props.focusedTargetId)):
-                            (allTargetIds, focusedTargetId) =>
-                              // If the selected targetId is None, or not in the target list, select the first scienc target (if any).
-                              // Need to replace history here.
-                              focusedTargetId.filter(allTargetIds.contains) match
-                                case None =>
-                                  val tid = scienceIds.value.headOption.orElse(allTargetIds.headOption)
-                                  props.setTarget(tid, SetRouteVia.HistoryReplace)
-                                case _    => Callback.empty
+          _            <- useLayoutEffectWithDeps(
+                            (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
+                          ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
+                            // If the selected targetId is None, or not in the target list, we need
+                            // to select one. Firt select the preferred target if saved or else
+                            // the first science target. If no science target just pick the first overall target
+                            // Need to replace history here.
+                            focusedTargetId.filter(allTargetIds.contains) match
+                              case None =>
+                                val preferred = preferredTargetOpt.filter(allTargetIds.contains)
+
+                                val tid =
+                                  preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
+                                props.setTarget(tid, SetRouteVia.HistoryReplace)
+                              case _    => Callback.empty
           fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
+          import ctx.given
+
           val selectedTargetView: View[Option[Target.Id]] =
             View(
               props.focusedTargetId,
@@ -257,7 +269,9 @@ object ObservationTargetsEditorTile:
                 val oldValue = props.focusedTargetId
                 val newValue = mod(props.focusedTargetId)
                 props.setTarget(newValue, SetRouteVia.HistoryPush) >> cb(oldValue, newValue)
-            )
+            ).withOnMod: tid =>
+              props.obsIds.single.traverse_ : obsId =>
+                ObservationPreferences.upsertPreferredTarget[IO](obsId, tid).runAsync
 
           val editWarningMsg: Option[String] =
             if (obsEditInfo.allAreExecuted)

@@ -9,6 +9,7 @@ import cats.implicits.*
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.LineOfSightMotion
 import explore.model.layout.LayoutsMap
+import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import monocle.Focus
 import monocle.Lens
@@ -18,7 +19,8 @@ import monocle.function.At.given
 case class UserPreferences(
   private val gridLayouts: Map[GridLayoutSection, LayoutsMap],
   globalPreferences:       GlobalPreferences,
-  targetPreferences:       Map[Target.Id, LineOfSightMotion] = Map.empty
+  targetPreferences:       Map[Target.Id, LineOfSightMotion] = Map.empty,
+  observationPreferences:  Map[Observation.Id, Target.Id] = Map.empty
 ) derives Eq {
   private def tabLayout(l: GridLayoutSection) =
     gridLayouts.getOrElse(l, ExploreGridLayouts.sectionLayout(l))
@@ -62,14 +64,25 @@ case class UserPreferences(
 
 object UserPreferences:
   val Default =
-    UserPreferences(ExploreGridLayouts.DefaultLayouts, GlobalPreferences.Default, Map.empty)
+    UserPreferences(ExploreGridLayouts.DefaultLayouts,
+                    GlobalPreferences.Default,
+                    Map.empty,
+                    Map.empty
+    )
 
-  val gridLayouts       = Focus[UserPreferences](_.gridLayouts)
-  val globalPreferences = Focus[UserPreferences](_.globalPreferences)
-  val targetPreferences = Focus[UserPreferences](_.targetPreferences)
+  val gridLayouts            = Focus[UserPreferences](_.gridLayouts)
+  val globalPreferences      = Focus[UserPreferences](_.globalPreferences)
+  val targetPreferences      = Focus[UserPreferences](_.targetPreferences)
+  val observationPreferences = Focus[UserPreferences](_.observationPreferences)
 
   def targetLineOfSightMotion(tid: Target.Id): Lens[UserPreferences, Option[LineOfSightMotion]] =
     UserPreferences.targetPreferences
       .andThen(
         at[Map[Target.Id, LineOfSightMotion], Target.Id, Option[LineOfSightMotion]](tid)
+      )
+
+  def observationPreferredTarget(oid: Observation.Id): Lens[UserPreferences, Option[Target.Id]] =
+    UserPreferences.observationPreferences
+      .andThen(
+        at[Map[Observation.Id, Target.Id], Observation.Id, Option[Target.Id]](oid)
       )

@@ -408,6 +408,19 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+  object ObservationPreferences:
+    def upsertPreferredTarget[F[_]: ApplicativeThrow](
+      observationId:     Observation.Id,
+      preferredTargetId: Option[Target.Id]
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      ObservationPreferencesUpsert[F]
+        .execute(
+          observationId = observationId.show,
+          perferredTargetId = preferredTargetId.map(_.show).orUnassign
+        )
+        .attempt
+        .void
+
   object ItcPlotPreferences:
     def updatePlotPreferences[F[_]: ApplicativeThrow](
       userId:         User.Id,

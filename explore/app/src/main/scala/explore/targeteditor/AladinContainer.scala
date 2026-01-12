@@ -84,8 +84,7 @@ case class AladinContainer(
   val guideStarsUnconstrained: List[AgsAnalysis.Usable] =
     val constrainedIds = guideStarCandidates.map(_.target.id).toSet
     // remove from unconstrained stars present on the constrained set
-    agsResults.unconstrained.toOption
-      .orEmpty
+    agsResults.unconstrained.toOption.orEmpty
       .filterNot(gs => constrainedIds.contains(gs.target.id))
 
 object AladinContainer extends AladinCommon {

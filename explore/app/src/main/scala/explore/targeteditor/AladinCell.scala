@@ -29,6 +29,7 @@ import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.optics.ModelOptics
+import explore.targeteditor.UseAgsCalculation.*
 import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -55,7 +56,6 @@ import monocle.Iso
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 import queries.schemas.UserPreferencesDB
-import explore.targeteditor.UseAgsCalculation.*
 
 import java.time.Instant
 import scala.concurrent.duration.*

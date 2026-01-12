@@ -20,11 +20,13 @@ import explore.model.layout.LayoutsMap
 import explore.utils.*
 import japgolly.scalajs.react.*
 import log4cats.loglevel.LogLevelLogger
+import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import org.typelevel.log4cats.extras.LogLevel
+import queries.common.UserPreferencesQueriesGQL.ObservationPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.TargetPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates
 import queries.common.UserPreferencesQueriesGQL.UserPreferencesUpdates
@@ -124,8 +126,27 @@ object PreferencesCacheController
                     case _               => acc
                 case _              => acc
 
+    val updateObsPreferences: Resource[IO, fs2.Stream[IO, UserPreferences => UserPreferences]] =
+      ObservationPreferencesUpdates
+        .subscribe[IO]()
+        .ignoreGraphQLErrors
+        .map:
+          _.throttle(5.seconds).map: data =>
+            data.lucumaObservation.foldLeft(identity[UserPreferences]): (acc, obs) =>
+              (Observation.Id.parse(obs.observationId),
+               obs.perferredTargetId.flatMap(Target.Id.parse)
+              ) match
+                case (Some(obsId), Some(targetId)) =>
+                  acc >>> UserPreferences.observationPreferences
+                    .modify(prefs => prefs + (obsId -> targetId))
+                case (Some(obsId), None)           =>
+                  acc >>> UserPreferences.observationPreferences
+                    .modify(prefs => prefs - obsId)
+                case _                             => acc
+
     List(
       updateLayouts,
       updateGlobalPreferences,
-      updateTargetPreferences
+      updateTargetPreferences,
+      updateObsPreferences
     ).sequence.map(_.reduceLeft(_.merge(_)))
