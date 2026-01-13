@@ -5,6 +5,7 @@ package explore.tabs
 
 import cats.Order.given
 import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*
@@ -141,21 +142,17 @@ case class ObsTabTiles(
 
   def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
 
-  def acqConfigs: Option[NonEmptyList[TelescopeConfig]] =
-    NonEmptyList.fromList(
+  def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
+    NonEmptySet.fromSet:
       Execution.acqConfigs
         .getOption(observation.get.execution)
         .orEmpty
-        .toList
-    )
 
-  def sciConfigs: Option[NonEmptyList[TelescopeConfig]] =
-    NonEmptyList.fromList(
+  def sciConfigs: Option[NonEmptySet[TelescopeConfig]] =
+    NonEmptySet.fromSet:
       Execution.sciConfigs
         .getOption(observation.get.execution)
         .orEmpty
-        .toList
-    )
 
   def obsIQLikelihood(
     optCoordinates: Option[Coordinates]

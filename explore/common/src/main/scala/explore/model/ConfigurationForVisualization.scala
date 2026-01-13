@@ -4,7 +4,6 @@
 package explore.model
 
 import cats.Eq
-import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.derived.*
 import cats.implicits.*
@@ -23,8 +22,8 @@ import lucuma.schemas.model.CentralWavelength
 // Or the minimal config from the modes table
 case class ConfigurationForVisualization private (
   configuration:              BasicConfiguration,
-  scienceOffsets:             Option[NonEmptyList[TelescopeConfig]],
-  acquisitionOffsets:         Option[NonEmptyList[TelescopeConfig]],
+  scienceOffsets:             Option[NonEmptySet[TelescopeConfig]],
+  acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
   centralWavelength:          Option[CentralWavelength]

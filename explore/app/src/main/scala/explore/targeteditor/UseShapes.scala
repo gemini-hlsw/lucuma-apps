@@ -68,12 +68,14 @@ def usePatrolFieldShapes(
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match
-      case GeometryType.Base         => VisualizationStyles.PatrolFieldBase
-      case GeometryType.BlindOffset  => VisualizationStyles.PatrolFieldBlindOffset
-      case GeometryType.AcqGuidedOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
-      case GeometryType.SciGuidedOffset    => VisualizationStyles.PatrolFieldScienceOffset
-      case GeometryType.Intersection => VisualizationStyles.PatrolFieldIntersectionDebug
-      case GeometryType.Vignetting   => VisualizationStyles.DebugScienceVignetting
+      case GeometryType.Base              => VisualizationStyles.PatrolFieldBase
+      case GeometryType.BlindOffset       => VisualizationStyles.PatrolFieldBlindOffset
+      case GeometryType.AcqGuidedOffset   => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.AcqUnguidedOffset => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.SciGuidedOffset   => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.SciUnguidedOffset => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.Intersection      => VisualizationStyles.PatrolFieldIntersectionDebug
+      case GeometryType.Vignetting        => VisualizationStyles.DebugScienceVignetting
 
   useMemo(
     (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest)
@@ -109,12 +111,14 @@ def usePatrolFieldShapes(
       val individualFields = visualizations.toList
         .filter: pfv =>
           pfv.position.geometryType match
-            case GeometryType.Base         => pfVisibility.showBase.value
-            case GeometryType.BlindOffset  => pfVisibility.showBlindOffset.value
-            case GeometryType.AcqGuidedOffset    => pfVisibility.showAcquisitionOffset.value
-            case GeometryType.SciGuidedOffset    => pfVisibility.showScienceOffset.value
-            case GeometryType.Intersection => pfVisibility.showIntersection.value
-            case GeometryType.Vignetting   => false
+            case GeometryType.Base              => pfVisibility.showBase.value
+            case GeometryType.BlindOffset       => pfVisibility.showBlindOffset.value
+            case GeometryType.AcqGuidedOffset   => pfVisibility.showAcquisitionOffset.value
+            case GeometryType.AcqUnguidedOffset => pfVisibility.showAcquisitionOffset.value
+            case GeometryType.SciGuidedOffset   => pfVisibility.showScienceOffset.value
+            case GeometryType.SciUnguidedOffset => pfVisibility.showScienceOffset.value
+            case GeometryType.Intersection      => pfVisibility.showIntersection.value
+            case GeometryType.Vignetting        => false
         .zipWithIndex
         .map: (pfv, idx) =>
           val baseCss = pfv.position.geometryType.css
