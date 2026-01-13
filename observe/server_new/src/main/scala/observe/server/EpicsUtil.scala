@@ -441,10 +441,8 @@ object EpicsUtil {
           r <- p(if (total > c) total else c, RemainingTime(c), v)
         } yield if (s.isBusy) r.some else none
       )
-      .dropWhile(_.remaining.value === TimeSpan.Zero) // drop leading zeros
-      .takeThrough(x =>
-        x.remaining.value > TimeSpan.Zero || x.stage === ObserveStage.Exposure
-      ) // drop all tailing zeros but the first one, unless it is still acquiring
+      .dropWhile(x => x.remaining.value === TimeSpan.Zero && x.stage === ObserveStage.Idle)
+      .takeThrough(x => x.remaining.value > TimeSpan.Zero || x.stage =!= ObserveStage.Idle)
 
   // Component names read from instruments usually have a part name as suffix. For example, the
   // instrument may have had two K filters in its lifetime, one identified as K_G0804 and the
