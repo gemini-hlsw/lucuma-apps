@@ -2346,6 +2346,7 @@ type LucumaObservation {
     where: ExploreFinderChartBoolExp
   ): ExploreFinderChartAggregate!
   observationId: String!
+  perferredTargetId: String
 }
 
 """
@@ -2374,6 +2375,7 @@ input LucumaObservationBoolExp {
   _or: [LucumaObservationBoolExp!]
   exploreFinderCharts: ExploreFinderChartBoolExp
   observationId: StringComparisonExp
+  perferredTargetId: StringComparisonExp
 }
 
 """
@@ -2392,16 +2394,19 @@ input type for inserting data into table "lucumaObservation"
 input LucumaObservationInsertInput {
   exploreFinderCharts: ExploreFinderChartArrRelInsertInput
   observationId: String
+  perferredTargetId: String
 }
 
 """aggregate max on columns"""
 type LucumaObservationMaxFields {
   observationId: String
+  perferredTargetId: String
 }
 
 """aggregate min on columns"""
 type LucumaObservationMinFields {
   observationId: String
+  perferredTargetId: String
 }
 
 """
@@ -2438,6 +2443,7 @@ input LucumaObservationOnConflict {
 input LucumaObservationOrderBy {
   exploreFinderChartsAggregate: ExploreFinderChartAggregateOrderBy
   observationId: OrderBy
+  perferredTargetId: OrderBy
 }
 
 """primary key columns input for table: lucumaObservation"""
@@ -2451,6 +2457,9 @@ select columns of table "lucumaObservation"
 enum LucumaObservationSelectColumn {
   """column name"""
   observationId
+
+  """column name"""
+  perferredTargetId
 }
 
 """
@@ -2458,6 +2467,7 @@ input type for updating data in table "lucumaObservation"
 """
 input LucumaObservationSetInput {
   observationId: String
+  perferredTargetId: String
 }
 
 """
@@ -2466,6 +2476,9 @@ update columns of table "lucumaObservation"
 enum LucumaObservationUpdateColumn {
   """column name"""
   observationId
+
+  """column name"""
+  perferredTargetId
 }
 
 input LucumaObservationUpdates {
@@ -4323,6 +4336,7 @@ input lucumaObservation_streamCursorInput {
 """Initial value of the column from where the streaming should start"""
 input lucumaObservation_streamCursorValueInput {
   observationId: String
+  perferredTargetId: String
 }
 
 """

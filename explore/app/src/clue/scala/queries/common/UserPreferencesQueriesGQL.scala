@@ -412,6 +412,38 @@ object UserPreferencesQueriesGQL {
   }
 
   @GraphQL
+  trait ObservationPreferencesUpdates extends GraphQLOperation[UserPreferencesDB] {
+    val document = """
+      subscription observationPreferencesUpdates {
+        lucumaObservation {
+          observationId
+          perferredTargetId
+        }
+      }
+    """
+  }
+
+  @GraphQL
+  trait ObservationPreferencesUpsert extends GraphQLOperation[UserPreferencesDB] {
+    val document = """
+      mutation observationPreferencesUpsert($observationId: String!, $perferredTargetId: String) {
+        insertLucumaObservationOne(
+          object: {
+            observationId: $observationId,
+            perferredTargetId: $perferredTargetId
+          },
+          onConflict: {
+            constraint: lucuma_observation_pkey,
+            update_columns: [perferredTargetId]
+          }
+        ) {
+          observationId
+        }
+      }
+    """
+  }
+
+  @GraphQL
   trait TableColumnPreferencesQuery extends GraphQLOperation[UserPreferencesDB] {
     val document = """
       query tableColumnPreferences($tableId: LucumaTableIdsEnum, $userId: String) {
