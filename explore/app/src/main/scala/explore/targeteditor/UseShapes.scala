@@ -16,7 +16,6 @@ import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
-import lucuma.ags.GeometryType
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.ObservingModeType
@@ -24,6 +23,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
+import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -70,8 +70,8 @@ def usePatrolFieldShapes(
     def css: Css = geometryType match
       case GeometryType.Base         => VisualizationStyles.PatrolFieldBase
       case GeometryType.BlindOffset  => VisualizationStyles.PatrolFieldBlindOffset
-      case GeometryType.AcqOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
-      case GeometryType.SciOffset    => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.AcqGuidedOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.SciGuidedOffset    => VisualizationStyles.PatrolFieldScienceOffset
       case GeometryType.Intersection => VisualizationStyles.PatrolFieldIntersectionDebug
       case GeometryType.Vignetting   => VisualizationStyles.DebugScienceVignetting
 
@@ -96,7 +96,7 @@ def usePatrolFieldShapes(
       paAngles   <- allAngles
     yield
       val positions = Ags.generatePositions(
-        baseCoords,
+        baseCoords.some,
         blindOffset,
         paAngles,
         vizConf.flatMap(_.asAcqOffsets),
@@ -104,15 +104,15 @@ def usePatrolFieldShapes(
       )
 
       val visualizations =
-        AgsVisualization.patrolFieldGeometries(agsParams, positions)
+        AgsVisualization.patrolFieldGeometries(agsParams, positions.value.toNonEmptyList)
 
       val individualFields = visualizations.toList
         .filter: pfv =>
           pfv.position.geometryType match
             case GeometryType.Base         => pfVisibility.showBase.value
             case GeometryType.BlindOffset  => pfVisibility.showBlindOffset.value
-            case GeometryType.AcqOffset    => pfVisibility.showAcquisitionOffset.value
-            case GeometryType.SciOffset    => pfVisibility.showScienceOffset.value
+            case GeometryType.AcqGuidedOffset    => pfVisibility.showAcquisitionOffset.value
+            case GeometryType.SciGuidedOffset    => pfVisibility.showScienceOffset.value
             case GeometryType.Intersection => pfVisibility.showIntersection.value
             case GeometryType.Vignetting   => false
         .zipWithIndex

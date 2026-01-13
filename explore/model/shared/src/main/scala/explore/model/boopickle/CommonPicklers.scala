@@ -5,9 +5,11 @@ package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
 import cats.Order
+import cats.Order.given
 import cats.data.NonEmptyChain
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
+import cats.data.NonEmptySet
 import coulomb.*
 import coulomb.syntax.*
 import eu.timepit.refined.*
@@ -45,6 +47,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.Year
 import java.time.ZoneId
+import scala.collection.immutable.SortedSet
 
 trait CommonPicklers {
   given picklerRefined[A: Pickler, B](using Validate[A, B]): Pickler[A Refined B] =
@@ -93,6 +96,12 @@ trait CommonPicklers {
     transformPickler((a: NonEmptyList[(A, B)]) => NonEmptyMap.of(a.head, a.tail*))(
       _.toNel
     )
+
+  given picklerSortedSet[A: {Order, Pickler}]: Pickler[SortedSet[A]] =
+    transformPickler((a: Set[A]) => SortedSet.from(a))(_.toSet)
+
+  given picklerNonEmptySet[A: {Order, Pickler}]: Pickler[NonEmptySet[A]] =
+    transformPickler(NonEmptySet.fromSetUnsafe[A](_))(_.toSortedSet)
 
   given Pickler[Wavelength] =
     transformPickler((i: Int) =>

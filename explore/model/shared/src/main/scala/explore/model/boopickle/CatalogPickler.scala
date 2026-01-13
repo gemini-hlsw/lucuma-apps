@@ -12,7 +12,6 @@ import eu.timepit.refined.api.Refined
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
-import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
@@ -22,6 +21,7 @@ import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
+import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Parallax
@@ -77,7 +77,7 @@ trait CatalogPicklers extends ItcPicklers:
 
   given Pickler[GuideStarCandidate] = generatePickler
 
-  given Pickler[AgsPosition] = generatePickler
+  given Pickler[OffsetPosition] = generatePickler
 
   given Pickler[AgsParams.GmosAgsParams] = generatePickler
 

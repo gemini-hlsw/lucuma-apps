@@ -24,7 +24,6 @@ import explore.utils.OdbRestClient
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.ags.AgsParams
-import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.AngularSize
 import lucuma.catalog.BlindOffsetCandidate
@@ -36,6 +35,7 @@ import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.geom.OffsetGenerator
+import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.math.Arc
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
@@ -115,7 +115,7 @@ object reusability:
   given Reusability[BasicConfiguration]                 = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq
   given Reusability[GuideStarCandidate]                 = Reusability.by(_.name.value)
-  given Reusability[AgsPosition]                        = Reusability.byEq
+  given Reusability[OffsetPosition]                     = Reusability.byEq
   given Reusability[AgsParams]                          = Reusability.byEq
   given Reusability[AgsState]                           = Reusability.byEq
   given Reusability[ObsConfiguration]                   = Reusability.byEq

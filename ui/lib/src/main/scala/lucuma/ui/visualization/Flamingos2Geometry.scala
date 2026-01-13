@@ -4,6 +4,7 @@
 package lucuma.ui.visualization
 
 import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import lucuma.ags.AcquisitionOffsets
@@ -118,8 +119,8 @@ object Flamingos2Geometry:
   def f2Geometry(
     referenceCoordinates:    Coordinates,
     blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptyList[GuidedOffset]],
-    acquisitionOffsets:      Option[NonEmptyList[GuidedOffset]],
+    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
+    acquisitionOffsets:      Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
@@ -144,7 +145,7 @@ object Flamingos2Geometry:
               probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, lyotWheel, Css.Empty)
 
             val positions = Ags.generatePositions(
-              referenceCoordinates,
+              referenceCoordinates.some,
               blindOffset,
               NonEmptyList.one(posAngle),
               acquisitionOffsets.map(AcquisitionOffsets.apply),
@@ -160,7 +161,7 @@ object Flamingos2Geometry:
               (conf, fpu).mapN: (_, fpu) =>
                 val fpuMask   = Flamingos2FpuMask.Builtin(fpu)
                 val agsParams = AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port)
-                val calcs     = agsParams.posCalculations(positions)
+                val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)

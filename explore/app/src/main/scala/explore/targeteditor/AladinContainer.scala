@@ -26,11 +26,11 @@ import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.GeometryType
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -349,7 +349,7 @@ object AladinContainer extends AladinCommon {
                                        // Maybe we should refactor the code to move the logic out of the AGS project.
                                        // We should revise the logic anyway, since AGS only works with guided offsets, and now we want to show unguided ones as well.
                                        Ags.generatePositions(
-                                         baseCoordinates,
+                                         baseCoordinates.some,
                                          blindOffset,
                                          NonEmptyList.one(posAngle),
                                          vizConf.flatMap(_.asAcqOffsets),
@@ -484,22 +484,21 @@ object AladinContainer extends AladinCommon {
         val configOffsets: List[SvgTarget.OffsetIndicator] =
           offsetPositions.value.toList.flatMap { positions =>
             val offsetIndicators: MapView[GeometryType, List[SvgTarget.OffsetIndicator]] =
-              positions
+              positions.value.toSortedSet
                 .groupBy(_.geometryType)
                 .view
                 .mapValues:
                   _.toList.zipWithIndex.flatMap: (pos, i) =>
                     for
                       idx <- refineV[NonNegative](i).toOption
-                      // pos.location is already rotated, apply with Angle0
-                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.location)
+                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.rotatedOffset.value)
                     yield SvgTarget.OffsetIndicator(
                       c,
                       idx,
                       pos.offsetPos,
-                      if pos.geometryType == GeometryType.SciOffset then SequenceType.Science
+                      if pos.geometryType == GeometryType.SciGuidedOffset then SequenceType.Science
                       else SequenceType.Acquisition,
-                      if pos.geometryType == GeometryType.SciOffset then
+                      if pos.geometryType == GeometryType.SciGuidedOffset then
                         if true then ExploreStyles.ScienceOffsetPosition // TODO check for unguided
                         else ExploreStyles.ScienceUnguidedOffsetPosition
                       else ExploreStyles.AcquisitionOffsetPosition,
@@ -507,11 +506,11 @@ object AladinContainer extends AladinCommon {
                     )
             // order is important, science to be drawn above acq
             offsetIndicators
-              .get(GeometryType.AcqOffset)
+              .get(GeometryType.AcqGuidedOffset)
               .filter(_ => props.globalPreferences.acquisitionOffsets.value)
               .orEmpty ++
               offsetIndicators
-                .get(GeometryType.SciOffset)
+                .get(GeometryType.SciGuidedOffset)
                 .filter(_ => props.globalPreferences.scienceOffsets.value)
                 .orEmpty
           }
