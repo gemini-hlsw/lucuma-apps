@@ -184,12 +184,14 @@ object TargetSummaryTile:
                     size = Button.Size.Small,
                     icon = Icons.CheckDouble,
                     label = "Select All",
+                    clazz = LucumaPrimeStyles.Compact |+| ExploreStyles.CompactNowrap,
                     onClick = toggleAllRowsSelected(true)
                   ).compact,
                   Button(
                     size = Button.Size.Small,
                     icon = Icons.SquareXMark,
                     label = "Select None",
+                    clazz = LucumaPrimeStyles.Compact |+| ExploreStyles.CompactNowrap,
                     onClick = props.focusTargetId(none) >> toggleAllRowsSelected(false)
                   ).compact
                 ),
