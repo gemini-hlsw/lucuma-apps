@@ -4,13 +4,11 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import clue.annotation.GraphQL
 import lucuma.core.model.ExposureTimeMode
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.odb.*
 
-@GraphQL
 object ExposureTimeModeSubquery
     extends GraphQLSubquery.Typed[ObservationDB, ExposureTimeMode]("ExposureTimeMode"):
   override val subquery: String = s"""

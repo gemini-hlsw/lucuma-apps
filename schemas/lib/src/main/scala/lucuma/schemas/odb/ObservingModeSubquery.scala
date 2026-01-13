@@ -76,6 +76,26 @@ object ObservingModeSubquery
             }
           }
           gmosNorthImaging {
+            variant {
+              variantType
+              grouped {
+                order
+                offsets $TelescopeConfigGeneratorSubquery
+                skyCount
+                skyOffsets $TelescopeConfigGeneratorSubquery
+              }
+              interleaved {
+                offsets $TelescopeConfigGeneratorSubquery
+                skyCount
+                skyOffsets $TelescopeConfigGeneratorSubquery
+              }
+              preImaging { 
+                offset1 $OffsetSubquery
+                offset2 $OffsetSubquery
+                offset3 $OffsetSubquery
+                offset4 $OffsetSubquery
+              }
+            }
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
@@ -84,8 +104,6 @@ object ObservingModeSubquery
               filter
               exposureTimeMode $ExposureTimeModeSubquery
             }
-            defaultMultipleFiltersMode
-            explicitMultipleFiltersMode
             defaultBin
             explicitBin
             defaultAmpReadMode
@@ -94,7 +112,6 @@ object ObservingModeSubquery
             explicitAmpGain
             defaultRoi
             explicitRoi
-            offsets $OffsetSubquery
           }
           gmosSouthImaging {
             initialFilters {
@@ -105,8 +122,6 @@ object ObservingModeSubquery
               filter
               exposureTimeMode $ExposureTimeModeSubquery
             }
-            defaultMultipleFiltersMode
-            explicitMultipleFiltersMode
             defaultBin
             explicitBin
             defaultAmpReadMode
@@ -115,7 +130,6 @@ object ObservingModeSubquery
             explicitAmpGain
             defaultRoi
             explicitRoi
-            offsets $OffsetSubquery
           }
           flamingos2LongSlit {
             initialDisperser

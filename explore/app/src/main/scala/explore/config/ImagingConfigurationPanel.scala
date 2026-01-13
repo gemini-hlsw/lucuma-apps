@@ -13,7 +13,6 @@ import explore.model.NarrowBand
 import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
@@ -48,19 +47,20 @@ object ImagingConfigurationPanel
         p.options
           .zoom(ScienceRequirements.Imaging.combinedFilters.some.andThen(Combination.Value))
 
-      ReactFragment(
+      React.Fragment(
         FormInputTextView(
           id = "configuration-fov".refined,
           value = fov,
-          label = ReactFragment("Minimum FoV", HelpIcon("configuration/fov.md".refined)),
+          label = React.Fragment("Minimum FoV", HelpIcon("configuration/fov.md".refined)),
           units = "arcsec",
           validFormat = angleArcsecsFormat,
           changeAuditor = angleArcsecondsChangeAuditor,
           disabled = p.readonly
         ).clearable,
-        <.label("Filters",
-                HelpIcon("configuration/filter.md".refined),
-                LucumaPrimeStyles.FormFieldLabel
+        <.label(
+          "Filters",
+          HelpIcon("configuration/filter.md".refined),
+          LucumaPrimeStyles.FormFieldLabel
         ),
         CheckboxView(
           id = "narrowband-filter".refined,

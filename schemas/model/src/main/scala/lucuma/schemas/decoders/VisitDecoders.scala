@@ -30,6 +30,8 @@ import lucuma.schemas.model.*
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
 
+import scala.annotation.targetName
+
 trait VisitDecoders:
   given Decoder[Dataset.Filename] = Decoder.instance: c =>
     c.as[String]
@@ -248,6 +250,7 @@ trait VisitDecoders:
         .map:
           ExecutionVisits.Flamingos2(_)
 
+  @targetName("ExecutionVisitsDecoder")
   given Decoder[Option[ExecutionVisits]] =
     List(
       Decoder[ExecutionVisits.GmosNorth].widen,

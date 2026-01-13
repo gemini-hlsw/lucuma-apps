@@ -24,6 +24,7 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
+import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.BasicConfiguration
 
 import java.text.DecimalFormat
@@ -304,5 +305,11 @@ trait DisplayImplicits:
       s"GMOS-S Imaging $filterStr"
     case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)        =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
+
+  given Display[GmosImagingVariantType] = Display.byShortName(_.display)
+
+  given Display[WavelengthOrder] = Display.byShortName:
+    case WavelengthOrder.Increasing => "Increasing"
+    case WavelengthOrder.Decreasing => "Decreasing"
 
 object display extends DisplayImplicits

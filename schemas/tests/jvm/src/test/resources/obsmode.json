@@ -1,20 +1,54 @@
 {
+  "gmosNorthLongSlit": null,
   "gmosSouthLongSlit": null,
   "gmosNorthImaging": {
+    "variant": {
+      "variantType": "GROUPED",
+      "grouped": {
+        "order": "INCREASING",
+        "offsets": {
+          "generatorType": "NONE",
+          "enumerated": null,
+          "random": null,
+          "spiral": null,
+          "uniform": null
+        },
+        "skyCount": 0,
+        "skyOffsets": {
+          "generatorType": "NONE",
+          "enumerated": null,
+          "random": null,
+          "spiral": null,
+          "uniform": null
+        }
+      },
+      "interleaved": null,
+      "preImaging": null
+    },
     "initialFilters": [
       {
-        "filter": "HA",
-        "exposureTimeMode": { "signalToNoise": { "value": 900, "at": { "picometers": 1 } } }
+        "filter": "Z",
+        "exposureTimeMode": {
+          "signalToNoise": {
+            "value": 5,
+            "at": { "picometers": 1 }
+          },
+          "timeAndCount": null
+        }
       }
     ],
     "filters": [
       {
-        "filter": "HA",
-        "exposureTimeMode": { "signalToNoise": { "value": 900, "at": { "picometers": 1 } } }
+        "filter": "Z",
+        "exposureTimeMode": {
+          "signalToNoise": {
+            "value": 5,
+            "at": { "picometers": 1 }
+          },
+          "timeAndCount": null
+        }
       }
     ],
-    "defaultMultipleFiltersMode": "GROUPED",
-    "explicitMultipleFiltersMode": null,
     "defaultBin": "TWO",
     "explicitBin": null,
     "defaultAmpReadMode": "SLOW",
@@ -22,8 +56,7 @@
     "defaultAmpGain": "LOW",
     "explicitAmpGain": null,
     "defaultRoi": "FULL_FRAME",
-    "explicitRoi": null,
-    "offsets": []
+    "explicitRoi": null
   },
   "gmosSouthImaging": null,
   "flamingos2LongSlit": null

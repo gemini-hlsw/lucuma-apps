@@ -16,7 +16,7 @@ import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
 import org.scalajs.dom.SVGGElement
 
-case class OffsetSVG(
+final case class OffsetSvg(
   p:        Double,
   q:        Double,
   maxP:     Long,
@@ -25,10 +25,10 @@ case class OffsetSVG(
   oType:    SequenceType,
   idx:      NonNegInt,
   offset:   Offset
-) extends ReactFnProps(OffsetSVG)
+) extends ReactFnProps(OffsetSvg)
 
-object OffsetSVG
-    extends ReactFnComponent[OffsetSVG](p =>
+object OffsetSvg
+    extends ReactFnComponent[OffsetSvg](p =>
       val areaSize = scale(p.maxP * (2 * p.radius + 3))
 
       val (offP, offQ) = Offset.signedDecimalArcseconds.get(p.offset)

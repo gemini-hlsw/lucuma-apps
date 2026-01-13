@@ -199,30 +199,25 @@ object AladinCell extends ModelOptics with AladinCommon:
   private val component = ScalaFnComponent[Props]: props =>
     for {
       ctx                 <- useContext(AppContext.ctx)
-      trackingMapResult   <- useEffectResultWithDeps((props.obsTargets, props.obsTime, props.site)):
-                               (targets, at, s) =>
-                                 import ctx.given
-                                 // if there is a TOO, don't bother getting tracking
-                                 if (targets.hasTargetOfOpportunity)
-                                   RegionOrTrackingMap.Empty.asRight.pure
-                                 else
-                                   // get it for the full semester for visualization purposes, with
-                                   // high resolution around the obsTime.
-                                   getMixedResolutionRegionOrTrackingMap(
-                                     targets.allTargets.toList,
-                                     s,
-                                     at
-                                   )
+      trackingMapResult   <-
+        useEffectResultWithDeps((props.obsTargets, props.obsTime, props.site)): (targets, at, s) =>
+          import ctx.given
+          // if there is a TOO, don't bother getting tracking
+          if (targets.hasTargetOfOpportunity)
+            RegionOrTrackingMap.Empty.asRight.pure
+          else
+            // get it for the full semester for visualization purposes, with
+            // high resolution around the obsTime.
+            getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
       obsTargetsCoordsPot <-
         useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
           (targets, at, trPot) =>
-            trPot.map(tr =>
+            trPot.map: tr =>
               // Don't need coords for TOO observations, either
               if (targets.hasTargetOfOpportunity)
                 ObservationTargetsCoordinatesAt.emptyAt(at)
               else
                 tr.flatMap(map => ObservationTargetsCoordinatesAt(at, targets, map))
-            )
       // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates          <-
         useEffectResultWithDeps(

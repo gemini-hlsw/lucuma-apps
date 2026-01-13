@@ -27,7 +27,11 @@ import org.typelevel.cats.time.instances.duration.*
 
 import java.time.Duration
 
-case class ObsConfiguration(
+/**
+ * Contains, as far as possible, all the configuration for executing an observation, including
+ * instrument and telescope config, which includes offsets, duration, etc.
+ */
+final case class ObsConfiguration(
   configuration:      Option[BasicConfiguration],
   selectedConfig:     ConfigSelection, // selected row(s) in the modes table
   posAngleProperties: Option[PAProperties],

@@ -260,7 +260,12 @@
   }
 
   .science-offset-position {
-    // dark turqoise for science offsets
+    // light green for guided science offsets (same color as guided icon)
+    stroke: lightgreen;
+  }
+
+  .science-unguided-offset-position {
+    // dark turqoise for unguided science offsets
     stroke: hsl(181deg 100% 41% / 100%);
   }
 
