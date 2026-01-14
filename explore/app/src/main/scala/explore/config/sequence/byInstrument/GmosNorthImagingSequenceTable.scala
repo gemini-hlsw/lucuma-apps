@@ -12,6 +12,7 @@ import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.*
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
 final case class GmosNorthImagingSequenceTable(
   visits:      List[Visit.GmosNorth],

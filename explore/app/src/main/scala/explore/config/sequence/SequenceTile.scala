@@ -82,63 +82,84 @@ object SequenceTile extends SequenceTileHelper:
                           )
           _            <- useEffectWithDeps(liveSequence.data): dataPot =>
                             props.sequenceChanged.set(dataPot.void)
-        yield props.sequenceChanged.get
-          .flatMap(_ => liveSequence.data)
-          .renderPot(
-            (visitsOpt, sequenceDataOpt) =>
-              // TODO Show visits even if sequence data is not available
-              sequenceDataOpt
-                .fold[VdomNode](<.div("Empty or incomplete sequence data returned by server")) {
-                  case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
-                    val visits: List[Visit.GmosNorth] =
-                      visitsOpt
-                        .collect:
-                          case ExecutionVisits.GmosNorth(vs) => vs.toList
-                        .orEmpty
-
-                    signalToNoise match
-                      case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
-                        GmosNorthSpectroscopySequenceTable(visits, config, acquisitionSn, scienceSn)
-                      case InstrumentSignalToNoise.GmosNorthImaging(snPerFilter)          =>
-                        GmosNorthImagingSequenceTable(visits, config, snPerFilter)
-                      case _                                                              => ??? // TODO Error case
-                  case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
-                    val visits: List[Visit.GmosSouth] =
-                      visitsOpt
-                        .collect:
-                          case ExecutionVisits.GmosSouth(vs) => vs.toList
-                        .orEmpty
-
-                    signalToNoise match
-                      case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
-                        GmosSouthSpectroscopySequenceTable(visits, config, acquisitionSn, scienceSn)
-                      case InstrumentSignalToNoise.GmosSouthImaging(snPerFilter)          =>
-                        GmosSouthImagingSequenceTable(visits, config, snPerFilter)
-                      case _                                                              => ??? // TODO Error case
-                  case SequenceData(
-                        InstrumentExecutionConfig.Flamingos2(config),
-                        InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
-                      ) =>
-                    Flamingos2SequenceTable(
-                      visitsOpt
-                        .collect:
-                          case ExecutionVisits.Flamingos2(visits) => visits.toList
-                        .orEmpty,
-                      config,
-                      acquisitionSn,
-                      scienceSn
-                    )
-                  case _                                                                        => ??? // TODO Error case
-                },
-            errorRender = m =>
-              <.div(ExploreStyles.SequencesPanelError)(
-                Message(
-                  text = m.getMessage,
-                  severity = Message.Severity.Warning,
-                  icon = Icons.ExclamationTriangle
-                )
-              )
+        yield
+          val mismatchError = Message(
+            text = "ERROR: Sequence and S/N are inconsistent.",
+            severity = Message.Severity.Error
           )
+
+          props.sequenceChanged.get
+            .flatMap(_ => liveSequence.data)
+            .renderPot(
+              (visitsOpt, sequenceDataOpt) =>
+                // TODO Show visits even if sequence data is not available
+                sequenceDataOpt
+                  .fold[VdomNode](
+                    Message(
+                      text = "Empty or incomplete sequence data returned by server",
+                      severity = Message.Severity.Error
+                    )
+                  ) {
+                    case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
+                      val visits: List[Visit.GmosNorth] =
+                        visitsOpt
+                          .collect:
+                            case ExecutionVisits.GmosNorth(vs) => vs.toList
+                          .orEmpty
+
+                      signalToNoise match
+                        case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                          GmosNorthSpectroscopySequenceTable(
+                            visits,
+                            config,
+                            acquisitionSn,
+                            scienceSn
+                          )
+                        case InstrumentSignalToNoise.GmosNorthImaging(snPerFilter)          =>
+                          GmosNorthImagingSequenceTable(visits, config, snPerFilter)
+                        case _                                                              => mismatchError
+                    case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
+                      val visits: List[Visit.GmosSouth] =
+                        visitsOpt
+                          .collect:
+                            case ExecutionVisits.GmosSouth(vs) => vs.toList
+                          .orEmpty
+
+                      signalToNoise match
+                        case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                          GmosSouthSpectroscopySequenceTable(
+                            visits,
+                            config,
+                            acquisitionSn,
+                            scienceSn
+                          )
+                        case InstrumentSignalToNoise.GmosSouthImaging(snPerFilter)          =>
+                          GmosSouthImagingSequenceTable(visits, config, snPerFilter)
+                        case _                                                              => mismatchError
+                    case SequenceData(
+                          InstrumentExecutionConfig.Flamingos2(config),
+                          InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                        ) =>
+                      Flamingos2SequenceTable(
+                        visitsOpt
+                          .collect:
+                            case ExecutionVisits.Flamingos2(visits) => visits.toList
+                          .orEmpty,
+                        config,
+                        acquisitionSn,
+                        scienceSn
+                      )
+                    case _                                                                        => mismatchError
+                  },
+              errorRender = m =>
+                <.div(ExploreStyles.SequencesPanelError)(
+                  Message(
+                    text = m.getMessage,
+                    severity = Message.Severity.Warning,
+                    icon = Icons.ExclamationTriangle
+                  )
+                )
+            )
       )
 
   private case class Title(obsExecution: Execution) extends ReactFnProps(Title)

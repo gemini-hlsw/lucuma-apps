@@ -9,8 +9,7 @@ import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
+import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.Visit
@@ -31,7 +30,6 @@ private trait SequenceTable[S, D](
   def clientMode: ClientMode
   def obsId: Observation.Id
   def config: ExecutionConfig[S, D]
-  def snPerClass: Map[SequenceType, (SingleSN, TotalSN)]
   def visits: List[Visit[D]]
   def executionState: ExecutionState
   def currentRecordedVisit: Option[RecordedVisit]
@@ -43,6 +41,8 @@ private trait SequenceTable[S, D](
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
   def onDatasetQaChange: Dataset.Id => EditableQaFields => Callback
   def datasetIdsInFlight: Set[Dataset.Id]
+
+  def signalToNoise: SequenceType => D => Option[SignalToNoise]
 
   private lazy val lastVisitStepIds: Option[(Step.Id, Option[Step.Id])] =
     visits.lastOption
@@ -62,7 +62,7 @@ private trait SequenceTable[S, D](
     atoms:   List[Atom[D]],
     seqType: SequenceType
   ): List[SequenceRow.FutureStep[D]] =
-    SequenceRow.FutureStep.fromAtoms(atoms, snPerClass.get(seqType).map(_._1.value))
+    SequenceRow.FutureStep.fromAtoms(atoms, signalToNoise(seqType))
 
   protected[sequence] lazy val currentAtomPendingSteps: List[ObserveStep] =
     executionState.loadedSteps.filterNot(_.isFinished)

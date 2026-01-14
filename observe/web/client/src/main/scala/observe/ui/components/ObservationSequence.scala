@@ -19,6 +19,7 @@ import lucuma.schemas.model.Dataset
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.InstrumentSignalToNoise
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.toast.*
 import monocle.Optional
@@ -150,55 +151,114 @@ object ObservationSequence
                     .runAsync
               }.orEmpty // If there are no visits, there's nothing to change.
 
-        props.sequenceData.config match // TODO Show visits even if sequence data is not available
-          case InstrumentExecutionConfig.GmosNorth(config)  =>
-            GmosNorthSequenceTable(
-              props.clientMode,
-              props.obsId,
-              config,
-              props.sequenceData.snPerClass,
+        val mismatchError = Message(
+          text = "ERROR: Sequence and S/N are inconsistent.",
+          severity = Message.Severity.Error
+        )
+
+        props.sequenceData match // TODO Show visits even if sequence data is not available
+          case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
+            val visits: List[Visit.GmosNorth] =
               props.visits.get
                 .collect:
-                  case ExecutionVisits.GmosNorth(visits) => visits.toList
-                .orEmpty,
-              props.executionState.get,
-              props.currentRecordedVisit,
-              props.progress,
-              props.selectedStep,
-              props.setSelectedStep,
-              props.requests,
-              isPreview = false,
-              onBreakpointFlip,
-              onDatasetQAChange,
-              datasetIdsInFlight.value
-            )
-          case InstrumentExecutionConfig.GmosSouth(config)  =>
-            GmosSouthSequenceTable(
-              props.clientMode,
-              props.obsId,
-              config,
-              props.sequenceData.snPerClass,
+                  case ExecutionVisits.GmosNorth(vs) => vs.toList
+                .orEmpty
+
+            signalToNoise match
+              case InstrumentSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
+                GmosNorthSpectroscopySequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  acquisitionSN,
+                  scienceSN,
+                  visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedStep,
+                  props.setSelectedStep,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip,
+                  onDatasetQAChange,
+                  datasetIdsInFlight.value
+                )
+              case InstrumentSignalToNoise.GmosNorthImaging(snByFilter)           =>
+                GmosNorthImagingSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  snByFilter,
+                  visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedStep,
+                  props.setSelectedStep,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip,
+                  onDatasetQAChange,
+                  datasetIdsInFlight.value
+                )
+              case _                                                              => mismatchError
+          case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
+            val visits: List[Visit.GmosSouth] =
               props.visits.get
                 .collect:
-                  case ExecutionVisits.GmosSouth(visits) => visits.toList
-                .orEmpty,
-              props.executionState.get,
-              props.currentRecordedVisit,
-              props.progress,
-              props.selectedStep,
-              props.setSelectedStep,
-              props.requests,
-              isPreview = false,
-              onBreakpointFlip,
-              onDatasetQAChange,
-              datasetIdsInFlight.value
-            )
-          case InstrumentExecutionConfig.Flamingos2(config) =>
+                  case ExecutionVisits.GmosSouth(vs) => vs.toList
+                .orEmpty
+
+            signalToNoise match
+              case InstrumentSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
+                GmosSouthSpectroscopySequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  acquisitionSN,
+                  scienceSN,
+                  visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedStep,
+                  props.setSelectedStep,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip,
+                  onDatasetQAChange,
+                  datasetIdsInFlight.value
+                )
+              case InstrumentSignalToNoise.GmosSouthImaging(snByFilter)           =>
+                GmosSouthImagingSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  snByFilter,
+                  visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedStep,
+                  props.setSelectedStep,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip,
+                  onDatasetQAChange,
+                  datasetIdsInFlight.value
+                )
+              case _                                                              => mismatchError
+          case SequenceData(
+                InstrumentExecutionConfig.Flamingos2(config),
+                InstrumentSignalToNoise.Spectroscopy(acquisitonSN, scienceSN)
+              ) =>
             Flamingos2SequenceTable(
               props.clientMode,
               props.obsId,
               config,
-              props.sequenceData.snPerClass,
+              acquisitonSN,
+              scienceSN,
               props.visits.get
                 .collect:
                   case ExecutionVisits.Flamingos2(visits) => visits.toList
@@ -214,4 +274,5 @@ object ObservationSequence
               onDatasetQAChange,
               datasetIdsInFlight.value
             )
+          case _                                                                        => mismatchError
     )

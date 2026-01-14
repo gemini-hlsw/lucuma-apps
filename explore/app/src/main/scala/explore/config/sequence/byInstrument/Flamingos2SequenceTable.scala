@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 
 final case class Flamingos2SequenceTable(
   visits:       List[Visit.Flamingos2],

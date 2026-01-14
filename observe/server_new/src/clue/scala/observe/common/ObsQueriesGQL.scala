@@ -232,12 +232,44 @@ object ObsQueriesGQL:
         ... on ItcSpectroscopy {
             acquisition {
               selected {
-                signalToNoiseAt { single }
+                signalToNoiseAt {
+                  single
+                  total
+                }
               }
             }
             spectroscopyScience {
               selected {
-                signalToNoiseAt { single }
+                signalToNoiseAt {
+                  single
+                  total
+                }
+              }
+            }
+          }
+          ... on ItcGmosNorthImaging {
+            gmosNorthImagingScience {
+              filter
+              results {
+                selected {
+                  signalToNoiseAt {
+                    single
+                    total
+                  }
+                }
+              }
+            }
+          }
+          ... on ItcGmosSouthImaging {
+            gmosSouthImagingScience {
+              filter
+              results {
+                selected {
+                  signalToNoiseAt {
+                    single
+                    total
+                  }
+                }
               }
             }
           }

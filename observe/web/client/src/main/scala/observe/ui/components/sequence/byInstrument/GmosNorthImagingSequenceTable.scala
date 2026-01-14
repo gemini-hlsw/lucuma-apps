@@ -4,6 +4,7 @@
 package observe.ui.components.sequence.byInstrument
 
 import japgolly.scalajs.react.*
+import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.Instrument
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
@@ -11,11 +12,10 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.core.model.sequence.gmos
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
+import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
@@ -25,13 +25,12 @@ import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 
-final case class Flamingos2SequenceTable(
+final case class GmosNorthImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.Flamingos2,
-  acquisitonSN:         Option[(SingleSN, TotalSN)],
-  scienceSN:            Option[(SingleSN, TotalSN)],
-  visits:               List[Visit.Flamingos2],
+  config:               ExecutionConfig.GmosNorth,
+  snPerFilter:          Map[GmosNorthFilter, (SingleSN, TotalSN)],
+  visits:               List[Visit.GmosNorth],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
@@ -42,11 +41,15 @@ final case class Flamingos2SequenceTable(
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   onDatasetQaChange:    Dataset.Id => EditableQaFields => Callback,
   datasetIdsInFlight:   Set[Dataset.Id]
-) extends ReactFnProps(Flamingos2SequenceTable.component)
-    with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
-    with SpectroscopySequenceTable[Flamingos2DynamicConfig]
+) extends ReactFnProps(GmosNorthImagingSequenceTable.component)
+    with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+      Instrument.GmosNorth
+    )
+    with ImagingSequenceTable[gmos.DynamicConfig.GmosNorth, GmosNorthFilter]:
+  val filterFromDynamicConfig: gmos.DynamicConfig.GmosNorth => Option[GmosNorthFilter] =
+    _.filter
 
-object Flamingos2SequenceTable
-    extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
-      Instrument.Flamingos2
+object GmosNorthImagingSequenceTable
+    extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+      Instrument.GmosNorth
     )

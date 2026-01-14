@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.*
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Enums.GmosSouthFilter
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
 final case class GmosSouthImagingSequenceTable(
   visits:      List[Visit.GmosSouth],
