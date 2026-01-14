@@ -56,5 +56,7 @@ object ObservationTargetsCoordinatesAt:
       )
     (eEpoch, eScienceMap, eBlindTuple).mapN: (epoch, scienceMap, blindTuple) =>
       val allMap = blindTuple.fold(scienceMap)(scienceMap + _)
-      val base   = NonEmptyList.fromList(scienceMap.values.toList).map(Coordinates.centerOf)
+      val base   = NonEmptyList
+        .fromList(scienceMap.values.toList)
+        .map(Coordinates.centerOf)
       ObservationTargetsCoordinatesAt(epoch, base, blindTuple.map(_._2), allMap, scienceMap)

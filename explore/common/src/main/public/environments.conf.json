@@ -2,8 +2,8 @@
   {
     "hostName": "*",
     "environment": "DEVELOPMENT",
-    "odbURI": "wss://lucuma-postgres-odb-dev.herokuapp.com/ws",
-    "odbRestURI": "https://lucuma-postgres-odb-dev.herokuapp.com",
+    "odbURI": "wss://odb-dev.lucuma.xyz/ws",
+    "odbRestURI": "https://odb-dev.lucuma.xyz",
     "preferencesDBURI": "wss://gpp-prefs-dev.lucuma.xyz/v1/graphql",
     "itcURI": "https://itc-dev.lucuma.xyz/itc",
     "sso": {

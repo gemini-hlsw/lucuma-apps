@@ -336,7 +336,8 @@ object ExploreStyles:
   val AttachmentName: Css             = Css("explore-attachment-name")
   val AttachmentNameInput: Css        = Css("explore-attachment-name-input")
 
-  val FileUpload: Css = Css("explore-fileupload")
+  val FileUpload: Css    = Css("explore-fileupload")
+  val CompactNowrap: Css = Css("explore-compact-nowrap")
 
   // This is rendered without React, so we include SUI classes.
   val CrashMessage: Css = Css(List("ui", "large", "label", "crash-message"))
