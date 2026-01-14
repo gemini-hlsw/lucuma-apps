@@ -436,10 +436,11 @@ class ObserveEngineSuite extends TestCommon {
         ),
         reqConditions,
         List.empty,
-        ODBObservation.Itc(
-          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)),
-          ODBObservation.Itc.SpectroscopyScience(
-            ODBObservation.Itc.SpectroscopyScience.Selected(none)
+        ODBObservation.Itc.ItcSpectroscopy(
+          ODBObservation.Itc.ItcSpectroscopy
+            .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
+          ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience(
+            ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
           )
         )
       ),
@@ -689,11 +690,13 @@ class ObserveEngineSuite extends TestCommon {
         TargetEnvironment(None, GuideEnvironment(List.empty)),
         reqConditions,
         List.empty,
-        ODBObservation.Itc(
-          ODBObservation.Itc.Acquisition(ODBObservation.Itc.Acquisition.Selected(none)),
-          ODBObservation.Itc.SpectroscopyScience(
-            ODBObservation.Itc.SpectroscopyScience.Selected(none)
-          )
+        ODBObservation.Itc.ItcSpectroscopy(
+          ODBObservation.Itc.ItcSpectroscopy
+            .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
+          ODBObservation.Itc.ItcSpectroscopy
+            .SpectroscopyScience(
+              ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
+            )
         )
       ),
       staticCfg1,
