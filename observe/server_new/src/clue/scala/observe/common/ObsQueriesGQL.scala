@@ -229,14 +229,16 @@ object ObsQueriesGQL:
       }
 
       fragment itcFields on Itc {
-          acquisition {
-            selected {
-              signalToNoiseAt { single }
+        ... on ItcSpectroscopy {
+            acquisition {
+              selected {
+                signalToNoiseAt { single }
+              }
             }
-          }
-          science {
-            selected {
-              signalToNoiseAt { single }
+            spectroscopyScience {
+              selected {
+                signalToNoiseAt { single }
+              }
             }
           }
         }

@@ -172,19 +172,21 @@ object SequenceQueriesGQL:
         }
 
         fragment itcFields on Itc {
-          acquisition {
-            selected {
-              signalToNoiseAt {
-                single
-                total
+          ... on ItcSpectroscopy {
+            acquisition {
+              selected {
+                signalToNoiseAt {
+                  single
+                  total
+                }
               }
             }
-          }
-          science {
-            selected {
-              signalToNoiseAt {
-                single
-                total
+            spectroscopyScience {
+              selected {
+                signalToNoiseAt {
+                  single
+                  total
+                }
               }
             }
           }
