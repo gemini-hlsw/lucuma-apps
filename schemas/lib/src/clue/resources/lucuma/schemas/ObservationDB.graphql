@@ -2954,21 +2954,39 @@ input EnumeratedTelescopeConfigGeneratorInput {
 type RandomTelescopeConfigGenerator {
   size: Angle!
   center: Offset!
+  seed: Long!
 }
 
 input RandomTelescopeConfigGeneratorInput {
+  """Radius defining the circular area in which all offsets will be placed."""
   size: AngleInput!
+
+  """Center of the random pattern.  Defaults to (0, 0)."""
   center: OffsetInput
+
+  """
+  Random generator seed, which will default to a random value if not specified.
+  """
+  seed: Long
 }
 
 type SpiralTelescopeConfigGenerator {
   size: Angle!
   center: Offset!
+  seed: Long!
 }
 
 input SpiralTelescopeConfigGeneratorInput {
+  """Radius defining the circular area in which all offsets will be placed."""
   size: AngleInput!
+
+  """Center of the spiral pattern.  Defaults to (0, 0)."""
   center: OffsetInput
+
+  """
+  Random generator seed, which will default to a random value if not specified.
+  """
+  seed: Long
 }
 
 """
@@ -7327,7 +7345,7 @@ type GmosGroupedImagingVariant {
   Offset generator for the science object datasets. The same offset sequence is
   created for each filter using the specified generator.
   """
-  offsets: TelescopeConfigGenerator
+  offsets: TelescopeConfigGenerator!
 
   """
   Number of sky positions to collect before and after object datasets. For
@@ -7337,7 +7355,7 @@ type GmosGroupedImagingVariant {
   skyCount: NonNegInt!
 
   """Offset generator to use for the sky datasets."""
-  skyOffsets: TelescopeConfigGenerator
+  skyOffsets: TelescopeConfigGenerator!
 }
 
 """Input used for specifying GMOS grouped filter imaging."""
@@ -7380,7 +7398,7 @@ type GmosInterleavedImagingVariant {
   Offset generator for the science object datasets. The offset pattern is
   applied to the sequence of science datasets as a whole.
   """
-  offsets: TelescopeConfigGenerator
+  offsets: TelescopeConfigGenerator!
 
   """
   Number of sky positions to collect, per filter, before and after a series of
@@ -7390,7 +7408,7 @@ type GmosInterleavedImagingVariant {
   skyCount: NonNegInt!
 
   """Offset generator to use for the sky datasets."""
-  skyOffsets: TelescopeConfigGenerator
+  skyOffsets: TelescopeConfigGenerator!
 }
 
 """Input used for specifying GMOS interleaved filter imaging."""
@@ -8513,19 +8531,86 @@ type ImagingConfigOptionGmosSouth {
 """An 'Int` in the range 0 to 100"""
 scalar IntPercent
 
+"""An ITC result for a single target."""
+type ItcResult {
+  targetId: TargetId!
+  exposureTime: TimeSpan!
+  exposureCount: NonNegInt!
+  signalToNoiseAt: SignalToNoiseAt
+}
+
+"""A discriminator for the types of ITC results."""
+enum ItcType {
+  SPECTROSCOPY
+  GMOS_NORTH_IMAGING
+  GMOS_SOUTH_IMAGING
+}
+
 """
-Contains the result of calling the ITC for a particular observation.  Since
-the observation may contain multiple targets, there may be multiple results.
-The "result" field contains the selected, representative, result for all
-targets.  If there are multiple successful results, this will be the one that
-prescribes the longest observation. If there is a mix of failures and
-successes, the overall "result" will be a failure. The "all" field contains
-results for all targets regardless.
+Contains the result of calling the ITC for all targets, but a single instrument
+configuration.  Since the observation may contain multiple targets, there may
+be multiple results. The "result" field contains the selected, representative,
+result for all targets.  If there are multiple successful results, this will
+be the one that prescribes the longest observation. If there is a mix of
+failures and successes, the overall "result" will be a failure. The "all" field
+contains results for all targets regardless.
 """
 type ItcResultSet {
   selected: ItcResult!
   all: [ItcResult!]
   index: NonNegInt!
+}
+
+"""
+Combines a GMOS North filter with an `ItcResultSet`. In other words, ITC
+results for all targets but a single filter.
+"""
+type ItcGmosNorthImagingResultSet {
+  filter: GmosNorthFilter!
+  results: ItcResultSet!
+}
+
+"""
+Combines a GMOS South filter with an `ItcResultSet`. In other words, ITC
+results for all targets but a single filter.
+"""
+type ItcGmosSouthImagingResultSet {
+  filter: GmosSouthFilter!
+  results: ItcResultSet!
+}
+
+"""
+ITC results for a particular observation, including relevant instrument
+configurations and targets.  There are specific instances for each `ItcType`.
+"""
+interface Itc {
+  """The type of the Itc results."""
+  itcType: ItcType!
+}
+
+"""
+GMOS North imaging ITC results.  Here each filter is paired with its result
+set.
+"""
+type ItcGmosNorthImaging implements Itc {
+  itcType: ItcType!
+  gmosNorthImagingScience: [ItcGmosNorthImagingResultSet!]!
+}
+
+"""
+GMOS South imaging ITC results.  Here each filter is paired with its result
+set.
+"""
+type ItcGmosSouthImaging implements Itc {
+  itcType: ItcType!
+  gmosSouthImagingScience: [ItcGmosSouthImagingResultSet!]!
+}
+
+"""ITC results for spectroscopy observations."""
+type ItcSpectroscopy implements Itc {
+  itcType: ItcType!
+  acquisition: ItcResultSet!
+  spectroscopyScience: ItcResultSet!
 }
 
 """Calculated signal to noise at a specific wavelength"""
@@ -8538,14 +8623,6 @@ type SignalToNoiseAt {
 
   """Wavelength sn was calculated at"""
   wavelength: Wavelength!
-}
-
-"""A single ITC call result."""
-type ItcResult {
-  targetId: TargetId!
-  exposureTime: TimeSpan!
-  exposureCount: NonNegInt!
-  signalToNoiseAt: SignalToNoiseAt
 }
 
 type LineFluxIntegrated {
@@ -8892,14 +8969,6 @@ type ConfigurationRequest {
 input CreateConfigurationRequestInput {
   observationId: ObservationId
   SET: ConfigurationRequestProperties
-}
-
-type Itc {
-  """The ITC result for the science part of the sequence"""
-  science: ItcResultSet!
-
-  """The ITC result for the acquisition part of the sequence, if any."""
-  acquisition: ItcResultSet
 }
 
 """ObservationId id formatted as `o-[1-9a-f][0-9a-f]*`"""
