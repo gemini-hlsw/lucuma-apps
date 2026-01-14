@@ -59,5 +59,4 @@ object ObservationTargetsCoordinatesAt:
       val base   = NonEmptyList
         .fromList(scienceMap.values.toList)
         .map(Coordinates.centerOf)
-        .orElse(blindTuple.map(_._2))
       ObservationTargetsCoordinatesAt(epoch, base, blindTuple.map(_._2), allMap, scienceMap)

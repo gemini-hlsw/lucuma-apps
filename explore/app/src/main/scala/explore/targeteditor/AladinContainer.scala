@@ -286,7 +286,7 @@ object AladinContainer extends AladinCommon {
       for {
         currentPos              <-
           useState[Option[Coordinates]](
-            positionFromBaseAndOffset(props.obsTimeCoords.baseCoords, props.options.viewOffset)
+            positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords, props.options.viewOffset)
           )
         survey                  <- useMemo(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
                                      _.map(surveyForWavelength).getOrElse(ImageSurvey.DSS)
@@ -300,12 +300,12 @@ object AladinContainer extends AladinCommon {
         // too often, `Center on Target` will not work.
         _                       <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, _) =>
                                      currentPos.setState(
-                                       positionFromBaseAndOffset(props.obsTimeCoords.baseCoords, props.options.viewOffset)
+                                       positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords, props.options.viewOffset)
                                      )
         aladinRef               <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
         _                       <-
-          useEffectWithDeps((props.obsTimeCoords.baseCoords, props.options.viewOffset)):
+          useEffectWithDeps((props.obsTimeCoords.baseOrBlindCoords, props.options.viewOffset)):
             (baseCoords, offset) =>
               val newCoords = positionFromBaseAndOffset(baseCoords, offset)
               newCoords
@@ -318,7 +318,7 @@ object AladinContainer extends AladinCommon {
         // Memoized svg for visualization shapes
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
-                                     props.obsTimeCoords.baseCoords,
+                                     props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
@@ -327,7 +327,7 @@ object AladinContainer extends AladinCommon {
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
                                      props.selectedGuideStar,
-                                     props.obsTimeCoords.baseCoords,
+                                     props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
                                      props.agsVisibility,
                                      props.anglesToTest
@@ -335,7 +335,7 @@ object AladinContainer extends AladinCommon {
         offsetPositions         <- useMemo(
                                      (props.vizConf,
                                       props.selectedGuideStar,
-                                      props.obsTimeCoords.baseCoords,
+                                      props.obsTimeCoords.baseOrBlindCoords,
                                       props.obsTimeCoords.blindOffsetCoords
                                      )
                                    ): (vizConf, selectedGS, baseCoords, blindOffset) =>
@@ -415,7 +415,7 @@ object AladinContainer extends AladinCommon {
         // Use fov from aladin
         fov                     <- useState(none[Fov])
       } yield {
-        val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseCoords
+        val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseOrBlindCoords
 
         /**
          * Called when the position changes, i.e. aladin pans. We want to offset the visualization
