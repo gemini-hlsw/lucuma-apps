@@ -72,6 +72,7 @@ import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
+import OdbObservation.Itc
 
 trait SeqTranslate[F[_]] {
   def translateSequence(
@@ -256,12 +257,32 @@ object SeqTranslate {
           case SequenceType.Science     =>
             (executionConfig.science.map(_.nextAtom), SequenceType.Science)
 
-      val signalToNoise: Option[SignalToNoise] =
-        sequenceType match
-          case SequenceType.Acquisition =>
-            observation.itc.acquisition.selected.signalToNoiseAt.map(_.single)
-          case SequenceType.Science     =>
-            observation.itc.spectroscopyScience.selected.signalToNoiseAt.map(_.single)
+      def signalToNoise(instrumentConfig: D): Option[SignalToNoise] =
+        (observation.itc, instrumentConfig) match
+          case (Itc.ItcSpectroscopy(acquisition, science),
+                _: gmos.DynamicConfig | Flamingos2DynamicConfig
+              ) =>
+            sequenceType match
+              case SequenceType.Acquisition => acquisition.selected.signalToNoiseAt.map(_.single)
+              case SequenceType.Science     => science.selected.signalToNoiseAt.map(_.single)
+          case (Itc.ItcGmosNorthImaging(snByFilter), gnConfig: gmos.DynamicConfig.GmosNorth) =>
+            gnConfig.filter.flatMap: f =>
+              snByFilter
+                .collectFirst:
+                  case Itc.ItcGmosNorthImaging.GmosNorthImagingScience(snFilter, sn)
+                      if snFilter === f =>
+                    sn.selected.signalToNoiseAt.map(_.single)
+                .flatten
+          case (Itc.ItcGmosSouthImaging(snByFilter), gsConfig: gmos.DynamicConfig.GmosSouth) =>
+            gsConfig.filter.flatMap: f =>
+              snByFilter
+                .collectFirst:
+                  case Itc.ItcGmosSouthImaging.GmosSouthImagingScience(snFilter, sn)
+                      if snFilter === f =>
+                    sn.selected.signalToNoiseAt.map(_.single)
+                .flatten
+          // Step/SN mismatch or unsupported instrument
+          case _                                                                             => none
 
       nextAtom
         .map: atom =>
@@ -279,7 +300,7 @@ object SeqTranslate {
                     translateStep(
                       observation,
                       step,
-                      signalToNoise,
+                      signalToNoise(step.instrumentConfig),
                       PosInt.unsafeFrom(startIdx.value + idx),
                       stepType,
                       insSpec,
