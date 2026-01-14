@@ -5,8 +5,7 @@ package explore.config.sequence
 
 import cats.syntax.all.*
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
+import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.AtomExecutionState
@@ -16,7 +15,7 @@ import lucuma.ui.sequence.*
 private trait SequenceTable[S, D]:
   def visits: List[Visit[D]]
   def config: ExecutionConfig[S, D]
-  def snPerClass: Map[SequenceType, (SingleSN, TotalSN)]
+  def signalToNoise: SequenceType => D => Option[SignalToNoise]
 
   private def futureSteps(
     seqType:        SequenceType,
@@ -30,7 +29,8 @@ private trait SequenceTable[S, D]:
               case SequenceType.Science => sequence.possibleFuture
               case _                    => List.empty
           ),
-          snPerClass.get(seqType).map(_._1.value)
+          signalToNoise(seqType)
+          // snPerClass.get(seqType).map(_._1.value)
         )
     if (currentSeqType.contains_(seqType)) allSteps.tail
     else allSteps

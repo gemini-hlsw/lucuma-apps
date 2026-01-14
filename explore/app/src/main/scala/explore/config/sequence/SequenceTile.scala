@@ -31,6 +31,8 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.InstrumentSignalToNoise
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -72,10 +74,11 @@ object SequenceTile extends SequenceTileHelper:
   private object Body
       extends ReactFnComponent[Body](props =>
         for
-          liveSequence <- useLiveSequence(props.obsId,
-                                          props.targetIds,
-                                          props.customSedTimestamps,
-                                          props.calibrationRole
+          liveSequence <- useLiveSequence(
+                            props.obsId,
+                            props.targetIds,
+                            props.customSedTimestamps,
+                            props.calibrationRole
                           )
           _            <- useEffectWithDeps(liveSequence.data): dataPot =>
                             props.sequenceChanged.set(dataPot.void)
@@ -86,33 +89,46 @@ object SequenceTile extends SequenceTileHelper:
               // TODO Show visits even if sequence data is not available
               sequenceDataOpt
                 .fold[VdomNode](<.div("Empty or incomplete sequence data returned by server")) {
-                  case SequenceData(InstrumentExecutionConfig.GmosNorth(config), snPerClass)  =>
-                    GmosNorthSequenceTable(
+                  case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
+                    val visits: List[Visit.GmosNorth] =
                       visitsOpt
                         .collect:
-                          case ExecutionVisits.GmosNorth(visits) => visits.toList
-                        .orEmpty,
-                      config,
-                      snPerClass
-                    )
-                  case SequenceData(InstrumentExecutionConfig.GmosSouth(config), snPerClass)  =>
-                    GmosSouthSequenceTable(
+                          case ExecutionVisits.GmosNorth(vs) => vs.toList
+                        .orEmpty
+
+                    signalToNoise match
+                      case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                        GmosNorthSpectroscopySequenceTable(visits, config, acquisitionSn, scienceSn)
+                      case InstrumentSignalToNoise.GmosNorthImaging(snPerFilter)          =>
+                        GmosNorthImagingSequenceTable(visits, config, snPerFilter)
+                      case _                                                              => ??? // TODO Error case
+                  case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
+                    val visits: List[Visit.GmosSouth] =
                       visitsOpt
                         .collect:
-                          case ExecutionVisits.GmosSouth(visits) => visits.toList
-                        .orEmpty,
-                      config,
-                      snPerClass
-                    )
-                  case SequenceData(InstrumentExecutionConfig.Flamingos2(config), snPerClass) =>
+                          case ExecutionVisits.GmosSouth(vs) => vs.toList
+                        .orEmpty
+
+                    signalToNoise match
+                      case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                        GmosSouthSpectroscopySequenceTable(visits, config, acquisitionSn, scienceSn)
+                      case InstrumentSignalToNoise.GmosSouthImaging(snPerFilter)          =>
+                        GmosSouthImagingSequenceTable(visits, config, snPerFilter)
+                      case _                                                              => ??? // TODO Error case
+                  case SequenceData(
+                        InstrumentExecutionConfig.Flamingos2(config),
+                        InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                      ) =>
                     Flamingos2SequenceTable(
                       visitsOpt
                         .collect:
                           case ExecutionVisits.Flamingos2(visits) => visits.toList
                         .orEmpty,
                       config,
-                      snPerClass
+                      acquisitionSn,
+                      scienceSn
                     )
+                  case _                                                                        => ??? // TODO Error case
                 },
             errorRender = m =>
               <.div(ExploreStyles.SequencesPanelError)(

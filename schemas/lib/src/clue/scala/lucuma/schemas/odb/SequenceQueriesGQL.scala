@@ -190,6 +190,32 @@ object SequenceQueriesGQL:
               }
             }
           }
+          ... on ItcGmosNorthImaging {
+            gmosNorthImagingScience {
+              filter
+              results {
+                selected {
+                  signalToNoiseAt {
+                    single
+                    total
+                  }
+                }
+              }
+            }
+          }
+          ... on ItcGmosSouthImaging {
+            gmosSouthImagingScience {
+              filter
+              results {
+                selected {
+                  signalToNoiseAt {
+                    single
+                    total
+                  }
+                }
+              }
+            }
+          }
         }
       """
 

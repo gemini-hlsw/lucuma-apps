@@ -6,21 +6,22 @@ package explore.config.sequence.byInstrument
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.SequenceType
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.*
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
 
-case class GmosNorthSequenceTable(
-  visits:     List[Visit.GmosNorth],
-  config:     ExecutionConfig.GmosNorth,
-  snPerClass: Map[SequenceType, (SingleSN, TotalSN)]
-) extends ReactFnProps(GmosNorthSequenceTable.component)
+final case class GmosNorthSpectroscopySequenceTable(
+  visits:       List[Visit.GmosNorth],
+  config:       ExecutionConfig.GmosNorth,
+  acquisitonSN: Option[(SingleSN, TotalSN)],
+  scienceSN:    Option[(SingleSN, TotalSN)]
+) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
+    with SpectroscopySequenceTable[gmos.DynamicConfig.GmosNorth]
 
-object GmosNorthSequenceTable
+object GmosNorthSpectroscopySequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth
     )
