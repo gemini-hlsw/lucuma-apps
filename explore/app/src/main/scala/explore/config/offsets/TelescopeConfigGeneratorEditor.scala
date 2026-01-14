@@ -29,7 +29,7 @@ import lucuma.ui.sequence.SequenceStyles
 import lucuma.ui.utils.*
 import monocle.Iso
 
-case class TelescopeConfigGeneratorEditor(
+final case class TelescopeConfigGeneratorEditor(
   id:          NonEmptyString,
   label:       String,
   value:       View[Option[TelescopeConfigGenerator]],
