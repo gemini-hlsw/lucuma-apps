@@ -30,12 +30,14 @@ import japgolly.scalajs.react.*
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
+import lucuma.core.model.Target
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.SplitButton
+import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.primereact.*
@@ -49,11 +51,21 @@ case class AddTargetButton(
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
   readOnly:         Boolean = false,
   buttonClass:      Css = Css.Empty,
-  blindOffset:      Option[View[BlindOffset]] = none
-) extends ReactFnProps(AddTargetButton)
+  blindOffsetInfo:  Option[(Observation.Id, View[BlindOffset])] = none
+) extends ReactFnProps(AddTargetButton):
+  val targetList: View[TargetList] = obsAndTargets.model.zoom(ObservationsAndTargets.targets)
 
 object AddTargetButton
     extends ReactFnComponent[AddTargetButton](props =>
+
+      def updateTargetList(
+        toDelete: Option[Target.Id],
+        toAdd:    Option[TargetWithId]
+      ): Callback =
+        props.targetList.mod: tl =>
+          val removed = toDelete.fold(tl)(tl.removed)
+          toAdd.fold(removed)(a => removed.updated(a.id, a))
+
       def insertTarget(
         programId:        Program.Id,
         obsIds:           ObsIdSet,
@@ -85,16 +97,17 @@ object AddTargetButton
 
       def insertManualBlindOffset(
         obsId:           Observation.Id,
-        targets:         View[TargetList], // does not participate in undo/redo
         targetWithOptId: TargetWithOptId,
-        blindOffset:     Option[View[BlindOffset]]
+        blindOffset:     View[BlindOffset]
       )(using api: OdbObservationApi[IO]): IO[Unit] =
         api
           .setBlindOffsetTarget(obsId, targetWithOptId.target, BlindOffsetType.Manual)
           .flatMap(id =>
-            (targets.mod(_.updated(id, targetWithOptId.withId(id))) >>
-              blindOffset
-                .foldMap(_.set(BlindOffset(true, id.some, BlindOffsetType.Manual)))).toAsync
+            (updateTargetList(
+              blindOffset.get.blindOffsetTargetId,
+              targetWithOptId.withId(id).some
+            ) >>
+              blindOffset.set(BlindOffset(true, id.some, BlindOffsetType.Manual))).toAsync
           )
 
       for
@@ -120,17 +133,33 @@ object AddTargetButton
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 
-        def insertManualBlindOffsetCB(
+        def insertManualBlindOffsetCB(obsId: Observation.Id, blindOffset: View[BlindOffset])(
           targetWithOptId: TargetWithOptId
         ): Callback =
           // the search returns a science target
           val targetAsBlind = targetWithOptId.copy(disposition = TargetDisposition.BlindOffset)
           insertManualBlindOffset(
-            props.obsIds.head,
-            props.obsAndTargets.zoom(ObservationsAndTargets.targets).model,
+            obsId,
             targetAsBlind,
-            props.blindOffset
+            blindOffset
           )
+            .switching(props.adding.async, AreAdding(_))
+            .runAsync
+
+        def initializeAutomaticBlindAOffsetCB(
+          obsId:       Observation.Id,
+          blindOffset: View[BlindOffset]
+        ): Callback =
+          (ctx.odbApi
+            .initializeAutomaticBlindAOffset(obsId) >>
+            (updateTargetList(
+              blindOffset.get.blindOffsetTargetId,
+              none
+            ) >>
+              blindOffset
+                .set(
+                  BlindOffset(true, none, BlindOffsetType.Automatic)
+                )).toAsync)
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 
@@ -162,24 +191,38 @@ object AddTargetButton
                         command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget))
           )
         ) ++
-          props.blindOffset
-            .filterNot(_.get.useBlindOffset)
-            .fold(List.empty)(_ =>
+          props.blindOffsetInfo
+            .fold(List.empty)((obsId, blindOffset) =>
               List(
-                MenuItem.Item(
-                  "Blind Offset Search",
-                  icon = Icons.LocationDot,
-                  command = onSelected.set(insertManualBlindOffsetCB) >>
-                    sources.set(simbad) >> popupState.set(PopupState.Open)
-                ),
-                MenuItem.Item(
-                  "Empty Blind Offset",
-                  icon = Icons.LocationDot,
-                  command = insertManualBlindOffsetCB(
-                    TargetWithOptId(None, EmptySiderealTarget, TargetDisposition.BlindOffset, None)
+                Option.unless(blindOffset.get.isAutomatic)(
+                  MenuItem.Item(
+                    "Automatic Blind Offset",
+                    icon = Icons.LocationDot,
+                    command = initializeAutomaticBlindAOffsetCB(obsId, blindOffset)
                   )
-                )
-              )
+                ),
+                MenuItem
+                  .Item(
+                    "Blind Offset Search",
+                    icon = Icons.LocationDot,
+                    command = onSelected.set(insertManualBlindOffsetCB(obsId, blindOffset)) >>
+                      sources.set(simbad) >> popupState.set(PopupState.Open)
+                  )
+                  .some,
+                MenuItem
+                  .Item(
+                    "Empty Blind Offset",
+                    icon = Icons.LocationDot,
+                    command = insertManualBlindOffsetCB(obsId, blindOffset)(
+                      TargetWithOptId(None,
+                                      EmptySiderealTarget,
+                                      TargetDisposition.BlindOffset,
+                                      None
+                      )
+                    )
+                  )
+                  .some
+              ).flattenOption
             )
 
         React.Fragment(

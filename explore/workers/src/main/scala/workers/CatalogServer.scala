@@ -18,6 +18,7 @@ import lucuma.core.geom.gmos
 import org.http4s.client.middleware.RequestLogger
 import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 
 import java.net.URLDecoder
@@ -27,6 +28,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
+import explore.events.CatalogMessage.BlindOffsetRequest
 
 @JSExportTopLevel("CatalogServer", moduleID = "exploreworkers")
 object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with CatalogCache:
@@ -43,6 +45,7 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
       idb       <- IO(self.indexedDB.toOption)
       stores     = CacheIDBStores()
       cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
+      cache     <- Cache.withIDB[IO](idb, "explore-gaia") // only used for blind offsets for now
       rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
       log       <- IO(summon[LoggerFactory[IO]].getLoggerFromName("catalog-server"))
       httpClient = RequestLogger(
@@ -55,8 +58,9 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
       client     = GaiaClient.build(httpClient)
     } yield invocation =>
       invocation.data match
-        case CatalogMessage.CleanCache                     =>
-          cacheDb.traverse(stores.clean(_).toF[IO]).void
+        case CatalogMessage.CleanCache =>
+          cacheDb.traverse(stores.clean(_).toF[IO]).void *> cache.clear
+
         case req @ CatalogMessage.GSRequest(_, _, obsMode) =>
           val candidatesArea = obsMode match {
             case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit |
@@ -77,3 +81,12 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
           expireGuideStarCandidates(cacheDb, stores, expTime)
             .toF[IO]
             .handleErrorWith(e => log.error(e)("Error expiring guidestar candidates"))
+
+        case BlindOffsetRequest(baseCoordinatesAt) =>
+          given Logger[IO] = log
+          BlindOffsetRequestHandler(
+            client,
+            baseCoordinatesAt,
+            cache,
+            invocation.respond(_)
+          )

@@ -36,7 +36,7 @@ trait OdbTargetApiImpl[F[_]: Sync](using
       .map(_.createTarget.target.id)
       .flatTap(id => ToastCtx[F].showToast(s"Created new target [$id]"))
 
-  def updateTarget(targetId: Target.Id, input: UpdateTargetsInput): F[Unit] =
+  def updateTarget(input: UpdateTargetsInput): F[Unit] =
     UpdateTargetsMutation[F]
       .execute(input)
       .processErrors

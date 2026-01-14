@@ -14,7 +14,7 @@ import queries.common.TargetQueriesGQL.ProgramTargetsDelta
 
 trait OdbTargetApi[F[_]]:
   def insertTarget(programId:      Program.Id, target:         Target): F[Target.Id]
-  def updateTarget(targetId:       Target.Id, input:           UpdateTargetsInput): F[Unit]
+  def updateTarget(input:          UpdateTargetsInput): F[Unit]
   def setTargetExistence(
     programId: Program.Id,
     targetId:  Target.Id,

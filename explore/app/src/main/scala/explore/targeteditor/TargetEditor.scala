@@ -16,6 +16,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AppContext
+import explore.model.BlindOffset
 import explore.model.AttachmentList
 import explore.model.ExploreModelValidators
 import explore.model.GuideStarSelection
@@ -52,6 +53,7 @@ import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.TargetWithId
+import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputText
@@ -87,8 +89,14 @@ case class TargetEditor(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
-  invalidateSequence:  Callback = Callback.empty
-) extends ReactFnProps(TargetEditor.component)
+  invalidateSequence:  Callback = Callback.empty,
+  blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = none
+) extends ReactFnProps(TargetEditor.component):
+  def toManualBlindOffset: Callback =
+    if targetWithId.get.disposition === TargetDisposition.BlindOffset then
+      blindOffsetInfo.foldMap: (_, bo) =>
+        bo.zoom(BlindOffset.blindOffsetType).set(BlindOffsetType.Manual)
+    else Callback.empty
 
 object TargetEditor:
   private type Props = TargetEditor
@@ -184,8 +192,11 @@ object TargetEditor:
                   WHERE = tid.toWhereTarget.assign,
                   SET = TargetPropertiesInput()
                 ),
-                // Invalidate the sequence if the target changes
-                u => props.invalidateSequence.to[IO] >> ctx.odbApi.updateTarget(tid, u)
+                // Invalidate the sequence if the target changes, and if it is a blind offset
+                // make it a manual blind offset
+                u =>
+                  props.invalidateSequence.to[IO] >>
+                    props.toManualBlindOffset.to[IO] >> ctx.odbApi.updateTarget(u)
               )
             ): obsIds =>
               val view = View(target, (mod, cb) => cb(target, mod(target)))
@@ -211,8 +222,6 @@ object TargetEditor:
           props.searching.get.exists(_ === props.obsTargets.focus.id) ||
             cloning.get || props.readonly || readonlyForStatuses.get ||
             props.targetWithId.get.isReadonlyForProgramType(props.programType)
-
-        val oid: Option[Observation.Id] = props.obsInfo.current.map(_.head)
 
         val catalogInfo: Option[CatalogInfo] =
           Target.catalogInfo.getOption(props.targetWithId.get.target).flatten
@@ -453,13 +462,14 @@ object TargetEditor:
             obsTime.value.renderPot(ot =>
               AladinCell(
                 props.userId,
-                oid,
                 props.obsTargets,
                 ot,
                 props.obsConf,
                 props.fullScreen,
                 props.userPreferences,
                 props.guideStarSelection,
+                props.blindOffsetInfo,
+                props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
                 props.isStaffOrAdmin
               )
             ),

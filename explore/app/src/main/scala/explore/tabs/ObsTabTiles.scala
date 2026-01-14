@@ -574,7 +574,7 @@ object ObsTabTiles:
               isStaffOrAdmin = props.isStaffOrAdmin,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
-              blindOffset = blindOffsetView.some
+              blindOffsetInfo = (props.obsId, blindOffsetView).some
             )
 
           val constraintsSelector: VdomNode =

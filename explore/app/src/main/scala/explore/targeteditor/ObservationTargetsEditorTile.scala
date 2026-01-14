@@ -38,6 +38,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
@@ -85,7 +86,7 @@ object ObservationTargetsEditorTile:
     allowEditingOngoing: Boolean,
     isStaffOrAdmin:      Boolean,
     sequenceChanged:     Callback = Callback.empty,
-    blindOffset:         Option[View[BlindOffset]] = None,
+    blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
     backButton:          Option[VdomNode] = None
   )(using odbApi: OdbObservationApi[IO])(using Logger[IO]): Tile[TileState] = {
     // Save the time here. this works for the obs and target tabs
@@ -152,7 +153,7 @@ object ObservationTargetsEditorTile:
             allowEditingOngoing,
             isStaffOrAdmin,
             sequenceChanged,
-            blindOffset,
+            blindOffsetInfo,
             tileState.zoom(TileState.columnVisibility),
             tileState.zoom(TileState.obsEditInfo)
           ),
@@ -169,7 +170,7 @@ object ObservationTargetsEditorTile:
           digest,
           tileState.zoom(TileState.columnVisibility),
           tileState.get.obsEditInfo,
-          blindOffset,
+          blindOffsetInfo,
           tileSize
         )
     )
@@ -210,7 +211,7 @@ object ObservationTargetsEditorTile:
     allowEditingOngoing: Boolean,
     isStaffOrAdmin:      Boolean,
     sequenceChanged:     Callback,
-    blindOffset:         Option[View[BlindOffset]], // only pass for a single observation
+    blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])],
     columnVisibility:    View[ColumnVisibility],
     obsEditInfo:         View[Option[ObsIdSetEditInfo]]
   ) extends ReactFnProps(Body):
@@ -237,12 +238,12 @@ object ObservationTargetsEditorTile:
                               case _           => none
           // Build asterism IDs that include blind offset
           targetIds    <- useMemo(
-                            (scienceIds, props.blindOffset.flatMap(_.get.blindOffsetTargetId))
+                            (scienceIds, props.blindOffsetInfo.flatMap(_._2.get.blindOffsetTargetId))
                           ): (scienceIds, oBlindId) =>
                             // Include blind offset target in the IDs if present
                             scienceIds.value ++ oBlindId.toList
-          allTargets   <- useMemo(targetIds): ids =>
-                            ObservationTargets.fromIdsAndTargets(ids.value, props.allTargets.get)
+          obsTargets   <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
+                            ObservationTargets.fromIdsAndTargets(ids.value, targets)
           _            <- useLayoutEffectWithDeps(
                             (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
                           ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
@@ -292,7 +293,7 @@ object ObservationTargetsEditorTile:
                   props.userId.some,
                   props.programId,
                   unexecutedObs,
-                  allTargets,
+                  obsTargets,
                   props.obsAndTargets,
                   selectedTargetView,
                   props.onAsterismUpdate,
@@ -300,7 +301,7 @@ object ObservationTargetsEditorTile:
                   distinctSite,
                   fullScreen.get,
                   props.readonly || obsEditInfo.allAreExecuted,
-                  props.blindOffset,
+                  props.blindOffsetInfo.map(_._2),
                   props.columnVisibility
                 ),
             (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
@@ -335,7 +336,8 @@ object ObservationTargetsEditorTile:
                       readonly = props.readonly,
                       allowEditingOngoing = props.allowEditingOngoing,
                       isStaffOrAdmin = props.isStaffOrAdmin,
-                      invalidateSequence = props.sequenceChanged
+                      invalidateSequence = props.sequenceChanged,
+                      blindOffsetInfo = props.blindOffsetInfo
                     )
                 ).some
           )
@@ -353,7 +355,7 @@ object ObservationTargetsEditorTile:
     digest:                 CalculatedValue[Option[ExecutionDigest]],
     columnVisibility:       View[ColumnVisibility],
     obsEditInfo:            Option[ObsIdSetEditInfo],
-    blindOffset:            Option[View[BlindOffset]],
+    blindOffsetInfo:        Option[(Observation.Id, View[BlindOffset])],
     tileSize:               TileSizeState
   ) extends ReactFnProps(Title.component)
 
@@ -394,7 +396,7 @@ object ObservationTargetsEditorTile:
                         props.onAsterismUpdate,
                         props.readonly || obsEditInfo.allAreExecuted,
                         buttonClass = ExploreStyles.AddTargetButton,
-                        blindOffset = props.blindOffset
+                        blindOffsetInfo = props.blindOffsetInfo
                       )
                 ),
                 obsTimeEditor,

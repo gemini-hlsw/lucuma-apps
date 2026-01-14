@@ -40,12 +40,12 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.model.Target
-import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
+import lucuma.schemas.model.syntax.minimizeEphemeris
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
 import lucuma.ui.aladin.AladinFullScreenControl
 import lucuma.ui.aladin.Fov
@@ -62,13 +62,14 @@ import scala.concurrent.duration.*
 
 case class AladinCell(
   uid:                User.Id,
-  obsId:              Option[Observation.Id],
   obsTargets:         ObservationTargets,
   obsTime:            Instant,
   obsConf:            Option[ObsConfiguration],
   fullScreen:         View[AladinFullScreen],
   userPreferences:    View[UserPreferences],
   guideStarSelection: View[GuideStarSelection],
+  blindOffsetInfo:    Option[(Observation.Id, View[BlindOffset])],
+  allTargets:         View[TargetList], // for blind offset, no undo
   isStaffOrAdmin:     Boolean
 ) extends ReactFnProps(AladinCell.component):
   val needsAGS: Boolean =
@@ -218,41 +219,42 @@ object AladinCell extends ModelOptics with AladinCommon:
                 ObservationTargetsCoordinatesAt.emptyAt(at)
               else
                 tr.flatMap(map => ObservationTargetsCoordinatesAt(at, targets, map))
+      oBaseTracking       <-
+        useMemo((props.obsTargets, trackingMapResult.value.toOption.flatMap(_.toOption))):
+          (obsTargets, trackings) =>
+            // We should have trackings for all the targets, so we'll ignore errors here.
+            trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
       // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates          <-
         useEffectResultWithDeps(
           (props.siderealDiscretizedObsTime,
-           props.obsTargets,
-           trackingMapResult.value.toOption
-             .flatMap(_.toOption),
+           oBaseTracking,
            props.obsConf.flatMap(_.obsModeType),
            props.needsAGS
           )
-        ): (siderealDiscretizedObsTime, obsTargets, trackings, obsModeType, needsAGS) =>
+        ): (siderealDiscretizedObsTime, oTracking, obsModeType, needsAGS) =>
           import ctx.given
 
-          // We should have trackings for all the targets, so we'll ignore errors here.
-          val oBaseTracking: Option[Tracking] =
-            trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
-
-          (obsModeType, oBaseTracking)
+          (obsModeType, oTracking.value)
             .mapN: (_, baseTracking) =>
               if (needsAGS)
                 (for
                   _          <- props.obsConf
                                   .flatMap(_.agsState)
                                   .foldMap(_.async.set(AgsState.LoadingCandidates))
-                  candidates <- obsModeType
-                                  .map(ot =>
-                                    CatalogClient[IO]
-                                      .requestSingle:
-                                        CatalogMessage.GSRequest(
-                                          baseTracking,
-                                          siderealDiscretizedObsTime.obsTime,
-                                          ot
-                                        )
-                                  )
-                                  .getOrElse(none.pure[IO])
+                  candidates <-
+                    obsModeType
+                      .map(ot =>
+                        CatalogClient[IO]
+                          .requestSingle:
+                            // If there is a non-sidereal, minimize the ephemeris to the obs time
+                            CatalogMessage.GSRequest(
+                              baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
+                              siderealDiscretizedObsTime.obsTime,
+                              ot
+                            )
+                      )
+                      .getOrElse(none.pure[IO])
                 yield candidates)
                   .guarantee:
                     props.obsConf
@@ -453,38 +455,52 @@ object AladinCell extends ModelOptics with AladinCommon:
                 )
           else EmptyVdom
 
+      val renderBlindOffsetControl =
+        (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>
+          BlindOffsetControl(
+            boInfo._1,
+            boInfo._2,
+            props.obsTime,
+            bt,
+            props.obsTargets,
+            props.allTargets
+          )
+
       <.div(ExploreStyles.TargetAladinCell)(
         (trackingMapResult.value.value, obsTargetsCoordsPot.value).tupled.renderPot: (etr, eco) =>
           (etr, eco).tupled.fold(
             err => Message(severity = Message.Severity.Error, text = err),
             (tr, co) =>
-              <.div(
-                ExploreStyles.AladinContainerColumn,
-                AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
+              React.Fragment(
                 <.div(
-                  ExploreStyles.AladinToolbox,
-                  Button(onClickE = menuRef.toggle).withMods(
-                    ExploreStyles.ButtonOnAladin,
-                    Icons.ThinSliders
-                  )
-                ),
-                options.get.renderPot(opt =>
-                  React.Fragment(renderAladin(opt, tr, co),
-                                 renderToolbar(opt),
-                                 renderAgsOverlay(opt)
-                  )
-                ),
-                options
-                  .zoom(Pot.readyPrism[AsterismVisualOptions])
-                  .mapValue: opts =>
-                    AladinPreferencesMenu(
-                      props.uid,
-                      props.obsTargets.ids,
-                      globalPreferences,
-                      opts,
-                      menuRef,
-                      props.isStaffOrAdmin
+                  ExploreStyles.AladinContainerColumn,
+                  AladinFullScreenControl(fullScreenView.zoom(fullScreenIso)),
+                  <.div(
+                    ExploreStyles.AladinToolbox,
+                    Button(onClickE = menuRef.toggle).withMods(
+                      ExploreStyles.ButtonOnAladin,
+                      Icons.ThinSliders
                     )
+                  ),
+                  options.get.renderPot(opt =>
+                    React.Fragment(renderAladin(opt, tr, co),
+                                   renderToolbar(opt),
+                                   renderAgsOverlay(opt)
+                    )
+                  )
+                ),
+                renderBlindOffsetControl
               )
-          )
+          ),
+        options
+          .zoom(Pot.readyPrism[AsterismVisualOptions])
+          .mapValue: options =>
+            AladinPreferencesMenu(
+              props.uid,
+              props.obsTargets.ids,
+              globalPreferences,
+              options,
+              menuRef,
+              props.isStaffOrAdmin
+            )
       )
