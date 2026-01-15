@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
 import explore.events.CatalogMessage
+import explore.events.CatalogMessage.BlindOffsetRequest
 import explore.model.boopickle.CatalogPicklers.given
 import japgolly.webapputil.indexeddb.IndexedDb
 import lucuma.catalog.clients.GaiaClient
@@ -28,7 +29,6 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
-import explore.events.CatalogMessage.BlindOffsetRequest
 
 @JSExportTopLevel("CatalogServer", moduleID = "exploreworkers")
 object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with CatalogCache:

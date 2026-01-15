@@ -40,7 +40,6 @@ object CatalogMessage extends CatalogPicklers {
 
   case class BlindOffsetRequest(
     baseCoordinatesAt: CoordinatesAt
-    // obsTime:         Instant
   ) extends Request derives Eq {
     type ResponseType = ErrorMsgOr[List[BlindOffsetCandidate]]
   }

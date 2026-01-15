@@ -146,12 +146,12 @@ object AddTargetButton
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 
-        def initializeAutomaticBlindAOffsetCB(
+        def initializeAutomaticBlindOffsetCB(
           obsId:       Observation.Id,
           blindOffset: View[BlindOffset]
         ): Callback =
           (ctx.odbApi
-            .initializeAutomaticBlindAOffset(obsId) >>
+            .initializeAutomaticBlindOffset(obsId) >>
             (updateTargetList(
               blindOffset.get.blindOffsetTargetId,
               none
@@ -198,7 +198,7 @@ object AddTargetButton
                   MenuItem.Item(
                     "Automatic Blind Offset",
                     icon = Icons.LocationDot,
-                    command = initializeAutomaticBlindAOffsetCB(obsId, blindOffset)
+                    command = initializeAutomaticBlindOffsetCB(obsId, blindOffset)
                   )
                 ),
                 MenuItem

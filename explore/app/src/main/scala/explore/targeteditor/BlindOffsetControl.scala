@@ -37,10 +37,12 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.FieldSet
 import lucuma.react.primereact.TooltipOptions
+import lucuma.schemas.ObservationDB.Types.UpdateTargetsInput
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.model.syntax.*
-import lucuma.schemas.ObservationDB.Types.UpdateTargetsInput
+import lucuma.schemas.odb.input.toTargetPropertiesInput
+import lucuma.schemas.odb.input.toWhereTarget
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
@@ -48,8 +50,6 @@ import org.typelevel.log4cats.Logger
 
 import java.time.Duration
 import java.time.Instant
-import lucuma.schemas.odb.input.toWhereTarget
-import lucuma.schemas.odb.input.toTargetPropertiesInput
 
 case class BlindOffsetControl(
   obsId:        Observation.Id,
@@ -124,14 +124,14 @@ object BlindOffsetControl
               .switching(isWorking.async, IsWorking(_))
           )
 
-      def initializeAutomaticBlindAOffset(
+      def initializeAutomaticBlindOffset(
         current:   Option[Target.Id],
         isWorking: View[IsWorking]
       )(using
         api:       OdbObservationApi[IO],
         logger:    Logger[IO]
       ): IO[Unit] =
-        (api.initializeAutomaticBlindAOffset(props.obsId) >>
+        (api.initializeAutomaticBlindOffset(props.obsId) >>
           updateTargetListAndBlindOffset(current, none, BlindOffsetType.Automatic)
             .when_(current.isDefined)
             .toAsync)
@@ -177,7 +177,7 @@ object BlindOffsetControl
                   // if the list is empty, delete the current blind offset, if any
                   list.headOption.fold(
                     oCurrent.foldMap: twid =>
-                      initializeAutomaticBlindAOffset(twid.id.some, isWorking)
+                      initializeAutomaticBlindOffset(twid.id.some, isWorking)
                   ): candidate =>
                     if oCurrent.forall(_.target =!= candidate.catalogResult.target)
                     then
@@ -263,7 +263,6 @@ object BlindOffsetControl
             candidatesResult.value.value.renderPot(
               oel =>
                 oel.fold(EmptyVdom): el =>
-                  // <.div(
                   el.fold(err => s"Error loading candidates: ${err}", renderControl(_)),
               pendingRender = "Loading candidates..."
             )

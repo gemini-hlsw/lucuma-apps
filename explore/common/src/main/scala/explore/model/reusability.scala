@@ -27,8 +27,8 @@ import lucuma.ags.AgsParams
 import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.AngularSize
-import lucuma.catalog.CatalogTargetResult
 import lucuma.catalog.BlindOffsetCandidate
+import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosNorthGrating
