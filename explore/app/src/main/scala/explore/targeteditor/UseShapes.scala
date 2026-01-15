@@ -76,8 +76,8 @@ def usePatrolFieldShapes(
       case GeometryType.AcqUnguidedOffset => VisualizationStyles.PatrolFieldAcquisitionOffset
       case GeometryType.SciGuidedOffset   => VisualizationStyles.PatrolFieldScienceOffset
       case GeometryType.SciUnguidedOffset => VisualizationStyles.PatrolFieldScienceOffset
-      case GeometryType.Intersection      => VisualizationStyles.PatrolFieldIntersectionDebug
-      case GeometryType.Vignetting        => VisualizationStyles.DebugScienceVignetting
+      case GeometryType.AgsIntersection   => VisualizationStyles.PatrolFieldIntersectionDebug
+      case GeometryType.AgsVignetting     => VisualizationStyles.DebugScienceVignetting
 
   useMemo(
     (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest)
@@ -121,8 +121,8 @@ def usePatrolFieldShapes(
               case GeometryType.AcqUnguidedOffset => pfVisibility.showAcquisitionOffset.value
               case GeometryType.SciGuidedOffset   => pfVisibility.showScienceOffset.value
               case GeometryType.SciUnguidedOffset => pfVisibility.showScienceOffset.value
-              case GeometryType.Intersection      => pfVisibility.showIntersection.value
-              case GeometryType.Vignetting        => false
+              case GeometryType.AgsIntersection   => pfVisibility.showIntersection.value
+              case GeometryType.AgsVignetting     => false
           .zipWithIndex
           .map: (pfv, idx) =>
             val baseCss = pfv.position.geometryType.css
