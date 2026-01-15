@@ -16,7 +16,9 @@ final case class BlindOffset(
   useBlindOffset:      Boolean,
   blindOffsetTargetId: Option[Target.Id],
   blindOffsetType:     BlindOffsetType
-) derives Eq
+) derives Eq:
+  val isAutomatic: Boolean = useBlindOffset && blindOffsetType === BlindOffsetType.Automatic
+  val isManual: Boolean    = useBlindOffset && blindOffsetType === BlindOffsetType.Manual
 
 object BlindOffset:
   val useBlindOffset: Lens[BlindOffset, Boolean]                = Focus[BlindOffset](_.useBlindOffset)

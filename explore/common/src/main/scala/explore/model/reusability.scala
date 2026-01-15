@@ -27,6 +27,7 @@ import lucuma.ags.AgsParams
 import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.AngularSize
+import lucuma.catalog.BlindOffsetCandidate
 import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosNorthFpu
@@ -85,6 +86,7 @@ object reusability:
   given Reusability[BandedProgramTime]      = Reusability.byEq
   given Reusability[Group]                  = Reusability.byEq
   given Reusability[GroupWarning]           = Reusability.byEq
+  given Reusability[BlindOffset]            = Reusability.byEq
   given [V: Eq]: Reusability[Perishable[V]] = Reusability.byEq
 
   /**
@@ -108,6 +110,7 @@ object reusability:
   given [A: Eq]: Reusability[Arc[A]]                    = Reusability.byEq
   given Reusability[Progress]                           = Reusability.byEq
   given Reusability[AngularSize]                        = Reusability.byEq
+  given Reusability[BlindOffsetCandidate]               = Reusability.byEq
   given Reusability[CatalogTargetResult]                = Reusability.byEq
   given Reusability[BasicConfiguration]                 = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq

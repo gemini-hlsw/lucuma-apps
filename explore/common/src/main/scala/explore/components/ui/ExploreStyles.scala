@@ -291,6 +291,7 @@ object ExploreStyles:
   val TargetAladin: Css              = Css("aladin-target")
   val AladinHelpIcon: Css            = Css("aladin-help-icon")
   val AladinSurvey: Css              = Css("aladin-survey")
+  val BlindOffsetControl             = Css("blind-offset-control")
   val TargetForm: Css                = Css("target-form")
   val TargetProperMotionForm: Css    = Css("target-proper-motion-form")
   val TargetRVControls: Css          = Css("target-rv-controls")

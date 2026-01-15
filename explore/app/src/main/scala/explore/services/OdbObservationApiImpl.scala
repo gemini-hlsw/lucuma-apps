@@ -425,7 +425,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .processErrors
       .void
 
-  def initializeAutomaticBlindAOffset(obsId: Observation.Id): F[Unit] =
+  def initializeAutomaticBlindOffset(obsId: Observation.Id): F[Unit] =
     // By setting useBlindOffset to true and blindOffsetType to automatic, the target
     // we be set by whomever is doing the automatic target assignments. At the time of this
     // writing, that is explore.

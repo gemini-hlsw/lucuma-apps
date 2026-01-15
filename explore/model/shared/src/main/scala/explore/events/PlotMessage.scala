@@ -5,6 +5,8 @@ package explore.events
 
 import boopickle.DefaultBasic.*
 import boopickle.Pickler
+import cats.Eq
+import cats.derived.*
 import explore.model.boopickle.CatalogPicklers
 import lucuma.core.enums.Site
 import lucuma.core.model.Semester
@@ -13,14 +15,14 @@ import workers.WorkerRequest
 
 object PlotMessage extends CatalogPicklers {
 
-  sealed trait Request   extends WorkerRequest
+  sealed trait Request   extends WorkerRequest derives Eq
   case object CleanCache extends Request {
     type ResponseType = Unit
   }
 
   // We return `Long`s instead `Instant` and `Duration` in order to offload as much of the
   // work as possible to the worker. The chart will need the numeric values to plot.
-  case class SemesterPoint(epochMilli: Long, visibilityMillis: Long)
+  case class SemesterPoint(epochMilli: Long, visibilityMillis: Long) derives Eq
   object SemesterPoint {
     given Pickler[SemesterPoint] = generatePickler
   }
@@ -30,7 +32,7 @@ object PlotMessage extends CatalogPicklers {
     site:     Site,
     tracking: Tracking,
     dayRate:  Long
-  ) extends Request {
+  ) extends Request derives Eq {
     type ResponseType = SemesterPoint
   }
 

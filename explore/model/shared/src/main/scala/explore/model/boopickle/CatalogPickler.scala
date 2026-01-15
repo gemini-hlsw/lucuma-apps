@@ -16,6 +16,9 @@ import lucuma.ags.AgsPosition
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
+import lucuma.catalog.AngularSize
+import lucuma.catalog.BlindOffsetCandidate
+import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.Flamingos2Fpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.Area
@@ -23,19 +26,22 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Parallax
 import lucuma.core.math.ProperMotion
+import lucuma.core.model.CatalogInfo
 import lucuma.core.model.CompositeTracking
 import lucuma.core.model.ConstantTracking
 import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.SiderealTracking
+import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.Timestamp
+import lucuma.schemas.model.CoordinatesAt
 
 import scala.collection.immutable.TreeMap
 
 // Boopicklers for catalog related types
-trait CatalogPicklers extends CommonPicklers:
+trait CatalogPicklers extends ItcPicklers:
 
   given Pickler[Epoch] =
     new Pickler[Epoch] {
@@ -128,5 +134,17 @@ trait CatalogPicklers extends CommonPicklers:
     .addConcreteType[ConstantTracking]
     .addConcreteType[EphemerisTracking]
     .addConcreteType[CompositeTracking]
+
+  given Pickler[CatalogInfo] = generatePickler
+
+  given Pickler[Target.Sidereal] = generatePickler
+
+  given Pickler[AngularSize] = generatePickler
+
+  given Pickler[CatalogTargetResult] = generatePickler
+
+  given Pickler[BlindOffsetCandidate] = generatePickler
+
+  given Pickler[CoordinatesAt] = generatePickler
 
 object CatalogPicklers extends CatalogPicklers

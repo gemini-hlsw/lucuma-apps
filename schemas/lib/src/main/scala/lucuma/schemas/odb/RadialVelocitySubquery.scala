@@ -10,8 +10,10 @@ import lucuma.schemas.ObservationDB
 
 object RadialVelocitySubquery
     extends GraphQLSubquery.Typed[ObservationDB, RadialVelocity]("RadialVelocity"):
+  // Use metersPerSecond rather than centimetersPerSecond because the latter is a Long
+  // and loses precision.
   override val subquery: String = """
         {
-          centimetersPerSecond
+          metersPerSecond
         }
       """

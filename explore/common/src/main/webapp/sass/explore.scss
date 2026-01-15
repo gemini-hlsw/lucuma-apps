@@ -907,9 +907,26 @@ thead tr th.sticky-header {
 
   .target-aladin-cell {
     grid-area: aladin;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    row-gap: 0.5em;
 
     & > .p-inline-message {
       width: 100%;
+    }
+
+    .blind-offset-control {
+      .p-fieldset-legend {
+        padding: 0 0.5rem;
+        border: 0;
+        background: unset;
+      }
+
+      .p-fieldset-content {
+        padding: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+      }
     }
   }
 

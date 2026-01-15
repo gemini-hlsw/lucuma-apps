@@ -108,5 +108,5 @@ trait OdbObservationApi[F[_]]:
     blindOffsetType: BlindOffsetType
   ): F[Target.Id]
 
-  def deleteBlindOffsetTarget(obsId:         Observation.Id): F[Unit]
-  def initializeAutomaticBlindAOffset(obsId: Observation.Id): F[Unit]
+  def deleteBlindOffsetTarget(obsId:        Observation.Id): F[Unit]
+  def initializeAutomaticBlindOffset(obsId: Observation.Id): F[Unit]
