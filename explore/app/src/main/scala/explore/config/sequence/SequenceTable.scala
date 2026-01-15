@@ -30,7 +30,6 @@ private trait SequenceTable[S, D]:
               case _                    => List.empty
           ),
           signalToNoise(seqType)
-          // snPerClass.get(seqType).map(_._1.value)
         )
     if (currentSeqType.contains_(seqType)) allSteps.tail
     else allSteps
