@@ -4,7 +4,7 @@
 package explore.model
 
 import cats.Eq
-import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.derived.*
 import cats.implicits.*
 import explore.model.syntax.all.*
@@ -22,8 +22,8 @@ import lucuma.schemas.model.CentralWavelength
 // Or the minimal config from the modes table
 case class ConfigurationForVisualization private (
   configuration:              BasicConfiguration,
-  scienceOffsets:             Option[NonEmptyList[TelescopeConfig]],
-  acquisitionOffsets:         Option[NonEmptyList[TelescopeConfig]],
+  scienceOffsets:             Option[NonEmptySet[TelescopeConfig]],
+  acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
   centralWavelength:          Option[CentralWavelength]
@@ -35,13 +35,13 @@ case class ConfigurationForVisualization private (
       configuration.obsModeType.defaultPosAngleConstraint.fallbackPosAngle(none)
     )
 
-  def guidedAcqOffsets: Option[NonEmptyList[GuidedOffset]] =
+  def guidedAcqOffsets: Option[NonEmptySet[GuidedOffset]] =
     acquisitionOffsets.flatMap(_.guidedOffsets)
 
   def asAcqOffsets: Option[AcquisitionOffsets] =
     acquisitionOffsets.flatMap(_.asAcqOffsets)
 
-  def guidedSciOffsets: Option[NonEmptyList[GuidedOffset]] =
+  def guidedSciOffsets: Option[NonEmptySet[GuidedOffset]] =
     scienceOffsets.flatMap(_.guidedOffsets)
 
   def asSciOffsets: Option[ScienceOffsets] =

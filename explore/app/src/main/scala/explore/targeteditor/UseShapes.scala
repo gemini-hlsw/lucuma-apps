@@ -16,7 +16,7 @@ import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
-import lucuma.ags.GeometryType
+import lucuma.ags.PatrolFieldVisualization
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.ObservingModeType
@@ -24,6 +24,8 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
+import lucuma.core.geom.offsets.GeometryType
+import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -68,12 +70,14 @@ def usePatrolFieldShapes(
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match
-      case GeometryType.Base         => VisualizationStyles.PatrolFieldBase
-      case GeometryType.BlindOffset  => VisualizationStyles.PatrolFieldBlindOffset
-      case GeometryType.AcqOffset    => VisualizationStyles.PatrolFieldAcquisitionOffset
-      case GeometryType.SciOffset    => VisualizationStyles.PatrolFieldScienceOffset
-      case GeometryType.Intersection => VisualizationStyles.PatrolFieldIntersectionDebug
-      case GeometryType.Vignetting   => VisualizationStyles.DebugScienceVignetting
+      case GeometryType.Base              => VisualizationStyles.PatrolFieldBase
+      case GeometryType.BlindOffset       => VisualizationStyles.PatrolFieldBlindOffset
+      case GeometryType.AcqGuidedOffset   => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.AcqUnguidedOffset => VisualizationStyles.PatrolFieldAcquisitionOffset
+      case GeometryType.SciGuidedOffset   => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.SciUnguidedOffset => VisualizationStyles.PatrolFieldScienceOffset
+      case GeometryType.AgsIntersection   => VisualizationStyles.PatrolFieldIntersectionDebug
+      case GeometryType.AgsVignetting     => VisualizationStyles.DebugScienceVignetting
 
   useMemo(
     (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest)
@@ -95,33 +99,37 @@ def usePatrolFieldShapes(
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield
-      val positions = Ags.generatePositions(
-        baseCoords,
-        blindOffset,
-        paAngles,
-        vizConf.flatMap(_.asAcqOffsets),
-        vizConf.flatMap(_.asSciOffsets)
-      )
+      val positions: OffsetPositions =
+        Ags.generatePositions(
+          baseCoords.some,
+          blindOffset,
+          paAngles,
+          vizConf.flatMap(_.asAcqOffsets),
+          vizConf.flatMap(_.asSciOffsets)
+        )
 
-      val visualizations =
-        AgsVisualization.patrolFieldGeometries(agsParams, positions)
+      val visualizations: NonEmptyList[PatrolFieldVisualization] =
+        AgsVisualization.patrolFieldGeometries(agsParams, positions.value.toNonEmptyList)
 
-      val individualFields = visualizations.toList
-        .filter: pfv =>
-          pfv.position.geometryType match
-            case GeometryType.Base         => pfVisibility.showBase.value
-            case GeometryType.BlindOffset  => pfVisibility.showBlindOffset.value
-            case GeometryType.AcqOffset    => pfVisibility.showAcquisitionOffset.value
-            case GeometryType.SciOffset    => pfVisibility.showScienceOffset.value
-            case GeometryType.Intersection => pfVisibility.showIntersection.value
-            case GeometryType.Vignetting   => false
-        .zipWithIndex
-        .map: (pfv, idx) =>
-          val baseCss = pfv.position.geometryType.css
-          val idxCss  = Css(s"pf-idx-$idx")
-          (baseCss |+| idxCss, pfv.posPatrolField)
+      val individualFields: List[(Css, ShapeExpression)] =
+        visualizations.toList
+          .filter: pfv =>
+            pfv.position.geometryType match
+              case GeometryType.Base              => pfVisibility.showBase.value
+              case GeometryType.BlindOffset       => pfVisibility.showBlindOffset.value
+              case GeometryType.AcqGuidedOffset   => pfVisibility.showAcquisitionOffset.value
+              case GeometryType.AcqUnguidedOffset => pfVisibility.showAcquisitionOffset.value
+              case GeometryType.SciGuidedOffset   => pfVisibility.showScienceOffset.value
+              case GeometryType.SciUnguidedOffset => pfVisibility.showScienceOffset.value
+              case GeometryType.AgsIntersection   => pfVisibility.showIntersection.value
+              case GeometryType.AgsVignetting     => false
+          .zipWithIndex
+          .map: (pfv, idx) =>
+            val baseCss = pfv.position.geometryType.css
+            val idxCss  = Css(s"pf-idx-$idx")
+            (baseCss |+| idxCss, pfv.posPatrolField)
 
-      val intersections =
+      val intersections: List[(Css, ShapeExpression)] =
         if (pfVisibility.showIntersection.value)
           visualizations.toList
             .groupBy(_.position.posAngle)
@@ -137,15 +145,16 @@ def usePatrolFieldShapes(
           List.empty
 
       // We need a hidden achor centered at 0, 0
-      val anchor = conf.obsModeType match
-        case ObservingModeType.Flamingos2LongSlit                                      =>
-          (VisualizationStyles.Anchor,
-           flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
-          )
-        case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-          (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
-        case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-          (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+      val anchor: (Css, ShapeExpression) =
+        conf.obsModeType match
+          case ObservingModeType.Flamingos2LongSlit                                      =>
+            (VisualizationStyles.Anchor,
+             flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
+            )
+          case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+            (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
+            (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -160,7 +169,7 @@ def useVisualizationShapes(
   useMemo(
     (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS)
   ) { (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS) =>
-    val candidatesVisibilityCss =
+    val candidatesVisibilityCss: Css =
       ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
 
     (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>

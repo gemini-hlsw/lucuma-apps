@@ -4,7 +4,7 @@
 package explore.model
 
 import cats.Eq
-import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.derived.*
 import cats.syntax.all.*
 import crystal.react.View
@@ -37,8 +37,8 @@ final case class ObsConfiguration(
   posAngleProperties: Option[PAProperties],
   constraints:        Option[ConstraintSet],
   centralWavelength:  Option[CentralWavelength],
-  scienceOffsets:     Option[NonEmptyList[TelescopeConfig]],
-  acquisitionOffsets: Option[NonEmptyList[TelescopeConfig]],
+  scienceOffsets:     Option[NonEmptySet[TelescopeConfig]],
+  acquisitionOffsets: Option[NonEmptySet[TelescopeConfig]],
   averagePA:          Option[AveragePABasis],
   obsDuration:        Option[Duration],
   needGuideStar:      Boolean,

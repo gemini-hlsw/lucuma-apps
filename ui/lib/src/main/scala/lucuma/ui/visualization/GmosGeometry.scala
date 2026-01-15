@@ -4,6 +4,7 @@
 package lucuma.ui.visualization
 
 import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import lucuma.ags.AcquisitionOffsets
@@ -132,8 +133,8 @@ object GmosGeometry:
   def gmosGeometry(
     referenceCoordinates:    Coordinates,
     blindOffset:             Option[Coordinates],
-    scienceOffsets:          Option[NonEmptyList[GuidedOffset]],
-    acquisitionOffsets:      Option[NonEmptyList[GuidedOffset]],
+    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
+    acquisitionOffsets:      Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
@@ -158,7 +159,7 @@ object GmosGeometry:
               probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, Css.Empty)
 
             val positions = Ags.generatePositions(
-              referenceCoordinates,
+              referenceCoordinates.some,
               blindOffset,
               NonEmptyList.one(posAngle),
               acquisitionOffsets.map(AcquisitionOffsets.apply),
@@ -174,7 +175,7 @@ object GmosGeometry:
             val patrolFieldIntersection =
               conf.map: _ =>
                 val agsParams = AgsParams.GmosAgsParams(fpu, port)
-                val calcs     = agsParams.posCalculations(positions)
+                val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)

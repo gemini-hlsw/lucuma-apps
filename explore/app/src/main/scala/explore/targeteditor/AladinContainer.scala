@@ -24,13 +24,13 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.GeometryType
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.offsets.GeometryType
+import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -340,20 +340,17 @@ object AladinContainer extends AladinCommon {
                                      )
                                    ): (vizConf, selectedGS, baseCoords, blindOffset) =>
                                      baseCoords.map: baseCoordinates =>
-                                       val posAngle = selectedGS
+                                       val posAngle: Angle = selectedGS
                                          .map(_.posAngle)
                                          .orElse(vizConf.map(_.posAngle))
                                          .getOrElse(Angle.Angle0)
 
-                                       // The AGS machinery is hacked to compute the positions. This has actually nothing to do with AGS.
-                                       // Maybe we should refactor the code to move the logic out of the AGS project.
-                                       // We should revise the logic anyway, since AGS only works with guided offsets, and now we want to show unguided ones as well.
-                                       Ags.generatePositions(
-                                         baseCoordinates,
+                                       OffsetPositions.fromTelescopeConfigs(
+                                         baseCoordinates.some,
                                          blindOffset,
-                                         NonEmptyList.one(posAngle),
-                                         vizConf.flatMap(_.asAcqOffsets),
-                                         vizConf.flatMap(_.asSciOffsets)
+                                         posAngle,
+                                         vizConf.flatMap(_.acquisitionOffsets),
+                                         vizConf.flatMap(_.scienceOffsets)
                                        )
         // resize detector
         resize                  <- useResizeDetector
@@ -480,41 +477,49 @@ object AladinContainer extends AladinCommon {
               )
             }
 
+        def offsetStyle(geometryType: GeometryType): Css =
+          geometryType match
+            case GeometryType.AcqGuidedOffset   => ExploreStyles.AcquisitionOffsetPosition
+            case GeometryType.AcqUnguidedOffset => ExploreStyles.AcquisitionOffsetPosition
+            case GeometryType.SciGuidedOffset   => ExploreStyles.ScienceOffsetPosition
+            case _                              => ExploreStyles.ScienceUnguidedOffsetPosition
+
         // Offset indicators calculated and rotated directly by AGS
         val configOffsets: List[SvgTarget.OffsetIndicator] =
-          offsetPositions.value.toList.flatMap { positions =>
-            val offsetIndicators: MapView[GeometryType, List[SvgTarget.OffsetIndicator]] =
-              positions
-                .groupBy(_.geometryType)
-                .view
-                .mapValues:
-                  _.toList.zipWithIndex.flatMap: (pos, i) =>
-                    for
-                      idx <- refineV[NonNegative](i).toOption
-                      // pos.location is already rotated, apply with Angle0
-                      c   <- positionFromBaseAndOffset(baseCoordinates, pos.location)
-                    yield SvgTarget.OffsetIndicator(
-                      c,
-                      idx,
-                      pos.offsetPos,
-                      if pos.geometryType == GeometryType.SciOffset then SequenceType.Science
-                      else SequenceType.Acquisition,
-                      if pos.geometryType == GeometryType.SciOffset then
-                        if true then ExploreStyles.ScienceOffsetPosition // TODO check for unguided
-                        else ExploreStyles.ScienceUnguidedOffsetPosition
-                      else ExploreStyles.AcquisitionOffsetPosition,
-                      OffsetIndicatorSize
-                    )
-            // order is important, science to be drawn above acq
-            offsetIndicators
-              .get(GeometryType.AcqOffset)
-              .filter(_ => props.globalPreferences.acquisitionOffsets.value)
-              .orEmpty ++
+          offsetPositions.value
+            .map(_.value.toList)
+            .map { positions =>
+              val offsetIndicators: MapView[GeometryType, List[SvgTarget.OffsetIndicator]] =
+                positions
+                  .groupBy(_.geometryType)
+                  .view
+                  .mapValues:
+                    _.toList.zipWithIndex.flatMap: (pos, i) =>
+                      for
+                        idx <- refineV[NonNegative](i).toOption
+                        c   <- positionFromBaseAndOffset(baseCoordinates, pos.rotatedOffset.value)
+                      yield SvgTarget.OffsetIndicator(
+                        c,
+                        idx,
+                        pos.offsetPos,
+                        if Set(GeometryType.AcqGuidedOffset, GeometryType.AcqUnguidedOffset)
+                            .contains_(pos.geometryType)
+                        then SequenceType.Acquisition
+                        else SequenceType.Science,
+                        offsetStyle(pos.geometryType),
+                        OffsetIndicatorSize
+                      )
+              // order is important, science to be drawn above acq
               offsetIndicators
-                .get(GeometryType.SciOffset)
-                .filter(_ => props.globalPreferences.scienceOffsets.value)
-                .orEmpty
-          }
+                .get(GeometryType.AcqGuidedOffset)
+                .filter(_ => props.globalPreferences.acquisitionOffsets.value)
+                .orEmpty ++
+                offsetIndicators
+                  .get(GeometryType.SciGuidedOffset)
+                  .filter(_ => props.globalPreferences.scienceOffsets.value)
+                  .orEmpty
+            }
+            .orEmpty
 
         val blindOffsets: List[SvgTarget] =
           targetCoords
