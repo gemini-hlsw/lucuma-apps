@@ -17,9 +17,9 @@ import lucuma.react.primereact.Message
 import lucuma.schemas.model.AtomRecord
 import lucuma.schemas.model.Dataset
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.InstrumentSignalToNoise
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.toast.*
 import monocle.Optional
@@ -165,7 +165,7 @@ object ObservationSequence
                 .orEmpty
 
             signalToNoise match
-              case InstrumentSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
+              case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosNorthSpectroscopySequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -184,7 +184,7 @@ object ObservationSequence
                   onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
-              case InstrumentSignalToNoise.GmosNorthImaging(snByFilter)           =>
+              case ModeSignalToNoise.GmosNorthImaging(snByFilter)           =>
                 GmosNorthImagingSequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -202,7 +202,7 @@ object ObservationSequence
                   onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
-              case _                                                              => mismatchError
+              case _                                                        => mismatchError
           case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
             val visits: List[Visit.GmosSouth] =
               props.visits.get
@@ -211,7 +211,7 @@ object ObservationSequence
                 .orEmpty
 
             signalToNoise match
-              case InstrumentSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
+              case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosSouthSpectroscopySequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -230,7 +230,7 @@ object ObservationSequence
                   onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
-              case InstrumentSignalToNoise.GmosSouthImaging(snByFilter)           =>
+              case ModeSignalToNoise.GmosSouthImaging(snByFilter)           =>
                 GmosSouthImagingSequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -248,10 +248,10 @@ object ObservationSequence
                   onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
-              case _                                                              => mismatchError
+              case _                                                        => mismatchError
           case SequenceData(
                 InstrumentExecutionConfig.Flamingos2(config),
-                InstrumentSignalToNoise.Spectroscopy(acquisitonSN, scienceSN)
+                ModeSignalToNoise.Spectroscopy(acquisitonSN, scienceSN)
               ) =>
             Flamingos2SequenceTable(
               props.clientMode,

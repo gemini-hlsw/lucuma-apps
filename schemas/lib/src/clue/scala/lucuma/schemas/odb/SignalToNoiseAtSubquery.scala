@@ -4,14 +4,18 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import lucuma.core.math.Offset
-import lucuma.odb.json.offset.decoder.given
+import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
+import lucuma.itc.SignalToNoiseAt
+import lucuma.itc.client.json.decoders.given
 
-object OffsetSubquery extends GraphQLSubquery.Typed[ObservationDB, Offset]("Offset"):
+@GraphQL
+object SignalToNoiseAtSubquery
+    extends GraphQLSubquery.Typed[ObservationDB, SignalToNoiseAt]("SignalToNoiseAt"):
   override val subquery: String = """
-        {
-          p { microarcseconds }
-          q { microarcseconds }
-        }
-      """
+    {
+      wavelength
+      single
+      total
+    }
+  """

@@ -5,13 +5,12 @@ package observe.ui.components.sequence.byInstrument
 
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
+import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -28,8 +27,8 @@ final case class GmosNorthSpectroscopySequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.GmosNorth,
-  acquisitonSN:         Option[(SingleSN, TotalSN)],
-  scienceSN:            Option[(SingleSN, TotalSN)],
+  acquisitonSN:         Option[SignalToNoiseAt],
+  scienceSN:            Option[SignalToNoiseAt],
   visits:               List[Visit.GmosNorth],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],

@@ -6,11 +6,10 @@ package explore.config.sequence.byInstrument
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import lucuma.core.enums.Instrument
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -18,8 +17,8 @@ import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 final case class Flamingos2SequenceTable(
   visits:       List[Visit.Flamingos2],
   config:       ExecutionConfig.Flamingos2,
-  acquisitonSN: Option[(SingleSN, TotalSN)],
-  scienceSN:    Option[(SingleSN, TotalSN)]
+  acquisitonSN: Option[SignalToNoiseAt],
+  scienceSN:    Option[SignalToNoiseAt]
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]

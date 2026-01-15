@@ -7,7 +7,9 @@ import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.*
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.OffsetSubquery
 // gql: import lucuma.odb.json.sequence.given
+// gql: import lucuma.schemas.decoders.given
 
 object SequenceQueriesGQL:
   @GraphQL
@@ -15,7 +17,7 @@ object SequenceQueriesGQL:
     val document = s"""
         query($$obsId: ObservationId!, $$includeItc: Boolean = true) {
           observation(observationId: $$obsId) @include(if: $$includeItc) {
-            itc { ...itcFields }
+            signalToNoise:itc $ModeSignalToNoiseSubquery
           }
 
           executionConfig(observationId: $$obsId, futureLimit: 100) {
@@ -52,8 +54,8 @@ object SequenceQueriesGQL:
         }
 
         fragment nodAndShuffleFields on GmosNodAndShuffle {
-          posA { ...offsetFields }
-          posB { ...offsetFields }
+          posA $OffsetSubquery
+          posB $OffsetSubquery
           eOffset
           shuffleOffset
           shuffleCycles
@@ -105,7 +107,7 @@ object SequenceQueriesGQL:
             instrumentConfig $GmosNorthDynamicConfigSubquery
             stepConfig { ...stepConfigFields }
             telescopeConfig {
-              offset { ...offsetFields }
+              offset $OffsetSubquery
               guiding
             }
             estimate { ...stepEstimateFields }
@@ -128,7 +130,7 @@ object SequenceQueriesGQL:
             instrumentConfig $GmosSouthDynamicConfigSubquery
             stepConfig { ...stepConfigFields }
             telescopeConfig {
-              offset { ...offsetFields }
+              offset $OffsetSubquery
               guiding
             }
             estimate { ...stepEstimateFields }
@@ -151,7 +153,7 @@ object SequenceQueriesGQL:
             instrumentConfig $Flamingos2DynamicConfigSubquery
             stepConfig { ...stepConfigFields }
             telescopeConfig {
-              offset { ...offsetFields }
+              offset $OffsetSubquery
               guiding
             }
             estimate { ...stepEstimateFields }
@@ -164,58 +166,6 @@ object SequenceQueriesGQL:
           nextAtom { ...flamingos2AtomFields }
           possibleFuture { ...flamingos2AtomFields }
           hasMore
-        }
-
-        fragment offsetFields on Offset {
-          p { microarcseconds }
-          q { microarcseconds }
-        }
-
-        fragment itcFields on Itc {
-          ... on ItcSpectroscopy {
-            acquisition {
-              selected {
-                signalToNoiseAt {
-                  single
-                  total
-                }
-              }
-            }
-            spectroscopyScience {
-              selected {
-                signalToNoiseAt {
-                  single
-                  total
-                }
-              }
-            }
-          }
-          ... on ItcGmosNorthImaging {
-            gmosNorthImagingScience {
-              filter
-              results {
-                selected {
-                  signalToNoiseAt {
-                    single
-                    total
-                  }
-                }
-              }
-            }
-          }
-          ... on ItcGmosSouthImaging {
-            gmosSouthImagingScience {
-              filter
-              results {
-                selected {
-                  signalToNoiseAt {
-                    single
-                    total
-                  }
-                }
-              }
-            }
-          }
         }
       """
 

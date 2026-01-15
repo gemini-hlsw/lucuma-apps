@@ -12,3 +12,4 @@ package object decoders
     with VisitDecoders
     with TimingWindowDecoders
     with GmosImagingVariantDecoders
+    with ModeSignalToNoiseDecoders

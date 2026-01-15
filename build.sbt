@@ -117,6 +117,7 @@ lazy val schemas_model =
           Kittens.value ++
           LucumaCore.value ++
           LucumaOdbSchema.value ++
+          LucumaItcClient.value ++
           LucumaRefined.value
     )
 

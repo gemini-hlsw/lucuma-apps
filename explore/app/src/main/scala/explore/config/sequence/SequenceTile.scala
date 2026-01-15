@@ -31,8 +31,8 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.InstrumentSignalToNoise
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -108,16 +108,16 @@ object SequenceTile extends SequenceTileHelper:
                           .orEmpty
 
                       signalToNoise match
-                        case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                        case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
                           GmosNorthSpectroscopySequenceTable(
                             visits,
                             config,
                             acquisitionSn,
                             scienceSn
                           )
-                        case InstrumentSignalToNoise.GmosNorthImaging(snPerFilter)          =>
+                        case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(visits, config, snPerFilter)
-                        case _                                                              => mismatchError
+                        case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
                       val visits: List[Visit.GmosSouth] =
                         visitsOpt
@@ -126,19 +126,19 @@ object SequenceTile extends SequenceTileHelper:
                           .orEmpty
 
                       signalToNoise match
-                        case InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                        case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
                           GmosSouthSpectroscopySequenceTable(
                             visits,
                             config,
                             acquisitionSn,
                             scienceSn
                           )
-                        case InstrumentSignalToNoise.GmosSouthImaging(snPerFilter)          =>
+                        case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(visits, config, snPerFilter)
-                        case _                                                              => mismatchError
+                        case _                                                        => mismatchError
                     case SequenceData(
                           InstrumentExecutionConfig.Flamingos2(config),
-                          InstrumentSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                          ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
                         ) =>
                       Flamingos2SequenceTable(
                         visitsOpt

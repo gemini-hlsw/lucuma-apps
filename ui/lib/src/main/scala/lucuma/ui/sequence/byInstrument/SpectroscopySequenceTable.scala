@@ -5,18 +5,17 @@ package lucuma.ui.sequence.byInstrument
 
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
+import lucuma.itc.SignalToNoiseAt
 
 trait SpectroscopySequenceTable[D]:
-  def acquisitonSN: Option[(SingleSN, TotalSN)]
-  def scienceSN: Option[(SingleSN, TotalSN)]
+  def acquisitonSN: Option[SignalToNoiseAt]
+  def scienceSN: Option[SignalToNoiseAt]
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise] =
     seqType =>
       _ =>
-        val snPerClass: Option[(SingleSN, TotalSN)] =
+        val snPerClass: Option[SignalToNoiseAt] =
           seqType match
             case SequenceType.Acquisition => acquisitonSN
             case SequenceType.Science     => scienceSN
-        snPerClass.map(_._1.value)
+        snPerClass.map(_.single.value)
