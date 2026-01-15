@@ -44,7 +44,7 @@ object ObsQueriesGQL:
           }
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery
-          signalToNoise:itc $ModeSignalToNoiseSubquery
+          itc $ModeSignalToNoiseSubquery
         }
 
         executionConfig(observationId: $$obsId, futureLimit: 100) {

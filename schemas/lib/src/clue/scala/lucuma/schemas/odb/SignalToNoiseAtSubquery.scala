@@ -12,9 +12,9 @@ import lucuma.itc.client.json.decoders.given
 @GraphQL
 object SignalToNoiseAtSubquery
     extends GraphQLSubquery.Typed[ObservationDB, SignalToNoiseAt]("SignalToNoiseAt"):
-  override val subquery: String = """
+  override val subquery: String = s"""
     {
-      wavelength
+      wavelength $WavelengthSubquery
       single
       total
     }

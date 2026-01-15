@@ -17,7 +17,7 @@ object SequenceQueriesGQL:
     val document = s"""
         query($$obsId: ObservationId!, $$includeItc: Boolean = true) {
           observation(observationId: $$obsId) @include(if: $$includeItc) {
-            signalToNoise:itc $ModeSignalToNoiseSubquery
+            itc $ModeSignalToNoiseSubquery
           }
 
           executionConfig(observationId: $$obsId, futureLimit: 100) {
