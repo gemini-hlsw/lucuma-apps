@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.api.Refined
@@ -17,6 +18,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.*
 import lucuma.react.common.ReactFnProps
@@ -64,8 +66,15 @@ object GmosImagingVariantEditor
               "Sky Offset Count",
               HelpIcon("configuration/imaging/sky-offset.md".refined)
             ),
-            value = skyCount.withOnMod: count =>
-              if count.value === 0 then skyOffsets.set(none) else Callback.empty,
+            value = skyCount.withOnMod: (oldCount, newCount) =>
+              if newCount.value === 0 then skyOffsets.set(none)
+              else if oldCount.value === 0 then
+                skyOffsets
+                  .set:
+                    TelescopeConfigGenerator
+                      .Enumerated(NonEmptyList.one(TelescopeConfig.Default))
+                      .some
+              else Callback.empty,
             validFormat = InputValidSplitEpi.nonNegInt,
             placeholder = "0",
             disabled = props.readonly
@@ -73,7 +82,8 @@ object GmosImagingVariantEditor
           TelescopeConfigGeneratorEditor(
             id = "grouped-sky-offsets".refined,
             label = "Sky Offsets",
-            value = skyOffsets,
+            value = skyOffsets.withOnMod: tcg =>
+              if tcg.isEmpty then skyCount.set(0.refined) else Callback.empty,
             showCenter = true,
             readonly = props.readonly || skyCount.get.value === 0,
             maxExplicit = skyCount.get.value.toInt * 2
