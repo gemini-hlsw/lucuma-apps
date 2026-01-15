@@ -4,8 +4,8 @@
 package observe.ui.components.sequence.byInstrument
 
 import japgolly.scalajs.react.*
+import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.SequenceType
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.model.Observation
@@ -15,6 +15,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
@@ -24,12 +25,12 @@ import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 
-case class GmosNorthSequenceTable(
+final case class GmosSouthImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.GmosNorth,
-  snPerClass:           Map[SequenceType, (SingleSN, TotalSN)],
-  visits:               List[Visit.GmosNorth],
+  config:               ExecutionConfig.GmosSouth,
+  snPerFilter:          Map[GmosSouthFilter, (SingleSN, TotalSN)],
+  visits:               List[Visit.GmosSouth],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
@@ -40,12 +41,15 @@ case class GmosNorthSequenceTable(
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   onDatasetQaChange:    Dataset.Id => EditableQaFields => Callback,
   datasetIdsInFlight:   Set[Dataset.Id]
-) extends ReactFnProps(GmosNorthSequenceTable.component)
-    with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
-      Instrument.GmosNorth
+) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
+    with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+      Instrument.GmosSouth
     )
+    with ImagingSequenceTable[gmos.DynamicConfig.GmosSouth, GmosSouthFilter]:
+  val filterFromDynamicConfig: gmos.DynamicConfig.GmosSouth => Option[GmosSouthFilter] =
+    _.filter
 
-object GmosNorthSequenceTable
-    extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
-      Instrument.GmosNorth
+object GmosSouthImagingSequenceTable
+    extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+      Instrument.GmosSouth
     )

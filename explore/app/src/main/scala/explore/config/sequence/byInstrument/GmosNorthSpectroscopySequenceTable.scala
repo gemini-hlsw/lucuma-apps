@@ -9,22 +9,20 @@ import lucuma.core.enums.Instrument
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.*
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 
-final case class Flamingos2SequenceTable(
-  visits:       List[Visit.Flamingos2],
-  config:       ExecutionConfig.Flamingos2,
+final case class GmosNorthSpectroscopySequenceTable(
+  visits:       List[Visit.GmosNorth],
+  config:       ExecutionConfig.GmosNorth,
   acquisitonSN: Option[(SingleSN, TotalSN)],
   scienceSN:    Option[(SingleSN, TotalSN)]
-) extends ReactFnProps(Flamingos2SequenceTable.component)
-    with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
-    with SpectroscopySequenceTable[Flamingos2DynamicConfig]
+) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
+    with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
+    with SpectroscopySequenceTable[gmos.DynamicConfig.GmosNorth]
 
-object Flamingos2SequenceTable
-    extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
-      Instrument.Flamingos2
+object GmosNorthSpectroscopySequenceTable
+    extends SequenceTableBuilder[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+      Instrument.GmosNorth
     )

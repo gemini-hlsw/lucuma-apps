@@ -135,30 +135,30 @@ object SequenceRow:
 
   object FutureStep:
     def fromAtom[D](
-      atom:              Atom[D],
-      atomSignalToNoise: Option[SignalToNoise]
+      atom:          Atom[D],
+      signalToNoise: D => Option[SignalToNoise]
     ): List[FutureStep[D]] =
       FutureStep(
         atom.steps.head,
         atom.id,
         atom.steps.length.some.filter(_ > 1),
-        atom.steps.head.getSignalToNoise(atomSignalToNoise)
+        atom.steps.head.getSignalToNoise(signalToNoise)
       ) +: atom.steps.tail.map(step =>
-        SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(atomSignalToNoise))
+        SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(signalToNoise))
       )
 
     def fromAtoms[D](
-      atoms:                List[Atom[D]],
-      seqTypeSignalToNoise: Option[SignalToNoise]
+      atoms:         List[Atom[D]],
+      signalToNoise: D => Option[SignalToNoise]
     ): List[FutureStep[D]] =
       atoms.flatMap(atom =>
         FutureStep(
           atom.steps.head,
           atom.id,
           atom.steps.length.some.filter(_ > 1),
-          atom.steps.head.getSignalToNoise(seqTypeSignalToNoise)
+          atom.steps.head.getSignalToNoise(signalToNoise)
         ) +: atom.steps.tail.map(step =>
-          SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(seqTypeSignalToNoise))
+          SequenceRow.FutureStep(step, atom.id, none, step.getSignalToNoise(signalToNoise))
         )
       )
 

@@ -8,7 +8,6 @@ import cats.derived.*
 import cats.syntax.all.*
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
-import lucuma.core.enums.SequenceType
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.InstrumentExecutionConfig
@@ -16,38 +15,52 @@ import lucuma.schemas.odb.SequenceQueriesGQL.SequenceQuery
 import monocle.Focus
 import monocle.Lens
 
+import SequenceQuery.Data.Observation.Itc
+
 /**
  * Bundles the execution configuration and the signal-to-noise ratio for each sequence type.
  */
-case class SequenceData(
-  config:     InstrumentExecutionConfig,
-  snPerClass: Map[SequenceType, (SingleSN, TotalSN)]
+final case class SequenceData(
+  config:        InstrumentExecutionConfig,
+  signalToNoise: InstrumentSignalToNoise
 ) derives Eq
 
 object SequenceData:
-  private def buildSnMap(
-    itc: SequenceQuery.Data.Observation.Itc
-  ): Map[SequenceType, (SingleSN, TotalSN)] =
-    val acq: Option[(SequenceType, (SingleSN, TotalSN))] =
-      (itc.acquisition.selected.signalToNoiseAt.map(_.single),
-       itc.acquisition.selected.signalToNoiseAt.map(_.total)
-      ).mapN: (s, t) =>
-        SequenceType.Acquisition -> (SingleSN(s), TotalSN(t))
-
-    val sci: Option[(SequenceType, (SingleSN, TotalSN))] =
-      (itc.spectroscopyScience.selected.signalToNoiseAt.map(_.single),
-       itc.spectroscopyScience.selected.signalToNoiseAt.map(_.total)
-      ).mapN: (s, t) =>
-        SequenceType.Science -> (SingleSN(s), TotalSN(t))
-    List(acq, sci).flattenOption.toMap
+  private def buildSnMap(itc: Itc): InstrumentSignalToNoise =
+    itc match
+      case Itc.ItcSpectroscopy(acquisition, science) =>
+        InstrumentSignalToNoise.Spectroscopy(
+          (acquisition.selected.signalToNoiseAt.map(sn => SingleSN(sn.single)),
+           acquisition.selected.signalToNoiseAt.map(sn => TotalSN(sn.total))
+          ).tupled,
+          (science.selected.signalToNoiseAt.map(sn => SingleSN(sn.single)),
+           science.selected.signalToNoiseAt.map(sn => TotalSN(sn.total))
+          ).tupled
+        )
+      case Itc.ItcGmosNorthImaging(results)          =>
+        InstrumentSignalToNoise.GmosNorthImaging:
+          results
+            .flatMap: result =>
+              result.results.selected.signalToNoiseAt.map: sn =>
+                (result.filter, (SingleSN(sn.single), TotalSN(sn.total)))
+            .toMap
+      case Itc.ItcGmosSouthImaging(results)          =>
+        InstrumentSignalToNoise.GmosSouthImaging:
+          results
+            .flatMap: result =>
+              result.results.selected.signalToNoiseAt.map: sn =>
+                (result.filter, (SingleSN(sn.single), TotalSN(sn.total)))
+            .toMap
 
   def fromOdbResponse(data: SequenceQuery.Data): Option[SequenceData] =
     data.executionConfig.map: config =>
-      val snMap = data.observation.map(obs => buildSnMap(obs.itc)).getOrElse(Map.empty)
-      SequenceData(config, snMap)
+      val sn: InstrumentSignalToNoise = data.observation
+        .map(obs => buildSnMap(obs.itc))
+        .getOrElse(InstrumentSignalToNoise.Undefined)
+      SequenceData(config, sn)
 
-  val config: Lens[SequenceData, InstrumentExecutionConfig]                  = Focus[SequenceData](_.config)
-  val snPerClass: Lens[SequenceData, Map[SequenceType, (SingleSN, TotalSN)]] =
-    Focus[SequenceData](_.snPerClass)
+  val config: Lens[SequenceData, InstrumentExecutionConfig]      = Focus[SequenceData](_.config)
+  val signalToNoise: Lens[SequenceData, InstrumentSignalToNoise] =
+    Focus[SequenceData](_.signalToNoise)
 
   given Reusability[SequenceData] = Reusability.byEq

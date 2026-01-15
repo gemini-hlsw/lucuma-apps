@@ -92,10 +92,12 @@ extension [D](instrumentConfig: D)
 
 extension [D](step: Step[D])
   def getSignalToNoise(
-    signalToNoise: Option[SignalToNoise]
+    signalToNoise: D => Option[SignalToNoise]
   ): Option[SignalToNoise] =
     step.observeClass match
       case ObserveClass.Acquisition if step.instrumentConfig.shouldShowAcquisitionSn =>
-        signalToNoise
-      case ObserveClass.Science                                                      => signalToNoise
-      case _                                                                         => none
+        signalToNoise(step.instrumentConfig)
+      case ObserveClass.Science                                                      =>
+        signalToNoise(step.instrumentConfig)
+      case _                                                                         =>
+        none

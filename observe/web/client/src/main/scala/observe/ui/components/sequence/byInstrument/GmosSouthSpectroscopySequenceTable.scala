@@ -11,8 +11,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.core.model.sequence.gmos
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
@@ -25,13 +24,13 @@ import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 
-final case class Flamingos2SequenceTable(
+final case class GmosSouthSpectroscopySequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
-  config:               ExecutionConfig.Flamingos2,
+  config:               ExecutionConfig.GmosSouth,
   acquisitonSN:         Option[(SingleSN, TotalSN)],
   scienceSN:            Option[(SingleSN, TotalSN)],
-  visits:               List[Visit.Flamingos2],
+  visits:               List[Visit.GmosSouth],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
@@ -42,11 +41,13 @@ final case class Flamingos2SequenceTable(
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
   onDatasetQaChange:    Dataset.Id => EditableQaFields => Callback,
   datasetIdsInFlight:   Set[Dataset.Id]
-) extends ReactFnProps(Flamingos2SequenceTable.component)
-    with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
-    with SpectroscopySequenceTable[Flamingos2DynamicConfig]
+) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
+    with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+      Instrument.GmosSouth
+    )
+    with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]
 
-object Flamingos2SequenceTable
-    extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
-      Instrument.Flamingos2
+object GmosSouthSpectroscopySequenceTable
+    extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+      Instrument.GmosSouth
     )
