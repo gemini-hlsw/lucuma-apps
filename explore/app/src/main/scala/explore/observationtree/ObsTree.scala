@@ -81,16 +81,18 @@ case class ObsTree(
   private val selectedObsIdSet: Option[ObsIdSet] =
     focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
-  // We need the whole group (not just the id), in order to know if it's a callibration group.
-  private val focusedGroup: Option[Group] = focusedGroupId
-    .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
-    .flatMap(groups.get.get(_))
-
-  private val activeGroup: Option[Group.Id] =
-    focusedGroup
+  // If it's a telluric calibration group, switch to its parent group.
+  private def resolveGroupId(groupId: Option[Group.Id]): Option[Group.Id] =
+    val group: Option[Group] = groupId.flatMap(groups.get.get(_))
+    group
       .filterNot(_.isTelluricCalibration)
       .map(_.id)
-      .orElse(focusedGroup.flatMap(_.parentId)) // For telluric groups, use parent
+      .orElse(group.flatMap(_.parentId))
+
+  private val activeGroup: Option[Group.Id] =
+    resolveGroupId(
+      focusedGroupId.orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
+    )
 
   private val focusedObsOrGroup: Option[Either[Observation.Id, Group.Id]] =
     focusedObsId.map(_.asLeft).orElse(focusedGroupId.map(_.asRight))
@@ -363,7 +365,7 @@ object ObsTree:
               cloneCB = cloneObs(
                 props.programId,
                 List(obs.id),
-                obs.groupId, // Clone to the same group
+                props.resolveGroupId(obs.groupId), // Clone to the same group
                 props.observations,
                 ctx
               ).switching(adding.async, AddingObservation(_))
