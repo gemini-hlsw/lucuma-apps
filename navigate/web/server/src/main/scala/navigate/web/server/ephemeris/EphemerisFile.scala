@@ -5,12 +5,12 @@ package navigate.web.server.ephemeris
 
 import cats.syntax.all.*
 import lucuma.core.math.Angle
-import lucuma.core.math.Coordinates
+// import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
-import lucuma.core.math.HourAngle
+// import lucuma.core.math.HourAngle
 import lucuma.core.math.HourAngle.*
-import lucuma.core.math.JulianDate
-import lucuma.horizons.HorizonsEphemeris
+// import lucuma.core.math.JulianDate
+// import lucuma.core.model.Ephemeris
 import mouse.boolean.*
 
 import java.text.DecimalFormat
@@ -111,25 +111,26 @@ object EphemerisFile {
   def formatHMS(hms: HMS, sep: String = ":", fractionalDigits: Int = 3): String =
     format3(hms.hours, hms.minutes, hms.seconds, 24, sep, fractionalDigits)
 
-  def format(ephemeris: HorizonsEphemeris): String = {
-    def formatCoords(coords: Coordinates): String = {
-      val ra  = formatHMS(HourAngle.hms.get(coords.ra.toHourAngle), " ", 4)
-      val dec = formatDMS(coords.dec, " ", 3)
-      // Add spacing as required for TCS.
-      f"$ra%14s $dec%13s"
-    }
+  // TODO: We need to know which site we need inside the Ephemeris.
+  // def format(ephemeris: Ephemeris.Horizons): String = {
+  //   def formatCoords(coords: Coordinates): String = {
+  //     val ra  = formatHMS(HourAngle.hms.get(coords.ra.toHourAngle), " ", 4)
+  //     val dec = formatDMS(coords.dec, " ", 3)
+  //     // Add spacing as required for TCS.
+  //     f"$ra%14s $dec%13s"
+  //   }
 
-    val lines = ephemeris.entries.map { entry =>
-      val timeS     = Time.format(entry.when)
-      val jdS       = f"${JulianDate.ofInstant(entry.when).toDouble}%.9f"
-      val coordsS   = formatCoords(entry.coordinates)
-      val raTrackS  = f"${entry.velocity.p.toAngle.toSignedDoubleDegrees}%9.5f"
-      val decTrackS = f"${entry.velocity.q.toAngle.toSignedDoubleDegrees}%9.5f"
-      s" $timeS $jdS    $coordsS $raTrackS $decTrackS"
-    }
+  //   val lines = ephemeris.elements.???.map { entry =>
+  //     val timeS     = Time.format(entry.when)
+  //     val jdS       = f"${JulianDate.ofInstant(entry.when).toDouble}%.9f"
+  //     val coordsS   = formatCoords(entry.coordinates)
+  //     val raTrackS  = f"${entry.velocity.p.toAngle.toSignedDoubleDegrees}%9.5f"
+  //     val decTrackS = f"${entry.velocity.q.toAngle.toSignedDoubleDegrees}%9.5f"
+  //     s" $timeS $jdS    $coordsS $raTrackS $decTrackS"
+  //   }
 
-    lines.mkString(s"$Header\n$SOE\n", "\n", lines.isEmpty.fold("", "\n") + s"$EOE\n")
-  }
+  //   lines.mkString(s"$Header\n$SOE\n", "\n", lines.isEmpty.fold("", "\n") + s"$EOE\n")
+  // }
 
 //  object Parser {
 //    override val whiteSpace = """[ \t]+""".r

@@ -33,7 +33,7 @@ import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
@@ -1407,10 +1407,10 @@ object NavigateMappings extends GrackleParsers {
                  parseEnumerated[EphemerisKeyType](v)
                }.flatten
     des     <- l.collectFirst { case ("des", StringValue(v)) => v }
-    key     <- EphemerisKey.fromTypeAndDes.getOption(keyType, des)
+    key     <- Ephemeris.Key.fromTypeAndDes.getOption(keyType, des)
   } yield key)
     .orElse(l.collectFirst { case ("key", StringValue(v)) =>
-      EphemerisKey.fromString.getOption(v)
+      Ephemeris.Key.fromString.getOption(v)
     }.flatten)
     .map(k => Target.EphemerisTarget(name, w, navigate.web.server.ephemeris.ephemerisFileName(k)))
 
