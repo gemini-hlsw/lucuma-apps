@@ -5,11 +5,9 @@ package explore.model.boopickle
 
 import boopickle.DefaultBasic.*
 import lucuma.core.model.AirMass
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.Extinction
 import lucuma.horizons.HorizonsClient.ElementsPerDay
-import lucuma.horizons.HorizonsEphemeris
-import lucuma.horizons.HorizonsEphemerisEntry
 
 trait HorizonsPicklers extends CommonPicklers:
   def int2ElementsPerDay(i: Int): ElementsPerDay = i match
@@ -26,21 +24,18 @@ trait HorizonsPicklers extends CommonPicklers:
   given Pickler[ElementsPerDay] =
     transformPickler[ElementsPerDay, Int](int2ElementsPerDay)(identity)
 
-  given Pickler[EphemerisKey.Comet]       = generatePickler
-  given Pickler[EphemerisKey.AsteroidNew] = generatePickler
-  given Pickler[EphemerisKey.AsteroidOld] = generatePickler
-  given Pickler[EphemerisKey.MajorBody]   = generatePickler
-  given Pickler[EphemerisKey.Horizons]    =
-    compositePickler[EphemerisKey.Horizons]
-      .addConcreteType[EphemerisKey.Comet]
-      .addConcreteType[EphemerisKey.AsteroidNew]
-      .addConcreteType[EphemerisKey.AsteroidOld]
-      .addConcreteType[EphemerisKey.MajorBody]
+  given Pickler[Ephemeris.Key.Comet]       = generatePickler
+  given Pickler[Ephemeris.Key.AsteroidNew] = generatePickler
+  given Pickler[Ephemeris.Key.AsteroidOld] = generatePickler
+  given Pickler[Ephemeris.Key.MajorBody]   = generatePickler
+  given Pickler[Ephemeris.Key.Horizons]    =
+    compositePickler[Ephemeris.Key.Horizons]
+      .addConcreteType[Ephemeris.Key.Comet]
+      .addConcreteType[Ephemeris.Key.AsteroidNew]
+      .addConcreteType[Ephemeris.Key.AsteroidOld]
+      .addConcreteType[Ephemeris.Key.MajorBody]
 
   given Pickler[AirMass]    = picklerNewType(AirMass)
   given Pickler[Extinction] = picklerNewType(Extinction)
-
-  given Pickler[HorizonsEphemerisEntry] = generatePickler
-  given Pickler[HorizonsEphemeris]      = generatePickler
 
 object HorizonsPicklers extends HorizonsPicklers

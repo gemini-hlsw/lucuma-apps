@@ -13,7 +13,7 @@ import explore.model.boopickle.HorizonsPicklers.given
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.ObservingNight
 import lucuma.core.model.Semester
@@ -31,7 +31,7 @@ import java.time.temporal.ChronoUnit
 
 object tracking:
   private def getEphemerisTrackingForObservingNight(
-    key:   EphemerisKey,
+    key:   Ephemeris.Key,
     site:  Site,
     night: ObservingNight
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[EphemerisTracking]] =
@@ -47,12 +47,12 @@ object tracking:
           HorizonsMessage.EphemerisRequest(hk, site, start, end, TotalPoints)
         )
         .map(
-          _.fold("Error calling HorizonsClient".asLeft)(et => et.map(_.ephemerisTracking))
+          _.getOrElse("Error calling HorizonsClient".asLeft)
         )
     )
 
   private def getEphemerisTrackingForSemester(
-    key:      EphemerisKey,
+    key:      Ephemeris.Key,
     site:     Site,
     semester: Semester,
     cadence:  ElementsPerDay
@@ -68,7 +68,7 @@ object tracking:
           HorizonsMessage.AlignedEphemerisRequest(hk, site, start, days.toInt, cadence)
         )
         .map(
-          _.fold("Error calling HorizonsClient".asLeft)(et => et.map(_.ephemerisTracking))
+          _.getOrElse("Error calling HorizonsClient".asLeft)
         )
     )
 

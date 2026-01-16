@@ -13,7 +13,7 @@ import lucuma.catalog.CatalogTargetResult
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.CatalogInfo
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.schemas.model.TargetWithMetadata
@@ -38,7 +38,7 @@ object TargetSearchResult:
       r.angularSize
     )
 
-  def fromHorizonsSearchResult(name: NonEmptyString, ek: EphemerisKey): TargetSearchResult =
+  def fromHorizonsSearchResult(name: NonEmptyString, ek: Ephemeris.Key): TargetSearchResult =
     TargetSearchResult(
       TargetWithOptId.newScience(
         Target.Nonsidereal(name = name, ephemerisKey = ek, sourceProfile = EmptySourceProfile)

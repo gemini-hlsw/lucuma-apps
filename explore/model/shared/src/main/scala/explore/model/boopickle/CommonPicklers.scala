@@ -3,6 +3,7 @@
 
 package explore.model.boopickle
 
+import boopickle.CompositePickler
 import boopickle.DefaultBasic.*
 import cats.Order
 import cats.Order.given
@@ -20,21 +21,29 @@ import lucuma.core.math.Axis
 import lucuma.core.math.BrightnessValue
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
+import lucuma.core.math.Epoch
 import lucuma.core.math.HourAngle
 import lucuma.core.math.Offset
+import lucuma.core.math.Parallax
 import lucuma.core.math.Place
+import lucuma.core.math.ProperMotion
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.RightAscension
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.model.AirMassBound
+import lucuma.core.model.CompositeTracking
+import lucuma.core.model.ConstantTracking
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.EphemerisCoordinates
+import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.HourAngleBound
 import lucuma.core.model.Semester
+import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.core.util.TimeSpan
@@ -48,6 +57,7 @@ import java.time.LocalDate
 import java.time.Year
 import java.time.ZoneId
 import scala.collection.immutable.SortedSet
+import scala.collection.immutable.TreeMap
 
 trait CommonPicklers {
   given picklerRefined[A: Pickler, B](using Validate[A, B]): Pickler[A Refined B] =
@@ -218,7 +228,63 @@ trait CommonPicklers {
   given Pickler[Timestamp] =
     transformPickler((instant: Instant) => Timestamp.fromInstant(instant).get)(_.toInstant)
 
+  given Pickler[Epoch] =
+    new Pickler[Epoch] {
+      override def pickle(a: Epoch)(implicit state: PickleState): Unit = {
+        state.pickle(a.scheme.prefix)
+        state.pickle(a.toMilliyears.value)
+        ()
+      }
+      override def unpickle(implicit state: UnpickleState): Epoch      = {
+        val prefix   = state.unpickle[Char]
+        val miliyear = state.unpickle[Int]
+        (prefix match
+          case 'J' => Epoch.Julian.fromIntMilliyears(miliyear)
+          case _   => None
+        ).getOrElse(sys.error("Cannot unpickle"))
+      }
+    }
+
+  given Pickler[ProperMotion.RA] =
+    transformPickler(ProperMotion.RA.microarcsecondsPerYear.get)(
+      ProperMotion.RA.microarcsecondsPerYear.reverseGet
+    )
+
+  given Pickler[ProperMotion.Dec] =
+    transformPickler(ProperMotion.Dec.microarcsecondsPerYear.get)(
+      ProperMotion.Dec.microarcsecondsPerYear.reverseGet
+    )
+
+  given Pickler[ProperMotion] = generatePickler
+
+  given Pickler[Parallax] =
+    transformPickler(Parallax.fromMicroarcseconds)(_.μas.value.value)
+
   given Pickler[EphemerisCoordinates] = generatePickler
+
+  given Pickler[SiderealTracking] = generatePickler
+
+  given Pickler[CompositeTracking] = generatePickler
+
+  given Pickler[ConstantTracking] = generatePickler
+
+  given [K: Pickler: Ordering, V: Pickler]: Pickler[TreeMap[K, V]] =
+    transformPickler((m: Map[K, V]) => TreeMap.empty[K, V] ++ m)(_.toMap)
+
+  given Pickler[EphemerisTracking] =
+    transformPickler((m: TreeMap[Timestamp, EphemerisCoordinates]) => EphemerisTracking(m.toSeq*))(
+      _.toMap
+    )
+
+  // Recursive class hierarchy must be built in two steps:
+  // https://github.com/suzaku-io/boopickle/blob/master/doc/ClassHierarchies.md#recursive-composite-types
+  given trackingPickler: CompositePickler[Tracking] = compositePickler[Tracking]
+  trackingPickler
+    .addConcreteType[SiderealTracking]
+    .addConcreteType[ConstantTracking]
+    .addConcreteType[EphemerisTracking]
+    .addConcreteType[CompositeTracking]
+
 }
 
 object CommonPicklers extends CommonPicklers

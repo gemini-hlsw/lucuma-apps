@@ -12,13 +12,13 @@ import cats.syntax.all.*
 import explore.events.HorizonsMessage
 import explore.events.HorizonsMessage.given
 import explore.model.ErrorMsgOr
+import lucuma.core.model.EphemerisTracking
 import lucuma.horizons.HorizonsClient
-import lucuma.horizons.HorizonsEphemeris
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object HorizonsRequests:
-  val cacheVersion = CacheVersion(2)
+  val cacheVersion = CacheVersion(3)
 
   private case class Error(message: String, isCacheable: Boolean)
 
@@ -34,18 +34,18 @@ object HorizonsRequests:
     request:  HorizonsMessage.EphemerisRequest,
     client:   HorizonsClient[F],
     cache:    Cache[F],
-    callback: ErrorMsgOr[HorizonsEphemeris] => F[Unit]
+    callback: ErrorMsgOr[EphemerisTracking] => F[Unit]
   ): F[Unit] =
-    def doRequest(request: HorizonsMessage.EphemerisRequest): F[Either[Error, HorizonsEphemeris]] =
+    def doRequest(request: HorizonsMessage.EphemerisRequest): F[Either[Error, EphemerisTracking]] =
       client
         .ephemeris(
           request.key,
-          request.site,
           request.start,
           request.stop,
-          request.elements
+          request.elements,
+          HorizonsClient.SiteOption.forSite(request.site)
         )
-        .map(_.asError(true))
+        .map(_.map(_.toEphemerisTracking(request.site)).asError(true))
         .handleErrorWith(t =>
           error"Error in call to horizons: $request: ${t.getMessage}"
             .as(Error("Error getting ephemeris data", false).asLeft)
@@ -65,20 +65,20 @@ object HorizonsRequests:
     request:  HorizonsMessage.AlignedEphemerisRequest,
     client:   HorizonsClient[F],
     cache:    Cache[F],
-    callback: ErrorMsgOr[HorizonsEphemeris] => F[Unit]
+    callback: ErrorMsgOr[EphemerisTracking] => F[Unit]
   ): F[Unit] =
     def doRequest(
       request: HorizonsMessage.AlignedEphemerisRequest
-    ): F[Either[Error, HorizonsEphemeris]] =
+    ): F[Either[Error, EphemerisTracking]] =
       client
         .alignedEphemeris(
           request.key,
-          request.site,
           request.start,
           request.days,
-          request.cadence
+          request.cadence,
+          HorizonsClient.SiteOption.forSite(request.site)
         )
-        .map(_.asError(true))
+        .map(_.map(_.toEphemerisTracking(request.site)).asError(true))
         .handleErrorWith(t =>
           error"Error in call to horizons: $request: ${t.getMessage}"
             .as(Error("Error getting ephemeris data", false).asLeft)

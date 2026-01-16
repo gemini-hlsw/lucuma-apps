@@ -3,10 +3,10 @@
 
 package navigate.web.server
 
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 
 package object ephemeris {
 
-  def ephemerisFileName(key: EphemerisKey): String = s"${key.toString}.eph"
+  def ephemerisFileName(key: Ephemeris.Key): String = s"${key.toString}.eph"
 
 }

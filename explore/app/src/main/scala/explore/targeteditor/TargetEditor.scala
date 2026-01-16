@@ -41,7 +41,7 @@ import lucuma.core.enums.TargetDisposition
 import lucuma.core.math.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.CatalogInfo
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.SourceProfile
@@ -339,9 +339,9 @@ object TargetEditor:
             .map(_.ephemerisKey)
             .map: key =>
               val (label, value) = key match
-                case EphemerisKey.UserSupplied(id) =>
+                case Ephemeris.Key.UserSupplied(id) =>
                   ("User Supplied", id.toString)
-                case h: EphemerisKey.Horizons      =>
+                case h: Ephemeris.Key.Horizons      =>
                   ("Horizons", s"${key.keyType.shortName} ${h.des}")
               FormInputText(
                 id = "ephemeris-key".refined,
