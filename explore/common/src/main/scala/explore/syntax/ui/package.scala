@@ -35,7 +35,7 @@ import lucuma.core.math.Arc
 import lucuma.core.math.Declination
 import lucuma.core.math.Epoch
 import lucuma.core.math.RightAscension
-import lucuma.core.model.EphemerisKey
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuestRole
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
@@ -243,24 +243,24 @@ extension (target: Target)
     case Target.Nonsidereal(_, _, _)        => none
     case Target.Opportunity(_, region, _)   => region.asLeft.asRight.some
 
-extension (ek: EphemerisKey)
-  def catalogName: String                        = ek match
-    case k: EphemerisKey.Horizons     => "HORIZONS"
-    case EphemerisKey.UserSupplied(_) => ek.keyType.shortName
-  def horizonsQueryCommand: String               = ek match
-    case a: EphemerisKey.AsteroidOld => s"'${a.des};'"
-    case _                           => s"'${ek.des}'"
-  def catalogUri: Option[Uri]                    = ek match
-    case EphemerisKey.UserSupplied(id) => None
-    case h                             =>
+extension (ek: Ephemeris.Key)
+  def catalogName: String                         = ek match
+    case k: Ephemeris.Key.Horizons     => "HORIZONS"
+    case Ephemeris.Key.UserSupplied(_) => ek.keyType.shortName
+  def horizonsQueryCommand: String                = ek match
+    case a: Ephemeris.Key.AsteroidOld => s"'${a.des};'"
+    case _                            => s"'${ek.des}'"
+  def catalogUri: Option[Uri]                     = ek match
+    case Ephemeris.Key.UserSupplied(id) => None
+    case h                              =>
       HorizonsConstants.HorizonsUri
         .withQueryParam(HorizonsConstants.Format, "text")
         .withQueryParam(HorizonsConstants.Command, horizonsQueryCommand)
         .withQueryParam(HorizonsConstants.Ephemeris, HorizonsConstants.No)
         .some
-  def horizonsKey: Option[EphemerisKey.Horizons] = ek match
-    case k: EphemerisKey.Horizons => k.some
-    case _                        => none
+  def horizonsKey: Option[Ephemeris.Key.Horizons] = ek match
+    case k: Ephemeris.Key.Horizons => k.some
+    case _                         => none
 
 extension [A](arc: Arc[A])
   def format(f: A => String): String = arc match

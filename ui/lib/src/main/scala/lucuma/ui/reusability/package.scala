@@ -141,7 +141,6 @@ trait ModelReusabiltyInstances
     Eq[BrightnessMeasure[T]]
   ): Reusability[SpectralDefinition[T]] = Reusability.byEq
   given Reusability[Semester]                                = Reusability.byEq
-  given Reusability[EphemerisKey]                            = Reusability.byEq
   given Reusability[Target.Sidereal]                         = Reusability.byEq
   given Reusability[Target.Nonsidereal]                      = Reusability.byEq
   given Reusability[Target]                                  = Reusability.byEq
