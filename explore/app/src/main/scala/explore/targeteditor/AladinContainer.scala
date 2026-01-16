@@ -286,7 +286,9 @@ object AladinContainer extends AladinCommon {
       for {
         currentPos              <-
           useState[Option[Coordinates]](
-            positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords, props.options.viewOffset)
+            positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords,
+                                      props.options.viewOffset
+            )
           )
         survey                  <- useMemo(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
                                      _.map(surveyForWavelength).getOrElse(ImageSurvey.DSS)
@@ -300,7 +302,9 @@ object AladinContainer extends AladinCommon {
         // too often, `Center on Target` will not work.
         _                       <- useEffectWithDeps((props.obsTargets, props.obsTime, survey)): (_, _, _) =>
                                      currentPos.setState(
-                                       positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords, props.options.viewOffset)
+                                       positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords,
+                                                                 props.options.viewOffset
+                                       )
                                      )
         aladinRef               <- useState(none[Aladin])
         // If view offset changes upstream to zero, redraw
@@ -425,7 +429,7 @@ object AladinContainer extends AladinCommon {
             props.updateViewOffset(viewOffset.getOrElse(Offset.Zero))
         }
 
-        def onZoom =
+        def onZoom: Fov => Callback =
           (v: Fov) => {
             // Sometimes get 0 fov, ignore those
             val ignore =
@@ -509,15 +513,13 @@ object AladinContainer extends AladinCommon {
                         offsetStyle(pos.geometryType),
                         OffsetIndicatorSize
                       )
-              // order is important, science to be drawn above acq
-              offsetIndicators
-                .get(GeometryType.AcqGuidedOffset)
-                .filter(_ => props.globalPreferences.acquisitionOffsets.value)
-                .orEmpty ++
-                offsetIndicators
-                  .get(GeometryType.SciGuidedOffset)
+              // order is important, science to be drawn above acq, guided over unguided
+              (offsetIndicators.get(GeometryType.AcqUnguidedOffset).orEmpty ++
+                offsetIndicators.get(GeometryType.AcqGuidedOffset).orEmpty)
+                .filter(_ => props.globalPreferences.acquisitionOffsets.value) ++
+                (offsetIndicators.get(GeometryType.SciUnguidedOffset).orEmpty ++
+                  offsetIndicators.get(GeometryType.SciGuidedOffset).orEmpty)
                   .filter(_ => props.globalPreferences.scienceOffsets.value)
-                  .orEmpty
             }
             .orEmpty
 

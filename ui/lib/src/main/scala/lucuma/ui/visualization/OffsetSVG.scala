@@ -36,7 +36,7 @@ object OffsetSvg
         case SequenceType.Science     => "Sci. Offset"
         case SequenceType.Acquisition => "Acq. Offset"
 
-      val tooltip = f"$prefix: ${p.idx}%s, p=${offP}%.0f, q=${offQ}%.0f"
+      val tooltip = f"$prefix: ${p.idx}%s, p=${offP}%.2f, q=${offQ}%.2f"
 
       <.g(VisualizationStyles.VisualizationTooltipTarget)(
         <.rect( // add transparent area for the tooltip, hidden but gets events
