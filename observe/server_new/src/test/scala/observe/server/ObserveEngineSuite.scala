@@ -27,6 +27,7 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.refined.given
+import lucuma.schemas.model.ModeSignalToNoise
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.FirstScienceTarget
@@ -436,13 +437,7 @@ class ObserveEngineSuite extends TestCommon {
         ),
         reqConditions,
         List.empty,
-        ODBObservation.Itc.ItcSpectroscopy(
-          ODBObservation.Itc.ItcSpectroscopy
-            .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
-          ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience(
-            ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
-          )
-        )
+        ModeSignalToNoise.Spectroscopy(none, none)
       ),
       staticCfg1,
       SequenceGen.AtomGen.GmosNorth(
@@ -690,14 +685,7 @@ class ObserveEngineSuite extends TestCommon {
         TargetEnvironment(None, GuideEnvironment(List.empty)),
         reqConditions,
         List.empty,
-        ODBObservation.Itc.ItcSpectroscopy(
-          ODBObservation.Itc.ItcSpectroscopy
-            .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
-          ODBObservation.Itc.ItcSpectroscopy
-            .SpectroscopyScience(
-              ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
-            )
-        )
+        ModeSignalToNoise.Spectroscopy(none, none)
       ),
       staticCfg1,
       SequenceGen.AtomGen.GmosNorth(

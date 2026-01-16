@@ -51,6 +51,7 @@ import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.ModeSignalToNoise
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
@@ -330,13 +331,7 @@ object TestCommon {
         ElevationRange.ByAirMass.Default
       ),
       List.empty,
-      ODBObservation.Itc.ItcSpectroscopy(
-        ODBObservation.Itc.ItcSpectroscopy
-          .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
-        ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience(
-          ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
-        )
-      )
+      ModeSignalToNoise.Spectroscopy(none, none)
     )
 
   def sequence(id: Observation.Id): SequenceGen.GmosNorth[IO] =
@@ -440,13 +435,7 @@ object TestCommon {
           ElevationRange.ByAirMass.Default
         ),
         List.empty,
-        ODBObservation.Itc.ItcSpectroscopy(
-          ODBObservation.Itc.ItcSpectroscopy
-            .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
-          ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience(
-            ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
-          )
-        )
+        ModeSignalToNoise.Spectroscopy(none, none)
       ),
       staticCfg1,
       SequenceGen.AtomGen.GmosNorth(

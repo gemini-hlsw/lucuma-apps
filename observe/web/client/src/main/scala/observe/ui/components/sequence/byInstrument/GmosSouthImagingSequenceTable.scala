@@ -6,13 +6,12 @@ package observe.ui.components.sequence.byInstrument
 import japgolly.scalajs.react.*
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.Instrument
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
+import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
@@ -29,7 +28,7 @@ final case class GmosSouthImagingSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.GmosSouth,
-  snPerFilter:          Map[GmosSouthFilter, (SingleSN, TotalSN)],
+  snPerFilter:          Map[GmosSouthFilter, SignalToNoiseAt],
   visits:               List[Visit.GmosSouth],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],

@@ -11,6 +11,9 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.odb.Flamingos2DynamicConfigSubquery
 import lucuma.schemas.odb.GmosSouthDynamicConfigSubquery
 import lucuma.schemas.odb.GmosNorthDynamicConfigSubquery
+import lucuma.schemas.odb.ModeSignalToNoiseSubquery
+import lucuma.schemas.odb.ConstraintSetSubquery
+import lucuma.schemas.odb.TimingWindowSubquery
 
 // gql: import io.circe.refined.*
 // gql: import lucuma.schemas.decoders.given
@@ -39,41 +42,9 @@ object ObsQueriesGQL:
               guideTargets { probe }
             }
           }
-          constraintSet {
-            imageQuality
-            cloudExtinction
-            skyBackground
-            waterVapor
-            elevationRange {
-              airMass {
-                min
-                max
-              }
-              hourAngle {
-                minHours
-                maxHours
-              }
-            }
-          }
-          timingWindows {
-            inclusion
-            startUtc
-            end {
-              ... on TimingWindowEndAt {
-                atUtc
-              }
-              ... on TimingWindowEndAfter {
-                after{
-                  milliseconds
-                }
-                repeat {
-                  period { milliseconds }
-                  times
-                }
-              }
-            }
-          }
-          itc { ...itcFields }
+          constraintSet $ConstraintSetSubquery
+          timingWindows $TimingWindowSubquery
+          signalToNoise:itc $ModeSignalToNoiseSubquery
         }
 
         executionConfig(observationId: $$obsId, futureLimit: 100) {
@@ -227,53 +198,6 @@ object ObsQueriesGQL:
         p { microarcseconds }
         q { microarcseconds }
       }
-
-      fragment itcFields on Itc {
-        ... on ItcSpectroscopy {
-            acquisition {
-              selected {
-                signalToNoiseAt {
-                  single
-                  total
-                }
-              }
-            }
-            spectroscopyScience {
-              selected {
-                signalToNoiseAt {
-                  single
-                  total
-                }
-              }
-            }
-          }
-          ... on ItcGmosNorthImaging {
-            gmosNorthImagingScience {
-              filter
-              results {
-                selected {
-                  signalToNoiseAt {
-                    single
-                    total
-                  }
-                }
-              }
-            }
-          }
-          ... on ItcGmosSouthImaging {
-            gmosSouthImagingScience {
-              filter
-              results {
-                selected {
-                  signalToNoiseAt {
-                    single
-                    total
-                  }
-                }
-              }
-            }
-          }
-        }
     """
 
     object Data:

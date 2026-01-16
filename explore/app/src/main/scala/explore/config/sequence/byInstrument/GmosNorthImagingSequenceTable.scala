@@ -7,9 +7,8 @@ import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.Instrument
-import lucuma.core.math.SingleSN
-import lucuma.core.math.TotalSN
 import lucuma.core.model.sequence.*
+import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
@@ -17,7 +16,7 @@ import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 final case class GmosNorthImagingSequenceTable(
   visits:      List[Visit.GmosNorth],
   config:      ExecutionConfig.GmosNorth,
-  snPerFilter: Map[GmosNorthFilter, (SingleSN, TotalSN)]
+  snPerFilter: Map[GmosNorthFilter, SignalToNoiseAt]
 ) extends ReactFnProps(GmosNorthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth]
     with ImagingSequenceTable[gmos.DynamicConfig.GmosNorth, GmosNorthFilter]:

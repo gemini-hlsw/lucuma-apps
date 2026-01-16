@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
+import lucuma.schemas.model.ModeSignalToNoise
 import monocle.Focus
 import monocle.Lens
 import monocle.syntax.all.focus
@@ -140,13 +141,7 @@ object TestOdbProxy {
                     ElevationRange.ByAirMass.Default
                   ),
                   List.empty,
-                  ODBObservation.Itc.ItcSpectroscopy(
-                    ODBObservation.Itc.ItcSpectroscopy
-                      .Acquisition(ODBObservation.Itc.ItcSpectroscopy.Acquisition.Selected(none)),
-                    ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience(
-                      ODBObservation.Itc.ItcSpectroscopy.SpectroscopyScience.Selected(none)
-                    )
-                  )
+                  ModeSignalToNoise.Spectroscopy(none, none)
                 ),
                 InstrumentExecutionConfig.GmosNorth(
                   ExecutionConfig[StaticConfig.GmosNorth, DynamicConfig.GmosNorth](

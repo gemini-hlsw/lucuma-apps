@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
 import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
@@ -72,8 +73,6 @@ import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
-
-import OdbObservation.Itc
 
 trait SeqTranslate[F[_]] {
   def translateSequence(
@@ -259,31 +258,23 @@ object SeqTranslate {
             (executionConfig.science.map(_.nextAtom), SequenceType.Science)
 
       def signalToNoise(instrumentConfig: D): Option[SignalToNoise] =
-        (observation.itc, instrumentConfig) match
-          case (Itc.ItcSpectroscopy(acquisition, science),
+        (observation.signalToNoise, instrumentConfig) match
+          case (ModeSignalToNoise.Spectroscopy(acquisition, science),
                 _: gmos.DynamicConfig | Flamingos2DynamicConfig
               ) =>
             sequenceType match
-              case SequenceType.Acquisition => acquisition.selected.signalToNoiseAt.map(_.single)
-              case SequenceType.Science     => science.selected.signalToNoiseAt.map(_.single)
-          case (Itc.ItcGmosNorthImaging(snByFilter), gnConfig: gmos.DynamicConfig.GmosNorth) =>
-            gnConfig.filter.flatMap: f =>
-              snByFilter
-                .collectFirst:
-                  case Itc.ItcGmosNorthImaging.GmosNorthImagingScience(snFilter, sn)
-                      if snFilter === f =>
-                    sn.selected.signalToNoiseAt.map(_.single)
-                .flatten
-          case (Itc.ItcGmosSouthImaging(snByFilter), gsConfig: gmos.DynamicConfig.GmosSouth) =>
-            gsConfig.filter.flatMap: f =>
-              snByFilter
-                .collectFirst:
-                  case Itc.ItcGmosSouthImaging.GmosSouthImagingScience(snFilter, sn)
-                      if snFilter === f =>
-                    sn.selected.signalToNoiseAt.map(_.single)
-                .flatten
+              case SequenceType.Acquisition => acquisition.map(_.single.value)
+              case SequenceType.Science     => science.map(_.single.value)
+          case (ModeSignalToNoise.GmosNorthImaging(snByFilter),
+                gnConfig: gmos.DynamicConfig.GmosNorth
+              ) =>
+            gnConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
+          case (ModeSignalToNoise.GmosSouthImaging(snByFilter),
+                gsConfig: gmos.DynamicConfig.GmosSouth
+              ) =>
+            gsConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
           // Step/SN mismatch or unsupported instrument
-          case _                                                                             => none
+          case _ => none
 
       nextAtom
         .map: atom =>
