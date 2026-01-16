@@ -24,7 +24,10 @@ final case class SequenceData(
 object SequenceData:
   def fromOdbResponse(data: SequenceQuery.Data): Option[SequenceData] =
     data.executionConfig.map: config =>
-      SequenceData(config, data.observation.map(_.itc).getOrElse(ModeSignalToNoise.Undefined))
+      SequenceData(
+        config,
+        data.observation.map(_.signalToNoise).getOrElse(ModeSignalToNoise.Undefined)
+      )
 
   val config: Lens[SequenceData, InstrumentExecutionConfig] = Focus[SequenceData](_.config)
   val signalToNoise: Lens[SequenceData, ModeSignalToNoise]  =

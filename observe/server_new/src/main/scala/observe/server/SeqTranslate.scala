@@ -258,7 +258,7 @@ object SeqTranslate {
             (executionConfig.science.map(_.nextAtom), SequenceType.Science)
 
       def signalToNoise(instrumentConfig: D): Option[SignalToNoise] =
-        (observation.itc, instrumentConfig) match
+        (observation.signalToNoise, instrumentConfig) match
           case (ModeSignalToNoise.Spectroscopy(acquisition, science),
                 _: gmos.DynamicConfig | Flamingos2DynamicConfig
               ) =>
