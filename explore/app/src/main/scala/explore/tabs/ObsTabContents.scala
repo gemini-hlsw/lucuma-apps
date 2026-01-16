@@ -66,19 +66,22 @@ case class ObsTabContents(
   searching:        View[Set[Target.Id]],
   expandedGroups:   View[Set[Group.Id]],
   readonly:         Boolean
-) extends ReactFnProps(ObsTabContents.component):
-  private val focusedObs: Option[Observation.Id]         = focused.obsSet.map(_.head)
-  private val focusedTarget: Option[Target.Id]           = focused.target
-  private val focusedGroup: Option[Group.Id]             = focused.group
-  private val observations: UndoSetter[ObservationList]  =
+) extends ReactFnProps(ObsTabContents.component)
+    with ObsGroupHelper {
+  protected val focusedObsId: Option[Observation.Id]      = focused.obsSet.map(_.head)
+  private val focusedTarget: Option[Target.Id]            = focused.target
+  protected val focusedGroupId: Option[Group.Id]          = focused.group
+  protected val observations: UndoSetter[ObservationList] =
     programSummaries.zoom(ProgramSummaries.observations)
-  private val groups: UndoSetter[GroupList]              = programSummaries.zoom(ProgramSummaries.groups)
-  private val activeGroup: Option[Group.Id]              = focusedGroup.orElse:
-    focusedObs.flatMap(observations.get.get(_)).flatMap(_.groupId)
-  private val targets: UndoSetter[TargetList]            = programSummaries.zoom(ProgramSummaries.targets)
-  private val globalPreferences: View[GlobalPreferences] =
+  protected val groups: UndoSetter[GroupList]             = programSummaries.zoom(ProgramSummaries.groups)
+  private val targets: UndoSetter[TargetList]             = programSummaries.zoom(ProgramSummaries.targets)
+  private val globalPreferences: View[GlobalPreferences]  =
     userPreferences.zoom(UserPreferences.globalPreferences)
-  private val programType: Option[ProgramType]           = programSummaries.get.programType
+  private val programType: Option[ProgramType]            = programSummaries.get.programType
+  // XXX Workaround for what seems to be a Scala 3.7.4 bug where `ObsGroupHelper` members cannot be otherwise
+  // accessed from within the component definition below.
+  override val resolvedActiveGroupId: Option[Group.Id]    = super.resolvedActiveGroupId
+}
 
 object ObsTabContents extends TwoPanels:
   private type Props = ObsTabContents
@@ -88,7 +91,7 @@ object ObsTabContents extends TwoPanels:
       .withHooks[Props]
       .useContext(AppContext.ctx)
       .useStateView[SelectedPanel](SelectedPanel.Uninitialized)
-      .useEffectWithDepsBy((props, _, _) => props.focusedObs): (_, _, selected) =>
+      .useEffectWithDepsBy((props, _, _) => props.focusedObsId): (_, _, selected) =>
         focusedObs =>
           (focusedObs, selected.get) match
             case (Some(_), _)                 => selected.set(SelectedPanel.Editor)
@@ -106,7 +109,7 @@ object ObsTabContents extends TwoPanels:
             case _                                        => IO.unit
       .useStateView(List.empty[Observation.Id]) // selectedObsIds
       .localValBy: (props, _, _, _, _, selectedObsIds) => // selectedOrFocusedObsIds
-        props.focusedObs.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds.get))
+        props.focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds.get))
       .useCallbackWithDepsBy((_, _, _, _, _, _, selectedOrFocusedObsIds) =>
         selectedOrFocusedObsIds
       ): // COPY Action Callback
@@ -124,11 +127,11 @@ object ObsTabContents extends TwoPanels:
               .runAsync
       .useCallbackWithDepsBy((props, _, _, _, _, _, _, _) => // PASTE Action Callback
         (Reusable.explicitly(props.observations)(Reusability.by(_.get)),
-         props.activeGroup,
+         props.resolvedActiveGroupId,
          props.readonly
         )
       ): (props, ctx, _, _, _, _, _, _) =>
-        (observations, activeGroup, readonly) =>
+        (observations, resolvedActiveGroupId, readonly) =>
           import ctx.given
 
           ExploreClipboard.get
@@ -137,7 +140,7 @@ object ObsTabContents extends TwoPanels:
                 cloneObs(
                   props.programId,
                   obsIdSet.idSet.toList,
-                  activeGroup,
+                  resolvedActiveGroupId,
                   observations,
                   ctx
                 ).withToastDuring(s"Duplicating obs ${obsIdSet.idSet.mkString_(", ")}")
@@ -189,9 +192,9 @@ object ObsTabContents extends TwoPanels:
                 props.programSummaries.get.parentGroups(_),
                 props.programSummaries.get.groupWarnings,
                 props.programSummaries: Undoer,
-                props.focusedObs,
+                props.focusedObsId,
                 props.focusedTarget,
-                props.focusedGroup,
+                props.focusedGroupId,
                 selectedObsIds.get,
                 twoPanelState.set(SelectedPanel.Summary),
                 props.expandedGroups,
@@ -330,7 +333,7 @@ object ObsTabContents extends TwoPanels:
                 )
 
           def rightSide(resize: UseResizeDetectorReturn): VdomNode =
-            (props.focusedObs, props.focusedGroup) match
+            (props.focusedObsId, props.focusedGroupId) match
               case (Some(obsId), _)   => obsEditorTiles(obsId, resize)
               case (_, Some(groupId)) => groupEditorTiles(groupId, resize)
               case _                  => summaryTiles
