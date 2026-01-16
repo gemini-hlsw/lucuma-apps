@@ -102,6 +102,7 @@ object ExploreStyles:
   val ObsBadgeAssociatedObs: Css         = Css("obs-badge-extra-associated-obs")
   val ObsBadgeSelectedAssociatedObs: Css = Css("obs-badge-extra-selected-associated-obs")
   val ObsBadgeAssociatedObsCheckbox: Css = Css("obs-badge-extra-associated-obs-checkbox")
+  val ObsBadgeAssociatedObsContent: Css  = Css("obs-badge-extra-associated-obs-content")
   val ObsBadgeSelected: Css              = Css("obs-badge-selected")
   val ObsDeleteButton: Css               = Css("obs-delete-button")
   val ObsCloneButton: Css                = Css("obs-clone-button")

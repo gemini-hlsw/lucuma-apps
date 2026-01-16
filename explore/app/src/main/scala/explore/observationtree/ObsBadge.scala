@@ -235,8 +235,8 @@ object ObsBadge:
                     ^.onClick ==> { e => e.preventDefaultCB >> e.stopPropagationCB }
                   ).withOptionalTooltip(obs.workflow.staleTooltip)
                 ),
-                props.executionTime.value.map(
-                  TimeSpanView(_, tooltip = props.executionTime.staleTooltip)
+                props.executionTime.value.map(t =>
+                  TimeSpanView(t, tooltip = props.executionTime.staleTooltip)
                     .withMods(props.executionTime.staleClass)
                 ),
                 validationIcon.unless(obs.workflow.value.validationErrors.isEmpty)
@@ -275,7 +275,18 @@ object ObsBadge:
                               setState(childObs.id)(fromChecked(newValue))
                             .orEmpty
                       )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
-                      childObs.title
+                      <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
+                        <.span(childObs.title),
+                        <.span(
+                          <.span(
+                            childObs.reference.fold(s"[${childObs.id.show}]")(ref =>
+                              s"[${ref.label}]"
+                            )
+                          ),
+                          childObs.execution.digest.programTimeEstimate.value
+                            .map(t => TimeSpanView(t).withMods(^.marginLeft := "0.5em"))
+                        )
+                      )
                     ).compact
                   .toTagMod
               ).when(props.associatedObss.nonEmpty)
