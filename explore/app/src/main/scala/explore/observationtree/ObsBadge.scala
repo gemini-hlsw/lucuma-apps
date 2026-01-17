@@ -88,6 +88,9 @@ object ObsBadge:
     <.progress(^.width := "100%", ^.max := all.length - 1, ^.value := all.indexOf(value))
   }
 
+  private def obsIdentifier(obs: Observation): String =
+    obs.reference.fold(s"[${obs.id.show}]")(ref => s"[${ref.observationIndex}]")
+
   private val component = ScalaFnComponent[Props]: props =>
     for
       ctx     <- useContext(AppContext.ctx)
@@ -96,9 +99,8 @@ object ObsBadge:
       val obs    = props.obs
       val layout = props.layout
 
-      val identifier: VdomNode = obs.reference.fold(s"[${obs.id.show}]": VdomNode): ref =>
-        <.span(s"[${ref.observationIndex.toString}]")
-          .withTooltip(content = s"${ref.label} (${obs.id})")
+      val identifier: VdomNode = obs.reference.fold(<.span(obsIdentifier(obs))): ref =>
+        <.span(obsIdentifier(obs)).withTooltip(content = s"${ref.label} (${obs.id})")
 
       val deleteButton =
         Button(
@@ -278,11 +280,7 @@ object ObsBadge:
                       <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
                         <.span(childObs.title),
                         <.span(
-                          <.span(
-                            childObs.reference.fold(s"[${childObs.id.show}]")(ref =>
-                              s"[${ref.label}]"
-                            )
-                          ),
+                          obsIdentifier(childObs),
                           childObs.execution.digest.programTimeEstimate.value
                             .map(t => TimeSpanView(t).withMods(^.marginLeft := "0.5em"))
                         )
