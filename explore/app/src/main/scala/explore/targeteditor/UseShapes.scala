@@ -197,7 +197,11 @@ def useVisualizationShapes(
            )
           )
         case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-          (Css.Empty,
+          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _ => Css.Empty
+          (probeVisibilityCss,
            GmosGeometry.gmosGeometry(
              baseCoords,
              blindOffset,
@@ -206,12 +210,17 @@ def useVisualizationShapes(
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,
+             vizConf.flatMap(_.trackType),
              selectedGS,
              candidatesVisibilityCss
            )
           )
         case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-          (VisualizationStyles.GmosCcdVisible,
+          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _ => VisualizationStyles.GmosCcdVisible
+          (probeVisibilityCss,
            GmosGeometry.gmosGeometry(
              baseCoords,
              blindOffset,
@@ -220,6 +229,7 @@ def useVisualizationShapes(
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,
+             vizConf.flatMap(_.trackType),
              selectedGS,
              candidatesVisibilityCss
            )

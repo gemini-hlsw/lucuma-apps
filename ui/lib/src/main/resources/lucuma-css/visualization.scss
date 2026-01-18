@@ -87,9 +87,9 @@
   .pwfs-probe-arm-vignetting,
   .pwfs-mirror-vignetting {
     display: none;
-    stroke: hsl(60deg 100% 80%);
+    stroke: hsl(60deg 100% 80%/ 70%);
     stroke-width: 0.2px;
-    fill: hsl(60deg 100% 80% / 10%);
+    fill: hsl(60deg 100% 80% / 5%);
   }
 
   &.flamingos2-patrol-field-visible .flamingos2-patrol-field,
