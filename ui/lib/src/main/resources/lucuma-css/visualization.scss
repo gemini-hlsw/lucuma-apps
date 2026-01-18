@@ -67,16 +67,29 @@
   }
 
   &.pwfs-probe-arm-visible .pwfs-probe-arm,
+  &.pwfs-probe-arm-visible .pwfs-probe-arm-vignetting,
+  &.pwfs-probe-arm-visible .pwfs-mirror,
+  &.pwfs-probe-arm-visible .pwfs-mirror-vignetting,
   &.flamingos2-probe-arm-visible .flamingos2-probe-arm,
   &.gmos-probe-visible .gmos-probe-arm {
     display: inline;
   }
 
   .pwfs-probe-arm,
+  .pwfs-mirror,
   .flamingos2-probe-arm,
   .gmos-probe-arm {
     display: none;
     stroke: hsl(0deg 67.9% 41.6%);
+    stroke-width: 1px;
+  }
+
+  .pwfs-probe-arm-vignetting,
+  .pwfs-mirror-vignetting {
+    display: none;
+    stroke: hsl(60deg 100% 80%);
+    stroke-width: 0.2px;
+    fill: hsl(60deg 100% 80% / 10%);
   }
 
   &.flamingos2-patrol-field-visible .flamingos2-patrol-field,
