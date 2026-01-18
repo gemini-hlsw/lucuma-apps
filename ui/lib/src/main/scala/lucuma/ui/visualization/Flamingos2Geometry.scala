@@ -19,7 +19,7 @@ import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.flamingos2.*
 import lucuma.core.geom.flamingos2.all.*
-import lucuma.core.geom.syntax.shapeexpression.*
+import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -29,6 +29,8 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
+import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.TrackType
 
 /**
  * Object to produce flamingos2 geometry for visualization
@@ -55,30 +57,34 @@ object Flamingos2Geometry:
       case _                                              =>
         SortedMap.empty
     }
-  //
-  // Shape to display always
-  def commonShapes(
-    l:        Flamingos2LyotWheel,
-    posAngle: Angle,
-    extraCss: Css
-  ): SortedMap[Css, ShapeExpression] =
+
+  def oiwfsCandidatesArea(lw: Flamingos2LyotWheel, posAngle: Angle, extraCss: Css) =
     SortedMap(
-      (Flamingos2CandidatesArea |+| extraCss, candidatesAreaAt(l, posAngle, Offset.Zero))
+      (Flamingos2CandidatesArea |+| extraCss, candidatesAreaAt(lw, posAngle, Offset.Zero))
     )
 
-  // Shape for the intersection of patrol fields at each offset
-  def patrolFieldIntersection(
+  def pwfsCandidatesArea(posAngle: Angle, extraCss: Css) =
+    SortedMap(
+      (Flamingos2CandidatesArea |+| extraCss, pwfs.patrolField.patrolFieldAt(posAngle, Offset.Zero))
+    )
+
+  // Shape to display always
+  def commonShapes(
+    lw:            Flamingos2LyotWheel,
     posAngle:      Angle,
-    offsets:       NonEmptyList[Offset],
-    configuration: BasicConfiguration,
-    port:          PortDisposition,
-    lyotWheel:     Flamingos2LyotWheel,
-    extraCss:      Css = Css.Empty
-  ): (Css, ShapeExpression) =
-    (PatrolFieldIntersection |+| extraCss) ->
-      offsets
-        .map(patrolField(posAngle, _, configuration, lyotWheel, port))
-        .reduce(using _ ∩ _)
+    extraCss:      Css,
+    configuration: Option[BasicConfiguration],
+    trackType:     Option[TrackType]
+  ): SortedMap[Css, ShapeExpression] =
+    configuration
+      .map: c =>
+        c.guideProbe(trackType) match
+          case GuideProbe.Flamingos2OIWFS          =>
+            oiwfsCandidatesArea(lw, posAngle, extraCss)
+          case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
+            pwfsCandidatesArea(posAngle, extraCss)
+          case _                                   => SortedMap.empty[Css, ShapeExpression]
+      .getOrElse(oiwfsCandidatesArea(lw, posAngle, extraCss))
 
   // Shape for the patrol field at a single position
   def patrolField(
@@ -86,11 +92,18 @@ object Flamingos2Geometry:
     offset:        Offset,
     configuration: BasicConfiguration,
     lyotWheel:     Flamingos2LyotWheel,
-    port:          PortDisposition
+    port:          PortDisposition,
+    trackType:     Option[TrackType]
   ): ShapeExpression =
     configuration match {
       case m: BasicConfiguration.Flamingos2LongSlit =>
-        flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
+        m.guideProbe(trackType) match
+          case GuideProbe.GmosOIWFS                      =>
+            flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
+          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
+            pwfs.patrolField.patrolFieldAt(posAngle, offset)
+          case _                                         =>
+            ShapeExpression.Empty
       case _                                        =>
         ShapeExpression.Empty
     }
@@ -101,17 +114,40 @@ object Flamingos2Geometry:
     guideStarOffset: Offset,
     offsetPos:       Offset,
     mode:            Option[BasicConfiguration],
+    trackType:       Option[TrackType],
     port:            PortDisposition,
-    lyotWheel:       Flamingos2LyotWheel, // in practice this is always F16
-    extraCss:        Css
+    lyotWheel:       Flamingos2LyotWheel // in practice this is always F16
   ): SortedMap[Css, ShapeExpression] =
     mode match
       case Some(m: BasicConfiguration.Flamingos2LongSlit) =>
-        SortedMap(
-          (Flamingos2ProbeArm |+| extraCss,
-           probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, lyotWheel, port)
-          )
-        )
+        m.guideProbe(trackType) match
+          case GuideProbe.Flamingos2OIWFS =>
+            SortedMap(
+              (Flamingos2ProbeArm,
+               probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, lyotWheel, port)
+              )
+            )
+          case GuideProbe.PWFS1           =>
+            SortedMap(
+              (Flamingos2ProbeArm,
+               pwfs.probeArm.armAt(GuideProbe.PWFS1, guideStarOffset, offsetPos)
+              ),
+              (Flamingos2ProbeArm,
+               pwfs.probeArm.armVignettedAreaAt(GuideProbe.PWFS1, guideStarOffset, offsetPos)
+              )
+            )
+          case GuideProbe.PWFS2           =>
+            SortedMap(
+              (PwfsArm, pwfs.probeArm.armAt(GuideProbe.PWFS2, guideStarOffset, offsetPos)),
+              (PwfsArmVignetted,
+               pwfs.probeArm.armVignettedAreaAt(GuideProbe.PWFS2, guideStarOffset, offsetPos)
+              ),
+              (PwfsMirror, pwfs.probeArm.mirrorAt(GuideProbe.PWFS2, guideStarOffset, offsetPos)),
+              (PwfsMirrorVignetted,
+               pwfs.probeArm.mirrorVignettedAreaAt(GuideProbe.PWFS2, guideStarOffset, offsetPos)
+              )
+            )
+          case _                          => SortedMap.empty
       case _                                              =>
         SortedMap.empty
 
@@ -124,6 +160,7 @@ object Flamingos2Geometry:
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     port:                    PortDisposition,
+    trackType:               Option[TrackType],
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css,
     lyotWheel:               Flamingos2LyotWheel = Flamingos2LyotWheel.F16 // in practice this is always F16
@@ -134,15 +171,16 @@ object Flamingos2Geometry:
         // Shapes at base position
         val baseShapes: SortedMap[Css, ShapeExpression] =
           shapesForMode(posAngle, Offset.Zero, conf) ++
-            commonShapes(lyotWheel, posAngle, candidatesVisibilityCss)
+            commonShapes(lyotWheel, posAngle, candidatesVisibilityCss, conf, trackType)
 
         // Don't show the probe if there is no usable GS
         val probe = gs
           .map: gs =>
-            val gsOffset   =
+            val gsOffset =
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
+
             val probeShape =
-              probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, lyotWheel, Css.Empty)
+              probeShapes(posAngle, gsOffset, Offset.Zero, conf, trackType, port, lyotWheel)
 
             val positions = Ags.generatePositions(
               referenceCoordinates.some,

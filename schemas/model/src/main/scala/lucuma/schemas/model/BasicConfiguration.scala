@@ -42,6 +42,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
 
+  def guideProbe(trackType: Option[TrackType]): GuideProbe
+
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
     Decoder
@@ -63,12 +65,19 @@ object BasicConfiguration:
                           .orElse:
                             DecodingFailure("Could not decode BasicConfiguration", c.history).asLeft
 
+  trait GmosProbe:
+    def guideProbe(trackType: Option[TrackType]): GuideProbe =
+      trackType match
+        case Some(TrackType.Sidereal) | None => GuideProbe.GmosOIWFS
+        case Some(TrackType.Nonsidereal)     => GuideProbe.PWFS2
+
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
     filter:            Option[GmosNorthFilter],
     fpu:               GmosNorthFpu,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
+  ) extends BasicConfiguration(Instrument.GmosNorth)
+      with GmosProbe derives Eq
 
   object GmosNorthLongSlit:
     given Decoder[GmosNorthLongSlit] = deriveDecoder
@@ -78,21 +87,24 @@ object BasicConfiguration:
     filter:            Option[GmosSouthFilter],
     fpu:               GmosSouthFpu,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
+  ) extends BasicConfiguration(Instrument.GmosSouth)
+      with GmosProbe derives Eq
 
   object GmosSouthLongSlit:
     given Decoder[GmosSouthLongSlit] = deriveDecoder
 
   case class GmosNorthImaging(
     filter: NonEmptyList[GmosNorthFilter]
-  ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
+  ) extends BasicConfiguration(Instrument.GmosNorth)
+      with GmosProbe derives Eq
 
   object GmosNorthImaging:
     given Decoder[GmosNorthImaging] = deriveDecoder
 
   case class GmosSouthImaging(
     filter: NonEmptyList[GmosSouthFilter]
-  ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
+  ) extends BasicConfiguration(Instrument.GmosSouth)
+      with GmosProbe derives Eq
 
   object GmosSouthImaging:
     given Decoder[GmosSouthImaging] = deriveDecoder
@@ -101,7 +113,11 @@ object BasicConfiguration:
     disperser: Flamingos2Disperser,
     filter:    Flamingos2Filter,
     fpu:       Flamingos2Fpu
-  ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq
+  ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq:
+    def guideProbe(trackType: Option[TrackType]): GuideProbe =
+      trackType match
+        case Some(TrackType.Sidereal) | None => GuideProbe.Flamingos2OIWFS
+        case Some(TrackType.Nonsidereal)     => GuideProbe.PWFS2
 
   object Flamingos2LongSlit:
     given Decoder[Flamingos2LongSlit] = deriveDecoder

@@ -26,6 +26,7 @@ import lucuma.schemas.model.CentralWavelength
 import org.typelevel.cats.time.instances.duration.*
 
 import java.time.Duration
+import lucuma.core.enums.TrackType
 
 /**
  * Contains, as far as possible, all the configuration for executing an observation, including
@@ -43,7 +44,8 @@ final case class ObsConfiguration(
   obsDuration:        Option[Duration],
   needGuideStar:      Boolean,
   remoteGSName:       Option[NonEmptyString],
-  calibrationRole:    Option[CalibrationRole]
+  calibrationRole:    Option[CalibrationRole],
+  trackType:          Option[TrackType]
 ) derives Eq:
 
   def posAngleConstraint: Option[PosAngleConstraint] =
@@ -78,7 +80,8 @@ object ObsConfiguration:
     configuration: Option[BasicConfiguration],
     constraints:   Option[ConstraintSet],
     wavelength:    Option[CentralWavelength],
-    needsAGS:      Boolean
+    needsAGS:      Boolean,
+    trackType:     Option[TrackType]
   ): ObsConfiguration =
     ObsConfiguration(
       configuration,
@@ -92,5 +95,6 @@ object ObsConfiguration:
       none,
       needsAGS,
       none,
-      none
+      none,
+      trackType
     )

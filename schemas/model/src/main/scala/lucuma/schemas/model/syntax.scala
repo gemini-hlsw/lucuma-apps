@@ -16,6 +16,7 @@ import lucuma.core.util.Timestamp
 import org.typelevel.cats.time.*
 
 import java.time.Instant
+import lucuma.core.enums.TrackType
 
 object syntax:
   extension (tracking: Tracking)
@@ -69,3 +70,10 @@ object syntax:
         yield EphemerisTracking(start, end))
           .getOrElse(e)
       case _                      => tracking
+
+    def trackType: Option[TrackType] =
+      tracking match
+        case ConstantTracking(_)             => none
+        case CompositeTracking(_)            => TrackType.Sidereal.some
+        case EphemerisTracking(_)            => TrackType.Nonsidereal.some
+        case SiderealTracking(_, _, _, _, _) => TrackType.Sidereal.some

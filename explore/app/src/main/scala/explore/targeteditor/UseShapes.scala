@@ -20,6 +20,7 @@ import lucuma.ags.AgsVisualization
 import lucuma.ags.PatrolFieldVisualization
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
@@ -177,7 +178,11 @@ def useVisualizationShapes(
     (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
       conf match
         case ObservingModeType.Flamingos2LongSlit                                      =>
-          (Css.Empty,
+          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _ => VisualizationStyles.Flamingos2ProbeArmVisible
+          (probeVisibilityCss,
            Flamingos2Geometry.f2Geometry(
              baseCoords,
              blindOffset,
@@ -186,6 +191,7 @@ def useVisualizationShapes(
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              PortDisposition.Side,
+             vizConf.flatMap(_.trackType),
              selectedGS,
              candidatesVisibilityCss
            )

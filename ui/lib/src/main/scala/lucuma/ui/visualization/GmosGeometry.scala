@@ -61,19 +61,6 @@ object GmosGeometry:
         SortedMap.empty
     }
 
-  // Shape for the intersection of patrol fields at each offset
-  def patrolFieldIntersection(
-    posAngle:      Angle,
-    offsets:       NonEmptyList[Offset],
-    configuration: BasicConfiguration,
-    port:          PortDisposition,
-    extraCss:      Css = Css.Empty
-  ): (Css, ShapeExpression) =
-    (PatrolFieldIntersection |+| extraCss) ->
-      offsets
-        .map(patrolField(posAngle, _, configuration, port))
-        .reduce(using _ ∩ _)
-
   // Shape for the patrol field at a single position
   def patrolField(
     posAngle:      Angle,
@@ -106,25 +93,24 @@ object GmosGeometry:
     guideStarOffset: Offset,
     offsetPos:       Offset,
     mode:            Option[BasicConfiguration],
-    port:            PortDisposition,
-    extraCss:        Css
+    port:            PortDisposition
   ): SortedMap[Css, ShapeExpression] =
     mode match
       case Some(m: BasicConfiguration.GmosNorthLongSlit) =>
         SortedMap(
-          (GmosProbeArm |+| extraCss,
+          (GmosProbeArm,
            gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, m.fpu.asLeft.some, port)
           )
         )
       case Some(m: BasicConfiguration.GmosSouthLongSlit) =>
         SortedMap(
-          (GmosProbeArm |+| extraCss,
+          (GmosProbeArm,
            gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, m.fpu.asRight.some, port)
           )
         )
       case _                                             =>
         SortedMap(
-          (GmosProbeArm |+| extraCss,
+          (GmosProbeArm,
            gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, none, port)
           )
         )
@@ -156,7 +142,7 @@ object GmosGeometry:
             val gsOffset   =
               referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
             val probeShape =
-              probeShapes(posAngle, gsOffset, Offset.Zero, conf, port, Css.Empty)
+              probeShapes(posAngle, gsOffset, Offset.Zero, conf, port)
 
             val positions = Ags.generatePositions(
               referenceCoordinates.some,

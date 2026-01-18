@@ -66,11 +66,13 @@
     vector-effect: non-scaling-stroke;
   }
 
+  &.pwfs-probe-arm-visible .pwfs-probe-arm,
   &.flamingos2-probe-arm-visible .flamingos2-probe-arm,
   &.gmos-probe-visible .gmos-probe-arm {
     display: inline;
   }
 
+  .pwfs-probe-arm,
   .flamingos2-probe-arm,
   .gmos-probe-arm {
     display: none;
