@@ -271,7 +271,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                 props.obsConf.flatMap(_.obsModeType),
                                 props.obsConf.flatMap(_.guidedAcqOffsets),
                                 props.obsConf.flatMap(_.guidedSciOffsets),
-                                candidates.value.toOption.flatten
+                                candidates.value.toOption.flatten,
+                                props.obsConf.flatMap(_.trackType)
                                )
                              ):
                                case (focusedId,
@@ -282,7 +283,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                      Some(obsModeType),
                                      acqOffsets,
                                      sciOffsets,
-                                     Some(cands)
+                                     Some(cands),
+                                     trackType
                                    ) =>
                                  AgsCalcProps(
                                    focusedId,
@@ -293,7 +295,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    obsModeType,
                                    acqOffsets,
                                    sciOffsets,
-                                   cands
+                                   cands,
+                                   trackType
                                  ).some
                                case _ => none
       // Reference to root

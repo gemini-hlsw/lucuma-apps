@@ -22,8 +22,10 @@ import lucuma.ags.*
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosSouthFpu
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
+import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
@@ -43,7 +45,8 @@ case class AgsCalcProps(
   obsModeType:       ObservingModeType,
   acqOffsets:        Option[AcquisitionOffsets],
   sciOffsets:        Option[ScienceOffsets],
-  candidates:        List[GuideStarCandidate]
+  candidates:        List[GuideStarCandidate],
+  trackType:         Option[TrackType]
 )
 
 object AgsCalcProps:
@@ -56,7 +59,8 @@ object AgsCalcProps:
      p.obsModeType,
      p.acqOffsets,
      p.sciOffsets,
-     p.candidates.length
+     p.candidates.length,
+     p.trackType
     )
 
 case class AgsCalculationResults(
@@ -73,7 +77,8 @@ object UseAgsCalculation:
 
   private def agsParams(
     obsModeType:   ObservingModeType,
-    observingMode: Option[BasicConfiguration]
+    observingMode: Option[BasicConfiguration],
+    trackType:     Option[TrackType]
   ): Option[AgsParams] =
     obsModeType match
       case ObservingModeType.Flamingos2LongSlit =>
@@ -81,16 +86,25 @@ object UseAgsCalculation:
           .collect:
             case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) => fpu
           .map: f =>
-            AgsParams.Flamingos2AgsParams(
+            val base = AgsParams.Flamingos2AgsParams(
               Flamingos2LyotWheel.F16,
               Flamingos2FpuMask.Builtin(f),
               PortDisposition.Side
             )
+            observingMode.map(_.guideProbe(trackType)) match
+              case Some(GuideProbe.PWFS1) => base.withPWFS1
+              case Some(GuideProbe.PWFS2) => base.withPWFS2
+              case _                      => base
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val fpu: Option[Either[GmosNorthFpu, GmosSouthFpu]] =
           observingMode.flatMap(_.gmosFpuAlternative)
-        AgsParams.GmosAgsParams(fpu, PortDisposition.Side).some
+        val base = AgsParams.GmosAgsParams(fpu, PortDisposition.Side)
+        val params = observingMode.map(_.guideProbe(trackType)) match
+          case Some(GuideProbe.PWFS1) => base.withPWFS1
+          case Some(GuideProbe.PWFS2) => base.withPWFS2
+          case _                      => base
+        params.some
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
         throw new NotImplementedError("Gmos Imaging not implemented")
@@ -104,32 +118,32 @@ object UseAgsCalculation:
     import ctx.given
 
     obsCoords.baseCoords.map { baseCoords =>
-      val params = agsParams(props.obsModeType, props.observingMode)
+      val params = agsParams(props.obsModeType, props.observingMode, props.trackType)
 
       params
         .map: p =>
-          AgsMessage.AgsRequest(
-            props.focusedId,
-            props.obsTime,
-            props.constraints,
-            props.centralWavelength.value,
-            baseCoords,
-            obsCoords.scienceCoords,
-            obsCoords.blindOffsetCoords,
-            angles,
-            props.acqOffsets,
-            props.sciOffsets,
-            p,
-            props.candidates
-          )
-        .map: req =>
-          AgsClient[IO]
-            .requestSingle(req)
-            .flatMap(processResults)
-            .handleErrorWith(t =>
-              ctx.logger.error(t)(s"Error on ags calculation ${t.getMessage()}")
+            AgsMessage.AgsRequest(
+              props.focusedId,
+              props.obsTime,
+              props.constraints,
+              props.centralWavelength.value,
+              baseCoords,
+              obsCoords.scienceCoords,
+              obsCoords.blindOffsetCoords,
+              angles,
+              props.acqOffsets,
+              props.sciOffsets,
+              p,
+              props.candidates
             )
-        .getOrElse(IO.unit)
+          .map: req =>
+            AgsClient[IO]
+              .requestSingle(req)
+              .flatMap(processResults)
+              .handleErrorWith(t =>
+                ctx.logger.error(t)(s"Error on ags calculation ${t.getMessage()}")
+              )
+          .getOrElse(IO.unit)
     }.orEmpty
 
   def useAgsCalculation(

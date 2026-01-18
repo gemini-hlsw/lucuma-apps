@@ -47,10 +47,11 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
 
   private def fallBackGuideProbe = this match
-    case BasicConfiguration.GmosNorthLongSlit | BasicConfiguration.GmosSouthLongSlit |
-        BasicConfiguration.GmosNorthImaging | BasicConfiguration.GmosSouthImaging =>
+    case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) |
+        BasicConfiguration.GmosSouthLongSlit(_, _, _, _) | BasicConfiguration.GmosNorthImaging(_) |
+        BasicConfiguration.GmosSouthImaging(_) =>
       GuideProbe.GmosOIWFS
-    case BasicConfiguration.Flamingos2LongSlit => GuideProbe.Flamingos2OIWFS
+    case BasicConfiguration.Flamingos2LongSlit(_, _, _) => GuideProbe.Flamingos2OIWFS
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
