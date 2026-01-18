@@ -34,9 +34,9 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 
 /**
- * Object to produce flamingos2 geometry for visualization
+ * Object to produce Flamingos2 geometry for visualization
  */
-object Flamingos2Geometry:
+object Flamingos2Geometry extends PwfsGeometry:
 
   // Shape to display for a specific mode
   def shapesForMode(
@@ -66,11 +66,6 @@ object Flamingos2Geometry:
       )
     )
 
-  def pwfsCandidatesArea(posAngle: Angle, extraCss: Css) =
-    SortedMap(
-      (Flamingos2CandidatesArea |+| extraCss, pwfs.patrolField.patrolFieldAt(posAngle, Offset.Zero))
-    )
-
   // Shape to display always
   def commonShapes(
     lw:            Flamingos2LyotWheel,
@@ -85,7 +80,7 @@ object Flamingos2Geometry:
           case GuideProbe.Flamingos2OIWFS          =>
             oiwfsCandidatesArea(lw, posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
-            pwfsCandidatesArea(posAngle, extraCss)
+            pwfsCandidatesArea(Flamingos2CandidatesArea, posAngle, extraCss)
           case _                                   => SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(lw, posAngle, extraCss))
 
@@ -110,18 +105,6 @@ object Flamingos2Geometry:
       case _                                        =>
         ShapeExpression.Empty
     }
-
-  private def pwfsProbeShapes(
-    probe:           GuideProbe,
-    guideStarOffset: Offset,
-    offsetPos:       Offset
-  ): SortedMap[Css, ShapeExpression] =
-    SortedMap(
-      (PwfsArm, pwfs.probeArm.armAt(probe, guideStarOffset, offsetPos)),
-      (PwfsArmVignetted, pwfs.probeArm.armVignettedAreaAt(probe, guideStarOffset, offsetPos)),
-      (PwfsMirror, pwfs.probeArm.mirrorAt(probe, guideStarOffset, offsetPos)),
-      (PwfsMirrorVignetted, pwfs.probeArm.mirrorVignettedAreaAt(probe, guideStarOffset, offsetPos))
-    )
 
   // Shape to display always
   def probeShapes(

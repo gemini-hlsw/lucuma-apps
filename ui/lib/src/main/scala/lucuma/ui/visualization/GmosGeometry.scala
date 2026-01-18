@@ -18,7 +18,6 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
-import lucuma.core.geom.pwfs
 import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -30,9 +29,9 @@ import lucuma.ui.visualization.VisualizationStyles.*
 import scala.collection.immutable.SortedMap
 
 /**
- * Test object to produce a gmos geometry. it is for demo purposes only
+ * Object to produce GMOS geometry for visualization
  */
-object GmosGeometry:
+object GmosGeometry extends PwfsGeometry:
 
   // Shape to display for a specific mode
   def shapesForMode(
@@ -84,6 +83,13 @@ object GmosGeometry:
         ShapeExpression.Empty
     }
 
+  def oiwfsCandidatesArea(posAngle: Angle, extraCss: Css) =
+    SortedMap(
+      (GmosCandidatesArea |+| extraCss,
+       gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
+      )
+    )
+
   // Shape to display always
   def commonShapes(
     posAngle:  Angle,
@@ -94,38 +100,12 @@ object GmosGeometry:
     conf
       .map: c =>
         c.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS               =>
-            SortedMap(
-              (GmosCandidatesArea |+| extraCss,
-               gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
-              )
-            )
+          case GuideProbe.GmosOIWFS                =>
+            oiwfsCandidatesArea(posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
-            SortedMap(
-              (GmosCandidatesArea |+| extraCss,
-               pwfs.patrolField.patrolFieldAt(posAngle, Offset.Zero)
-              )
-            )
+            pwfsCandidatesArea(GmosCandidatesArea, posAngle, extraCss)
           case _ => SortedMap.empty[Css, ShapeExpression]
-      .getOrElse(
-        SortedMap(
-          (GmosCandidatesArea |+| extraCss,
-           gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
-          )
-        )
-      )
-
-  private def pwfsProbeShapes(
-    probe:           GuideProbe,
-    guideStarOffset: Offset,
-    offsetPos:       Offset
-  ): SortedMap[Css, ShapeExpression] =
-    SortedMap(
-      (PwfsArm, pwfs.probeArm.armAt(probe, guideStarOffset, offsetPos)),
-      (PwfsArmVignetted, pwfs.probeArm.armVignettedAreaAt(probe, guideStarOffset, offsetPos)),
-      (PwfsMirror, pwfs.probeArm.mirrorAt(probe, guideStarOffset, offsetPos)),
-      (PwfsMirrorVignetted, pwfs.probeArm.mirrorVignettedAreaAt(probe, guideStarOffset, offsetPos))
-    )
+      .getOrElse(oiwfsCandidatesArea(posAngle, extraCss))
 
   // Shape to display always
   def probeShapes(
