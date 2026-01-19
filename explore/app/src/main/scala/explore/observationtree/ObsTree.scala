@@ -11,6 +11,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
+import explore.ObsGroupHelper
 import explore.components.ActionButtons
 import explore.components.ToolbarTooltipOptions
 import explore.components.ui.ExploreStyles
@@ -77,20 +78,16 @@ case class ObsTree(
   allocatedScienceBands: SortedSet[ScienceBand],
   addingObservation:     View[AddingObservation],
   readonly:              Boolean
-) extends ReactFnProps(ObsTree.component):
+) extends ReactFnProps(ObsTree.component)
+    with ObsGroupHelper:
   private val selectedObsIdSet: Option[ObsIdSet] =
     focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
-  // We need the whole group (not just the id), in order to know if it's a callibration group.
-  private val focusedGroup: Option[Group] = focusedGroupId
-    .orElse(focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId))
-    .flatMap(groups.get.get(_))
-
-  private val activeGroup: Option[Group.Id] =
-    focusedGroup
-      .filterNot(_.isTelluricCalibration)
-      .map(_.id)
-      .orElse(focusedGroup.flatMap(_.parentId)) // For telluric groups, use parent
+  // XXX Workaround for what seems to be a Scala 3.7.4 bug where `ObsGroupHelper` members cannot be otherwise
+  // accessed from within the component definition below.
+  override def resolveGroupId(groupId: Option[Group.Id]): Option[Group.Id] =
+    super.resolveGroupId(groupId)
+  override val resolvedActiveGroupId: Option[Group.Id]                     = super.resolvedActiveGroupId
 
   private val focusedObsOrGroup: Option[Either[Observation.Id, Group.Id]] =
     focusedObsId.map(_.asLeft).orElse(focusedGroupId.map(_.asRight))
@@ -147,7 +144,7 @@ case class ObsTree(
     clipboardObsContents
       .map(_.idSet.toSortedSet)
       .map(selectedText)
-      .map(_ + activeGroup.map(gid => s" into ${groupText(gid)}").orEmpty)
+      .map(_ + resolvedActiveGroupId.map(gid => s" into ${groupText(gid)}").orEmpty)
   private val deleteText: Option[String]                             =
     selectedObsIdSet.map(observationsText).orElse(focusedGroupId.map(groupText))
 
@@ -253,7 +250,7 @@ object ObsTree:
         _             <- useEffectWithDeps(props.focusedObsId): focusedObs =>
                            focusedObs.map(scrollIfNeeded).getOrEmpty
         // Open the group (and all super-groups) of the focused observation
-        _             <- useEffectWithDeps(props.activeGroup):
+        _             <- useEffectWithDeps(props.resolvedActiveGroupId):
                            _.map: activeGroupId =>
                              props.expandedGroups.mod:
                                _ ++ props.parentGroups(activeGroupId.asRight) + activeGroupId
@@ -363,7 +360,7 @@ object ObsTree:
               cloneCB = cloneObs(
                 props.programId,
                 List(obs.id),
-                obs.groupId, // Clone to the same group
+                props.resolveGroupId(obs.groupId), // Clone to the same group
                 props.observations,
                 ctx
               ).switching(adding.async, AddingObservation(_))
@@ -423,7 +420,7 @@ object ObsTree:
         val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
 
         val isSystemGroupFocused: Boolean =
-          props.activeGroup
+          props.resolvedActiveGroupId
             .flatMap(props.groups.get.get(_))
             .exists(g => g.system && !g.isTelluricCalibration)
 
@@ -444,7 +441,7 @@ object ObsTree:
                         tooltipOptions = ToolbarTooltipOptions.Default,
                         onClick = insertObs(
                           props.programId,
-                          props.activeGroup, // Set the active group as the new obs parent if it is selected
+                          props.resolvedActiveGroupId, // Set the active group as the new obs parent if it is selected
                           props.observations,
                           adding,
                           ctx
@@ -460,7 +457,7 @@ object ObsTree:
                         tooltipOptions = ToolbarTooltipOptions.Default,
                         onClick = insertGroup(
                           props.programId,
-                          props.activeGroup, // Set the active group as the new group parent if it is selected
+                          props.resolvedActiveGroupId, // Set the active group as the new group parent if it is selected
                           props.groups,
                           adding,
                           ctx
