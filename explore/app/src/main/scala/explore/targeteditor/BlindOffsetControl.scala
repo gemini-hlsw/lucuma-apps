@@ -163,6 +163,16 @@ object BlindOffsetControl
                       )
                 )
             else none.pure[IO]
+        // TODO: Blindoffset: Temporary for scoring algorithm evaluation. Remove when completed
+        _                <- useEffectWithDeps(candidatesResult.value): candidates =>
+                              candidates.value.toOption.flatten
+                                .flatMap(_.toOption)
+                                .foldMap:
+                                  _.zipWithIndex.traverse: (cand, idx) =>
+                                    val g   = BlindOffsetCandidate.referenceBrightness(cand.catalogResult)
+                                    val sep = lucuma.core.math.Angle.decimalArcseconds.get(cand.distance)
+                                    Callback.log(s"Candidate ${idx + 1}: $sep, $g, ${cand.score}")
+                                .void
         index            <- useStateView(-1)
         isWorking        <- useStateView(IsWorking(false))
         _                <-

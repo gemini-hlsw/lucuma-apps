@@ -17,7 +17,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object BlindOffsetRequestHandler:
-  val cacheVersion = CacheVersion(2)
+  val cacheVersion = CacheVersion(3)
 
   def apply[F[_]: {Concurrent, Logger}](
     client:            GaiaClient[F],
