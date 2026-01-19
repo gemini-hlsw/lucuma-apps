@@ -222,6 +222,7 @@ object ExploreStyles:
 
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")
+  val VisualizationStale: Css         = Css("visualization-stale")
 
   val AgsOverlay: Css          = Css("ags-overlay")
   val AgsDescription: Css      = Css("ags-description")

@@ -13,6 +13,11 @@
   display: inline !important; // we use this as a toggle thus we need important set
 }
 
+.visualization-stale {
+  opacity: 0.55;
+  transition: opacity 0.2s ease-in-out;
+}
+
 .p-tooltip-text {
   .ags-tooltip {
     display: flex;

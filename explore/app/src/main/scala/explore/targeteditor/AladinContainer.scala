@@ -557,6 +557,10 @@ object AladinContainer extends AladinCommon {
             val screenOffset =
               (currentPos.value, baseCoordinates).mapN(_.diff(_).offset).getOrElse(Offset.Zero)
 
+            val staleCss = ExploreStyles.VisualizationStale.when_(
+              props.agsState.exists(_ === AgsState.Calculating)
+            )
+
             ReactFragment(
               aladinRef.value.map(AladinZoomControl(_)),
               HelpIcon("aladin-cell.md".refined, ExploreStyles.AladinHelpIcon),
@@ -592,7 +596,7 @@ object AladinContainer extends AladinCommon {
                resize.height,
                fov.value,
                shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
-               shapes.map(_._1)
+               shapes.map(_._1 |+| staleCss)
               )
                 .mapN(
                   SvgVisualizationOverlay(
