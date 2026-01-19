@@ -418,7 +418,8 @@ object AladinCell extends ModelOptics with AladinCommon:
           offsetChangeInAladin.reuseAlways,
           guideStar,
           agsResults,
-          props.anglesToTest
+          props.anglesToTest,
+          props.obsConf.flatMap(_.agsState).map(_.get)
         )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =

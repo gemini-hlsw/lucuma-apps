@@ -631,10 +631,10 @@ object ObsTabTiles:
               customSedTimestamps,
               props.obsTargets,
               props.programSummaries.observingModeGroups,
-              sequenceChanged.mod:
-                case Ready(x) => pending
+              sequenceChanged.mod {
+                case Ready(_) => pending
                 case x        => x
-              ,
+              } >> agsState.set(AgsState.Calculating),
               props.readonly, // execution status is taken care of in the configuration tile
               ObsIdSetEditInfo.of(props.observation.get),
               globalPreferences.get.wavelengthUnits,

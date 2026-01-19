@@ -18,6 +18,7 @@ import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
 import explore.model.RegionOrTrackingMap
 import explore.model.RegionOrTrackingMap.*
+import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -70,7 +71,8 @@ case class AladinContainer(
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
   agsResults:             AgsCalculationResults,
-  anglesToTest:           Option[NonEmptyList[Angle]]
+  anglesToTest:           Option[NonEmptyList[Angle]],
+  agsState:               Option[AgsState]
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -334,7 +336,8 @@ object AladinContainer extends AladinCommon {
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
                                      props.agsVisibility,
-                                     props.anglesToTest
+                                     props.anglesToTest,
+                                     props.agsState
                                    )
         offsetPositions         <- useMemo(
                                      (props.vizConf,
