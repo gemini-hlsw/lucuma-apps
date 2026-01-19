@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.AGSVisibility
 import explore.model.ConfigurationForVisualization
+import explore.model.enums.AgsState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
@@ -43,7 +44,8 @@ def usePatrolFieldShapes(
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
   pfVisibility:    AGSVisibility,
-  anglesToTest:    Option[NonEmptyList[Angle]]
+  anglesToTest:    Option[NonEmptyList[Angle]],
+  agsState:        Option[AgsState]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   def createAgsParams(
@@ -80,8 +82,8 @@ def usePatrolFieldShapes(
       case GeometryType.AgsVignetting     => VisualizationStyles.DebugScienceVignetting
 
   useMemo(
-    (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest)
-  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, _, _) =>
+    (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest, agsState)
+  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, _, _, _) =>
     val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
 
     val allAngles =
