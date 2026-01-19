@@ -444,7 +444,8 @@ object AladinCell extends ModelOptics with AladinCommon:
               .flatMap(_.agsState)
               .map: agsState =>
                 <.div(
-                  ExploreStyles.AgsOverlay,
+                  ExploreStyles.AgsOverlay |+| ExploreStyles.VisualizationStale
+                    .when_(agsState.get === AgsState.Calculating),
                   AgsOverlay(
                     props.guideStarSelection,
                     agsResultsList.filter(_.isUsable),

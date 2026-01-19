@@ -621,7 +621,7 @@ object AladinContainer extends AladinCommon {
                       _,
                       screenOffset,
                       _,
-                      Css.Empty
+                      staleCss
                     )
                   )
               ),
