@@ -34,7 +34,8 @@ trait ViewCommon {
     layout:            ObsBadge.Layout,
     highlightSelected: Boolean = true,
     forceHighlight:    Boolean = false, // if true, overrides highlightSelected
-    onDelete:          Callback = Callback.empty
+    onDelete:          Callback = Callback.empty,
+    hasBlindOffset:    Boolean = false
   ): TagMod =
     ObsBadge(
       obs,
@@ -43,7 +44,8 @@ trait ViewCommon {
       readonly = readonly,
       deleteCB = onDelete,
       allocatedScienceBands = allocatedScienceBands,
-      programId = programId
+      programId = programId,
+      hasBlindOffset = hasBlindOffset
     )
 
   def renderObsBadgeItem(
@@ -55,6 +57,7 @@ trait ViewCommon {
     forceHighlight:    Boolean = false,
     linkToObsTab:      Boolean = false,
     onCtrlClick:       Observation.Id => Callback = _ => Callback.empty,
+    hasBlindOffset:    Boolean = false,
     ctx:               AppContext[IO]
   )(
     obs:               Observation,
@@ -77,7 +80,7 @@ trait ViewCommon {
           }).when(linkToObsTab)
         )(
           <.span(provided.dragHandleProps)(
-            renderObsBadge(obs, layout, highlightSelected, forceHighlight, onDelete)
+            renderObsBadge(obs, layout, highlightSelected, forceHighlight, onDelete, hasBlindOffset)
           )
         )
       }

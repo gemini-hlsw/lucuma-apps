@@ -374,6 +374,7 @@ object ObsTree:
               allocatedScienceBands = props.allocatedScienceBands,
               associatedObss = associatedObss,
               programId = props.programId,
+              hasBlindOffset = obs.hasBlindOffset,
               focusedObs = props.focusedObsId,
               readonly = props.readonly
             )

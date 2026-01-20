@@ -104,6 +104,9 @@ final case class Observation(
       case ObservingMode.Flamingos2LongSlit(exposureTimeMode = etm) => etm.some
       case _                                                        => none
 
+  lazy val hasBlindOffset: Boolean =
+    blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
+
   private def profiles(targets: TargetList): Option[NonEmptyList[SourceProfile]] =
     NonEmptyList.fromList:
       scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)

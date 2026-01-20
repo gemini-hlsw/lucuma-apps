@@ -41,7 +41,7 @@ import lucuma.ui.utils.*
 
 import scala.collection.immutable.SortedSet
 
-case class ObsBadge(
+final case class ObsBadge(
   obs:                   Observation,
   layout:                ObsBadge.Layout,
   selected:              Boolean = false,
@@ -53,6 +53,7 @@ case class ObsBadge(
   allocatedScienceBands: SortedSet[ScienceBand],
   associatedObss:        List[Observation] = List.empty,
   programId:             Program.Id,
+  hasBlindOffset:        Boolean = false,
   focusedObs:            Option[Observation.Id] = none,
   readonly:              Boolean = false
 ) extends ReactFnProps(ObsBadge.component):
@@ -70,7 +71,7 @@ object ObsBadge:
   enum Section derives Eq:
     case None, Header, Detail
 
-  case class Layout(
+  final case class Layout(
     showTitle:         Boolean,
     showSubtitle:      Boolean,
     showConfiguration: Section,
@@ -205,13 +206,16 @@ object ObsBadge:
             header,
             meta,
             <.div(ExploreStyles.ObsBadgeDescription)(
-              <.span(
+              <.span(ExploreStyles.ObsBadgeDescriptionTitles)(
                 obs.basicConfiguration
                   .map(conf => <.div(conf.shortName))
                   .whenDefined
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary).when(layout.showConstraints)
-              )
+              ),
+              <.span(Icons.LocationDot)
+                .withTooltip(content = "Blind Offset")
+                .when(props.hasBlindOffset)
             ),
             <.div(ExploreStyles.ObsBadgeExtra)(
               <.div(ExploreStyles.ObsBadgeExtraStatus)(
