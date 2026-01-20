@@ -5,12 +5,8 @@ package navigate.web.server.ephemeris
 
 import cats.syntax.all.*
 import lucuma.core.math.Angle
-// import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
-// import lucuma.core.math.HourAngle
 import lucuma.core.math.HourAngle.*
-// import lucuma.core.math.JulianDate
-// import lucuma.core.model.Ephemeris
 import mouse.boolean.*
 
 import java.text.DecimalFormat

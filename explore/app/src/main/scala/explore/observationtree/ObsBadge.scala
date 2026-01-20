@@ -213,7 +213,9 @@ object ObsBadge:
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary).when(layout.showConstraints)
               ),
-              Icons.LocationDot.when(props.hasBlindOffset)
+              <.span(Icons.LocationDot)
+                .withTooltip(content = "Blind Offset")
+                .when(props.hasBlindOffset)
             ),
             <.div(ExploreStyles.ObsBadgeExtra)(
               <.div(ExploreStyles.ObsBadgeExtraStatus)(

@@ -521,6 +521,7 @@ object AsterismGroupObsList:
                 ),
               onDelete = deleteObs(asterismGroup)(ObsIdSet.one(obs.id)),
               onCtrlClick = _ => handleCtrlClick(obs.id, obsIds),
+              hasBlindOffset = obs.hasBlindOffset,
               ctx = ctx
             )(obs, idx)
 

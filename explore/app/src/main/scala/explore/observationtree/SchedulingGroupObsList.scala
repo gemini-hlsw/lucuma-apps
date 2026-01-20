@@ -235,17 +235,20 @@ object SchedulingGroupObsList:
               val obsEditInfo = ObsIdSetEditInfo.fromObservationList(obsIds, props.observations.get)
 
               if (obsEditInfo.completed.nonEmpty)
-                val m: TagMod =
-                  Message(
-                    text = "Contains completed observations",
-                    severity = Message.Severity.Error,
-                    icon = Icons.ErrorIcon
-                  )
-                m.some
+                (Message(
+                  text = "Contains completed observations",
+                  severity = Message.Severity.Error,
+                  icon = Icons.ErrorIcon
+                ): TagMod).some
               else if (obsIds.size === 1)
                 props.observations.get
                   .get(obsIds.head)
-                  .map(obs => props.renderObsBadge(obs, ObsBadge.Layout.ConstraintsTab))
+                  .map: obs =>
+                    props.renderObsBadge(
+                      obs,
+                      ObsBadge.Layout.ConstraintsTab,
+                      hasBlindOffset = obs.hasBlindOffset
+                    )
               else
                 <.div(obsIds.toList.toTagMod(using id => <.div(id.show))).some
             )
@@ -330,6 +333,7 @@ object SchedulingGroupObsList:
               onSelect = setObs,
               onDelete = deleteObs(ObsIdSet.one(obs.id)),
               onCtrlClick = id => handleCtrlClick(id, obsIds),
+              hasBlindOffset = obs.hasBlindOffset,
               ctx = ctx
             )(obs, idx)
 
