@@ -79,7 +79,7 @@ object GmosGeometry extends PwfsGeometry:
         oiwfs.patrolField.patrolFieldAt(posAngle, offset, none, port)
       case BasicConfiguration.GmosSouthImaging(_)          =>
         oiwfs.patrolField.patrolFieldAt(posAngle, offset, none, port)
-      case BasicConfiguration.Flamingos2LongSlit(_, _, _)  =>
+      case _                                               =>
         ShapeExpression.Empty
     }
 
@@ -102,7 +102,7 @@ object GmosGeometry extends PwfsGeometry:
             oiwfsCandidatesArea(posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
             pwfsCandidatesArea(GmosCandidatesArea, posAngle, extraCss)
-          case _                                   => 
+          case _                                   =>
             SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(posAngle, extraCss))
 

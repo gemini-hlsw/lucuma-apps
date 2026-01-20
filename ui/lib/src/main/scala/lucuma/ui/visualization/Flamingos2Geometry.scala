@@ -32,7 +32,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 
 /**
- * Object to produce Flamingos2 geometry for visualization
+ * Object to produce flamingos2 geometry for visualization
  */
 object Flamingos2Geometry extends PwfsGeometry:
 
@@ -79,7 +79,7 @@ object Flamingos2Geometry extends PwfsGeometry:
             oiwfsCandidatesArea(lw, posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
             pwfsCandidatesArea(Flamingos2CandidatesArea, posAngle, extraCss)
-          case _                                   => 
+          case _                                   =>
             SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(lw, posAngle, extraCss))
 
@@ -95,7 +95,7 @@ object Flamingos2Geometry extends PwfsGeometry:
     configuration match {
       case m: BasicConfiguration.Flamingos2LongSlit =>
         m.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                      =>
+          case GuideProbe.Flamingos2OIWFS                =>
             flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
           case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
             pwfs.patrolField.patrolFieldAt(posAngle, offset)
@@ -126,7 +126,7 @@ object Flamingos2Geometry extends PwfsGeometry:
             )
           case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
             pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _                                         => 
+          case _                                         =>
             SortedMap.empty
       case _                                              =>
         SortedMap.empty

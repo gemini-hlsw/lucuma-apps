@@ -71,9 +71,6 @@ object syntax:
           .getOrElse(e)
       case _                      => tracking
 
-    def trackType: Option[TrackType] =
-      tracking match
-        case ConstantTracking(_)             => none
-        case CompositeTracking(_)            => TrackType.Sidereal.some
-        case EphemerisTracking(_)            => TrackType.Nonsidereal.some
-        case SiderealTracking(_, _, _, _, _) => TrackType.Sidereal.some
+    // TODO Move to lucuma-core
+    def trackType: TrackType =
+      if (isNonSidereal) TrackType.Nonsidereal else TrackType.Sidereal
