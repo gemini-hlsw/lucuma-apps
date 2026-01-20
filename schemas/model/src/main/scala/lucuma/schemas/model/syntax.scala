@@ -16,7 +16,6 @@ import lucuma.core.util.Timestamp
 import org.typelevel.cats.time.*
 
 import java.time.Instant
-import lucuma.core.enums.TrackType
 
 object syntax:
   extension (tracking: Tracking)
@@ -51,11 +50,6 @@ object syntax:
       case EphemerisTracking(toMap)                      => "Non-sidereal targets don't have base coordinates".asLeft
       case SiderealTracking(baseCoordinates, _, _, _, _) => baseCoordinates.asRight
 
-    def isNonSidereal: Boolean = tracking match
-      case EphemerisTracking(_)   => true
-      case CompositeTracking(nel) => nel.exists(_.isNonSidereal)
-      case _                      => false
-
     // For ephemeris trackings (or composite trackings that contain ephemeris trackings)
     // keep only the data points necessary to get coordinates for the given instant.
     // This is being used to reduce the size of the ephemeris sent to workers and also
@@ -70,7 +64,3 @@ object syntax:
         yield EphemerisTracking(start, end))
           .getOrElse(e)
       case _                      => tracking
-
-    // TODO Move to lucuma-core
-    def trackType: TrackType =
-      if (isNonSidereal) TrackType.Nonsidereal else TrackType.Sidereal
