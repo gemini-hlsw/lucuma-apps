@@ -61,7 +61,7 @@ import org.typelevel.cats.time.*
 import java.time.Instant
 import scala.collection.immutable.SortedSet
 
-case class Observation(
+final case class Observation(
   id:                      Observation.Id,
   reference:               Option[ObservationReference],
   title:                   String,

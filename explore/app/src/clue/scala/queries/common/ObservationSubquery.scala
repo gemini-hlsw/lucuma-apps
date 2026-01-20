@@ -21,21 +21,15 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           observationDuration $TimeSpanSubquery
           posAngleConstraint $PosAngleConstraintSubquery
           targetEnvironment {
-            asterism {
-              id
-            }
+            asterism { id }
             guideTargetName
             useBlindOffset
-            blindOffsetTarget {
-              id
-            }
+            blindOffsetTarget { id }
             blindOffsetType
           }
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery
-          attachments {
-            id
-          }
+          attachments { id }
           scienceRequirements {
             exposureTimeMode $ExposureTimeModeSubquery
             spectroscopy {
@@ -58,15 +52,11 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           calibrationRole
           scienceBand
           configuration $ConfigurationSubquery
-          configurationRequests {
-            id
-          }
+          configurationRequests { id }
           workflow $CalculatedObservationWorkflowSubquery
           groupId
           groupIndex
-          reference {
-            label
-          }
+          reference { label }
           execution $ExecutionSubquery
         }
       """

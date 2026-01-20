@@ -68,7 +68,9 @@ case class ProgramSummaries(
 
   lazy val targetObservations: Map[Target.Id, SortedSet[Observation.Id]] =
     observations.toList
-      .flatMap((obsId, obs) => obs.scienceTargetIds.map(targetId => targetId -> obsId))
+      .flatMap: (obsId, obs) =>
+        obs.scienceTargetIds.map(targetId => targetId -> obsId) ++
+          obs.blindOffset.blindOffsetTargetId.map(targetId => targetId -> obsId)
       .groupMap(_._1)(_._2)
       .view
       .mapValues(obsIds => SortedSet.from(obsIds))
