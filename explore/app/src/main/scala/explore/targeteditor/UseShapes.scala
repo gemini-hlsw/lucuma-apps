@@ -22,6 +22,7 @@ import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.TrackType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
@@ -50,25 +51,24 @@ def usePatrolFieldShapes(
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   def createAgsParams(
-    conf: BasicConfiguration,
-    port: PortDisposition
+    conf:      BasicConfiguration,
+    port:      PortDisposition,
+    trackType: Option[TrackType]
   ): Option[SingleProbeAgsParams] =
+    val guideProbe = conf.guideProbe(trackType)
     conf match
       case m: BasicConfiguration.GmosNorthLongSlit  =>
-        AgsParams.GmosAgsParams(m.fpu.asLeft.some, port).some
+        AgsParams.GmosAgsParams(m.fpu.asLeft.some, port).withProbe(guideProbe).some
       case m: BasicConfiguration.GmosSouthLongSlit  =>
-        AgsParams.GmosAgsParams(m.fpu.asRight.some, port).some
+        AgsParams.GmosAgsParams(m.fpu.asRight.some, port).withProbe(guideProbe).some
       case _: BasicConfiguration.GmosNorthImaging   =>
-        AgsParams.GmosAgsParams(none, port).some
+        AgsParams.GmosAgsParams(none, port).withProbe(guideProbe).some
       case _: BasicConfiguration.GmosSouthImaging   =>
-        AgsParams.GmosAgsParams(none, port).some
+        AgsParams.GmosAgsParams(none, port).withProbe(guideProbe).some
       case m: BasicConfiguration.Flamingos2LongSlit =>
         AgsParams
-          .Flamingos2AgsParams(
-            Flamingos2LyotWheel.F16,
-            Flamingos2FpuMask.Builtin(m.fpu),
-            port
-          )
+          .Flamingos2AgsParams(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(m.fpu), port)
+          .withProbe(guideProbe)
           .some
 
   extension (geometryType: GeometryType)
@@ -98,7 +98,7 @@ def usePatrolFieldShapes(
 
     for
       conf       <- vizConf.map(_.configuration)
-      agsParams  <- createAgsParams(conf, PortDisposition.Side)
+      agsParams  <- createAgsParams(conf, PortDisposition.Side, vizConf.flatMap(_.trackType))
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield
@@ -181,7 +181,7 @@ def useVisualizationShapes(
           val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
-            case _ => VisualizationStyles.Flamingos2ProbeArmVisible
+            case _                                               => VisualizationStyles.Flamingos2ProbeArmVisible
           (probeVisibilityCss,
            Flamingos2Geometry.f2Geometry(
              baseCoords,
@@ -200,7 +200,7 @@ def useVisualizationShapes(
           val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
-            case _ => Css.Empty
+            case _                                               => Css.Empty
           (probeVisibilityCss,
            GmosGeometry.gmosGeometry(
              baseCoords,
@@ -219,7 +219,7 @@ def useVisualizationShapes(
           val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
-            case _ => VisualizationStyles.GmosCcdVisible
+            case _                                               => VisualizationStyles.GmosCcdVisible
           (probeVisibilityCss,
            GmosGeometry.gmosGeometry(
              baseCoords,

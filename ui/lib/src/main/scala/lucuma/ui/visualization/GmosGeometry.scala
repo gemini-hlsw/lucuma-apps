@@ -18,6 +18,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.gmos
+import lucuma.core.geom.gmos.oiwfs
 import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -49,17 +50,16 @@ object GmosGeometry extends PwfsGeometry:
         )
         .getOrElse(SortedMap.empty[Css, ShapeExpression])
     configuration match {
-      case Some(m: BasicConfiguration.GmosNorthLongSlit) =>
+      case Some(BasicConfiguration.GmosNorthLongSlit(fpu = fpu)) =>
         base +
-          (GmosFpu -> gmos.scienceArea.shapeAt(posAngle, offset, m.fpu.asLeft.some))
-      case Some(m: BasicConfiguration.GmosSouthLongSlit) =>
+          (GmosFpu -> gmos.scienceArea.shapeAt(posAngle, offset, fpu.asLeft.some))
+      case Some(BasicConfiguration.GmosSouthLongSlit(fpu = fpu)) =>
         base +
-          (GmosFpu -> gmos.scienceArea.shapeAt(posAngle, offset, m.fpu.asRight.some))
-      case Some(_: BasicConfiguration.GmosNorthImaging)  =>
+          (GmosFpu -> gmos.scienceArea.shapeAt(posAngle, offset, fpu.asRight.some))
+      case Some(BasicConfiguration.GmosNorthImaging(_)) |
+          Some(BasicConfiguration.GmosSouthImaging(_)) =>
         base
-      case Some(_: BasicConfiguration.GmosSouthImaging)  =>
-        base
-      case _                                             =>
+      case _                                                     =>
         SortedMap.empty
     }
 
@@ -71,23 +71,21 @@ object GmosGeometry extends PwfsGeometry:
     port:          PortDisposition
   ): ShapeExpression =
     configuration match {
-      case m: BasicConfiguration.GmosNorthLongSlit  =>
-        gmos.patrolField.patrolFieldAt(posAngle, offset, m.fpu.asLeft.some, port)
-      case m: BasicConfiguration.GmosSouthLongSlit  =>
-        gmos.patrolField.patrolFieldAt(posAngle, offset, m.fpu.asRight.some, port)
-      case _: BasicConfiguration.GmosNorthImaging   =>
-        gmos.patrolField.patrolFieldAt(posAngle, offset, none, port)
-      case _: BasicConfiguration.GmosSouthImaging   =>
-        gmos.patrolField.patrolFieldAt(posAngle, offset, none, port)
-      case m: BasicConfiguration.Flamingos2LongSlit =>
+      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu) =>
+        oiwfs.patrolField.patrolFieldAt(posAngle, offset, fpu.asLeft.some, port)
+      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu) =>
+        oiwfs.patrolField.patrolFieldAt(posAngle, offset, fpu.asRight.some, port)
+      case BasicConfiguration.GmosNorthImaging(_)          =>
+        oiwfs.patrolField.patrolFieldAt(posAngle, offset, none, port)
+      case BasicConfiguration.GmosSouthImaging(_)          =>
+        oiwfs.patrolField.patrolFieldAt(posAngle, offset, none, port)
+      case BasicConfiguration.Flamingos2LongSlit(_, _, _)  =>
         ShapeExpression.Empty
     }
 
   def oiwfsCandidatesArea(posAngle: Angle, extraCss: Css) =
     SortedMap(
-      (GmosCandidatesArea |+| extraCss,
-       gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero)
-      )
+      (GmosCandidatesArea |+| extraCss, gmos.candidatesArea.candidatesAreaAt(posAngle, Offset.Zero))
     )
 
   // Shape to display always
@@ -104,7 +102,7 @@ object GmosGeometry extends PwfsGeometry:
             oiwfsCandidatesArea(posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
             pwfsCandidatesArea(GmosCandidatesArea, posAngle, extraCss)
-          case _ => SortedMap.empty[Css, ShapeExpression]
+          case _                                   => SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(posAngle, extraCss))
 
   // Shape to display always
@@ -116,53 +114,28 @@ object GmosGeometry extends PwfsGeometry:
     trackType:       Option[TrackType],
     port:            PortDisposition
   ): SortedMap[Css, ShapeExpression] =
-    mode match
-      case Some(m: BasicConfiguration.GmosNorthLongSlit) =>
-        m.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                     =>
-            SortedMap(
-              (GmosProbeArm,
-               gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, m.fpu.asLeft.some, port)
-              )
-            )
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-            pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _ => SortedMap.empty
-      case Some(m: BasicConfiguration.GmosSouthLongSlit) =>
-        m.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                     =>
-            SortedMap(
-              (GmosProbeArm,
-               gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, m.fpu.asRight.some, port)
-              )
-            )
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-            pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _ => SortedMap.empty
-      case Some(m: BasicConfiguration.GmosNorthImaging)  =>
-        m.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                     =>
-            SortedMap(
-              (GmosProbeArm,
-               gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, none, port)
-              )
-            )
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-            pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _ => SortedMap.empty
-      case Some(m: BasicConfiguration.GmosSouthImaging)  =>
-        m.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                     =>
-            SortedMap(
-              (GmosProbeArm,
-               gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, none, port)
-              )
-            )
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-            pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _ => SortedMap.empty
-      case _                                             =>
-        SortedMap.empty
+    mode
+      .map:
+        case m @ BasicConfiguration.GmosNorthLongSlit(fpu = fpu) =>
+          (fpu.asLeft.some, m.guideProbe(trackType))
+        case m @ BasicConfiguration.GmosSouthLongSlit(fpu = fpu) =>
+          (fpu.asRight.some, m.guideProbe(trackType))
+        case m @ BasicConfiguration.GmosNorthImaging(_)          =>
+          (none, m.guideProbe(trackType))
+        case m @ BasicConfiguration.GmosSouthImaging(_)          =>
+          (none, m.guideProbe(trackType))
+        case _                                                   =>
+          (none, GuideProbe.GmosOIWFS)
+      .map:
+        case (fpu @ Some(_), GuideProbe.GmosOIWFS)          =>
+          SortedMap(
+            (GmosProbeArm, gmos.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, fpu, port))
+          )
+        case (_, p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2)) =>
+          pwfsProbeShapes(p, guideStarOffset, offsetPos)
+        case _                                              =>
+          SortedMap.empty[Css, ShapeExpression]
+      .getOrElse(SortedMap.empty[Css, ShapeExpression])
 
   // Full geometry for GMOS
   def gmosGeometry(
@@ -211,10 +184,7 @@ object GmosGeometry extends PwfsGeometry:
             val patrolFieldIntersection =
               conf.map: c =>
                 val agsParams =
-                  c.guideProbe(trackType) match
-                    case GuideProbe.PWFS1 => AgsParams.GmosAgsParams(fpu, port).withPWFS1
-                    case GuideProbe.PWFS2 => AgsParams.GmosAgsParams(fpu, port).withPWFS2
-                    case _                => AgsParams.GmosAgsParams(fpu, port)
+                  AgsParams.GmosAgsParams(fpu, port).withProbe(c.guideProbe(trackType))
                 val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 

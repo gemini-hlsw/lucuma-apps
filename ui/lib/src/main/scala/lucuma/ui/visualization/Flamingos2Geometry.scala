@@ -179,13 +179,9 @@ object Flamingos2Geometry extends PwfsGeometry:
               (conf, fpu).mapN: (c, fpu) =>
                 val fpuMask   = Flamingos2FpuMask.Builtin(fpu)
                 val agsParams =
-                  c.guideProbe(trackType) match
-                    case GuideProbe.PWFS1 =>
-                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port).withPWFS1
-                    case GuideProbe.PWFS2 =>
-                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port).withPWFS2
-                    case _                =>
-                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port)
+                  AgsParams
+                    .Flamingos2AgsParams(lyotWheel, fpuMask, port)
+                    .withProbe(c.guideProbe(trackType))
                 val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
