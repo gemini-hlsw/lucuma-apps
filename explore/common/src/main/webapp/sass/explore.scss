@@ -1497,11 +1497,18 @@ svg.fa-check.explore-success-icon {
   }
 
   .obs-badge-description {
-    @include lucumaUICommon.text-ellipsis;
-
     display: flex;
     justify-content: space-between;
-    font-size: var(--pl-tiny-font-size);
+    align-items: baseline;
+
+    .obs-badge-description-titles {
+      @include lucumaUICommon.text-ellipsis;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-size: var(--pl-tiny-font-size);
+    }
   }
 
   .obs-badge-extra {

@@ -96,6 +96,7 @@ object ExploreStyles:
   val ObsBadgeHeader: Css                = Css("obs-badge-header")
   val ObsBadgeMeta: Css                  = Css("obs-badge-meta")
   val ObsBadgeDescription: Css           = Css("obs-badge-description")
+  val ObsBadgeDescriptionTitles: Css     = Css("obs-badge-description-titles")
   val ObsBadgeExtra: Css                 = Css("obs-badge-extra")
   val ObsBadgeExtraStatus: Css           = Css("obs-badge-extra-status")
   val ObsBadgeExtraAssociated: Css       = Css("obs-badge-extra-associated")
