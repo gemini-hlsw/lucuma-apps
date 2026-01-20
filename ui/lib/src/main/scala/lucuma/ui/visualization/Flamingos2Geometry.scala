@@ -18,8 +18,6 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.flamingos2.scienceArea
-// import lucuma.core.geom.flamingos2.*
-// import lucuma.core.geom.flamingos2.all.*
 import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -81,7 +79,8 @@ object Flamingos2Geometry extends PwfsGeometry:
             oiwfsCandidatesArea(lw, posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
             pwfsCandidatesArea(Flamingos2CandidatesArea, posAngle, extraCss)
-          case _                                   => SortedMap.empty[Css, ShapeExpression]
+          case _                                   => 
+            SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(lw, posAngle, extraCss))
 
   // Shape for the patrol field at a single position
@@ -127,7 +126,8 @@ object Flamingos2Geometry extends PwfsGeometry:
             )
           case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
             pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _                                         => SortedMap.empty
+          case _                                         => 
+            SortedMap.empty
       case _                                              =>
         SortedMap.empty
 
@@ -179,9 +179,13 @@ object Flamingos2Geometry extends PwfsGeometry:
               (conf, fpu).mapN: (c, fpu) =>
                 val fpuMask   = Flamingos2FpuMask.Builtin(fpu)
                 val agsParams =
-                  AgsParams
-                    .Flamingos2AgsParams(lyotWheel, fpuMask, port)
-                    .withProbe(c.guideProbe(trackType))
+                  c.guideProbe(trackType) match
+                    case GuideProbe.PWFS1 =>
+                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port).withPWFS1
+                    case GuideProbe.PWFS2 =>
+                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port).withPWFS2
+                    case _                =>
+                      AgsParams.Flamingos2AgsParams(lyotWheel, fpuMask, port)
                 val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 

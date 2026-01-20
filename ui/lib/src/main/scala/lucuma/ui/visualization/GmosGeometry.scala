@@ -30,7 +30,7 @@ import lucuma.ui.visualization.VisualizationStyles.*
 import scala.collection.immutable.SortedMap
 
 /**
- * Object to produce GMOS geometry for visualization
+ * GMOS geometry for visualization
  */
 object GmosGeometry extends PwfsGeometry:
 
@@ -102,7 +102,8 @@ object GmosGeometry extends PwfsGeometry:
             oiwfsCandidatesArea(posAngle, extraCss)
           case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
             pwfsCandidatesArea(GmosCandidatesArea, posAngle, extraCss)
-          case _                                   => SortedMap.empty[Css, ShapeExpression]
+          case _                                   => 
+            SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(posAngle, extraCss))
 
   // Shape to display always
@@ -184,7 +185,13 @@ object GmosGeometry extends PwfsGeometry:
             val patrolFieldIntersection =
               conf.map: c =>
                 val agsParams =
-                  AgsParams.GmosAgsParams(fpu, port).withProbe(c.guideProbe(trackType))
+                  c.guideProbe(trackType) match
+                    case GuideProbe.PWFS1 =>
+                      AgsParams.GmosAgsParams(fpu, port).withPWFS1
+                    case GuideProbe.PWFS2 =>
+                      AgsParams.GmosAgsParams(fpu, port).withPWFS2
+                    case _                =>
+                      AgsParams.GmosAgsParams(fpu, port)
                 val calcs     = agsParams.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 

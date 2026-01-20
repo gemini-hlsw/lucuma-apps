@@ -20,8 +20,6 @@ import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import lucuma.ags.*
 import lucuma.core.enums.Flamingos2LyotWheel
-import lucuma.core.enums.GmosNorthFpu
-import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
@@ -82,29 +80,31 @@ object UseAgsCalculation:
   ): Option[AgsParams] =
     obsModeType match
       case ObservingModeType.Flamingos2LongSlit =>
-        observingMode
-          .collect:
-            case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) => fpu
-          .map: f =>
-            val base = AgsParams.Flamingos2AgsParams(
+        val base = observingMode
+          .flatMap(_.f2Fpu)
+          .map: fpu =>
+            // implicitly oiwfs
+            AgsParams.Flamingos2AgsParams(
               Flamingos2LyotWheel.F16,
-              Flamingos2FpuMask.Builtin(f),
+              Flamingos2FpuMask.Builtin(fpu),
               PortDisposition.Side
             )
-            observingMode.map(_.guideProbe(trackType)) match
-              case Some(GuideProbe.PWFS1) => base.withPWFS1
-              case Some(GuideProbe.PWFS2) => base.withPWFS2
-              case _                      => base
+        observingMode.map(_.guideProbe(trackType)) match
+          case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
+          case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
+          // let's return oiwfs to get visualization working
+          case _                      => base
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-        val fpu: Option[Either[GmosNorthFpu, GmosSouthFpu]] =
-          observingMode.flatMap(_.gmosFpuAlternative)
+        val fpu  = observingMode.flatMap(_.gmosFpuAlternative)
+        // implicitly oiwfs
         val base = AgsParams.GmosAgsParams(fpu, PortDisposition.Side)
-        val params = observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.withPWFS1
-          case Some(GuideProbe.PWFS2) => base.withPWFS2
-          case _                      => base
-        params.some
+
+        observingMode.map(_.guideProbe(trackType)) match
+          case Some(GuideProbe.PWFS1) => base.withPWFS1.some
+          case Some(GuideProbe.PWFS2) => base.withPWFS2.some
+          // let's return oiwfs to get visualization working
+          case _                      => base.some
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
         throw new NotImplementedError("Gmos Imaging not implemented")
@@ -122,28 +122,28 @@ object UseAgsCalculation:
 
       params
         .map: p =>
-            AgsMessage.AgsRequest(
-              props.focusedId,
-              props.obsTime,
-              props.constraints,
-              props.centralWavelength.value,
-              baseCoords,
-              obsCoords.scienceCoords,
-              obsCoords.blindOffsetCoords,
-              angles,
-              props.acqOffsets,
-              props.sciOffsets,
-              p,
-              props.candidates
+          AgsMessage.AgsRequest(
+            props.focusedId,
+            props.obsTime,
+            props.constraints,
+            props.centralWavelength.value,
+            baseCoords,
+            obsCoords.scienceCoords,
+            obsCoords.blindOffsetCoords,
+            angles,
+            props.acqOffsets,
+            props.sciOffsets,
+            p,
+            props.candidates
+          )
+        .map: req =>
+          AgsClient[IO]
+            .requestSingle(req)
+            .flatMap(processResults)
+            .handleErrorWith(t =>
+              ctx.logger.error(t)(s"Error on ags calculation ${t.getMessage()}")
             )
-          .map: req =>
-            AgsClient[IO]
-              .requestSingle(req)
-              .flatMap(processResults)
-              .handleErrorWith(t =>
-                ctx.logger.error(t)(s"Error on ags calculation ${t.getMessage()}")
-              )
-          .getOrElse(IO.unit)
+        .getOrElse(IO.unit)
     }.orEmpty
 
   def useAgsCalculation(

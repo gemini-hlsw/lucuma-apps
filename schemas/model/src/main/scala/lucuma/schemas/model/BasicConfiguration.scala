@@ -29,6 +29,13 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.GmosSouthImaging(_)             => none
     case BasicConfiguration.Flamingos2LongSlit(_, _, _)     => none
 
+  def f2Fpu: Option[Flamingos2Fpu] = this match
+    case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) => none
+    case BasicConfiguration.GmosSouthLongSlit(_, _, _, _) => none
+    case BasicConfiguration.GmosNorthImaging(_)           => none
+    case BasicConfiguration.GmosSouthImaging(_)           => none
+    case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) => fpu.some
+
   def siteFor: Site = this match
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
@@ -43,6 +50,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
 
+  // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
 
