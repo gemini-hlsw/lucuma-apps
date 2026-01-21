@@ -14,7 +14,9 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2LyotWheel
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
+import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.flamingos2.scienceArea
@@ -28,8 +30,6 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
-import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.TrackType
 
 /**
  * Object to produce flamingos2 geometry for visualization

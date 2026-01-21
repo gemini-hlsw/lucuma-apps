@@ -79,7 +79,6 @@ import lucuma.react.resizeDetector.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.syntax.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*

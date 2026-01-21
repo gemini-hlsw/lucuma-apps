@@ -16,6 +16,7 @@ import explore.modes.ConfigSelection
 import lucuma.ags.syntax.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
@@ -26,7 +27,6 @@ import lucuma.schemas.model.CentralWavelength
 import org.typelevel.cats.time.instances.duration.*
 
 import java.time.Duration
-import lucuma.core.enums.TrackType
 
 /**
  * Contains, as far as possible, all the configuration for executing an observation, including

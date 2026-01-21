@@ -22,8 +22,8 @@ import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
-import lucuma.core.enums.TrackType
 import lucuma.core.enums.PortDisposition
+import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos

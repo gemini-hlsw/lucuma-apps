@@ -3,6 +3,7 @@
 
 package lucuma.ui.visualization
 
+import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.ShapeExpression
@@ -11,7 +12,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.react.common.style.Css
 import lucuma.ui.visualization.VisualizationStyles.*
-import cats.implicits.catsKernelOrderingForOrder
 
 import scala.collection.immutable.SortedMap
 

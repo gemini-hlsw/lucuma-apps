@@ -11,12 +11,12 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
-import lucuma.core.enums.TrackType
 
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
 // It is a subset of ObsConfiguration such that can be built out of either the db config
