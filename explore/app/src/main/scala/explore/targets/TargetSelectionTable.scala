@@ -68,11 +68,11 @@ object TargetSelectionTable:
         ).withColumnSize(FixedSize(70.toPx))
       ) ++ (
         props.source match
-          case TargetSource.FromSimbad(_)   =>
+          case TargetSource.FromSimbad(_)     =>
             TargetColumns.Builder.ForSiderealCatalog(ColDef).AllColumns
-          case TargetSource.FromHorizons(_) =>
+          case TargetSource.FromHorizons(_)   =>
             TargetColumns.Builder.ForHorizons(ColDef).AllColumns
-          case TargetSource.FromProgram(_)  =>
+          case TargetSource.FromProgram(_, _) =>
             TargetColumns.Builder.ForProgram(ColDef, _.target.regionOrBaseCoords).AllColumns
       )
     }

@@ -32,7 +32,8 @@ sealed trait TargetSource[F[_]]:
   def searches(name: NonEmptyString): List[F[List[TargetSearchResult]]]
 
 object TargetSource:
-  case class FromProgram[F[_]: Async](targets: TargetList) extends TargetSource[F]:
+  case class FromProgram[F[_]: Async](targets: TargetList, filterToOs: Boolean = false)
+      extends TargetSource[F]:
     val name = "Program"
 
     val existing: Boolean   = true
@@ -44,6 +45,7 @@ object TargetSource:
           .filter(twid =>
             twid.target.name.value.toLowerCase.startsWith(name.value.toLowerCase)
               && twid.disposition === TargetDisposition.Science
+              && !(filterToOs && twid.isTargetOfOpportunity)
           )
           .toList
           .sortBy(_.target.name.value.toLowerCase)
@@ -153,11 +155,11 @@ object TargetSource:
   given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.from {
     // doesn't make sense to have more than one of each source, but we'll put FromProgram first,
     // then Simbad then Horizons.
-    case (TargetSource.FromProgram(_), _) => -1
-    case (_, TargetSource.FromProgram(_)) => 1
-    case (TargetSource.FromSimbad(_), _)  => -1
-    case (_, TargetSource.FromSimbad(_))  => 1
-    case _                                => 0
+    case (TargetSource.FromProgram(_, _), _) => -1
+    case (_, TargetSource.FromProgram(_, _)) => 1
+    case (TargetSource.FromSimbad(_), _)     => -1
+    case (_, TargetSource.FromSimbad(_))     => 1
+    case _                                   => 0
   }
 
   given reuseTargetSource[F[_]]: Reusability[TargetSource[F]] = Reusability.byEq

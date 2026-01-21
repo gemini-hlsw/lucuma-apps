@@ -15,6 +15,7 @@ import explore.model.BlindOffset
 import explore.model.EmptyOpportunityTarget
 import explore.model.EmptySiderealTarget
 import explore.model.ObsIdSet
+import explore.model.Observation
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.PopupState
@@ -28,7 +29,6 @@ import explore.targets.TargetSource
 import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import lucuma.core.enums.TargetDisposition
-import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.react.common.Css
@@ -163,8 +163,20 @@ object AddTargetButton
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 
+        val observations: List[Observation] =
+          props.obsIds.toList.map(props.obsAndTargets.get._1.get).flattenOption
+
+        // all observations have the same science targets, but that's not true of blind offsets
+        val hasTargets: Boolean =
+          observations.headOption.forall(_.scienceTargetIds.nonEmpty) || observations.exists(
+            _.blindOffset.useBlindOffset
+          )
+
+        val hasTargetOfOpportunity: Boolean =
+          observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
+
         val programsAndSimbad = NonEmptyList.of(
-          TargetSource.FromProgram[IO](props.obsAndTargets.get._2),
+          TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets),
           TargetSource.FromSimbad[IO](ctx.simbadClient)
         )
 
@@ -186,9 +198,11 @@ object AddTargetButton
                         icon = Icons.Star,
                         command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
           ),
-          MenuItem.Item("Empty Target of Opportunity",
+          MenuItem.Item("Target of Opportunity",
                         icon = Icons.HourglassClock,
-                        command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget))
+                        command =
+                          insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
+                        disabled = hasTargets
           )
         ) ++
           props.blindOffsetInfo
@@ -232,7 +246,7 @@ object AddTargetButton
               popupState.set(PopupState.Open),
             severity = Button.Severity.Success,
             icon = Icons.New,
-            disabled = props.readOnly || props.adding.get.value,
+            disabled = props.readOnly || props.adding.get.value || hasTargetOfOpportunity,
             loading = props.adding.get.value,
             label = props.label,
             clazz = props.buttonClass |+| ExploreStyles.Hidden.when_(props.readOnly)

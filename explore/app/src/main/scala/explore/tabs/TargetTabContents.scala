@@ -50,6 +50,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
 import lucuma.react.hotkeys.*
 import lucuma.react.hotkeys.hooks.*
+import lucuma.react.primereact.Message.Severity
 import lucuma.react.resizeDetector.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.schemas.model.*
@@ -170,24 +171,36 @@ object TargetTabContents extends TwoPanels:
               .orEmpty
               .runAsync
       .useCallbackWithDepsBy((props, _, _, _, selIdsOpt, _, _) => // PASTE Action Callback
-        (selIdsOpt.flatMap(_.left.toOption).map(_.toList).orEmpty, props.readonly)
+        (selIdsOpt.flatMap(_.left.toOption).map(_.toList).orEmpty,
+         props.focused.obsSet,
+         props.observations,
+         props.targets.get,
+         props.programSummaries.get.asterismGroups,
+         props.readonly
+        )
       ): (props, ctx, _, _, _, _, _) =>
-        (selTargetIds, readonly) =>
+        (selTargetIds, optFocusedObsIds, obsList, targetList, asterismGroups, readonly) =>
           import ctx.given
 
           val selectObsIds: ObsIdSet => IO[Unit] =
             obsIds =>
               ctx.pushPage((AppTab.Targets, props.programId, Focused.obsSet(obsIds)).some).toAsync
 
+          def hasToO(tids: List[Target.Id]): Boolean =
+            tids
+              .map(targetList.get)
+              .flattenOption
+              .exists(_.isTargetOfOpportunity)
+
           ExploreClipboard.get
             .flatMap {
               case LocalClipboard.CopiedObservations(copiedObsIdSet) =>
                 val obsAndTargets: List[(Observation.Id, List[Target.Id])] =
-                  props.focused.obsSet
+                  optFocusedObsIds
                     .map: focusedObsIdSet => // This with some targets on the tree selected
                       copiedObsIdSet.idSet.toList.map: obsId =>
                         (obsId,
-                         props.observations // All focused obs have the same asterism, so we can use head
+                         obsList // All focused obs have the same asterism, so we can use head
                            .get(focusedObsIdSet.idSet.head)
                            .foldMap(_.scienceTargetIds)
                            .toList
@@ -199,6 +212,7 @@ object TargetTabContents extends TwoPanels:
                       yield (oid, List(tid))
 
                 IO.whenA(obsAndTargets.nonEmpty): // Apply the obs to selected targets on the tree
+                  // Note: this action clones the observations with new targets
                   ObservationPasteIntoAsterismAction(obsAndTargets, props.expandedIds.async.mod)(
                     props.programSummaries
                   ).void.withToastDuring(
@@ -207,25 +221,48 @@ object TargetTabContents extends TwoPanels:
                   )
 
               case LocalClipboard.CopiedTargets(tids) =>
-                props.focused.obsSet
+                optFocusedObsIds
                   .foldMap: obsIds =>
-                    // Only want to paste targets that aren't already in the target asterism or
-                    // undo is messed up.
-                    // If all the targets are already there, do nothing.
-                    val targetAsterism =
-                      props.programSummaries.get.asterismGroups.findContainingObsIds(obsIds)
-                    targetAsterism
-                      .flatMap(ag => tids.removeSet(ag.targetIds))
-                      .foldMap: uniqueTids =>
-                        TargetPasteAction
-                          .pasteTargets(
-                            obsIds,
-                            uniqueTids,
-                            selectObsIds,
-                            props.expandedIds
-                          )
-                          .set(props.programSummaries)(())
-                          .toAsync
+                    val observations: List[Observation] =
+                      obsIds.idSet.toList.map(obsList.get).flattenOption
+
+                    def hasExistingTargets: Boolean =
+                      observations.exists(o =>
+                        o.scienceTargetIds.nonEmpty || o.blindOffset.useBlindOffset
+                      )
+
+                    if observations.exists(_.isExecuted)
+                    then
+                      ToastCtx[IO].showToast(
+                        "Cannot modify the asterism of executed observations.",
+                        Severity.Error
+                      )
+                    else
+                      // Only want to paste targets that aren't already in the target asterism or
+                      // undo is messed up.
+                      // If all the targets are already there, do nothing.
+                      val targetAsterism: Option[AsterismGroup] =
+                        asterismGroups.findContainingObsIds(obsIds)
+                      targetAsterism
+                        .flatMap(ag => tids.removeSet(ag.targetIds))
+                        .foldMap: uniqueTids =>
+                          if (hasToO(uniqueTids.idSet.toList) && hasExistingTargets)
+                            || targetAsterism.exists(ag => hasToO(ag.targetIds.toList))
+                          then
+                            ToastCtx[IO].showToast(
+                              "A Target of Opportunity must be the only target in an observation.",
+                              Severity.Error
+                            )
+                          else
+                            TargetPasteAction
+                              .pasteTargets(
+                                obsIds,
+                                uniqueTids,
+                                selectObsIds,
+                                props.expandedIds
+                              )
+                              .set(props.programSummaries)(())
+                              .toAsync
 
               case _ => IO.unit
             }
