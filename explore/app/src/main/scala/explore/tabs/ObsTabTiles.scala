@@ -360,6 +360,8 @@ object ObsTabTiles:
             trackingOptMapPot.value.toOption.flatten.flatMap: trackingMap =>
               props.asterismAsNel.flatMap(_.optAsterismTracking(trackingMap))
 
+          val trackType = optAsterismTracking.map(_.trackType)
+
           val averagePA: Option[AveragePABasis] =
             (basicConfiguration.map(_.siteFor), optAsterismTracking, obsDuration, setupTime)
               .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
@@ -478,7 +480,8 @@ object ObsTabTiles:
               obsDuration.map(_.toDuration),
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
-              props.observation.get.calibrationRole
+              props.observation.get.calibrationRole,
+              trackType
             )
 
           val plotData: Option[PlotData] =

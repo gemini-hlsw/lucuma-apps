@@ -11,6 +11,7 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
@@ -26,7 +27,8 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  centralWavelength:          Option[CentralWavelength]
+  centralWavelength:          Option[CentralWavelength],
+  trackType:                  Option[TrackType]
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguration
   // TODO: Take the calculated average parallactic angle if needed
@@ -59,7 +61,8 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.centralWavelength
+          obsConfig.centralWavelength,
+          obsConfig.trackType
         )
       }
       .orElse:
@@ -78,5 +81,6 @@ object ConfigurationForVisualization:
       None,
       selectedPosAngle,
       None,
-      basicConfiguration.centralWavelength
+      basicConfiguration.centralWavelength,
+      None
     )

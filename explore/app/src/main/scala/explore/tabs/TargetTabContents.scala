@@ -405,31 +405,11 @@ object TargetTabContents extends TwoPanels:
                 props.programSummaries.get.observations.values.toList
                   .collect:
                     case o @ Observation(
-                          obsId,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          const,
-                          _,
-                          _,
-                          _,
-                          Some(conf),
-                          _,
-                          _,
-                          posAngle,
-                          Some(wavelength),
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _,
-                          _
+                          id = obsId,
+                          constraints = const,
+                          observingMode = Some(conf),
+                          posAngleConstraint = posAngle,
+                          centralWavelength = Some(wavelength)
                         ) if obsId === id =>
                       (const,
                        conf.toBasicConfiguration,
@@ -535,7 +515,8 @@ object TargetTabContents extends TwoPanels:
                     configuration,
                     constraints,
                     wavelength,
-                    needsAGS
+                    needsAGS,
+                    none
                   ),
                   none[ExecutionDigest].asReady,
                   props.focused.target,

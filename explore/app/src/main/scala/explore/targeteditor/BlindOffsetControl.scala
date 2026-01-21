@@ -142,7 +142,7 @@ object BlindOffsetControl
         time2Search      <- useState(props.obsTime)
         _                <- useEffectWithDeps(props.obsTime): obsTime =>
                               val diff = Duration.between(time2Search.value, obsTime).abs()
-                              if (props.baseTracking.isNonSidereal && diff.toHours() > 1) || diff.toDays >= 30L
+                              if (props.baseTracking.isNonsidereal && diff.toHours() > 1) || diff.toDays >= 30L
                               then time2Search.setState(obsTime)
                               else Callback.empty
         candidatesResult <-

@@ -16,6 +16,7 @@ import explore.modes.ConfigSelection
 import lucuma.ags.syntax.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
@@ -43,7 +44,8 @@ final case class ObsConfiguration(
   obsDuration:        Option[Duration],
   needGuideStar:      Boolean,
   remoteGSName:       Option[NonEmptyString],
-  calibrationRole:    Option[CalibrationRole]
+  calibrationRole:    Option[CalibrationRole],
+  trackType:          Option[TrackType]
 ) derives Eq:
 
   def posAngleConstraint: Option[PosAngleConstraint] =
@@ -78,7 +80,8 @@ object ObsConfiguration:
     configuration: Option[BasicConfiguration],
     constraints:   Option[ConstraintSet],
     wavelength:    Option[CentralWavelength],
-    needsAGS:      Boolean
+    needsAGS:      Boolean,
+    trackType:     Option[TrackType]
   ): ObsConfiguration =
     ObsConfiguration(
       configuration,
@@ -92,5 +95,6 @@ object ObsConfiguration:
       none,
       needsAGS,
       none,
-      none
+      none,
+      trackType
     )

@@ -66,3 +66,9 @@ object VisualizationStyles:
   val PatrolFieldScienceOffset: Css     = Css("patrol-field-science-offset")
   val PatrolFieldIntersectionDebug: Css = Css("patrol-field-intersected-debug")
   val DebugScienceVignetting: Css       = Css("science-vignetting-debug")
+
+  val PwfsArm              = Css("pwfs-probe-arm")
+  val PwfsProbeArmVisible  = Css("pwfs-probe-arm-visible")
+  val PwfsArmVignetted     = Css("pwfs-probe-arm-vignetting")
+  val PwfsMirror           = Css("pwfs-mirror")
+  val PwfsMirrorVignetted  = Css("pwfs-mirror-vignetting")
