@@ -23,6 +23,7 @@ import scala.collection.immutable.SortedMap
 trait TargetWithMetadata:
   val target: Target
   val disposition: TargetDisposition
+  val isTargetOfOpportunity: Boolean = Target.opportunity.getOption(target).isDefined
 
 case class TargetWithId(
   id:              Target.Id,
