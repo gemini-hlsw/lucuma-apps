@@ -55,7 +55,7 @@ object GmosGeometry extends PwfsGeometry:
       case Some(BasicConfiguration.GmosNorthImaging(_)) |
           Some(BasicConfiguration.GmosSouthImaging(_)) =>
         base
-          + (GmosScienceCcd -> gmos.scienceArea.imaging ⟲ posAngle)
+          + ((GmosCcdVisible |+| GmosScienceCcd) -> gmos.scienceArea.imaging ⟲ posAngle)
       case _                                                     =>
         SortedMap.empty
     }
@@ -130,6 +130,15 @@ object GmosGeometry extends PwfsGeometry:
                  .shapeAt(posAngle, guideStarOffset, offsetPos, fpu.asRight, port)
               )
             ).some
+          case (BasicConfiguration.GmosSouthImaging(_) | BasicConfiguration.GmosNorthImaging(_),
+                GuideProbe.GmosOIWFS
+              ) =>
+            SortedMap(
+              (GmosProbeArm,
+               gmos.probeArm.imaging
+                 .shapeAt(posAngle, guideStarOffset, offsetPos, port)
+              )
+            ).some
           case _                                                                       =>
             none
       .getOrElse(SortedMap.empty[Css, ShapeExpression])
@@ -188,6 +197,21 @@ object GmosGeometry extends PwfsGeometry:
                       AgsParams.GmosLongSlit(fpu.asRight, port).some
                     case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), _)                =>
                       AgsParams.GmosLongSlit(fpu.asLeft, port).some
+                    case (BasicConfiguration.GmosNorthImaging(_) |
+                          BasicConfiguration.GmosSouthImaging(_),
+                          GuideProbe.PWFS1
+                        ) =>
+                      AgsParams.GmosImaging(port).withPWFS1.some
+                    case (BasicConfiguration.GmosNorthImaging(_) |
+                          BasicConfiguration.GmosSouthImaging(_),
+                          GuideProbe.PWFS2
+                        ) =>
+                      AgsParams.GmosImaging(port).withPWFS2.some
+                    case (BasicConfiguration.GmosNorthImaging(_) |
+                          BasicConfiguration.GmosSouthImaging(_),
+                          GuideProbe.GmosOIWFS
+                        ) =>
+                      AgsParams.GmosImaging(port).some
                     case _                                                                   =>
                       none
                 agsParams.map: agsParams =>

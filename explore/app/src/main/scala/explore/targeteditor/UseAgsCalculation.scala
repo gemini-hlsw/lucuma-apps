@@ -76,7 +76,8 @@ object UseAgsCalculation:
   private def agsParams(
     obsModeType:   ObservingModeType,
     observingMode: Option[BasicConfiguration],
-    trackType:     Option[TrackType]
+    trackType:     Option[TrackType],
+    port:          PortDisposition = PortDisposition.Side
   ): Option[AgsParams] =
     obsModeType match
       case ObservingModeType.Flamingos2LongSlit =>
@@ -87,7 +88,7 @@ object UseAgsCalculation:
             AgsParams.Flamingos2LongSlit(
               Flamingos2LyotWheel.F16,
               Flamingos2FpuMask.Builtin(fpu),
-              PortDisposition.Side
+              port
             )
         observingMode.map(_.guideProbe(trackType)) match
           case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
@@ -98,7 +99,7 @@ object UseAgsCalculation:
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val fpu  = observingMode.flatMap(_.gmosFpuAlternative)
         // implicitly oiwfs
-        val base = fpu.map(AgsParams.GmosLongSlit(_, PortDisposition.Side))
+        val base = fpu.map(AgsParams.GmosLongSlit(_, port))
 
         observingMode.map(_.guideProbe(trackType)) match
           case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
@@ -107,7 +108,11 @@ object UseAgsCalculation:
           case _                      => base
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-        throw new NotImplementedError("Gmos Imaging not implemented")
+        val base = AgsParams.GmosImaging(port)
+        observingMode.map(_.guideProbe(trackType)) match
+          case Some(GuideProbe.PWFS1) => Some(base.withPWFS1)
+          case Some(GuideProbe.PWFS2) => Some(base.withPWFS2)
+          case _                      => Some(base)
 
   private def runAgsQuery(
     props:          AgsCalcProps,
