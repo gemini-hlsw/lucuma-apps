@@ -35,7 +35,10 @@ import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.ConfirmDialog
+import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.FieldSet
+import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.TooltipOptions
 import lucuma.schemas.ObservationDB.Types.UpdateTargetsInput
 import lucuma.schemas.model.TargetWithId
@@ -69,12 +72,13 @@ object BlindOffsetControl
       def updateTargetListAndBlindOffset(
         toDelete:        Option[Target.Id],
         toAdd:           Option[TargetWithId],
-        blindOffsetType: BlindOffsetType
+        blindOffsetType: BlindOffsetType,
+        useBlindOffset:  Boolean = true
       ): Callback =
         props.allTargets.mod: tl =>
           val removed = toDelete.fold(tl)(tl.removed)
           toAdd.fold(removed)(a => removed.updated(a.id, a))
-        >> props.blindOffset.set(BlindOffset(true, toAdd.map(_.id), blindOffsetType))
+        >> props.blindOffset.set(BlindOffset(useBlindOffset, toAdd.map(_.id), blindOffsetType))
 
       def setBlindOffset(
         candidate:       BlindOffsetCandidate,
@@ -136,6 +140,25 @@ object BlindOffsetControl
             .when_(current.isDefined)
             .toAsync)
           .switching(isWorking.async, IsWorking(_))
+
+      def deleteBlindOffsetTarget(using api: OdbObservationApi[IO], logger: Logger[IO]): Callback =
+        val cb = api.deleteBlindOffsetTarget(props.obsId).runAsync >>
+          updateTargetListAndBlindOffset(
+            props.blindOffset.get.blindOffsetTargetId,
+            none,
+            BlindOffsetType.Automatic,
+            useBlindOffset = false
+          )
+        ConfirmDialog.confirmDialog(
+          message = <.div("Delete the blind offset? This action cannot be undone."),
+          header = "Blind offset delete",
+          acceptLabel = "Yes, delete",
+          accept = cb,
+          position = DialogPosition.Top,
+          acceptClass = PrimeStyles.ButtonSmall,
+          rejectClass = PrimeStyles.ButtonSmall,
+          icon = Icons.SkullCrossBones(^.color.red)
+        )
 
       for
         ctx              <- useContext(AppContext.ctx)
@@ -228,7 +251,7 @@ object BlindOffsetControl
                     severity = Button.Severity.Secondary,
                     disabled = index.get < 1 || isWorking.get.value,
                     onClick = selectIndex(candidates, index.get - 1)
-                  ).veryCompact,
+                  ).veryCompact.unless(index.get < 0),
                   Button(
                     icon = Icons.ChevronRight,
                     tooltip = "Select Next Candidate",
@@ -236,10 +259,10 @@ object BlindOffsetControl
                     severity = Button.Severity.Secondary,
                     disabled = (index.get + 1) >= candidates.length || isWorking.get.value,
                     onClick = selectIndex(candidates, index.get + 1)
-                  ).veryCompact,
+                  ).veryCompact.unless(index.get < 0),
                   text
                 ),
-                if props.blindOffset.get.isManual then
+                <.span(
                   Button(
                     label = "Revert to Automatic",
                     tooltip = "Use automatic blind offset selection",
@@ -250,8 +273,15 @@ object BlindOffsetControl
                       props.blindOffset.get.blindOffsetTargetId,
                       isWorking
                     ).runAsync
+                  ).veryCompact.when(props.blindOffset.get.isManual),
+                  Button(
+                    icon = Icons.TrashUnstyled,
+                    severity = Button.Severity.Danger,
+                    tooltip = "Delete blind offset",
+                    tooltipOptions = TooltipOptions.Left,
+                    onClick = deleteBlindOffsetTarget
                   ).veryCompact
-                else EmptyVdom
+                )
               )
 
         if props.blindOffset.get.useBlindOffset
