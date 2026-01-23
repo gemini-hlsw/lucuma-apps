@@ -33,7 +33,9 @@ private type ColumnType[D]          =
 private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends SequenceRowBuilder[D]:
   private type Props = SequenceTable[S, D]
 
-  private lazy val ColDef = ColumnDef[SequenceTableRowType]
+  private case class TableMeta(isEditing: IsEditing = IsEditing.False) extends SequenceTableMeta
+
+  private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
 
   private val HeaderColumnId: ColumnId   = ColumnId("header")
   private val ExtraRowColumnId: ColumnId = ColumnId("extraRow")
@@ -107,7 +109,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
                 columnSizing = dynTable.columnSizing,
                 columnVisibility = dynTable.columnVisibility
               ),
-              onColumnSizingChange = dynTable.onColumnSizingChangeHandler
+              onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
+              meta = TableMeta(props.isEditing)
             )
       yield
         val extraRowMod: TagMod =
