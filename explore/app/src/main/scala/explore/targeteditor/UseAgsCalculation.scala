@@ -73,6 +73,24 @@ object AgsCalculationResults:
 
 object UseAgsCalculation:
 
+  private def applyGuideProbe(
+    base:          Option[AgsParams],
+    observingMode: Option[BasicConfiguration],
+    trackType:     Option[TrackType]
+  ): Option[AgsParams] =
+    observingMode.map(_.guideProbe(trackType)) match
+      case Some(GuideProbe.PWFS1) =>
+        base.map:
+          case p: AgsParams.GmosLongSlit       => p.withPWFS1
+          case p: AgsParams.GmosImaging        => p.withPWFS1
+          case p: AgsParams.Flamingos2LongSlit => p.withPWFS1
+      case Some(GuideProbe.PWFS2) =>
+        base.map:
+          case p: AgsParams.GmosLongSlit       => p.withPWFS2
+          case p: AgsParams.GmosImaging        => p.withPWFS2
+          case p: AgsParams.Flamingos2LongSlit => p.withPWFS2
+      case _                      => base
+
   private def agsParams(
     obsModeType:   ObservingModeType,
     observingMode: Option[BasicConfiguration],
@@ -84,35 +102,22 @@ object UseAgsCalculation:
         val base = observingMode
           .flatMap(_.f2Fpu)
           .map: fpu =>
-            // implicitly oiwfs
             AgsParams.Flamingos2LongSlit(
               Flamingos2LyotWheel.F16,
               Flamingos2FpuMask.Builtin(fpu),
               port
             )
-        observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
-          case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
-          // let's return oiwfs to get visualization working
-          case _                      => base
+        applyGuideProbe(base, observingMode, trackType)
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-        val fpu  = observingMode.flatMap(_.gmosFpuAlternative)
-        // implicitly oiwfs
-        val base = fpu.map(AgsParams.GmosLongSlit(_, port))
-
-        observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
-          case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
-          // let's return oiwfs to get visualization working
-          case _                      => base
+        val base = observingMode
+          .flatMap(_.gmosFpuAlternative)
+          .map(AgsParams.GmosLongSlit(_, port))
+        applyGuideProbe(base, observingMode, trackType)
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-        val base = AgsParams.GmosImaging(port)
-        observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => Some(base.withPWFS1)
-          case Some(GuideProbe.PWFS2) => Some(base.withPWFS2)
-          case _                      => Some(base)
+        val base = Some(AgsParams.GmosImaging(port))
+        applyGuideProbe(base, observingMode, trackType)
 
   private def runAgsQuery(
     props:          AgsCalcProps,

@@ -224,7 +224,7 @@ def useVisualizationShapes(
         case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
           val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
+              VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
               VisualizationStyles.GmosCcdVisible
 
