@@ -43,6 +43,7 @@ import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given
+import org.typelevel.log4cats.Logger
 import workers.WorkerClient
 
 import java.time.Duration
@@ -482,7 +483,8 @@ object NightPlot:
     site: Site
   )(using
     ToastCtx[IO],
-    WorkerClient[IO, HorizonsMessage.Request]
+    WorkerClient[IO, HorizonsMessage.Request],
+    Logger[IO]
   ): IO[Map[ObjectPlotData.Id, (ObjectPlotData, Tracking)]] =
     def showToast(msg: String) =
       ToastCtx[IO]
@@ -496,13 +498,14 @@ object NightPlot:
       .flatMap: list =>
         list.sequence
           .fold(
-            _ => showToast("Error getting ephemeris for elevation plot"),
+            err =>
+              Logger[IO].error(s"Error getting ephemeris for elevation plot: $err") >>
+                showToast("Error getting ephemeris for elevation plot"),
             _.sequence
               // ToOs should already be filtered out, but just in case...
               .fold(_ => showToast("Cannot show plots for Targets of Opportunity"), _.pure[IO])
           )
           .map: l =>
-            // .map: l =>
             l.map: (id, obj, tr) =>
               (id, (obj, tr))
             .toMap
