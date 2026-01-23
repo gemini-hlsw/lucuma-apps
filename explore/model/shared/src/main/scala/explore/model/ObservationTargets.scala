@@ -46,7 +46,7 @@ case class ObservationTargets(private val targets: Zipper[TargetWithId]) derives
 
   def ids: NonEmptyList[Target.Id] = allTargets.map(_.id)
 
-  def focus = targets.focus
+  def focus: TargetWithId = targets.focus
 
   def focusOn(tid: Target.Id): ObservationTargets =
     targets.findFocus(_.id === tid).map(ObservationTargets.apply).getOrElse(this)

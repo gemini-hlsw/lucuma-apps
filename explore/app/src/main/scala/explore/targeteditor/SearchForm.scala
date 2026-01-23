@@ -36,6 +36,7 @@ import scalajs.js.JSConverters.*
 case class SearchForm(
   id:            Target.Id,
   targetName:    View[NonEmptyString],
+  targetSources: NonEmptyList[TargetSource[IO]],
   targetSet:     Target => Callback,
   searching:     View[Set[Target.Id]],
   readonly:      Boolean,
@@ -131,7 +132,7 @@ object SearchForm
           TargetSelectionPopup(
             "Replace Target Data",
             searchPopupState,
-            NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
+            props.targetSources,
             "",
             Icons.Ban,
             "Fetch",
