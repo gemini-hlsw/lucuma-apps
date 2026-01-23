@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos
+import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
 import lucuma.react.SizePx
 import lucuma.react.common.*
