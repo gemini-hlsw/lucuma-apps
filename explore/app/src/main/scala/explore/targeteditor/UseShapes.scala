@@ -58,16 +58,16 @@ def usePatrolFieldShapes(
     val guideProbe = conf.guideProbe(trackType)
     val params     = conf match
       case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)  =>
-        AgsParams.GmosAgsParams(fpu.asLeft.some, port)
+        AgsParams.GmosLongSlit(fpu.asLeft, port)
       case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)  =>
-        AgsParams.GmosAgsParams(fpu.asRight.some, port)
+        AgsParams.GmosLongSlit(fpu.asRight, port)
       case BasicConfiguration.GmosNorthImaging(_)           =>
-        AgsParams.GmosAgsParams(none, port)
+        AgsParams.GmosImaging(port)
       case BasicConfiguration.GmosSouthImaging(_)           =>
-        AgsParams.GmosAgsParams(none, port)
+        AgsParams.GmosImaging(port)
       case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) =>
         AgsParams
-          .Flamingos2AgsParams(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
+          .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
     guideProbe match
       case GuideProbe.PWFS1 => params.withPWFS1.some
       case GuideProbe.PWFS2 => params.withPWFS2.some
@@ -224,7 +224,7 @@ def useVisualizationShapes(
         case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
           val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
+              VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
               VisualizationStyles.GmosCcdVisible
 

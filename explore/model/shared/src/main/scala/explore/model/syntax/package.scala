@@ -197,6 +197,22 @@ object all:
             .getOption(om)
         )
         .orElse(
+          // TODO I'm selecting the first filter for central wavelength, verify it is correct
+          ObservingMode.gmosSouthImaging
+            .andThen(ObservingMode.GmosSouthImaging.filters)
+            .getOption(om)
+            .map(_.head.filter.wavelength)
+            .map(CentralWavelength(_))
+        )
+        .orElse(
+          // TODO I'm selecting the first filter for central wavelength, verify it is correct
+          ObservingMode.gmosNorthImaging
+            .andThen(ObservingMode.GmosNorthImaging.filters)
+            .getOption(om)
+            .map(_.head.filter.wavelength)
+            .map(CentralWavelength(_))
+        )
+        .orElse(
           // FIXME: Hardcoded for Flamingos2
           ObservingMode.flamingos2LongSlit
             .getOption(om)

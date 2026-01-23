@@ -306,12 +306,6 @@
       display: inline;
     }
 
-    &.guide-star-vignetted {
-      stroke: red;
-      stroke-width: 1px;
-      fill: hsl(9deg 100% 63.9% / 80%);
-    }
-
     // fast -> green
     &.guide-star-fast {
       stroke-width: 1px;
@@ -334,6 +328,12 @@
       stroke: hsl(39deg 100% 50%);
       fill: var(--ags-slow-guide-speed-color);
       fill-opacity: 0.8;
+    }
+
+    &.guide-star-vignetted {
+      // iterate a bit, I'm not too happy but it is a start
+      stroke: hsl(0deg 100% 50% / 90%);
+      stroke-dasharray: 0.5 1;
     }
   }
 

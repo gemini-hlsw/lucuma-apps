@@ -73,41 +73,51 @@ object AgsCalculationResults:
 
 object UseAgsCalculation:
 
+  private def applyGuideProbe(
+    base:          Option[AgsParams],
+    observingMode: Option[BasicConfiguration],
+    trackType:     Option[TrackType]
+  ): Option[AgsParams] =
+    observingMode.map(_.guideProbe(trackType)) match
+      case Some(GuideProbe.PWFS1) =>
+        base.map:
+          case p: AgsParams.GmosLongSlit       => p.withPWFS1
+          case p: AgsParams.GmosImaging        => p.withPWFS1
+          case p: AgsParams.Flamingos2LongSlit => p.withPWFS1
+      case Some(GuideProbe.PWFS2) =>
+        base.map:
+          case p: AgsParams.GmosLongSlit       => p.withPWFS2
+          case p: AgsParams.GmosImaging        => p.withPWFS2
+          case p: AgsParams.Flamingos2LongSlit => p.withPWFS2
+      case _                      => base
+
   private def agsParams(
     obsModeType:   ObservingModeType,
     observingMode: Option[BasicConfiguration],
-    trackType:     Option[TrackType]
+    trackType:     Option[TrackType],
+    port:          PortDisposition = PortDisposition.Side
   ): Option[AgsParams] =
     obsModeType match
       case ObservingModeType.Flamingos2LongSlit =>
         val base = observingMode
           .flatMap(_.f2Fpu)
           .map: fpu =>
-            // implicitly oiwfs
-            AgsParams.Flamingos2AgsParams(
+            AgsParams.Flamingos2LongSlit(
               Flamingos2LyotWheel.F16,
               Flamingos2FpuMask.Builtin(fpu),
-              PortDisposition.Side
+              port
             )
-        observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
-          case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
-          // let's return oiwfs to get visualization working
-          case _                      => base
+        applyGuideProbe(base, observingMode, trackType)
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-        val fpu  = observingMode.flatMap(_.gmosFpuAlternative)
-        // implicitly oiwfs
-        val base = AgsParams.GmosAgsParams(fpu, PortDisposition.Side)
-
-        observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.withPWFS1.some
-          case Some(GuideProbe.PWFS2) => base.withPWFS2.some
-          // let's return oiwfs to get visualization working
-          case _                      => base.some
+        val base = observingMode
+          .flatMap(_.gmosFpuAlternative)
+          .map(AgsParams.GmosLongSlit(_, port))
+        applyGuideProbe(base, observingMode, trackType)
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-        throw new NotImplementedError("Gmos Imaging not implemented")
+        val base = Some(AgsParams.GmosImaging(port))
+        applyGuideProbe(base, observingMode, trackType)
 
   private def runAgsQuery(
     props:          AgsCalcProps,
@@ -197,15 +207,12 @@ object UseAgsCalculation:
                                 (obsCoords, props, hasConstraint, needsAGS)
                               ):
                                 case (Some(obsCoords), Some(props), true, true) if props.candidates.nonEmpty =>
-                                  UnconstrainedAngles
-                                    .map: angles =>
-                                      runAgsQuery(
-                                        props,
-                                        obsCoords,
-                                        angles,
-                                        r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync
-                                      )(ctx)
-                                    .orEmpty
+                                  runAgsQuery(
+                                    props,
+                                    obsCoords,
+                                    UnconstrainedAngles,
+                                    r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync
+                                  )(ctx)
 
                                 case _ => IO.unit
     } yield AgsCalculationResults(constrainedResults.value, unconstrainedResults.value)
