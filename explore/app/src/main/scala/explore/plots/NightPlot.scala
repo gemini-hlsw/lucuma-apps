@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.*
+import explore.components.ui.ExploreStyles
 import explore.events.HorizonsMessage
 import explore.highcharts.*
 import explore.model.AppContext
@@ -42,6 +43,7 @@ import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given
+import org.typelevel.log4cats.Logger
 import workers.WorkerClient
 
 import java.time.Duration
@@ -151,10 +153,12 @@ object NightPlot:
             .exists(_ > 17)
       case _                           => true
 
-  private def createChartOptions(
+  private final case class ChartResults(options: Options, warnings: List[String])
+
+  private def createChartResults(
     plotData:         PlotData,
     opts:             ObjectPlotOptions,
-    chartAndMoonData: (MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData],
+    chartAndMoonData: (MapView[ObjectPlotData.Id, Option[ObjectPlotData.SeriesData]],
                        Option[ObjectPlotData.MoonData]
     ),
     obsTime:          Option[Instant],
@@ -162,13 +166,20 @@ object NightPlot:
     excludeIntervals: List[BoundedInterval[Instant]],
     hideLabel:        Boolean,
     observingNight:   ObservingNight
-  ): Options =
+  ): ChartResults = {
     val isSingleTargetPlot: Boolean = plotData.value.size === 1
 
     val shouldHideTargetLabels: Boolean = isSingleTargetPlot || hideLabel
 
-    val chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData] =
+    val (chartData, warnings)
+      : (MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData], List[String]) =
       chartAndMoonData._1
+        .partition(_._2.isDefined)
+        .bimap(
+          _.mapValues(_.get),
+          _.toList.map: (id, _) =>
+            s"Could not compute plot data for ${id.value.fold(_.toString, _.toString)}"
+        )
 
     val site: Site               = opts.site
     val timeDisplay: TimeDisplay = opts.timeDisplay
@@ -282,171 +293,177 @@ object NightPlot:
             .setClassName("elevation-plot-visualization-period")
         )
 
-    Options()
-      .setChart(commonOptions)
-      .setLegend(LegendOptions().setEnabled(false))
-      .setTitle:
-        TitleOptions().setText:
-          s"Sunset ${observingNight.toLocalDate.minusDays(1)} ➟ Sunrise ${observingNight.toLocalDate} "
-      .setCredits(CreditsOptions().setEnabled(false))
-      .setTooltip(TooltipOptions().setFormatter(tooltipFormatter))
-      .setXAxis(
-        XAxisOptions()
-          .setType(AxisTypeValue.datetime)
-          .setLabels(XAxisLabelsOptions().setFormatter(tickFormatter))
-          .setTickInterval(MillisPerHour)
-          .setMinorTickInterval(MillisPerHour / 2)
-          .setTitle:
-            targetsBelowHorizonStr.fold(XAxisTitleOptions()):
-              XAxisTitleOptions().setText(_)
-          .setPlotBands(
-            (excludeIntervals.map(window =>
-              XAxisPlotBandsOptions()
-                .setFrom(window.lower.toEpochMilli.toDouble)
-                .setTo(window.upper.toEpochMilli.toDouble)
-                .setClassName("plot-band-exclude-window")
-            ) ++
-              List(
+    val options: Options =
+      Options()
+        .setChart(commonOptions)
+        .setLegend(LegendOptions().setEnabled(false))
+        .setTitle:
+          TitleOptions().setText:
+            s"Sunset ${observingNight.toLocalDate.minusDays(1)} ➟ Sunrise ${observingNight.toLocalDate} "
+        .setCredits(CreditsOptions().setEnabled(false))
+        .setTooltip(TooltipOptions().setFormatter(tooltipFormatter))
+        .setXAxis(
+          XAxisOptions()
+            .setType(AxisTypeValue.datetime)
+            .setLabels(XAxisLabelsOptions().setFormatter(tickFormatter))
+            .setTickInterval(MillisPerHour)
+            .setMinorTickInterval(MillisPerHour / 2)
+            .setTitle:
+              targetsBelowHorizonStr.fold(XAxisTitleOptions()):
+                XAxisTitleOptions().setText(_)
+            .setPlotBands(
+              (excludeIntervals.map(window =>
                 XAxisPlotBandsOptions()
-                  .setFrom(opts.minInstant.toEpochMilli.toDouble)
-                  .setTo(tbNauticalNight.start.toEpochMilli.toDouble)
-                  .setClassName("plot-band-twilight-nautical")
-                  // We need z-index > 0 to display over grid. But not too high, or it will display over tooltips.
-                  .setZIndex(1)
-                  .setLabel(
-                    XAxisPlotBandsLabelOptions()
-                      .setText(s"  Evening 12° - Twilight: $dusk")
-                      .setRotation(270)
-                      .setAlign(AlignValue.right)
-                      .setTextAlign(AlignValue.center)
-                      .setVerticalAlign(VerticalAlignValue.middle)
-                  ),
-                XAxisPlotBandsOptions() // Empty bands don't work on highcharts 11.4.8. Instead we create the same band in revese and no fill
-                  .setFrom(tbNauticalNight.end.toEpochMilli.toDouble)
-                  .setTo(opts.maxInstant.toEpochMilli.toDouble)
-                  .setClassName("plot-band-twilight-nautical-end")
-                  .setZIndex(1)
+                  .setFrom(window.lower.toEpochMilli.toDouble)
+                  .setTo(window.upper.toEpochMilli.toDouble)
+                  .setClassName("plot-band-exclude-window")
+              ) ++
+                List(
+                  XAxisPlotBandsOptions()
+                    .setFrom(opts.minInstant.toEpochMilli.toDouble)
+                    .setTo(tbNauticalNight.start.toEpochMilli.toDouble)
+                    .setClassName("plot-band-twilight-nautical")
+                    // We need z-index > 0 to display over grid. But not too high, or it will display over tooltips.
+                    .setZIndex(1)
+                    .setLabel(
+                      XAxisPlotBandsLabelOptions()
+                        .setText(s"  Evening 12° - Twilight: $dusk")
+                        .setRotation(270)
+                        .setAlign(AlignValue.right)
+                        .setTextAlign(AlignValue.center)
+                        .setVerticalAlign(VerticalAlignValue.middle)
+                    ),
+                  XAxisPlotBandsOptions() // Empty bands don't work on highcharts 11.4.8. Instead we create the same band in revese and no fill
+                    .setFrom(tbNauticalNight.end.toEpochMilli.toDouble)
+                    .setTo(opts.maxInstant.toEpochMilli.toDouble)
+                    .setClassName("plot-band-twilight-nautical-end")
+                    .setZIndex(1)
+                    .setLabel:
+                      XAxisPlotBandsLabelOptions()
+                        .setText(s"  Morning 12° - Twilight: $dawn")
+                        .setRotation(270)
+                        .setAlign(AlignValue.left)
+                        .setTextAlign(AlignValue.center)
+                        .setVerticalAlign(VerticalAlignValue.middle)
+                )).toJSArray
+            )
+        )
+        .setYAxis:
+          (
+            List(
+              YAxisOptions()
+                .setTitle(YAxisTitleOptions().setText("Elevation"))
+                .setAllowDecimals(false)
+                .setMin(0)
+                .setMax(90)
+                .setTickInterval(10)
+                .setMinorTickInterval(5)
+                .setShowEmpty(false)
+                .setLabels(YAxisLabelsOptions().setFormat("{value}°"))
+                .setPlotLines(js.Array(ElevationMinimumLine)),
+              YAxisOptions()
+                .setOpposite(true)
+                .setTitle(YAxisTitleOptions().setText("Parallactic angle"))
+                .setMin(-180)
+                .setMax(180)
+                .setTickInterval(60)
+                .setClassName("plot-axis-parallactic-angle")
+                .setShowEmpty(false)
+                .setLabels(YAxisLabelsOptions().setFormat("{value}°")),
+              YAxisOptions()
+                .setOpposite(true)
+                .setTitle(YAxisTitleOptions().setText("Sky Brightness [V] (mag/arcsec²)"))
+                .setMin(17)
+                .setMax(22)
+                .setReversed(true)
+                .setTickInterval(1)
+                .setClassName("plot-axis-sky-brightness")
+                .setShowEmpty(false)
+                .setLabels(YAxisLabelsOptions().setFormat("{value}"))
+                .setPlotLines:
+                  if (opts.visiblePlots.contains_(SeriesType.SkyBrightness))
+                    SkyBrightnessPercentileLines.toJSArray
+                  else
+                    js.Array()
+                .setPlotBands:
+                  if (opts.visiblePlots.contains_(SeriesType.SkyBrightness))
+                    SkyBrightnessPercentileBands.toJSArray
+                  else
+                    js.Array()
+            ) ++
+              (if (opts.visiblePlots.contains_(SeriesType.Elevation))
+                 List(
+                   YAxisOptions()
+                     .setOpposite(true)
+                     .setLinkedTo(0)
+                     .setTitle(YAxisTitleOptions().setText("Airmass"))
+                     .setAllowDecimals(true)
+                     .setTickInterval(10)
+                     .setMinorTickInterval(5)
+                     .setLabels:
+                       YAxisLabelsOptions().setFormatter:
+                         (
+                           labelValue: AxisLabelsFormatterContextObject,
+                           _:          AxisLabelsFormatterContextObject
+                         ) =>
+                           val h: Double = labelValue.value.asInstanceOf[Double]
+                           if h > 0 then
+                             "%.2f".format: // Pickering (2002) method
+                               1 / (math
+                                 .sin(
+                                   math.toRadians(h + 244 / (165 + 47 * math.pow(h, 1.1)))
+                                 ))
+                           else ""
+                 )
+               else List.empty)
+          ).toJSArray
+        .setPlotOptions:
+          PlotOptions()
+            .setSeries(
+              PlotSeriesOptions()
+                .setLineWidth(4)
+                .setMarker(PointMarkerOptionsObject().setEnabled(false).setRadius(0))
+                .setStates:
+                  SeriesStatesOptionsObject()
+                    .setHover(SeriesStatesHoverOptionsObject().setEnabled(false))
+            )
+        .setSeries:
+          seriesToPlot
+            .map: seriesData =>
+              val baseSeries: SeriesAreaOptions =
+                SeriesAreaOptions((), (), area, ())
+                  .setName(if (seriesData.showLabel) seriesData.name else "")
                   .setLabel:
-                    XAxisPlotBandsLabelOptions()
-                      .setText(s"  Morning 12° - Twilight: $dawn")
-                      .setRotation(270)
-                      .setAlign(AlignValue.left)
-                      .setTextAlign(AlignValue.center)
-                      .setVerticalAlign(VerticalAlignValue.middle)
-              )).toJSArray
-          )
-      )
-      .setYAxis:
-        (
-          List(
-            YAxisOptions()
-              .setTitle(YAxisTitleOptions().setText("Elevation"))
-              .setAllowDecimals(false)
-              .setMin(0)
-              .setMax(90)
-              .setTickInterval(10)
-              .setMinorTickInterval(5)
-              .setShowEmpty(false)
-              .setLabels(YAxisLabelsOptions().setFormat("{value}°"))
-              .setPlotLines(js.Array(ElevationMinimumLine)),
-            YAxisOptions()
-              .setOpposite(true)
-              .setTitle(YAxisTitleOptions().setText("Parallactic angle"))
-              .setMin(-180)
-              .setMax(180)
-              .setTickInterval(60)
-              .setClassName("plot-axis-parallactic-angle")
-              .setShowEmpty(false)
-              .setLabels(YAxisLabelsOptions().setFormat("{value}°")),
-            YAxisOptions()
-              .setOpposite(true)
-              .setTitle(YAxisTitleOptions().setText("Sky Brightness [V] (mag/arcsec²)"))
-              .setMin(17)
-              .setMax(22)
-              .setReversed(true)
-              .setTickInterval(1)
-              .setClassName("plot-axis-sky-brightness")
-              .setShowEmpty(false)
-              .setLabels(YAxisLabelsOptions().setFormat("{value}"))
-              .setPlotLines:
-                if (opts.visiblePlots.contains_(SeriesType.SkyBrightness))
-                  SkyBrightnessPercentileLines.toJSArray
-                else
-                  js.Array()
-              .setPlotBands:
-                if (opts.visiblePlots.contains_(SeriesType.SkyBrightness))
-                  SkyBrightnessPercentileBands.toJSArray
-                else
-                  js.Array()
-          ) ++
-            (if (opts.visiblePlots.contains_(SeriesType.Elevation))
-               List(
-                 YAxisOptions()
-                   .setOpposite(true)
-                   .setLinkedTo(0)
-                   .setTitle(YAxisTitleOptions().setText("Airmass"))
-                   .setAllowDecimals(true)
-                   .setTickInterval(10)
-                   .setMinorTickInterval(5)
-                   .setLabels:
-                     YAxisLabelsOptions().setFormatter:
-                       (
-                         labelValue: AxisLabelsFormatterContextObject,
-                         _:          AxisLabelsFormatterContextObject
-                       ) =>
-                         val h: Double = labelValue.value.asInstanceOf[Double]
-                         if h > 0 then
-                           "%.2f".format: // Pickering (2002) method
-                             1 / (math
-                               .sin(
-                                 math.toRadians(h + 244 / (165 + 47 * math.pow(h, 1.1)))
-                               ))
-                         else ""
-               )
-             else List.empty)
-        ).toJSArray
-      .setPlotOptions:
-        PlotOptions()
-          .setSeries(
-            PlotSeriesOptions()
-              .setLineWidth(4)
-              .setMarker(PointMarkerOptionsObject().setEnabled(false).setRadius(0))
-              .setStates:
-                SeriesStatesOptionsObject()
-                  .setHover(SeriesStatesHoverOptionsObject().setEnabled(false))
-          )
-      .setSeries:
-        seriesToPlot
-          .map: seriesData =>
-            val baseSeries: SeriesAreaOptions =
-              SeriesAreaOptions((), (), area, ())
-                .setName(if (seriesData.showLabel) seriesData.name else "")
-                .setLabel:
-                  SeriesLabelOptionsObject()
-                    .setEnabled:
-                      seriesData.showLabel && List(SeriesType.Elevation, SeriesType.LunarElevation)
-                        .contains_(seriesData.seriesType)
-                    .setOnArea(false)
-                .setClassName:
-                  "elevation-plot-series" +
-                    (if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"
-                     else "") +
-                    (if (seriesData.seriesType =!= SeriesType.Elevation)
-                       s" highcharts-color-${seriesData.seriesType.ordinal}"
-                     else "")
-                .setYAxis(seriesData.yAxis)
-                .setData(seriesData.data)
-                .setVisible(seriesData.visible)
-                .setFillOpacity(0)
-                .setZoneAxis("x")
-                .setThreshold: // Ensure that the zones are always painted towards the bottom
-                  if (seriesData.seriesType === SeriesType.SkyBrightness) Double.PositiveInfinity
-                  else Double.NegativeInfinity
+                    SeriesLabelOptionsObject()
+                      .setEnabled:
+                        seriesData.showLabel && List(SeriesType.Elevation,
+                                                     SeriesType.LunarElevation
+                        )
+                          .contains_(seriesData.seriesType)
+                      .setOnArea(false)
+                  .setClassName:
+                    "elevation-plot-series" +
+                      (if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"
+                       else "") +
+                      (if (seriesData.seriesType =!= SeriesType.Elevation)
+                         s" highcharts-color-${seriesData.seriesType.ordinal}"
+                       else "")
+                  .setYAxis(seriesData.yAxis)
+                  .setData(seriesData.data)
+                  .setVisible(seriesData.visible)
+                  .setFillOpacity(0)
+                  .setZoneAxis("x")
+                  .setThreshold: // Ensure that the zones are always painted towards the bottom
+                    if (seriesData.seriesType === SeriesType.SkyBrightness) Double.PositiveInfinity
+                    else Double.NegativeInfinity
 
-            zones
-              .fold(baseSeries)(z => baseSeries.setZones(z))
-              .asInstanceOf[SeriesOptionsType]
-          .toJSArray
+              zones
+                .fold(baseSeries)(z => baseSeries.setZones(z))
+                .asInstanceOf[SeriesOptionsType]
+            .toJSArray
+
+    ChartResults(options, warnings)
+  }
 
   private def trackingForOneObjectPlotData(
     data: ObjectPlotData,
@@ -457,7 +474,7 @@ object NightPlot:
   ): IO[ErrorMsgOr[RegionOrTracking]] =
     data.targets
       .traverse: target =>
-        getRegionOrTrackingForObservingNight(target, site, date) // .compositeTracking
+        getRegionOrTrackingForObservingNight(target, site, date)
       .map(_.compositeTracking)
 
   private def trackingForAllPlotData(
@@ -466,7 +483,8 @@ object NightPlot:
     site: Site
   )(using
     ToastCtx[IO],
-    WorkerClient[IO, HorizonsMessage.Request]
+    WorkerClient[IO, HorizonsMessage.Request],
+    Logger[IO]
   ): IO[Map[ObjectPlotData.Id, (ObjectPlotData, Tracking)]] =
     def showToast(msg: String) =
       ToastCtx[IO]
@@ -475,19 +493,19 @@ object NightPlot:
 
     data.value.toList
       .traverse: (id, objPlotData) =>
-        trackingForOneObjectPlotData(objPlotData, date, site).map(
+        trackingForOneObjectPlotData(objPlotData, date, site).map:
           _.map(_.map((id, objPlotData, _)))
-        )
       .flatMap: list =>
         list.sequence
           .fold(
-            _ => showToast("Error getting ephemeris for elevation plot"),
+            err =>
+              Logger[IO].error(s"Error getting ephemeris for elevation plot: $err") >>
+                showToast("Error getting ephemeris for elevation plot"),
             _.sequence
               // ToOs should already be filtered out, but just in case...
               .fold(_ => showToast("Cannot show plots for Targets of Opportunity"), _.pure[IO])
           )
           .map: l =>
-            // .map: l =>
             l.map: (id, obj, tr) =>
               (id, (obj, tr))
             .toMap
@@ -511,18 +529,21 @@ object NightPlot:
       chartAndMoonData <-
         useMemo((props.options.get.site, tracking.value.toOption, start, end)):
           (site, trackingMap, start, end) =>
-            val seriesData: MapView[ObjectPlotData.Id, ObjectPlotData.Points] =
+            val seriesData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.Points]] =
               trackingMap
                 .getOrElse(Map.empty)
                 .view
                 .mapValues: (objPlotData, tracking) =>
                   objPlotData.pointsAtInstant(site, start, end, tracking)
 
-            val chartData: MapView[ObjectPlotData.Id, ObjectPlotData.SeriesData] =
-              seriesData.mapValues(_.seriesData)
+            val chartData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.SeriesData]] =
+              seriesData.mapValues(_.map(_.seriesData))
 
-            (chartData, seriesData.headOption.map(_._2.moonData))
-      chartOptions     <-
+            val moonData: Option[ObjectPlotData.MoonData] = seriesData.collectFirst:
+              case (_, Some(points)) => points.moonData
+
+            (chartData, moonData)
+      chartResults     <-
         useMemo(
           (props.plotData,
            props.options.get,
@@ -533,7 +554,7 @@ object NightPlot:
            props.hideTargetLabel
           )
         ): (plotData, opts, chartAndMoonData, obsTime, obsDuration, excludeIntervals, hideLabel) =>
-          createChartOptions(
+          createChartResults(
             plotData,
             opts,
             chartAndMoonData,
@@ -549,8 +570,22 @@ object NightPlot:
                               if size === 0 then chartOpt.value.foreach(_.showLoading(props.emptyMessage))
                               else chartOpt.value.foreach(_.hideLoading())
     } yield React.Fragment(
-      Chart(chartOptions, allowUpdate = false, onCreate = c => chartOpt.set(c.some))
-        .withModules(Chart.Module.SeriesLabel),
+      <.div(
+        chartResults.warnings
+          .map: warning =>
+            Message(
+              severity = Message.Severity.Warning,
+              text = warning,
+              clazz = ExploreStyles.ElevationPlotWarning
+            )
+          .toTagMod,
+        Chart(
+          chartResults.map(_.options),
+          allowUpdate = false,
+          onCreate = c => chartOpt.set(c.some)
+        )
+          .withModules(Chart.Module.SeriesLabel)
+      ),
       chartAndMoonData._2.map: moonData =>
         MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
     )

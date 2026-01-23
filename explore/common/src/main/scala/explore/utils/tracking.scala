@@ -38,18 +38,14 @@ object tracking:
     val TotalPoints = 600
     key.horizonsKey.fold(
       "User defined Ephemeris Keys are not yet supported".asLeft.pure[IO]
-    )(hk =>
+    ): hk =>
       val interval = night.interval
       val start    = interval.lower.minus(Duration.ofHours(12))
       val end      = interval.upper.plus(Duration.ofHours(12))
       HorizonsWorkerClient[IO]
-        .requestSingle(
+        .requestSingle:
           HorizonsMessage.EphemerisRequest(hk, site, start, end, TotalPoints)
-        )
-        .map(
-          _.getOrElse("Error calling HorizonsClient".asLeft)
-        )
-    )
+        .map(_.getOrElse("Error calling HorizonsClient".asLeft))
 
   private def getEphemerisTrackingForSemester(
     key:      Ephemeris.Key,
@@ -59,18 +55,14 @@ object tracking:
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[EphemerisTracking]] =
     key.horizonsKey.fold(
       "User defined Ephemeris Keys are not yet supported".asLeft.pure[IO]
-    )(hk =>
+    ): hk =>
       val start = semester.start.atSite(site).toInstant
       val end   = semester.end.atSite(site).toInstant
       val days  = ChronoUnit.DAYS.between(start, end) + 1
       HorizonsWorkerClient[IO]
-        .requestSingle(
+        .requestSingle:
           HorizonsMessage.AlignedEphemerisRequest(hk, site, start, days.toInt, cadence)
-        )
-        .map(
-          _.getOrElse("Error calling HorizonsClient".asLeft)
-        )
-    )
+        .map(_.getOrElse("Error calling HorizonsClient".asLeft))
 
   // Gets high resolution tracking for the observing night. In order to maximize cache hits and
   // be useable for both Night and 2H elevation plots, it pads by 12 hours on each end.
@@ -81,9 +73,8 @@ object tracking:
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     target match
       case Target.Nonsidereal(_, key, _) =>
-        getEphemerisTrackingForObservingNight(key, site, night).map(
+        getEphemerisTrackingForObservingNight(key, site, night).map:
           _.map(RegionOrTracking.fromTracking)
-        )
       case Target.Sidereal(_, t, _, _)   => RegionOrTracking.fromTracking(t).asRight.pure
       case Target.Opportunity(_, r, _)   => RegionOrTracking.fromRegion(r).asRight.pure
 

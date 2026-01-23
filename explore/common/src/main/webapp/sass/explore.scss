@@ -2931,6 +2931,10 @@ $help-title-height: 40px;
     transform: scale(var(--moon-phase-scale));
   }
 
+  .elevation-plot-warning {
+    width: 100%;
+  }
+
   .highcharts-xaxis .highcharts-axis-title {
     fill: hsl(0deg 87% 66%);
   }

@@ -20,15 +20,15 @@ object SkyCalc:
     start:            Instant,
     end:              Instant,
     every:            Duration,
-    coordsForInstant: Instant => Coordinates
-  ): List[(Instant, SkyCalcResults)] =
-    val calc = ImprovedSkyCalc(site.place)
+    coordsForInstant: Instant => Option[Coordinates]
+  ): Option[List[(Instant, SkyCalcResults)]] =
+    val calc: ImprovedSkyCalc = ImprovedSkyCalc(site.place)
 
-    val instants =
+    val instants: List[Instant] =
       List.unfold(start)(prev =>
         prev.plus(every).some.filter(_.isBefore(end)).map(i => (i, i))
       ) :+ end
 
-    instants.map { i =>
-      (i, calc.calculate(coordsForInstant(i), i, true))
-    }
+    instants.traverse: i =>
+      coordsForInstant(i).map: coords =>
+        (i, calc.calculate(coords, i, true))

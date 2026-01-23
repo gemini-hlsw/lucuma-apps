@@ -11,13 +11,11 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
-import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.SkyCalcResults
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.util.NewType
-import lucuma.schemas.model.syntax.*
 import lucuma.typed.highcharts.mod.Point
 import lucuma.typed.highcharts.mod.PointOptionsObject
 import lucuma.ui.utils.unzip4
@@ -49,20 +47,16 @@ case class ObjectPlotData(
     start:    Instant,
     end:      Instant,
     tracking: Tracking
-  ): ObjectPlotData.Points =
-    ObjectPlotData.Points:
-      SkyCalc.forInterval(
+  ): Option[ObjectPlotData.Points] =
+    SkyCalc
+      .forInterval(
         site,
         start,
         end,
         PlotEvery,
-        // We are computing the coordinates at each point in time, this may be expensive
-        // and could be optimized for sidereals, but it's probably necessary for non-sidereals.
-        tracking
-          .at(_)
-          .orElse(tracking.baseCoordinates.toOption)
-          .getOrElse(Coordinates.Zero)
+        tracking.at(_)
       )
+      .map(ObjectPlotData.Points(_))
 
 object ObjectPlotData:
   object Id extends NewType[Either[Observation.Id, Target.Id]]:
@@ -96,9 +90,9 @@ object ObjectPlotData:
     ): SeriesData =
       SeriesData(data._1.toJSArray, data._2.toJSArray, data._3.toJSArray, data._4.toJSArray)
 
-  case class MoonData(moonPhase: Double, moonIllum: Double)
+  final case class MoonData(moonPhase: Double, moonIllum: Double)
 
-  case class Points(value: List[(Instant, SkyCalcResults)]):
+  final case class Points(value: List[(Instant, SkyCalcResults)]):
     lazy val seriesData: SeriesData = {
       val series: List[
         (PointOptionsWithAirmass, PointOptionsObject, PointOptionsObject, PointOptionsObject)
