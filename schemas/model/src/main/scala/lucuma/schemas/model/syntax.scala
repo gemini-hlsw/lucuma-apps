@@ -59,7 +59,7 @@ object syntax:
         CompositeTracking(nel.map(_.minimizeEphemeris(at)))
       case e: EphemerisTracking   =>
         (for
-          ts           <- Timestamp.fromInstant(at)
+          ts           <- Timestamp.fromInstantTruncated(at)
           (start, end) <- e.bracket(ts)
         yield EphemerisTracking(start, end))
           .getOrElse(e)
