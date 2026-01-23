@@ -81,6 +81,7 @@ import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.reusability.given
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -246,11 +247,10 @@ object ObsTabTiles:
         customSedTimestamps <-
           // The updatedAt timestamps for any custom seds.
           useMemo((props.asterismAsNel, props.attachments.get)): (asterism, attachments) =>
-            asterism.foldMap(
-              _.map(
+            asterism.foldMap:
+              _.map:
                 _.target.sourceProfile.customSedId.flatMap(attachments.get).map(_.updatedAt)
-              ).toList.flattenOption
-            )
+              .toList.flattenOption
         sequenceChanged     <- useStateView(().ready) // Signal that the sequence has changed
         // if the timestamp for a custom sed attachment changes, it means either a new custom sed
         // has been assigned, OR a new version of the custom sed has been uploaded. This is to
@@ -315,6 +315,7 @@ object ObsTabTiles:
         roleLayouts         <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
         _                   <- useEffectWithDeps(props.calibrationRole): role =>
                                  roleLayouts.setState(roleLayout(props.userPreferences.get, role))
+        isEditing           <- useStateView(IsEditing.False)
       yield
         import ctx.given
 
@@ -431,7 +432,8 @@ object ObsTabTiles:
               asterismIds.get,
               customSedTimestamps,
               props.calibrationRole,
-              sequenceChanged
+              sequenceChanged,
+              isEditing
             )
 
           val selectedItcConfig: Option[List[ItcInstrumentConfig]] =
