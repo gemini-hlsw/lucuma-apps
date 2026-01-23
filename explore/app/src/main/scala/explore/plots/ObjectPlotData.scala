@@ -16,7 +16,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.util.NewType
-import lucuma.schemas.model.syntax.*
 import lucuma.typed.highcharts.mod.Point
 import lucuma.typed.highcharts.mod.PointOptionsObject
 import lucuma.ui.utils.unzip4
@@ -55,11 +54,7 @@ case class ObjectPlotData(
         start,
         end,
         PlotEvery,
-        // We are computing the coordinates at each point in time, this may be expensive
-        // and could be optimized for sidereals, but it's probably necessary for non-sidereals.
-        tracking
-          .at(_)
-          .orElse(tracking.baseCoordinates.toOption)
+        tracking.at(_)
       )
       .map(ObjectPlotData.Points(_))
 

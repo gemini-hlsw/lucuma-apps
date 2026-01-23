@@ -569,25 +569,23 @@ object NightPlot:
                             Callback:
                               if size === 0 then chartOpt.value.foreach(_.showLoading(props.emptyMessage))
                               else chartOpt.value.foreach(_.hideLoading())
-    } yield
-      // println(chartResults.warnings.mkString_("NightPlot warnings:\n", "\n", ""))
-      React.Fragment(
-        <.div(
-          chartResults.warnings
-            .map: warning =>
-              Message(
-                severity = Message.Severity.Warning,
-                text = warning,
-                clazz = ExploreStyles.ElevationPlotWarning
-              )
-            .toTagMod,
-          Chart(
-            chartResults.map(_.options),
-            allowUpdate = false,
-            onCreate = c => chartOpt.set(c.some)
-          )
-            .withModules(Chart.Module.SeriesLabel)
-        ),
-        chartAndMoonData._2.map: moonData =>
-          MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
-      )
+    } yield React.Fragment(
+      <.div(
+        chartResults.warnings
+          .map: warning =>
+            Message(
+              severity = Message.Severity.Warning,
+              text = warning,
+              clazz = ExploreStyles.ElevationPlotWarning
+            )
+          .toTagMod,
+        Chart(
+          chartResults.map(_.options),
+          allowUpdate = false,
+          onCreate = c => chartOpt.set(c.some)
+        )
+          .withModules(Chart.Module.SeriesLabel)
+      ),
+      chartAndMoonData._2.map: moonData =>
+        MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
+    )
