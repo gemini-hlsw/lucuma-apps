@@ -29,10 +29,12 @@ import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
+import lucuma.react.primereact.ToggleButton
 import lucuma.refined.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -46,7 +48,8 @@ object SequenceTile extends SequenceTileHelper:
     asterismIds:         SortedSet[Target.Id],
     customSedTimestamps: List[Timestamp],
     calibrationRole:     Option[CalibrationRole],
-    sequenceChanged:     View[Pot[Unit]]
+    sequenceChanged:     View[Pot[Unit]],
+    isEditing:           View[IsEditing]
   ) =
     Tile(
       ObsTabTileIds.SequenceId.id,
@@ -58,9 +61,10 @@ object SequenceTile extends SequenceTileHelper:
           asterismIds.toList,
           customSedTimestamps,
           calibrationRole,
-          sequenceChanged
+          sequenceChanged,
+          isEditing.get
         ),
-      (_, _) => Title(obsExecution)
+      (_, _) => Title(obsExecution, isEditing)
     )
 
   private case class Body(
@@ -68,7 +72,8 @@ object SequenceTile extends SequenceTileHelper:
     targetIds:           List[Target.Id],
     customSedTimestamps: List[Timestamp],
     calibrationRole:     Option[CalibrationRole],
-    sequenceChanged:     View[Pot[Unit]]
+    sequenceChanged:     View[Pot[Unit]],
+    isEditing:           IsEditing
   ) extends ReactFnProps(Body)
 
   private object Body
@@ -113,10 +118,16 @@ object SequenceTile extends SequenceTileHelper:
                             visits,
                             config,
                             acquisitionSn,
-                            scienceSn
+                            scienceSn,
+                            props.isEditing
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
-                          GmosNorthImagingSequenceTable(visits, config, snPerFilter)
+                          GmosNorthImagingSequenceTable(
+                            visits,
+                            config,
+                            snPerFilter,
+                            props.isEditing
+                          )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
                       val visits: List[Visit.GmosSouth] =
@@ -131,10 +142,16 @@ object SequenceTile extends SequenceTileHelper:
                             visits,
                             config,
                             acquisitionSn,
-                            scienceSn
+                            scienceSn,
+                            props.isEditing
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
-                          GmosSouthImagingSequenceTable(visits, config, snPerFilter)
+                          GmosSouthImagingSequenceTable(
+                            visits,
+                            config,
+                            snPerFilter,
+                            props.isEditing
+                          )
                         case _                                                        => mismatchError
                     case SequenceData(
                           InstrumentExecutionConfig.Flamingos2(config),
@@ -147,7 +164,8 @@ object SequenceTile extends SequenceTileHelper:
                           .orEmpty,
                         config,
                         acquisitionSn,
-                        scienceSn
+                        scienceSn,
+                        props.isEditing
                       )
                     case _                                                                        => mismatchError
                   },
@@ -162,7 +180,8 @@ object SequenceTile extends SequenceTileHelper:
             )
       )
 
-  private case class Title(obsExecution: Execution) extends ReactFnProps(Title)
+  private case class Title(obsExecution: Execution, isEditing: View[IsEditing])
+      extends ReactFnProps(Title)
 
   private object Title
       extends ReactFnComponent[Title](props =>
@@ -177,10 +196,11 @@ object SequenceTile extends SequenceTileHelper:
           execution.digest.programTimeEstimate.value
             .map: plannedTime =>
               val total   = programTimeCharge +| plannedTime
-              val pending = timeDisplay("Pending",
-                                        plannedTime,
-                                        timeClass = staleCss,
-                                        timeTooltip = staleTooltip
+              val pending = timeDisplay(
+                "Pending",
+                plannedTime,
+                timeClass = staleCss,
+                timeTooltip = staleTooltip
               )
               val planned =
                 timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
@@ -189,7 +209,15 @@ object SequenceTile extends SequenceTileHelper:
                 HelpIcon("target/main/sequence-times.md".refined),
                 planned,
                 executed,
-                pending
+                pending,
+                ToggleButton(
+                  checked = props.isEditing.get,
+                  onChange = value => props.isEditing.set(IsEditing(value)),
+                  onIcon = Icons.Pencil,
+                  offIcon = Icons.Pencil,
+                  tooltip = "Toggle sequence edit mode"
+                  // className = ExploreStyles.SequenceEditToggleButton
+                ) // .mini.compact
               )
             .getOrElse(executed)
         }
