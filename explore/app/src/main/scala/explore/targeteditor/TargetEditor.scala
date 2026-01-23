@@ -4,6 +4,7 @@
 package explore.targeteditor
 
 import cats.Endo
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
@@ -32,6 +33,7 @@ import explore.services.OdbAsterismApi
 import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targeteditor.RVInput
+import explore.targets.TargetSource
 import explore.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
@@ -450,6 +452,13 @@ object TargetEditor:
           )
         }
 
+        val targetSources: NonEmptyList[TargetSource[IO]] =
+          props.obsTargets.focus.target match
+            case Target.Nonsidereal(_, _, _) =>
+              NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
+            case _                           =>
+              NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient))
+
         React.Fragment(
           TargetCloneSelector(
             props.obsInfo,
@@ -481,6 +490,7 @@ object TargetEditor:
                 // with coords & magnitudes from the catalog search, so that all 3 fields are
                 // a single undo/redo operation.
                 nameView,
+                targetSources,
                 allView.set,
                 props.searching,
                 disabled,
