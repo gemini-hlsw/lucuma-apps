@@ -11,7 +11,6 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Site
-import lucuma.core.math.Coordinates
 import lucuma.core.math.skycalc.SkyCalcResults
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
@@ -49,9 +48,9 @@ case class ObjectPlotData(
     start:    Instant,
     end:      Instant,
     tracking: Tracking
-  ): ObjectPlotData.Points =
-    ObjectPlotData.Points:
-      SkyCalc.forInterval(
+  ): Option[ObjectPlotData.Points] =
+    SkyCalc
+      .forInterval(
         site,
         start,
         end,
@@ -61,8 +60,8 @@ case class ObjectPlotData(
         tracking
           .at(_)
           .orElse(tracking.baseCoordinates.toOption)
-          .getOrElse(Coordinates.Zero)
       )
+      .map(ObjectPlotData.Points(_))
 
 object ObjectPlotData:
   object Id extends NewType[Either[Observation.Id, Target.Id]]:
@@ -96,9 +95,9 @@ object ObjectPlotData:
     ): SeriesData =
       SeriesData(data._1.toJSArray, data._2.toJSArray, data._3.toJSArray, data._4.toJSArray)
 
-  case class MoonData(moonPhase: Double, moonIllum: Double)
+  final case class MoonData(moonPhase: Double, moonIllum: Double)
 
-  case class Points(value: List[(Instant, SkyCalcResults)]):
+  final case class Points(value: List[(Instant, SkyCalcResults)]):
     lazy val seriesData: SeriesData = {
       val series: List[
         (PointOptionsWithAirmass, PointOptionsObject, PointOptionsObject, PointOptionsObject)
