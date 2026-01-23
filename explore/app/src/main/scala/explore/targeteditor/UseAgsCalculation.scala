@@ -84,7 +84,7 @@ object UseAgsCalculation:
           .flatMap(_.f2Fpu)
           .map: fpu =>
             // implicitly oiwfs
-            AgsParams.Flamingos2AgsParams(
+            AgsParams.Flamingos2LongSlit(
               Flamingos2LyotWheel.F16,
               Flamingos2FpuMask.Builtin(fpu),
               PortDisposition.Side
@@ -98,13 +98,13 @@ object UseAgsCalculation:
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val fpu  = observingMode.flatMap(_.gmosFpuAlternative)
         // implicitly oiwfs
-        val base = AgsParams.GmosAgsParams(fpu, PortDisposition.Side)
+        val base = fpu.map(AgsParams.GmosLongSlit(_, PortDisposition.Side))
 
         observingMode.map(_.guideProbe(trackType)) match
-          case Some(GuideProbe.PWFS1) => base.withPWFS1.some
-          case Some(GuideProbe.PWFS2) => base.withPWFS2.some
+          case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
+          case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
           // let's return oiwfs to get visualization working
-          case _                      => base.some
+          case _                      => base
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
         throw new NotImplementedError("Gmos Imaging not implemented")
@@ -197,15 +197,12 @@ object UseAgsCalculation:
                                 (obsCoords, props, hasConstraint, needsAGS)
                               ):
                                 case (Some(obsCoords), Some(props), true, true) if props.candidates.nonEmpty =>
-                                  UnconstrainedAngles
-                                    .map: angles =>
-                                      runAgsQuery(
-                                        props,
-                                        obsCoords,
-                                        angles,
-                                        r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync
-                                      )(ctx)
-                                    .orEmpty
+                                  runAgsQuery(
+                                    props,
+                                    obsCoords,
+                                    UnconstrainedAngles,
+                                    r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync
+                                  )(ctx)
 
                                 case _ => IO.unit
     } yield AgsCalculationResults(constrainedResults.value, unconstrainedResults.value)

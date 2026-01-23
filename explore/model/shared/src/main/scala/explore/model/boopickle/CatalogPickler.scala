@@ -30,7 +30,8 @@ trait CatalogPicklers extends ItcPicklers:
 
   given Pickler[OffsetPosition] = generatePickler
 
-  given Pickler[AgsParams.GmosAgsParams] = generatePickler
+  given picklerAgsImaging: Pickler[AgsParams.GmosImaging] = generatePickler
+  given Pickler[AgsParams.GmosLongSlit]                   = generatePickler
 
   given Pickler[Flamingos2FpuMask.Imaging.type] = generatePickler
   given Pickler[Flamingos2FpuMask.Builtin]      = generatePickler
@@ -41,12 +42,13 @@ trait CatalogPicklers extends ItcPicklers:
       .addConcreteType[Flamingos2FpuMask.Builtin]
       .addConcreteType[Flamingos2FpuMask.Custom]
 
-  given Pickler[AgsParams.Flamingos2AgsParams] = generatePickler
+  given Pickler[AgsParams.Flamingos2LongSlit] = generatePickler
 
   given Pickler[AgsParams] =
     compositePickler[AgsParams]
-      .addConcreteType[AgsParams.GmosAgsParams]
-      .addConcreteType[AgsParams.Flamingos2AgsParams]
+      .addConcreteType[AgsParams.GmosImaging]
+      .addConcreteType[AgsParams.GmosLongSlit]
+      .addConcreteType[AgsParams.Flamingos2LongSlit]
 
   given Pickler[Area] =
     transformPickler((x: Long) =>
