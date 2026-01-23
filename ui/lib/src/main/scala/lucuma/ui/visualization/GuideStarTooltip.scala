@@ -13,6 +13,8 @@ import lucuma.react.common.ReactFnProps
 import lucuma.ui.LucumaIcons
 import lucuma.ui.syntax.all.given
 
+import scala.scalajs.LinkingInfo
+
 case class GuideStarTooltip(analysis: AgsAnalysis.Usable) extends ReactFnProps(GuideStarTooltip)
 
 object GuideStarTooltip
@@ -35,6 +37,8 @@ object GuideStarTooltip
       val guideSpeedIcon = speedIcon(p.analysis.guideSpeed)
       val speedText      = p.analysis.guideSpeed.tag.toSentenceCase
 
+      val area = p.analysis.vignetting.toMicroarcsecondsSquared / 1e12
+
       <.div(VisualizationStyles.AgsTooltip)(
         <.div(id),
         <.div(
@@ -44,6 +48,9 @@ object GuideStarTooltip
             case (b, v)           => React.Fragment(f"${b.shortName}: ${v}%.2f "),
           guideSpeedIcon,
           speedText
+        ),
+        Option.when(LinkingInfo.developmentMode)(
+          <.div(f"Vignetting: ${area}%.1f arcsec²")
         )
       )
     )

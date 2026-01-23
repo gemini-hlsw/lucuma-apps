@@ -171,7 +171,8 @@ object AladinContainer extends AladinCommon {
 
     if (selectedGS.forall(_.target.id === g.target.id))
       val obsTimeCoords = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
-      List(SvgTarget.GuideStarTarget(obsTimeCoords, candidateCss, calcSize(GuideStarSize), g))
+      val vignettedCss  = ExploreStyles.VignettedGS.when_(g.vignetting.toMicroarcsecondsSquared > 0L)
+      List(SvgTarget.GuideStarTarget(obsTimeCoords, candidateCss |+| vignettedCss, calcSize(GuideStarSize), g))
     else
       val css = candidateCss |+| candidatesVisibility |+|
         ExploreStyles.GuideStarCandidateCrowded.when_(isCrowded)
