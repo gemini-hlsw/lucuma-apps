@@ -16,7 +16,6 @@ import explore.model.AppContext
 import explore.model.ErrorMsgOr
 import explore.model.RegionOrTracking
 import explore.model.enums.TimeDisplay
-import explore.model.reusability.given
 import explore.syntax.ui.*
 import explore.utils.ToastCtx
 import explore.utils.tracking.*
@@ -41,6 +40,7 @@ import lucuma.typed.highcharts.mod as Highcharts
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.components.MoonPhase
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given
 import org.typelevel.log4cats.Logger
@@ -511,8 +511,6 @@ object NightPlot:
             .toMap
 
   private val component = ScalaFnComponent[Props]: props =>
-    given Reusability[Map[ObjectPlotData.Id, (ObjectPlotData, Tracking)]] = Reusability.map
-
     val observingNight =
       ObservingNight.fromSiteAndLocalDate(props.options.get.site, props.options.get.date)
 
@@ -520,72 +518,94 @@ object NightPlot:
     val end: Instant   = props.options.get.maxInstant
 
     for {
-      ctx              <- useContext(AppContext.ctx)
-      tracking         <- useEffectKeepResultWithDeps(
-                            (props.plotData, props.options.get.date, props.options.get.site)
-                          ): (plotData, date, site) =>
-                            import ctx.given
-                            trackingForAllPlotData(plotData, date, site)
-      chartAndMoonData <-
-        useMemo((props.options.get.site, tracking.value.toOption, start, end)):
-          (site, trackingMap, start, end) =>
-            val seriesData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.Points]] =
-              trackingMap
-                .getOrElse(Map.empty)
-                .view
-                .mapValues: (objPlotData, tracking) =>
-                  objPlotData.pointsAtInstant(site, start, end, tracking)
+      ctx                 <- useContext(AppContext.ctx)
+      trackingMapPot      <-
+        useEffectResultWithDeps(props.plotData, props.options.get.date, props.options.get.site):
+          (plotData, date, site) =>
+            import ctx.given
+            trackingForAllPlotData(plotData, date, site)
+      chartAndMoonDataPot <-
+        useMemo((props.options.get.site, trackingMapPot.value, start, end)):
+          (site, trackingMapPot, start, end) =>
+            trackingMapPot.value.map: trackingMap =>
+              val seriesData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.Points]] =
+                trackingMap.view
+                  .mapValues: (objPlotData, tracking) =>
+                    objPlotData.pointsAtInstant(site, start, end, tracking)
 
-            val chartData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.SeriesData]] =
-              seriesData.mapValues(_.map(_.seriesData))
+              val chartData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.SeriesData]] =
+                seriesData.mapValues(_.map(_.seriesData))
 
-            val moonData: Option[ObjectPlotData.MoonData] = seriesData.collectFirst:
-              case (_, Some(points)) => points.moonData
+              val moonData: Option[ObjectPlotData.MoonData] = seriesData.collectFirst:
+                case (_, Some(points)) => points.moonData
 
-            (chartData, moonData)
-      chartResults     <-
+              (chartData, moonData)
+      chartResultsPot     <-
         useMemo(
           (props.plotData,
            props.options.get,
-           chartAndMoonData,
+           chartAndMoonDataPot,
            props.obsTime,
            props.obsDuration,
            props.excludeIntervals,
            props.hideTargetLabel
           )
-        ): (plotData, opts, chartAndMoonData, obsTime, obsDuration, excludeIntervals, hideLabel) =>
-          createChartResults(
+        ):
+          (
             plotData,
             opts,
-            chartAndMoonData,
+            chartAndMoonDataPot,
             obsTime,
             obsDuration,
             excludeIntervals,
-            hideLabel,
-            observingNight
-          )
-      chartOpt         <- useRef(none[Chart_]) // chart handler (chartOpt)
-      _                <- useEffectWithDeps((props.plotData.value.size, chartOpt.value.void)): (size, _) =>
-                            Callback:
-                              if size === 0 then chartOpt.value.foreach(_.showLoading(props.emptyMessage))
-                              else chartOpt.value.foreach(_.hideLoading())
-    } yield React.Fragment(
-      <.div(
-        chartResults.warnings
-          .map: warning =>
-            Message(
-              severity = Message.Severity.Warning,
-              text = warning,
-              clazz = ExploreStyles.ElevationPlotWarning
+            hideLabel
+          ) =>
+            chartAndMoonDataPot.value.map: chartAndMoonData =>
+              createChartResults(
+                plotData,
+                opts,
+                chartAndMoonData,
+                obsTime,
+                obsDuration,
+                excludeIntervals,
+                hideLabel,
+                observingNight
+              )
+      chartOpt            <- useRef(none[Chart_]) // chart handler (chartOpt)
+      _                   <-
+        useEffectWithDeps((props.plotData.value.size, chartOpt.value.void)): (size, _) =>
+          Callback:
+            if size === 0 then chartOpt.value.foreach(_.showLoading(props.emptyMessage))
+            else chartOpt.value.foreach(_.hideLoading())
+    } yield chartResultsPot.sequencePot.renderPot(
+      valueRender = chartResults =>
+        React.Fragment(
+          <.div(
+            chartResults.warnings
+              .map: warning =>
+                Message(
+                  severity = Message.Severity.Warning,
+                  text = warning,
+                  clazz = ExploreStyles.ElevationPlotWarning
+                )
+              .toTagMod,
+            Chart(
+              chartResults.map(_.options),
+              allowUpdate = false,
+              onCreate = c => chartOpt.set(c.some)
             )
-          .toTagMod,
-        Chart(
-          chartResults.map(_.options),
-          allowUpdate = false,
-          onCreate = c => chartOpt.set(c.some)
+              .withModules(Chart.Module.SeriesLabel)
+          ),
+          chartAndMoonDataPot.value.toOption
+            .flatMap(_._2)
+            .map: moonData =>
+              MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
+        ),
+      pendingRender = <.div(
+        Message(
+          severity = Message.Severity.Warning,
+          text = "Retrieving ephemeris data for the selected date",
+          clazz = ExploreStyles.ElevationPlotWarning
         )
-          .withModules(Chart.Module.SeriesLabel)
-      ),
-      chartAndMoonData._2.map: moonData =>
-        MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
+      )
     )
