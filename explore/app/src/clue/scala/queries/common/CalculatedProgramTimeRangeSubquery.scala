@@ -17,7 +17,7 @@ object CalculatedProgramTimeRangeSubquery
     ):
   override val subquery: String = s"""
     {
-      state
+      calculationState
       value $ProgramTimeRangeSubquery
     }
   """

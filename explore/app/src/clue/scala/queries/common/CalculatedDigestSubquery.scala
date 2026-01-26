@@ -21,7 +21,7 @@ object CalculatedDigestSubquery
     ):
   override val subquery: String = s"""
     {
-      state
+      calculationState
       value {
         setup {
           full $TimeSpanSubquery
