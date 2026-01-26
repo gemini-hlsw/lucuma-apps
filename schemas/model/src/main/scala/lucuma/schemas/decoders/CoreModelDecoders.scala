@@ -49,6 +49,6 @@ trait CoreModelDecoders:
   given calculatedValueDecoder[A: Decoder]: Decoder[CalculatedValue[A]] =
     Decoder.instance: c =>
       for
-        s <- c.downField("state").as[CalculationState]
+        s <- c.downField("calculationState").as[CalculationState]
         v <- c.downField("value").as[A]
       yield CalculatedValue(s, v)

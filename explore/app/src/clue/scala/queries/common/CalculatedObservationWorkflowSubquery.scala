@@ -17,7 +17,7 @@ object CalculatedObservationWorkflowSubquery
     ):
   override val subquery: String = s"""
     {
-      state
+      calculationState
       value $ObservationWorkflowSubquery
     }
   """

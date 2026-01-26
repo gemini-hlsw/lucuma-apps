@@ -113,8 +113,8 @@ object ObsQueriesGQL:
       subscription($$input: ObscalcUpdateInput!) {
         obscalcUpdate(input: $$input) {
           observationId
-          oldState
-          newState
+          oldCalculationState
+          newCalculationState
           editType
           value {
             groupId
