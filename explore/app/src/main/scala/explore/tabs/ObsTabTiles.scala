@@ -543,7 +543,11 @@ object ObsTabTiles:
           val blindOffsetView = props.observation.model
             .zoom(Observation.blindOffset)
             .withOnMod: bo =>
-              setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
+              // We want to focus the blind offset if the use did a search or is doing next/previous,
+              // but not if a new Automatic one is selected.
+              if bo.isManual then
+                setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
+              else Callback.empty
 
           val targetTile =
             ObservationTargetsEditorTile(
