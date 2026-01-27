@@ -13,7 +13,6 @@ import crystal.react.hooks.*
 import explore.events.*
 import explore.model.*
 import explore.model.GuideStarSelection.*
-import explore.model.WorkerClients.*
 import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
 import explore.model.reusability.given
@@ -31,6 +30,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.reusability.given
+import workers.WorkerClient
 
 import java.time.Instant
 
@@ -123,10 +123,9 @@ object UseAgsCalculation:
     props:          AgsCalcProps,
     obsCoords:      ObservationTargetsCoordinatesAt,
     angles:         NonEmptyList[Angle],
-    processResults: Option[List[AgsAnalysis.Usable]] => IO[Unit]
+    processResults: Option[List[AgsAnalysis.Usable]] => IO[Unit],
+    agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
-    import ctx.given
-
     obsCoords.baseCoords.map { baseCoords =>
       val params = agsParams(props.obsModeType, props.observingMode, props.trackType)
 
@@ -147,7 +146,7 @@ object UseAgsCalculation:
             props.candidates
           )
         .map: req =>
-          AgsClient[IO]
+          agsClient
             .requestSingle(req)
             .flatMap(processResults)
             .handleErrorWith(t =>
@@ -193,7 +192,7 @@ object UseAgsCalculation:
 
                                   val query = agsState.map: state =>
                                     val process = state.set(AgsState.Calculating).toAsync *>
-                                      runAgsQuery(props, obsCoords, angles, processResults)(
+                                      runAgsQuery(props, obsCoords, angles, processResults, ctx.workerClients.ags)(
                                         ctx
                                       )
                                     process.guarantee(state.async.set(AgsState.Idle))
@@ -211,7 +210,8 @@ object UseAgsCalculation:
                                     props,
                                     obsCoords,
                                     UnconstrainedAngles,
-                                    r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync
+                                    r => r.map(l => unconstrainedResults.setState(Pot.Ready(l))).getOrEmpty.toAsync,
+                                    ctx.workerClients.agsUnconstrained
                                   )(ctx)
 
                                 case _ => IO.unit

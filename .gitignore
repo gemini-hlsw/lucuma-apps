@@ -111,3 +111,4 @@ local.conf.json*
 
 # SOPS secrets - private keys only
 apps-keys.txt
+.config/

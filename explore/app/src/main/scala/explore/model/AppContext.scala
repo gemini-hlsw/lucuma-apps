@@ -101,9 +101,13 @@ case class AppContext[F[_]](
 
   given itcWorker: WorkerClient[F, ItcMessage.Request]           = workerClients.itc
   given catalogWorker: WorkerClient[F, CatalogMessage.Request]   = workerClients.catalog
-  given agsWorker: WorkerClient[F, AgsMessage.Request]           = workerClients.ags
   given plotWorker: WorkerClient[F, PlotMessage.Request]         = workerClients.plot
   given horizonsWorker: WorkerClient[F, HorizonsMessage.Request] = workerClients.horizons
+
+  // This will be used for pos angle constrained calls
+  given agsWorker: WorkerClient[F, AgsMessage.Request]              = workerClients.ags
+  // This will be used for unconstrained calls used to get just the stars
+  given agsUnconstrainedWorker: WorkerClient[F, AgsMessage.Request] = workerClients.agsUnconstrained
 
   given toastCtx: ToastCtx[F] = new ToastCtx(toastRef)
 
