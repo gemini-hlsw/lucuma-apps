@@ -20,17 +20,19 @@ import scala.scalajs.js
 import scala.scalajs.js.annotation.JSImport
 
 case class WorkerClients[F[_]](
-  itc:      WorkerClient[F, ItcMessage.Request],
-  catalog:  WorkerClient[F, CatalogMessage.Request],
-  ags:      WorkerClient[F, AgsMessage.Request],
-  plot:     WorkerClient[F, PlotMessage.Request],
-  horizons: WorkerClient[F, HorizonsMessage.Request]
+  itc:              WorkerClient[F, ItcMessage.Request],
+  catalog:          WorkerClient[F, CatalogMessage.Request],
+  ags:              WorkerClient[F, AgsMessage.Request],
+  agsUnconstrained: WorkerClient[F, AgsMessage.Request],
+  plot:             WorkerClient[F, PlotMessage.Request],
+  horizons:         WorkerClient[F, HorizonsMessage.Request]
 ) {
   def clearAll(andThen: F[Unit])(using FlatMap[F]): F[Unit] =
     for {
       _ <- itc.requestSingle(ItcMessage.CleanCache)
       _ <- plot.requestSingle(PlotMessage.CleanCache)
       _ <- ags.requestSingle(AgsMessage.CleanCache)
+      _ <- agsUnconstrained.requestSingle(AgsMessage.CleanCache)
       _ <- catalog.requestSingle(CatalogMessage.CleanCache)
       _ <- horizons.requestSingle(HorizonsMessage.CleanCache)
       _ <- andThen
@@ -67,6 +69,8 @@ object WorkerClients {
 
   object AgsClient extends WorkerClientBuilder[AgsMessage.Request](AgsWorker())
 
+  object AgsUnconstrainedClient extends WorkerClientBuilder[AgsMessage.Request](AgsWorker())
+
   @js.native
   @JSImport("/catalogworker.js?worker", JSImport.Default)
   private object CatalogWorker extends js.Object {
@@ -97,6 +101,7 @@ object WorkerClients {
     (ItcClient.build[F](dispatcher),
      CatalogClient.build[F](dispatcher),
      AgsClient.build[F](dispatcher),
+     AgsUnconstrainedClient.build[F](dispatcher),
      PlotClient.build[F](dispatcher),
      HorizonsWorkerClient.build[F](dispatcher)
     ).parMapN(WorkerClients.apply)
