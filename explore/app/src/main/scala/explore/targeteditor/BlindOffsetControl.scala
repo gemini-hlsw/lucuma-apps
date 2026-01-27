@@ -251,15 +251,16 @@ object BlindOffsetControl
                     severity = Button.Severity.Secondary,
                     disabled = index.get < 1 || isWorking.get.value,
                     onClick = selectIndex(candidates, index.get - 1)
-                  ).veryCompact.unless(index.get < 0),
+                  ).veryCompact,
                   Button(
                     icon = Icons.ChevronRight,
                     tooltip = "Select Next Candidate",
                     tooltipOptions = TooltipOptions.ShowOnDisabled,
                     severity = Button.Severity.Secondary,
-                    disabled = (index.get + 1) >= candidates.length || isWorking.get.value,
+                    disabled =
+                      (index.get + 1) >= candidates.length || index.get < 0 || isWorking.get.value,
                     onClick = selectIndex(candidates, index.get + 1)
-                  ).veryCompact.unless(index.get < 0),
+                  ).veryCompact,
                   text
                 ),
                 <.span(
