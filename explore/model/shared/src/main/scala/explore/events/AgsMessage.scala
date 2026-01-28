@@ -7,6 +7,7 @@ import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.data.NonEmptyList
 import explore.model.boopickle.CatalogPicklers.given
+import explore.model.boopickle.CommonPicklers.picklerNewType
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
@@ -14,9 +15,9 @@ import lucuma.ags.GuideStarCandidate
 import lucuma.ags.ScienceOffsets
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
-import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
+import lucuma.schemas.model.AGSWavelength
 import workers.WorkerRequest
 
 import java.time.Instant
@@ -32,7 +33,7 @@ object AgsMessage {
     id:                 Target.Id,
     vizTime:            Instant,
     constraints:        ConstraintSet,
-    wavelength:         Wavelength,
+    wavelength:         AGSWavelength,
     baseCoordinates:    Coordinates,
     scienceCoordinates: List[Coordinates],
     blindOffset:        Option[Coordinates],
@@ -46,6 +47,8 @@ object AgsMessage {
   }
 
   private given Pickler[CleanCache.type] = generatePickler
+
+  given Pickler[AGSWavelength] = picklerNewType(AGSWavelength)
 
   given Pickler[AgsRequest] = generatePickler
 

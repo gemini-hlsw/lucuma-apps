@@ -631,17 +631,17 @@ extension (i: BasicConfiguration)
           fpu = fpu.assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
-    case BasicConfiguration.GmosNorthImaging(filter = filter)                                     =>
+    case BasicConfiguration.GmosNorthImaging(filters = filters)                                   =>
       ObservingModeInput.GmosNorthImaging:
         GmosNorthImagingInput(
           variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
-          filters = filter.toList.map(f => GmosNorthImagingFilterInput(filter = f)).assign
+          filters = filters.toList.map(GmosNorthImagingFilterInput(_)).assign
         )
-    case BasicConfiguration.GmosSouthImaging(filter = filter)                                     =>
+    case BasicConfiguration.GmosSouthImaging(filters = filters)                                   =>
       ObservingModeInput.GmosSouthImaging:
         GmosSouthImagingInput(
           variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
-          filters = filter.toList.map(f => GmosSouthImagingFilterInput(filter = f)).assign
+          filters = filters.toList.map(GmosSouthImagingFilterInput(_)).assign
         )
     case BasicConfiguration.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
       ObservingModeInput.Flamingos2LongSlit:

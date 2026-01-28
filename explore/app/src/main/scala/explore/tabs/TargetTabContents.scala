@@ -444,24 +444,16 @@ object TargetTabContents extends TwoPanels:
                     case o @ Observation(
                           id = obsId,
                           constraints = const,
-                          observingMode = Some(conf),
-                          posAngleConstraint = posAngle,
-                          centralWavelength = Some(wavelength)
+                          observingMode = Some(conf)
                         ) if obsId === id =>
-                      (const,
-                       conf.toBasicConfiguration,
-                       posAngle,
-                       wavelength,
-                       o.needsAGS(props.targets.get)
-                      )
+                      (const, conf.toBasicConfiguration, o.needsAGS(props.targets.get))
                   .headOption
               case _        => None
             }
 
             val constraints                               = obsConf.map(_._1)
             val configuration: Option[BasicConfiguration] = obsConf.map(_._2)
-            val wavelength                                = obsConf.map(_._4)
-            val needsAGS                                  = obsConf.exists(_._5)
+            val needsAGS                                  = obsConf.exists(_._3)
 
             def setCurrentTarget(oids: Option[ObsIdSet])(
               tid: Option[Target.Id],
@@ -551,7 +543,6 @@ object TargetTabContents extends TwoPanels:
                   ObsConfiguration.forPlainTarget(
                     configuration,
                     constraints,
-                    wavelength,
                     needsAGS,
                     none
                   ),

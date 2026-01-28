@@ -48,16 +48,23 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
 
   def toBasicConfiguration: BasicConfiguration = this match
-    case n: ObservingMode.GmosNorthLongSlit  =>
+    case n: ObservingMode.GmosNorthLongSlit                =>
       BasicConfiguration.GmosNorthLongSlit(n.grating, n.filter, n.fpu, n.centralWavelength)
-    case s: ObservingMode.GmosSouthLongSlit  =>
+    case s: ObservingMode.GmosSouthLongSlit                =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
-    case n: ObservingMode.GmosNorthImaging   =>
-      BasicConfiguration.GmosNorthImaging(n.filters.map(_.filter))
-    case s: ObservingMode.GmosSouthImaging   =>
-      BasicConfiguration.GmosSouthImaging(s.filters.map(_.filter))
-    case f: ObservingMode.Flamingos2LongSlit =>
+    case ObservingMode.GmosNorthImaging(filters = filters) =>
+      BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
+    case ObservingMode.GmosSouthImaging(filters = filters) =>
+      BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
+    case f: ObservingMode.Flamingos2LongSlit               =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
+
+  def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
+
+  def conditionsWavelength: Wavelength = toBasicConfiguration.conditionsWavelength
+
+  def centralWv: Option[CentralWavelength] = toBasicConfiguration.centralWv
+
 }
 
 object ObservingMode:

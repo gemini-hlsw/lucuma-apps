@@ -23,7 +23,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
-  private val AgsCacheVersion: Int = 28
+  private val AgsCacheVersion: Int = 29
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
@@ -32,7 +32,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
       val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
         .agsAnalysis(r.constraints,
-                     r.wavelength,
+                     r.wavelength.value,
                      r.baseCoordinates,
                      r.scienceCoordinates,
                      r.blindOffset,

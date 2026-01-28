@@ -27,24 +27,24 @@ import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.reusability.given
 import workers.WorkerClient
 
 import java.time.Instant
 
 case class AgsCalcProps(
-  focusedId:         Target.Id,
-  obsTime:           Instant,
-  constraints:       ConstraintSet,
-  centralWavelength: CentralWavelength,
-  observingMode:     Option[BasicConfiguration],
-  obsModeType:       ObservingModeType,
-  acqOffsets:        Option[AcquisitionOffsets],
-  sciOffsets:        Option[ScienceOffsets],
-  candidates:        List[GuideStarCandidate],
-  trackType:         Option[TrackType]
+  focusedId:     Target.Id,
+  obsTime:       Instant,
+  constraints:   ConstraintSet,
+  agsWavelength: AGSWavelength,
+  observingMode: Option[BasicConfiguration],
+  obsModeType:   ObservingModeType,
+  acqOffsets:    Option[AcquisitionOffsets],
+  sciOffsets:    Option[ScienceOffsets],
+  candidates:    List[GuideStarCandidate],
+  trackType:     Option[TrackType]
 )
 
 object AgsCalcProps:
@@ -52,7 +52,7 @@ object AgsCalcProps:
     (p.focusedId,
      p.obsTime,
      p.constraints,
-     p.centralWavelength,
+     p.agsWavelength,
      p.observingMode,
      p.obsModeType,
      p.acqOffsets,
@@ -135,7 +135,7 @@ object UseAgsCalculation:
             props.focusedId,
             props.obsTime,
             props.constraints,
-            props.centralWavelength.value,
+            props.agsWavelength,
             baseCoords,
             obsCoords.scienceCoords,
             obsCoords.blindOffsetCoords,

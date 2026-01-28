@@ -172,7 +172,13 @@ object AladinContainer extends AladinCommon {
     if (selectedGS.forall(_.target.id === g.target.id))
       val obsTimeCoords = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
       val vignettedCss  = ExploreStyles.VignettedGS.when_(g.vignetting.toMicroarcsecondsSquared > 0L)
-      List(SvgTarget.GuideStarTarget(obsTimeCoords, candidateCss |+| vignettedCss, calcSize(GuideStarSize), g))
+      List(
+        SvgTarget.GuideStarTarget(obsTimeCoords,
+                                  candidateCss |+| vignettedCss,
+                                  calcSize(GuideStarSize),
+                                  g
+        )
+      )
     else
       val css = candidateCss |+| candidatesVisibility |+|
         ExploreStyles.GuideStarCandidateCrowded.when_(isCrowded)
@@ -293,7 +299,7 @@ object AladinContainer extends AladinCommon {
                                       props.options.viewOffset
             )
           )
-        survey                  <- useMemo(props.vizConf.flatMap(_.centralWavelength.map(_.value))):
+        survey                  <- useMemo(props.vizConf.map(_.conditionsWavelength)):
                                      _.map(surveyForWavelength).getOrElse(ImageSurvey.DSS)
         targetCoords            <-
           useMemo(
