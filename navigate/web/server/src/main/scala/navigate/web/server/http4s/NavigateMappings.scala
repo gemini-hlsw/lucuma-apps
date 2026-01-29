@@ -3,6 +3,7 @@
 
 package navigate.web.server.http4s
 
+import cats.data.Validated
 import cats.effect.Sync
 import cats.effect.kernel.Ref
 import cats.syntax.all.*
@@ -39,6 +40,7 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
 import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
+import lucuma.core.util.DateInterval
 import lucuma.core.util.Gid
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
@@ -96,6 +98,7 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
+import navigate.server.ephemeris
 import navigate.server.tcs.GuideState
 import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.TargetOffsets
@@ -103,6 +106,7 @@ import navigate.server.tcs.TelescopeState
 import navigate.web.server.OcsBuildInfo
 
 import java.nio.file.Path as JPath
+import java.time.LocalDate
 import scala.reflect.classTag
 
 import encoder.given
@@ -602,21 +606,20 @@ class NavigateMappings[F[_]: Sync](
           .pure[F]
       )
 
-  def refreshEphemerisFiles(@annotation.unused env: Env): F[Result[OperationOutcome]] =
-    Result.success(OperationOutcome.success).pure[F]
-//    env
-//      .get[DateInterval]("dateInterval")
-//      .map(
-//        ephemerisUpdater.refreshEphemerides(_).attempt.map{
-//          case Right(()) => Result.success(OperationOutcome.success)
-//          case Left(e) => Result.internalError(e)
-//        }
-//      )
-//      .getOrElse(
-//        Result
-//          .failure[OperationOutcome]("Ephemeris file refresh parameter could not be parsed.")
-//          .pure[F]
-//      )
+  def refreshEphemerisFiles(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[DateInterval]("dateInterval")
+      .map(
+        server.refreshEphemerides(_).attempt.map {
+          case Right(()) => Result.success(OperationOutcome.success)
+          case Left(e)   => Result.internalError(e)
+        }
+      )
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("Ephemeris file refresh parameter could not be parsed.")
+          .pure[F]
+      )
 
   def parameterlessCommand(cmd: F[CommandResult]): F[Result[OperationOutcome]] =
     cmd.attempt
@@ -966,6 +969,13 @@ class NavigateMappings[F[_]: Sync](
       Elab.env("enable" -> v)
     case (MutationType, "oiwfsCircularBuffer", List(Binding("enable", BooleanValue(v))))        =>
       Elab.env("enable" -> v)
+    case (MutationType, "refreshEphemerisFiles", List(Binding("dateInterval", ObjectValue(l)))) =>
+      Elab
+        .liftR(
+          parseDateInterval(l)
+            .toResult(s"Could not parse refreshEphemerisFiles parameter \"dateInterval\" ${l}")
+        )
+        .flatMap(v => Elab.env("dateInterval", v))
     case (QueryType, "instrumentPort", List(Binding("instrument", EnumValue(ins))))             =>
       Elab
         .liftR(
@@ -1412,7 +1422,7 @@ object NavigateMappings extends GrackleParsers {
     .orElse(l.collectFirst { case ("key", StringValue(v)) =>
       Ephemeris.Key.fromString.getOption(v)
     }.flatten)
-    .map(k => Target.EphemerisTarget(name, w, navigate.web.server.ephemeris.ephemerisFileName(k)))
+    .map(k => Target.EphemerisTarget(name, w, ephemeris.ephemerisFileName(k)))
 
   def parseAzElTarget(
     name: String,
@@ -1670,5 +1680,12 @@ object NavigateMappings extends GrackleParsers {
     x <- l.collectFirst { case ("x", IntValue(v)) => v }
     y <- l.collectFirst { case ("y", IntValue(v)) => v }
   } yield (x, y)
+
+  def parseDate(s: String): Option[LocalDate] = Validated.catchNonFatal(LocalDate.parse(s)).toOption
+
+  def parseDateInterval(l: List[(String, Value)]): Option[DateInterval] = for {
+    str <- l.collectFirst { case ("start", StringValue(v)) => parseDate(v) }.flatten
+    end <- l.collectFirst { case ("end", StringValue(v)) => parseDate(v) }.flatten
+  } yield DateInterval.between(str, end)
 
 }

@@ -34,6 +34,7 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.syntax.string.*
+import lucuma.core.util.DateInterval
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -2856,6 +2857,8 @@ object NavigateMappingsTest {
 
     override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
       (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+
+    override def refreshEphemerides(dateInterval: DateInterval): IO[Unit] = IO.unit
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {
