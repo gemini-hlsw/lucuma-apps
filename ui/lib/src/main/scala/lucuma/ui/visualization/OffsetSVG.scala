@@ -5,7 +5,6 @@ package lucuma.ui.visualization
 
 import eu.timepit.refined.types.numeric.NonNegInt
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.svg_<^.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.Offset

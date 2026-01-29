@@ -12,7 +12,6 @@ import cats.syntax.all.*
 import crystal.react.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.react.common.Css
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem

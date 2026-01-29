@@ -13,7 +13,6 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.dimensional.*
 import lucuma.core.math.units.*
 import lucuma.core.model.EmissionLine
-import lucuma.core.util.Of
 import lucuma.react.common.ReactFnProps
 
 import scala.collection.immutable.SortedMap

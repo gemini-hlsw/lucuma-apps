@@ -6,7 +6,6 @@ package explore.itc
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.ObsTabTileIds
-import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.primereact.Message
 

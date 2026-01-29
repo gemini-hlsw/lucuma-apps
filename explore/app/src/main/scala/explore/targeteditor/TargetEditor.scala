@@ -49,7 +49,6 @@ import lucuma.core.model.Program
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.User
-import lucuma.core.validation.*
 import lucuma.react.common.*
 import lucuma.react.primereact.Message
 import lucuma.refined.*

@@ -26,7 +26,6 @@ import lucuma.react.primereact.OverlayPanelRef
 import lucuma.react.primereact.PrimeStyles
 import lucuma.refined.*
 import lucuma.ui.components.CopyControl
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given

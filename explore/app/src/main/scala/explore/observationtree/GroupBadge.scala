@@ -12,7 +12,6 @@ import explore.components.ui.ExploreStyles
 import explore.model.Group
 import explore.model.enums.GroupWarning
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
 import lucuma.react.floatingui.Placement

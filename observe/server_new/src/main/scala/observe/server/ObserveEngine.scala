@@ -26,7 +26,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.User
 import lucuma.core.model.sequence.Step
 import monocle.Lens
-import monocle.Optional
 import monocle.syntax.all.focus
 import mouse.all.*
 import observe.model.*

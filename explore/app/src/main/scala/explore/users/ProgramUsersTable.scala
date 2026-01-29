@@ -36,7 +36,6 @@ import lucuma.core.syntax.all.*
 import lucuma.core.util.Enumerated
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnProps
-import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Checkbox

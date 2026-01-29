@@ -18,7 +18,6 @@ import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.model.ObservationValidation

@@ -7,7 +7,6 @@ import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.api.Refined
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles

@@ -29,7 +29,6 @@ import lucuma.core.model.Program
 import lucuma.core.model.StandardRole
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.*
-import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Image
 import lucuma.react.primereact.MenuItem

@@ -19,7 +19,7 @@ import lucuma.itc.math.roundToSignificantFigures
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
 import lucuma.typed.highcharts.highchartsStrings.line
-import lucuma.typed.highcharts.mod.{^ as _, *}
+import lucuma.typed.highcharts.mod.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 

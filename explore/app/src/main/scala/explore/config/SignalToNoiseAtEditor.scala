@@ -17,12 +17,10 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given

@@ -13,7 +13,6 @@ import lucuma.core.enums.WaterVapor
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.validation.ModelValidators
-import lucuma.core.optics.*
 import lucuma.core.refined.given
 import lucuma.core.syntax.validation.*
 import lucuma.core.validation.*
