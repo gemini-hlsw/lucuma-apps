@@ -60,6 +60,7 @@ import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.math.Wavelength
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.IntCentiPercent
@@ -77,6 +78,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
 import lucuma.react.resizeDetector.*
 import lucuma.refined.*
+import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.ui.reusability.given
@@ -131,7 +133,13 @@ case class ObsTabTiles(
   val constraintSet = observation.zoom(Observation.constraints)
 
   val centralWavelength: Option[CentralWavelength] =
-    observation.get.observingMode.flatMap(_.centralWavelength)
+    observation.get.observingMode.flatMap(_.centralWv)
+
+  val conditionsWavelength: Option[Wavelength] =
+    observation.get.observingMode.map(_.conditionsWavelength)
+
+  val agsWavelength: Option[AGSWavelength] =
+    observation.get.observingMode.map(_.agsWavelength)
 
   private val asterismAsNel: Option[ObservationTargets] =
     ObservationTargets.fromTargets:
@@ -154,26 +162,26 @@ case class ObsTabTiles(
         .getOption(observation.get.execution)
         .orEmpty
 
-  def obsIQLikelihood(
+  private def obsIQLikelihood(
     optCoordinates: Option[Coordinates]
   ): Option[IntCentiPercent] =
-    (centralWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
+    (conditionsWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
       site
         .minimumAirMassFor(dec)
         .fold(IntCentiPercent.Min): airMass =>
-          constraintSet.get.imageQuality.toImageQuality.percentile(cw.value, airMass)
+          constraintSet.get.imageQuality.toImageQuality.percentile(cw, airMass)
     )
 
-  def obsConditionsLikelihood(
+  private def obsConditionsLikelihood(
     optCoordinates: Option[Coordinates]
   ): Option[IntCentiPercent] =
-    (centralWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
+    (conditionsWavelength, optCoordinates.map(_.dec), site).mapN((cw, dec, site) =>
       conditionsLikelihood(
         constraintSet.get.skyBackground,
         constraintSet.get.cloudExtinction.toCloudExtinction,
         constraintSet.get.waterVapor,
         constraintSet.get.imageQuality.toImageQuality,
-        cw.value,
+        cw,
         dec,
         site
       )
@@ -473,7 +481,6 @@ object ObsTabTiles:
               selectedConfig.get,
               paProps.some,
               props.constraintSet.get.some,
-              props.centralWavelength,
               props.sciConfigs,
               props.acqConfigs,
               averagePA,

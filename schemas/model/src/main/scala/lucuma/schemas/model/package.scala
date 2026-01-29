@@ -8,3 +8,6 @@ import lucuma.core.util.NewType
 
 object CentralWavelength extends NewType[Wavelength]
 type CentralWavelength = CentralWavelength.Type
+
+object AGSWavelength extends NewType[Wavelength]
+type AGSWavelength = AGSWavelength.Type

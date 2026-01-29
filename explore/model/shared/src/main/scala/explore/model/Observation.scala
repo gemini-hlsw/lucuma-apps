@@ -112,14 +112,14 @@ final case class Observation(
       scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)
 
   private def applyGmosCcdModesOverrides(
-    explicitXBinning:    Option[GmosXBinning],
-    explicitYBinning:    Option[GmosYBinning],
+    explicitXBin:        Option[GmosXBinning],
+    explicitYBin:        Option[GmosYBinning],
     explicitAmpReadMode: Option[GmosAmpReadMode],
     explicitAmpGain:     Option[GmosAmpGain]
   ): GmosCcdMode => GmosCcdMode =
     List(
-      explicitXBinning.foldMap(GmosCcdMode.xBin.replace),
-      explicitYBinning.foldMap(GmosCcdMode.yBin.replace),
+      explicitXBin.foldMap(GmosCcdMode.xBin.replace),
+      explicitYBin.foldMap(GmosCcdMode.yBin.replace),
       explicitAmpReadMode.foldMap(GmosCcdMode.ampReadMode.replace),
       explicitAmpGain.foldMap(GmosCcdMode.ampGain.replace)
     ).reduce(_ >>> _)
@@ -128,30 +128,15 @@ final case class Observation(
   def toModeOverride(targets: TargetList): Option[InstrumentOverrides] =
     observingMode.flatMap:
       case ObservingMode.GmosNorthLongSlit(
-            _,
-            grating,
-            _,
-            _,
-            _,
-            fpu,
-            _,
-            centralWavelength,
-            _,
-            explicitXBinning,
-            _,
-            explicitYBinning,
-            _,
-            explicitAmpReadMode,
-            _,
-            explicitAmpGain,
-            defaultRoi,
-            explicitRoi,
-            _,
-            _,
-            _,
-            _,
-            _,
-            _
+            grating = grating,
+            fpu = fpu,
+            centralWavelength = centralWavelength,
+            explicitXBin = explicitXBin,
+            explicitYBin = explicitYBin,
+            explicitAmpReadMode = explicitAmpReadMode,
+            explicitAmpGain = explicitAmpGain,
+            defaultRoi = defaultRoi,
+            explicitRoi = explicitRoi
           ) =>
         profiles(targets).map: ps =>
           val defaultMode: GmosCcdMode =
@@ -164,8 +149,8 @@ final case class Observation(
 
           val mode: GmosCcdMode =
             applyGmosCcdModesOverrides(
-              explicitXBinning,
-              explicitYBinning,
+              explicitXBin,
+              explicitYBin,
               explicitAmpReadMode,
               explicitAmpGain
             )(defaultMode)
@@ -176,30 +161,15 @@ final case class Observation(
             explicitRoi.getOrElse(defaultRoi)
           )
       case ObservingMode.GmosSouthLongSlit(
-            _,
-            grating,
-            _,
-            _,
-            _,
-            fpu,
-            _,
-            centralWavelength,
-            _,
-            explicitXBinning,
-            _,
-            explicitYBinning,
-            _,
-            explicitAmpReadMode,
-            _,
-            explicitAmpGain,
-            defaultRoi,
-            explicitRoi,
-            _,
-            _,
-            _,
-            _,
-            _,
-            _
+            grating = grating,
+            fpu = fpu,
+            centralWavelength = centralWavelength,
+            explicitXBin = explicitXBin,
+            explicitYBin = explicitYBin,
+            explicitAmpReadMode = explicitAmpReadMode,
+            explicitAmpGain = explicitAmpGain,
+            defaultRoi = defaultRoi,
+            explicitRoi = explicitRoi
           ) =>
         profiles(targets).map: ps =>
           val defaultMode: GmosCcdMode =
@@ -211,8 +181,8 @@ final case class Observation(
             )
 
           val mode: GmosCcdMode = applyGmosCcdModesOverrides(
-            explicitXBinning,
-            explicitYBinning,
+            explicitXBin,
+            explicitYBin,
             explicitAmpReadMode,
             explicitAmpGain
           )(defaultMode)

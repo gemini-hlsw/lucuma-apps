@@ -13,10 +13,11 @@ import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
+import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.CentralWavelength
 
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
 // It is a subset of ObsConfiguration such that can be built out of either the db config
@@ -27,7 +28,6 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  centralWavelength:          Option[CentralWavelength],
   trackType:                  Option[TrackType]
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguration
@@ -49,6 +49,12 @@ case class ConfigurationForVisualization private (
   def asSciOffsets: Option[ScienceOffsets] =
     scienceOffsets.flatMap(_.asSciOffsets)
 
+  def agsWavelength: AGSWavelength =
+    configuration.agsWavelength
+
+  def conditionsWavelength: Wavelength =
+    configuration.conditionsWavelength
+
 object ConfigurationForVisualization:
   def fromObsConfiguration(
     obsConfig: ObsConfiguration
@@ -61,7 +67,6 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.centralWavelength,
           obsConfig.trackType
         )
       }
@@ -81,6 +86,5 @@ object ConfigurationForVisualization:
       None,
       selectedPosAngle,
       None,
-      basicConfiguration.centralWavelength,
       None
     )

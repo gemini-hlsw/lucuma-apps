@@ -50,6 +50,40 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
 
+  def centralWv: Option[CentralWavelength] = this match
+    case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
+      cw.some
+    case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      cw.some
+    case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      CentralWavelength(filter.wavelength).some
+    case _                                                            =>
+      none
+
+  def agsWavelength: AGSWavelength = this match
+    case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      AGSWavelength(cw.value)
+    case BasicConfiguration.GmosNorthImaging(filters)                 =>
+      AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
+    case BasicConfiguration.GmosSouthImaging(filters)                 =>
+      AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
+    case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      AGSWavelength(filter.wavelength)
+
+  def conditionsWavelength: Wavelength = this match
+    case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
+      cw.value
+    case BasicConfiguration.GmosSouthLongSlit(centralWavelength = cw) =>
+      cw.value
+    case BasicConfiguration.GmosNorthImaging(filters)                 =>
+      filters.minimumBy(_.wavelength).wavelength
+    case BasicConfiguration.GmosSouthImaging(filters)                 =>
+      filters.minimumBy(_.wavelength).wavelength
+    case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
+      filter.wavelength
+
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
@@ -103,14 +137,14 @@ object BasicConfiguration:
     given Decoder[GmosSouthLongSlit] = deriveDecoder
 
   case class GmosNorthImaging(
-    filter: NonEmptyList[GmosNorthFilter]
+    filters: NonEmptyList[GmosNorthFilter]
   ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
 
   object GmosNorthImaging:
     given Decoder[GmosNorthImaging] = deriveDecoder
 
   case class GmosSouthImaging(
-    filter: NonEmptyList[GmosSouthFilter]
+    filters: NonEmptyList[GmosSouthFilter]
   ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
 
   object GmosSouthImaging:

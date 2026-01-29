@@ -121,11 +121,11 @@ trait ArbBasicConfiguration {
 
   given Cogen[BasicConfiguration.GmosNorthImaging] =
     Cogen[NonEmptyList[GmosNorthFilter]]
-      .contramap(_.filter)
+      .contramap(_.filters)
 
   given Cogen[BasicConfiguration.GmosSouthImaging] =
     Cogen[NonEmptyList[GmosSouthFilter]]
-      .contramap(_.filter)
+      .contramap(_.filters)
 
   given Cogen[BasicConfiguration] =
     Cogen[Either[

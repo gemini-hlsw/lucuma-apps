@@ -32,9 +32,6 @@ import lucuma.core.util.CalculationState
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.ObservingMode
 
 import java.time.Instant
 import java.time.ZoneOffset
@@ -185,52 +182,6 @@ object all:
       case _                        => true
 
   extension (cr: Option[CalibrationRole]) def needsITC: Boolean = cr.fold(true)(_.needsITC)
-
-  extension (om: ObservingMode)
-    def centralWavelength: Option[CentralWavelength] =
-      ObservingMode.gmosNorthLongSlit
-        .andThen(ObservingMode.GmosNorthLongSlit.centralWavelength)
-        .getOption(om)
-        .orElse(
-          ObservingMode.gmosSouthLongSlit
-            .andThen(ObservingMode.GmosSouthLongSlit.centralWavelength)
-            .getOption(om)
-        )
-        .orElse(
-          // TODO I'm selecting the first filter for central wavelength, verify it is correct
-          ObservingMode.gmosSouthImaging
-            .andThen(ObservingMode.GmosSouthImaging.filters)
-            .getOption(om)
-            .map(_.head.filter.wavelength)
-            .map(CentralWavelength(_))
-        )
-        .orElse(
-          // TODO I'm selecting the first filter for central wavelength, verify it is correct
-          ObservingMode.gmosNorthImaging
-            .andThen(ObservingMode.GmosNorthImaging.filters)
-            .getOption(om)
-            .map(_.head.filter.wavelength)
-            .map(CentralWavelength(_))
-        )
-        .orElse(
-          // FIXME: Hardcoded for Flamingos2
-          ObservingMode.flamingos2LongSlit
-            .getOption(om)
-            .flatMap(f => CentralWavelength(f.filter.wavelength).some)
-        )
-
-  extension (bc: BasicConfiguration)
-    def centralWavelength: Option[CentralWavelength] = bc match
-      case g: BasicConfiguration.GmosNorthLongSlit  =>
-        g.centralWavelength.some
-      case g: BasicConfiguration.GmosSouthLongSlit  =>
-        g.centralWavelength.some
-      case g: BasicConfiguration.Flamingos2LongSlit =>
-        CentralWavelength(g.filter.wavelength).some
-      case g: BasicConfiguration.GmosNorthImaging   =>
-        CentralWavelength(g.filter.head.wavelength).some
-      case g: BasicConfiguration.GmosSouthImaging   =>
-        CentralWavelength(g.filter.head.wavelength).some
 
   extension (bc: ObservingModeType)
     def defaultPosAngleOptions: PosAngleOptions =

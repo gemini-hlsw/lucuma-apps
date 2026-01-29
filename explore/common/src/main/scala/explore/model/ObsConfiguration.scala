@@ -22,6 +22,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import org.typelevel.cats.time.instances.duration.*
@@ -37,7 +38,6 @@ final case class ObsConfiguration(
   selectedConfig:     ConfigSelection, // selected row(s) in the modes table
   posAngleProperties: Option[PAProperties],
   constraints:        Option[ConstraintSet],
-  centralWavelength:  Option[CentralWavelength],
   scienceOffsets:     Option[NonEmptySet[TelescopeConfig]],
   acquisitionOffsets: Option[NonEmptySet[TelescopeConfig]],
   averagePA:          Option[AveragePABasis],
@@ -47,6 +47,15 @@ final case class ObsConfiguration(
   calibrationRole:    Option[CalibrationRole],
   trackType:          Option[TrackType]
 ) derives Eq:
+
+  def agsWavelength: Option[AGSWavelength] =
+    configuration.map(_.agsWavelength)
+
+  def conditionsWavelength: Option[Wavelength] =
+    configuration.map(_.conditionsWavelength)
+
+  def centralWavelength: Option[CentralWavelength] =
+    configuration.flatMap(_.centralWv)
 
   def posAngleConstraint: Option[PosAngleConstraint] =
     posAngleProperties.map(_.constraint)
@@ -79,7 +88,6 @@ object ObsConfiguration:
   def forPlainTarget(
     configuration: Option[BasicConfiguration],
     constraints:   Option[ConstraintSet],
-    wavelength:    Option[CentralWavelength],
     needsAGS:      Boolean,
     trackType:     Option[TrackType]
   ): ObsConfiguration =
@@ -88,7 +96,6 @@ object ObsConfiguration:
       ConfigSelection.Empty,
       none,
       constraints,
-      wavelength,
       none,
       none,
       none,
