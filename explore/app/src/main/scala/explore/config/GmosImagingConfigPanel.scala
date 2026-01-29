@@ -123,7 +123,6 @@ object GmosImagingConfigPanel {
       Logger[IO]
     ): View[Option[GmosRoi]]
 
-    protected def variantLens: Lens[T, GmosImagingVariant]
     protected def filtersLens: Lens[T, NonEmptyList[ImagingFilter]]
     protected def filtersFilterLens: Lens[ImagingFilter, Filter]
     protected def filtersEtmLens: Lens[ImagingFilter, ExposureTimeMode]
@@ -446,7 +445,6 @@ object GmosImagingConfigPanel {
       )
       .view(_.orUnassign)
 
-    override protected val variantLens                           = ObservingMode.GmosNorthImaging.variant
     override protected val filtersLens                           = ObservingMode.GmosNorthImaging.filters
     override protected val filtersFilterLens                     = ObservingMode.GmosNorthImaging.ImagingFilter.filter
     override protected val filtersEtmLens                        =
@@ -579,7 +577,6 @@ object GmosImagingConfigPanel {
       )
       .view(_.orUnassign)
 
-    override protected val variantLens        = ObservingMode.GmosSouthImaging.variant
     override protected val filtersLens        = ObservingMode.GmosSouthImaging.filters
     override protected val filtersFilterLens  = ObservingMode.GmosSouthImaging.ImagingFilter.filter
     override protected val filtersEtmLens     =

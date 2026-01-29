@@ -27,7 +27,6 @@ import lucuma.ui.primereact.given
 import lucuma.ui.sequence.SequenceIcons
 import lucuma.ui.sequence.SequenceStyles
 import lucuma.ui.utils.*
-import monocle.Iso
 
 final case class TelescopeConfigGeneratorEditor(
   id:          NonEmptyString,
@@ -66,18 +65,7 @@ object TelescopeConfigGeneratorEditor
           case false => StepGuideState.Disabled
           case true  => StepGuideState.Enabled
 
-      for _ <- useEffectWithDeps(props.maxExplicit): maxExplicit =>
-                 props.value // If maxExplicit changes, ensure we trim the list if needed
-                   .zoom:
-                     Iso.id.some
-                       .andThen(TelescopeConfigGenerator.enumerated)
-                       .andThen(TelescopeConfigGenerator.Enumerated.values)
-                   .mod: oldList =>
-                     NonEmptyList
-                       .fromList:
-                         oldList.take(maxExplicit)
-                       .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
-      yield React.Fragment(
+      React.Fragment(
         FormEnumDropdown[TelescopeConfigGeneratorType](
           id = "grid-type".refined,
           label = props.label,
