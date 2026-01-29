@@ -164,6 +164,7 @@ object reusability:
   given Reusability[WavelengthDither]                   = Reusability.byEq
   given Reusability[ExposureTimeMode]                   = Reusability.byEq
   given [A]: Reusability[Offset.Component[A]]           = Reusability.byEq
+  given Reusability[GmosImagingVariant]                 = Reusability.byEq
   // We explicitly leave default binning out of ObservingMode Reusability since we compute it each time, ignoring the server value.
   given Reusability[ObservingMode.GmosNorthLongSlit]    =
     Reusability.by: x =>

@@ -29,22 +29,84 @@ import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import monocle.Iso
+import monocle.Lens
+import monocle.Prism
 
 final case class GmosImagingVariantEditor(variant: View[GmosImagingVariant], readonly: Boolean)
-    extends ReactFnProps(GmosImagingVariantEditor):
-  val variantType: GmosImagingVariantType = variant.get match
-    case GmosImagingVariant.Grouped(_, _, _, _)    => GmosImagingVariantType.Grouped
-    case GmosImagingVariant.Interleaved(_, _, _)   => GmosImagingVariantType.Interleaved
-    case GmosImagingVariant.PreImaging(_, _, _, _) => GmosImagingVariantType.PreImaging
+    extends ReactFnProps(GmosImagingVariantEditor)
 
 object GmosImagingVariantEditor
-    extends ReactFnComponent[GmosImagingVariantEditor]({ props =>
+    extends ReactFnComponent[GmosImagingVariantEditor](props =>
+      val enumeratedValues: Prism[Option[TelescopeConfigGenerator], NonEmptyList[TelescopeConfig]] =
+        Iso.id.some
+          .andThen(TelescopeConfigGenerator.enumerated)
+          .andThen(TelescopeConfigGenerator.Enumerated.values)
+
+      // For Grouped and Interleaved, this sets the skyCount and skyOffsets as needed
+      def skyOffsetModifier[A <: GmosImagingVariant](
+        skyCountLens:  Lens[A, NonNegInt],
+        skyOffsetLens: Lens[A, Option[TelescopeConfigGenerator]]
+      ): (A, A) => A = (oldVariant, newVariant) =>
+        val oldCount                                 = skyCountLens.get(oldVariant)
+        val newCount                                 = skyCountLens.get(newVariant)
+        val newTcg: Option[TelescopeConfigGenerator] = skyOffsetLens.get(newVariant)
+        val oldTcg: Option[TelescopeConfigGenerator] = skyOffsetLens.get(oldVariant)
+
+        val updatedVariant: A =
+          if newTcg.isEmpty && oldTcg.isDefined && newCount.value =!= 0 then
+            // has been changed to No Offsets
+            skyCountLens.replace(0.refined)(newVariant)
+          else if newCount === oldCount then newVariant
+          else if newCount.value === 0 then skyOffsetLens.replace(none)(newVariant)
+          else if oldCount.value === 0 then
+            val updatedTcg =
+              TelescopeConfigGenerator
+                .Enumerated(NonEmptyList.one(TelescopeConfig.Default))
+            skyOffsetLens.replace(updatedTcg.some)(newVariant)
+          else // truncate the list of explicit values if needed
+            val updatedTcg = enumeratedValues.modify(nel =>
+              NonEmptyList
+                .fromList:
+                  nel.take(newCount.value.toInt * 2)
+                .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
+            )(newTcg)
+            skyOffsetLens.replace(updatedTcg)(newVariant)
+        updatedVariant
+
       val groupedView: Option[View[GmosImagingVariant.Grouped]]         =
-        props.variant.zoom(GmosImagingVariant.grouped).toOptionView
+        props.variant
+          .zoom(GmosImagingVariant.grouped)
+          .toOptionView
+          .map:
+            _.withModPatch(
+              skyOffsetModifier(
+                GmosImagingVariant.Grouped.skyCount,
+                GmosImagingVariant.Grouped.skyOffsets
+              )
+            )
       val interleavedView: Option[View[GmosImagingVariant.Interleaved]] =
-        props.variant.zoom(GmosImagingVariant.interleaved).toOptionView
+        props.variant
+          .zoom(GmosImagingVariant.interleaved)
+          .toOptionView
+          .map:
+            _.withModPatch(
+              skyOffsetModifier(
+                GmosImagingVariant.Interleaved.skyCount,
+                GmosImagingVariant.Interleaved.skyOffsets
+              )
+            )
       val preImagingView: Option[View[GmosImagingVariant.PreImaging]]   =
-        props.variant.zoom(GmosImagingVariant.preImaging).toOptionView
+        props.variant
+          .zoom(GmosImagingVariant.preImaging)
+          .toOptionView
+          .map:
+            _.withOnMod(props.variant.set) // no extra work to do here.
+
+      val variantType: GmosImagingVariantType = props.variant.get match
+        case GmosImagingVariant.Grouped(_, _, _, _)    => GmosImagingVariantType.Grouped
+        case GmosImagingVariant.Interleaved(_, _, _)   => GmosImagingVariantType.Interleaved
+        case GmosImagingVariant.PreImaging(_, _, _, _) => GmosImagingVariantType.PreImaging
 
       def commonInputs(
         offsets:    View[Option[TelescopeConfigGenerator]],
@@ -66,15 +128,7 @@ object GmosImagingVariantEditor
               "Sky Offset Count",
               HelpIcon("configuration/imaging/sky-offset.md".refined)
             ),
-            value = skyCount.withOnMod: (oldCount, newCount) =>
-              if newCount.value === 0 then skyOffsets.set(none)
-              else if oldCount.value === 0 then
-                skyOffsets
-                  .set:
-                    TelescopeConfigGenerator
-                      .Enumerated(NonEmptyList.one(TelescopeConfig.Default))
-                      .some
-              else Callback.empty,
+            value = skyCount,
             validFormat = InputValidSplitEpi.nonNegInt,
             placeholder = "0",
             disabled = props.readonly
@@ -82,8 +136,7 @@ object GmosImagingVariantEditor
           TelescopeConfigGeneratorEditor(
             id = "grouped-sky-offsets".refined,
             label = "Sky Offsets",
-            value = skyOffsets.withOnMod: tcg =>
-              if tcg.isEmpty then skyCount.set(0.refined) else Callback.empty,
+            value = skyOffsets,
             showCenter = true,
             readonly = props.readonly || skyCount.get.value === 0,
             maxExplicit = skyCount.get.value.toInt * 2
@@ -93,7 +146,7 @@ object GmosImagingVariantEditor
       React.Fragment(
         FormEnumDropdown[GmosImagingVariantType](
           id = "variant-type".refined,
-          value = props.variantType,
+          value = variantType,
           onChange = vt => props.variant.mod(_.toVariantType(vt)),
           label = React.Fragment(
             "Offset Variant",
@@ -155,4 +208,4 @@ object GmosImagingVariantEditor
             )
           )
       )
-    })
+    )
