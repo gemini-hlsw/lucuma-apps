@@ -21,13 +21,14 @@ import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 
 import SequenceRowFormatters.*
+import lucuma.typed.tanstackTableCore.tanstackTableCoreStrings.onChange
 
 // `T` is the actual type of the table row, from which we extract an `R` using `getStep`.
 // `D` is the `DynamicConfig`.
 // `TM` is the type of the table meta.
 // `CM` is the type of the column meta.
 // `TF` is the type of the global filter.
-class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta, CM, TF](
+class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM, TF](
   colDef:   ColumnDef.Applied[Expandable[HeaderOrRow[T]], TM, CM, TF],
   getStep:  T => Option[R],
   getIndex: T => Option[StepIndex]
@@ -59,6 +60,12 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta, CM, TF
               InputNumber(
                 id = s"exposure-${c.row.index}",
                 value = e.toSeconds.toDouble,
+                onValueChange = e =>
+                  c.table.options.meta.foldMap(
+                    _.modRow(
+                      c.row.original.value.toOption.flatMap(getStep).flatMap(_.id.toOption).get
+                    )(row => e.value.get.asInstanceOf[Double])
+                  ),
                 clazz = SequenceStyles.SequenceInput
               )
             else FormatExposureTime(i)(e).value

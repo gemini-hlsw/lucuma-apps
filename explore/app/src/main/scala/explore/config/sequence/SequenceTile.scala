@@ -55,6 +55,7 @@ object SequenceTile
       import SequenceTileHelper.*
 
       for
+        i            <- useState(0) // TODO This is a temporary mechanism for demo purposes
         liveSequence <- useLiveSequence(
                           props.obsId,
                           props.asterismIds.toList,
@@ -121,7 +122,7 @@ object SequenceTile
                           severity = Button.Severity.Danger
                         ).mini.compact,
                         Button(
-                          onClick = props.isEditing.set(IsEditing.False),
+                          onClick = props.isEditing.set(IsEditing.False) >> props.commitEdit,
                           label = "Accept",
                           icon = Icons.Checkmark,
                           tooltip = "Accept sequence modifications",
@@ -166,14 +167,16 @@ object SequenceTile
                             config,
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(
                             visits,
                             config,
                             snPerFilter,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
@@ -190,14 +193,16 @@ object SequenceTile
                             config,
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(
                             visits,
                             config,
                             snPerFilter,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case _                                                        => mismatchError
                     case SequenceData(
@@ -212,7 +217,8 @@ object SequenceTile
                         config,
                         acquisitionSn,
                         scienceSn,
-                        props.isEditing
+                        props.isEditing,
+                        props.i
                       )
                     case _                                                                        => mismatchError
                   },
