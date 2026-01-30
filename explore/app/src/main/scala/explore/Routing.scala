@@ -6,7 +6,6 @@ package explore
 import cats.Order.*
 import cats.data.NonEmptySet
 import cats.syntax.all.*
-import crystal.*
 import crystal.react.View
 import eu.timepit.refined.types.numeric.PosInt
 import explore.model.*

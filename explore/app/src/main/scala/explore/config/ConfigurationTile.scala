@@ -14,7 +14,6 @@ import clue.data.syntax.*
 import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.common.Aligner
 import explore.common.ScienceQueries.ScienceRequirementsUndoView

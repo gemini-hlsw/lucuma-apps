@@ -59,7 +59,6 @@ import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
-import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
@@ -210,11 +209,6 @@ object ObsTabTiles:
           .toList
       )
     )
-
-  private case class Offsets(
-    science:     Option[NonEmptyList[Offset]],
-    acquisition: Option[NonEmptyList[Offset]]
-  )
 
   def roleLayout(
     userPreferences: UserPreferences,

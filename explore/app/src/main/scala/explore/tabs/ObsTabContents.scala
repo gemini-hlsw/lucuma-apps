@@ -78,7 +78,7 @@ case class ObsTabContents(
   private val globalPreferences: View[GlobalPreferences]  =
     userPreferences.zoom(UserPreferences.globalPreferences)
   private val programType: Option[ProgramType]            = programSummaries.get.programType
-  // XXX Workaround for what seems to be a Scala 3.7.4 bug where `ObsGroupHelper` members cannot be otherwise
+  // XXX Workaround for what seems to be a Scala 3.8.1 bug where `ObsGroupHelper` members cannot be otherwise
   // accessed from within the component definition below.
   override val resolvedActiveGroupId: Option[Group.Id]    = super.resolvedActiveGroupId
 }

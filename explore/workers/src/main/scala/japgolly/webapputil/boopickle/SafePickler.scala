@@ -11,7 +11,7 @@ import japgolly.webapputil.binary.BinaryData
 import japgolly.webapputil.general.Version
 import japgolly.webapputil.general.Version.ordering.mkOrderingOps
 
-import scala.annotation.elidable
+import scala.scalajs.LinkingInfo
 import scala.util.control.NonFatal
 
 /**
@@ -152,9 +152,8 @@ object SafePickler {
     ) extends RuntimeException
         with DecodingFailure {
 
-      @elidable(elidable.ASSERTION)
       private def devOnly(): Unit =
-        exception.printStackTrace(System.err)
+        if LinkingInfo.developmentMode then exception.printStackTrace(System.err)
 
       devOnly()
     }

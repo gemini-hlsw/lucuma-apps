@@ -9,7 +9,6 @@ import japgolly.scalajs.react.util.Util.identity as identityFn
 import japgolly.webapputil.indexeddb.TxnMode.*
 import org.scalajs.dom.*
 
-import scala.annotation.elidable
 import scala.scalajs.js
 import scala.util.Failure
 import scala.util.Success
@@ -117,9 +116,7 @@ object IndexedDb {
     val msg: String =
       event.asInstanceOf[js.Dynamic].message.asInstanceOf[js.UndefOr[String]].getOrElse("")
 
-    @elidable(elidable.FINEST)
-    override def toString =
-      s"IndexedDb.Error($msg)"
+    override def toString = s"IndexedDb.Error($msg)"
 
     def isStoredDatabaseHigherThanRequested: Boolean =
       // Chrome: The requested version (1) is less than the existing version (2).

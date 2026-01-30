@@ -5,7 +5,6 @@ package explore.common
 
 import cats.Endo
 import cats.effect.IO
-import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.*
 import eu.timepit.refined.*

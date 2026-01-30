@@ -6,7 +6,6 @@ package explore.config.offsets
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.*
-import eu.timepit.refined.api.Refined
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.model.ExploreModelValidators

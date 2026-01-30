@@ -3,7 +3,6 @@
 
 package explore.common
 
-import clue.data.Input
 import clue.data.Unassign
 import clue.data.syntax.*
 import explore.model.PartnerSplit

@@ -11,7 +11,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.*
-import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupTieredMenu

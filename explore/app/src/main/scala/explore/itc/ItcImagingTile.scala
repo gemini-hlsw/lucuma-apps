@@ -10,7 +10,6 @@ import cats.syntax.all.*
 import crystal.*
 import crystal.react.*
 import eu.timepit.refined.types.numeric.PosInt
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.config.ModesTableCommon

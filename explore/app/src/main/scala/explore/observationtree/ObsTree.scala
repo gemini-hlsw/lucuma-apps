@@ -83,7 +83,7 @@ case class ObsTree(
   private val selectedObsIdSet: Option[ObsIdSet] =
     focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
 
-  // XXX Workaround for what seems to be a Scala 3.7.4 bug where `ObsGroupHelper` members cannot be otherwise
+  // XXX Workaround for what seems to be a Scala 3.8.1 bug where `ObsGroupHelper` members cannot be otherwise
   // accessed from within the component definition below.
   override def resolveGroupId(groupId: Option[Group.Id]): Option[Group.Id] =
     super.resolveGroupId(groupId)

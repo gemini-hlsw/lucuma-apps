@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import crystal.*
 import crystal.react.*
 import eu.timepit.refined.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.UserPreferencesQueries.*
 import explore.components.Tile
 import explore.components.ui.ExploreStyles

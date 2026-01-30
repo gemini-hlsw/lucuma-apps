@@ -18,7 +18,6 @@ import lucuma.core.model.Program
 import lucuma.core.syntax.display.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
 

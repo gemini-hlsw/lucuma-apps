@@ -11,7 +11,6 @@ import clue.data.syntax.*
 import coulomb.Quantity
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.api.Refined
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -38,7 +37,6 @@ import lucuma.core.optics.syntax.lens.*
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
