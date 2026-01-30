@@ -10,6 +10,7 @@ import cats.syntax.all.*
 import explore.events.*
 import japgolly.webapputil.indexeddb.*
 import lucuma.ags
+import lucuma.ags.DefaultAreaBuffer
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.clients.GaiaClient
 import lucuma.catalog.votable.*
@@ -27,8 +28,8 @@ import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
-  private val MaxTargets: Int   = 100
-  private val CacheVersion: Int = 8
+  private val MaxTargets: Int   = 1000
+  private val CacheVersion: Int = 9
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -77,7 +78,8 @@ trait CatalogCache extends CatalogIDB:
           CoordinatesRangeQueryByADQL(
             coordsList,
             candidatesArea,
-            brightnessConstraints.some
+            brightnessConstraints.some,
+            areaBuffer = DefaultAreaBuffer
           )
 
         info"requested catalog $query" *>
