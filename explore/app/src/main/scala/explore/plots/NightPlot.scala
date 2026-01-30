@@ -579,22 +579,19 @@ object NightPlot:
     } yield chartResultsPot.sequencePot.renderPot(
       valueRender = chartResults =>
         React.Fragment(
-          <.div(
-            chartResults.warnings
-              .map: warning =>
-                Message(
-                  severity = Message.Severity.Warning,
-                  text = warning,
-                  clazz = ExploreStyles.ElevationPlotWarning
-                )
-              .toTagMod,
-            Chart(
-              chartResults.map(_.options),
-              allowUpdate = false,
-              onCreate = c => chartOpt.set(c.some)
-            )
-              .withModules(Chart.Module.SeriesLabel)
-          ),
+          chartResults.warnings
+            .map: warning =>
+              Message(
+                severity = Message.Severity.Warning,
+                text = warning,
+                clazz = ExploreStyles.ElevationPlotWarning
+              )
+            .toVdomArray,
+          Chart(
+            chartResults.map(_.options),
+            allowUpdate = false,
+            onCreate = c => chartOpt.set(c.some)
+          ).withModules(Chart.Module.SeriesLabel),
           chartAndMoonDataPot.value.toOption
             .flatMap(_._2)
             .map: moonData =>
