@@ -96,24 +96,21 @@ object ItcSpectroscopyPlot {
         ).toJSArray
 
     Options()
-      .setChart(
-        commonOptions.clazz(ExploreStyles.ItcPlotChart)
-      )
+      .setChart:
+        CommonOptions.clazz(ExploreStyles.ItcPlotChart)
       .setTitle(TitleOptions().setText(graphTitle))
-      .setSubtitle(
+      .setSubtitle:
         SubtitleOptions().setText(targetName)
-      )
       .setCredits(CreditsOptions().setEnabled(false))
       .setLegend(LegendOptions().setMargin(0))
       .setTooltip(TooltipOptions().setFormatter(tooltipFormatter).setClassName(graphClassName))
-      .setXAxis(
+      .setXAxis:
         XAxisOptions()
           .setType(AxisTypeValue.linear)
           .setTitle(XAxisTitleOptions().setText("Wavelength (nm)"))
           .setPlotLines(plotLines)
-      )
       .setYAxis(List(yAxes).toJSArray)
-      .setPlotOptions(
+      .setPlotOptions:
         PlotOptions()
           .setSeries(
             PlotSeriesOptions()
@@ -124,8 +121,7 @@ object ItcSpectroscopyPlot {
                   .setHover(SeriesStatesHoverOptionsObject().setEnabled(false))
               )
           )
-      )
-      .setSeries(
+      .setSeries:
         graph.series
           .map: series =>
             SeriesLineOptions((), (), line)
@@ -140,7 +136,6 @@ object ItcSpectroscopyPlot {
               .setLineWidth(1)
           .map(_.asInstanceOf[SeriesOptionsType])
           .toJSArray
-      )
   }
 
   private val EmptyGraphOptions: Reusable[Options] =

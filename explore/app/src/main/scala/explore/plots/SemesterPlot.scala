@@ -222,12 +222,12 @@ object SemesterPlot:
                       }
 
                       Options()
-                        .setChart(commonOptions.setAnimation(false))
+                        .setChart(CommonOptions.setAnimation(false))
                         .setLegend(LegendOptions().setEnabled(false))
                         .setTitle(TitleOptions().setText(s"Semester ${semester.format}"))
                         .setCredits(CreditsOptions().setEnabled(false))
                         .setTooltip(TooltipOptions().setFormatter(tooltipFormatter))
-                        .setXAxis(
+                        .setXAxis:
                           XAxisOptions()
                             .setType(AxisTypeValue.datetime)
                             .setLabels(XAxisLabelsOptions().setFormatter(tickFormatter))
@@ -245,8 +245,7 @@ object SemesterPlot:
                                 )
                                 .toJSArray
                             )
-                        )
-                        .setYAxis(
+                        .setYAxis:
                           List(
                             YAxisOptions()
                               .setTitle(YAxisTitleOptions().setText("Hours / Night"))
@@ -257,8 +256,7 @@ object SemesterPlot:
                               .setMinorTickInterval(0.5)
                               .setLabels(YAxisLabelsOptions().setFormat("{value}"))
                           ).toJSArray
-                        )
-                        .setPlotOptions(
+                        .setPlotOptions:
                           PlotOptions()
                             .setSeries(
                               PlotSeriesOptions()
@@ -269,8 +267,7 @@ object SemesterPlot:
                                     .setHover(SeriesStatesHoverOptionsObject().setEnabled(false))
                                 )
                             )
-                        )
-                        .setSeries(
+                        .setSeries:
                           List(
                             SeriesLineOptions((), (), line)
                               .setName("Visibility")
@@ -283,5 +280,4 @@ object SemesterPlot:
                           )
                             .map(_.asInstanceOf[SeriesOptionsType])
                             .toJSArray
-                        )
       yield Chart(options, onCreate = c => chartOpt.setState(c.some))

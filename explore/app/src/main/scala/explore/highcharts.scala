@@ -22,10 +22,11 @@ extension (c: ChartOptions)
 
 extension (c: XAxisPlotLinesOptions) inline def clazz(s: Css) = c.setClassName(s.htmlClass)
 
-def commonOptions: ChartOptions =
+val CommonOptions: ChartOptions =
   ChartOptions()
     .setStyledMode(true)
     .setAlignTicks(false)
     .setZooming(ChartZoomingOptions().setType(OptionsChartZoomingTypeValue.xy))
     .setPanning(ChartPanningOptions().setEnabled(true))
     .setPanKey(OptionsPanKeyValue.shift)
+    .setReflow(true)

@@ -295,14 +295,14 @@ object NightPlot:
 
     val options: Options =
       Options()
-        .setChart(commonOptions)
+        .setChart(CommonOptions)
         .setLegend(LegendOptions().setEnabled(false))
         .setTitle:
           TitleOptions().setText:
             s"Sunset ${observingNight.toLocalDate.minusDays(1)} ➟ Sunrise ${observingNight.toLocalDate} "
         .setCredits(CreditsOptions().setEnabled(false))
         .setTooltip(TooltipOptions().setFormatter(tooltipFormatter))
-        .setXAxis(
+        .setXAxis:
           XAxisOptions()
             .setType(AxisTypeValue.datetime)
             .setLabels(XAxisLabelsOptions().setFormatter(tickFormatter))
@@ -347,7 +347,6 @@ object NightPlot:
                         .setVerticalAlign(VerticalAlignValue.middle)
                 )).toJSArray
             )
-        )
         .setYAxis:
           (
             List(
