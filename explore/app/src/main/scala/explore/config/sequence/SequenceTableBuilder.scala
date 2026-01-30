@@ -3,9 +3,11 @@
 
 package explore.config.sequence
 
+import cats.Endo
 import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
+import crystal.react.*
 import crystal.react.hooks.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
@@ -24,6 +26,7 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
+import lucuma.core.model.sequence.Step
 
 import scala.scalajs.LinkingInfo
 import monocle.Lens
@@ -37,9 +40,12 @@ private type ColumnType[D]          =
 private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends SequenceRowBuilder[D]:
   private type Props = SequenceTable[S, D]
 
-  private case class TableMeta(isEditing: IsEditing = IsEditing.False) extends SequenceTableMeta
+  private case class TableMeta[D](
+    isEditing: IsEditing = IsEditing.False,
+    modRow:    Step.Id => Endo[SequenceRow[D]] => Callback
+  ) extends SequenceTableMeta[D]
 
-  private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
+  private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta[D]]
 
   private val HeaderColumnId: ColumnId   = ColumnId("header")
   private val ExtraRowColumnId: ColumnId = ColumnId("extraRow")
@@ -79,6 +85,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
   private case class SequenceRows(acquisition: List[SequenceRow[D]], science: List[SequenceRow[D]])
       derives Eq
   private object SequenceRows:
+    val acquisition: Lens[SequenceRows, List[SequenceRow[D]]] = Focus[SequenceRows](_.acquisition)
+    val science: Lens[SequenceRows, List[SequenceRow[D]]]     = Focus[SequenceRows](_.science)
+
     given Reusability[SequenceRows] = Reusability.byEq
 
   // We maintain two copies of the rows. When in View mode, they both contain the same set of rows.
@@ -100,6 +109,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
                               view = SequenceRows(props.acquisitionRows, props.scienceRows),
                               edit = SequenceRows(props.acquisitionRows, props.scienceRows)
                             )
+        _              <- useEffectWithDeps(props.i):
+                            _ => // TODO This is a temporary mechanism for demo purposes
+                              sequenceCopies.mod(sc => sc.copy(view = sc.edit)) >> Callback.log("YES!")
         // Update our copy of the sequence when it changes externally.
         _              <- useEffectWithDeps(props.acquisitionRows, props.scienceRows): (acquisiton, science) =>
                             sequenceCopies.mod:
@@ -123,6 +135,27 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
         dynTable       <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         table          <-
           useReactTable:
+            // TODO For demo purposes, this should be a map and avoid unsafe gets.
+            def modSequenceRow(rows: View[List[SequenceRow[D]]])(stepId: Step.Id)(
+              mod: Endo[SequenceRow[D]]
+            ): Callback =
+              rows
+                .zoom(
+                  Lens[List[SequenceRow[D]], SequenceRow[D]] { rs =>
+                    rs.find(_.id === stepId.asRight).get
+                  } { updatedRow => rs =>
+                    rs.map:
+                      case row if row.id === stepId.asRight => updatedRow
+                      case row                              => row
+                  }
+                )
+                .mod(mod)
+
+            def modRow(stepId: Step.Id)(mod: Endo[SequenceRow[D]]): Callback =
+              val editView: View[SequenceRows] = sequenceCopies.zoom(SequenceCopies.edit)
+              modSequenceRow(editView.zoom(SequenceRows.acquisition))(stepId)(mod) >>
+                modSequenceRow(editView.zoom(SequenceRows.science))(stepId)(mod)
+
             TableOptions(
               columns.map(dynTable.setInitialColWidths),
               rows,
@@ -140,7 +173,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
                 columnVisibility = dynTable.columnVisibility
               ),
               onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
-              meta = TableMeta(props.isEditing)
+              meta = TableMeta(props.isEditing, modRow)
             )
       yield
         val extraRowMod: TagMod =
