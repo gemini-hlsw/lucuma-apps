@@ -12,7 +12,11 @@ import clue.FetchClient
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import lucuma.core.enums.Site
+import lucuma.core.model.Ephemeris
+import lucuma.core.model.Ephemeris.Key
 import lucuma.core.refined.auto.*
+import lucuma.horizons.HorizonsClient
+import lucuma.horizons.HorizonsClient.SiteOption
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
 import navigate.epics.EpicsService
@@ -27,14 +31,17 @@ import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.typelevel.log4cats.Logger
 
+import java.time.Instant
+
 import EpicsSystems.*
 
 case class Systems[F[_]](
-  odb:       OdbProxy[F],
-  client:    Client[F],
-  tcsCommon: TcsBaseController[F],
-  tcsSouth:  TcsSouthController[F],
-  tcsNorth:  TcsNorthController[F]
+  odb:            OdbProxy[F],
+  client:         Client[F],
+  horizonsClient: HorizonsClient[F],
+  tcsCommon:      TcsBaseController[F],
+  tcsSouth:       TcsSouthController[F],
+  tcsNorth:       TcsNorthController[F]
 )
 
 object Systems {
@@ -149,11 +156,30 @@ object Systems {
       else
         Resource.eval(TcsNorthControllerSim.build)
 
+    def buildHorizonsCLient: HorizonsClient[F] = new HorizonsClient {
+      val horizonsClient = HorizonsClient(client)
+      export horizonsClient.{resolve, stream}
+
+      override def ephemeris(
+        key:   Key.Horizons,
+        start: Instant,
+        stop:  Instant,
+        elems: Int,
+        sites: SiteOption = SiteOption.forSite(site)
+      ): F[Either[String, Ephemeris.Horizons]] = ???
+    }
+
     for {
       odb  <- buildOdbProxy
       tcsS <- buildTcsSouthController
       tcsN <- buildTcsNorthController
-    } yield Systems[F](odb, client, (site === Site.GS).fold(tcsS, tcsN), tcsS, tcsN)
+    } yield Systems[F](odb,
+                       client,
+                       buildHorizonsCLient,
+                       (site === Site.GS).fold(tcsS, tcsN),
+                       tcsS,
+                       tcsN
+    )
   }
 
   private def decodeTops(s: String): Map[String, String] =

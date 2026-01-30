@@ -66,6 +66,10 @@ given ConfigReader[ControlStrategy] =
 
 given ConfigReader[TLSConfig] = ConfigReader.derived
 
+given ConfigReader[fs2.io.file.Path] = ConfigReader.fromCursor[fs2.io.file.Path] { cf =>
+  cf.asString.map(fs2.io.file.Path.apply)
+}
+
 def loadConfiguration[F[_]: Sync](config: ConfigObjectSource): F[NavigateConfiguration] = {
   given ConfigReader[NavigateConfiguration] =
     ConfigReader.derived[NavigateConfiguration]

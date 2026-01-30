@@ -1,14 +1,23 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package navigate.web.server.ephemeris
+package navigate.server.ephemeris
 
+import cats.Eq
+import cats.derived.*
+import cats.effect.Async
 import cats.syntax.all.*
+import fs2.Stream
+import fs2.io.file.Files
+import fs2.io.file.Path
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
 import lucuma.core.math.HourAngle.*
+import lucuma.core.model.Ephemeris
+import lucuma.core.util.Timestamp
 import mouse.boolean.*
 
+import java.nio.charset.StandardCharsets
 import java.text.DecimalFormat
 import java.time.Instant
 import java.time.ZoneOffset.UTC
@@ -19,6 +28,9 @@ import java.util.Locale.US
 import scala.util.matching.Regex
 
 /** Support for formatting and parsing TCS ephemeris files. */
+case class EphemerisFile(fileName: Path, ephemeris: Ephemeris.Key, start: Timestamp, end: Timestamp)
+    derives Eq
+
 object EphemerisFile {
 
   /** Header required by the TCS. */
@@ -28,10 +40,10 @@ object EphemerisFile {
       |***************************************************************************************""".stripMargin
 
   /** Marker for the start of ephemeris elements in the file. */
-  val SOE = "$$SOE"
+  val SOE: String = "$$SOE"
 
   /** Marker for the end of ephemeris elements in the file. */
-  val EOE = "$$EOE"
+  val EOE: String = "$$EOE"
 
   object Time {
     // Text date format
@@ -128,99 +140,44 @@ object EphemerisFile {
   //   lines.mkString(s"$Header\n$SOE\n", "\n", lines.isEmpty.fold("", "\n") + s"$EOE\n")
   // }
 
-//  object Parser {
-//    override val whiteSpace = """[ \t]+""".r
-//
-//    private val eol: Parser[Any]     = """(\r?\n)""".r
-//    private val soeLine: Parser[Any] = SOE~eol
-//    private val eoeLine: Parser[Any] = EOE
-//    private val chaff: Parser[Any]   = """.*""".r ~ eol
-//
-//    def headerLine    = not(SOE | EOE)~>chaff
-//    def headerSection = rep(headerLine)
-//
-//    private val utc: Parser[Instant] =
-//      Time.TimeRegex >> { timeString =>
-//        new Parser[Instant]() {
-//          def apply(in: Input): ParseResult[Instant] =
-//            Time.parse(timeString) match {
-//              case Left(ex)   => Failure(s"Could not parse `$timeString` as a time", in)
-//              case Right(time) => Success(time, in)
-//            }
-//        }
-//      }
-//
-//    private val sign: Parser[String] =
-//      """[-+]?""".r
-//
-//    private val signedDecimal: Parser[Double] =
-//      sign~decimalNumber ^^ {
-//        case "-"~d => -d.toDouble
-//        case s~d   =>  d.toDouble
-//      }
-//
-//    val raTrack: Parser[Double]=
-//      signedDecimal
-//
-//    private val decTrack: Parser[Double] =
-//      signedDecimal
-//
-//    private def coord[T](f: (String, Int, Int, Double) => Option[T]): Parser[Option[T]] =
-//      sign~wholeNumber~wholeNumber~decimalNumber ^^ { case sn~h~m~s => f(sn, h.toInt, m.toInt, s.toDouble) }
-//
-//    private def toRa(sign: String, h: Int, m: Int, s: Double): Option[RightAscension] =
-//      Angle.parseHMS(s"$sign$h:$m:$s").toOption.map(RightAscension.fromAngle)
-//
-//    private def toDec(sign: String, d: Int, m: Int, s: Double): Option[Declination] =
-//      Angle.parseDMS(s"$sign$d:$m:$s").toOption.flatMap(Declination.fromAngle)
-//
-//    private def ra: Parser[Option[RightAscension]] =
-//      coord(toRa)
-//
-//    private def dec: Parser[Option[Declination]] =
-//      coord(toDec)
-//
-//    private val coords: Parser[Coordinates] =
-//      ra~dec ^? {
-//        case Some(r)~Some(d) => Coordinates(r, d)
-//      }
-//
-//    private val ephemerisLine: Parser[(Instant, EphemerisElement)] =
-//      utc~decimalNumber~coords~raTrack~decTrack<~eol ^^ {
-//        case u~ignore~c~r~d => (u, (c, r, d))
-//      }
-//
-//    private val ephemerisList: Parser[List[(Instant, EphemerisElement)]] =
-//      rep(ephemerisLine)
-//
-//    val ephemerisSection: Parser[EphemerisMap] =
-//      (soeLine~>ephemerisList<~eoeLine).map { lines => ==>>.fromList(lines) }
-//
-//    val ephemeris: Parser[EphemerisMap] =
-//      headerSection~>ephemerisSection
-//
-//    private val timestamp: Parser[Instant] =
-//      utc<~chaff
-//
-//    private val timestampList: Parser[ISet[Instant]] =
-//      rep(timestamp).map(lst => ISet.fromList(lst))
-//
-//    val timestampsSection: Parser[ISet[Instant]] =
-//      soeLine~>timestampList<~eoeLine
-//
-//    val timestamps: Parser[ISet[Instant]] =
-//      headerSection~>timestampsSection
-//
-//    def toDisjunction[A](p: Parser[A], input: String): Either[String, A] =
-//      parse(p, input) match {
-//        case Success(a, _)     => a.asRight
-//        case NoSuccess(msg, _) => msg.asLeft
-//      }
-//  }
+  object EphemerisParser {
 
-//  def parse(input: String): Either[String, EphemerisMap] =
-//    Parser.toDisjunction(Parser.ephemeris, input)
-//
-//  def parseTimestamps(input: String): Either[String, ISet[Instant]] =
-//    Parser.toDisjunction(Parser.timestamps, input)
+    def parseEntries[F[_]: Async](fl: Path): F[List[Timestamp]] =
+      Files.forAsync
+        .readAll(fl)
+        .through(fs2.text.utf8.decode)
+        .through(fs2.text.lines)
+        .dropThrough(!_.contains(SOE))
+        .takeWhile(!_.contains(EOE))
+        .map(parseInstant)
+        .flattenOption
+        .compile
+        .toList
+
+    def parseInstant(str: String): Option[Timestamp] = {
+      val a = str.trim.split("\\s+").toList.take(2).mkString(" ")
+      val v = Time.parse(a)
+
+      v.toOption.flatMap(Timestamp.fromInstant)
+    }
+
+    def parseElement(fl: Path): Option[Ephemeris.Key] = Ephemeris.Key.fromString.getOption(
+      java.net.URLDecoder.decode(fl.fileName.toString.takeWhile(_ =!= '.'),
+                                 StandardCharsets.UTF_8.toString
+      )
+    )
+
+    def parse[F[_]: Async](fl: Path): F[Option[EphemerisFile]] = parseEntries(fl).map { l =>
+      for {
+        key <- parseElement(fl)
+        st  <- l.headOption
+        end <- l.lastOption
+      } yield EphemerisFile(fl, key, st, end)
+    }
+
+  }
+
+  def filenameFromKey(key: Ephemeris.Key): String =
+    java.net.URLEncoder.encode(s"${key.keyType}_${key.des}.eph", StandardCharsets.UTF_8.toString)
+
 }

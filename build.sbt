@@ -906,6 +906,7 @@ lazy val navigate_server = project
         ClueHttp4s.value ++
         LucumaSsoBackendClient.value ++
         LucumaCore.value ++
+        LucumaHorizons.value ++
         Http4sClient.value ++
         In(Test)(
           MUnit.value ++

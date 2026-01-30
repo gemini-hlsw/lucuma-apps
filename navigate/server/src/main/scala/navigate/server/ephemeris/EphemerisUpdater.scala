@@ -1,0 +1,110 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package navigate.server.ephemeris
+
+import cats.Applicative
+import cats.MonadThrow
+import cats.effect.Async
+import cats.syntax.all.*
+import fs2.io.file.Files
+import fs2.io.file.Path
+import lucuma.core.enums.Site
+import lucuma.core.model.Ephemeris
+import lucuma.core.util.DateInterval
+import lucuma.core.util.Timestamp
+import lucuma.horizons.HorizonsClient
+import navigate.server.OdbProxy
+import org.typelevel.log4cats.Logger
+
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+
+trait EphemerisUpdater[F[_]] {
+  def refreshEphemerides(dateInterval: DateInterval): F[Unit]
+}
+
+object EphemerisUpdater {
+
+  case class EphemerisTimeRange(ephemeris: Ephemeris.Key, start: Timestamp, end: Timestamp)
+
+  private def createEphemerisFiles[F[_]: Applicative](
+    @annotation.unused horizonsClient: HorizonsClient[F],
+    @annotation.unused targets:        List[Ephemeris.Key],
+    @annotation.unused dateInterval:   DateInterval
+  ): F[List[Throwable]] = List.empty.pure[F]
+//  targets.map {
+//    case h: Ephemeris.Key.Horizons => (for {
+//      st <- dateInterval.start.noon
+//      end <- dateInterval.end.noon
+//    } yield horizonsClient.ephemeris(h, st.toInstant, end.toInstant, TimeSpan.between(st, end).toMinutes.toInt + 1 )
+//    ).getOrElse(Applicative[F].unit)
+//  }
+
+  private def readEphemerisFiles[F[_]: Async](
+    filePath: Path
+  ): F[List[EphemerisFile]] = Files.forAsync
+    .list(filePath)
+    .filter(_.extName === ".eph")
+    .evalMap(EphemerisFile.EphemerisParser.parse)
+    .compile
+    .toList
+    .map(_.flattenOption)
+
+  extension (date: LocalDate) {
+    private def noon: Option[Timestamp] =
+      Timestamp.fromLocalDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
+  }
+
+  private def isCovered(
+    target:       Ephemeris.Key,
+    dateInterval: DateInterval,
+    file:         EphemerisFile
+  ): Boolean = target === file.ephemeris && dateInterval.start.noon.exists(
+    _ >= file.start
+  ) && dateInterval.end.noon.exists(_ <= file.end)
+
+  private def threshFilesAndTargets[F[_]](
+    targets:      List[Ephemeris.Key],
+    dateInterval: DateInterval,
+    files:        List[EphemerisFile]
+  ): (List[Ephemeris.Key], List[EphemerisFile]) = (
+    targets.filter(f => !files.exists(isCovered(f, dateInterval, _))),
+    List.empty
+  )
+
+  private def deleteFiles[F[_]: Async](l: List[EphemerisFile]): F[Unit] =
+    l.map(x => Files.forAsync.delete(x.fileName)).sequence.void
+
+  private def reportErrors[F[_]: Applicative](@annotation.unused errors: List[Throwable]): F[Unit] =
+    Applicative[F].unit
+
+  def build[F[_]: {MonadThrow, Async}](
+    site:                 Site,
+    filePath:             Path,
+    odbProxy:             OdbProxy[F],
+    horizonsClient:       HorizonsClient[F]
+  )(using
+    @annotation.unused L: Logger[F]
+  ): EphemerisUpdater[F] = new EphemerisUpdater[F] {
+    /*
+     * The process to refresh the ephemeris files in TCS must:
+     * Collect all the non sidereal targets used by active observations for a given time interval (usually 24 hours)
+     * Read the ephemeris files available to TCS and collect information of non sidereal target ids and time range
+     * Split the ephemeris files between the ones that covered the required targets and the ones that don't. Delete the ones that cover only the past.
+     * Split non sidereal targets between the ones covered by the existing files and the ones that are not covered.
+     * For the ones that are not covered, read ephemeris data from Horizons, format and save them.
+     * If files cannot be created, send notification emails.
+     */
+    override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = for {
+      files             <- readEphemerisFiles(filePath)
+      targets           <- odbProxy.queryNonSiderealObs(site, dateInterval.start, dateInterval.end)
+      (toLoad, toDelete) = threshFilesAndTargets(targets, dateInterval, files)
+      _                 <- deleteFiles(toDelete)
+      errors            <- createEphemerisFiles(horizonsClient, toLoad, dateInterval)
+      _                 <- reportErrors(errors).whenA(errors.nonEmpty)
+    } yield ()
+
+  }
+}

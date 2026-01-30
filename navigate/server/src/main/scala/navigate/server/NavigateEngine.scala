@@ -27,6 +27,7 @@ import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
+import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
 import monocle.Lens
 import monocle.syntax.all.focus
@@ -64,6 +65,7 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
+import navigate.server.ephemeris.EphemerisUpdater
 import navigate.server.tcs.GuideState
 import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.TargetOffsets
@@ -194,6 +196,8 @@ trait NavigateEngine[F[_]] {
   def getPwfs1MechsState: F[PwfsMechsState]
   def getPwfs2MechsState: F[PwfsMechsState]
   def getBafflesState: F[BafflesState]
+
+  def refreshEphemerides(dateInterval: DateInterval): F[Unit]
 }
 
 object NavigateEngine {
@@ -829,6 +833,10 @@ object NavigateEngine {
 
     override def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]] =
       systems.tcsCommon.oiwfsConfigStream
+
+    override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = EphemerisUpdater
+      .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
+      .refreshEphemerides(dateInterval)
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

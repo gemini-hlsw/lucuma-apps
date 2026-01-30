@@ -5,6 +5,7 @@ package navigate.model.config
 
 import cats.Eq
 import cats.derived.*
+import fs2.io.file.Path
 import org.http4s.Uri
 import org.http4s.implicits.uri
 
@@ -37,6 +38,7 @@ trait GpiSettings
 case class NavigateEngineConfiguration(
   odb:                     Uri,
   observe:                 Uri,
+  ephemerisFolder:         Path,
   systemControl:           SystemsControlConfiguration,
   odbNotifications:        Boolean,
   odbQueuePollingInterval: FiniteDuration,
@@ -50,6 +52,7 @@ object NavigateEngineConfiguration {
   val default: NavigateEngineConfiguration = NavigateEngineConfiguration(
     uri"/odb",
     uri"/observe",
+    Path("/"),
     SystemsControlConfiguration.default,
     false,
     FiniteDuration(1, TimeUnit.SECONDS),
