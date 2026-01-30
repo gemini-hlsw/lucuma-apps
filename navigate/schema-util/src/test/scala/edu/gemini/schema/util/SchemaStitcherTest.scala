@@ -4,8 +4,9 @@
 package edu.gemini.schema.util
 
 import cats.effect.IO
+import grackle.Result
 import grackle.Result.Success
-import grackle.{Result, Schema}
+import grackle.Schema
 import munit.CatsEffectSuite
 
 import java.nio.file.Path
@@ -22,12 +23,12 @@ class SchemaStitcherTest extends CatsEffectSuite {
       assertEquals(a.length, 2)
       a(0) match {
         case (SchemaStitcher.AllElements, path) => assertEquals(path, Path.of("schema1.graphql"))
-        case _                                  => fail
+        case _                                  => fail("Unexpected parse result")
       }
       a(1) match {
         case (SchemaStitcher.ElementList(List("TypeA")), path) =>
           assertEquals(path, Path.of("schema2.graphql"))
-        case _                                                 => fail
+        case _                                                 => fail("Unexpected parse result")
       }
     }
   }

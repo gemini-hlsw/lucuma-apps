@@ -96,7 +96,8 @@ lazy val root = tlCrossRootProject.aggregate(
   navigate_stateengine,
   navigate_server,
   navigate_web_server,
-  navigate_model
+  navigate_model,
+  navigate_schema_util
 )
 
 // BEGIN SCHEMAS
@@ -882,7 +883,7 @@ lazy val navigate_schema_util = project
         LucumaCore.value ++
         Http4sClient.value ++
         Grackle.value ++
-        In(Test)(MUnit.value)
+        In(Test)(MUnit.value ++ MUnitCatsEffect.value)
   )
 
 lazy val navigate_server = project
