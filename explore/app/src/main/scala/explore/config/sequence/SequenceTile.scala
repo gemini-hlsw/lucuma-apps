@@ -29,11 +29,12 @@ import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
-import lucuma.react.primereact.ToggleButton
+import lucuma.react.primereact.Button
 import lucuma.refined.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.Visit
+import lucuma.ui.primereact.*
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
@@ -205,19 +206,51 @@ object SequenceTile extends SequenceTileHelper:
               val planned =
                 timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
 
-              React.Fragment(
-                HelpIcon("target/main/sequence-times.md".refined),
-                planned,
-                executed,
-                pending,
-                ToggleButton(
-                  checked = props.isEditing.get,
-                  onChange = value => props.isEditing.set(IsEditing(value)),
-                  onIcon = Icons.Pencil,
-                  offIcon = Icons.Pencil,
-                  tooltip = "Toggle sequence edit mode"
-                  // className = ExploreStyles.SequenceEditToggleButton
-                ) // .mini.compact
+              <.span(
+                ^.width := "100%",
+                ^.display.flex,
+                ^.justifyContent.spaceBetween /*, ^.gap := "1rem"*/
+              )(
+                <.span(^.flex := "1 1 0"),
+                <.span(
+                  // ^.flex := "1 1 0",
+                  ^.display.flex,
+                  ^.justifyContent.center /*, ^.gap := "1rem"*/
+                )(
+                  HelpIcon("target/main/sequence-times.md".refined),
+                  planned,
+                  executed,
+                  pending
+                ),
+                <.span(^.flex := "1 1 0",
+                       ^.display.flex,
+                       ^.justifyContent.flexEnd /*, ^.gap := "1rem"*/
+                )(
+                  Button(
+                    onClick = props.isEditing.set(IsEditing.True),
+                    label = "Edit",
+                    icon = Icons.Pencil,
+                    tooltip = "Enter sequence editing mode"
+                  ).mini.compact.when(!props.isEditing.get),
+                  React
+                    .Fragment(
+                      Button(
+                        onClick = props.isEditing.set(IsEditing.False),
+                        label = "Cancel",
+                        icon = Icons.Close,
+                        tooltip = "Cancel sequence editing",
+                        severity = Button.Severity.Danger
+                      ).mini.compact,
+                      Button(
+                        onClick = props.isEditing.set(IsEditing.False),
+                        label = "Accept",
+                        icon = Icons.Checkmark,
+                        tooltip = "Accept sequence modifications",
+                        severity = Button.Severity.Success
+                      ).mini.compact
+                    )
+                    .when(props.isEditing.get)
+                )
               )
             .getOrElse(executed)
         }

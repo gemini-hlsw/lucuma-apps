@@ -56,7 +56,11 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta, CM, TF
         (c.value, c.row.original.value.toOption.flatMap(getStep).flatMap(_.instrument))
           .mapN[VdomNode]: (e, i) =>
             if isEditing then
-              InputNumber(id = s"exposure-${c.row.index}", value = e.toSeconds.toDouble)
+              InputNumber(
+                id = s"exposure-${c.row.index}",
+                value = e.toSeconds.toDouble,
+                clazz = SequenceStyles.SequenceInput
+              )
             else FormatExposureTime(i)(e).value
     )
 
