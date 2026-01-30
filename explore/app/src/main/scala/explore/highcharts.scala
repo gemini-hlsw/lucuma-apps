@@ -29,4 +29,3 @@ val CommonOptions: ChartOptions =
     .setZooming(ChartZoomingOptions().setType(OptionsChartZoomingTypeValue.xy))
     .setPanning(ChartPanningOptions().setEnabled(true))
     .setPanKey(OptionsPanKeyValue.shift)
-    .setReflow(true)
