@@ -54,18 +54,20 @@ object SequenceTile extends SequenceTileHelper:
   ) =
     Tile(
       ObsTabTileIds.SequenceId.id,
-      "Sequence"
+      "Sequence",
+      0 // TODO This is a temporary mechanism for demo purposes
     )(
-      _ =>
+      i =>
         Body(
           obsId,
           asterismIds.toList,
           customSedTimestamps,
           calibrationRole,
           sequenceChanged,
-          isEditing.get
+          isEditing.get,
+          i.get
         ),
-      (_, _) => Title(obsExecution, isEditing)
+      (i, _) => Title(obsExecution, isEditing, i.mod(_ + 1) >> Callback.log("OHHH"))
     )
 
   private case class Body(
@@ -74,7 +76,8 @@ object SequenceTile extends SequenceTileHelper:
     customSedTimestamps: List[Timestamp],
     calibrationRole:     Option[CalibrationRole],
     sequenceChanged:     View[Pot[Unit]],
-    isEditing:           IsEditing
+    isEditing:           IsEditing,
+    i:                   Int // TODO This is a temporary mechanism for demo purposes
   ) extends ReactFnProps(Body)
 
   private object Body
@@ -120,14 +123,16 @@ object SequenceTile extends SequenceTileHelper:
                             config,
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(
                             visits,
                             config,
                             snPerFilter,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
@@ -144,14 +149,16 @@ object SequenceTile extends SequenceTileHelper:
                             config,
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(
                             visits,
                             config,
                             snPerFilter,
-                            props.isEditing
+                            props.isEditing,
+                            props.i
                           )
                         case _                                                        => mismatchError
                     case SequenceData(
@@ -166,7 +173,8 @@ object SequenceTile extends SequenceTileHelper:
                         config,
                         acquisitionSn,
                         scienceSn,
-                        props.isEditing
+                        props.isEditing,
+                        props.i
                       )
                     case _                                                                        => mismatchError
                   },
@@ -181,8 +189,11 @@ object SequenceTile extends SequenceTileHelper:
             )
       )
 
-  private case class Title(obsExecution: Execution, isEditing: View[IsEditing])
-      extends ReactFnProps(Title)
+  private case class Title(
+    obsExecution: Execution,
+    isEditing:    View[IsEditing],
+    commitEdit:   Callback
+  ) extends ReactFnProps(Title)
 
   private object Title
       extends ReactFnComponent[Title](props =>
@@ -242,7 +253,7 @@ object SequenceTile extends SequenceTileHelper:
                         severity = Button.Severity.Danger
                       ).mini.compact,
                       Button(
-                        onClick = props.isEditing.set(IsEditing.False),
+                        onClick = props.isEditing.set(IsEditing.False) >> props.commitEdit,
                         label = "Accept",
                         icon = Icons.Checkmark,
                         tooltip = "Accept sequence modifications",
