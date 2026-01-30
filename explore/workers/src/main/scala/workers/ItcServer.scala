@@ -71,7 +71,6 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
           cache.clear *> invocation.respond(())
 
         case ItcMessage.Query(
-              exposureTimeMode,
               constraint,
               targets,
               customSedTimestamps,
@@ -81,7 +80,6 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
             itcClient.get >>= (implicit client =>
             ITCRequests
               .queryItc[IO](
-                exposureTimeMode,
                 constraint,
                 targets,
                 customSedTimestamps,
