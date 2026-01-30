@@ -99,6 +99,7 @@ import navigate.server.ApplyCommandResult
 import navigate.server.ConnectionTimeout
 import navigate.server.acm.CarState
 import navigate.server.acm.ObserveCommand
+import navigate.server.ephemeris.EphemerisFile
 import navigate.server.epicsdata
 import navigate.server.epicsdata.AgMechPosition
 import navigate.server.epicsdata.BinaryOnOff
@@ -307,7 +308,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .compose[TcsCommands[F]](l.get(_).radialVelocity(0.0))
         .compose[TcsCommands[F]](l.get(_).properMotion1(0.0))
         .compose[TcsCommands[F]](l.get(_).properMotion2(0.0))
-        .compose[TcsCommands[F]](l.get(_).ephemerisFile(t.ephemerisFile))
+        .compose[TcsCommands[F]](
+          l.get(_).ephemerisFile(EphemerisFile.filenameFromKey(t.ephemerisKey))
+        )
   }
 
   protected def setSourceAWalength(w: Wavelength): TcsCommands[F] => TcsCommands[F] =

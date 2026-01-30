@@ -25,6 +25,7 @@ import lucuma.core.math.Parallax
 import lucuma.core.math.ProperMotion
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
@@ -67,6 +68,7 @@ import navigate.model.ShortcircuitTargetFilter
 import navigate.model.SlewOptions
 import navigate.model.StopGuide
 import navigate.model.Target
+import navigate.model.Target.EphemerisTarget
 import navigate.model.Target.SiderealTarget
 import navigate.model.TcsConfig
 import navigate.model.TrackingConfig
@@ -251,15 +253,10 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       parallax = none
     )
 
-    val pwfs2Target = SiderealTarget(
+    val pwfs2Target = EphemerisTarget(
       objectName = "pwfs2Dummy",
       wavelength = Wavelength.fromIntPicometers(800 * 1000),
-      coordinates =
-        Coordinates.fromHmsDms.getOption("17:01:09.999999 -21:10:01.0").getOrElse(Coordinates.Zero),
-      epoch = Epoch.J2000,
-      properMotion = none,
-      radialVelocity = none,
-      parallax = none
+      ephemerisKey = Ephemeris.Key.AsteroidNew("S/1990 A45")
     )
 
     val oiwfsTarget = SiderealTarget(
@@ -343,8 +340,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       // Targets
       checkTarget(rs.sourceA, target)
       checkTarget(rs.pwfs1Target, pwfs1Target)
-      checkTarget(rs.pwfs2Target, pwfs2Target)
       checkTarget(rs.oiwfsTarget, oiwfsTarget)
+      assert(rs.pwfs2Target.objectName.connected)
+      assert(rs.pwfs2Target.ephemerisFile.connected)
+      assert(rs.wavelPwfs2.connected)
+      assertEquals(rs.pwfs2Target.objectName.value, pwfs2Target.objectName.some)
+      assertEquals(rs.pwfs2Target.ephemerisFile.value, "AsteroidNew_S%2F1990+A45.eph".some)
 
       // WFS probe tracking
       checkTracking(rs.pwfs1Tracking, wfsTracking)

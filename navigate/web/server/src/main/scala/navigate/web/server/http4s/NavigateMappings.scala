@@ -98,7 +98,6 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
-import navigate.server.ephemeris
 import navigate.server.tcs.GuideState
 import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.TargetOffsets
@@ -1422,7 +1421,7 @@ object NavigateMappings extends GrackleParsers {
     .orElse(l.collectFirst { case ("key", StringValue(v)) =>
       Ephemeris.Key.fromString.getOption(v)
     }.flatten)
-    .map(k => Target.EphemerisTarget(name, w, ephemeris.ephemerisFileName(k)))
+    .map(k => Target.EphemerisTarget(name, w, k))
 
   def parseAzElTarget(
     name: String,

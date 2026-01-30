@@ -38,6 +38,7 @@ import lucuma.core.util.DateInterval
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.horizons.HorizonsClient
 import monocle.Focus.focus
 import munit.CatsEffectSuite
 import navigate.model.AcMechsState
@@ -98,6 +99,8 @@ import org.http4s.Uri
 import org.http4s.client.Client
 import org.slf4j.Marker
 import org.slf4j.event.KeyValuePair
+import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.noop.NoOpLogger
 
 import java.util
 import scala.concurrent.duration.Duration
@@ -2585,6 +2588,8 @@ object NavigateMappingsTest {
 
   val dummyClient = Client.fromHttpApp(HttpApp.notFound[IO])
 
+  private given Logger[IO] = NoOpLogger.impl[IO]
+
   class NavigateEngineTest(
     tcsSouth: TcsSouthController[IO],
     tcsNorth: TcsNorthController[IO],
@@ -2594,6 +2599,7 @@ object NavigateMappingsTest {
     override val systems: Systems[IO] = Systems(
       OdbProxy.dummy[IO],
       dummyClient,
+      HorizonsClient(dummyClient),
       tcsSouth,
       tcsSouth,
       tcsNorth

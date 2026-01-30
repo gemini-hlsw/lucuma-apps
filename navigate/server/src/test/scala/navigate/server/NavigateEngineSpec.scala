@@ -26,6 +26,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig.M2GuideOn
 import lucuma.core.model.TelescopeGuideConfig
+import lucuma.horizons.HorizonsClient
 import munit.CatsEffectSuite
 import navigate.model.*
 import navigate.model.Target.SiderealTarget
@@ -215,20 +216,24 @@ object NavigateEngineSpec {
     Resource.liftK(Applicative[F].pure(Response[F](body = Stream.emits(body.getBytes("UTF-8")))))
   }
 
-  def buildEngine[F[_]: {Async, Logger}]: F[NavigateEngine[F]] = for {
-    tcsNorth <- TcsNorthControllerSim.build[F]
-    tcsSouth <- TcsSouthControllerSim.build[F]
-    ret      <- NavigateEngine.build[F](
-                  Site.GS,
-                  Systems(
-                    OdbProxy.dummy,
-                    buildClient("dummy"),
-                    tcsSouth,
-                    tcsSouth,
-                    tcsNorth
-                  ),
-                  NavigateEngineConfiguration.default
-                )
-  } yield ret
+  def buildEngine[F[_]: {Async, Logger}]: F[NavigateEngine[F]] = {
+    val client = buildClient("dummy")
+    for {
+      tcsNorth <- TcsNorthControllerSim.build[F]
+      tcsSouth <- TcsSouthControllerSim.build[F]
+      ret      <- NavigateEngine.build[F](
+                    Site.GS,
+                    Systems(
+                      OdbProxy.dummy,
+                      client,
+                      HorizonsClient(client),
+                      tcsSouth,
+                      tcsSouth,
+                      tcsNorth
+                    ),
+                    NavigateEngineConfiguration.default
+                  )
+    } yield ret
+  }
 
 }

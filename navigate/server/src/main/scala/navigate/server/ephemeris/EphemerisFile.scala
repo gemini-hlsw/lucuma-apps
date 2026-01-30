@@ -160,10 +160,6 @@ object EphemerisFile {
 
       v.toOption.flatMap(Timestamp.fromInstant)
     }
-    //    (str.trim.split("\\s+").toList.take(2) match {
-//      case List(date, time) => (if (time.split(":").length === 2) s"$date ${time}:00" else s"$date ${time}").some
-//      case _ => none
-//    }).flatMap(Timestamp.parse(_).toOption)
 
     def parseElement(fl: Path): Option[Ephemeris.Key] = Ephemeris.Key.fromString.getOption(
       java.net.URLDecoder.decode(fl.fileName.toString.takeWhile(_ =!= '.'),
@@ -180,5 +176,8 @@ object EphemerisFile {
     }
 
   }
+
+  def filenameFromKey(key: Ephemeris.Key): String =
+    java.net.URLEncoder.encode(s"${key.keyType}_${key.des}.eph", StandardCharsets.UTF_8.toString)
 
 }

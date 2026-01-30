@@ -13,9 +13,13 @@ import lucuma.core.enums.Site
 import lucuma.core.model.Ephemeris
 import lucuma.core.util.DateInterval
 import lucuma.core.util.Timestamp
-import navigate.model.OdbNonsidereal
+import lucuma.horizons.HorizonsClient
 import navigate.server.OdbProxy
 import org.typelevel.log4cats.Logger
+
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 trait EphemerisUpdater[F[_]] {
   def refreshEphemerides(dateInterval: DateInterval): F[Unit]
@@ -26,8 +30,17 @@ object EphemerisUpdater {
   case class EphemerisTimeRange(ephemeris: Ephemeris.Key, start: Timestamp, end: Timestamp)
 
   private def createEphemerisFiles[F[_]: Applicative](
-    @annotation.unused targets: List[OdbNonsidereal]
-  ): F[List[Throwable]] = List.empty[Throwable].pure[F]
+    @annotation.unused horizonsClient: HorizonsClient[F],
+    @annotation.unused targets:        List[Ephemeris.Key],
+    @annotation.unused dateInterval:   DateInterval
+  ): F[List[Throwable]] = List.empty.pure[F]
+//  targets.map {
+//    case h: Ephemeris.Key.Horizons => (for {
+//      st <- dateInterval.start.noon
+//      end <- dateInterval.end.noon
+//    } yield horizonsClient.ephemeris(h, st.toInstant, end.toInstant, TimeSpan.between(st, end).toMinutes.toInt + 1 )
+//    ).getOrElse(Applicative[F].unit)
+//  }
 
   private def readEphemerisFiles[F[_]: Async](
     filePath: Path
@@ -39,13 +52,30 @@ object EphemerisUpdater {
     .toList
     .map(_.flattenOption)
 
-  private def threshFilesAndTargets[F[_]](
-    @annotation.unused targets: List[OdbNonsidereal],
-    files:                      List[EphemerisFile]
-  ): (List[OdbNonsidereal], List[EphemerisFile]) = ???
+  extension (date: LocalDate) {
+    private def noon: Option[Timestamp] =
+      Timestamp.fromLocalDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
+  }
 
-  private def deleteFiles[F[_]: Applicative](@annotation.unused l: List[EphemerisFile]): F[Unit] =
-    Applicative[F].unit
+  private def isCovered(
+    target:       Ephemeris.Key,
+    dateInterval: DateInterval,
+    file:         EphemerisFile
+  ): Boolean = target === file.ephemeris && dateInterval.start.noon.exists(
+    _ >= file.start
+  ) && dateInterval.end.noon.exists(_ <= file.end)
+
+  private def threshFilesAndTargets[F[_]](
+    targets:      List[Ephemeris.Key],
+    dateInterval: DateInterval,
+    files:        List[EphemerisFile]
+  ): (List[Ephemeris.Key], List[EphemerisFile]) = (
+    targets.filter(f => !files.exists(isCovered(f, dateInterval, _))),
+    List.empty
+  )
+
+  private def deleteFiles[F[_]: Async](l: List[EphemerisFile]): F[Unit] =
+    l.map(x => Files.forAsync.delete(x.fileName)).sequence.void
 
   private def reportErrors[F[_]: Applicative](@annotation.unused errors: List[Throwable]): F[Unit] =
     Applicative[F].unit
@@ -53,7 +83,8 @@ object EphemerisUpdater {
   def build[F[_]: {MonadThrow, Async}](
     site:                 Site,
     filePath:             Path,
-    odbProxy:             OdbProxy[F]
+    odbProxy:             OdbProxy[F],
+    horizonsClient:       HorizonsClient[F]
   )(using
     @annotation.unused L: Logger[F]
   ): EphemerisUpdater[F] = new EphemerisUpdater[F] {
@@ -69,9 +100,9 @@ object EphemerisUpdater {
     override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = for {
       files             <- readEphemerisFiles(filePath)
       targets           <- odbProxy.queryNonSiderealObs(site, dateInterval.start, dateInterval.end)
-      (toLoad, toDelete) = threshFilesAndTargets(targets, files)
+      (toLoad, toDelete) = threshFilesAndTargets(targets, dateInterval, files)
       _                 <- deleteFiles(toDelete)
-      errors            <- createEphemerisFiles(toLoad)
+      errors            <- createEphemerisFiles(horizonsClient, toLoad, dateInterval)
       _                 <- reportErrors(errors).whenA(errors.nonEmpty)
     } yield ()
 

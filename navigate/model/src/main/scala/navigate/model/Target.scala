@@ -10,6 +10,7 @@ import lucuma.core.math.Coordinates.given
 import lucuma.core.math.Epoch.given
 import lucuma.core.math.RadialVelocity.given
 import lucuma.core.math.Wavelength.given
+import lucuma.core.model.Ephemeris
 import monocle.Lens
 
 sealed trait Target extends Product with Serializable derives Show {
@@ -52,7 +53,7 @@ object Target {
   case class EphemerisTarget(
     override val objectName: String,
     override val wavelength: Option[Wavelength],
-    ephemerisFile:           String
+    ephemerisKey: Ephemeris.Key
   ) extends Target derives Show
 
   val objectName: Lens[Target, String] = Lens.apply[Target, String](_.objectName) { s =>

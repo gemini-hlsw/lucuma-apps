@@ -835,7 +835,7 @@ object NavigateEngine {
       systems.tcsCommon.oiwfsConfigStream
 
     override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = EphemerisUpdater
-      .build(site, conf.ephemerisFolder, systems.odb)
+      .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
       .refreshEphemerides(dateInterval)
   }
 

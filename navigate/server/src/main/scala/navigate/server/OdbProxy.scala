@@ -10,9 +10,9 @@ import clue.FetchClient
 import clue.syntax.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.SlewStage
+import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
-import navigate.model.OdbNonsidereal
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery.Data
 import navigate.queries.ObsQueriesGQL.AddSlewEventMutation
@@ -26,7 +26,7 @@ trait OdbProxy[F[_]] {
     obsId: Observation.Id,
     stage: SlewStage
   ): F[Unit]
-  def queryNonSiderealObs(site: Site, start: LocalDate, end: LocalDate): F[List[OdbNonsidereal]]
+  def queryNonSiderealObs(site: Site, start: LocalDate, end: LocalDate): F[List[Ephemeris.Key]]
 }
 
 sealed trait OdbEventCommands[F[_]] {
@@ -34,7 +34,7 @@ sealed trait OdbEventCommands[F[_]] {
     obsId: Observation.Id,
     stage: SlewStage
   ): F[Unit]
-  def queryNonSiderealObs(site: Site, start: LocalDate, end: LocalDate): F[List[OdbNonsidereal]]
+  def queryNonSiderealObs(site: Site, start: LocalDate, end: LocalDate): F[List[Ephemeris.Key]]
 }
 
 object OdbProxy {
@@ -57,7 +57,7 @@ object OdbProxy {
       site:  Site,
       start: LocalDate,
       end:   LocalDate
-    ): F[List[OdbNonsidereal]] = List.empty.pure[F]
+    ): F[List[Ephemeris.Key]] = List.empty.pure[F]
   }
 
   class OdbCommandsImpl[F[_]: MonadThrow](using
@@ -71,20 +71,21 @@ object OdbProxy {
           .execute(obsId = obsId, stg = stage)
           .void
 
-    private def extractNonsiderealTargets(data: Data): List[OdbNonsidereal] =
+    private def extractNonsiderealTargets(data: Data): List[Ephemeris.Key] =
       data.observations.matches
         .map(_.targetEnvironment)
         .flatMap(te =>
           te.guideEnvironment.guideTargets.map(_.nonsidereal) :+ te.firstScienceTarget
             .flatMap(_.nonsidereal) :+ te.blindOffsetTarget.flatMap(_.nonsidereal)
         )
+        .map(_.flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des))))
         .flattenOption
 
     override def queryNonSiderealObs(
       site:  Site,
       start: LocalDate,
       end:   LocalDate
-    ): F[List[OdbNonsidereal]] = ActiveNonsiderealTargetsQuery[F]
+    ): F[List[Ephemeris.Key]] = ActiveNonsiderealTargetsQuery[F]
       .query(site, start, end)
       .map(_.map(extractNonsiderealTargets))
       .raiseGraphQLErrors
