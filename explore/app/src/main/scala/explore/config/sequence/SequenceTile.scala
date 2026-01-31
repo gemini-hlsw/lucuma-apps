@@ -37,6 +37,7 @@ import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.react.primereact.TooltipOptions
 
 import scala.collection.immutable.SortedSet
 
@@ -55,7 +56,7 @@ object SequenceTile
       import SequenceTileHelper.*
 
       for
-        i            <- useState(0) // TODO This is a temporary mechanism for demo purposes
+        i            <- useStateView(0) // TODO This is a temporary mechanism for demo purposes
         liveSequence <- useLiveSequence(
                           props.obsId,
                           props.asterismIds.toList,
@@ -110,7 +111,8 @@ object SequenceTile
                       onClick = props.isEditing.set(IsEditing.True),
                       label = "Edit",
                       icon = Icons.Pencil,
-                      tooltip = "Enter sequence editing mode"
+                      tooltip = "Enter sequence editing mode",
+                      tooltipOptions = TooltipOptions.Top
                     ).mini.compact.when(!props.isEditing.get),
                     React
                       .Fragment(
@@ -119,13 +121,15 @@ object SequenceTile
                           label = "Cancel",
                           icon = Icons.Close,
                           tooltip = "Cancel sequence editing",
+                          tooltipOptions = TooltipOptions.Top,
                           severity = Button.Severity.Danger
                         ).mini.compact,
                         Button(
-                          onClick = props.isEditing.set(IsEditing.False) >> props.commitEdit,
+                          onClick = props.isEditing.set(IsEditing.False) >> i.mod(_ + 1),
                           label = "Accept",
                           icon = Icons.Checkmark,
                           tooltip = "Accept sequence modifications",
+                          tooltipOptions = TooltipOptions.Top,
                           severity = Button.Severity.Success
                         ).mini.compact
                       )
