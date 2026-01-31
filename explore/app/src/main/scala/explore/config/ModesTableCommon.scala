@@ -406,10 +406,9 @@ object ModesTableCommon:
   ): Resource[F, fs2.Stream[F, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]] =
     ItcClient[F].request(
       ItcMessage.Query(
-        expTimeMode,
         constraints,
         asterism,
         customSedTimestamps,
-        configs
+        configs.map((_, expTimeMode))
       )
     )

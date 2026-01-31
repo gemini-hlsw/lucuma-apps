@@ -96,14 +96,6 @@ final case class Observation(
   lazy val observingModeSummary: Option[ObservingModeSummary] =
     observingMode.map(ObservingModeSummary.fromObservingMode)
 
-  // specific to spectroscopy, because imaging will have a list
-  lazy val spectroscopyExposureTimeMode: Option[ExposureTimeMode] =
-    observingMode.flatMap:
-      case ObservingMode.GmosNorthLongSlit(exposureTimeMode = etm)  => etm.some
-      case ObservingMode.GmosSouthLongSlit(exposureTimeMode = etm)  => etm.some
-      case ObservingMode.Flamingos2LongSlit(exposureTimeMode = etm) => etm.some
-      case _                                                        => none
-
   lazy val hasBlindOffset: Boolean =
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
 
@@ -200,20 +192,34 @@ final case class Observation(
         InstrumentOverrides.GmosImaging().some
 
   // Imaging modes can return multiple configs due to multiple filters.
-  def toInstrumentConfig(targets: TargetList): List[ItcInstrumentConfig] =
+  def toInstrumentConfig(targets: TargetList): List[(ItcInstrumentConfig, ExposureTimeMode)] =
     import ObservingMode.*
     (toModeOverride(targets), observingMode)
       .mapN:
         case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), n: GmosNorthLongSlit) =>
-          List(ItcInstrumentConfig.GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, o.some))
-        case (o @ InstrumentOverrides.GmosImaging(), n: GmosNorthImaging)              =>
-          n.filters.toList.map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, o.some))
-        case (o @ InstrumentOverrides.GmosImaging(), n: GmosSouthImaging)              =>
-          n.filters.toList.map(f => ItcInstrumentConfig.GmosSouthImaging(f.filter, o.some))
+          List(
+            (ItcInstrumentConfig.GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, o.some),
+             n.exposureTimeMode
+            )
+          )
         case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), s: GmosSouthLongSlit) =>
-          List(ItcInstrumentConfig.GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, o.some))
+          List(
+            (ItcInstrumentConfig.GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, o.some),
+             s.exposureTimeMode
+            )
+          )
+        case (o @ InstrumentOverrides.GmosImaging(), n: GmosNorthImaging)              =>
+          n.filters.toList
+            .map(f => (ItcInstrumentConfig.GmosNorthImaging(f.filter, o.some), f.exposureTimeMode))
+        case (o @ InstrumentOverrides.GmosImaging(), n: GmosSouthImaging)              =>
+          n.filters.toList
+            .map(f => (ItcInstrumentConfig.GmosSouthImaging(f.filter, o.some), f.exposureTimeMode))
         case (_, f: ObservingMode.Flamingos2LongSlit)                                  =>
-          List(ItcInstrumentConfig.Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu))
+          List(
+            (ItcInstrumentConfig.Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu),
+             f.exposureTimeMode
+            )
+          )
         case _                                                                         =>
           List.empty
       .getOrElse(List.empty)

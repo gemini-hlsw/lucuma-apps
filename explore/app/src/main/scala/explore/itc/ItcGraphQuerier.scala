@@ -41,34 +41,38 @@ case class ItcGraphQuerier(
   // The remote configuration is read in a different query than the itc results.
   // This will work even in the case the user has overriden some parameters.
   // When we use the remote configuration we don't need the exposure time.
-  private val remoteConfig: Option[ItcInstrumentConfig] =
+  private val remoteConfig: Option[(ItcInstrumentConfig, ExposureTimeMode)] =
     observation
       .toInstrumentConfig(allTargets)
       .headOption
 
+  private def requirementsExposureTimeMode: EitherNec[ItcQueryProblem, ExposureTimeMode] =
+    observation.scienceRequirements.exposureTimeMode.toRightNec(
+      ItcQueryProblem.MissingExposureTimeMode
+    )
+
+  private def requirementsConfig
+    : EitherNec[ItcQueryProblem, (ItcInstrumentConfig, ExposureTimeMode)] =
+    requirementsExposureTimeMode.flatMap: etm =>
+      configs.headOption
+        .map((_, etm).rightNec)
+        .getOrElse(
+          ItcQueryProblem.GenericError(Constants.MissingMode).leftNec
+        )
+
   // If the observation has an assigned configuration, we use that one.
   // Otherwise, we use the first one from the provided configs (for spectroscopy compatibility).
-  private val finalConfig: Option[ItcInstrumentConfig] =
-    remoteConfig.orElse(configs.headOption)
-
-  private val exposureTimeMode: Option[ExposureTimeMode] =
-    observation.spectroscopyExposureTimeMode.orElse(
-      observation.scienceRequirements.exposureTimeMode
-    )
+  private val finalConfig: EitherNec[ItcQueryProblem, (ItcInstrumentConfig, ExposureTimeMode)] =
+    remoteConfig.fold(requirementsConfig)(_.rightNec)
 
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
     asterismIds.toItcTargets(allTargets)
 
   private val queryProps: EitherNec[ItcTargetProblem, ItcGraphQuerier.QueryProps] =
     for {
-      t   <- itcTargets
-      exp <- exposureTimeMode.toRightNec(
-               ItcQueryProblem.MissingExposureTimeMode.toTargetProblem
-             )
-      i   <- finalConfig.toRightNec(
-               ItcQueryProblem.GenericError(Constants.MissingMode).toTargetProblem
-             )
-    } yield ItcGraphQuerier.QueryProps(exp, constraints, t, i, customSedTimestamps)
+      t        <- itcTargets
+      (i, etm) <- finalConfig.leftMap(_.map(_.toTargetProblem))
+    } yield ItcGraphQuerier.QueryProps(etm, constraints, t, i, customSedTimestamps)
 
   // Returns graphs for each target and the brightest target
   def requestGraphs(using

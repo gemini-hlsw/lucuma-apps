@@ -29,11 +29,10 @@ object ItcMessage extends ItcPicklers:
     type ResponseType = Unit
 
   case class Query(
-    exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
-    modes:               List[ItcInstrumentConfig]
+    modes:               List[(ItcInstrumentConfig, ExposureTimeMode)]
   ) extends Request:
     type ResponseType = Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]
 

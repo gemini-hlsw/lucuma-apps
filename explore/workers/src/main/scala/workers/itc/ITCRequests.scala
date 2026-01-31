@@ -48,11 +48,10 @@ object ITCRequests:
 
   // Wrapper method to match the call in ItcServer.scala
   def queryItc[F[_]: {Concurrent, Parallel, Logger}](
-    exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
-    modes:               List[ItcInstrumentConfig],
+    modes:               List[(ItcInstrumentConfig, ExposureTimeMode)],
     cache:               Cache[F],
     callback:            Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]] => F[Unit]
   )(using Monoid[F[Unit]], ItcClient[F]): F[Unit] = {
@@ -89,7 +88,7 @@ object ITCRequests:
 
     def doRequest(
       params: ItcRequestParams
-    ): F[Option[Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]] =
+    ): F[Option[(ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]] =
       Logger[F].debug(
         s"ITC: Request for mode: ${params.mode}, exposureTimeMode: ${params.exposureTimeMode} and target count: ${params.asterism.length}"
       ) *>
@@ -122,16 +121,16 @@ object ITCRequests:
                     ),
                     false
                   )
-            result.map(r => Map(params -> itcResults(r)))
+            result.map(r => params -> itcResults(r))
 
     val cacheableRequest =
       Cacheable(
         CacheName("itcQuery"),
         cacheVersion,
         doRequest,
-        (r, g) =>
+        (_, g) =>
           g.exists:
-            _.get(r).forall:
+            _._2 match
               case Right(_)                                     => true
               case Left(Chain(ItcQueryProblem.GenericError(_))) => false
               case Left(_)                                      => true
@@ -141,15 +140,15 @@ object ITCRequests:
       modes
         // Only handle known modes
         .collect:
-          case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _) =>
+          case (m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _), exposureTimeMode) =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _) =>
+          case (m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _), exposureTimeMode) =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _)   =>
+          case (m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _), exposureTimeMode)   =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _)            =>
+          case (m @ ItcInstrumentConfig.GmosNorthImaging(_, _), exposureTimeMode)            =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)            =>
+          case (m @ ItcInstrumentConfig.GmosSouthImaging(_, _), exposureTimeMode)            =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
 
     parTraverseN(
@@ -158,6 +157,11 @@ object ITCRequests:
     ) { params =>
       // ITC supports sending many modes at once, but sending them one by one
       // maximizes cache hits
-      cache.eval(cacheableRequest).apply(params).flatMap(_.map(callback).orEmpty)
-    }.void
+      cache.eval(cacheableRequest).apply(params) // .flatMap(_.map(callback).orEmpty)
+    }
+      .map(
+        _.sequence
+          .map(_.toMap)
+      )
+      .flatMap(_.map(callback).orEmpty)
   }
