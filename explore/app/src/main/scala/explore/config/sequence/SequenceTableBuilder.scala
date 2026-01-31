@@ -30,6 +30,7 @@ import lucuma.core.model.sequence.Step
 
 import scala.scalajs.LinkingInfo
 import monocle.Lens
+import monocle.Optional
 import monocle.Focus
 
 private type SequenceColumnsType[D] =
@@ -106,12 +107,16 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
                             visitsSequences(_, none)
         sequenceCopies <- useStateView:
                             SequenceCopies(
-                              view = SequenceRows(props.acquisitionRows, props.scienceRows),
+                              view = SequenceRows(props.acquisitionRows,
+                                                  props.scienceRows
+                              ), // This shouldn't be in a View
                               edit = SequenceRows(props.acquisitionRows, props.scienceRows)
                             )
-        _              <- useEffectWithDeps(props.i):
-                            _ => // TODO This is a temporary mechanism for demo purposes
-                              sequenceCopies.mod(sc => sc.copy(view = sc.edit)) >> Callback.log("YES!")
+        _              <- useEffectWithDeps(props.i): _ =>
+                            // TODO This is a temporary mechanism for demo purposes
+                            sequenceCopies.mod(sc => sc.copy(view = sc.edit))
+        _              <- useEffectWithDeps(props.isEditing): _ =>
+                            sequenceCopies.mod(sc => sc.copy(edit = sc.view))
         // Update our copy of the sequence when it changes externally.
         _              <- useEffectWithDeps(props.acquisitionRows, props.scienceRows): (acquisiton, science) =>
                             sequenceCopies.mod:
@@ -141,8 +146,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument) extends Seq
             ): Callback =
               rows
                 .zoom(
-                  Lens[List[SequenceRow[D]], SequenceRow[D]] { rs =>
-                    rs.find(_.id === stepId.asRight).get
+                  Optional[List[SequenceRow[D]], SequenceRow[D]] { rs =>
+                    rs.find(_.id === stepId.asRight)
                   } { updatedRow => rs =>
                     rs.map:
                       case row if row.id === stepId.asRight => updatedRow

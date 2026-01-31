@@ -39,6 +39,7 @@ import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.react.primereact.TooltipOptions
 
 import scala.collection.immutable.SortedSet
 
@@ -67,7 +68,7 @@ object SequenceTile extends SequenceTileHelper:
           isEditing.get,
           i.get
         ),
-      (i, _) => Title(obsExecution, isEditing, i.mod(_ + 1) >> Callback.log("OHHH"))
+      (i, _) => Title(obsExecution, isEditing, i.mod(_ + 1))
     )
 
   private case class Body(
@@ -241,7 +242,8 @@ object SequenceTile extends SequenceTileHelper:
                     onClick = props.isEditing.set(IsEditing.True),
                     label = "Edit",
                     icon = Icons.Pencil,
-                    tooltip = "Enter sequence editing mode"
+                    tooltip = "Enter sequence editing mode",
+                    tooltipOptions = TooltipOptions.Top
                   ).mini.compact.when(!props.isEditing.get),
                   React
                     .Fragment(
@@ -250,6 +252,7 @@ object SequenceTile extends SequenceTileHelper:
                         label = "Cancel",
                         icon = Icons.Close,
                         tooltip = "Cancel sequence editing",
+                        tooltipOptions = TooltipOptions.Top,
                         severity = Button.Severity.Danger
                       ).mini.compact,
                       Button(
@@ -257,6 +260,7 @@ object SequenceTile extends SequenceTileHelper:
                         label = "Accept",
                         icon = Icons.Checkmark,
                         tooltip = "Accept sequence modifications",
+                        tooltipOptions = TooltipOptions.Top,
                         severity = Button.Severity.Success
                       ).mini.compact
                     )
