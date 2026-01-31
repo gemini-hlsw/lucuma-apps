@@ -77,11 +77,9 @@ case class Tile[A](
 ) extends ReactFnProps(Tile.component) {
   val fullSize: Boolean = !canMinimize && !canMaximize
 
-  protected def showMaximize: Boolean =
-    sizeState === TileSizeState.Minimized || (canMaximize && sizeState === TileSizeState.Minimized)
+  protected def showMaximize: Boolean = canMaximize && sizeState === TileSizeState.Minimized
 
-  protected def showMinimize: Boolean =
-    sizeState === TileSizeState.Maximized || (canMinimize && sizeState === TileSizeState.Maximized)
+  protected def showMinimize: Boolean = canMinimize && sizeState === TileSizeState.Maximized
 
   def withState(
     state:             TileSizeState,
@@ -131,6 +129,13 @@ object Tile:
               .when_(p.sizeState === TileSizeState.Maximized)
           )
 
+        val blankButton = Button(
+          text = true,
+          clazz = ExploreStyles.TileStateButton,
+          icon = Icons.Maximize(^.visibility.hidden),
+          disabled = true
+        )
+
         // Tile wrapper
         if (!p.hidden) {
           <.div(
@@ -148,7 +153,8 @@ object Tile:
               // Size control buttons
               <.div(ExploreStyles.TileControlButtons)(
                 minimizeButton.when(p.showMinimize).unless(p.fullSize),
-                maximizeButton.when(p.showMaximize).unless(p.fullSize)
+                maximizeButton.when(p.showMaximize).unless(p.fullSize),
+                blankButton.when(!p.showMinimize && !p.showMaximize)
               )
             ),
             // Tile body

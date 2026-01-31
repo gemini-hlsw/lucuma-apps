@@ -53,10 +53,12 @@ object SequenceTile extends SequenceTileHelper:
     sequenceChanged:     View[Pot[Unit]],
     isEditing:           View[IsEditing]
   ) =
+    // TODO DISABLE CLOSE IF IT'S EDITING! (AND HIDE EDIT BUTTON IF CLOSED)
     Tile(
       ObsTabTileIds.SequenceId.id,
       "Sequence",
-      0 // TODO This is a temporary mechanism for demo purposes
+      0, // TODO This is a temporary mechanism for demo purposes
+      canMinimize = !isEditing.get
     )(
       i =>
         Body(
@@ -68,7 +70,7 @@ object SequenceTile extends SequenceTileHelper:
           isEditing.get,
           i.get
         ),
-      (i, _) => Title(obsExecution, isEditing, i.mod(_ + 1))
+      (i, sizeState) => Title(obsExecution, isEditing, i.mod(_ + 1), sizeState.isMinimized)
     )
 
   private case class Body(
@@ -193,7 +195,8 @@ object SequenceTile extends SequenceTileHelper:
   private case class Title(
     obsExecution: Execution,
     isEditing:    View[IsEditing],
-    commitEdit:   Callback
+    commitEdit:   Callback,
+    isMinimized:  Boolean
   ) extends ReactFnProps(Title)
 
   private object Title
@@ -237,7 +240,7 @@ object SequenceTile extends SequenceTileHelper:
                     icon = Icons.Pencil,
                     tooltip = "Enter sequence editing mode",
                     tooltipOptions = TooltipOptions.Top
-                  ).mini.compact.when(!props.isEditing.get),
+                  ).mini.compact.when(!props.isEditing.get && !props.isMinimized),
                   React
                     .Fragment(
                       Button(
