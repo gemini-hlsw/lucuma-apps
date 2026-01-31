@@ -198,14 +198,15 @@ object SequenceTile extends SequenceTileHelper:
 
   private object Title
       extends ReactFnComponent[Title](props =>
-        <.span(ExploreStyles.SequenceTileTitle) {
-          val execution         = props.obsExecution
-          val staleCss          = execution.digest.staleClass
-          val staleTooltip      = execution.digest.staleTooltip
-          val programTimeCharge = execution.programTimeCharge.value
 
-          val executed = timeDisplay("Executed", programTimeCharge)
+        val execution         = props.obsExecution
+        val staleCss          = execution.digest.staleClass
+        val staleTooltip      = execution.digest.staleTooltip
+        val programTimeCharge = execution.programTimeCharge.value
 
+        val executed = timeDisplay("Executed", programTimeCharge)
+
+        <.span(
           execution.digest.programTimeEstimate.value
             .map: plannedTime =>
               val total   = programTimeCharge +| plannedTime
@@ -218,25 +219,17 @@ object SequenceTile extends SequenceTileHelper:
               val planned =
                 timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
 
-              <.span(
-                ^.width := "100%",
-                ^.display.flex,
-                ^.justifyContent.spaceBetween /*, ^.gap := "1rem"*/
-              )(
-                <.span(^.flex := "1 1 0"),
-                <.span(
-                  // ^.flex := "1 1 0",
-                  ^.display.flex,
-                  ^.justifyContent.center /*, ^.gap := "1rem"*/
-                )(
+              <.span(ExploreStyles.SequenceTileTitle)(
+                <.span(ExploreStyles.SequenceTileTitleSide),
+                <.span(ExploreStyles.SequenceTileTitleSummary)(
                   HelpIcon("target/main/sequence-times.md".refined),
                   planned,
                   executed,
                   pending
                 ),
-                <.span(^.flex := "1 1 0",
-                       ^.display.flex,
-                       ^.justifyContent.flexEnd /*, ^.gap := "1rem"*/
+                <.span(
+                  ExploreStyles.SequenceTileTitleSide,
+                  ExploreStyles.SequenceTileTitleEdit
                 )(
                   Button(
                     onClick = props.isEditing.set(IsEditing.True),
@@ -268,5 +261,5 @@ object SequenceTile extends SequenceTileHelper:
                 )
               )
             .getOrElse(executed)
-        }
+        )
       )
