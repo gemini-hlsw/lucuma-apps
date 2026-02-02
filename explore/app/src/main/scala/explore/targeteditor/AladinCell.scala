@@ -411,6 +411,7 @@ object AladinCell extends ModelOptics with AladinCommon:
         AladinContainer(
           props.obsTargets,
           props.obsTime,
+          props.obsConf.flatMap(_.obsDuration),
           trackingMap,
           obsCoords,
           props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),

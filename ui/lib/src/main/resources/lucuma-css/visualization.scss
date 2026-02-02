@@ -262,6 +262,14 @@
     }
   }
 
+  .ephemeris-track-line {
+    stroke: hsl(0deg 100% 50% / 90%);
+  }
+
+  .ephemeris-track-in-observation {
+    stroke: hsl(120deg 100% 40%);
+  }
+
   .overlay-all-targets {
     isolation: inline;
   }
