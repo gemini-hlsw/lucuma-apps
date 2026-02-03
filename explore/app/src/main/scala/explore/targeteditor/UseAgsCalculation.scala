@@ -46,7 +46,7 @@ case class AgsCalcProps(
   candidates:    List[GuideStarCandidate],
   trackType:     Option[TrackType]
 ):
-  def guideProbe: Option[GuideProbe] =
+  lazy val guideProbe: Option[GuideProbe] =
     observingMode.map(_.guideProbe(trackType))
 
 object AgsCalcProps:
