@@ -37,10 +37,12 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
+import lucuma.core.util.Timestamp
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
@@ -52,15 +54,19 @@ import lucuma.ui.reusability
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.visualization.*
+import org.typelevel.cats.time.given
 
+import java.time.Duration
 import java.time.Instant
 import scala.collection.MapView
+import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,
   obsTime:                Instant,
+  obsDuration:            Option[Duration],
   obsTimeTracking:        RegionOrTrackingMap,
   obsTimeCoords:          ObservationTargetsCoordinatesAt,
   vizConf:                Option[ConfigurationForVisualization],
@@ -123,15 +129,47 @@ object AladinContainer extends AladinCommon {
       case GuideSpeed.Medium => ExploreStyles.GuideSpeedMedium
       case GuideSpeed.Slow   => ExploreStyles.GuideSpeedSlow
 
-  private def svgTargetAndLine(
+  private def svgTargetAndProperMotionLine(
     obsTimeCoords: Coordinates,
-    linePoints:    List[Coordinates],
+    surveyCoords:  Option[Coordinates],
     targetSVG:     Coordinates => SvgTarget,
     lineStyle:     Css
   ): List[SvgTarget] =
     targetSVG(obsTimeCoords) ::
-      linePoints.sliding2.map: (from, to) =>
-        SvgTarget.LineTo(from, to, lineStyle)
+      surveyCoords
+        .map: source =>
+          SvgTarget.LineTo(source, obsTimeCoords, lineStyle)
+        .toList
+
+  private def svgTargetAndEphemerisTrack(
+    obsTime:       Instant,
+    obsDuration:   Option[Duration],
+    obsTimeCoords: Coordinates,
+    ephemeris:     EphemerisTracking,
+    targetSVG:     Coordinates => SvgTarget
+  ): List[SvgTarget] =
+    val endTime: Option[Timestamp]                            =
+      obsDuration.map(obsTime.plus).flatMap(Timestamp.fromInstantTruncated)
+    val endCoords: Option[EphemerisCoordinates]               = endTime.flatMap(ephemeris.get)
+    // make sure the obstime and end time are in the ephemeris to properly visualize the track during the observation duration
+    val coordsMap: SortedMap[Timestamp, EphemerisCoordinates] =
+      (Timestamp.fromInstantTruncated(obsTime), endTime, endCoords)
+        .mapN: (ot, et, ec) =>
+          ephemeris.toMap
+            .updated(ot,
+                     EphemerisCoordinates(obsTimeCoords, Offset.Zero) // offset doesn't matter
+            )
+            .updated(et, ec)
+        .getOrElse(ephemeris.toMap)
+    targetSVG(obsTimeCoords) ::
+      coordsMap.toList.sliding2
+        .map { case ((t1, ec1), (t2, ec2)) =>
+          val style =
+            if endTime.exists(et => obsTime <= t1.toInstant && t2.toInstant <= et.toInstant) then
+              ExploreStyles.EphemerisTrackInObservation
+            else ExploreStyles.EphemerisTrack
+          SvgTarget.LineTo(ec1.coord, ec2.coord, style)
+        }
 
   private def candidateSVG(
     g:                          AgsAnalysis.Usable,
@@ -142,10 +180,9 @@ object AladinContainer extends AladinCommon {
     targetBuilder:              (Coordinates, Double) => SvgTarget,
     lineCss:                    Css
   ): List[SvgTarget] =
-    val tracking                      = g.target.tracking
-    val obsTimeCoords: Coordinates    = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
-    val linePoints: List[Coordinates] =
-      tracking.coordsAtEpoch(surveyEpoch).foldMap(List(_, obsTimeCoords))
+    val tracking                         = g.target.tracking
+    val obsTimeCoords: Coordinates       = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
+    val epochCoords: Option[Coordinates] = tracking.coordsAtEpoch(surveyEpoch)
 
     val size =
       if (isCrowded) calcSize(GuideStarCrowdedSize)
@@ -154,7 +191,7 @@ object AladinContainer extends AladinCommon {
     if (isCrowded)
       List(targetBuilder(obsTimeCoords, size))
     else
-      svgTargetAndLine(obsTimeCoords, linePoints, targetBuilder(_, size), lineCss)
+      svgTargetAndProperMotionLine(obsTimeCoords, epochCoords, targetBuilder(_, size), lineCss)
 
   private def guideStarsSVG(
     g:                          AgsAnalysis.Usable,
@@ -243,10 +280,10 @@ object AladinContainer extends AladinCommon {
       )
 
   private case class TargetCoords(
-    target:        TargetWithId,
-    isSelected:    Boolean,
-    obsTimeCoords: Coordinates,
-    linePoints:    List[Coordinates]
+    target:            TargetWithId,
+    isSelected:        Boolean,
+    obsTimeCoords:     Coordinates,
+    surveyOrEphemeris: Either[Option[Coordinates], EphemerisTracking]
   ):
     val targetName: String = target.target.name.value
 
@@ -261,21 +298,19 @@ object AladinContainer extends AladinCommon {
         obsCoords
           .forTarget(t.id)
           .map: coords =>
-            val linePoints: List[Coordinates] = trackingMap
+            val surveyOrEphemeris: Either[Option[Coordinates], EphemerisTracking] = trackingMap
               .trackingFor(t.id)
               // we should have tracking for all targets here
               .toOption
-              .foldMap: tracking =>
+              .fold(none.asLeft)(tracking =>
                 tracking match
-                  case EphemerisTracking(toMap) =>
-                    // Show a line for the entire ephemeris - should be the observing day
-                    toMap.map((_, ec) => ec.coord).toList
-                  case s: SiderealTracking      =>
-                    // Show a line from coords at the epoch to the current coords
-                    s.coordsAtEpoch(surveyEpoch).foldMap(List(_, coords))
-                  case _                        => List.empty
+                  case et: EphemerisTracking => et.asRight
+                  case s: SiderealTracking   =>
+                    s.coordsAtEpoch(surveyEpoch).asLeft
+                  case _                     => none.asLeft // shouldn't be anything else
+              )
 
-            TargetCoords(t, t.id === obsTargets.focus.id, coords, linePoints)
+            TargetCoords(t, t.id === obsTargets.focus.id, coords, surveyOrEphemeris)
       .toList
       .flattenOption
 
@@ -483,12 +518,24 @@ object AladinContainer extends AladinCommon {
                   tc.targetName.some
                 )
 
-              svgTargetAndLine(
-                tc.obsTimeCoords,
-                tc.linePoints,
-                targetSvg,
-                lineStyle = ExploreStyles.PMCorrectionLine
-              )
+              tc.surveyOrEphemeris
+                .fold(
+                  oc =>
+                    svgTargetAndProperMotionLine(
+                      tc.obsTimeCoords,
+                      oc,
+                      targetSvg,
+                      lineStyle = ExploreStyles.PMCorrectionLine
+                    ),
+                  et =>
+                    svgTargetAndEphemerisTrack(
+                      props.obsTime,
+                      props.obsDuration,
+                      tc.obsTimeCoords,
+                      et,
+                      targetSvg
+                    )
+                )
             }
 
         def offsetStyle(geometryType: GeometryType): Css =
@@ -545,12 +592,17 @@ object AladinContainer extends AladinCommon {
                 tc.isSelected && isSelectable,
                 tc.targetName.some
               )
-              svgTargetAndLine(
-                tc.obsTimeCoords,
-                tc.linePoints,
-                targetSvg,
-                ExploreStyles.BlindOffsetLine
-              )
+              // blind offsets are always sidereal
+              tc.surveyOrEphemeris
+                .fold(oc =>
+                        svgTargetAndProperMotionLine(
+                          tc.obsTimeCoords,
+                          oc,
+                          targetSvg,
+                          ExploreStyles.BlindOffsetLine
+                        ),
+                      _ => List.empty
+                )
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
