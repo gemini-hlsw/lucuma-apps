@@ -759,26 +759,29 @@ object TestTcsEpicsSystem {
   )
 
   case class GuideConfigState(
-    pwfs1Integrating: TestChannel.State[BinaryYesNo],
-    pwfs2Integrating: TestChannel.State[BinaryYesNo],
-    oiwfsIntegrating: TestChannel.State[BinaryYesNo],
-    m2State:          TestChannel.State[BinaryOnOff],
-    absorbTipTilt:    TestChannel.State[Int],
-    m2ComaCorrection: TestChannel.State[BinaryOnOff],
-    m1State:          TestChannel.State[BinaryOnOff],
-    m1Source:         TestChannel.State[String],
-    p1ProbeGuide:     TestChannel.State[Double],
-    p2ProbeGuide:     TestChannel.State[Double],
-    oiProbeGuide:     TestChannel.State[Double],
-    p1ProbeGuided:    TestChannel.State[Double],
-    p2ProbeGuided:    TestChannel.State[Double],
-    oiProbeGuided:    TestChannel.State[Double],
-    mountP1Weight:    TestChannel.State[Double],
-    mountP2Weight:    TestChannel.State[Double],
-    m2P1Guide:        TestChannel.State[String],
-    m2P2Guide:        TestChannel.State[String],
-    m2OiGuide:        TestChannel.State[String],
-    m2AoGuide:        TestChannel.State[String]
+    pwfs1Integrating:  TestChannel.State[BinaryYesNo],
+    pwfs2Integrating:  TestChannel.State[BinaryYesNo],
+    oiwfsIntegrating:  TestChannel.State[BinaryYesNo],
+    m2State:           TestChannel.State[BinaryOnOff],
+    absorbTipTilt:     TestChannel.State[Int],
+    m2ComaCorrection:  TestChannel.State[BinaryOnOff],
+    m1State:           TestChannel.State[BinaryOnOff],
+    m1Source:          TestChannel.State[String],
+    p1ProbeGuide:      TestChannel.State[Double],
+    p2ProbeGuide:      TestChannel.State[Double],
+    oiProbeGuide:      TestChannel.State[Double],
+    p1ProbeGuided:     TestChannel.State[Double],
+    p2ProbeGuided:     TestChannel.State[Double],
+    oiProbeGuided:     TestChannel.State[Double],
+    mountP1Weight:     TestChannel.State[Double],
+    mountP2Weight:     TestChannel.State[Double],
+    m2P1Guide:         TestChannel.State[String],
+    m2P2Guide:         TestChannel.State[String],
+    m2OiGuide:         TestChannel.State[String],
+    m2AoGuide:         TestChannel.State[String],
+    probeGuideEnabled: TestChannel.State[String],
+    probeGuideSource:  TestChannel.State[String],
+    probeGuideSink:    TestChannel.State[String]
   )
 
   object GuideConfigState {
@@ -802,7 +805,10 @@ object TestTcsEpicsSystem {
       TestChannel.State.of("OFF"),
       TestChannel.State.of("OFF"),
       TestChannel.State.of("OFF"),
-      TestChannel.State.of("OFF")
+      TestChannel.State.of("OFF"),
+      TestChannel.State.of("Off"),
+      TestChannel.State.of(""),
+      TestChannel.State.of("")
     )
   }
 
@@ -837,7 +843,10 @@ object TestTcsEpicsSystem {
     new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.m2P1Guide))),
     new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.m2P2Guide))),
     new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.m2OiGuide))),
-    new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.m2AoGuide)))
+    new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.m2AoGuide))),
+    new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.probeGuideEnabled))),
+    new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.probeGuideSource))),
+    new TestChannel[F, State, String](s, l.andThen(Focus[GuideConfigState](_.probeGuideSink)))
   )
 
   case class M2GuideConfigState(

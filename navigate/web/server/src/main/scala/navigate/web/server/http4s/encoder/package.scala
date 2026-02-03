@@ -7,8 +7,10 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import io.circe.Encoder
 import io.circe.Json
 import io.circe.syntax.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
+import lucuma.core.model.ProbeGuide
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.angle.query.given
 import lucuma.odb.json.offset.query.given
@@ -39,6 +41,12 @@ package object encoder {
       "message"   -> e.getFormattedMessage.asJson
     )
 
+  given Encoder[ProbeGuide] = s =>
+    Json.obj(
+      "from" -> s.from.asJson,
+      "to"   -> s.to.asJson
+    )
+
   given Encoder[GuideState] = s => {
     val m2fields: List[(String, Json)] = s.m2Guide match {
       case M2GuideConfig.M2GuideOff               =>
@@ -60,6 +68,7 @@ package object encoder {
     Json.fromFields(
       m2fields ++ m1field ++ List(
         "mountOffload"  -> s.mountOffload.asJson,
+        "probeGuide"    -> s.probeGuide.map(_.asJson).getOrElse(Json.Null),
         "p1Integrating" -> s.p1Integrating.asJson,
         "p2Integrating" -> s.p2Integrating.asJson,
         "oiIntegrating" -> s.oiIntegrating.asJson,

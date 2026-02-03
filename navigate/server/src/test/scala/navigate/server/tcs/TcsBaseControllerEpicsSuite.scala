@@ -1224,28 +1224,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     }
   }
 
-  private val defaultGuideState = GuideConfigState(
-    pwfs1Integrating = TestChannel.State.of(BinaryYesNo.No),
-    pwfs2Integrating = TestChannel.State.of(BinaryYesNo.No),
-    oiwfsIntegrating = TestChannel.State.of(BinaryYesNo.No),
-    m2State = TestChannel.State.of(BinaryOnOff.Off),
-    absorbTipTilt = TestChannel.State.of(0),
-    m2ComaCorrection = TestChannel.State.of(BinaryOnOff.Off),
-    m1State = TestChannel.State.of(BinaryOnOff.Off),
-    m1Source = TestChannel.State.of(""),
-    p1ProbeGuide = TestChannel.State.of(0.0),
-    p2ProbeGuide = TestChannel.State.of(0.0),
-    oiProbeGuide = TestChannel.State.of(0.0),
-    p1ProbeGuided = TestChannel.State.of(0.0),
-    p2ProbeGuided = TestChannel.State.of(0.0),
-    oiProbeGuided = TestChannel.State.of(0.0),
-    mountP1Weight = TestChannel.State.of(0.0),
-    mountP2Weight = TestChannel.State.of(0.0),
-    m2P1Guide = TestChannel.State.of("OFF"),
-    m2P2Guide = TestChannel.State.of("OFF"),
-    m2OiGuide = TestChannel.State.of("OFF"),
-    m2AoGuide = TestChannel.State.of("OFF")
-  )
+  private val defaultGuideState = GuideConfigState.default
 
   private val guideWithP1State = defaultGuideState.copy(
     pwfs1Integrating = TestChannel.State.of(BinaryYesNo.Yes),
@@ -1282,6 +1261,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       MountGuideOption.MountGuideOn,
       M1GuideConfig.M1GuideOn(M1Source.OIWFS),
       M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.OIWFS)),
+      none,
       false,
       false,
       true,

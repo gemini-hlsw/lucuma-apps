@@ -32,6 +32,7 @@ import lucuma.core.model.GuideConfig
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
+import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.syntax.string.*
 import lucuma.core.util.DateInterval
@@ -978,6 +979,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MountGuideOption.MountGuideOn,
         M1GuideConfig.M1GuideOn(M1Source.OIWFS),
         M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.OIWFS)),
+        none,
         false,
         false,
         true,
@@ -986,6 +988,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
       GuideState(MountGuideOption.MountGuideOff,
                  M1GuideConfig.M1GuideOff,
                  M2GuideConfig.M2GuideOff,
+                 none,
                  false,
                  false,
                  false,
@@ -995,6 +998,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MountGuideOption.MountGuideOff,
         M1GuideConfig.M1GuideOn(M1Source.OIWFS),
         M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.OIWFS)),
+        ProbeGuide(GuideProbe.GmosOIWFS, GuideProbe.GmosOIWFS).some,
         false,
         false,
         true,
@@ -1004,6 +1008,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MountGuideOption.MountGuideOff,
         M1GuideConfig.M1GuideOn(M1Source.OIWFS),
         M2GuideConfig.M2GuideOn(ComaOption.ComaOn, Set(TipTiltSource.OIWFS)),
+        none,
         false,
         false,
         true,
@@ -1024,6 +1029,10 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             |     m2Coma
             |     m1Input
             |     mountOffload
+            |     probeGuide {
+            |       from
+            |       to
+            |     }
             |     p1Integrating
             |     p2Integrating
             |     oiIntegrating
@@ -3011,6 +3020,12 @@ object NavigateMappingsTest {
       ms <- h.downField("message").as[String]
     } yield SimpleLoggingEvent(ts, l, th, ms)
 
+  given Decoder[ProbeGuide] = h =>
+    for {
+      from <- h.downField("from").as[GuideProbe]
+      to   <- h.downField("to").as[GuideProbe]
+    } yield ProbeGuide(from, to)
+
   given Decoder[GuideState] = h =>
     h.downField("mountOffload").as[Boolean].map { mnt =>
       val m2 = h
@@ -3028,6 +3043,7 @@ object NavigateMappingsTest {
       val p2 = h.downField("p2Integrating").as[Boolean].toOption.exists(identity)
       val oi = h.downField("oiIntegrating").as[Boolean].toOption.exists(identity)
       val ac = h.downField("acIntegrating").as[Boolean].toOption.exists(identity)
+      val pg = h.downField("probeGuide").as[ProbeGuide].toOption
 
       GuideState(
         MountGuideOption(mnt),
@@ -3036,6 +3052,7 @@ object NavigateMappingsTest {
           if (l.isEmpty) M2GuideConfig.M2GuideOff
           else M2GuideConfig.M2GuideOn(ComaOption(cm.exists(identity)), l.toSet)
         ).getOrElse(M2GuideConfig.M2GuideOff),
+        pg,
         p1,
         p2,
         oi,

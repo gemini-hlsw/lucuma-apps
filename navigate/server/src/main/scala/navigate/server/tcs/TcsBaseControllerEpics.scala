@@ -31,6 +31,7 @@ import lucuma.core.math.units.Year
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
+import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -38,7 +39,7 @@ import monocle.Focus
 import monocle.Focus.focus
 import monocle.Getter
 import monocle.Lens
-import mouse.boolean.given
+import mouse.all.*
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
 import navigate.model.AcMechsState
@@ -1441,6 +1442,27 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     else M2GuideConfig.M2GuideOff
   }
 
+  def decodeGuideProbe(str: String, oiSel: Option[Instrument]): Option[GuideProbe] = str match {
+    case "PWFS1" => GuideProbe.PWFS1.some
+    case "PWFS2" => GuideProbe.PWFS2.some
+    case "OIWFS" =>
+      oiSel.flatMap {
+        case Instrument.GmosSouth | Instrument.GmosNorth => GuideProbe.GmosOIWFS.some
+        case Instrument.Flamingos2                       => GuideProbe.Flamingos2OIWFS.some
+        case _                                           => None
+      }
+  }
+
+  private def calcProbeGuide(
+    enabled: BinaryOnOff,
+    from:    Option[GuideProbe],
+    to:      Option[GuideProbe]
+  ): Option[ProbeGuide] = for {
+    src <- from
+    snk <- to
+    r   <- (enabled === BinaryOnOff.On).option(ProbeGuide(src, snk))
+  } yield r
+
   override def getGuideState: F[GuideState] = {
     val x = for {
       fa <- sys.tcsEpics.status.m1Guide
@@ -1456,6 +1478,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       fk <- sys.tcsEpics.status.pwfs2On
       fl <- sys.tcsEpics.status.oiwfsOn
       fm <- sys.hrwfs.status.observe
+      fn <- sys.tcsEpics.status.probeGuideEnabled
+      fo <- sys.tcsEpics.status.probeGuideSource
+      fp <- sys.tcsEpics.status.probeGuideSink
+      fq <- sys.ags.status.oiwfsName
     } yield for {
       a <- fa
       b <- fb
@@ -1470,10 +1496,15 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       k <- fk
       l <- fl
       m <- fm
+      n <- fn
+      o <- fo
+      p <- fp
+      q <- fq
     } yield GuideState(
       MountGuideOption(f =!= 0),
       calcM1Guide(a, h),
       calcM2Guide(i, d, e, c, b, g),
+      calcProbeGuide(n, decodeGuideProbe(o, q), decodeGuideProbe(p, q)),
       j === BinaryYesNo.Yes,
       k === BinaryYesNo.Yes,
       l === BinaryYesNo.Yes,
