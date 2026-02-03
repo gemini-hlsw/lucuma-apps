@@ -528,7 +528,7 @@ object AladinContainer extends AladinCommon {
                       lineStyle = ExploreStyles.PMCorrectionLine
                     ),
                   et =>
-                    svtTargetAndEphemerisTrack(
+                    svgTargetAndEphemerisTrack(
                       props.obsTime,
                       props.obsDuration,
                       tc.obsTimeCoords,
