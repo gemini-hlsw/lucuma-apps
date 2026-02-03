@@ -1451,6 +1451,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         case Instrument.Flamingos2                       => GuideProbe.Flamingos2OIWFS.some
         case _                                           => None
       }
+    case _       => none
   }
 
   private def calcProbeGuide(
