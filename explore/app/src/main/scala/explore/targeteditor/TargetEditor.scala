@@ -343,7 +343,7 @@ object TargetEditor:
                 case Ephemeris.Key.UserSupplied(id) =>
                   ("User Supplied", id.toString)
                 case h: Ephemeris.Key.Horizons      =>
-                  ("Horizons", s"${key.keyType.shortName} ${h.des}")
+                  ("Horizons", s"${key.keyType.simplifiedName} ${h.des}")
               FormInputText(
                 id = "ephemeris-key".refined,
                 value = value,

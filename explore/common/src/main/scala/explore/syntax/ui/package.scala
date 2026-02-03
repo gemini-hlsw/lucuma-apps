@@ -29,6 +29,7 @@ import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ArcType
+import lucuma.core.enums.EphemerisKeyType
 import lucuma.core.enums.Partner
 import lucuma.core.enums.TimeAccountingCategory
 import lucuma.core.math.Arc
@@ -233,7 +234,7 @@ extension (target: Target)
     case o: Target.Opportunity  => none
   def catalogObjectType: Option[String]                             = target match
     case s: Target.Sidereal     => s.catalogInfo.flatMap(_.objectType).map(_.value)
-    case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.shortName.some
+    case ns: Target.Nonsidereal => ns.ephemerisKey.keyType.simplifiedName.some
     case o: Target.Opportunity  => none
   def regionOrBaseCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = target match
     // actually returns an ErrorOrRegionOrCoords to be compatible with the extension methods
@@ -242,6 +243,13 @@ extension (target: Target)
       CoordinatesAt(tracking.epoch.toInstant, tracking.baseCoordinates).asRight.asRight.some
     case Target.Nonsidereal(_, _, _)        => none
     case Target.Opportunity(_, region, _)   => region.asLeft.asRight.some
+
+extension (ekt: EphemerisKeyType)
+  // Andy didn't want the distiction between old and new asteroids in displays
+  def simplifiedName: String = ekt match
+    case EphemerisKeyType.AsteroidNew => "Asteroid"
+    case EphemerisKeyType.AsteroidOld => "Asteroid"
+    case _                            => ekt.shortName
 
 extension (ek: Ephemeris.Key)
   def catalogName: String                         = ek match
