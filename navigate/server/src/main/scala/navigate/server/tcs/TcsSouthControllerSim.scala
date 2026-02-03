@@ -60,6 +60,7 @@ object TcsSouthControllerSim {
              MountGuideOption.MountGuideOff,
              M1GuideConfig.M1GuideOff,
              M2GuideConfig.M2GuideOff,
+             none,
              false,
              false,
              false,

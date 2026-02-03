@@ -159,6 +159,8 @@ type GuideConfigurationState {
     m1Input: M1CorrectionSource
     """Tip-tilt offload to the mount enabled"""
     mountOffload: Boolean!
+    """Probe guide. If none is used, the attribute will not be present"""
+    probeGuide: ProbeGuide
     """Is PWFS1 integrating?"""
     p1Integrating: Boolean!
     """Is PWFS2 integrating?"""
@@ -185,6 +187,11 @@ input GuideConfigurationInput {
 }
 
 input ProbeGuideInput {
+    from: GuideProbe
+    to: GuideProbe
+}
+
+type ProbeGuide {
     from: GuideProbe
     to: GuideProbe
 }

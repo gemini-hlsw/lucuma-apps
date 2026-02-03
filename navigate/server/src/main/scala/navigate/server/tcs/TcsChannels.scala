@@ -612,26 +612,29 @@ object TcsChannels {
   }
 
   case class GuideConfigStatusChannels[F[_]](
-    pwfs1Integrating: Channel[F, BinaryYesNo],
-    pwfs2Integrating: Channel[F, BinaryYesNo],
-    oiwfsIntegrating: Channel[F, BinaryYesNo],
-    m2State:          Channel[F, BinaryOnOff],
-    absorbTipTilt:    Channel[F, Int],
-    m2ComaCorrection: Channel[F, BinaryOnOff],
-    m1State:          Channel[F, BinaryOnOff],
-    m1Source:         Channel[F, String],
-    p1ProbeGuide:     Channel[F, Double],
-    p2ProbeGuide:     Channel[F, Double],
-    oiProbeGuide:     Channel[F, Double],
-    p1ProbeGuided:    Channel[F, Double],
-    p2ProbeGuided:    Channel[F, Double],
-    oiProbeGuided:    Channel[F, Double],
-    mountP1Weight:    Channel[F, Double],
-    mountP2Weight:    Channel[F, Double],
-    m2P1Guide:        Channel[F, String],
-    m2P2Guide:        Channel[F, String],
-    m2OiGuide:        Channel[F, String],
-    m2AoGuide:        Channel[F, String]
+    pwfs1Integrating:  Channel[F, BinaryYesNo],
+    pwfs2Integrating:  Channel[F, BinaryYesNo],
+    oiwfsIntegrating:  Channel[F, BinaryYesNo],
+    m2State:           Channel[F, BinaryOnOff],
+    absorbTipTilt:     Channel[F, Int],
+    m2ComaCorrection:  Channel[F, BinaryOnOff],
+    m1State:           Channel[F, BinaryOnOff],
+    m1Source:          Channel[F, String],
+    p1ProbeGuide:      Channel[F, Double],
+    p2ProbeGuide:      Channel[F, Double],
+    oiProbeGuide:      Channel[F, Double],
+    p1ProbeGuided:     Channel[F, Double],
+    p2ProbeGuided:     Channel[F, Double],
+    oiProbeGuided:     Channel[F, Double],
+    mountP1Weight:     Channel[F, Double],
+    mountP2Weight:     Channel[F, Double],
+    m2P1Guide:         Channel[F, String],
+    m2P2Guide:         Channel[F, String],
+    m2OiGuide:         Channel[F, String],
+    m2AoGuide:         Channel[F, String],
+    probeGuideEnabled: Channel[F, String],
+    probeGuideSource:  Channel[F, String],
+    probeGuideSink:    Channel[F, String]
   )
 
   object GuideConfigStatusChannels {
@@ -659,6 +662,9 @@ object TcsChannels {
       m2p2g <- service.getChannel[String](top.value, "drives:p2GuideConfig.VAL")
       m2oig <- service.getChannel[String](top.value, "drives:oiGuideConfig.VAL")
       m2aog <- service.getChannel[String](top.value, "drives:aoGuideConfig.VAL")
+      pgon  <- service.getChannel[String](top.value, "wfsGuideMode.VALA")
+      pgsrc <- service.getChannel[String](top.value, "wfsGuideMode.VALB")
+      pgsnk <- service.getChannel[String](top.value, "wfsGuideMode.VALH")
     } yield GuideConfigStatusChannels(
       p1i,
       p2i,
@@ -679,7 +685,10 @@ object TcsChannels {
       m2p1g,
       m2p2g,
       m2oig,
-      m2aog
+      m2aog,
+      pgon,
+      pgsrc,
+      pgsnk
     )
   }
 

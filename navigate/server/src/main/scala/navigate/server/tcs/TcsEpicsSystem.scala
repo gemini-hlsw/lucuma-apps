@@ -226,6 +226,9 @@ object TcsEpicsSystem {
     def waitPwfs1Sky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
     def waitPwfs2Sky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
     def waitOiwfsSky(timeout: FiniteDuration): VerifiedEpics[F, F, Unit]
+    def probeGuideEnabled: VerifiedEpics[F, F, BinaryOnOff]
+    def probeGuideSource: VerifiedEpics[F, F, String]
+    def probeGuideSink: VerifiedEpics[F, F, String]
     // // `waitAGInPosition` works like `waitInPosition`, but for the AG in-position flag.
     // /* TODO: AG inposition can take up to 1[s] to react to a TCS command. If the value is read before that, it may induce
     //   * an error. A better solution is to detect the edge, from not in position to in-position.
@@ -536,6 +539,16 @@ object TcsEpicsSystem {
 
         override val pointingCorrectionState: PointingCorrectionState[F] =
           PointingCorrectionState.build(channels)
+
+        override def probeGuideEnabled: VerifiedEpics[F, F, BinaryOnOff] =
+          readChannel(channels.telltale, channels.guide.probeGuideEnabled)
+            .map(_.map(v => BinaryOnOff.valueOf(v)).attempt.map(_.getOrElse(BinaryOnOff.Off)))
+
+        override def probeGuideSource: VerifiedEpics[F, F, String] =
+          readChannel(channels.telltale, channels.guide.probeGuideSource)
+
+        override def probeGuideSink: VerifiedEpics[F, F, String] =
+          readChannel(channels.telltale, channels.guide.probeGuideSink)
       }
   }
 

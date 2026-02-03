@@ -168,7 +168,7 @@ object AgsEpicsSystem {
           case "GNIRS" => Instrument.Gnirs.some
           case "NIRI"  => Instrument.Niri.some
           case "F2"    => Instrument.Flamingos2.some
-          case "NIFS"  => none
+          case _       => none
         }
 
         override def oiwfsName: VerifiedEpics[F, F, Option[Instrument]] =
