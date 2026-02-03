@@ -141,7 +141,7 @@ object AladinContainer extends AladinCommon {
           SvgTarget.LineTo(source, obsTimeCoords, lineStyle)
         .toList
 
-  private def svtTargetAndEphemerisTrack(
+  private def svgTargetAndEphemerisTrack(
     obsTime:       Instant,
     obsDuration:   Option[Duration],
     obsTimeCoords: Coordinates,
