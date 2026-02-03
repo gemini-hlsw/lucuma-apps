@@ -494,7 +494,9 @@ object TargetEditor:
                 props.searching,
                 disabled,
                 cloning.get,
-                disableSearch = props.targetWithId.get.disposition === TargetDisposition.BlindOffset
+                disableSearch =
+                  props.targetWithId.get.disposition === TargetDisposition.BlindOffset ||
+                    props.targetWithId.get.isTargetOfOpportunity
               ),
               optSiderealAligner.map(siderealCoordinates),
               optOpportunityAligner.map(opportunityRegion),
