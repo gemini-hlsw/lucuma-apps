@@ -224,15 +224,15 @@ object AladinCell extends ModelOptics with AladinCommon:
           (obsTargets, trackings) =>
             // We should have trackings for all the targets, so we'll ignore errors here.
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
-      // Request guide star candidates if obsTime changes more than a month or the base moves
       candidates          <-
         useEffectResultWithDeps(
           (props.siderealDiscretizedObsTime,
            oBaseTracking,
            props.obsConf.flatMap(_.obsModeType),
+           props.obsConf.flatMap(_.guideProbe),
            props.needsAGS
           )
-        ): (siderealDiscretizedObsTime, oTracking, obsModeType, needsAGS) =>
+        ): (siderealDiscretizedObsTime, oTracking, obsModeType, guideProbe, needsAGS) =>
           import ctx.given
 
           (obsModeType, oTracking.value)
@@ -243,18 +243,14 @@ object AladinCell extends ModelOptics with AladinCommon:
                                   .flatMap(_.agsState)
                                   .foldMap(_.async.set(AgsState.LoadingCandidates))
                   candidates <-
-                    obsModeType
-                      .map(ot =>
-                        CatalogClient[IO]
-                          .requestSingle:
-                            // If there is a non-sidereal, minimize the ephemeris to the obs time
-                            CatalogMessage.GSRequest(
-                              baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
-                              siderealDiscretizedObsTime.obsTime,
-                              ot
-                            )
-                      )
-                      .getOrElse(none.pure[IO])
+                    guideProbe.foldMap: gp =>
+                      CatalogClient[IO]
+                        .requestSingle:
+                          CatalogMessage.GSRequest(
+                            baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
+                            siderealDiscretizedObsTime.obsTime,
+                            gp
+                          )
                 yield candidates)
                   .guarantee:
                     props.obsConf

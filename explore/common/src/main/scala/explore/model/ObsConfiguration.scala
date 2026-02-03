@@ -15,6 +15,7 @@ import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
 import lucuma.ags.syntax.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
@@ -77,6 +78,9 @@ final case class ObsConfiguration(
 
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
+
+  def guideProbe: Option[GuideProbe] =
+    configuration.map(_.guideProbe(trackType))
 
   def guidedAcqOffsets =
     acquisitionOffsets.flatMap(_.asAcqOffsets)

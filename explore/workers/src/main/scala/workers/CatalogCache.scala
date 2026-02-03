@@ -14,7 +14,6 @@ import lucuma.ags.DefaultAreaBuffer
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.clients.GaiaClient
 import lucuma.catalog.votable.*
-import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.math.Coordinates
 import lucuma.core.model.Target
@@ -29,7 +28,7 @@ import java.time.temporal.ChronoUnit
 
 trait CatalogQuerySettings {
   private val MaxTargets: Int   = 1000
-  private val CacheVersion: Int = 9
+  private val CacheVersion: Int = 10
 
   protected given Hash[Coordinates] = Hash.fromUniversalHashCode
   protected given ADQLInterpreter   = ADQLInterpreter.nTarget(MaxTargets)
@@ -48,16 +47,15 @@ trait CatalogCache extends CatalogIDB:
    * Try to read the gaia query from the cache or else get it from gaia
    */
   def readFromGaia(
-    client:         GaiaClient[IO],
-    idb:            Option[IndexedDb.Database],
-    stores:         CacheIDBStores,
-    request:        CatalogMessage.GSRequest,
-    candidatesArea: ShapeExpression,
-    respond:        List[GuideStarCandidate] => IO[Unit]
+    client:  GaiaClient[IO],
+    idb:     Option[IndexedDb.Database],
+    stores:  CacheIDBStores,
+    request: CatalogMessage.GSRequest,
+    respond: List[GuideStarCandidate] => IO[Unit]
   )(using LF: LoggerFactory[IO]): IO[Unit] = {
     given Logger[IO] = LF.getLoggerFromName("catalog-cache")
 
-    val CatalogMessage.GSRequest(tracking, obsTime, _) = request
+    val CatalogMessage.GSRequest(tracking, obsTime, probe) = request
 
     val brightnessConstraints = ags.widestConstraints
 
@@ -77,7 +75,7 @@ trait CatalogCache extends CatalogIDB:
         val query: CoordinatesRangeQueryByADQL =
           CoordinatesRangeQueryByADQL(
             coordsList,
-            candidatesArea,
+            probe.candidatesArea,
             brightnessConstraints.some,
             areaBuffer = DefaultAreaBuffer
           )

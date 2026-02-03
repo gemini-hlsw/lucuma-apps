@@ -11,7 +11,7 @@ import explore.model.ErrorMsgOr
 import explore.model.boopickle.CatalogPicklers
 import lucuma.ags.GuideStarCandidate
 import lucuma.catalog.BlindOffsetCandidate
-import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.GuideProbe
 import lucuma.core.model.Tracking
 import lucuma.schemas.model.CoordinatesAt
 import org.typelevel.cats.time.given
@@ -27,9 +27,9 @@ object CatalogMessage extends CatalogPicklers {
   }
 
   case class GSRequest(
-    tracking:    Tracking,
-    vizTime:     Instant,
-    obsModeType: ObservingModeType
+    tracking:   Tracking,
+    vizTime:    Instant,
+    guideProbe: GuideProbe
   ) extends Request derives Eq {
     type ResponseType = List[GuideStarCandidate]
   }

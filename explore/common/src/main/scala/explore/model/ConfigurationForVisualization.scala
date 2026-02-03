@@ -11,6 +11,7 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
@@ -51,6 +52,9 @@ case class ConfigurationForVisualization private (
 
   def agsWavelength: AGSWavelength =
     configuration.agsWavelength
+
+  def guideProbe: GuideProbe =
+    configuration.guideProbe(trackType)
 
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength

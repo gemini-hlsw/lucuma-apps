@@ -5,7 +5,7 @@ package explore.events.arb
 
 import cats.syntax.all.*
 import explore.events.CatalogMessage
-import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.GuideProbe
 import lucuma.core.model.Tracking
 import lucuma.core.model.arb.ArbTracking.given
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -23,15 +23,13 @@ trait ArbCatalogMessage:
   given Arbitrary[CatalogMessage.GSRequest] =
     Arbitrary:
       for
-        tracking    <- arbitrary[Tracking]
-        vizTime     <- arbitrary[Instant]
-        obsModeType <- arbitrary[ObservingModeType]
-      yield CatalogMessage.GSRequest(tracking, vizTime, obsModeType)
+        tracking   <- arbitrary[Tracking]
+        vizTime    <- arbitrary[Instant]
+        guideProbe <- arbitrary[GuideProbe]
+      yield CatalogMessage.GSRequest(tracking, vizTime, guideProbe)
 
   given Cogen[CatalogMessage.GSRequest] =
-    Cogen[(Tracking, Instant, ObservingModeType)].contramap(r =>
-      (r.tracking, r.vizTime, r.obsModeType)
-    )
+    Cogen[(Tracking, Instant, GuideProbe)].contramap(r => (r.tracking, r.vizTime, r.guideProbe))
 
   given Arbitrary[CatalogMessage.GSCacheCleanupRequest] =
     // for some reason arbitrary[Duration] caused Long overflows, so...
