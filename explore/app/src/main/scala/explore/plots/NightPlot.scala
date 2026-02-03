@@ -597,11 +597,14 @@ object NightPlot:
             .map: moonData =>
               MoonPhase(moonData.moonPhase)(<.small("%1.0f%%".format(moonData.moonIllum * 100)))
         ),
-      pendingRender = <.div(
-        Message(
-          severity = Message.Severity.Warning,
-          text = "Retrieving ephemeris data for the selected date",
-          clazz = ExploreStyles.ElevationPlotWarning
-        )
-      )
+      pendingRender =
+        if props.plotData.hasNonSidereal then
+          <.div(
+            Message(
+              severity = Message.Severity.Warning,
+              text = "Retrieving ephemeris data for the selected date",
+              clazz = ExploreStyles.ElevationPlotWarning
+            )
+          )
+        else EmptyVdom
     )
