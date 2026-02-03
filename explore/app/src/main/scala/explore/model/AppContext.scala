@@ -38,6 +38,11 @@ import org.typelevel.log4cats.Logger
 import queries.schemas.SSO
 import queries.schemas.UserPreferencesDB
 import workers.WorkerClient
+import lucuma.catalog.simbad.SEDMatcher
+import lucuma.catalog.simbad.SEDDataLoader
+import lucuma.catalog.simbad.StellarPhysics
+import lucuma.catalog.simbad.StellarLibraryParameters
+import org.http4s.implicits.*
 
 case class ProgramError(message: String, fatal: Boolean)
 
@@ -54,7 +59,8 @@ case class AppContext[F[_]](
   odbRestURI:             Uri,
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
   toastRef:               Deferred[F, ToastRef],
-  resetProgramCacheTopic: Topic[F, Option[ProgramError]] // Error message (if any)
+  resetProgramCacheTopic: Topic[F, Option[ProgramError]], // Error message (if any)
+  simbadClient:           SimbadClient[F]
 )(using
   val F:                  Async[F],
   val logger:             Logger[F],
@@ -112,7 +118,6 @@ case class AppContext[F[_]](
       notifyFatalError = errorMsg => notifyFatalError(errorMsg)
     )
 
-  val simbadClient   = SimbadClient.build(httpClient, _.copy(scheme = Scheme.https.some))
   val horizonsClient = HorizonsClient(httpClient, modUri = HorizonsProxyMod)
 
 object AppContext:
@@ -133,6 +138,8 @@ object AppContext:
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
       resetProgramCacheTopic <- Topic[F, Option[ProgramError]]
+      sedMatcher             <- SEDDataLoader.loadMatcher[F](httpClient, uri"")
+      simbadClient            = SimbadClient.build(httpClient, sedMatcher, _.copy(scheme = Scheme.https.some))
       version                 = utils.version(config.environment)
     } yield AppContext[F](
       version,
@@ -147,7 +154,8 @@ object AppContext:
       config.odbRestURI,
       broadcastChannel,
       toastRef,
-      resetProgramCacheTopic
+      resetProgramCacheTopic,
+      simbadClient
     )
 
   given [F[_]]: Reusability[AppContext[F]] = Reusability.always
