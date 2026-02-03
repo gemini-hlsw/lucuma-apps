@@ -237,6 +237,8 @@ object SeqTranslate {
           buildSequenceGmosS(odbObsData.observation, c).pure[F]
         case InstrumentExecutionConfig.Flamingos2(c) =>
           buildSequenceFlamingos2(odbObsData.observation, c).pure[F]
+        case InstrumentExecutionConfig.Igrins2(_)    =>
+          (Nil, None).pure[F] // Igrins2 is not yet supported
 
     private def buildNextAtom[S, D, AG[_[_]]](
       observation:     OdbObservation,
@@ -989,6 +991,8 @@ object SeqTranslate {
                 ),
             SequenceGen.AtomGen.Flamingos2.apply[F]
           )
+        case InstrumentExecutionConfig.Igrins2(_)                  =>
+          (Nil, None)
       }
   }
 
