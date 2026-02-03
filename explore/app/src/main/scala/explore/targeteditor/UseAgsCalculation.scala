@@ -45,7 +45,9 @@ case class AgsCalcProps(
   sciOffsets:    Option[ScienceOffsets],
   candidates:    List[GuideStarCandidate],
   trackType:     Option[TrackType]
-)
+):
+  lazy val guideProbe: Option[GuideProbe] =
+    observingMode.map(_.guideProbe(trackType))
 
 object AgsCalcProps:
   given Reusability[AgsCalcProps] = Reusability.by: p =>
@@ -74,11 +76,10 @@ object AgsCalculationResults:
 object UseAgsCalculation:
 
   private def applyGuideProbe(
-    base:          Option[AgsParams],
-    observingMode: Option[BasicConfiguration],
-    trackType:     Option[TrackType]
+    base:       Option[AgsParams],
+    guideProbe: Option[GuideProbe]
   ): Option[AgsParams] =
-    observingMode.map(_.guideProbe(trackType)) match
+    guideProbe match
       case Some(GuideProbe.PWFS1) =>
         base.map:
           case p: AgsParams.GmosLongSlit       => p.withPWFS1
@@ -94,7 +95,7 @@ object UseAgsCalculation:
   private def agsParams(
     obsModeType:   ObservingModeType,
     observingMode: Option[BasicConfiguration],
-    trackType:     Option[TrackType],
+    guideProbe:    Option[GuideProbe],
     port:          PortDisposition = PortDisposition.Side
   ): Option[AgsParams] =
     obsModeType match
@@ -107,17 +108,20 @@ object UseAgsCalculation:
               Flamingos2FpuMask.Builtin(fpu),
               port
             )
-        applyGuideProbe(base, observingMode, trackType)
+        applyGuideProbe(base, guideProbe)
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val base = observingMode
           .flatMap(_.gmosFpuAlternative)
           .map(AgsParams.GmosLongSlit(_, port))
-        applyGuideProbe(base, observingMode, trackType)
+        applyGuideProbe(base, guideProbe)
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
         val base = Some(AgsParams.GmosImaging(port))
-        applyGuideProbe(base, observingMode, trackType)
+        applyGuideProbe(base, guideProbe)
+
+      case ObservingModeType.Igrins2LongSlit =>
+        none
 
   private def runAgsQuery(
     props:          AgsCalcProps,
@@ -127,7 +131,7 @@ object UseAgsCalculation:
     agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
     obsCoords.baseCoords.map { baseCoords =>
-      val params = agsParams(props.obsModeType, props.observingMode, props.trackType)
+      val params = agsParams(props.obsModeType, props.observingMode, props.guideProbe)
 
       params
         .map: p =>

@@ -27,6 +27,7 @@ import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
+import lucuma.core.geom.pwfs
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
@@ -160,6 +161,8 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+          case ObservingModeType.Igrins2LongSlit                                         =>
+            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -180,7 +183,7 @@ def useVisualizationShapes(
     (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
       conf match
         case ObservingModeType.Flamingos2LongSlit                                      =>
-          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
@@ -201,7 +204,7 @@ def useVisualizationShapes(
            )
           )
         case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
@@ -222,7 +225,7 @@ def useVisualizationShapes(
            )
           )
         case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-          val probeVisibilityCss = vizConf.map(c => c.configuration.guideProbe(c.trackType)) match
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
@@ -242,4 +245,6 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
+        case ObservingModeType.Igrins2LongSlit                                         =>
+          (Css.Empty, None)
   }.map(_.value)
