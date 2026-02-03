@@ -42,6 +42,9 @@ case class ObjectPlotData(
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
 
+  val hasNonSidereal: Boolean =
+    targets.exists(Target.nonsidereal.getOption(_).isDefined)
+
   def pointsAtInstant(
     site:     Site,
     start:    Instant,
@@ -130,6 +133,9 @@ object ObjectPlotData:
       MoonData(moonPhase, moonIllum)
 
 object PlotData extends NewType[Map[ObjectPlotData.Id, ObjectPlotData]]:
-  given Reusability[PlotData] =
+  given Reusability[PlotData]   =
     Reusability.by[Type, Map[ObjectPlotData.Id, ObjectPlotData]](_.value)(using Reusability.map)
+  extension (plotData: PlotData)
+    def hasNonSidereal: Boolean =
+      plotData.value.values.exists(_.hasNonSidereal)
 type PlotData = PlotData.Type
