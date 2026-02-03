@@ -38,20 +38,37 @@ case class ItcImagingQuerier(
   private val constraints = observation.constraints
   private val asterismIds = observation.scienceTargetIds
 
-  private val exposureTimeMode: Option[ExposureTimeMode] =
-    observation.scienceRequirements.exposureTimeMode
-
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
     asterismIds.toItcTargets(allTargets)
+
+  private val obsModeConfigs: Option[NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
+    NonEmptyList.fromList(observation.toInstrumentConfig(allTargets))
+
+  private def requirementsExposureTimeMode: EitherNec[ItcQueryProblem, ExposureTimeMode] =
+    observation.scienceRequirements.exposureTimeMode.toRightNec(
+      ItcQueryProblem.MissingExposureTimeMode
+    )
+
+  private def requirementsConfigs
+    : EitherNec[ItcQueryProblem, NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
+    requirementsExposureTimeMode.flatMap: etm =>
+      NonEmptyList
+        .fromList(
+          selectedConfigs.map((_, etm))
+        )
+        .toRightNec(ItcQueryProblem.GenericError(Constants.MissingMode))
+
+  private val finalConfigs
+    : EitherNec[ItcQueryProblem, NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
+    obsModeConfigs
+      .map(_.rightNec)
+      .getOrElse(requirementsConfigs)
 
   private val queryProps: EitherNec[ItcQueryProblem, ItcImagingQuerier.QueryProps] =
     for {
       t       <- itcTargets.leftMap(_.map(_.problem))
-      exp     <- exposureTimeMode.toRightNec(ItcQueryProblem.MissingExposureTimeMode)
-      configs <- NonEmptyList
-                   .fromList(selectedConfigs)
-                   .toRightNec(ItcQueryProblem.GenericError(Constants.MissingMode))
-    } yield ItcImagingQuerier.QueryProps(exp, constraints, t, configs.toList, customSedTimestamps)
+      configs <- finalConfigs
+    } yield ItcImagingQuerier.QueryProps(constraints, t, configs.toList, customSedTimestamps)
 
   def requestCalculations(using
     WorkerClient[IO, ItcMessage.Request]
@@ -61,11 +78,11 @@ case class ItcImagingQuerier(
     ): IO[ImagingResults] =
       ItcClient[IO]
         .requestSingle:
-          ItcMessage.Query(qp.exposureTimeMode,
-                           qp.constraints,
-                           qp.targets,
-                           qp.customSedTimestamps,
-                           qp.instrumentConfigs
+          ItcMessage.Query(
+            qp.constraints,
+            qp.targets,
+            qp.customSedTimestamps,
+            qp.instrumentConfigs
           )
         .map(_.fold(ItcQueryProblem.GenericError("No response from ITC server").leftNec)(_.asRight))
 
@@ -76,10 +93,9 @@ case class ItcImagingQuerier(
 
 object ItcImagingQuerier:
   private case class QueryProps(
-    exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
-    instrumentConfigs:   List[ItcInstrumentConfig],
+    instrumentConfigs:   List[(ItcInstrumentConfig, ExposureTimeMode)],
     customSedTimestamps: List[Timestamp]
   ) derives Eq
 

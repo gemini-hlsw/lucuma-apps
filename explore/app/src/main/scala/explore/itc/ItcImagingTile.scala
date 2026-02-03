@@ -8,7 +8,9 @@ import cats.data.EitherNec
 import cats.derived.*
 import cats.syntax.all.*
 import crystal.*
+import crystal.Pot
 import crystal.react.*
+import crystal.react.syntax.pot.given
 import eu.timepit.refined.types.numeric.PosInt
 import explore.components.Tile
 import explore.components.ui.ExploreStyles
@@ -34,6 +36,7 @@ import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Dropdown
+import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
 import lucuma.react.syntax.*
 import lucuma.react.table.*
@@ -163,32 +166,45 @@ object ItcImagingTile extends ModesTableCommon:
 
   private object Body
       extends ReactFnComponent[Body](props =>
+        given Reusability[ImagingResults] = Reusability.byEq
+
+        def toMessage(msg: String, severity: Message.Severity) =
+          Message(text = msg, severity = severity): VdomNode
+
         for {
-          rows  <- useMemo(props.selectedConfigs): selection =>
-                     selection.configs.zipWithIndex.map { (configAndResult, id) =>
-                       val config = configAndResult.instrumentConfig
-                       val result = Pot.fromOption(configAndResult.itcResult)
-                       ImagingFilterRow(id, config, result)
-                     }
+          rowsOrMsg <- useMemo(props.tileState.get.calculationResults):
+                         _ match
+                           case Pot.Pending      =>
+                             toMessage("Waiting for ITC...", Message.Severity.Info)
+                               .asLeft[List[ImagingFilterRow]]
+                           case Pot.Error(t)     =>
+                             toMessage(s"Error calling ITC: ${t.getMessage}",
+                                       Message.Severity.Error
+                             ).asLeft
+                           case Pot.Ready(value) =>
+                             value match
+                               case Left(problems) =>
+                                 toMessage(problems.toList.map(_.message).mkString(", "),
+                                           Message.Severity.Warning
+                                 ).asLeft
+                               case Right(result)  =>
+                                 result.toList.zipWithIndex.map { case ((config, res), idx) =>
+                                   ImagingFilterRow(idx, config.mode, res.ready)
+                                 }.asRight
+
           cols  <- useMemo(()): _ =>
                      columns
           table <- useReactTable(
                      TableOptions(
                        cols,
-                       rows,
+                       rowsOrMsg.map(_.getOrElse(List.empty)),
                        getRowId = (row, _, _) => RowId(row.id.toString),
                        enableSorting = true,
                        enableColumnResizing = true,
                        meta = TableMeta(none[Progress])
                      )
                    )
-        } yield <.div(
-          ExploreStyles.ItcTileBody,
-          if (rows.nonEmpty)
-            PrimeTable(table, compact = Compact.Very)
-          else
-            <.p("No configurations selected")
-        )
+        } yield rowsOrMsg.swap.getOrElse(PrimeTable(table, compact = Compact.Very))
       )
 
   private case class Title(
