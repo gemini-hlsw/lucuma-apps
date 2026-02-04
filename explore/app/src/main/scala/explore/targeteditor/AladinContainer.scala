@@ -78,7 +78,8 @@ case class AladinContainer(
   selectedGuideStar:      Option[AgsAnalysis.Usable],
   agsResults:             AgsCalculationResults,
   anglesToTest:           Option[NonEmptyList[Angle]],
-  agsState:               Option[AgsState]
+  agsState:               Option[AgsState],
+  isStaffOrAdmin:         Boolean
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -651,6 +652,7 @@ object AladinContainer extends AladinCommon {
                     )
                   )
               ),
+              // Instrument shapes
               (resize.width,
                resize.height,
                fov.value,
@@ -667,7 +669,8 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              Option.when(LinkingInfo.developmentMode)(
+              // Patrol field shapes for debugging
+              Option.when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
                 (resize.width,
                  resize.height,
                  fov.value,
