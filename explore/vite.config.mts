@@ -347,7 +347,7 @@ export default defineConfig(async ({ mode }) => {
         injectRegister: 'inline',
         selfDestroying: false,
         workbox: {
-          globPatterns: ['**/*.{js,css,html,wasm,woff2,woff,ttf,otf}'],
+          globPatterns: ['**/*.{js,css,html,wasm,woff2,woff,ttf,otf,csv,dat}'],
           globIgnores: ['**/uninstall.html'],
           maximumFileSizeToCacheInBytes: 30000000, // sjs produce large ffiles
           navigateFallbackDenylist: [/\/uninstall\.html$/],
