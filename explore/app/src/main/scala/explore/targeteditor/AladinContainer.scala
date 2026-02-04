@@ -78,7 +78,8 @@ case class AladinContainer(
   selectedGuideStar:      Option[AgsAnalysis.Usable],
   agsResults:             AgsCalculationResults,
   anglesToTest:           Option[NonEmptyList[Angle]],
-  agsState:               Option[AgsState]
+  agsState:               Option[AgsState],
+  isStaffOrAdmin:         Boolean
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -208,13 +209,13 @@ object AladinContainer extends AladinCommon {
 
     if (selectedGS.forall(_.target.id === g.target.id))
       val obsTimeCoords = tracking.atOrBase(siderealDiscretizedObsTime.obsTime)
+      val epochCoords   = tracking.coordsAtEpoch(surveyEpoch)
       val vignettedCss  = ExploreStyles.VignettedGS.when_(g.vignetting.toMicroarcsecondsSquared > 0L)
-      List(
-        SvgTarget.GuideStarTarget(obsTimeCoords,
-                                  candidateCss |+| vignettedCss,
-                                  calcSize(GuideStarSize),
-                                  g
-        )
+      svgTargetAndProperMotionLine(
+        obsTimeCoords,
+        epochCoords,
+        SvgTarget.GuideStarTarget(_, candidateCss |+| vignettedCss, calcSize(GuideStarSize), g),
+        ExploreStyles.PMGSCorrectionLine |+| VisualizationStyles.GuideStarCandidateVisible
       )
     else
       val css = candidateCss |+| candidatesVisibility |+|
@@ -651,6 +652,7 @@ object AladinContainer extends AladinCommon {
                     )
                   )
               ),
+              // Instrument shapes
               (resize.width,
                resize.height,
                fov.value,
@@ -667,7 +669,8 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              Option.when(LinkingInfo.developmentMode)(
+              // Patrol field shapes for debugging
+              Option.when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
                 (resize.width,
                  resize.height,
                  fov.value,
