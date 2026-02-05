@@ -43,7 +43,6 @@ import lucuma.ui.syntax.all.given
 
 import scala.collection.immutable.SortedSet
 
-// TODO PENDING!!!! canMinimize = !isEditing.get
 final case class SequenceTile(
   obsId:               Observation.Id,
   obsExecution:        Execution,
@@ -52,7 +51,9 @@ final case class SequenceTile(
   calibrationRole:     Option[CalibrationRole],
   sequenceChanged:     View[Pot[Unit]],
   isEditing:           View[IsEditing]
-) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence")(SequenceTile)
+) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence", canMinimize = !isEditing.get)(
+      SequenceTile
+    )
 
 object SequenceTile
     extends TileComponent[SequenceTile]((props, sizeState) =>
