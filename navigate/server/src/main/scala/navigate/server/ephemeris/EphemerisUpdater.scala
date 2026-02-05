@@ -3,15 +3,16 @@
 
 package navigate.server.ephemeris
 
-import cats.Applicative
 import cats.MonadThrow
 import cats.effect.Async
 import cats.syntax.all.*
+import fs2.Stream
 import fs2.io.file.Files
 import fs2.io.file.Path
 import lucuma.core.enums.Site
 import lucuma.core.model.Ephemeris
 import lucuma.core.util.DateInterval
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
 import navigate.server.OdbProxy
@@ -29,22 +30,42 @@ object EphemerisUpdater {
 
   case class EphemerisTimeRange(ephemeris: Ephemeris.Key, start: Timestamp, end: Timestamp)
 
-  private def createEphemerisFiles[F[_]: Applicative](
-    @annotation.unused horizonsClient: HorizonsClient[F],
-    @annotation.unused targets:        List[Ephemeris.Key],
-    @annotation.unused dateInterval:   DateInterval
-  ): F[List[Throwable]] = List.empty.pure[F]
-//  targets.map {
-//    case h: Ephemeris.Key.Horizons => (for {
-//      st <- dateInterval.start.noon
-//      end <- dateInterval.end.noon
-//    } yield horizonsClient.ephemeris(h, st.toInstant, end.toInstant, TimeSpan.between(st, end).toMinutes.toInt + 1 )
-//    ).getOrElse(Applicative[F].unit)
-//  }
+  private def createEphemerisFiles[F[_]: Async](
+    horizonsClient: HorizonsClient[F],
+    targets:        List[Ephemeris.Key],
+    dateInterval:   DateInterval,
+    site:           Site,
+    path:           Path
+  ): F[List[String]] = targets
+    .map {
+      case h: Ephemeris.Key.Horizons =>
+        (for {
+          st  <- dateInterval.start.noon
+          end <- dateInterval.end.noon
+        } yield horizonsClient
+          .ephemeris(h, st.toInstant, end.toInstant, TimeSpan.between(st, end).toMinutes.toInt + 1)
+          .flatMap(
+            _.fold(
+              _.some.pure[F],
+              x =>
+                Files.forAsync
+                  .writeUtf8Lines(path / EphemerisFile.filenameFromKey(h))(
+                    Stream.emits(List(EphemerisFile.format(x, site)))
+                  )
+                  .compile
+                  .drain
+                  .as(none)
+            )
+          )).getOrElse(none.pure[F])
+      case _                         => none.pure[F]
+    }
+    .sequence
+    .map(_.flattenOption)
 
-  private def readEphemerisFiles[F[_]: Async](
+  private[ephemeris] def readEphemerisFiles[F[_]: Async](
     filePath: Path
-  ): F[List[EphemerisFile]] = Files.forAsync
+  ): F[List[EphemerisFile]] = Files
+    .forAsync[F]
     .list(filePath)
     .filter(_.extName === ".eph")
     .evalMap(EphemerisFile.EphemerisParser.parse)
@@ -77,16 +98,13 @@ object EphemerisUpdater {
   private def deleteFiles[F[_]: Async](l: List[EphemerisFile]): F[Unit] =
     l.map(x => Files.forAsync.delete(x.fileName)).sequence.void
 
-  private def reportErrors[F[_]: Applicative](@annotation.unused errors: List[Throwable]): F[Unit] =
-    Applicative[F].unit
-
   def build[F[_]: {MonadThrow, Async}](
-    site:                 Site,
-    filePath:             Path,
-    odbProxy:             OdbProxy[F],
-    horizonsClient:       HorizonsClient[F]
+    site:           Site,
+    filePath:       Path,
+    odbProxy:       OdbProxy[F],
+    horizonsClient: HorizonsClient[F]
   )(using
-    @annotation.unused L: Logger[F]
+    L:              Logger[F]
   ): EphemerisUpdater[F] = new EphemerisUpdater[F] {
     /*
      * The process to refresh the ephemeris files in TCS must:
@@ -100,10 +118,12 @@ object EphemerisUpdater {
     override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = for {
       files             <- readEphemerisFiles(filePath)
       targets           <- odbProxy.queryNonSiderealObs(site, dateInterval.start, dateInterval.end)
+      _                 <- L.debug(s"Refresh ephemerides: Targets $targets")
       (toLoad, toDelete) = threshFilesAndTargets(targets, dateInterval, files)
+      _                 <- L.debug(s"Refresh ephemerides: Files generated for $toLoad")
       _                 <- deleteFiles(toDelete)
-      errors            <- createEphemerisFiles(horizonsClient, toLoad, dateInterval)
-      _                 <- reportErrors(errors).whenA(errors.nonEmpty)
+      errors            <- createEphemerisFiles(horizonsClient, toLoad, dateInterval, site, filePath)
+      _                 <- L.debug(s"Refresh ephemerides errors: $errors").whenA(errors.nonEmpty)
     } yield ()
 
   }
