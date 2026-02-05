@@ -52,10 +52,9 @@ case class ItcTileState(
 
   def graphsBrightestOrFirst: Option[TargetAndResults] =
     graphBrightestTarget
-      .orElse(
+      .orElse:
         asterismGraphs.headOption
           .map(_.toTargetAndResults)
-      )
 
   def calculationTargets: List[ItcTarget] =
     calculationResults.toOption

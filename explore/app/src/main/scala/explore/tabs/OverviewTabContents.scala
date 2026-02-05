@@ -8,10 +8,12 @@ import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.*
+import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.attachments.AttachmentsTile
 import explore.common.Aligner
 import explore.components.Tile
+import explore.components.TileContents
 import explore.components.TileController
 import explore.components.ui.ExploreStyles
 import explore.components.undo.UndoButtons
@@ -77,37 +79,46 @@ object OverviewTabContents
 
         val defaultLayouts = ExploreGridLayouts.sectionLayout(GridLayoutSection.OverviewLayout)
 
-        val warningsAndErrorsTile = Tile(
+        val warningsAndErrorsTile = Tile.Inline(
           OverviewTabTileIds.WarningsAndErrorsId.id,
-          "Warnings And Errors",
-          ObservationValidationsTableTileState(_ => Callback.empty)
-        )(
-          ObservationValidationsTableBody(props.userId, props.programId, props.observations, _),
-          ObservationValidationsTableTitle.apply
+          "Warnings And Errors"
+        )(tileSize =>
+          for tileState <- useStateView(ObservationValidationsTableTileState(_ => Callback.empty))
+          yield TileContents(
+            ObservationValidationsTableTitle(tileState, tileSize),
+            ObservationValidationsTableBody(
+              props.userId,
+              props.programId,
+              props.observations,
+              tileState
+            )
+          )
         )
 
         val groupWarningsTile =
-          GroupWarningsTile.apply(props.userId, props.programId, props.groups, props.groupWarnings)
+          GroupWarningsTile(props.userId, props.programId, props.groups, props.groupWarnings)
 
         val showObsAttachments =
           props.proposalIsAccepted || props.detailsUndoSetter.get.programType =!= ProgramType.Science
 
-        val attachmentsTile =
-          AttachmentsTile(
-            props.programId,
-            props.userVault,
-            props.obsAttachmentAssignments,
-            props.targetAttachmentAssignments,
-            props.attachments,
-            showObsAttachments,
-            props.readonly
+        val attachmentsTile: Tile[?] =
+          props.userVault.fold(Tile.Dummy(OverviewTabTileIds.AttachmentsId.id))(userVault =>
+            AttachmentsTile(
+              props.programId,
+              userVault,
+              props.obsAttachmentAssignments,
+              props.targetAttachmentAssignments,
+              props.attachments,
+              showObsAttachments,
+              props.readonly
+            )
           )
 
         // only edit program description here for non-science programs. For science programs it
         // is edited as the abstract on the proposals tab.
         val descriptionTile =
           if (props.detailsUndoSetter.get.programType === ProgramType.Science)
-            Tile.dummyTile(OverviewTabTileIds.DescriptionId.id)
+            Tile.Dummy(OverviewTabTileIds.DescriptionId.id)
           else
             val descriptionAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
               Aligner(
@@ -123,18 +134,20 @@ object OverviewTabContents
             val descriptionView                                                            =
               descriptionAligner.view(_.orUnassign)
 
-            Tile(OverviewTabTileIds.DescriptionId.id,
-                 "Description",
-                 bodyClass = ExploreStyles.ProgramDescription
-            )(
-              _ =>
-                FormInputTextAreaView(id = "program-description".refined,
-                                      descriptionView.as(OptionNonEmptyStringIso)
-                ),
-              (_, _) =>
-                <.div(ExploreStyles.TitleUndoButtons)(
+            Tile.Inline(
+              OverviewTabTileIds.DescriptionId.id,
+                       "Description",
+                       bodyClass = ExploreStyles.ProgramDescription
+            )(_ =>
+              TileContents(
+                title = <.div(ExploreStyles.TitleUndoButtons)(
                   UndoButtons(props.undoer, disabled = props.readonly)
+                ),
+                body = FormInputTextAreaView(
+                  id = "program-description".refined,
+                  descriptionView.as(OptionNonEmptyStringIso)
                 )
+              )
             )
 
         <.div(ExploreStyles.MultiPanelTile)(

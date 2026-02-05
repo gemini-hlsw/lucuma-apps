@@ -33,16 +33,25 @@ import queries.schemas.UserPreferencesDB
 import scala.scalajs.js.JSConverters.*
 
 case class TileController(
-  userId:        Option[User.Id],
-  gridWidth:     Int,
-  defaultLayout: LayoutsMap,
-  layoutMap:     LayoutsMap,
-  tiles:         List[Tile[?]],
-  section:       GridLayoutSection,
-  backButton:    Option[VdomNode] = None,
-  clazz:         Option[Css] = None,
-  storeLayout:   Boolean = true
-) extends ReactFnProps(TileController.component)
+  userId:           Option[User.Id],
+  gridWidth:        Int,
+  defaultLayout:    LayoutsMap,
+  layoutMap:        LayoutsMap,
+  tileDefs:         List[Tile[?]],
+  section:          GridLayoutSection,
+  renderBackButton: Option[VdomNode] = None,
+  clazz:            Option[Css] = None,
+  storeLayout:      Boolean = true
+) extends ReactFnProps(TileController.component):
+  val tiles: List[TileState[?]] =
+    tileDefs.map: t =>
+      TileState(
+        t.asInstanceOf[t.Type],
+        t.renderBackButton,
+        t.canMinimize,
+        t.canMaximize,
+        t.initialSizeState
+      )
 
 object TileController:
   private type Props = TileController
@@ -76,41 +85,45 @@ object TileController:
       .filter(_.i === id.value)
       .andThen(layoutItemHeight)
 
-  private def updateResizableState(tiles: List[Tile[?]], p: LayoutsMap): LayoutsMap =
+  private def updateResizableState(tiles: List[TileState[?]], p: LayoutsMap): LayoutsMap =
     allLayouts
       .andThen(layoutItems)
       .modify {
-        case r if tiles.exists(t => t.id.value === r.i && t.hidden) =>
+        case r if tiles.exists(t => t.tileProps.id.value === r.i && t.tileProps.hidden) =>
           // height to 0 for hidden tiles
           r.copy(minH = 0, h = 0, isResizable = false)
-        case r if r.h === 1                                         => r.copy(minH = 1)
-        case r                                                      => r
+        case r if r.h === 1                                                             => r.copy(minH = 1)
+        case r                                                                          => r
       }(p)
 
   private val component =
-    ScalaFnComponent
-      .withHooks[Props]
-      .useContext(AppContext.ctx)
-      // Get the breakpoint from the layout
-      .useStateBy: (p, _) =>
-        getBreakpointFromWidth(p.layoutMap.map { case (x, (w, _, _)) => x -> w }, p.gridWidth)
-      // Make a local copy of the layout fixing the state of minimized layouts
-      .useStateViewBy((p, _, _) => updateResizableState(p.tiles, p.layoutMap))
-      // Update the current layout if it changes upstream
-      .useEffectWithDepsBy((p, _, _, _) => (p.tiles.map(_.hidden), p.layoutMap)):
-        (p, _, _, currentLayout) =>
-          (_, layout) => currentLayout.set(updateResizableState(p.tiles, layout))
-      .render: (p, ctx, breakpoint, currentLayout) =>
+    ScalaFnComponent[Props]: props =>
+      for
+        ctx           <- useContext(AppContext.ctx)
+        // Get the breakpoint from the layout
+        breakpoint    <- useState(
+                           getBreakpointFromWidth(
+                             props.layoutMap.map { case (x, (w, _, _)) => x -> w },
+                             props.gridWidth
+                           )
+                         )
+        // Make a local copy of the layout fixing the state of minimized layouts
+        currentLayout <- useStateView(updateResizableState(props.tiles, props.layoutMap))
+        // Update the current layout if it changes upstream
+        _             <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
+                           (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
+      yield
         import ctx.given
 
-        def sizeState(id: Tile.TileId) = (st: TileSizeState) =>
+        def setSizeState(id: Tile.TileId) = (st: TileSizeState) =>
           currentLayout
             .zoom(allTiles)
             .mod:
               case l if l.i === id.value =>
                 if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
                 else if (st === TileSizeState.Maximized)
-                  val defaultHeight = unsafeTileHeight(id).headOption(p.defaultLayout).getOrElse(1)
+                  val defaultHeight =
+                    unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
                   l.copy(
                     h = defaultHeight,
                     minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
@@ -118,23 +131,21 @@ object TileController:
                 else l
               case l                     => l
 
-        val tilesWithBackButton: List[Tile[?]] = {
+        val tilesWithBackButton: List[TileState[?]] = {
           val topTile =
             currentLayout.get.get(breakpoint.value).flatMap(_._3.asList.sortBy(_.y).headOption)
-          (topTile, p.backButton)
-            .mapN((t, _) =>
-              p.tiles
-                .map {
-                  case ti if t.i === ti.id.value =>
-                    ti.withBackButton(p.backButton)
-                  case ti                        => ti
-                }
-            )
-            .getOrElse(p.tiles)
+          (topTile, props.renderBackButton)
+            .mapN: (t, _) =>
+              props.tiles
+                .map:
+                  case ti if t.i === ti.tileProps.id.value =>
+                    ti.withBackButton(props.renderBackButton)
+                  case ti                                  => ti
+            .getOrElse(props.tiles)
         }
 
         ResponsiveReactGridLayout(
-          width = p.gridWidth.toDouble,
+          width = props.gridWidth.toDouble,
           autoSize = true,
           // this has a performance cost but lets controls on the title to work properly
           // https://github.com/react-grid-layout/react-grid-layout/issues/858#issuecomment-426346399
@@ -153,20 +164,20 @@ object TileController:
             // Store the current layout in the state for debugging
             currentLayout
               .mod(breakpointLayout(breakpoint.value).replace(m)) *>
-              storeLayouts(p.userId, p.section, newLayouts)
-                .when_(p.storeLayout),
+              storeLayouts(props.userId, props.section, newLayouts)
+                .when_(props.storeLayout),
           layouts = currentLayout.get,
-          className = p.clazz.map(_.htmlClass).orUndefined
+          className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
             <.div(
-              ^.key := tile.id.value,
+              ^.key := tile.tileProps.id.value,
               // Show tile properties on the title if enabled
               currentLayout.get
                 .get(breakpoint.value)
                 .flatMap { case (p, c, l) =>
                   l.asList
-                    .find(_.i === tile.id.value)
+                    .find(_.i === tile.tileProps.id.value)
                     .flatMap { i =>
                       TagMod
                         .devOnly(
@@ -184,8 +195,12 @@ object TileController:
                     }
                 }
                 .getOrElse(EmptyVdom),
-              tile.controllerClass,
-              tile.withState(unsafeSizeToState(currentLayout.get, tile.id), sizeState(tile.id))
+              tile.tileProps.controllerClass,
+              tile
+                .withState(
+                  unsafeSizeToState(currentLayout.get, tile.tileProps.id),
+                  setSizeState(tile.tileProps.id)
+                )
             )
           }.toVdomArray
         )

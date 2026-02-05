@@ -3,12 +3,11 @@
 
 package explore.tabs
 
-import cats.syntax.all.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.components.*
 import explore.components.HelpIcon
 import explore.components.MarkdownEditor
-import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.model.ObsTabTileIds
 import explore.model.enums.TileSizeState
@@ -19,18 +18,17 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
 import lucuma.refined.*
 
-object NotesTile:
-  def apply(notes: View[Option[NonEmptyString]], hidden: Boolean): Tile[Unit] =
-    val wc = notes.get.fold(0)(n => wordCount(n.value))
-
-    Tile(
+final case class NotesTile(notes: View[Option[NonEmptyString]], override val hidden: Boolean)
+    extends Tile[NotesTile](
       ObsTabTileIds.NotesId.id,
-      s"Note for Observer (${showCount(wc, "word")})",
-      bodyClass = ExploreStyles.NotesTile,
-      hidden = hidden
-    )(_ => MarkdownEditor(notes),
-      (_, tileSize) =>
-        Option.unless(tileSize === TileSizeState.Minimized)(
-          HelpIcon("observer-notes.md".refined)
-        )
+      s"Note for Observer (${showCount(notes.get.fold(0)(n => wordCount(n.value)), "word")})",
+      bodyClass = ExploreStyles.NotesTile
+    )(NotesTile)
+
+object NotesTile
+    extends TileComponent[NotesTile]((props, tileSize) =>
+      TileContents(
+        title = HelpIcon("observer-notes.md".refined).unless(tileSize.isMinimized),
+        body = MarkdownEditor(props.notes)
+      )
     )

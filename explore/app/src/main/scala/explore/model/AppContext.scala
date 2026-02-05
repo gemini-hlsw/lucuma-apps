@@ -24,6 +24,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.feature.Context
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.catalog.clients.SimbadClient
+import lucuma.catalog.simbad.SEDDataLoader
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
@@ -34,12 +35,11 @@ import lucuma.ui.sso.SSOClient
 import org.http4s.Uri
 import org.http4s.Uri.Scheme
 import org.http4s.client.Client
+import org.http4s.implicits.*
 import org.typelevel.log4cats.Logger
 import queries.schemas.SSO
 import queries.schemas.UserPreferencesDB
 import workers.WorkerClient
-import lucuma.catalog.simbad.SEDDataLoader
-import org.http4s.implicits.*
 
 case class ProgramError(message: String, fatal: Boolean)
 

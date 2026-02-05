@@ -13,9 +13,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.actions.ObservationPasteIntoAsterismAction
-import explore.components.FocusedStatus
-import explore.components.Tile
-import explore.components.TileController
+import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.*
 import explore.model.GuideStarSelection.AgsSelection
@@ -345,7 +343,7 @@ object TargetTabContents extends TwoPanels:
           /**
            * Render the summary table.
            */
-          val renderSummary: Tile[TargetSummaryTile.TileState] =
+          val renderSummary =
             TargetSummaryTile(
               props.userId,
               props.programId,
@@ -386,9 +384,7 @@ object TargetTabContents extends TwoPanels:
            *   The AsterismGroup that is the basis for editing. All or part of it may be included in
            *   the edit.
            */
-          def renderAsterismEditor(
-            idsToEdit: ObsIdSet
-          ): List[Tile[?]] = {
+          def renderAsterismEditor(idsToEdit: ObsIdSet): List[Tile[?]] = {
             val getObsTime: ProgramSummaries => Option[Instant] = a =>
               for
                 id <- idsToEdit.single
@@ -528,7 +524,7 @@ object TargetTabContents extends TwoPanels:
                   setExpanded >> setPage
                 )
 
-            val asterismEditorTile =
+            val asterismEditorTile = // : Option[Tile[?]] =
               props.programType.map: programType =>
                 ObservationTargetsEditorTile(
                   props.userId,
@@ -564,7 +560,7 @@ object TargetTabContents extends TwoPanels:
                   backButton = backButton.some
                 )
 
-            val skyPlotTile: Tile[?] =
+            val skyPlotTile = // : Tile[?] =
               ElevationPlotTile(
                 props.userId,
                 TargetTabTileIds.ElevationPlot.id,
@@ -582,15 +578,15 @@ object TargetTabContents extends TwoPanels:
           }
 
           // We still want to render these 2 tiles, even when not shown, so as not to mess up the stored layout.
-          val dummyTargetTile: Tile[Unit]    =
-            Tile.dummyTile(TargetTabTileIds.AsterismEditor.id)
-          val dummyElevationTile: Tile[Unit] =
-            Tile.dummyTile(TargetTabTileIds.ElevationPlot.id)
+          val dummyTargetTile: Tile[?]    =
+            Tile.Dummy(TargetTabTileIds.AsterismEditor.id)
+          val dummyElevationTile: Tile[?] =
+            Tile.Dummy(TargetTabTileIds.ElevationPlot.id)
 
           /**
            * Renders a single sidereal target editor without an obs context
            */
-          def renderSiderealTargetEditor(targetId: Target.Id): Option[Tile[?]] = {
+          def renderSiderealTargetEditor(targetId: Target.Id): Option[SingleTargetEditorTile] = {
             def onCloneTarget4Target(params: OnCloneParameters): Callback =
               // It's not perfect, but we'll go to whatever url has the "new" id. This means
               // that if the user went elsewhere before doing undo/redo, they will go back to the new target.
@@ -600,7 +596,7 @@ object TargetTabContents extends TwoPanels:
 
             (props.targets.zoom(Iso.id[TargetList].index(targetId)), props.programType)
               .mapN: (target, programType) =>
-                TargetEditorTile.noObsTargetEditorTile(
+                SingleTargetEditorTile(
                   props.programId,
                   programType,
                   props.userId,
@@ -620,7 +616,7 @@ object TargetTabContents extends TwoPanels:
                 )
           }
 
-          val skyPlotTile: Tile[?] =
+          val skyPlotTile = // : Tile[?] =
             ElevationPlotTile(
               props.userId,
               TargetTabTileIds.ElevationPlot.id,
@@ -644,7 +640,8 @@ object TargetTabContents extends TwoPanels:
                     .map: _ =>
                       renderAsterismEditor(obsIds)
 
-            val singleTargetEditorTile: Option[Tile[?]] = // Target selected on summary table
+            val singleTargetEditorTile
+              : Option[SingleTargetEditorTile] = // Target selected on summary table
               props.focusedSummaryTargetId
                 .map:
                   renderSiderealTargetEditor
@@ -652,15 +649,16 @@ object TargetTabContents extends TwoPanels:
 
             val selectedTargetsTiles: List[Tile[?]] =
               List(
-                renderSummary.withFullSize,
+                renderSummary,
                 singleTargetEditorTile.getOrElse(dummyTargetTile),
                 Option // Show plot if and only if the editor is hidden.
                   .when(singleTargetEditorTile.isEmpty)(skyPlotTile)
                   .getOrElse(dummyElevationTile)
               )
 
+            // TODO I think this was always false as skyPlotTile is always defined? Maybe we should remove the onlySummary logic?
             val onlySummary: Boolean =
-              observationSetTargetEditorTile.isEmpty && singleTargetEditorTile.isEmpty && skyPlotTile.isEmpty
+              observationSetTargetEditorTile.isEmpty && singleTargetEditorTile.isEmpty // && skyPlotTile.isEmpty
 
             val (tiles, key) =
               observationSetTargetEditorTile

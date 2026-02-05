@@ -6,6 +6,7 @@ package explore.tabs
 import cats.data.NonEmptySet
 import cats.syntax.all.*
 import explore.components.Tile
+import explore.components.TileContents
 import explore.components.TileController
 import explore.components.ui.ExploreStyles
 import explore.model.Group
@@ -30,16 +31,12 @@ case class ObsGroupTiles(
   layouts:        LayoutsMap,
   readonly:       Boolean,
   backButton:     VdomNode
-) extends ReactFnProps(ObsGroupTiles.component)
+) extends ReactFnProps(ObsGroupTiles)
 
-object ObsGroupTiles:
-  private type Props = ObsGroupTiles
-
-  val component = ScalaFnComponent
-    .withHooks[Props]
-    .render: props =>
+object ObsGroupTiles
+    extends ReactFnComponent[ObsGroupTiles](props =>
       val editTile: Tile[?] =
-        Tile(
+        Tile.Inline(
           GroupEditTileIds.GroupEditId.id,
           s"${
               if props.group.get.system then props.group.get.name.foldMap(_.value)
@@ -48,17 +45,18 @@ object ObsGroupTiles:
             } Group",
           props.backButton.some,
           tileTitleClass = ExploreStyles.GroupEditTitle
-        )(
-          _ =>
-            GroupEditBody(
+        )(_ =>
+          TileContents(
+            title = GroupEditTitle(props.group, props.childCount),
+            body = GroupEditBody(
               props.group,
               props.groupWarnings,
               props.childCount,
               props.group.get.system || props.readonly
             )
               .withKey(props.group.get.id.toString)
-              .toUnmounted,
-          (_, _) => GroupEditTitle(props.group, props.childCount)
+              .toUnmounted
+          )
         )
 
       TileController(
@@ -70,3 +68,4 @@ object ObsGroupTiles:
         GridLayoutSection.GroupEditLayout,
         props.backButton.some
       )
+    )

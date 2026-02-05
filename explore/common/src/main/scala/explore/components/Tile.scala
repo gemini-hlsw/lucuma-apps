@@ -4,8 +4,6 @@
 package explore.components
 
 import cats.syntax.all.*
-import crystal.react.View
-import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
@@ -31,7 +29,7 @@ import lucuma.ui.syntax.all.given
  *   the initial state of the tile
  * @param title
  *   the title of the tile to be rendered in the title bar
- * @param back
+ * @param backButton
  *   an optional back button to be rendered in the title bar
  * @param canMinimize
  *   whether the tile can be minimized
@@ -51,112 +49,149 @@ import lucuma.ui.syntax.all.given
  *   a css class to be applied to the tile
  * @param tileTitleClass
  *   a css class to be applied to the title
- *
- * @param tileBody
- *   a function to render the body of the tile, it receives a View[A] to access the state
- * @param tileTitle
- *   a function to render the title of the tile, it receives a View[A] and the current size state
  */
-case class Tile[A](
-  id:                Tile.TileId,
-  title:             VdomNode,
-  initialState:      A = (),
-  back:              Option[VdomNode] = None,
+abstract class Tile[This <: Tile[This]](
+  val id:               Tile.TileId,
+  val title:            VdomNode,
+  val renderBackButton: Option[VdomNode] = None,
+  val canMinimize:      Boolean = true,
+  val canMaximize:      Boolean = true,
+  val hidden:           Boolean = false,
+  val initialSizeState: TileSizeState = TileSizeState.Maximized,
+  val controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
+  val bodyClass:        Css = Css.Empty, // applied to tile body
+  val tileClass:        Css = Css.Empty, // applied to the tile
+  val tileTitleClass:   Css = Css.Empty  // applied to the title
+)(val component: TileComponent[This]):
+  type Type = This
+
+protected[components] case class TileState[P <: Tile[P]](
+  tileProps:         P,
+  renderBackButton:  Option[VdomNode],
   canMinimize:       Boolean = true,
   canMaximize:       Boolean = true,
-  hidden:            Boolean = false,
-  sizeState:         TileSizeState = TileSizeState.Maximized,
-  sizeStateCallback: TileSizeState => Callback = _ => Callback.empty,
-  controllerClass:   Css = Css.Empty, // applied to wrapping div when in a TileController.
-  bodyClass:         Css = Css.Empty, // applied to tile body
-  tileClass:         Css = Css.Empty, // applied to the tile
-  tileTitleClass:    Css = Css.Empty  // applied to the title
-)(
-  val tileBody:      View[A] => VdomNode,
-  val tileTitle:     (View[A], TileSizeState) => VdomNode = (_: View[A], _: TileSizeState) => EmptyVdom
-) extends ReactFnProps(Tile.component) {
-  val fullSize: Boolean = !canMinimize && !canMaximize
+  sizeState:         TileSizeState,
+  sizeStateCallback: TileSizeState => Callback = (_ => Callback.empty)
+) extends ReactFnProps(tileProps.component.component):
+  val fullSize: Boolean = !tileProps.canMinimize && !tileProps.canMaximize
 
-  protected def showMaximize: Boolean =
-    sizeState === TileSizeState.Minimized || (canMaximize && sizeState === TileSizeState.Minimized)
+  val showMaximize: Boolean =
+    tileProps.canMaximize && canMaximize && sizeState === TileSizeState.Minimized
 
-  protected def showMinimize: Boolean =
-    sizeState === TileSizeState.Maximized || (canMinimize && sizeState === TileSizeState.Maximized)
+  val showMinimize: Boolean =
+    tileProps.canMinimize && canMinimize && sizeState === TileSizeState.Maximized
 
   def withState(
     state:             TileSizeState,
     sizeStateCallback: TileSizeState => Callback
-  ): Tile[A] =
-    copy(sizeState = state, sizeStateCallback = sizeStateCallback)(tileBody, tileTitle)
+  ): TileState[P] =
+    copy(sizeState = state, sizeStateCallback = sizeStateCallback)
 
-  def withFullSize: Tile[A] =
-    copy(canMinimize = false, canMaximize = false)(tileBody, tileTitle)
+  def withFullSize: TileState[P] =
+    copy(canMinimize = false, canMaximize = false)
 
-  def withBackButton(
-    back: Option[VdomNode]
-  ): Tile[A] =
-    copy(back = back)(tileBody, tileTitle)
+  def withBackButton(backButton: Option[VdomNode]): TileState[P] =
+    copy(renderBackButton = backButton)
+
+trait TileComponent[P <: Tile[P]](
+  useTileContents: (P, TileSizeState) => HookResult[TileContents]
+) {
+  val component =
+    ScalaFnComponent[TileState[P]]: tileState =>
+      val props: P = tileState.tileProps
+
+      for tileContents <- useTileContents(props, tileState.sizeState)
+      yield
+        val maximizeButton: Button =
+          Button(
+            text = true,
+            clazz = ExploreStyles.TileStateButton,
+            icon = Icons.Maximize,
+            onClick = tileState
+              .sizeStateCallback(TileSizeState.Maximized)
+              .when_(tileState.sizeState.isMinimized)
+          )
+
+        val minimizeButton: Button =
+          Button(
+            text = true,
+            clazz = ExploreStyles.TileStateButton,
+            icon = Icons.Minimize,
+            onClick = tileState
+              .sizeStateCallback(TileSizeState.Minimized)
+              .when_(tileState.sizeState.isMaximized)
+          )
+
+        // Tile wrapper
+        if (!props.hidden) {
+          <.div(
+            ExploreStyles.Tile |+| ExploreStyles.FadeIn |+| props.tileClass,
+            ^.key := "tile-${props.id.value}"
+          )(
+            // Tile title
+            <.div(ExploreStyles.TileTitle, ^.key := s"tileTitle-${props.id.value}")(
+              // Title and optional back button
+              <.div(ExploreStyles.TileTitleMenu |+| props.tileTitleClass)(
+                tileState.renderBackButton.map(b => <.div(ExploreStyles.TileButton, b)),
+                <.div(ExploreStyles.TileTitleText |+| ExploreStyles.TileDraggable, props.title)
+              ),
+              tileContents.title,
+              // Size control buttons
+              <.div(ExploreStyles.TileControlButtons)(
+                minimizeButton.when(tileState.showMinimize).unless(tileState.fullSize),
+                maximizeButton.when(tileState.showMaximize).unless(tileState.fullSize)
+              )
+            ),
+            // Tile body
+            <.div(
+              ^.key := s"tileBody-${props.id.value}",
+              ExploreStyles.TileBody |+| props.bodyClass
+            )(
+              tileContents.body
+            )
+              .unless(tileState.sizeState === TileSizeState.Minimized)
+          )
+        } else EmptyVdom
 }
 
 object Tile:
   type TileId = NonEmptyString
 
-  def dummyTile(id: TileId): Tile[Unit] =
-    Tile(id, "", hidden = true)(_ => EmptyVdom)
+  final class Dummy(id: TileId) extends Tile[Dummy](id, "", hidden = true)(Dummy)
 
-  private type Props[A] = Tile[A]
+  object Dummy
+      extends TileComponent[Dummy]((_, _) => HookResult(TileContents(EmptyVdom, EmptyVdom)))
 
-  private def componentBuilder[A] =
-    ScalaFnComponent
-      .withHooks[Props[A]]
-      .useStateViewBy(_.initialState)
-      .render: (p, sharedState) =>
-        val maximizeButton =
-          Button(
-            text = true,
-            clazz = ExploreStyles.TileStateButton,
-            icon = Icons.Maximize,
-            onClick = p
-              .sizeStateCallback(TileSizeState.Maximized)
-              .when_(p.sizeState === TileSizeState.Minimized)
-          )
+  object Inline:
+    def apply(
+      id:               Tile.TileId,
+      title:            VdomNode,
+      backButton:       Option[VdomNode] = None,
+      canMinimize:      Boolean = true,
+      canMaximize:      Boolean = true,
+      hidden:           Boolean = false,
+      initialSizeState: TileSizeState = TileSizeState.Maximized,
+      controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
+      bodyClass:        Css = Css.Empty, // applied to tile body
+      tileClass:        Css = Css.Empty, // applied to the tile
+      tileTitleClass:   Css = Css.Empty  // applied to the title
+    )(render: TileSizeState => HookResult[TileContents]): Tile[?] = {
+      case class NoPropsTile()
+          extends Tile[NoPropsTile](
+            id,
+            title,
+            backButton,
+            canMinimize,
+            canMaximize,
+            hidden,
+            initialSizeState,
+            controllerClass,
+            bodyClass,
+            tileClass,
+            tileTitleClass
+          )(NoPropsTile)
 
-        val minimizeButton =
-          Button(
-            text = true,
-            clazz = ExploreStyles.TileStateButton,
-            icon = Icons.Minimize,
-            onClick = p
-              .sizeStateCallback(TileSizeState.Minimized)
-              .when_(p.sizeState === TileSizeState.Maximized)
-          )
+      object NoPropsTile extends TileComponent[NoPropsTile]((_, tileSize) => render(tileSize))
 
-        // Tile wrapper
-        if (!p.hidden) {
-          <.div(
-            ExploreStyles.Tile |+| ExploreStyles.FadeIn |+| p.tileClass,
-            ^.key := "tile-${p.id.value}"
-          )(
-            // Tile title
-            <.div(ExploreStyles.TileTitle, ^.key := s"tileTitle-${p.id.value}")(
-              // Title and optional back button
-              <.div(ExploreStyles.TileTitleMenu |+| p.tileTitleClass)(
-                p.back.map(b => <.div(ExploreStyles.TileButton, b)),
-                <.div(ExploreStyles.TileTitleText |+| ExploreStyles.TileDraggable, p.title)
-              ),
-              p.tileTitle(sharedState, p.sizeState),
-              // Size control buttons
-              <.div(ExploreStyles.TileControlButtons)(
-                minimizeButton.when(p.showMinimize).unless(p.fullSize),
-                maximizeButton.when(p.showMaximize).unless(p.fullSize)
-              )
-            ),
-            // Tile body
-            <.div(^.key := s"tileBody-${p.id.value}", ExploreStyles.TileBody |+| p.bodyClass)(
-              p.tileBody(sharedState)
-            )
-              .unless(p.sizeState === TileSizeState.Minimized)
-          )
-        } else EmptyVdom
-
-  private val component = componentBuilder[Any]
+      NoPropsTile()
+    }

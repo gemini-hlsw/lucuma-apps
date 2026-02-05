@@ -36,24 +36,24 @@ import lucuma.ui.table.*
 
 import scala.collection.immutable.TreeSeqMap
 
-trait ObsSummaryColumns:
+object ObsSummaryColumns:
   import ObsSummaryRow.*
 
   private val ColDef = ColumnDef[Expandable[ObsSummaryRow]]
 
-  protected val ObservationIdColumnId = ColumnId("observation_id")
-  protected val GroupColumnId         = ColumnId("group")
-  protected val StateColumnId         = ColumnId("state")
-  protected val ScienceBandColumnId   = ColumnId("science_band")
-  protected val ExpanderColumnId      = ColumnId("expander")
-  protected val TargetTypeColumnId    = ColumnId("target_type")
-  protected val TargetColumnId        = ColumnId("target")
-  protected val ConstraintsColumnId   = ColumnId("constraints")
-  protected val ConfigurationColumnId = ColumnId("configuration")
-  protected val DurationColumnId      = ColumnId("duration")
-  protected val RAColumnId            = ColumnId("ra")
-  protected val DecColumnId           = ColumnId("dec")
-  protected val SEDColumnId           = ColumnId("sed")
+  protected[observationtree] val ObservationIdColumnId = ColumnId("observation_id")
+  protected[observationtree] val GroupColumnId         = ColumnId("group")
+  protected[observationtree] val StateColumnId         = ColumnId("state")
+  protected[observationtree] val ScienceBandColumnId   = ColumnId("science_band")
+  protected[observationtree] val ExpanderColumnId      = ColumnId("expander")
+  protected[observationtree] val TargetTypeColumnId    = ColumnId("target_type")
+  protected[observationtree] val TargetColumnId        = ColumnId("target")
+  protected[observationtree] val ConstraintsColumnId   = ColumnId("constraints")
+  protected[observationtree] val ConfigurationColumnId = ColumnId("configuration")
+  protected[observationtree] val DurationColumnId      = ColumnId("duration")
+  protected[observationtree] val RAColumnId            = ColumnId("ra")
+  protected[observationtree] val DecColumnId           = ColumnId("dec")
+  protected[observationtree] val SEDColumnId           = ColumnId("sed")
   // private val ValidationCheckColumnId = ColumnId("validation_check")
   // private val CompletionColumnId    = ColumnId("completion")
   // private val FindingChartColumnId  = ColumnId("finding_chart")
@@ -85,15 +85,15 @@ trait ObsSummaryColumns:
       // ChargedTimeColumnId -> "ChargedTime"
     )
 
-  protected val ColumnsExcludedFromVisibility: Set[ColumnId] =
+  protected[observationtree] val ColumnsExcludedFromVisibility: Set[ColumnId] =
     Set(ExpanderColumnId)
 
   // Columns to be shown in the column visibility selector. We exclude
   // the science band because we set that visibility below.
-  protected val SelectableColumnNames: List[(ColumnId, String)] =
+  protected[observationtree] val SelectableColumnNames: List[(ColumnId, String)] =
     ColumnNames.filterNot((k, _) => ColumnsExcludedFromVisibility.contains(k)).toList
 
-  protected val DefaultColVisibility: ColumnVisibility =
+  protected[observationtree] val DefaultColVisibility: ColumnVisibility =
     ColumnVisibility(
       RAColumnId  -> Visibility.Hidden,
       DecColumnId -> Visibility.Hidden,

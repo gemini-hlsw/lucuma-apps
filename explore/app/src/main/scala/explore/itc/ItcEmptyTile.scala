@@ -3,24 +3,24 @@
 
 package explore.itc
 
-import explore.components.Tile
+import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.ObsTabTileIds
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.primereact.Message
 
-object ItcEmptyTile:
-  val tile =
-    Tile(
+final case class ItcEmptyTile()
+    extends Tile[ItcEmptyTile](
       ObsTabTileIds.ItcId.id,
       "ITC",
-      ItcTileState.Empty,
       bodyClass = ExploreStyles.ItcTileBody
-    )(
-      _ =>
+    )(ItcEmptyTile)
+
+object ItcEmptyTile
+    extends TileComponent[ItcEmptyTile]((_, _) =>
+      TileContents:
         Message(
           text = "Select an observing mode to view ITC results",
           severity = Message.Severity.Info
-        ),
-      (_, _) => EmptyVdom
+        )
     )

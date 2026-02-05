@@ -13,6 +13,7 @@ import explore.*
 import explore.actions.ObservationPasteIntoConstraintSetAction
 import explore.components.FocusedStatus
 import explore.components.Tile
+import explore.components.TileContents
 import explore.components.TileController
 import explore.components.ui.ExploreStyles
 import explore.constraints.ConstraintsPanel
@@ -161,75 +162,79 @@ object ConstraintsTabContents extends TwoPanels:
           val observations: UndoSetter[ObservationList] =
             props.programSummaries.zoom(ProgramSummaries.observations)
 
-          val rightSide = (_: UseResizeDetectorReturn) =>
-            obsEditInfo.value
-              .flatMap: editInfo =>
-                findConstraintGroup(editInfo.editing, props.programSummaries.get.constraintGroups)
-                  .map(cg => (editInfo, cg))
-              .fold[VdomNode](
-                ConstraintsSummaryTile(
-                  props.userId,
-                  props.programId,
-                  props.programSummaries.get.constraintGroups,
-                  props.expandedIds,
-                  backButton
-                )
-              ) { case (obsEditInfo, constraintGroup) =>
-                // will only edit the non-executed ones, but we need something to pass to the
-                // constraints panel. However, if all are executed, it will be readonly
-                val idsToEdit    = obsEditInfo.unExecuted.getOrElse(obsEditInfo.editing)
-                val obsTraversal = Iso
-                  .id[ObservationList]
-                  .filterIndex((id: Observation.Id) => idsToEdit.contains(id))
+          val rightSide = (_: UseResizeDetectorReturn) => {
+            val tile =
+              obsEditInfo.value
+                .flatMap: editInfo =>
+                  findConstraintGroup(editInfo.editing, props.programSummaries.get.constraintGroups)
+                    .map(cg => (editInfo, cg))
+                .fold[Tile[?]](
+                  ConstraintsSummaryTile(
+                    props.userId,
+                    props.programId,
+                    props.programSummaries.get.constraintGroups,
+                    props.expandedIds,
+                    backButton
+                  )
+                ) { case (obsEditInfo, constraintGroup) =>
+                  // will only edit the non-executed ones, but we need something to pass to the
+                  // constraints panel. However, if all are executed, it will be readonly
+                  val idsToEdit    = obsEditInfo.unExecuted.getOrElse(obsEditInfo.editing)
+                  val obsTraversal = Iso
+                    .id[ObservationList]
+                    .filterIndex((id: Observation.Id) => idsToEdit.contains(id))
 
-                val csTraversal = obsTraversal.andThen(Observation.constraints)
+                  val csTraversal = obsTraversal.andThen(Observation.constraints)
 
-                val constraintSet: UndoSetter[ConstraintSet] =
-                  observations.zoom(csTraversal.getAll.andThen(_.head), csTraversal.modify)
+                  val constraintSet: UndoSetter[ConstraintSet] =
+                    observations.zoom(csTraversal.getAll.andThen(_.head), csTraversal.modify)
 
-                val constraintsTitle: String = idsToEdit.single match
-                  case Some(id) => s"Observation $id"
-                  case None     => s"Editing Constraints for ${idsToEdit.size} Observations"
+                  val constraintsTitle: String = idsToEdit.single match
+                    case Some(id) => s"Observation $id"
+                    case None     => s"Editing Constraints for ${idsToEdit.size} Observations"
 
-                val constraintsMessage: Option[String] =
-                  if (props.readonly)
-                    none
-                  else if (obsEditInfo.allAreExecuted)
-                    if (obsEditInfo.editing.length > 1)
-                      "All of the current observations are executed. Constraints are readonly.".some
-                    else "The current observation has been executed. Constraints are readonly.".some
-                  else if (obsEditInfo.executed.isDefined)
-                    "Some of the current observations are executed. Only unexecuted observations will be modified.".some
-                  else none
+                  val constraintsMessage: Option[String] =
+                    if (props.readonly)
+                      none
+                    else if (obsEditInfo.allAreExecuted)
+                      if (obsEditInfo.editing.length > 1)
+                        "All of the current observations are executed. Constraints are readonly.".some
+                      else
+                        "The current observation has been executed. Constraints are readonly.".some
+                    else if (obsEditInfo.executed.isDefined)
+                      "Some of the current observations are executed. Only unexecuted observations will be modified.".some
+                    else none
 
-                val constraintsTile: Tile[Option[VdomNode]] =
-                  Tile(
+                  Tile.Inline(
                     ObsTabTileIds.ConstraintsId.id,
                     constraintsTitle,
                     backButton.some
                   )(_ =>
-                    React.Fragment(
-                      constraintsMessage.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
-                      ConstraintsPanel(idsToEdit,
-                                       none,
-                                       none,
-                                       none,
-                                       constraintSet,
-                                       props.readonly || obsEditInfo.allAreExecuted
+                    TileContents:
+                      React.Fragment(
+                        constraintsMessage.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
+                        ConstraintsPanel(
+                          idsToEdit,
+                          none,
+                          none,
+                          none,
+                          constraintSet,
+                          props.readonly || obsEditInfo.allAreExecuted
+                        )
                       )
-                    )
                   )
+                }
 
-                TileController(
-                  props.userId,
-                  resize.width.getOrElse(1),
-                  ExploreGridLayouts.sectionLayout(GridLayoutSection.ConstraintsLayout),
-                  props.userPreferences.constraintsTabLayout,
-                  List(constraintsTile),
-                  GridLayoutSection.ConstraintsLayout,
-                  None
-                )
-              }
+            TileController(
+              props.userId,
+              resize.width.getOrElse(1),
+              ExploreGridLayouts.sectionLayout(GridLayoutSection.ConstraintsLayout),
+              props.userPreferences.constraintsTabLayout,
+              List(tile),
+              GridLayoutSection.ConstraintsLayout,
+              None
+            ): VdomNode
+          }
 
           val constraintsTree: VdomNode =
             ConstraintGroupObsList(

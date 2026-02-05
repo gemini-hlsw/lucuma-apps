@@ -6,7 +6,8 @@ package explore.tabs
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.components.Tile
+import explore.components.*
+import explore.components.TileContents
 import explore.components.ui.ExploreStyles
 import explore.model.AladinFullScreen
 import explore.model.AttachmentList
@@ -27,61 +28,62 @@ import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.schemas.model.TargetWithId
 
-object TargetEditorTile:
-
-  def noObsTargetEditorTile(
-    programId:          Program.Id,
-    programType:        ProgramType,
-    userId:             Option[User.Id],
-    target:             UndoSetter[TargetWithId],
-    obsAndTargets:      UndoSetter[ObservationsAndTargets],
-    searching:          View[Set[Target.Id]],
-    title:              String,
-    fullScreen:         View[AladinFullScreen],
-    userPreferences:    View[UserPreferences],
-    guideStarSelection: View[GuideStarSelection],
-    attachments:        View[AttachmentList],
-    authToken:          Option[NonEmptyString],
-    readonly:           Boolean,
-    isStaffOrAdmin:     Boolean,
-    obsInfo:            TargetEditObsInfo,
-    onClone:            OnCloneParameters => Callback,
-    backButton:         Option[VdomNode] = none
-  ) =
-    Tile(
+final case class SingleTargetEditorTile(
+  programId:          Program.Id,
+  programType:        ProgramType,
+  userId:             Option[User.Id],
+  target:             UndoSetter[TargetWithId],
+  obsAndTargets:      UndoSetter[ObservationsAndTargets],
+  searching:          View[Set[Target.Id]],
+  titleText:          String,
+  fullScreen:         View[AladinFullScreen],
+  userPreferences:    View[UserPreferences],
+  guideStarSelection: View[GuideStarSelection],
+  attachments:        View[AttachmentList],
+  authToken:          Option[NonEmptyString],
+  readonly:           Boolean,
+  isStaffOrAdmin:     Boolean,
+  obsInfo:            TargetEditObsInfo,
+  onClone:            OnCloneParameters => Callback,
+  backButton:         Option[VdomNode] = none
+) extends Tile[SingleTargetEditorTile](
       TargetTabTileIds.AsterismEditor.id,
-      title,
-      back = backButton,
+      titleText,
+      renderBackButton = backButton,
       bodyClass = ExploreStyles.TargetTileBody
-    ) { _ =>
-      <.div(
-        ExploreStyles.AladinFullScreen.when(fullScreen.get.value),
+    )(SingleTargetEditorTile)
+
+object SingleTargetEditorTile
+    extends TileComponent[SingleTargetEditorTile]((props, _) =>
+      TileContents:
         <.div(
-          ExploreStyles.TargetTileEditor,
-          userId.map(uid =>
-            TargetEditor(
-              programId,
-              programType,
-              uid,
-              target,
-              obsAndTargets,
-              ObservationTargets.one(target.get),
-              obsTime = none,
-              obsConf = none,
-              searching = searching,
-              obsInfo = obsInfo,
-              onClone = onClone,
-              fullScreen = fullScreen,
-              userPreferences = userPreferences,
-              guideStarSelection = guideStarSelection,
-              attachments = attachments,
-              authToken = authToken,
-              readonly = readonly,
-              allowEditingOngoing =
-                false, // don't allow this when editing non-specifically for an observation
-              isStaffOrAdmin = isStaffOrAdmin
+          ExploreStyles.AladinFullScreen.when(props.fullScreen.get.value),
+          <.div(
+            ExploreStyles.TargetTileEditor,
+            props.userId.map(uid =>
+              TargetEditor(
+                props.programId,
+                props.programType,
+                uid,
+                props.target,
+                props.obsAndTargets,
+                ObservationTargets.one(props.target.get),
+                obsTime = none,
+                obsConf = none,
+                searching = props.searching,
+                obsInfo = props.obsInfo,
+                onClone = props.onClone,
+                fullScreen = props.fullScreen,
+                userPreferences = props.userPreferences,
+                guideStarSelection = props.guideStarSelection,
+                attachments = props.attachments,
+                authToken = props.authToken,
+                readonly = props.readonly,
+                // don't allow this when editing non-specifically for an observation
+                allowEditingOngoing = false,
+                isStaffOrAdmin = props.isStaffOrAdmin
+              )
             )
           )
         )
-      )
-    }
+    )

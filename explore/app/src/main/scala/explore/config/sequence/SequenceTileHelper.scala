@@ -24,14 +24,14 @@ import lucuma.ui.sequence.SequenceData
 
 import scala.concurrent.duration.*
 
-trait SequenceTileHelper:
+object SequenceTileHelper:
 
-  protected case class LiveSequence(
+  protected[sequence] case class LiveSequence(
     data:       Pot[(Option[ExecutionVisits], Option[SequenceData])],
     refreshing: Boolean
   )
 
-  protected def useLiveSequence(
+  protected[sequence] def useLiveSequence(
     obsId:               Observation.Id,
     targetIds:           List[Target.Id],
     customSedTimestamps: List[Timestamp],
