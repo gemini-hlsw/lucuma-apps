@@ -112,7 +112,7 @@ object OdbProxy {
               )
           )
           .sequence
-          .map(l => extractNonsiderealTargets(d) ++ l.flattenOption.flatten)
+          .map(l => (extractNonsiderealTargets(d) ++ l.flattenOption.flatten).distinct)
       )
   }
 }
