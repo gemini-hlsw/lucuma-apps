@@ -72,6 +72,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
@@ -235,9 +236,13 @@ object ObsTabTiles:
                                       props.asterismAsNel.map(_.science)
           ): (site, obsTime, targets) =>
             import ctx.given
-            (site, obsTime, targets)
-              .traverseN: (s, i, ts) =>
-                getRegionOrTrackingMapForObservingNight(ts, s, i)
+            (obsTime,
+            // Only non-sidereals need the site for tracking, so only get tracking if we have a site or if there are no non-sidereal targets
+             targets.filter: ts =>
+               site.isDefined || ts.forall(TargetWithId.target.andThen(Target.nonsidereal).isEmpty)
+            )
+              .traverseN: (i, ts) =>
+                getRegionOrTrackingMapForObservingNight(ts, site, i)
                   .flatMap(
                     _.fold(
                       err => ToastCtx[IO].showToast(err, Message.Severity.Error).as(None),

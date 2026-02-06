@@ -66,15 +66,22 @@ object tracking:
 
   // Gets high resolution tracking for the observing night. In order to maximize cache hits and
   // be useable for both Night and 2H elevation plots, it pads by 12 hours on each end.
+  // Site and night are both only needed for non-sidereal targets
   def getRegionOrTrackingForObservingNight(
     target: Target,
-    site:   Site,
-    night:  ObservingNight
+    site:   Option[Site],
+    night:  Option[ObservingNight]
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     target match
       case Target.Nonsidereal(_, key, _) =>
-        getEphemerisTrackingForObservingNight(key, site, night).map:
-          _.map(RegionOrTracking.fromTracking)
+        (site, night) match
+          case (Some(site), Some(night)) =>
+            getEphemerisTrackingForObservingNight(key, site, night).map:
+              _.map(RegionOrTracking.fromTracking)
+          case (None, _)                 =>
+            "No site is known. This is likely a missing observing mode.".asLeft.pure[IO]
+          case (_, None)                 =>
+            "No observing night is known. This is likely a missing observing mode.".asLeft.pure[IO]
       case Target.Sidereal(_, t, _, _)   => RegionOrTracking.fromTracking(t).asRight.pure
       case Target.Opportunity(_, r, _)   => RegionOrTracking.fromRegion(r).asRight.pure
 
@@ -82,10 +89,10 @@ object tracking:
   // be useable for both Night and 2H elevation plots, it pads by 12 hours on each end.
   def getRegionOrTrackingForObservingNight(
     target: Target,
-    site:   Site,
+    site:   Option[Site],
     when:   Instant
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
-    val night = ObservingNight.fromSiteAndInstant(site, when)
+    val night = site.map(ObservingNight.fromSiteAndInstant(_, when))
     getRegionOrTrackingForObservingNight(target, site, night)
 
   // Gets high resolution tracking for the observing night. In order to maximize cache hits and
@@ -96,11 +103,11 @@ object tracking:
     when:   LocalDate
   )(using WorkerClient[IO, HorizonsMessage.Request]): IO[ErrorMsgOr[RegionOrTracking]] =
     val night = ObservingNight.fromSiteAndLocalDate(site, when)
-    getRegionOrTrackingForObservingNight(target, site, night)
+    getRegionOrTrackingForObservingNight(target, site.some, night.some)
 
   def getRegionOrTrackingMapForObservingNight(
     targetWithIds: List[TargetWithId],
-    site:          Site,
+    site:          Option[Site],
     when:          Instant
   )(using
     WorkerClient[IO, HorizonsMessage.Request]

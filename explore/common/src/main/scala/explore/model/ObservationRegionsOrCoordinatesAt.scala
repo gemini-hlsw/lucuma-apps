@@ -101,7 +101,7 @@ object ObservationRegionsOrCoordinatesAt:
     def forTarget(
       twid: TargetWithId
     ): IO[(TargetWithId, Option[ErrorMsgOr[RegionOrCoordinatesAt]])] =
-      getRegionOrTrackingForObservingNight(twid.target, site, obsTime).map: erot =>
+      getRegionOrTrackingForObservingNight(twid.target, site.some, obsTime).map: erot =>
         (twid, erot.flatMap(_.regionOrCoordinatesAt(obsTime)).some)
 
     def science = obsTargets.science.traverse(forTarget)
