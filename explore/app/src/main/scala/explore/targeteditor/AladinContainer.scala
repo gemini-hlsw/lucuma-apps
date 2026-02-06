@@ -378,6 +378,7 @@ object AladinContainer extends AladinCommon {
                                      props.selectedGuideStar,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
+                                     props.obsTimeCoords.scienceCoords,
                                      props.agsVisibility,
                                      props.anglesToTest,
                                      props.agsState

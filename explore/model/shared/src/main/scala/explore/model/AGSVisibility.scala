@@ -14,7 +14,8 @@ case class AGSVisibility(
   showAcquisitionOffset: Visible,
   showScienceOffset:     Visible,
   showIntersection:      Visible,
-  showAllAngles:         Visible
+  showAllAngles:         Visible,
+  showNoZones:           Visible
 ) derives Decoder
 
 object AGSVisibility:
@@ -26,6 +27,7 @@ object AGSVisibility:
   val showScienceOffset = Focus[AGSVisibility](_.showScienceOffset)
   val showIntersection  = Focus[AGSVisibility](_.showIntersection)
   val showAllAngles     = Focus[AGSVisibility](_.showAllAngles)
+  val showNoZones       = Focus[AGSVisibility](_.showNoZones)
 
   val Default = AGSVisibility(
     showBase = Visible.Hidden,
@@ -33,5 +35,6 @@ object AGSVisibility:
     showAcquisitionOffset = Visible.Hidden,
     showScienceOffset = Visible.Hidden,
     showIntersection = Visible.Hidden,
-    showAllAngles = Visible.Hidden
+    showAllAngles = Visible.Hidden,
+    showNoZones = Visible.Hidden
   )

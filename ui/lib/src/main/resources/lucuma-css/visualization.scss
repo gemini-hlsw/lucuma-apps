@@ -142,6 +142,14 @@
     fill: none;
   }
 
+  .patrol-field-no-zones {
+    stroke: var(--patrol-field-no-zones-color);
+    stroke-width: 1px;
+    stroke-dasharray: 2;
+    fill: var(--patrol-field-no-zones-color);
+    fill-opacity: 0.2;
+  }
+
   &.flamingos2-fpu-visible .flamingos2-fpu > polygon,
   &.gmos-fpu-visible .gmos-fpu > polygon {
     display: inline;

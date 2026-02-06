@@ -145,6 +145,7 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
         val showAcqOffsetView    = agsVizView.zoom(AGSVisibility.showAcqOffset).as(Visible.Value)
         val showIntersectionView = agsVizView.zoom(AGSVisibility.showIntersection).as(Visible.Value)
         val showAllAngles        = agsVizView.zoom(AGSVisibility.showAllAngles).as(Visible.Value)
+        val showNoZonesView      = agsVizView.zoom(AGSVisibility.showNoZones).as(Visible.Value)
 
         def menuItem(content: VdomNode): MenuItem =
           MenuItem.Custom(
@@ -224,6 +225,13 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
                         id = "patrol-field-intersection".refined,
                         value = showIntersectionView,
                         label = <.span(ExploreStyles.PatrolFieldIntersection, "Intersection")
+                      )
+                    ),
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-no-zones".refined,
+                        value = showNoZonesView,
+                        label = <.span(ExploreStyles.PatrolFieldNoZones, "No-Zones")
                       )
                     )
                   ) ++ Option

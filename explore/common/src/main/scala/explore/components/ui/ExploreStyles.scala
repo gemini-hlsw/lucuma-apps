@@ -526,6 +526,7 @@ object ExploreStyles:
   val PatrolFieldAcqOffset          = Css("patrol-field-acq-offset")
   val PatrolFieldSciOffset          = Css("patrol-field-sci-offset")
   val PatrolFieldIntersection       = Css("patrol-field-intersection")
+  val PatrolFieldNoZones            = Css("patrol-field-no-zones")
   val BlendedSVG                    = Css("blended-svg")
 
   val ExplorePromptToast = Css("explore-prompt-toast")
