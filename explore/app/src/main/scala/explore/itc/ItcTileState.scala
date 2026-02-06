@@ -18,15 +18,10 @@ case class TargetAndResults(
   def asTargetProblem: EitherNec[ItcTargetProblem, ItcGraphResult] =
     result.leftMap(p => ItcTargetProblem(target.name.some, p)).toEitherNec
 
-case class ImagingTargetAndResults(
-  target: ItcTarget,
-  result: Option[EitherNec[ItcTargetProblem, ItcResult]]
-) derives Eq
-
 // we need to share this across all the ITC tiles
 case class ItcTileState(
   asterismResults:    Pot[EitherNec[ItcTargetProblem, ItcAsterismGraphResults]],
-  calculationResults: Pot[ImagingResults],
+  calculationResults: Pot[EitherNec[ItcQueryProblem, ImagingResults]],
   selectedTarget:     Option[TargetAndResults]
 ):
   def graphResults: Option[ItcAsterismGraphResults] = asterismResults.toOption.flatMap(_.toOption)
@@ -56,33 +51,8 @@ case class ItcTileState(
         asterismGraphs.headOption
           .map(_.toTargetAndResults)
 
-  def calculationTargets: List[ItcTarget] =
-    calculationResults.toOption
-      .flatMap(_.toOption.map(_.keys.flatMap(_.asterism.toList).toList.distinct))
-      .getOrElse(List.empty)
-
-  def imagingTargetResults: List[ImagingTargetAndResults] =
-    calculationResults.toOption.flatMap(_.toOption) match
-      case Some(results) =>
-        calculationTargets.map { target =>
-          // For imaging, we want any successful result for this target across all configurations
-          val targetResults = results
-            .collectFirst {
-              case (params, result) if params.asterism.toList.contains(target) && result.isRight =>
-                result
-            }
-            .orElse {
-              // If no successful results, take any result (including errors) for this target
-              results.collectFirst {
-                case (params, result) if params.asterism.toList.contains(target) => result
-              }
-            }
-          ImagingTargetAndResults(target, targetResults)
-        }
-      case None          => List.empty
-
-  def selectedImagingTargetFor(target: ItcTarget): Option[ImagingTargetAndResults] =
-    imagingTargetResults.find(_.target.name.value === target.name.value)
+  def imagingTargets: List[ItcTarget] =
+    calculationResults.toOption.flatMap(_.toOption).fold(List.empty)(_.keys.toList)
 
 object ItcTileState:
   def Empty: ItcTileState = ItcTileState(Pot.pending, Pot.pending, none)

@@ -43,12 +43,12 @@ case class ItcResultsCache(
         )
 
   def update(
-    newEntries: Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]
+    newEntry: (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
   ): ItcResultsCache =
-    copy(cache ++ newEntries)
+    copy(cache + newEntry)
 
   def updateN(
-    newEntries: List[Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]
+    newEntries: List[(ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]
   ): ItcResultsCache =
     newEntries.foldLeft(this)(_.update(_))
 

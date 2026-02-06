@@ -10,19 +10,24 @@ import cats.syntax.all.*
 import eu.timepit.refined.cats.refTypeEq
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.data.Zipper
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
 import lucuma.itc.IntegrationTime
 import lucuma.itc.ItcAxis
+import lucuma.itc.ItcCcd
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.SeriesResult
 import lucuma.itc.client.TargetTimeAndGraphsResult
 import lucuma.itc.math.roundToSignificantFigures
+import monocle.Prism
+import monocle.macros.GenPrism
 
 import scala.collection.immutable.SortedMap
 import scala.math.*
+import lucuma.itc.TargetIntegrationTime
 
 // Do not turn into enum or compositePickler will break.
 sealed trait ItcQueryProblem(val message: String) derives Eq:
@@ -50,8 +55,8 @@ private given Eq[SignalToNoiseAt] = Eq.by(x => (x.wavelength, x.single, x.total)
 
 sealed trait ItcResult derives Eq {
   def isSuccess: Boolean = this match {
-    case ItcResult.Result(_, _, _, _, _) => true
-    case _                               => false
+    case ItcResult.Result(_, _) => true
+    case _                      => false
   }
 
   def isPending: Boolean = this match {
@@ -63,14 +68,29 @@ sealed trait ItcResult derives Eq {
 object ItcResult {
   case object Pending extends ItcResult
   case class Result(
-    exposureTime:   TimeSpan,
-    exposures:      PosInt,
-    brightestIndex: Option[Int],
-    snAt:           Option[SignalToNoiseAt],
-    ccdWarnings:    SortedMap[Int, List[String]]
+    times:          Zipper[TargetIntegrationTime],
+    brightestIndex: Option[Int]
   ) extends ItcResult:
-    val duration: TimeSpan        = exposureTime *| exposures.value
     override def toString: String = s"${exposures.value} x ${exposureTime.toMinutes}"
+
+    // The following apply to the focused TargetIntegrationTime
+    val exposureTime: TimeSpan        = times.focus.times.focus.exposureTime
+    val exposures: PosInt             = times.focus.times.focus.exposureCount
+    val snAt: Option[SignalToNoiseAt] = times.focus.signalToNoiseAt
+    val duration: TimeSpan            = exposureTime *| exposures.value
+
+    val ccds: SortedMap[Int, ItcCcd]              =
+      SortedMap.from(
+        times.focus.ccds.zipWithIndex.map { case (ccd, index) =>
+          index -> ccd
+        }
+      )
+    val ccdWarnings: SortedMap[Int, List[String]] =
+      SortedMap.from(ccds.map { case (idx, ccd) =>
+        idx -> ccd.warnings.map(_.msg)
+      })
+
+  val result: Prism[ItcResult, Result] = GenPrism[ItcResult, Result]
 }
 
 case class YAxis(min: Double, max: Double):
@@ -121,18 +141,10 @@ case class ItcGraphResult(target: ItcTarget, timeAndGraphs: TargetTimeAndGraphsR
   lazy val singleSNRatio: SingleSN =
     timeAndGraphs.atWavelengthSingleSNRatio.getOrElse(timeAndGraphs.peakSingleSNRatio)
 
-  lazy val ccdWarnings: SortedMap[Int, List[String]] =
-    SortedMap.from(timeAndGraphs.graphCcds.toList.zipWithIndex.map { case (ccd, index) =>
-      index -> ccd.warnings.map(_.msg)
-    })
-
   def toItcResult(brightestIndex: Option[Int] = None): ItcResult.Result =
     ItcResult.Result(
-      time.exposureTime,
-      time.exposureCount,
-      brightestIndex,
-      signalToNoiseAt.map(w => SignalToNoiseAt(w.wavelength, singleSNRatio, finalSNRatio)),
-      ccdWarnings
+      Zipper.of(timeAndGraphs.integrationTime),
+      brightestIndex
     )
 }
 
@@ -142,5 +154,7 @@ case class ItcAsterismGraphResults(
   signalToNoiseAt: Wavelength
 )
 
-type ImagingResults =
-  EitherNec[ItcQueryProblem, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]
+type ImagingResults = Map[ItcTarget, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]
+
+object ImagingResults:
+  def empty: ImagingResults = Map.empty

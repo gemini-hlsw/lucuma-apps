@@ -33,12 +33,15 @@ import lucuma.core.math.TotalSN
 import lucuma.core.model.User
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.itc.ItcCcd
 import lucuma.itc.SignalToNoiseAt
+import lucuma.react.SizePx
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.ui.format.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 
@@ -59,9 +62,7 @@ object ItcImagingTile
     extends TileComponent[ItcImagingTile]({ (props, _) =>
       import ModesTableCommon.*
 
-      given Reusability[ImagingTargetAndResults] = Reusability.byEq
-
-      given Reusability[ImagingResults] = Reusability.byEq
+      given Reusability[EitherNec[ItcQueryProblem, ImagingResults]] = Reusability.byEq
 
       def toMessage(msg: String, severity: Message.Severity) =
         Message(text = msg, severity = severity): VdomNode
@@ -78,7 +79,9 @@ object ItcImagingTile
         private def withResult[A](
           f: (TimeSpan, PosInt, Option[SignalToNoiseAt]) => A
         ): Option[A] =
-          result.toOption.collect { case Right(ItcResult.Result(e, t, _, s, _)) => f(e, t, s) }
+          result.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
+            f(r.exposureTime, r.exposures, r.snAt)
+          }
 
         val singleSN: Option[SingleSN] =
           withResult((_, _, s) => s.map(_.single)).flatten
@@ -116,6 +119,31 @@ object ItcImagingTile
       ): ColumnDef.Single.WithTableMeta[ImagingFilterRow, V, TableMeta] =
         ColDef(id, accessor, columnNames.getOrElse(id, id.value))
 
+      def ccdColumns[V](
+        idBase:      String,
+        groupHeader: String,
+        accessor:    ItcCcd => V,
+        format:      V => VdomNode,
+        size:        SizePx
+      ): ColumnDef.Group.WithTableMeta[ImagingFilterRow, TableMeta] =
+        ColumnDef.Group(
+          id = ColumnId(idBase),
+          header = _ => <.div(groupHeader, ExploreStyles.ItcImagingTableGroupHeader),
+          columns = (0 to 2).map { ccdIndex =>
+            ColDef(
+              ColumnId(s"${idBase}-$ccdIndex"),
+              accessor = _.result.toOption
+                .flatMap(_.toOption)
+                .flatMap(ItcResult.result.getOption)
+                .flatMap(_.ccds.get(ccdIndex))
+                .map(accessor),
+              cell = _.value.map(format),
+              header = s"CCD $ccdIndex",
+              size = size
+            )
+          }.toList
+        )
+
       lazy val columns =
         List(
           column(InstrumentColId, _.config.instrument.shortName)
@@ -135,11 +163,9 @@ object ItcImagingTile
             .withCell: cell =>
               itcCell(cell.value, ItcColumns.Time)
             .withSize(85.toPx),
-          column(TotalSNColId, _.result)
-            .withHeader(progressingCellHeader("S/N"))
-            .withCell: cell =>
-              itcCell(cell.value, ItcColumns.SN)
-            .withSize(85.toPx)
+          ccdColumns("sn+bg-ccd", "S/N + Background", _.peakPixelFlux, v => f"$v%.0fe-", 85.toPx),
+          ccdColumns("single-sn-ccd", "S/N per Exposure", _.singleSNRatio.value, _.format, 85.toPx),
+          ccdColumns("total-sn-ccd", "Total S/N", _.totalSNRatio.value, _.format, 85.toPx)
         )
 
       for {
@@ -166,15 +192,19 @@ object ItcImagingTile
                                    .zoom(ItcTileState.calculationResults)
                                    .set(result.ready)
                                    .toAsync
-        // Initialize selected target if none is set
+        // Initialize selected target if none is set, and update if no longer in list
         _             <-
-          useEffectWithDeps((props.selectedTarget.get, tileState.get.imagingTargetResults)):
+          useEffectWithDeps((props.selectedTarget.get, tileState.get.imagingTargets)):
             (selectedTarget, availableTargets) =>
               selectedTarget match
-                case None => props.selectedTarget.set(availableTargets.headOption.map(_.target))
-                case _    => Callback.empty
-        rowsOrMsg     <- useMemo(tileState.get.calculationResults):
-                           _ match
+                case None            => props.selectedTarget.set(availableTargets.headOption)
+                case Some(itcTarget) =>
+                  if availableTargets.contains(itcTarget) then Callback.empty
+                  else props.selectedTarget.set(availableTargets.headOption)
+        rowsOrMsg     <- useMemo(
+                           (tileState.get.calculationResults, props.selectedTarget.get)
+                         ): (results, oTarget) =>
+                           results match
                              case Pot.Pending      =>
                                toMessage("Waiting for ITC...", Message.Severity.Info)
                                  .asLeft[List[ImagingFilterRow]]
@@ -189,43 +219,45 @@ object ItcImagingTile
                                              Message.Severity.Warning
                                    ).asLeft
                                  case Right(result)  =>
-                                   result.toList.zipWithIndex.map { case ((config, res), idx) =>
-                                     ImagingFilterRow(idx, config.mode, res.ready)
-                                   }.asRight
-
-        cols  <- useMemo(()): _ =>
-                   columns
-        table <- useReactTable(
-                   TableOptions(
-                     cols,
-                     rowsOrMsg.map(_.getOrElse(List.empty)),
-                     getRowId = (row, _, _) => RowId(row.id.toString),
-                     enableSorting = true,
-                     enableColumnResizing = true,
-                     meta = TableMeta(none[Progress])
-                   )
-                 )
+                                   oTarget
+                                     .flatMap(result.get(_))
+                                     .map: imagingResultsMap =>
+                                       imagingResultsMap.toList.zipWithIndex
+                                         .map { case ((params, r), idx) =>
+                                           ImagingFilterRow(idx, params.mode, r.ready)
+                                         }
+                                     .orEmpty
+                                     .asRight
+        cols          <- useMemo(()): _ =>
+                           columns
+        table         <- useReactTable(
+                           TableOptions(
+                             cols,
+                             rowsOrMsg.map(_.getOrElse(List.empty)),
+                             getRowId = (row, _, _) => RowId(row.id.toString),
+                             enableSorting = true,
+                             enableColumnResizing = true,
+                             meta = TableMeta(none[Progress])
+                           )
+                         )
       } yield
-        val selectedTarget: Option[ImagingTargetAndResults] =
-          props.selectedTarget.get.flatMap(tileState.get.selectedImagingTargetFor)
 
-        val options: List[SelectItem[ImagingTargetAndResults]] =
-          tileState.get.imagingTargetResults
-            .map(t => SelectItem(label = t.target.name.value, value = t))
+        val options: List[SelectItem[ItcTarget]] =
+          tileState.get.imagingTargets
+            .map(t => SelectItem(label = t.name.value, value = t))
 
         val title: VdomNode =
-          // Display target selector if we have targets and results
-          selectedTarget.map: (gr: ImagingTargetAndResults) =>
+          props.selectedTarget.get.map: (itcTarget: ItcTarget) =>
             <.div(
               ExploreStyles.ItcTileTitle,
               <.label(s"Target:"),
               Dropdown(
                 clazz = ExploreStyles.ItcTileTargetSelector,
-                value = gr,
-                onChange = (o: ImagingTargetAndResults) => props.selectedTarget.set(Some(o.target)),
+                value = itcTarget,
+                onChange = (t: ItcTarget) => props.selectedTarget.set(t.some),
                 options = options
               ).when(options.length > 1),
-              <.span(gr.target.name.value)
+              <.span(itcTarget.name.value)
                 .when(options.length === 1)
             )
 
