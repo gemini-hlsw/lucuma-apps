@@ -166,7 +166,8 @@ object Systems {
         stop:  Instant,
         elems: Int,
         sites: SiteOption = SiteOption.forSite(site)
-      ): F[Either[String, Ephemeris.Horizons]] = ???
+      ): F[Either[String, Ephemeris.Horizons]] =
+        horizonsClient.ephemeris(key, start, stop, elems, sites)
     }
 
     for {

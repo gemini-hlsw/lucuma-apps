@@ -13,9 +13,10 @@ import lucuma.core.enums.SlewStage
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
+import mouse.boolean.given
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery
-import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery.Data
 import navigate.queries.ObsQueriesGQL.AddSlewEventMutation
+import navigate.queries.ObsQueriesGQL.NonsiderealGuideTargetsQuery
 import org.typelevel.log4cats.Logger
 
 import java.time.LocalDate
@@ -71,12 +72,15 @@ object OdbProxy {
           .execute(obsId = obsId, stg = stage)
           .void
 
-    private def extractNonsiderealTargets(data: Data): List[Ephemeris.Key] =
+    private def extractNonsiderealTargets(
+      data: ActiveNonsiderealTargetsQuery.Data
+    ): List[Ephemeris.Key] =
       data.observations.matches
         .map(_.targetEnvironment)
         .flatMap(te =>
-          te.guideEnvironment.guideTargets.map(_.nonsidereal) :+ te.firstScienceTarget
-            .flatMap(_.nonsidereal) :+ te.blindOffsetTarget.flatMap(_.nonsidereal)
+          List(te.firstScienceTarget.flatMap(_.nonsidereal),
+               te.blindOffsetTarget.flatMap(_.nonsidereal)
+          )
         )
         .map(_.flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des))))
         .flattenOption
@@ -87,7 +91,28 @@ object OdbProxy {
       end:   LocalDate
     ): F[List[Ephemeris.Key]] = ActiveNonsiderealTargetsQuery[F]
       .query(site, start, end)
-      .map(_.map(extractNonsiderealTargets))
       .raiseGraphQLErrors
+      .flatMap(d =>
+        d.observations.matches
+          .map(obs =>
+            NonsiderealGuideTargetsQuery[F]
+              .query(obs.id)
+              .map(
+                _.data.flatMap(
+                  _.observation.flatMap { x =>
+                    val r = x.targetEnvironment.guideEnvironment.guideTargets
+                      .map(
+                        _.nonsidereal
+                          .flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des)))
+                      )
+                      .flattenOption
+                    r.nonEmpty.option(r)
+                  }
+                )
+              )
+          )
+          .sequence
+          .map(l => (extractNonsiderealTargets(d) ++ l.flattenOption.flatten).distinct)
+      )
   }
 }

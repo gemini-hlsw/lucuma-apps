@@ -23,8 +23,7 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ActiveNonsiderealTargetsQuery extends GraphQLOperation[ObservationDB] {
-    val document =
-      """
+    val document = """
       query($site: Site!, $startDate: Date!, $endDate: Date!) {
         observations(
           WHERE: {
@@ -53,15 +52,6 @@ object ObsQueriesGQL:
                   key
                 }
               }
-              guideEnvironment {
-                guideTargets {
-                  nonsidereal {
-                    des
-                    keyType
-                    key
-                  }
-                }
-              }
               blindOffsetTarget {
                 nonsidereal {
                   des
@@ -74,18 +64,13 @@ object ObsQueriesGQL:
         }
       }
     """
-
+      
     object Data {
       object Observations {
         object Matches {
           object TargetEnvironment {
             object FirstScienceTarget {
               type Nonsidereal = navigate.model.OdbNonsidereal
-            }
-            object GuideEnvironment   {
-              object GuideTargets {
-                type Nonsidereal = navigate.model.OdbNonsidereal
-              }
             }
             object BlindOffsetTarget  {
               type Nonsidereal = navigate.model.OdbNonsidereal
@@ -95,3 +80,41 @@ object ObsQueriesGQL:
       }
     }
   }
+
+  @GraphQL
+  trait NonsiderealGuideTargetsQuery extends GraphQLOperation[ObservationDB] {
+    val document = """
+      query($obsId: ObservationId!) {
+        observation(
+          observationId: $obsId
+        ) {
+          id
+          targetEnvironment {
+            guideEnvironment {
+              guideTargets {
+                nonsidereal {
+                  des
+                  keyType
+                  key
+                }
+              }
+            }
+          }
+        }
+      }
+    """
+    object Data {
+      object Observations {
+        object Matches {
+          object TargetEnvironment {
+            object GuideEnvironment   {
+              object GuideTargets {
+                type Nonsidereal = navigate.model.OdbNonsidereal
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
