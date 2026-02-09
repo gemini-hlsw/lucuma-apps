@@ -88,51 +88,6 @@ object AttachmentsTile
     extends TileComponent[AttachmentsTile]({ (props, _) =>
       import ObsAttachmentUtils.*
 
-      // props.userVault
-      //   .map: vault =>
-      //     val authToken = vault.token
-      //     Tile(
-      //       OverviewTabTileIds.AttachmentsId.id,
-      //       s"Attachments (${count(attachments, showObsAttachments)})",
-      //       Action.None
-      //     )(
-      //       Body(
-      //         programId,
-      //         authToken,
-      //         obsAttachmentAssignments,
-      //         targetAttachmentAssignments,
-      //         attachments,
-      //         showObsAttachments,
-      //         readOnly,
-      //         _
-      //       ),
-      //       (s, _) =>
-      //         Title(
-      //           programId,
-      //           authToken,
-      //           attachments,
-      //           showObsAttachments,
-      //           readOnly,
-      //           s
-      //         )
-      //     )
-      //   .getOrElse(
-      //     Tile(OverviewTabTileIds.AttachmentsId.id, "Attachments", hidden = true)(_ => EmptyVdom)
-      //   )
-
-      // private case class Title(
-      //   pid:                Program.Id,
-      //   authToken:          NonEmptyString,
-      //   attachments:        View[AttachmentList],
-      //   showObsAttachments: Boolean,
-      //   readOnly:           Boolean,
-      //   action:             View[Action]
-      // ) extends ReactFnProps(Title.component)
-
-      // private object Title extends ObsAttachmentUtils:
-
-      // val component = ScalaFnComponent[Title](props =>
-
       case class TableMeta(
         client:            OdbRestClient[IO],
         obsAssignments:    ObsAttachmentAssignmentMap,

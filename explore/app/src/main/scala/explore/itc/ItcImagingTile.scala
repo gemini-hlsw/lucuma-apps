@@ -213,7 +213,6 @@ object ItcImagingTile
           tileState.get.imagingTargetResults
             .map(t => SelectItem(label = t.target.name.value, value = t))
 
-        // The title is always visible thus it is better for it to control processing
         val title: VdomNode =
           // Display target selector if we have targets and results
           selectedTarget.map: (gr: ImagingTargetAndResults) =>

@@ -50,7 +50,6 @@ final case class ConstraintsSummaryTile(
 ) extends Tile[ConstraintsSummaryTile](
       id = ConstraintTabTileIds.Summary.id,
       title = "Constraints Summary",
-      // initialState = TileState.Initial,
       backButton.some,
       canMinimize = false,
       canMaximize = false
@@ -94,15 +93,6 @@ object ConstraintsSummaryTile
           MaxHAColumnId -> Visibility.Hidden
         )
 
-      // case class Body(
-      //   userId:           Option[User.Id],
-      //   programId:        Program.Id,
-      //   constraintList:   ConstraintGroupList,
-      //   expandedIds:      View[SortedSet[ObsIdSet]],
-      //   columnVisibility: View[ColumnVisibility]
-      // ) extends ReactFnProps(Body.component)
-
-      // object Body:
       val ColDef = ColumnDef[ConstraintGroup]
 
       val ColumnClasses: Map[ColumnId, Css] = Map(

@@ -46,7 +46,6 @@ final case class FinderChartsTile(
 ) extends Tile[FinderChartsTile](
       ObsTabTileIds.FinderChartsId.id,
       "Finder Charts",
-      // TileState(ChartSelector.Closed, None),
       bodyClass = ExploreStyles.FinderChartsTile
     )(FinderChartsTile)
 

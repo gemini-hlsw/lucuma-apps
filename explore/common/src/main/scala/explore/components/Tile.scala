@@ -50,6 +50,8 @@ import lucuma.ui.syntax.all.given
  * @param tileTitleClass
  *   a css class to be applied to the title
  */
+// `Tile` needs to know the concrete type so that it can be used to match with the `TileComponent`'s props.
+// Since in Scala there's no way for a subtype to know the concrete type of an instance, we need to specify it in a type parameter.
 abstract class Tile[This <: Tile[This]](
   val id:               Tile.TileId,
   val title:            VdomNode,

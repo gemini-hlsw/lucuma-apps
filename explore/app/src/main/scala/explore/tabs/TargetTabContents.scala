@@ -524,7 +524,7 @@ object TargetTabContents extends TwoPanels:
                   setExpanded >> setPage
                 )
 
-            val asterismEditorTile = // : Option[Tile[?]] =
+            val asterismEditorTile: Option[ObservationTargetsEditorTile] =
               props.programType.map: programType =>
                 ObservationTargetsEditorTile(
                   props.userId,
@@ -560,7 +560,7 @@ object TargetTabContents extends TwoPanels:
                   backButton = backButton.some
                 )
 
-            val skyPlotTile = // : Tile[?] =
+            val skyPlotTile: ElevationPlotTile =
               ElevationPlotTile(
                 props.userId,
                 TargetTabTileIds.ElevationPlot.id,
@@ -616,7 +616,7 @@ object TargetTabContents extends TwoPanels:
                 )
           }
 
-          val skyPlotTile = // : Tile[?] =
+          val skyPlotTile: ElevationPlotTile =
             ElevationPlotTile(
               props.userId,
               TargetTabTileIds.ElevationPlot.id,

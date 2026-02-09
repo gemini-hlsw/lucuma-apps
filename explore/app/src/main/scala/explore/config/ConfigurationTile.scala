@@ -179,35 +179,6 @@ object ConfigurationTile
               ConfigSelection.fromInstrumentConfigs(revertedInstrumentConfig)
             )).toAsync
 
-      // TODO: The following few methods could be moved to `clue` if they are appropiate. Before
-      // doing so, I'd like to have the code reviewed and perhaps looked over by `Mr. Clue` so
-      // he can point out a much easier path. :P
-      // The particular problem they solve here is that ObservingModeInput can have either a
-      // gmosNorthLongSlitInput or a gmosSouthLongSlitInput, but not both. And we can't know
-      // until we edit.
-      // extension [A](input: Input[A])
-      //   /**
-      //    * If the Input is not `Assign[A]`, create a new Input with the parameter and `assign` it.
-      //    */
-      //   def orAssign(ifNotAssigned: => A): Input[A] = input match
-      //     case Assign(_) => input
-      //     case _         => ifNotAssigned.assign
-
-      // /**
-      //  * Handles the case where `A.Input[B]` not have an assigned value, but it needs to be created
-      //  * for the `mod` function to work on.
-      //  */
-      // def mapModOrAssign[A, B](
-      //   ifNotAssigned: => B
-      // )(
-      //   mod:           (Input[B] => Input[B]) => A => A
-      // ): (Input[B] => Input[B]) => Input[A] => Input[A] =
-      //   f =>
-      //     _.map(mod { i =>
-      //       val iassign = i.orAssign(ifNotAssigned)
-      //       f(iassign)
-      //     })
-
       /**
        * Handles the case where `A.Input[B]` not have an assigned value, but it needs to be created
        * for the `mod` function to work on.

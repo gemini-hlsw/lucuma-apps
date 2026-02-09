@@ -41,26 +41,11 @@ final case class ProgramNotesTile(
 ) extends Tile[ProgramNotesTile](
       ProgramTabTileIds.NotesId.id,
       s"Notes (${notes.get.size})",
-      // initialState = none,
       bodyClass = ExploreStyles.ProgramNotesTileBody
     )(ProgramNotesTile)
 
 object ProgramNotesTile
     extends TileComponent[ProgramNotesTile]({ (props, tileSize) =>
-
-      // (Body(notes, userIsReadonlyCoi, userIsStaff, _),
-      //   Title(programId, undoer, notes, userIsReadonlyCoi, _, _)
-      // )
-
-      // private case class Title(
-      //   programId:         Program.Id,
-      //   undoer:            Undoer,
-      //   notes:             UndoSetter[List[ProgramNote]],
-      //   userIsReadonlyCoi: Boolean,
-      //   selectedId:        View[Option[ProgramNote.Id]],
-      //   tileSize:          TileSizeState
-      // ) extends ReactFnProps(Title)
-
       def noteGetter(noteId: ProgramNote.Id): List[ProgramNote] => Option[ProgramNote] =
         _.find(_.id == noteId)
 
