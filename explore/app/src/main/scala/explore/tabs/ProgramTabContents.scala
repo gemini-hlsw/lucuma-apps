@@ -6,10 +6,9 @@ package explore.tabs
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
+import crystal.react.hooks.*
 import explore.*
-import explore.components.HelpIcon
-import explore.components.Tile
-import explore.components.TileController
+import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ConfigurationRequestList
@@ -79,39 +78,40 @@ object ProgramTabContents
           props.userPreferences.programsTabLayout
 
         val detailsTile =
-          Tile(
+          Tile.Inline(
             ProgramTabTileIds.DetailsId.id,
             "Program Details"
           )(_ =>
-            ProgramDetailsTile(
-              props.programId,
-              props.programDetails,
-              props.userIsReadonlyCoi
-            )
+            TileContents:
+              ProgramDetailsTile(
+                props.programId,
+                props.programDetails,
+                props.userIsReadonlyCoi
+              )
           )
 
         val countOfDataAccess =
           props.users.get.count(pu => pu.role =!= ProgramUserRole.Pi && pu.hasDataAccess)
 
         val dataSharingTile =
-          Tile(
+          Tile.Inline(
             ProgramTabTileIds.DataUsers.id,
             s"Data Sharing ($countOfDataAccess)"
-          )(
-            _ =>
-              ProgramUsersTable(
-                props.users,
-                ProgramUsersTable.Mode.DataSharing(userVault)
-              ),
-            (_, _) =>
-              <.div(
+          )(_ =>
+            TileContents(
+              title = <.div(
                 ExploreStyles.AddProgramUserButton,
                 Option
                   .when[VdomNode](props.userIsPi):
                     AddProgramUserButton(props.programId, ProgramUserRole.External, props.users)
                   .orEmpty,
                 HelpIcon("program/data-users.md".refined)
+              ),
+              body = ProgramUsersTable(
+                props.users,
+                ProgramUsersTable.Mode.DataSharing(userVault)
               )
+            )
           )
 
         val notesTile =
@@ -124,39 +124,49 @@ object ProgramTabContents
           )
 
         val configurationRequestsTile =
-          Tile(
+          Tile.Inline(
             ProgramTabTileIds.ChangeRequestsId.id,
-            s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})",
-            initialState = ProgramConfigRequestsTile.TileState.Empty
-          )(
-            ProgramConfigRequestsTile.Body(
-              userId,
-              props.programId,
-              props.configRequests.get,
-              props.obs4ConfigRequests,
-              props.targets,
-              _
-            ),
-            (s, _) =>
-              ProgramConfigRequestsTile.Title(props.configRequests, props.userIsReadonlyCoi, s.get)
+            s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})"
+          )(_ =>
+            for tileState <- useStateView(ProgramConfigRequestsTile.TileState.Empty)
+            yield TileContents(
+              title = ProgramConfigRequestsTile.Title(
+                props.configRequests,
+                props.userIsReadonlyCoi,
+                tileState.get
+              ),
+              body = ProgramConfigRequestsTile.Body(
+                userId,
+                props.programId,
+                props.configRequests.get,
+                props.obs4ConfigRequests,
+                props.targets,
+                tileState
+              )
+            )
           )
 
         val unrequestedConfigsTile =
-          Tile(
+          Tile.Inline(
             ProgramTabTileIds.UnrequestedConfigsId.id,
-            s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})",
-            initialState = ProgramUnrequestedConfigsTile.TileState.Empty
-          )(
-            ProgramUnrequestedConfigsTile.Body(
-              userId,
-              props.programId,
-              props.configsWithoutRequests,
-              props.targets,
-              _
-            ),
-            (s, _) =>
-              ProgramUnrequestedConfigsTile
-                .Title(props.configRequests, props.observations, props.userIsReadonlyCoi, s.get)
+            s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})"
+          )(_ =>
+            for tileState <- useStateView(ProgramUnrequestedConfigsTile.TileState.Empty)
+            yield TileContents(
+              title = ProgramUnrequestedConfigsTile.Title(
+                props.configRequests,
+                props.observations,
+                props.userIsReadonlyCoi,
+                tileState.get
+              ),
+              body = ProgramUnrequestedConfigsTile.Body(
+                userId,
+                props.programId,
+                props.configsWithoutRequests,
+                props.targets,
+                tileState
+              )
+            )
           )
 
         <.div(ExploreStyles.MultiPanelTile)(

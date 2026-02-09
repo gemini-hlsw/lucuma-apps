@@ -15,23 +15,19 @@ import crystal.react.hooks.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
-import explore.components.Tile
-import explore.components.TileController
+import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationTile
 import explore.config.sequence.SequenceTile
-import explore.constraints.ConstraintsPanel
 import explore.findercharts.FinderChartsTile
 import explore.itc.ItcEmptyTile
 import explore.itc.ItcImagingTile
 import explore.itc.ItcSpectroscopyTile
 import explore.model.*
 import explore.model.GuideStarSelection.*
-import explore.model.display.given
 import explore.model.enums.AgsState
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
-import explore.model.formats.formatPercentile
 import explore.model.itc.ItcTarget
 import explore.model.layout.*
 import explore.model.reusability.given
@@ -43,8 +39,7 @@ import explore.observationtree.obsEditAttachments
 import explore.plots.ElevationPlotTile
 import explore.plots.ObjectPlotData
 import explore.plots.PlotData
-import explore.schedulingWindows.SchedulingWindowsTile
-import explore.services.OdbObservationApi
+import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.undo.UndoSetter
@@ -69,12 +64,9 @@ import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.optics.syntax.lens.*
-import lucuma.core.syntax.all.*
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.Message
-import lucuma.react.primereact.SelectItem
 import lucuma.react.resizeDetector.*
 import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
@@ -189,27 +181,6 @@ case class ObsTabTiles(
 object ObsTabTiles:
   private type Props = ObsTabTiles
 
-  private def makeConstraintsSelector(
-    observationId:     Observation.Id,
-    constraintSet:     View[ConstraintSet],
-    allConstraintSets: Set[ConstraintSet],
-    isDisabled:        Boolean
-  )(using odbApi: OdbObservationApi[IO]): VdomNode =
-    <.div(ExploreStyles.TileTitleConstraintSelector)(
-      Dropdown[ConstraintSet](
-        value = constraintSet.get,
-        disabled = isDisabled,
-        onChange = (cs: ConstraintSet) =>
-          constraintSet.set(cs) >>
-            odbApi
-              .updateObservationConstraintSet(List(observationId), cs)
-              .runAsyncAndForget,
-        options = allConstraintSets
-          .map(cs => new SelectItem[ConstraintSet](value = cs, label = cs.shortName))
-          .toList
-      )
-    )
-
   def roleLayout(
     userPreferences: UserPreferences,
     calibrationRole: Option[CalibrationRole]
@@ -246,11 +217,10 @@ object ObsTabTiles:
         customSedTimestamps <-
           // The updatedAt timestamps for any custom seds.
           useMemo((props.asterismAsNel, props.attachments.get)): (asterism, attachments) =>
-            asterism.foldMap(
-              _.map(
+            asterism.foldMap:
+              _.map:
                 _.target.sourceProfile.customSedId.flatMap(attachments.get).map(_.updatedAt)
-              ).toList.flattenOption
-            )
+              .toList.flattenOption
         sequenceChanged     <- useStateView(().ready) // Signal that the sequence has changed
         // if the timestamp for a custom sed attachment changes, it means either a new custom sed
         // has been assigned, OR a new version of the custom sed has been uploaded. This is to
@@ -467,7 +437,7 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              case None => ItcEmptyTile.tile.some
+              case None => ItcEmptyTile().some
 
           val obsConf: ObsConfiguration =
             ObsConfiguration(
@@ -550,7 +520,7 @@ object ObsTabTiles:
                 setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
               else Callback.empty
 
-          val targetTile =
+          val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
               props.vault.userId,
               ObsTabTileIds.TargetId.id,
@@ -581,14 +551,6 @@ object ObsTabTiles:
               blindOffsetInfo = (props.obsId, blindOffsetView).some
             )
 
-          val constraintsSelector: VdomNode =
-            makeConstraintsSelector(
-              props.obsId,
-              props.observation.model.zoom(Observation.constraints),
-              props.allConstraintSets,
-              props.obsIsReadonly
-            )
-
           // The ExploreStyles.ConstraintsTile css adds a z-index to the constraints tile react-grid wrapper
           // so that the constraints selector dropdown always appears in front of any other tiles. If more
           // than one tile ends up having dropdowns in the tile header, we'll need something more complex such
@@ -596,33 +558,27 @@ object ObsTabTiles:
           val optAsterismCoords: Option[Coordinates] =
             props.targetCoords(obsTimeOrNow, optAsterismTracking)
 
-          val conditionsLikelihood =
+          val conditionsLikelihood: Option[IntCentiPercent] =
             props.obsConditionsLikelihood(optAsterismCoords)
-          val constraintsTile      =
-            Tile(
-              ObsTabTileIds.ConstraintsId.id,
-              s"Constraints ${conditionsLikelihood.foldMap(p => s"(${formatPercentile(p)})")}"
-            )(
-              _ =>
-                ConstraintsPanel(
-                  ObsIdSet.one(props.obsId),
-                  props.obsIQLikelihood(optAsterismCoords),
-                  conditionsLikelihood,
-                  props.centralWavelength,
-                  props.observation.zoom(Observation.constraints),
-                  props.obsIsReadonly
-                ),
-              (_, _) => constraintsSelector
+          val constraintsTile                               =
+            ConstraintsTile(
+              props.obsId,
+              props.constraintSet,
+              props.allConstraintSets,
+              props.obsIQLikelihood(optAsterismCoords),
+              conditionsLikelihood,
+              props.centralWavelength,
+              props.obsIsReadonly
             )
 
           val schedulingWindowsTile =
-            SchedulingWindowsTile.forObservation(
+            ObservationSchedulingWindowsTile(
               props.observation,
               props.obsIsReadonly,
               false
             )
 
-          val configurationTile: Tile[?] =
+          val configurationTile =
             ConfigurationTile(
               props.vault.userId,
               props.programId,
@@ -650,11 +606,11 @@ object ObsTabTiles:
               selectedItcTarget
             )
 
-          val alltiles =
+          val alltiles: List[Tile[?]] =
             List(
               notesTile.some,
               targetTile.some,
-              if (!props.vault.isGuest) finderChartsTile.some else none,
+              Option.unless(props.vault.isGuest)(finderChartsTile),
               skyPlotTile,
               constraintsTile.some,
               schedulingWindowsTile.some,
@@ -684,7 +640,7 @@ object ObsTabTiles:
               props.userPreferences.get.sequenceTileLayout,
               List(sequenceTile),
               GridLayoutSection.ObservationsSequenceLayout,
-              backButton = none,
+              renderBackButton = none,
               clazz = ExploreStyles.SequenceTileController.some
             )
           )

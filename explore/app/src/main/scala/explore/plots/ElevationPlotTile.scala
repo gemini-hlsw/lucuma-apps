@@ -11,8 +11,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.common.UserPreferencesQueries.*
-import explore.components.HelpIcon
-import explore.components.Tile
+import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ElevationPlotScheduling
@@ -31,7 +30,6 @@ import lucuma.core.model.TimingWindow
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.react.common.Css
-import lucuma.react.common.ReactFnProps
 import lucuma.react.datepicker.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.ToggleButton
@@ -47,69 +45,30 @@ import spire.math.extras.interval.IntervalSeq
 
 import java.time.*
 
-object ElevationPlotTile:
-  def apply(
-    userId:            Option[User.Id],
-    tileId:            NonEmptyString,
-    plotData:          PlotData,
-    site:              Option[Site],
-    obsTime:           Option[Instant],
-    obsDuration:       Option[Duration],
-    hideLabels:        Boolean,
-    timingWindows:     List[TimingWindow] = List.empty,
-    globalPreferences: GlobalPreferences,
-    emptyMessage:      String
-  ): Tile[Unit] =
-    Tile(
-      tileId,
-      "Elevation Plot",
-      bodyClass = ExploreStyles.ElevationPlotTileBody
-    )(_ =>
-      userId
-        .map: uid =>
-          Body(
-            uid,
-            plotData,
-            site,
-            obsTime,
-            obsDuration,
-            hideLabels,
-            timingWindows,
-            globalPreferences,
-            emptyMessage
-          ): VdomNode
-        .getOrElse:
-          <.div(
-            ExploreStyles.FullHeightWidth |+| LucumaStyles.HVCenter |+| ExploreStyles.EmptyTreeContent,
-            <.div("Select a target")
-          )
-    )
+final case class ElevationPlotTile(
+  userId:            Option[User.Id],
+  tileId:            NonEmptyString,
+  plotData:          PlotData,
+  site:              Option[Site],
+  obsTime:           Option[Instant],
+  obsDuration:       Option[Duration],
+  hideLabels:        Boolean,
+  timingWindows:     List[TimingWindow] = List.empty,
+  globalPreferences: GlobalPreferences,
+  emptyMessage:      String
+) extends Tile[ElevationPlotTile](tileId,
+                                  "Elevation Plot",
+                                  bodyClass = ExploreStyles.ElevationPlotTileBody
+    )(ElevationPlotTile)
 
-  private case class Body(
-    userId:            User.Id,
-    plotData:          PlotData,
-    site:              Option[Site],
-    obsTime:           Option[Instant],
-    obsDuration:       Option[Duration],
-    hideLabels:        Boolean,
-    timingWindows:     List[TimingWindow],
-    globalPreferences: GlobalPreferences,
-    emptyMessage:      String
-  ) extends ReactFnProps(Body.component)
-
-  private object Body:
-    private type Props = Body
-
-    private val component = ScalaFnComponent[Props]: props =>
+object ElevationPlotTile
+    extends TileComponent[ElevationPlotTile]((props, _) =>
       for
         ctx     <- useContext(AppContext.ctx)
         // Plot options, will be read from the user preferences
         options <- useStateView:
                      ObjectPlotOptions
-                       .default(
-                         props.site,
-                         props.obsTime
-                       )
+                       .default(props.site, props.obsTime)
                        .copy(
                          range = props.globalPreferences.elevationPlotRange,
                          timeDisplay = props.globalPreferences.elevationPlotTime,
@@ -143,148 +102,161 @@ object ElevationPlotTile:
       yield
         import ctx.given
 
-        val plotOptions: View[ObjectPlotOptions] = options.withOnMod: opts =>
-          ElevationPlotPreference
-            .updatePlotPreferences[IO](
-              props.userId,
-              opts.range,
-              opts.timeDisplay,
-              opts.showScheduling.value,
-              Visible(opts.visiblePlots.contains_(SeriesType.Elevation)),
-              Visible(opts.visiblePlots.contains_(SeriesType.ParallacticAngle)),
-              Visible(opts.visiblePlots.contains_(SeriesType.SkyBrightness)),
-              Visible(opts.visiblePlots.contains_(SeriesType.LunarElevation))
-            )
-            .runAsync
+        TileContents:
+          props.userId
+            .map { userId =>
+              val plotOptions: View[ObjectPlotOptions] = options.withOnMod: opts =>
+                ElevationPlotPreference
+                  .updatePlotPreferences[IO](
+                    userId,
+                    opts.range,
+                    opts.timeDisplay,
+                    opts.showScheduling.value,
+                    Visible(opts.visiblePlots.contains_(SeriesType.Elevation)),
+                    Visible(opts.visiblePlots.contains_(SeriesType.ParallacticAngle)),
+                    Visible(opts.visiblePlots.contains_(SeriesType.SkyBrightness)),
+                    Visible(opts.visiblePlots.contains_(SeriesType.LunarElevation))
+                  )
+                  .runAsync
 
-        val opt: ObjectPlotOptions = plotOptions.get
+              val opt: ObjectPlotOptions = plotOptions.get
 
-        val siteView: View[Site]               = plotOptions.zoom(ObjectPlotOptions.site)
-        val rangeView: View[PlotRange]         = plotOptions.zoom(ObjectPlotOptions.range)
-        val dateView: View[LocalDate]          = plotOptions.zoom(ObjectPlotOptions.date)
-        val semesterView: View[Semester]       = plotOptions.zoom(ObjectPlotOptions.semester)
-        val timeDisplayView: View[TimeDisplay] = plotOptions.zoom(ObjectPlotOptions.timeDisplay)
+              val siteView: View[Site]               = plotOptions.zoom(ObjectPlotOptions.site)
+              val rangeView: View[PlotRange]         = plotOptions.zoom(ObjectPlotOptions.range)
+              val dateView: View[LocalDate]          = plotOptions.zoom(ObjectPlotOptions.date)
+              val semesterView: View[Semester]       = plotOptions.zoom(ObjectPlotOptions.semester)
+              val timeDisplayView: View[TimeDisplay] =
+                plotOptions.zoom(ObjectPlotOptions.timeDisplay)
 
-        val visiblePlotsView: View[List[SeriesType]]          =
-          plotOptions.zoom(ObjectPlotOptions.visiblePlots)
-        val showSchedulingView: View[ElevationPlotScheduling] =
-          plotOptions.zoom(ObjectPlotOptions.showScheduling)
+              val visiblePlotsView: View[List[SeriesType]]          =
+                plotOptions.zoom(ObjectPlotOptions.visiblePlots)
+              val showSchedulingView: View[ElevationPlotScheduling] =
+                plotOptions.zoom(ObjectPlotOptions.showScheduling)
 
-        def windowsToIntervals(windows: List[TimingWindow]): IntervalSeq[Instant] =
-          windows
-            .map(_.toIntervalSeq(opt.interval))
-            .fold(IntervalSeq.empty[Instant])(_ | _)
+              def windowsToIntervals(windows: List[TimingWindow]): IntervalSeq[Instant] =
+                windows
+                  .map(_.toIntervalSeq(opt.interval))
+                  .fold(IntervalSeq.empty[Instant])(_ | _)
 
-        val windowsIntervalsParts =
-          props.timingWindows
-            .partition(_.inclusion === TimingWindowInclusion.Include)
-            .toList
-            .map(windowsToIntervals)
+              val windowsIntervalsParts =
+                props.timingWindows
+                  .partition(_.inclusion === TimingWindowInclusion.Include)
+                  .toList
+                  .map(windowsToIntervals)
 
-        val windowsNetIncludeIntervals: IntervalSeq[Instant] =
-          // Intersection of "Include" intervals with the complement of "Exclude" intervals
-          windowsIntervalsParts(0) & ~windowsIntervalsParts(1)
+              val windowsNetIncludeIntervals: IntervalSeq[Instant] =
+                // Intersection of "Include" intervals with the complement of "Exclude" intervals
+                windowsIntervalsParts(0) & ~windowsIntervalsParts(1)
 
-        val windowsNetExcludeIntervals: List[BoundedInterval[Instant]] =
-          (props.timingWindows, showSchedulingView.get) match
-            case (Nil, _)                         => Nil // No exclusions if no windows are defined.
-            case (_, ElevationPlotScheduling.Off) => Nil
-            case (_, _)                           =>
-              (IntervalSeq(opt.interval) & ~windowsNetIncludeIntervals).intervals.toList
-                .map(BoundedInterval.fromInterval)
-                .flattenOption
+              val windowsNetExcludeIntervals: List[BoundedInterval[Instant]] =
+                (props.timingWindows, showSchedulingView.get) match
+                  case (Nil, _)                         => Nil // No exclusions if no windows are defined.
+                  case (_, ElevationPlotScheduling.Off) => Nil
+                  case (_, _)                           =>
+                    (IntervalSeq(opt.interval) & ~windowsNetIncludeIntervals).intervals.toList
+                      .map(BoundedInterval.fromInterval)
+                      .flattenOption
 
-        React.Fragment(
-          HelpIcon("target/main/elevation-plot.md".refined, ExploreStyles.HelpIconFloating),
-          <.div(ExploreStyles.ElevationPlot)(
-            opt.range match
-              case PlotRange.Night | PlotRange.FullDay =>
-                NightPlot(
-                  props.plotData,
-                  windowsNetExcludeIntervals,
-                  props.obsTime,
-                  props.obsDuration,
-                  plotOptions,
-                  props.emptyMessage,
-                  props.hideLabels
+              React.Fragment(
+                HelpIcon("target/main/elevation-plot.md".refined, ExploreStyles.HelpIconFloating),
+                <.div(ExploreStyles.ElevationPlot)(
+                  opt.range match
+                    case PlotRange.Night | PlotRange.FullDay =>
+                      NightPlot(
+                        props.plotData,
+                        windowsNetExcludeIntervals,
+                        props.obsTime,
+                        props.obsDuration,
+                        plotOptions,
+                        props.emptyMessage,
+                        props.hideLabels
+                      )
+                    case PlotRange.Semester                  =>
+                      props.plotData.value.headOption.map { case (_, data) =>
+                        SemesterPlot(
+                          plotOptions.get,
+                          data.targets,
+                          windowsNetExcludeIntervals
+                        )
+                      }
+                ),
+                <.div(ExploreStyles.ElevationPlotControls)(
+                  SelectButtonEnumView(
+                    "elevation-plot-site".refined,
+                    siteView,
+                    buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
+                  ),
+                  <.div(ExploreStyles.ElevationPlotDatePickerControls)(
+                    Button(
+                      onClick = opt.range match
+                        case PlotRange.Night | PlotRange.FullDay => dateView.mod(_.minusDays(1))
+                        // if we've run out of valid semesters, don't move
+                        case PlotRange.Semester                  => semesterView.mod(s => s.prev.getOrElse(s))
+                      ,
+                      clazz = ExploreStyles.ElevationPlotDateButton,
+                      text = false,
+                      icon = Icons.ChevronLeftLight
+                    ).tiny.compact,
+                    opt.range match
+                      case PlotRange.Night | PlotRange.FullDay =>
+                        Datepicker(
+                          onChange = _.map(_.fromJsDate).foldMap(dateView.set),
+                          selected = opt.date.toJsDate.some,
+                          dateFormat = "yyyy-MM-dd",
+                          className = ExploreStyles.ElevationPlotDateInput
+                        )
+                      case PlotRange.Semester                  =>
+                        FormInputText(
+                          id = "semester".refined,
+                          value = opt.semester.longName,
+                          inputClass = ExploreStyles.ElevationPlotDateInput
+                        )(^.readOnly := true)
+                    ,
+                    Button(
+                      onClick = opt.range match
+                        case PlotRange.Night | PlotRange.FullDay => dateView.mod(_.plusDays(1))
+                        // if we've run out of valid semesters, don't move
+                        case PlotRange.Semester                  => semesterView.mod(s => s.next.getOrElse(s))
+                      ,
+                      clazz = ExploreStyles.ElevationPlotDateButton,
+                      text = false,
+                      icon = TableIcons.ChevronRight
+                    ).tiny.compact
+                  ),
+                  SelectButtonEnumView(
+                    "elevation-plot-range".refined,
+                    rangeView,
+                    buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
+                    filterPred =
+                      value => value =!= PlotRange.Semester || props.plotData.value.size === 1
+                  ),
+                  SelectButtonMultipleEnumView(
+                    "elevation-plot-visible-series".refined,
+                    visiblePlotsView,
+                    buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
+                    itemClass = (seriesType: SeriesType) => Css(s"series-${seriesType.cssClass}")
+                  ).when: // Only show series selector if it's a night or full dy
+                    rangeView.get === PlotRange.Night || rangeView.get === PlotRange.FullDay
+                  ,
+                  SelectButtonEnumView(
+                    "elevation-plot-time".refined,
+                    timeDisplayView,
+                    buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
+                  ).when(rangeView.get =!= PlotRange.Semester),
+                  ToggleButton(
+                    onLabel = "Scheduling",
+                    offLabel = "Scheduling",
+                    checked = showSchedulingView.when(_.value),
+                    onChange =
+                      showSchedulingView.set.compose(ElevationPlotScheduling.Value.reverseGet),
+                    clazz = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
+                  )
                 )
-              case PlotRange.Semester                  =>
-                props.plotData.value.headOption.map { case (_, data) =>
-                  SemesterPlot(
-                    plotOptions.get,
-                    data.targets,
-                    windowsNetExcludeIntervals
-                  )
-                }
-          ),
-          <.div(ExploreStyles.ElevationPlotControls)(
-            SelectButtonEnumView(
-              "elevation-plot-site".refined,
-              siteView,
-              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
-            ),
-            <.div(ExploreStyles.ElevationPlotDatePickerControls)(
-              Button(
-                onClick = opt.range match
-                  case PlotRange.Night | PlotRange.FullDay => dateView.mod(_.minusDays(1))
-                  // if we've run out of valid semesters, don't move
-                  case PlotRange.Semester                  => semesterView.mod(s => s.prev.getOrElse(s))
-                ,
-                clazz = ExploreStyles.ElevationPlotDateButton,
-                text = false,
-                icon = Icons.ChevronLeftLight
-              ).tiny.compact,
-              opt.range match
-                case PlotRange.Night | PlotRange.FullDay =>
-                  Datepicker(
-                    onChange = _.map(_.fromJsDate).foldMap(dateView.set),
-                    selected = opt.date.toJsDate.some,
-                    dateFormat = "yyyy-MM-dd",
-                    className = ExploreStyles.ElevationPlotDateInput
-                  )
-                case PlotRange.Semester                  =>
-                  FormInputText(
-                    id = "semester".refined,
-                    value = opt.semester.longName,
-                    inputClass = ExploreStyles.ElevationPlotDateInput
-                  )(^.readOnly := true)
-              ,
-              Button(
-                onClick = opt.range match
-                  case PlotRange.Night | PlotRange.FullDay => dateView.mod(_.plusDays(1))
-                  // if we've run out of valid semesters, don't move
-                  case PlotRange.Semester                  => semesterView.mod(s => s.next.getOrElse(s))
-                ,
-                clazz = ExploreStyles.ElevationPlotDateButton,
-                text = false,
-                icon = TableIcons.ChevronRight
-              ).tiny.compact
-            ),
-            SelectButtonEnumView(
-              "elevation-plot-range".refined,
-              rangeView,
-              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
-              filterPred = value => value =!= PlotRange.Semester || props.plotData.value.size === 1
-            ),
-            SelectButtonMultipleEnumView(
-              "elevation-plot-visible-series".refined,
-              visiblePlotsView,
-              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact,
-              itemClass = (seriesType: SeriesType) => Css(s"series-${seriesType.cssClass}")
-            ).when: // Only show series selector if it's a night or full dy
-              rangeView.get === PlotRange.Night || rangeView.get === PlotRange.FullDay
-            ,
-            SelectButtonEnumView(
-              "elevation-plot-time".refined,
-              timeDisplayView,
-              buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
-            ).when(rangeView.get =!= PlotRange.Semester),
-            ToggleButton(
-              onLabel = "Scheduling",
-              offLabel = "Scheduling",
-              checked = showSchedulingView.when(_.value),
-              onChange = showSchedulingView.set.compose(ElevationPlotScheduling.Value.reverseGet),
-              clazz = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.VeryCompact
-            )
-          )
-        )
+              )
+            }
+            .getOrElse:
+              <.div(
+                ExploreStyles.FullHeightWidth |+| LucumaStyles.HVCenter |+| ExploreStyles.EmptyTreeContent,
+                <.div("Select a target")
+              )
+    )

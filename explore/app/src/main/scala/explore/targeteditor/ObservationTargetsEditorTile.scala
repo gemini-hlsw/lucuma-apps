@@ -10,8 +10,8 @@ import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.UserPreferencesQueries.ObservationPreferences
+import explore.components.*
 import explore.components.ColumnSelectorInTitle
-import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.config.ObsTimeEditor
 import explore.model.AladinFullScreen
@@ -45,188 +45,101 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
-import lucuma.react.common.ReactFnComponent
-import lucuma.react.common.ReactFnProps
-import lucuma.react.table.ColumnVisibility
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
-import monocle.Focus
 import monocle.Iso
-import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
 
-object ObservationTargetsEditorTile:
-  def apply(
-    userId:              Option[User.Id],
-    tileId:              Tile.TileId,
-    programId:           Program.Id,
-    programType:         ProgramType,
-    obsIds:              ObsIdSet,
-    obsAndTargets:       UndoSetter[ObservationsAndTargets],
-    obsTime:             View[Option[Instant]],
-    obsDuration:         View[Option[TimeSpan]],
-    obsConf:             ObsConfiguration,
-    digest:              CalculatedValue[Option[ExecutionDigest]],
-    currentTarget:       Option[Target.Id],
-    setTarget:           (Option[Target.Id], SetRouteVia) => Callback,
-    onCloneTarget:       OnCloneParameters => Callback,
-    onAsterismUpdate:    OnAsterismUpdateParams => Callback,
-    obsInfo:             Target.Id => TargetEditObsInfo,
-    searching:           View[Set[Target.Id]],
-    title:               String,
-    userPreferences:     View[UserPreferences],
-    guideStarSelection:  View[GuideStarSelection],
-    attachments:         View[AttachmentList],
-    authToken:           Option[NonEmptyString],
-    readonly:            Boolean,
-    allowEditingOngoing: Boolean,
-    isStaffOrAdmin:      Boolean,
-    sequenceChanged:     Callback = Callback.empty,
-    blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
-    backButton:          Option[VdomNode] = None
-  )(using odbApi: OdbObservationApi[IO])(using Logger[IO]): Tile[TileState] = {
-    // Save the time here. this works for the obs and target tabs
-    // It's OK to save the viz time for executed observations, I think.
-    val obsTimeView: View[Instant] =
-      View(
-        obsTime.get.getOrElse(Instant.now),
-        (f, cb) =>
-          val oldValue = obsTime.get
-          val newValue = f(oldValue.getOrElse(Instant.now)).some
-          obsTime.set(newValue) >> cb(oldValue.getOrElse(Instant.now),
-                                      newValue.getOrElse(Instant.now)
-          )
-      ).withOnMod(ct =>
-        Callback
-          .log(s"to the db $ct") *> odbApi.updateVisualizationTime(obsIds.toList, ct.some).runAsync
-      )
-
-    val obsDurationView: View[Option[TimeSpan]] =
-      obsDuration.withOnMod: t =>
-        odbApi.updateVisualizationDuration(obsIds.toList, t).runAsync
-
-    val obsTimeAndDurationView: View[(Instant, Option[TimeSpan])] =
-      View(
-        (obsTime.get.getOrElse(Instant.now), obsDuration.get),
-        (mod, cb) =>
-          val oldValue = (obsTime.get.getOrElse(Instant.now), obsDuration.get)
-          val newValue = mod(oldValue)
-          obsTime.set(newValue._1.some) >> obsDuration.set(newValue._2) >> cb(oldValue, newValue)
-      ).withOnMod: tuple =>
-        odbApi
-          .updateVisualizationTimeAndDuration(obsIds.toList, tuple._1.some, tuple._2)
-          .runAsync
-
-    Tile(
+final case class ObservationTargetsEditorTile(
+  userId:              Option[User.Id],
+  tileId:              Tile.TileId,
+  programId:           Program.Id,
+  programType:         ProgramType,
+  obsIds:              ObsIdSet,
+  obsAndTargets:       UndoSetter[ObservationsAndTargets],
+  obsTime:             View[Option[Instant]],
+  obsDuration:         View[Option[TimeSpan]],
+  obsConf:             ObsConfiguration,
+  digest:              CalculatedValue[Option[ExecutionDigest]],
+  focusedTargetId:     Option[Target.Id],
+  setTarget:           (Option[Target.Id], SetRouteVia) => Callback,
+  onCloneTarget:       OnCloneParameters => Callback,
+  onAsterismUpdate:    OnAsterismUpdateParams => Callback,
+  obsInfo:             Target.Id => TargetEditObsInfo,
+  searching:           View[Set[Target.Id]],
+  titleText:           String,
+  userPreferences:     View[UserPreferences],
+  guideStarSelection:  View[GuideStarSelection],
+  attachments:         View[AttachmentList],
+  authToken:           Option[NonEmptyString],
+  readonly:            Boolean,
+  allowEditingOngoing: Boolean,
+  isStaffOrAdmin:      Boolean,
+  sequenceChanged:     Callback = Callback.empty,
+  blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
+  backButton:          Option[VdomNode] = None
+)(using val odbApi: OdbObservationApi[IO])(using val logger: Logger[IO])
+    extends Tile[ObservationTargetsEditorTile](
       tileId,
-      title,
-      TileState.Initial,
-      back = backButton,
+      titleText,
+      renderBackButton = backButton,
       bodyClass = ExploreStyles.TargetTileBody,
       controllerClass = ExploreStyles.TargetTileController
-    )(
-      tileState =>
-        userId.map: uid =>
-          Body(
-            programId,
-            programType,
-            uid,
-            obsIds,
-            obsAndTargets,
-            obsTime.get,
-            obsConf,
-            currentTarget,
-            setTarget,
-            onCloneTarget,
-            onAsterismUpdate,
-            obsInfo,
-            searching,
-            userPreferences,
-            guideStarSelection,
-            attachments,
-            authToken,
-            readonly,
-            allowEditingOngoing,
-            isStaffOrAdmin,
-            sequenceChanged,
-            blindOffsetInfo,
-            tileState.zoom(TileState.columnVisibility),
-            tileState.zoom(TileState.obsEditInfo)
-          ),
-      (tileState, tileSize) =>
-        Title(
-          programId,
-          obsIds,
-          obsAndTargets,
-          onAsterismUpdate,
-          readonly,
-          obsTimeView,
-          obsDurationView,
-          obsTimeAndDurationView,
-          digest,
-          tileState.zoom(TileState.columnVisibility),
-          tileState.get.obsEditInfo,
-          blindOffsetInfo,
-          tileSize
-        )
-    )
-  }
+    )(ObservationTargetsEditorTile):
+  val allTargets: UndoSetter[TargetList] = obsAndTargets.zoom(ObservationsAndTargets.targets)
+  val prefTargetId: Option[Target.Id]    =
+    obsIds.single.flatMap(userPreferences.get.observationPreferences.get)
 
-  case class TileState(
-    columnVisibility: ColumnVisibility,
-    obsEditInfo:      Option[ObsIdSetEditInfo]
-  )
+object ObservationTargetsEditorTile
+    extends TileComponent[ObservationTargetsEditorTile](
+      { (props, tileSize) =>
+        import props.given
 
-  object TileState:
-    val Initial: TileState = TileState(TargetColumns.DefaultVisibility, none)
+        // Save the time here. this works for the obs and target tabs
+        // It's OK to save the viz time for executed observations, I think.
+        val obsTimeView: View[Instant] =
+          View(
+            props.obsTime.get.getOrElse(Instant.now),
+            (f, cb) =>
+              val oldValue = props.obsTime.get
+              val newValue = f(oldValue.getOrElse(Instant.now)).some
+              props.obsTime.set(newValue) >>
+                cb(oldValue.getOrElse(Instant.now), newValue.getOrElse(Instant.now))
+          ).withOnMod: ct =>
+            Callback.log(s"to the db $ct") *>
+              props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
 
-    val columnVisibility: Lens[TileState, ColumnVisibility]    =
-      Focus[TileState](_.columnVisibility)
-    val obsEditInfo: Lens[TileState, Option[ObsIdSetEditInfo]] =
-      Focus[TileState](_.obsEditInfo)
+        val obsDurationView: View[Option[TimeSpan]] =
+          props.obsDuration.withOnMod: t =>
+            props.odbApi.updateVisualizationDuration(props.obsIds.toList, t).runAsync
 
-  private case class Body(
-    programId:           Program.Id,
-    programType:         ProgramType,
-    userId:              User.Id,
-    obsIds:              ObsIdSet,
-    obsAndTargets:       UndoSetter[ObservationsAndTargets],
-    obsTime:             Option[Instant],
-    obsConf:             ObsConfiguration,
-    focusedTargetId:     Option[Target.Id],
-    setTarget:           (Option[Target.Id], SetRouteVia) => Callback,
-    onCloneTarget:       OnCloneParameters => Callback,
-    onAsterismUpdate:    OnAsterismUpdateParams => Callback,
-    obsInfo:             Target.Id => TargetEditObsInfo,
-    searching:           View[Set[Target.Id]],
-    userPreferences:     View[UserPreferences],
-    guideStarSelection:  View[GuideStarSelection],
-    attachments:         View[AttachmentList],
-    authToken:           Option[NonEmptyString],
-    readonly:            Boolean,
-    allowEditingOngoing: Boolean,
-    isStaffOrAdmin:      Boolean,
-    sequenceChanged:     Callback,
-    blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])],
-    columnVisibility:    View[ColumnVisibility],
-    obsEditInfo:         View[Option[ObsIdSetEditInfo]]
-  ) extends ReactFnProps(Body):
-    val allTargets: UndoSetter[TargetList] = obsAndTargets.zoom(ObservationsAndTargets.targets)
-    val prefTargetId                       =
-      obsIds.single.flatMap(userPreferences.get.observationPreferences.get)
+        val obsTimeAndDurationView: View[(Instant, Option[TimeSpan])] =
+          View(
+            (props.obsTime.get.getOrElse(Instant.now), props.obsDuration.get),
+            (mod, cb) =>
+              val oldValue = (props.obsTime.get.getOrElse(Instant.now), props.obsDuration.get)
+              val newValue = mod(oldValue)
+              props.obsTime.set(newValue._1.some) >> props.obsDuration
+                .set(newValue._2) >> cb(oldValue, newValue)
+          ).withOnMod: tuple =>
+            props.odbApi
+              .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
+              .runAsync
 
-  private object Body
-      extends ReactFnComponent[Body](props =>
         for
-          ctx          <- useContext(AppContext.ctx)
+          ctx              <- useContext(AppContext.ctx)
+          columnVisibility <- useStateView(TargetColumns.DefaultVisibility)
+          // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
+          adding           <- useStateView(AreAdding(false))
+
           obsEditInfo  <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
                             ObsIdSetEditInfo.fromObservationList
-          _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
-                            props.obsEditInfo.set(roei.value.some)
+          // _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
+          //                   props.obsEditInfo.set(roei.value.some)
           observations <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
                             ids.idSet.toList.map(obses.get).flatten
           scienceIds   <- useMemo(observations): os =>
@@ -254,14 +167,49 @@ object ObservationTargetsEditorTile:
                             focusedTargetId.filter(allTargetIds.contains) match
                               case None =>
                                 val preferred = preferredTargetOpt.filter(allTargetIds.contains)
-
-                                val tid =
+                                val tid       =
                                   preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
                                 props.setTarget(tid, SetRouteVia.HistoryReplace)
                               case _    => Callback.empty
           fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
           import ctx.given
+
+          val obsTimeEditor = ObsTimeEditor(
+            obsTimeView,
+            obsDurationView,
+            obsTimeAndDurationView,
+            props.digest,
+            props.obsIds.size > 1
+          )
+
+          val title =
+            <.div(
+              ExploreStyles.AsterismEditorTileTitle,
+              if (tileSize.isMinimized)
+                obsTimeEditor
+              else
+                React.Fragment(
+                  // only pass in the unexecuted observations. Will be readonly if there aren't any
+                  <.span(
+                    AddTargetButton(
+                      "Target",
+                      props.programId,
+                      obsEditInfo.unExecuted.getOrElse(props.obsIds),
+                      props.obsAndTargets,
+                      adding,
+                      props.onAsterismUpdate,
+                      props.readonly || obsEditInfo.allAreExecuted,
+                      buttonClass = ExploreStyles.AddTargetButton,
+                      blindOffsetInfo = props.blindOffsetInfo
+                    )
+                  ),
+                  obsTimeEditor,
+                  <.span(^.textAlign.right)(
+                    ColumnSelectorInTitle(TargetColumns.AllColNames.toList, columnVisibility)
+                  )
+                )
+            )
 
           val selectedTargetView: View[Option[Target.Id]] =
             View(
@@ -283,125 +231,63 @@ object ObservationTargetsEditorTile:
               "Adding and removing targets will only affect the unexecuted observations.".some
             else none
 
-          <.div(ExploreStyles.AladinFullScreen.when(fullScreen.get.value))(
-            editWarningMsg.map(msg => <.div(ExploreStyles.SharedEditWarning, msg)),
-            // the 'getOrElse doesn't matter. Controls will be readonly if all are executed
-            props.obsEditInfo.get
-              .map(_.unExecuted.getOrElse(props.obsIds))
-              .map: unexecutedObs =>
-                TargetTable(
-                  props.userId.some,
-                  props.programId,
-                  unexecutedObs,
-                  obsTargets,
-                  props.obsAndTargets,
-                  selectedTargetView,
-                  props.onAsterismUpdate,
-                  props.obsTime,
-                  distinctSite,
-                  fullScreen.get,
-                  props.readonly || obsEditInfo.allAreExecuted,
-                  props.blindOffsetInfo.map(_._2),
-                  props.columnVisibility
-                ),
-            (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
-             props.focusedTargetId
-            )
-              .mapN: (targets, focusedTargetId) =>
-                val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
-                  props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
+          val body =
+            <.div(ExploreStyles.AladinFullScreen.when(fullScreen.get.value))(
+              editWarningMsg.map(msg => <.div(ExploreStyles.SharedEditWarning, msg)),
+              // the 'getOrElse doesn't matter. Controls will be readonly if all are executed
+              TargetTable(
+                props.userId,
+                props.programId,
+                obsEditInfo.unExecuted.getOrElse(props.obsIds),
+                obsTargets,
+                props.obsAndTargets,
+                selectedTargetView,
+                props.onAsterismUpdate,
+                props.obsTime.get,
+                distinctSite,
+                fullScreen.get,
+                props.readonly || obsEditInfo.allAreExecuted,
+                props.blindOffsetInfo.map(_._2),
+                columnVisibility
+              ),
+              (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
+               props.focusedTargetId
+              )
+                .mapN: (targets, focusedTargetId) =>
+                  val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
+                    props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
 
-                val obsInfo = props.obsInfo(focusedTargetId)
+                  val obsInfo = props.obsInfo(focusedTargetId)
 
-                <.div(
-                  ExploreStyles.TargetTileEditor,
-                  selectedTargetOpt.map: targetWithId =>
-                    TargetEditor(
-                      props.programId,
-                      props.programType,
-                      props.userId,
-                      targetWithId,
-                      props.obsAndTargets,
-                      targets.focusOn(focusedTargetId),
-                      props.obsTime,
-                      props.obsConf.some,
-                      props.searching,
-                      onClone = props.onCloneTarget,
-                      obsInfo = obsInfo,
-                      fullScreen = fullScreen,
-                      userPreferences = props.userPreferences,
-                      guideStarSelection = props.guideStarSelection,
-                      attachments = props.attachments,
-                      authToken = props.authToken,
-                      readonly = props.readonly,
-                      allowEditingOngoing = props.allowEditingOngoing,
-                      isStaffOrAdmin = props.isStaffOrAdmin,
-                      invalidateSequence = props.sequenceChanged,
-                      blindOffsetInfo = props.blindOffsetInfo
-                    )
-                ).some
-          )
-      )
-
-  private case class Title(
-    programId:              Program.Id,
-    obsIds:                 ObsIdSet,
-    obsAndTargets:          UndoSetter[ObservationsAndTargets],
-    onAsterismUpdate:       OnAsterismUpdateParams => Callback,
-    readonly:               Boolean,
-    obsTimeView:            View[Instant],
-    obsDurationView:        View[Option[TimeSpan]],
-    obsTimeAndDurationView: View[(Instant, Option[TimeSpan])],
-    digest:                 CalculatedValue[Option[ExecutionDigest]],
-    columnVisibility:       View[ColumnVisibility],
-    obsEditInfo:            Option[ObsIdSetEditInfo],
-    blindOffsetInfo:        Option[(Observation.Id, View[BlindOffset])],
-    tileSize:               TileSizeState
-  ) extends ReactFnProps(Title.component)
-
-  private object Title:
-    private type Props = Title
-
-    private val component =
-      ScalaFnComponent[Props]: props =>
-        for
-          ctx    <- useContext(AppContext.ctx)
-          adding <- useStateView(AreAdding(false))
-        yield
-
-          val obsTimeEditor = ObsTimeEditor(
-            props.obsTimeView,
-            props.obsDurationView,
-            props.obsTimeAndDurationView,
-            props.digest,
-            props.obsIds.size > 1
-          )
-
-          <.div(
-            ExploreStyles.AsterismEditorTileTitle,
-            if (props.tileSize.isMinimized)
-              obsTimeEditor
-            else
-              React.Fragment(
-                // only pass in the unexecuted observations. Will be readonly if there aren't any
-                <.span(
-                  (props.obsEditInfo, props.obsEditInfo.map(_.unExecuted.getOrElse(props.obsIds)))
-                    .mapN: (obsEditInfo, unexecutedObs) =>
-                      AddTargetButton(
-                        "Target",
+                  <.div(
+                    ExploreStyles.TargetTileEditor,
+                    (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
+                      TargetEditor(
                         props.programId,
-                        unexecutedObs,
+                        props.programType,
+                        userId,
+                        targetWithId,
                         props.obsAndTargets,
-                        adding,
-                        props.onAsterismUpdate,
-                        props.readonly || obsEditInfo.allAreExecuted,
-                        buttonClass = ExploreStyles.AddTargetButton,
+                        targets.focusOn(focusedTargetId),
+                        props.obsTime.get,
+                        props.obsConf.some,
+                        props.searching,
+                        onClone = props.onCloneTarget,
+                        obsInfo = obsInfo,
+                        fullScreen = fullScreen,
+                        userPreferences = props.userPreferences,
+                        guideStarSelection = props.guideStarSelection,
+                        attachments = props.attachments,
+                        authToken = props.authToken,
+                        readonly = props.readonly,
+                        allowEditingOngoing = props.allowEditingOngoing,
+                        isStaffOrAdmin = props.isStaffOrAdmin,
+                        invalidateSequence = props.sequenceChanged,
                         blindOffsetInfo = props.blindOffsetInfo
                       )
-                ),
-                obsTimeEditor,
-                <.span(^.textAlign.right)(
-                  ColumnSelectorInTitle(TargetColumns.AllColNames.toList, props.columnVisibility)
-                )
-              )
-          )
+                  ).some
+            )
+
+          TileContents(title, body)
+      }
+    )

@@ -13,6 +13,7 @@ import explore.Icons
 import explore.common.Aligner
 import explore.components.HelpIcon
 import explore.components.Tile
+import explore.components.TileContents
 import explore.components.TileController
 import explore.components.ui.*
 import explore.model.AppContext
@@ -225,9 +226,14 @@ object ProposalEditor
               )
 
           val detailsTile =
-            Tile(ProposalTabTileIds.DetailsId.id, "Details")(
-              _ =>
-                ProposalDetailsBody(
+            Tile.Inline(ProposalTabTileIds.DetailsId.id, "Details")(tileSize =>
+              TileContents(
+                title = ProposalDetailsTitle(
+                  props.undoCtx,
+                  tileSize,
+                  props.proposalOrUserIsReadonly
+                ),
+                body = ProposalDetailsBody(
                   detailsAligner,
                   proposalAligner,
                   props.cfps,
@@ -235,33 +241,30 @@ object ProposalEditor
                   setFastTurnaroundReviewer,
                   setFastTurnaroundMentorOnly,
                   props.proposalOrUserIsReadonly
-                ),
-              (_, s) => ProposalDetailsTitle(props.undoCtx, s, props.proposalOrUserIsReadonly)
+                )
+              )
             )
 
           val usersTile =
-            Tile(
-              ProposalTabTileIds.UsersId.id,
-              "Investigators"
-            )(
-              _ =>
-                ProgramUsersTable(
-                  props.users.withOnMod(onUsersMod),
-                  ProgramUsersTable.Mode.CoIs(
-                    userVault,
-                    props.proposalIsReadonly,
-                    props.userIsReadonlyCoi
-                  )
-                ),
-              (_, _) =>
-                <.div(
+            Tile.Inline(ProposalTabTileIds.UsersId.id, "Investigators")(_ =>
+              TileContents(
+                title = <.div(
                   ExploreStyles.AddProgramUserButton,
                   Option
                     .unless[VdomNode](props.proposalOrUserIsReadonly):
                       AddProgramUserButton(props.programId, ProgramUserRole.CoiRO, props.users)
                     .orEmpty,
                   HelpIcon("proposal/main/investigators.md".refined)
+                ),
+                body = ProgramUsersTable(
+                  props.users.withOnMod(onUsersMod),
+                  ProgramUsersTable.Mode.CoIs(
+                    userVault,
+                    props.proposalIsReadonly,
+                    props.userIsReadonlyCoi
+                  )
                 )
+              )
             )
 
           val absTitle: VdomNode =
@@ -279,31 +282,46 @@ object ProposalEditor
             else s"Abstract (${abstractCounter.value} words)"
 
           val abstractTile =
-            Tile(
+            Tile.Inline(
               ProposalTabTileIds.AbstractId.id,
               absTitle,
               bodyClass = ExploreStyles.ProposalAbstract
             )(_ =>
-              FormInputTextAreaView(
-                id = "abstract".refined,
-                value = abstractView.as(OptionNonEmptyStringIso),
-                onTextChange = t => abstractCounter.setState(t.wordCount).rateLimitMs(1000).void
-              )(
-                ^.disabled := props.proposalOrUserIsReadonly,
-                ^.cls      := ExploreStyles.WarningInput
-                  .when_(abstractView.get.isEmpty && !props.proposalOrUserIsReadonly)
-                  .htmlClass
-              )
+              TileContents:
+                FormInputTextAreaView(
+                  id = "abstract".refined,
+                  value = abstractView.as(OptionNonEmptyStringIso),
+                  onTextChange = t => abstractCounter.setState(t.wordCount).rateLimitMs(1000).void
+                )(
+                  ^.disabled := props.proposalOrUserIsReadonly,
+                  ^.cls      := ExploreStyles.WarningInput
+                    .when_(abstractView.get.isEmpty && !props.proposalOrUserIsReadonly)
+                    .htmlClass
+                )
             )
 
           val attachmentsTile =
-            Tile(
+            Tile.Inline(
               ProposalTabTileIds.AttachmentsId.id,
               "Attachments",
               tileClass = ExploreStyles.ProposalAttachmentsTile
-            )(
-              _ =>
-                props.authToken.map(token =>
+            )(_ =>
+              TileContents(
+                title = // put it in a span so it doesn't take up the full width
+                  <.span(
+                    <.a(
+                      ^.href   := Constants.P1TemplatesUrl,
+                      ^.target := "_blank",
+                      Icons.ArrowUpRightFromSquare,
+                      PrimeStyles.Component,
+                      PrimeStyles.Button,
+                      PrimeStyles.ButtonIconOnly,
+                      LucumaPrimeStyles.Tiny,
+                      LucumaPrimeStyles.Compact,
+                      PrimeStyles.ButtonSecondary
+                    ).withTooltip("Download templates")
+                  ),
+                body = props.authToken.map(token =>
                   ProposalAttachmentsTable(
                     props.programId,
                     token,
@@ -311,26 +329,12 @@ object ProposalEditor
                     props.proposal.get.proposalType,
                     props.proposalOrUserIsReadonly
                   )
-                ),
-              (_, _) =>
-                // put it in a span so it doesn't take up the full width
-                <.span(
-                  <.a(
-                    ^.href   := Constants.P1TemplatesUrl,
-                    ^.target := "_blank",
-                    Icons.ArrowUpRightFromSquare,
-                    PrimeStyles.Component,
-                    PrimeStyles.Button,
-                    PrimeStyles.ButtonIconOnly,
-                    LucumaPrimeStyles.Tiny,
-                    LucumaPrimeStyles.Compact,
-                    PrimeStyles.ButtonSecondary
-                  ).withTooltip("Download templates")
                 )
+              )
             )
 
-          val errorsTile =
-            props.errors.fold(Tile.dummyTile(ProposalTabTileIds.ErrorsId.id))(
+          val errorsTile: Tile[?] =
+            props.errors.fold(Tile.Dummy(ProposalTabTileIds.ErrorsId.id))(
               ProposalErrorsTile(_)
             )
 
@@ -340,7 +344,13 @@ object ProposalEditor
               resize.width.getOrElse(1),
               defaultLayouts,
               props.layout,
-              List(detailsTile, usersTile, abstractTile, attachmentsTile, errorsTile),
+              List(
+                detailsTile,
+                usersTile,
+                abstractTile,
+                attachmentsTile,
+                errorsTile
+              ),
               GridLayoutSection.ProposalLayout,
               storeLayout = true
             )

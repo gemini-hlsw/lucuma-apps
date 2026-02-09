@@ -59,7 +59,7 @@ import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 
 trait ModesTableCommon:
-  protected case class TableMeta(itcProgress: Option[Progress])
+  case class TableMeta(itcProgress: Option[Progress])
 
   extension (pot: Pot[EitherNec[ItcTargetProblem, ItcResult]])
     def totalItcTime: Option[TimeSpan] =
@@ -70,7 +70,7 @@ trait ModesTableCommon:
         s.map(_.total.value)
       }.flatten
 
-  protected trait TableRowWithResult:
+  trait TableRowWithResult:
     val result: Pot[EitherNec[ItcTargetProblem, ItcResult]]
     val config: ItcInstrumentConfig
     lazy val configAndResult: InstrumentConfigAndItcResult =
@@ -85,17 +85,17 @@ trait ModesTableCommon:
         s.map(_.total)
       }.flatten
 
-  protected object ScrollTo extends NewBoolean:
+  object ScrollTo extends NewBoolean:
     inline def Scroll = True; inline def NoScroll = False
-  protected type ScrollTo = ScrollTo.Type
+  type ScrollTo = ScrollTo.Type
 
-  protected val ScrollOptions =
+  val ScrollOptions =
     rawVirtual.mod
       .ScrollToOptions()
       .setBehavior(rawVirtual.mod.ScrollBehavior.smooth)
       .setAlign(rawVirtual.mod.ScrollAlignment.center)
 
-  protected def scrollToVirtualizedIndex(
+  def scrollToVirtualizedIndex(
     selectedIndex:  Int,
     virtualizerRef: UseRef[Option[HTMLTableVirtualizer]]
   ): Callback =
@@ -119,7 +119,7 @@ trait ModesTableCommon:
         ).withMods(content).compact.when(indexCondition(idx))
     )
 
-  protected def scrollUpButton(
+  def scrollUpButton(
     index:          Option[Int],
     virtualizerRef: UseRef[Option[HTMLTableVirtualizer]],
     visibleRows:    Option[Range.Inclusive],
@@ -133,7 +133,7 @@ trait ModesTableCommon:
       idx => !(idx === 0 && atTop) && visibleRows.exists(_.start + 1 > idx)
     )
 
-  protected def scrollDownButton(
+  def scrollDownButton(
     index:          Option[Int],
     virtualizerRef: UseRef[Option[HTMLTableVirtualizer]],
     visibleRows:    Option[Range.Inclusive]
@@ -145,7 +145,7 @@ trait ModesTableCommon:
                  idx => visibleRows.exists(_.end - 2 < idx)
     )
 
-  protected def tableOnChangeHandler(
+  def tableOnChangeHandler(
     visibleRows: View[Option[Range.Inclusive]],
     atTop:       View[Boolean]
   ): HTMLTableVirtualizer => Callback =
@@ -158,10 +158,10 @@ trait ModesTableCommon:
           .map(items => items.head.index.toInt to items.last.index.toInt)
       ) >> atTop.set(virtualizer.scrollElement.scrollTop < 32)
 
-  protected enum ItcColumns:
+  enum ItcColumns:
     case Time, SN, Exposures
 
-  protected def progressingCellHeader(txt: String)(
+  def progressingCellHeader(txt: String)(
     header: HeaderContext[?, ?, TableMeta, ?, ?, ?, ?]
   ) =
     <.div(ExploreStyles.ITCHeaderCell)(
@@ -195,7 +195,7 @@ trait ModesTableCommon:
       (baseText, Placement.RightStart)
     }
 
-  protected def itcCell(
+  def itcCell(
     c:   Pot[EitherNec[ItcTargetProblem, ItcResult]],
     col: ItcColumns
   ): VdomElement = {
@@ -271,7 +271,7 @@ trait ModesTableCommon:
     <.div(ExploreStyles.ITCCell, content)
   }
 
-  protected case class ItcHookData(
+  case class ItcHookData(
     errors: List[ItcTargetProblem]
   ):
     def errorLabel(showMissingTargetInfo: Boolean): List[VdomNode] =
@@ -287,9 +287,27 @@ trait ModesTableCommon:
         case ItcTargetProblem(name, ItcQueryProblem.MissingBrightness)                          =>
           <.label(ExploreStyles.WarningLabel)(s"${renderName3(name)}No Brightness Defined")
 
-  protected given Reusability[ItcResultsCache] = Reusability.by(_.cache.size)
+  given Reusability[ItcResultsCache] = Reusability.by(_.cache.size)
 
-  protected def useItc[Row <: TableRowWithResult](
+  def requestItcQuery[F[_]](
+    expTimeMode:         ExposureTimeMode,
+    constraints:         ConstraintSet,
+    asterism:            NonEmptyList[ItcTarget],
+    customSedTimestamps: List[Timestamp],
+    configs:             List[ItcInstrumentConfig]
+  )(using
+    WorkerClient[F, ItcMessage.Request]
+  ): Resource[F, fs2.Stream[F, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]] =
+    ItcClient[F].request(
+      ItcMessage.Query(
+        constraints,
+        asterism,
+        customSedTimestamps,
+        configs.map((_, expTimeMode))
+      )
+    )
+
+  def useItc[Row <: TableRowWithResult](
     itcResults:          View[ItcResultsCache],
     itcProgress:         View[Option[Progress]],
     onNewItc:            Callback,
@@ -348,25 +366,22 @@ trait ModesTableCommon:
                   for {
                     _       <- Resource.eval(itcProgress.set(progressZero).to[IO])
                     request <-
-                      ModesTableCommon
-                        .requestItcQuery(
-                          expTimeMode,
-                          constraints,
-                          asterism,
-                          customSedTimestamps,
-                          modes.map(_.config)
-                        )
+                      requestItcQuery(
+                        expTimeMode,
+                        constraints,
+                        asterism,
+                        customSedTimestamps,
+                        modes.map(_.config)
+                      )
                         .map:
                           // Avoid rerendering on every single result, it's slow.
                           _.groupWithin(100, 500.millis)
                             .evalMap: itcResponseChunk =>
                               itcProgress
-                                .mod(
-                                  _.map(
+                                .mod:
+                                  _.map:
                                     _.increment(NonNegInt.unsafeFrom(itcResponseChunk.size))
-                                  )
-                                    .filterNot(_.complete)
-                                )
+                                  .filterNot(_.complete)
                                 .to[IO] >>
                                 // Update the cache
                                 itcResults.mod(_.updateN(itcResponseChunk.toList)).to[IO]
@@ -394,21 +409,4 @@ trait ModesTableCommon:
       .flatMap(brightestIndex => validTargets.flatMap(_.get(brightestIndex)))
       .map(t => <.label(ExploreStyles.ModesTableTarget)(s"on ${t.name.value}"))
 
-object ModesTableCommon:
-  def requestItcQuery[F[_]](
-    expTimeMode:         ExposureTimeMode,
-    constraints:         ConstraintSet,
-    asterism:            NonEmptyList[ItcTarget],
-    customSedTimestamps: List[Timestamp],
-    configs:             List[ItcInstrumentConfig]
-  )(using
-    WorkerClient[F, ItcMessage.Request]
-  ): Resource[F, fs2.Stream[F, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]] =
-    ItcClient[F].request(
-      ItcMessage.Query(
-        constraints,
-        asterism,
-        customSedTimestamps,
-        configs.map((_, expTimeMode))
-      )
-    )
+object ModesTableCommon extends ModesTableCommon

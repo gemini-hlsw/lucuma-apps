@@ -8,8 +8,8 @@ import crystal.Pot
 import crystal.react.View
 import crystal.react.given
 import explore.*
+import explore.components.*
 import explore.components.HelpIcon
-import explore.components.Tile
 import explore.components.ui.ExploreStyles
 import explore.config.sequence.byInstrument.*
 import explore.model.Execution
@@ -26,8 +26,6 @@ import lucuma.core.model.Target
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.react.common.ReactFnComponent
-import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.model.ExecutionVisits
@@ -39,55 +37,65 @@ import lucuma.ui.syntax.all.given
 
 import scala.collection.immutable.SortedSet
 
-object SequenceTile extends SequenceTileHelper:
-  def apply(
-    obsId:               Observation.Id,
-    obsExecution:        Execution,
-    asterismIds:         SortedSet[Target.Id],
-    customSedTimestamps: List[Timestamp],
-    calibrationRole:     Option[CalibrationRole],
-    sequenceChanged:     View[Pot[Unit]]
-  ) =
-    Tile(
-      ObsTabTileIds.SequenceId.id,
-      "Sequence"
-    )(
-      _ =>
-        Body(
-          obsId,
-          asterismIds.toList,
-          customSedTimestamps,
-          calibrationRole,
-          sequenceChanged
-        ),
-      (_, _) => Title(obsExecution)
-    )
+final case class SequenceTile(
+  obsId:               Observation.Id,
+  obsExecution:        Execution,
+  asterismIds:         SortedSet[Target.Id],
+  customSedTimestamps: List[Timestamp],
+  calibrationRole:     Option[CalibrationRole],
+  sequenceChanged:     View[Pot[Unit]]
+) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence")(SequenceTile)
 
-  private case class Body(
-    obsId:               Observation.Id,
-    targetIds:           List[Target.Id],
-    customSedTimestamps: List[Timestamp],
-    calibrationRole:     Option[CalibrationRole],
-    sequenceChanged:     View[Pot[Unit]]
-  ) extends ReactFnProps(Body)
+object SequenceTile
+    extends TileComponent[SequenceTile]((props, _) =>
+      import SequenceTileHelper.*
 
-  private object Body
-      extends ReactFnComponent[Body](props =>
-        for
-          liveSequence <- useLiveSequence(
-                            props.obsId,
-                            props.targetIds,
-                            props.customSedTimestamps,
-                            props.calibrationRole
-                          )
-          _            <- useEffectWithDeps(liveSequence.data): dataPot =>
-                            props.sequenceChanged.set(dataPot.void)
-        yield
-          val mismatchError = Message(
-            text = "ERROR: Sequence and S/N are inconsistent.",
-            severity = Message.Severity.Error
-          )
+      for
+        liveSequence <- useLiveSequence(
+                          props.obsId,
+                          props.asterismIds.toList,
+                          props.customSedTimestamps,
+                          props.calibrationRole
+                        )
+        _            <- useEffectWithDeps(liveSequence.data): dataPot =>
+                          props.sequenceChanged.set(dataPot.void)
+      yield
+        val title =
+          <.span(ExploreStyles.SequenceTileTitle) {
+            val execution         = props.obsExecution
+            val staleCss          = execution.digest.staleClass
+            val staleTooltip      = execution.digest.staleTooltip
+            val programTimeCharge = execution.programTimeCharge.value
 
+            val executed = timeDisplay("Executed", programTimeCharge)
+
+            execution.digest.programTimeEstimate.value
+              .map: plannedTime =>
+                val total   = programTimeCharge +| plannedTime
+                val pending = timeDisplay(
+                  "Pending",
+                  plannedTime,
+                  timeClass = staleCss,
+                  timeTooltip = staleTooltip
+                )
+                val planned =
+                  timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
+
+                React.Fragment(
+                  HelpIcon("target/main/sequence-times.md".refined),
+                  planned,
+                  executed,
+                  pending
+                )
+              .getOrElse(executed)
+          }
+
+        val mismatchError = Message(
+          text = "ERROR: Sequence and S/N are inconsistent.",
+          severity = Message.Severity.Error
+        )
+
+        val body =
           props.sequenceChanged.get
             .flatMap(_ => liveSequence.data)
             .renderPot(
@@ -160,37 +168,6 @@ object SequenceTile extends SequenceTileHelper:
                   )
                 )
             )
-      )
 
-  private case class Title(obsExecution: Execution) extends ReactFnProps(Title)
-
-  private object Title
-      extends ReactFnComponent[Title](props =>
-        <.span(ExploreStyles.SequenceTileTitle) {
-          val execution         = props.obsExecution
-          val staleCss          = execution.digest.staleClass
-          val staleTooltip      = execution.digest.staleTooltip
-          val programTimeCharge = execution.programTimeCharge.value
-
-          val executed = timeDisplay("Executed", programTimeCharge)
-
-          execution.digest.programTimeEstimate.value
-            .map: plannedTime =>
-              val total   = programTimeCharge +| plannedTime
-              val pending = timeDisplay("Pending",
-                                        plannedTime,
-                                        timeClass = staleCss,
-                                        timeTooltip = staleTooltip
-              )
-              val planned =
-                timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
-
-              React.Fragment(
-                HelpIcon("target/main/sequence-times.md".refined),
-                planned,
-                executed,
-                pending
-              )
-            .getOrElse(executed)
-        }
-      )
+        TileContents(title, body)
+    )

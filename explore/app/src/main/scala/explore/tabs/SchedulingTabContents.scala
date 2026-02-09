@@ -19,7 +19,7 @@ import explore.model.enums.GridLayoutSection
 import explore.model.enums.SelectedPanel
 import explore.model.reusability.given
 import explore.observationtree.SchedulingGroupObsList
-import explore.schedulingWindows.SchedulingWindowsTile
+import explore.schedulingWindows.ObsIdSetSchedulingWindowsTile
 import explore.shortcuts.*
 import explore.shortcuts.given
 import explore.undo.*
@@ -166,7 +166,7 @@ object SchedulingTabContents extends TwoPanels:
               )
             } { case (obsEditInfo, schedulingGroup) =>
               val schedulingWindowsTile =
-                SchedulingWindowsTile.forObsIdSet(obsEditInfo, observations, props.readonly, true)
+                ObsIdSetSchedulingWindowsTile(obsEditInfo, observations, props.readonly, true)
 
               TileController(
                 props.userId,

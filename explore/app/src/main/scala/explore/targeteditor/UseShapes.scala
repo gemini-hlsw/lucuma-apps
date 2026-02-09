@@ -27,9 +27,9 @@ import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
-import lucuma.core.geom.pwfs
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
+import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
