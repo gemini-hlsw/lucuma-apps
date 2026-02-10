@@ -4,6 +4,8 @@
 package explore.itc
 
 import cats.Eq
+import cats.Order
+import cats.Order.given
 import cats.data.EitherNec
 import cats.derived.*
 import cats.syntax.all.*
@@ -52,7 +54,9 @@ case class ItcTileState(
           .map(_.toTargetAndResults)
 
   def imagingTargets: List[ItcTarget] =
-    calculationResults.toOption.flatMap(_.toOption).fold(List.empty)(_.keys.toList)
+    calculationResults.toOption
+      .flatMap(_.toOption)
+      .fold(List.empty)(_.keys.toList.sortBy(_.name.value))
 
 object ItcTileState:
   def Empty: ItcTileState = ItcTileState(Pot.pending, Pot.pending, none)

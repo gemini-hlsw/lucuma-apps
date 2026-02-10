@@ -4,6 +4,8 @@
 package explore.itc
 
 import cats.Eq
+import cats.Order
+import cats.Order.given
 import cats.data.EitherNec
 import cats.derived.*
 import cats.syntax.all.*
@@ -25,6 +27,8 @@ import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
+import explore.modes.ItcInstrumentConfig.GmosNorthImaging
+import explore.modes.ItcInstrumentConfig.GmosSouthImaging
 import explore.modes.ModeRow
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -63,6 +67,15 @@ object ItcImagingTile
       import ModesTableCommon.*
 
       given Reusability[EitherNec[ItcQueryProblem, ImagingResults]] = Reusability.byEq
+
+      // We only have imaging configs here, and all of them will be the same type, so this is
+      // sufficient for our purposes
+      given Order[ItcInstrumentConfig] = Order.from:
+        case (GmosNorthImaging(filter = filter1), GmosNorthImaging(filter = filter2)) =>
+          filter1.compare(filter2)
+        case (GmosSouthImaging(filter = filter1), GmosSouthImaging(filter = filter2)) =>
+          filter1.compare(filter2)
+        case (_, _)                                                                   => 0
 
       def toMessage(msg: String, severity: Message.Severity) =
         Message(text = msg, severity = severity): VdomNode
@@ -222,10 +235,10 @@ object ItcImagingTile
                                    oTarget
                                      .flatMap(result.get(_))
                                      .map: imagingResultsMap =>
-                                       imagingResultsMap.toList.zipWithIndex
-                                         .map { case ((params, r), idx) =>
-                                           ImagingFilterRow(idx, params.mode, r.ready)
-                                         }
+                                       imagingResultsMap.toList
+                                         .sortBy((params, _) => params.mode)
+                                         .map: (params, r) =>
+                                           ImagingFilterRow(params.hashCode, params.mode, r.ready)
                                      .orEmpty
                                      .asRight
         cols          <- useMemo(()): _ =>

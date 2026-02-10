@@ -76,7 +76,7 @@ case class ItcImagingQuerier(
   ): IO[EitherNec[ItcQueryProblem, ImagingResults]] =
     def action(
       qp: ItcImagingQuerier.QueryProps
-    ): IO[ImagingResults] =
+    ): IO[EitherNec[ItcQueryProblem, ImagingResults]] =
       ItcClient[IO]
         .request:
           ItcMessage.Query(
@@ -90,40 +90,45 @@ case class ItcImagingQuerier(
         )
         .use: listF =>
           listF.map: list =>
-            list.foldLeft(ImagingResults.empty): (acc, entry) =>
-              val (params, result) = entry
-              val newEntries: List[
-                (ItcTarget, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
-              ] =
-                result match
-                  case Left(problem)    =>
-                    // For failures, we want to keep track of the problem for each target in the asterism
-                    params.asterism.toList
-                      .map(target => (target, params, problem.asLeft[ItcResult]))
-                  case Right(itcResult) =>
-                    itcResult match
-                      // We should never actually have Pending results here
-                      case ItcResult.Pending                       => List.empty
-                      case ItcResult.Result(times, brightestIndex) =>
-                        // Split the results into 1 per target, and make a target map for easier access by target.
-                        params.asterism.toList
-                          .zip(times.toList)
-                          .map: (target, time) =>
-                            (target,
-                             params,
-                             ItcResult
-                               .Result(Zipper.of(time), brightestIndex)
-                               .rightNec
-                            )
-              newEntries.foldLeft(acc):
-                case (acc, (target, params, result)) =>
-                  acc.updatedWith(target):
-                    case Some(targetMap) => Some(targetMap + (params -> result))
-                    case None            => Some(Map(params -> result))
+            if list.length < qp.instrumentConfigs.length then
+              ItcQueryProblem.GenericError("ITC failed to return some or all modes.").leftNec
+            else
+              val imagingResults = list.foldLeft(ImagingResults.empty): (acc, entry) =>
+                val (params, result) = entry
+                val newEntries: List[
+                  (ItcTarget, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
+                ] =
+                  result match
+                    case Left(problem)    =>
+                      // For failures, we want to keep track of the problem for each target in the asterism
+                      params.asterism.toList
+                        .map(target => (target, params, problem.asLeft[ItcResult]))
+                    case Right(itcResult) =>
+                      itcResult match
+                        // We should never actually have Pending results here
+                        case ItcResult.Pending                       => List.empty
+                        case ItcResult.Result(times, brightestIndex) =>
+                          // Split the results into 1 per target, and make a target map for easier access by target.
+                          params.asterism.toList
+                            .zip(times.toList)
+                            .map: (target, time) =>
+                              (target,
+                               params,
+                               ItcResult
+                                 .Result(Zipper.of(time), brightestIndex)
+                                 .rightNec
+                              )
+                newEntries
+                  .foldLeft(acc):
+                    case (acc, (target, params, result)) =>
+                      acc.updatedWith(target):
+                        case Some(targetMap) => Some(targetMap + (params -> result))
+                        case None            => Some(Map(params -> result))
+              imagingResults.rightNec[ItcQueryProblem]
 
     (for {
       qp <- EitherT(queryProps.pure[IO])
-      r  <- EitherT.right(action(qp))
+      r  <- EitherT(action(qp))
     } yield r).value
 
 object ItcImagingQuerier:
