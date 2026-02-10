@@ -5,6 +5,9 @@ package explore.targeteditor.spectralDefinition
 
 import lucuma.core.enums.StellarLibrarySpectrum
 import lucuma.schemas.ObservationDB.Types.UnnormalizedSedInput
+import lucuma.core.model.UnnormalizedSED
+import lucuma.schemas.odb.input.*
 
-private val DefaultUnnormalizedSedInput: UnnormalizedSedInput =
-  UnnormalizedSedInput.StellarLibrary(StellarLibrarySpectrum.O5V)
+private def initialUnnormalizeSedInput(sed: Option[UnnormalizedSED]): UnnormalizedSedInput =
+  // if we don't yet have an SED, I don't think it matters which one it is.
+  sed.fold(UnnormalizedSedInput.StellarLibrary(StellarLibrarySpectrum.O5V))(_.toInput)
