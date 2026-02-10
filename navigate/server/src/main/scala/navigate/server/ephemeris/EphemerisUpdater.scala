@@ -61,13 +61,6 @@ object EphemerisUpdater {
     }
     .sequence
     .map(_.flattenOption)
-    .attempt
-    .map(
-      _.fold(
-        a => List(a.getMessage),
-        identity
-      )
-    )
 
   private[ephemeris] def readEphemerisFiles[F[_]: Async](
     filePath: Path
@@ -125,12 +118,12 @@ object EphemerisUpdater {
     override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = for {
       files             <- readEphemerisFiles(filePath)
       targets           <- odbProxy.queryNonSiderealObs(site, dateInterval.start, dateInterval.end)
-      _                 <- L.debug(s"Refresh ephemerides: Targets needed: $targets")
+      _                 <- L.info(s"Refresh ephemerides: Targets needed: ${targets.mkString}")
       (toLoad, toDelete) = threshFilesAndTargets(targets, dateInterval, files)
-      _                 <- L.debug(s"Refresh ephemerides: Files to be generated for $toLoad")
+      _                 <- L.info(s"Refresh ephemerides: Files to be generated for ${toLoad.mkString}")
       _                 <- deleteFiles(toDelete)
       errors            <- createEphemerisFiles(horizonsClient, toLoad, dateInterval, site, filePath)
-      _                 <- L.debug(s"Refresh ephemerides: Errors when generating files: $errors")
+      _                 <- L.info(s"Refresh ephemerides: Errors when generating files: ${errors.mkString}")
                              .whenA(errors.nonEmpty)
     } yield ()
 

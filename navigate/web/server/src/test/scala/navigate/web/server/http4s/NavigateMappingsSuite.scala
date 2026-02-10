@@ -2873,7 +2873,8 @@ object NavigateMappingsTest {
     override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
       (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
 
-    override def refreshEphemerides(dateInterval: DateInterval): IO[Unit] = IO.unit
+    override def refreshEphemerides(dateInterval: DateInterval): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {

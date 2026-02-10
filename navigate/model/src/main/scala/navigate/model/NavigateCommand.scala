@@ -12,7 +12,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.TimeSpan
+import lucuma.core.util.{DateInterval, TimeSpan}
 import navigate.model.HandsetAdjustment.given
 import navigate.model.RotatorAngle.*
 import navigate.model.enums.AcFilter
@@ -81,6 +81,7 @@ object NavigateCommand {
   case class Pwfs2CircularBuffer(enable: Boolean)                            extends NavigateCommand
   case class Pwfs2ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs2Target(target: Target)                                     extends NavigateCommand
+  case class RefreshEphemerides(dateInterval: DateInterval)                  extends NavigateCommand
   case class RestoreTarget(config: TcsConfig)                                extends NavigateCommand
   case class RotatorTrackingConfig(config: RotatorTrackConfig)               extends NavigateCommand
   case class ScsFollow(enable: Boolean)                                      extends NavigateCommand
@@ -166,7 +167,7 @@ object NavigateCommand {
       case OiwfsObserve(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case OiwfsCircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
       case OiwfsProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case OiwfsTarget(target)                                                           => s"${self.name}(target = $target.show)"
+      case OiwfsTarget(target)                                                           => s"${self.name}(target = ${target.show})"
       case OriginAdjust(handsetAdjustment, openLoops)                                    =>
         s"${self.name}(handsetAdjustment = ${handsetAdjustment.show}, openLoops = $openLoops)"
       case OriginOffsetClear(openLoops)                                                  => s"${self.name}(openLoops = $openLoops)"
@@ -178,15 +179,16 @@ object NavigateCommand {
       case Pwfs1Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case Pwfs1CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
       case Pwfs1ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case Pwfs1Target(target: Target)                                                   => s"${self.name}(target = $target.show)"
+      case Pwfs1Target(target: Target)                                                   => s"${self.name}(target = ${target.show})"
       case Pwfs2FieldStop(fieldStop)                                                     => s"${self.name}(fieldStop = $fieldStop)"
       case Pwfs2Filter(filter)                                                           => s"${self.name}(filter = $filter)"
       case Pwfs2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
       case Pwfs2Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case Pwfs2CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
       case Pwfs2ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
-      case Pwfs2Target(target)                                                           => s"${self.name}(target = $target.show)"
+      case Pwfs2Target(target)                                                           => s"${self.name}(target = ${target.show})"
       case RestoreTarget(config)                                                         => s"${self.name}(config = $config)"
+      case RefreshEphemerides(dateInterval)                                              => s"${self.name}(dateInterval = DateInterval(start = ${dateInterval.start}, end = ${dateInterval.end}))"
       case RotatorTrackingConfig(config)                                                 => s"${self.name}(config = $config)"
       case ScsFollow(enable)                                                             => s"${self.name}(enable = $enable)"
       case Slew(slewOptions, tcsConfig, oid)                                             =>

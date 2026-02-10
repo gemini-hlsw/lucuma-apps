@@ -609,10 +609,7 @@ class NavigateMappings[F[_]: Sync](
     env
       .get[DateInterval]("dateInterval")
       .map(
-        server.refreshEphemerides(_).attempt.map {
-          case Right(()) => Result.success(OperationOutcome.success)
-          case Left(e)   => Result.internalError(e)
-        }
+        server.refreshEphemerides(_).attempt.map(convertResult)
       )
       .getOrElse(
         Result
