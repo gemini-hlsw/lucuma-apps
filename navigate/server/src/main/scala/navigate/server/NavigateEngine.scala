@@ -197,7 +197,7 @@ trait NavigateEngine[F[_]] {
   def getPwfs2MechsState: F[PwfsMechsState]
   def getBafflesState: F[BafflesState]
 
-  def refreshEphemerides(dateInterval: DateInterval): F[Unit]
+  def refreshEphemerides(dateInterval: DateInterval): F[CommandResult]
 }
 
 object NavigateEngine {
@@ -834,9 +834,23 @@ object NavigateEngine {
     override def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]] =
       systems.tcsCommon.oiwfsConfigStream
 
-    override def refreshEphemerides(dateInterval: DateInterval): F[Unit] = EphemerisUpdater
-      .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
-      .refreshEphemerides(dateInterval)
+    override def refreshEphemerides(dateInterval: DateInterval): F[CommandResult] =
+      logEvent(NavigateEvent.CommandStart(NavigateCommand.RefreshEphemerides(dateInterval))) *>
+        EphemerisUpdater
+          .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
+          .refreshEphemerides(dateInterval)
+          .attempt
+          .map {
+            case Left(value)  =>
+              NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(dateInterval),
+                                       CommandResult.CommandFailure(value.getMessage)
+              )
+            case Right(value) =>
+              NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(dateInterval),
+                                       CommandResult.CommandSuccess
+              )
+          }
+          .flatMap(x => logEvent(x).as(x.result))
   }
 
   def build[F[_]: {Temporal, Logger, Async}](
