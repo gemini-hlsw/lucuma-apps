@@ -63,11 +63,13 @@ trait ModesTableCommon:
 
   extension (pot: Pot[EitherNec[ItcTargetProblem, ItcResult]])
     def totalItcTime: Option[TimeSpan] =
-      pot.toOption.collect { case Right(ItcResult.Result(e, t, _, _, _)) => e *| t.value }
+      pot.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
+        r.duration
+      }
 
     def totalSN: Option[SignalToNoise] =
-      pot.toOption.collect { case Right(ItcResult.Result(_, _, _, s, _)) =>
-        s.map(_.total.value)
+      pot.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
+        r.snAt.map(_.total.value)
       }.flatten
 
   trait TableRowWithResult:
@@ -78,11 +80,11 @@ trait ModesTableCommon:
 
     lazy val totalItcTime: Option[TimeSpan] =
       result.toOption
-        .collect { case Right(ItcResult.Result(e, t, _, _, _)) => e *| t.value }
+        .collect { case Right(r @ ItcResult.Result(_, _)) => r.duration }
 
     lazy val totalSN: Option[TotalSN] =
-      result.toOption.collect { case Right(ItcResult.Result(_, _, _, s, _)) =>
-        s.map(_.total)
+      result.toOption.collect { case Right(r @ ItcResult.Result(_, _)) =>
+        r.snAt.map(_.total)
       }.flatten
 
   object ScrollTo extends NewBoolean:
@@ -180,7 +182,7 @@ trait ModesTableCommon:
   def tooltipContent(
     baseText: String,
     warnings: SortedMap[Int, List[String]]
-  ): (VdomNode, Placement) =
+  ): (Option[VdomNode], Placement) =
     if (warnings.nonEmpty) {
       (<.div(
          <.div(baseText),
@@ -188,11 +190,11 @@ trait ModesTableCommon:
          warnings
            .map(w => <.div(ExploreStyles.WarningLabel, s"• CCD${w._1} ${w._2.mkString(", ")}"))
            .toVdomArray
-       ),
+       ).some,
        Placement.Bottom
       )
     } else {
-      (baseText, Placement.RightStart)
+      ((baseText: VdomNode).some, Placement.RightStart)
     }
 
   def itcCell(
@@ -243,7 +245,7 @@ trait ModesTableCommon:
 
         val (tooltip, placement) = col match
           case ItcColumns.Exposures =>
-            ("": VdomNode, Placement.RightStart)
+            (none, Placement.RightStart)
           case ItcColumns.Time      =>
             val baseText = s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
             tooltipContent(baseText, ccdWarnings)
@@ -251,18 +253,21 @@ trait ModesTableCommon:
             val baseText = s"${r.snAt.map(_.single.value).foldMap(_.format)} / exposure"
             tooltipContent(baseText, ccdWarnings)
 
-        (if (ccdWarnings.nonEmpty)
-           <.span(
-             content,
-             Icons.ExclamationTriangle
-               .withClass(ExploreStyles.WarningItcIcon)
-               .withSize(IconSize.XS2)
-           )
-         else <.span(content))
-          .withTooltip(
+        val node =
+          if (ccdWarnings.nonEmpty)
+            <.span(
+              content,
+              Icons.ExclamationTriangle
+                .withClass(ExploreStyles.WarningItcIcon)
+                .withSize(IconSize.XS2)
+            )
+          else <.span(content)
+        tooltip.fold(node)(tt =>
+          node.withTooltip(
             placement = placement,
-            tooltip = tooltip
+            tooltip = tt
           )
+        )
       case Some(Right(ItcResult.Pending))   =>
         Icons.Spinner.withSpin(true)
       case _                                =>
@@ -297,7 +302,7 @@ trait ModesTableCommon:
     configs:             List[ItcInstrumentConfig]
   )(using
     WorkerClient[F, ItcMessage.Request]
-  ): Resource[F, fs2.Stream[F, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]] =
+  ): Resource[F, fs2.Stream[F, (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]] =
     ItcClient[F].request(
       ItcMessage.Query(
         constraints,
@@ -401,7 +406,7 @@ trait ModesTableCommon:
     rows
       .map(_.result.toOption)
       .collect:
-        case Some(Right(result @ ItcResult.Result(_, _, _, _, _))) =>
+        case Some(Right(result @ ItcResult.Result(_, _))) =>
           result
       // Very short exposure times may have ambiguity WRT the brightest target.
       .maxByOption(result => (result.exposureTime, result.exposures))

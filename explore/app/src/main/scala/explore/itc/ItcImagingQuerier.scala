@@ -22,6 +22,7 @@ import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
+import lucuma.core.data.Zipper
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
@@ -72,19 +73,58 @@ case class ItcImagingQuerier(
 
   def requestCalculations(using
     WorkerClient[IO, ItcMessage.Request]
-  ): IO[ImagingResults] =
+  ): IO[EitherNec[ItcQueryProblem, ImagingResults]] =
     def action(
       qp: ItcImagingQuerier.QueryProps
-    ): IO[ImagingResults] =
+    ): IO[EitherNec[ItcQueryProblem, ImagingResults]] =
       ItcClient[IO]
-        .requestSingle:
+        .request:
           ItcMessage.Query(
             qp.constraints,
             qp.targets,
             qp.customSedTimestamps,
             qp.instrumentConfigs
           )
-        .map(_.fold(ItcQueryProblem.GenericError("No response from ITC server").leftNec)(_.asRight))
+        .map(
+          _.compile.toList
+        )
+        .use: listF =>
+          listF.map: list =>
+            if list.length < qp.instrumentConfigs.length then
+              ItcQueryProblem.GenericError("ITC failed to return some or all modes.").leftNec
+            else
+              val imagingResults = list.foldLeft(ImagingResults.empty): (acc, entry) =>
+                val (params, result) = entry
+                val newEntries: List[
+                  (ItcTarget, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
+                ] =
+                  result match
+                    case Left(problem)    =>
+                      // For failures, we want to keep track of the problem for each target in the asterism
+                      params.asterism.toList
+                        .map(target => (target, params, problem.asLeft[ItcResult]))
+                    case Right(itcResult) =>
+                      itcResult match
+                        // We should never actually have Pending results here
+                        case ItcResult.Pending                       => List.empty
+                        case ItcResult.Result(times, brightestIndex) =>
+                          // Split the results into 1 per target, and make a target map for easier access by target.
+                          params.asterism.toList
+                            .zip(times.toList)
+                            .map: (target, time) =>
+                              (target,
+                               params,
+                               ItcResult
+                                 .Result(Zipper.of(time), brightestIndex)
+                                 .rightNec
+                              )
+                newEntries
+                  .foldLeft(acc):
+                    case (acc, (target, params, result)) =>
+                      acc.updatedWith(target):
+                        case Some(targetMap) => Some(targetMap + (params -> result))
+                        case None            => Some(Map(params -> result))
+              imagingResults.rightNec[ItcQueryProblem]
 
     (for {
       qp <- EitherT(queryProps.pure[IO])

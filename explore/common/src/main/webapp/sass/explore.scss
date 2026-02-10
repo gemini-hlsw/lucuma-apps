@@ -717,6 +717,12 @@ thead tr th.sticky-header {
   .p-inline-message {
     width: 100%;
   }
+
+  .explore-itc-imaging-table-group-header {
+    text-align: center;
+    width: 100%;
+    border-bottom: 1px solid var(--primary-color-text);
+  }
 }
 
 .explore-itc-tile-title {

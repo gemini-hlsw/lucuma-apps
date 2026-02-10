@@ -205,6 +205,7 @@ object ExploreStyles:
   val ItcPlotControls: Css            = Css("itc-plot-controls")
   val ItcTileBody: Css                = Css("explore-itc-tile-body")
   val ItcImagingTileBody: Css         = Css("explore-itc-imaging-tile-body")
+  val ItcImagingTableGroupHeader: Css = Css("explore-itc-imaging-table-group-header")
   val ItcTileTitle: Css               = Css("explore-itc-tile-title")
   val ItcTileTargetSelector: Css      = Css("explore-itc-tile-target-selector")
   val ItcErrorIcon: Css               = Css("itc-error-icon")

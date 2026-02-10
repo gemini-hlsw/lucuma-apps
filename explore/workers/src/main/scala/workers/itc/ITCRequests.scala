@@ -29,10 +29,8 @@ import org.typelevel.log4cats.Logger
 import queries.schemas.itc.syntax.*
 import workers.*
 
-import scala.collection.immutable.SortedMap
-
 object ITCRequests:
-  val cacheVersion = CacheVersion(22)
+  val cacheVersion = CacheVersion(23)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell) => ItcQueryProblem.SourceTooBright(halfWell)
@@ -53,7 +51,7 @@ object ITCRequests:
     customSedTimestamps: List[Timestamp],
     modes:               List[(ItcInstrumentConfig, ExposureTimeMode)],
     cache:               Cache[F],
-    callback:            Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]] => F[Unit]
+    callback:            ((ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])) => F[Unit]
   )(using Monoid[F[Unit]], ItcClient[F]): F[Unit] = {
     def itcResults(r: ClientCalculationResult): EitherNec[ItcTargetProblem, ItcResult] =
       // Convert to usable types
@@ -67,22 +65,8 @@ object ITCRequests:
               )
             .asLeft,
         times =>
-          val i    = times.value.focus.times.focus
-          val snAt = times.value.focus.signalToNoiseAt
-
-          // Extract CCD warnings from TargetIntegrationTime
-          val ccdWarnings: SortedMap[Int, List[String]] =
-            SortedMap.from(times.value.focus.ccds.zipWithIndex.map { case (ccd, index) =>
-              index -> ccd.warnings.map(_.msg)
-            })
-
           ItcResult
-            .Result(i.exposureTime,
-                    i.exposureCount,
-                    r.targetTimes.brightestIndex,
-                    snAt,
-                    ccdWarnings
-            )
+            .Result(times.value, r.targetTimes.brightestIndex)
             .rightNec
       )
 
@@ -151,17 +135,14 @@ object ITCRequests:
           case (m @ ItcInstrumentConfig.GmosSouthImaging(_, _), exposureTimeMode)            =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
 
+    // NOTE: callback is called once per mode. So, if you have more than one mode
+    // you can't use `requestSingle`. You need to use `request` and handle the stream.
     parTraverseN(
       Constants.MaxConcurrentItcRequests.toLong,
       itcRowsParams.reverse
     ) { params =>
       // ITC supports sending many modes at once, but sending them one by one
       // maximizes cache hits
-      cache.eval(cacheableRequest).apply(params) // .flatMap(_.map(callback).orEmpty)
-    }
-      .map(
-        _.sequence
-          .map(_.toMap)
-      )
-      .flatMap(_.map(callback).orEmpty)
+      cache.eval(cacheableRequest).apply(params).flatMap(_.map(callback).orEmpty)
+    }.void
   }

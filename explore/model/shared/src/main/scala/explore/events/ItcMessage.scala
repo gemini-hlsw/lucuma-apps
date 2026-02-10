@@ -28,13 +28,15 @@ object ItcMessage extends ItcPicklers:
   case object CleanCache extends Request:
     type ResponseType = Unit
 
+  // NOTE: The ItcServer returns one item per mode. So, if you have more than one mode
+  // you can't use `requestSingle`. You need to use `request` and handle the stream.
   case class Query(
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
     modes:               List[(ItcInstrumentConfig, ExposureTimeMode)]
   ) extends Request:
-    type ResponseType = Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]
+    type ResponseType = (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
 
   case class GraphQuery(
     exposureTimeMode:    ExposureTimeMode,
