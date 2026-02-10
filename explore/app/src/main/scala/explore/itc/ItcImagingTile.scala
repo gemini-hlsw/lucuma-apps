@@ -151,7 +151,7 @@ object ItcImagingTile
                 .flatMap(_.ccds.get(ccdIndex))
                 .map(accessor),
               cell = _.value.map(format),
-              header = s"CCD $ccdIndex",
+              header = s"CCD ${ccdIndex + 1}",
               size = size
             )
           }.toList
