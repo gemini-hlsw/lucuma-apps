@@ -19,6 +19,7 @@ import lucuma.itc.IntegrationTime
 import lucuma.itc.ItcAxis
 import lucuma.itc.ItcCcd
 import lucuma.itc.SignalToNoiseAt
+import lucuma.itc.TargetIntegrationTime
 import lucuma.itc.client.SeriesResult
 import lucuma.itc.client.TargetTimeAndGraphsResult
 import lucuma.itc.math.roundToSignificantFigures
@@ -27,7 +28,6 @@ import monocle.macros.GenPrism
 
 import scala.collection.immutable.SortedMap
 import scala.math.*
-import lucuma.itc.TargetIntegrationTime
 
 // Do not turn into enum or compositePickler will break.
 sealed trait ItcQueryProblem(val message: String) derives Eq:
