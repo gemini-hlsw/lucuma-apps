@@ -65,10 +65,10 @@ case class SurfaceSpectralDefinitionEditor(
     )
 
   val sedAlignerOpt: Option[Aligner[UnnormalizedSED, UnnormalizedSedInput]] =
-    bandNormalizedAlignerOpt.flatMap(
-      _.zoomOpt(
+    bandNormalizedAlignerOpt.flatMap(a =>
+      a.zoomOpt(
         SpectralDefinition.BandNormalized.sed[Surface].some,
-        forceAssign(BandNormalizedSurfaceInput.sed.modify)(DefaultUnnormalizedSedInput)
+        forceAssign(BandNormalizedSurfaceInput.sed.modify)(initialUnnormalizedSedInput(a.get.sed))
       )
     )
 
