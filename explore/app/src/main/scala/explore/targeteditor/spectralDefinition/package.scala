@@ -8,6 +8,6 @@ import lucuma.schemas.ObservationDB.Types.UnnormalizedSedInput
 import lucuma.core.model.UnnormalizedSED
 import lucuma.schemas.odb.input.*
 
-private def initialUnnormalizeSedInput(sed: Option[UnnormalizedSED]): UnnormalizedSedInput =
+private def initialUnnormalizedSedInput(sed: Option[UnnormalizedSED]): UnnormalizedSedInput =
   // if we don't yet have an SED, I don't think it matters which one it is.
   sed.fold(UnnormalizedSedInput.StellarLibrary(StellarLibrarySpectrum.O5V))(_.toInput)

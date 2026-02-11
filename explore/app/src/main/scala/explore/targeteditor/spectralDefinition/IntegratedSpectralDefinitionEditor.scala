@@ -71,7 +71,7 @@ case class IntegratedSpectralDefinitionEditor(
       a.zoomOpt(
         SpectralDefinition.BandNormalized.sed[Integrated].some,
         forceAssign(BandNormalizedIntegratedInput.sed.modify):
-          initialUnnormalizeSedInput(a.get.sed)
+          initialUnnormalizedSedInput(a.get.sed)
       )
     )
 

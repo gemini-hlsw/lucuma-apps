@@ -68,7 +68,7 @@ case class SurfaceSpectralDefinitionEditor(
     bandNormalizedAlignerOpt.flatMap(a =>
       a.zoomOpt(
         SpectralDefinition.BandNormalized.sed[Surface].some,
-        forceAssign(BandNormalizedSurfaceInput.sed.modify)(initialUnnormalizeSedInput(a.get.sed))
+        forceAssign(BandNormalizedSurfaceInput.sed.modify)(initialUnnormalizedSedInput(a.get.sed))
       )
     )
 
