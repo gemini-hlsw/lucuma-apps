@@ -12,7 +12,8 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.{DateInterval, TimeSpan}
+import lucuma.core.util.DateInterval
+import lucuma.core.util.TimeSpan
 import navigate.model.HandsetAdjustment.given
 import navigate.model.RotatorAngle.*
 import navigate.model.enums.AcFilter
