@@ -18,7 +18,7 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 
 object HorizonsRequests:
-  val cacheVersion = CacheVersion(3)
+  val cacheVersion = CacheVersion(4)
 
   private case class Error(message: String, isCacheable: Boolean)
 
