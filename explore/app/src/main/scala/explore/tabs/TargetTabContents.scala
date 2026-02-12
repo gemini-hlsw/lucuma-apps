@@ -14,7 +14,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
 import explore.actions.ObservationPasteIntoAsterismAction
 import explore.components.*
-import explore.components.ui.ExploreStyles
 import explore.model.*
 import explore.model.GuideStarSelection.AgsSelection
 import explore.model.enums.AppTab
@@ -656,10 +655,6 @@ object TargetTabContents extends TwoPanels:
                   .getOrElse(dummyElevationTile)
               )
 
-            // TODO I think this was always false as skyPlotTile is always defined? Maybe we should remove the onlySummary logic?
-            val onlySummary: Boolean =
-              observationSetTargetEditorTile.isEmpty && singleTargetEditorTile.isEmpty // && skyPlotTile.isEmpty
-
             val (tiles, key) =
               observationSetTargetEditorTile
                 .map:
@@ -674,9 +669,7 @@ object TargetTabContents extends TwoPanels:
               props.userPreferences.get.targetTabLayout,
               tiles,
               GridLayoutSection.TargetLayout,
-              backButton.some,
-              Option.when(onlySummary)(ExploreStyles.SingleTileMaximized),
-              storeLayout = !onlySummary
+              backButton.some
             ).withKey(key.value): VdomNode
             // withKey is required for the controller to clear it's state between the different
             // layouts or it can get into an invalid state.

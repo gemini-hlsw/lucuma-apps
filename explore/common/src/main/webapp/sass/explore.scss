@@ -3474,14 +3474,6 @@ div.spectroscopy-table-emptymessage {
   transform: unset;
 }
 
-.explore-single-tile-maximized.react-grid-layout {
-  height: 100% !important; // !important overrides element attributes
-
-  .react-grid-item:first-child {
-    height: 100% !important;
-  }
-}
-
 .explore-proposal-tab {
   height: 100%;
   display: flex;
