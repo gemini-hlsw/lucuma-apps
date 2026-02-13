@@ -551,7 +551,7 @@ type Mutation {
     acNdFilter(ndFilter: AcNdFilter!): OperationOutcome!
     acFilter(filter: AcFilter!): OperationOutcome!
     acWindowSize(size: AcWindowInput!): OperationOutcome!
-    refreshEphemerisFiles(dateInterval: DateIntervalInput!): OperationOutcome!
+    refreshEphemerisFiles(dateInterval: DateIntervalInput): OperationOutcome!
 }
 
 type Subscription {

@@ -23,6 +23,7 @@ import lucuma.core.enums.SlewStage
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
+import lucuma.core.model.LocalObservingNight
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
@@ -81,6 +82,8 @@ import org.http4s.client.middleware.RetryPolicy
 import org.http4s.dsl.io.*
 import org.typelevel.log4cats.Logger
 
+import java.time.Instant
+import java.time.LocalDate
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
@@ -197,7 +200,7 @@ trait NavigateEngine[F[_]] {
   def getPwfs2MechsState: F[PwfsMechsState]
   def getBafflesState: F[BafflesState]
 
-  def refreshEphemerides(dateInterval: DateInterval): F[CommandResult]
+  def refreshEphemerides(date: Option[LocalDate]): F[CommandResult]
 }
 
 object NavigateEngine {
@@ -834,23 +837,34 @@ object NavigateEngine {
     override def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]] =
       systems.tcsCommon.oiwfsConfigStream
 
-    override def refreshEphemerides(dateInterval: DateInterval): F[CommandResult] =
-      logEvent(NavigateEvent.CommandStart(NavigateCommand.RefreshEphemerides(dateInterval))) *>
-        EphemerisUpdater
-          .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
-          .refreshEphemerides(dateInterval)
-          .attempt
-          .map {
-            case Left(value)  =>
-              NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(dateInterval),
-                                       CommandResult.CommandFailure(value.getMessage)
+    override def refreshEphemerides(date: Option[LocalDate]): F[CommandResult] = for {
+      _     <- logEvent(NavigateEvent.CommandStart(NavigateCommand.RefreshEphemerides(date)))
+      start <-
+        date
+          .map(_.pure[F])
+          .getOrElse(
+            Async[F]
+              .delay(Instant.now)
+              .map(x =>
+                LocalObservingNight.localDate.get(LocalObservingNight.fromSiteAndInstant(site, x))
               )
-            case Right(value) =>
-              NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(dateInterval),
-                                       CommandResult.CommandSuccess
-              )
-          }
-          .flatMap(x => logEvent(x).as(x.result))
+          )
+      x     <- EphemerisUpdater
+                 .build(site, conf.ephemerisFolder, systems.odb, systems.horizonsClient)
+                 .refreshEphemerides(DateInterval.between(start, start.plusDays(1)))
+                 .attempt
+                 .map {
+                   case Left(value)  =>
+                     NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(date),
+                                              CommandResult.CommandFailure(value.getMessage)
+                     )
+                   case Right(value) =>
+                     NavigateEvent.CommandEnd(NavigateCommand.RefreshEphemerides(date),
+                                              CommandResult.CommandSuccess
+                     )
+                 }
+      _     <- logEvent(x)
+    } yield x.result
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

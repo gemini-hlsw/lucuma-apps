@@ -11,6 +11,7 @@ import fs2.io.file.Files
 import fs2.io.file.Path
 import lucuma.core.enums.Site
 import lucuma.core.model.Ephemeris
+import lucuma.core.model.LocalObservingNight
 import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -19,8 +20,6 @@ import navigate.server.OdbProxy
 import org.typelevel.log4cats.Logger
 
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 
 trait EphemerisUpdater[F[_]] {
   def refreshEphemerides(dateInterval: DateInterval): F[Unit]
@@ -40,8 +39,8 @@ object EphemerisUpdater {
     .map {
       case h: Ephemeris.Key.Horizons =>
         (for {
-          st  <- dateInterval.start.noon
-          end <- dateInterval.end.noon
+          st  <- dateInterval.start.localNightBoundary
+          end <- dateInterval.end.localNightBoundary
         } yield horizonsClient
           .ephemeris(h, st.toInstant, end.toInstant, TimeSpan.between(st, end).toMinutes.toInt + 1)
           .flatMap(
@@ -74,17 +73,17 @@ object EphemerisUpdater {
     .map(_.flattenOption)
 
   extension (date: LocalDate) {
-    private def noon: Option[Timestamp] =
-      Timestamp.fromLocalDateTime(LocalDateTime.of(date, LocalTime.of(12, 0)))
+    private def localNightBoundary: Option[Timestamp] =
+      Timestamp.fromLocalDateTime(LocalObservingNight.localDate.reverseGet(date).start)
   }
 
   private def isCovered(
     target:       Ephemeris.Key,
     dateInterval: DateInterval,
     file:         EphemerisFile
-  ): Boolean = target === file.ephemeris && dateInterval.start.noon.exists(
+  ): Boolean = target === file.ephemeris && dateInterval.start.localNightBoundary.exists(
     _ >= file.start
-  ) && dateInterval.end.noon.exists(_ <= file.end)
+  ) && dateInterval.end.localNightBoundary.exists(_ <= file.end)
 
   private def threshFilesAndTargets[F[_]](
     targets:      List[Ephemeris.Key],

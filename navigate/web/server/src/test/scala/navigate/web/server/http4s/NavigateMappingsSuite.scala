@@ -35,7 +35,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.syntax.string.*
-import lucuma.core.util.DateInterval
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -103,6 +102,7 @@ import org.slf4j.event.KeyValuePair
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
+import java.time.LocalDate
 import java.util
 import scala.concurrent.duration.Duration
 import scala.jdk.CollectionConverters.given
@@ -2873,7 +2873,7 @@ object NavigateMappingsTest {
     override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
       (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
 
-    override def refreshEphemerides(dateInterval: DateInterval): IO[CommandResult] =
+    override def refreshEphemerides(date: Option[LocalDate]): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
   }
 
