@@ -12,7 +12,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.Observation
 import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.{DateInterval, TimeSpan}
+import lucuma.core.util.TimeSpan
 import navigate.model.HandsetAdjustment.given
 import navigate.model.RotatorAngle.*
 import navigate.model.enums.AcFilter
@@ -24,6 +24,8 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
+
+import java.time.LocalDate
 
 sealed trait NavigateCommand extends Product with Serializable
 
@@ -81,7 +83,7 @@ object NavigateCommand {
   case class Pwfs2CircularBuffer(enable: Boolean)                            extends NavigateCommand
   case class Pwfs2ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs2Target(target: Target)                                     extends NavigateCommand
-  case class RefreshEphemerides(dateInterval: DateInterval)                  extends NavigateCommand
+  case class RefreshEphemerides(date: Option[LocalDate])                     extends NavigateCommand
   case class RestoreTarget(config: TcsConfig)                                extends NavigateCommand
   case class RotatorTrackingConfig(config: RotatorTrackConfig)               extends NavigateCommand
   case class ScsFollow(enable: Boolean)                                      extends NavigateCommand
@@ -188,7 +190,7 @@ object NavigateCommand {
       case Pwfs2ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
       case Pwfs2Target(target)                                                           => s"${self.name}(target = ${target.show})"
       case RestoreTarget(config)                                                         => s"${self.name}(config = $config)"
-      case RefreshEphemerides(dateInterval)                                              => s"${self.name}(dateInterval = DateInterval(start = ${dateInterval.start}, end = ${dateInterval.end}))"
+      case RefreshEphemerides(date)                                                      => s"${self.name}(date = $date)"
       case RotatorTrackingConfig(config)                                                 => s"${self.name}(config = $config)"
       case ScsFollow(enable)                                                             => s"${self.name}(enable = $enable)"
       case Slew(slewOptions, tcsConfig, oid)                                             =>

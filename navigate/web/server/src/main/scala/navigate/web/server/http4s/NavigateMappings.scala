@@ -607,10 +607,8 @@ class NavigateMappings[F[_]: Sync](
 
   def refreshEphemerisFiles(env: Env): F[Result[OperationOutcome]] =
     env
-      .get[DateInterval]("dateInterval")
-      .map(
-        server.refreshEphemerides(_).attempt.map(convertResult)
-      )
+      .get[Option[DateInterval]]("dateInterval")
+      .map(d => server.refreshEphemerides(d.map(_.start)).attempt.map(convertResult))
       .getOrElse(
         Result
           .failure[OperationOutcome]("Ephemeris file refresh parameter could not be parsed.")
@@ -965,10 +963,16 @@ class NavigateMappings[F[_]: Sync](
       Elab.env("enable" -> v)
     case (MutationType, "oiwfsCircularBuffer", List(Binding("enable", BooleanValue(v))))        =>
       Elab.env("enable" -> v)
+    case (MutationType,
+          "refreshEphemerisFiles",
+          List(Binding("dateInterval", AbsentValue | NullValue))
+        ) =>
+      Elab.env("dateInterval", none[DateInterval])
     case (MutationType, "refreshEphemerisFiles", List(Binding("dateInterval", ObjectValue(l)))) =>
       Elab
         .liftR(
           parseDateInterval(l)
+            .map(_.some)
             .toResult(s"Could not parse refreshEphemerisFiles parameter \"dateInterval\" ${l}")
         )
         .flatMap(v => Elab.env("dateInterval", v))

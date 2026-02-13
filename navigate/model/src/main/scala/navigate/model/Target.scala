@@ -53,7 +53,7 @@ object Target {
   case class EphemerisTarget(
     override val objectName: String,
     override val wavelength: Option[Wavelength],
-    ephemerisKey: Ephemeris.Key
+    ephemerisKey:            Ephemeris.Key
   ) extends Target derives Show
 
   val objectName: Lens[Target, String] = Lens.apply[Target, String](_.objectName) { s =>
