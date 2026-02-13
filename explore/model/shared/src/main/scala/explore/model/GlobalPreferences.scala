@@ -86,13 +86,13 @@ object GlobalPreferences:
   private given Decoder[List[Program.Id]] =
     Decoder.decodeList[String].map(_.flatMap(Program.Id.parse)).or(Decoder.const(List.empty))
 
-  private given Decoder[LogLevel] = Decoder.decodeString.map {
-    case "TRACE" => LogLevel.Trace
-    case "DEBUG" => LogLevel.Debug
-    case "WARN"  => LogLevel.Warn
-    case "ERROR" => LogLevel.Error
-    case _       => LogLevel.Info
-  }
+  private given Decoder[LogLevel] = Decoder.decodeString.map:
+    _.toUpperCase() match
+      case "TRACE" => LogLevel.Trace
+      case "DEBUG" => LogLevel.Debug
+      case "WARN"  => LogLevel.Warn
+      case "ERROR" => LogLevel.Error
+      case _       => LogLevel.Info
 
   val Default =
     GlobalPreferences(
