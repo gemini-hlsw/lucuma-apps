@@ -15,10 +15,10 @@
     "vite-plugin-env-compatible": "2.0.1"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-svg-core": "7.1.0",
-    "@fortawesome/pro-solid-svg-icons": "7.1.0",
-    "@fortawesome/pro-light-svg-icons": "7.1.0",
-    "@fortawesome/pro-thin-svg-icons": "7.1.0",
+    "@fortawesome/fontawesome-svg-core": "7.2.0",
+    "@fortawesome/pro-solid-svg-icons": "7.2.0",
+    "@fortawesome/pro-light-svg-icons": "7.2.0",
+    "@fortawesome/pro-thin-svg-icons": "7.2.0",
     "aladin-lite": "3.7.2-beta"
   }
 }
