@@ -5,6 +5,7 @@ package lucuma.ui.table.hooks
 
 import cats.syntax.all.*
 import lucuma.react.SizePx
+import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
@@ -28,7 +29,9 @@ import scala.annotation.tailrec
 case class DynTable(
   columnSizes:      Map[ColumnId, ColumnSize],
   columnPriorities: List[ColumnId],
-  initialState:     DynTable.ColState
+  initialState:     DynTable.ColState,
+  // Columns that can be collapsed to 0px but remain visible. Collapsing is triggered programatically, and they start collapsed.
+  collapsibleCols:  Set[ColumnId] = Set.empty
 ):
   // Check columns comply with the ones passed in columnSizes
   columnPriorities.foreach(colId =>
@@ -56,11 +59,19 @@ case class DynTable(
     )
   )
 
+  val initialColumnSizes: Map[ColumnId, ColumnSize] =
+    columnSizes ++ collapsibleCols
+      .map: colId =>
+        colId -> ColumnSize.Resizable(0.toPx, min = 0.toPx.some, max = columnSizes(colId).maxSize)
+      .toMap
+
   // This method:
   // - Adjusts resizable columns proportionally to available space (taking into account space taken by fixed columns).
   // - If all visible columns are at their minimum width and overflow the viewport,
   //     then starts dropping columns (as long as there are reamining droppable ones).
-  def adjustColSizes(width: SizePx)(colState: DynTable.ColState): DynTable.ColState = {
+  def adjustColSizes(width: SizePx, areColsCollapsed: Boolean)(
+    colState: DynTable.ColState
+  ): DynTable.ColState = {
     // Recurse at go1 when a column is dropped.
     // This level just to avoid clearing overflow on co-recursion
     // @tailrec // Scala 3.6.3 thinks there are no recursive calls. Let's leave this commented in case it gets fixed.
@@ -68,7 +79,7 @@ case class DynTable(
       lazy val visibleColumns: Set[ColumnId] =
         columnSizes.keySet.filterNot(colId =>
           colState.visibility.value.get(colId).contains(Visibility.Hidden)
-        ) -- colState.overflow
+        ) -- colState.overflow -- (if (areColsCollapsed) collapsibleCols else Set.empty)
 
       lazy val currentVisibleColumnSizes: Map[ColumnId, SizePx] =
         visibleColumns
@@ -96,7 +107,8 @@ case class DynTable(
             visibleCols.partitionMap: (colId, colSize) =>
               columnSizes(colId) match
                 case FixedSize(size)                                         =>
-                  (none -> size).asLeft
+                  // It's not necessary to include fixed cols unless they were originally collapsed.
+                  (colId.some.filter(collapsibleCols.contains(_)) -> size).asLeft
                 // Columns that reach or go beyond their bounds are treated as fixed.
                 case Resizable(_, Some(min), _) if colSize.value < min.value =>
                   (colId.some -> min).asLeft
@@ -152,10 +164,10 @@ object DynTable:
    * @param resized
    *   Resized columns. To be passed directly to table `state` as `PartialTableState.columnSizing`.
    * @param visibility
-   *   Column visitibility without taking into account overflows. Do not pass to table. See
+   *   Column visibility without taking into account overflows. Do not pass to table. See
    *   `computedVisibility` instead.
    * @param overflow
-   *   Columns removed becasue of overflow.
+   *   Columns removed because of overflow.
    */
   case class ColState(
     val resized:    ColumnSizing,

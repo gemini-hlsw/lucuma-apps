@@ -281,12 +281,8 @@ object SequenceColumns:
 
   object BaseColumnSizes {
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
-      // DragHandleColumnId   -> FixedSize(35.toPx),
-      // EditControlsColumnId -> FixedSize(70.toPx),
-      // DragHandleColumnId   -> FixedSize(0.toPx),
-      // EditControlsColumnId -> FixedSize(0.toPx),
-      DragHandleColumnId   -> Resizable(0.toPx, min = 0.toPx, max = 35.toPx),
-      EditControlsColumnId -> Resizable(0.toPx, min = 0.toPx, max = 70.toPx),
+      DragHandleColumnId   -> FixedSize(35.toPx),
+      EditControlsColumnId -> FixedSize(70.toPx),
       IndexAndTypeColumnId -> FixedSize(60.toPx),
       ExposureColumnId     -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
       GuideColumnId        -> FixedSize(36.toPx),

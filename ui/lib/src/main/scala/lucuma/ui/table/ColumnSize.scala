@@ -3,16 +3,20 @@
 
 package lucuma.ui.table
 
+import cats.Eq
+import cats.derived.*
 import cats.syntax.all.*
 import lucuma.react.SizePx
 import lucuma.react.table.ColumnDef
+
+given Eq[SizePx] = Eq.by(_.value)
 
 enum ColumnSize(
   val initial:      SizePx,
   val minSize:      Option[SizePx] = None,
   val maxSize:      Option[SizePx] = None,
   val enableResize: Boolean
-):
+) derives Eq:
   case FixedSize(size: SizePx) extends ColumnSize(size, size.some, size.some, false)
   case Resizable(size: SizePx, min: Option[SizePx] = None, max: Option[SizePx] = None)
       extends ColumnSize(size, min, max, true)

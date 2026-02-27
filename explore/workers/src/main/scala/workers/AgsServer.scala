@@ -31,16 +31,17 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
     IO.blocking:
       val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
-        .agsAnalysis(r.constraints,
-                     r.wavelength.value,
-                     r.baseCoordinates,
-                     r.scienceCoordinates,
-                     r.blindOffset,
-                     r.posAngles,
-                     r.acqOffsets,
-                     r.sciOffsets,
-                     r.params,
-                     correctedCandidates
+        .agsAnalysis(
+          r.constraints,
+          r.wavelength.value,
+          r.baseCoordinates,
+          r.scienceCoordinates,
+          r.blindOffset,
+          r.posAngles,
+          r.acqOffsets,
+          r.sciOffsets,
+          r.params,
+          correctedCandidates
         )
         .sortUsablePositions
 
