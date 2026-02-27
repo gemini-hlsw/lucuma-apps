@@ -118,11 +118,17 @@ object SequenceTile
         ): Endo[InstrumentExecutionConfig] =
           editableSequence.get
             .flatMap(editableOptional.getOption)
-            .foldMap: newAcq =>
+            .map:
+              newAcq =>
+                executionConfigOptional
+                  .andThen(ExecutionConfig.acquisition.some)
+                  .andThen(ExecutionSequence.nextAtom)
+                  .replace(newAcq)
+                // TODO Should we erase possibleFuture?
+            .getOrElse:
               executionConfigOptional
-                .andThen(ExecutionConfig.acquisition.some)
-                .andThen(ExecutionSequence.nextAtom)
-                .replace(newAcq)
+                .andThen(ExecutionConfig.acquisition)
+                .replace(none)
 
         val replaceAllAcquisitions: Endo[InstrumentExecutionConfig] =
           replaceAcquisition(
@@ -147,15 +153,20 @@ object SequenceTile
         ): Endo[InstrumentExecutionConfig] =
           editableSequence.get
             .flatMap(editableOptional.getOption)
-            .foldMap: newScience =>
-              executionConfigOptional
-                .andThen(ExecutionConfig.science.some)
-                .andThen(ExecutionSequence.nextAtom)
-                .replace(newScience.head) >>>
+            .foldMap:
+              case head :: tail =>
                 executionConfigOptional
                   .andThen(ExecutionConfig.science.some)
-                  .andThen(ExecutionSequence.possibleFuture)
-                  .replace(newScience.tail)
+                  .andThen(ExecutionSequence.nextAtom)
+                  .replace(head) >>>
+                  executionConfigOptional
+                    .andThen(ExecutionConfig.science.some)
+                    .andThen(ExecutionSequence.possibleFuture)
+                    .replace(tail)
+              case Nil          =>
+                executionConfigOptional
+                  .andThen(ExecutionConfig.science)
+                  .replace(none)
 
         val replaceAllScience: Endo[InstrumentExecutionConfig] =
           replaceScience(

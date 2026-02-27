@@ -40,7 +40,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.DragHandleColumnId,
       _.getStep.map(_.isFinished).getOrElse(true),
       header = "",
-      cell = c => // TODO HIDE IN VISITS
+      cell = c =>
         val isFinished: Boolean = c.value
         <.span(SequenceStyles.DragHandleCell)(
           SequenceIcons.GripDotsVertical.unless(isFinished)
