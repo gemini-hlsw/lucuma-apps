@@ -40,7 +40,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
 
   private case class TableMeta[D](
     isEditing:      IsEditing = IsEditing.False,
-    modAcquisition: Endo[Atom[D]] => Callback,
+    modAcquisition: Endo[Option[Atom[D]]] => Callback,
     modScience:     Endo[List[Atom[D]]] => Callback
   ) extends SequenceTableMeta[D]
 

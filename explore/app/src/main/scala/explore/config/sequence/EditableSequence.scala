@@ -58,17 +58,17 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     val science: Lens[EditableSequence.Flamingos2, Option[List[Atom[Flamingos2DynamicConfig]]]] =
       Focus[EditableSequence.Flamingos2](_.science)
 
-  val gmosNorthAcquisition: Optional[EditableSequence, Atom[gmos.DynamicConfig.GmosNorth]]   =
-    gmosNorth.andThen(GmosNorth.acquisition).some
-  val gmosNorthScience: Optional[EditableSequence, List[Atom[gmos.DynamicConfig.GmosNorth]]] =
+  val gmosNorthAcquisition: Optional[EditableSequence, Option[Atom[gmos.DynamicConfig.GmosNorth]]] =
+    gmosNorth.andThen(GmosNorth.acquisition)
+  val gmosNorthScience: Optional[EditableSequence, List[Atom[gmos.DynamicConfig.GmosNorth]]]       =
     gmosNorth.andThen(GmosNorth.science).some
-  val gmosSouthAcquisition: Optional[EditableSequence, Atom[gmos.DynamicConfig.GmosSouth]]   =
-    gmosSouth.andThen(GmosSouth.acquisition).some
-  val gmosSouthScience: Optional[EditableSequence, List[Atom[gmos.DynamicConfig.GmosSouth]]] =
+  val gmosSouthAcquisition: Optional[EditableSequence, Option[Atom[gmos.DynamicConfig.GmosSouth]]] =
+    gmosSouth.andThen(GmosSouth.acquisition)
+  val gmosSouthScience: Optional[EditableSequence, List[Atom[gmos.DynamicConfig.GmosSouth]]]       =
     gmosSouth.andThen(GmosSouth.science).some
-  val flamingos2Acquisition: Optional[EditableSequence, Atom[Flamingos2DynamicConfig]]       =
-    flamingos2.andThen(Flamingos2.acquisition).some
-  val flamingos2Science: Optional[EditableSequence, List[Atom[Flamingos2DynamicConfig]]]     =
+  val flamingos2Acquisition: Optional[EditableSequence, Option[Atom[Flamingos2DynamicConfig]]]     =
+    flamingos2.andThen(Flamingos2.acquisition)
+  val flamingos2Science: Optional[EditableSequence, List[Atom[Flamingos2DynamicConfig]]]           =
     flamingos2.andThen(Flamingos2.science).some
 
   def fromLiveSequence(live: LiveSequence): Option[EditableSequence] =

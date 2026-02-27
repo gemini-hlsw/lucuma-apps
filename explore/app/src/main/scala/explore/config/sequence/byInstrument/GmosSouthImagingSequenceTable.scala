@@ -23,7 +23,7 @@ final case class GmosSouthImagingSequenceTable(
   science:        Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
   snPerFilter:    Map[GmosSouthFilter, SignalToNoiseAt],
   isEditing:      IsEditing = IsEditing.False,
-  modAcquisition: Endo[Atom[gmos.DynamicConfig.GmosSouth]] => Callback,
+  modAcquisition: Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
   modScience:     Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]

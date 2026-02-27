@@ -113,22 +113,21 @@ object SequenceTile
           UndoContext(undoStacks, editableSequence)
 
         def replaceAcquisition[S, D](
-          editableOptional:        Optional[EditableSequence, Atom[D]],
+          editableOptional:        Optional[EditableSequence, Option[Atom[D]]],
           executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
         ): Endo[InstrumentExecutionConfig] =
           editableSequence.get
             .flatMap(editableOptional.getOption)
-            .map:
-              newAcq =>
+            .foldMap:
+              case Some(newAcq) => // TODO Should we also erase possibleFuture?
                 executionConfigOptional
                   .andThen(ExecutionConfig.acquisition.some)
                   .andThen(ExecutionSequence.nextAtom)
                   .replace(newAcq)
-                // TODO Should we erase possibleFuture?
-            .getOrElse:
-              executionConfigOptional
-                .andThen(ExecutionConfig.acquisition)
-                .replace(none)
+              case None         =>
+                executionConfigOptional
+                  .andThen(ExecutionConfig.acquisition)
+                  .replace(none)
 
         val replaceAllAcquisitions: Endo[InstrumentExecutionConfig] =
           replaceAcquisition(
@@ -194,9 +193,10 @@ object SequenceTile
 
         def resolveAcquisition[S, D](
           config:           ExecutionConfig[S, D],
-          editableOptional: Optional[EditableSequence, Atom[D]]
+          editableOptional: Optional[EditableSequence, Option[Atom[D]]]
         ): Option[Atom[D]] = // For acquisition, we ignore possibleFuture
-          if props.isEditing.get then editableSequence.get.flatMap(editableOptional.getOption)
+          if props.isEditing.get then
+            editableSequence.get.flatMap(editableOptional.getOption).flatten
           else config.acquisition.map(_.nextAtom)
 
         def resolveScience[S, D](
