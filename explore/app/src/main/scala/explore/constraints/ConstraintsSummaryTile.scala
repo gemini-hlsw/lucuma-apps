@@ -238,7 +238,7 @@ object ConstraintsSummaryTile
                                   enableColumnResizing = true,
                                   columnResizeMode = ColumnResizeMode.OnChange,
                                   state = PartialTableState(columnVisibility = columnVisibility.get),
-                                  onColumnVisibilityChange = stateInViewHandler(columnVisibility.mod)
+                                  onColumnVisibilityChange = columnVisibility.handleTableUpdate
                                 ),
                                 TableStore(props.userId, TableId.ConstraintsSummary, cols)
                               )

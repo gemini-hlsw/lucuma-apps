@@ -198,7 +198,7 @@ object TargetTable:
                          enableColumnResizing = true,
                          columnResizeMode = ColumnResizeMode.OnChange,
                          state = PartialTableState(columnVisibility = props.columnVisibility.get),
-                         onColumnVisibilityChange = stateInViewHandler(props.columnVisibility.mod),
+                         onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
                          meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
                        ),
                        TableStore(props.userId, TableId.AsterismTargets, cols)

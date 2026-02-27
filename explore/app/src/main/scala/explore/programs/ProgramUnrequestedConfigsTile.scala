@@ -123,7 +123,7 @@ object ProgramUnrequestedConfigsTile:
                          state = PartialTableState(
                            rowSelection = rowSelection.get
                          ),
-                         onRowSelectionChange = stateInViewHandler(rowSelection.mod)
+                         onRowSelectionChange = rowSelection.handleTableUpdate
                        ),
                        TableStore(
                          props.userId,

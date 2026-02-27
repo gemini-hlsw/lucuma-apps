@@ -213,17 +213,15 @@ object TargetSummaryTile
                                     columnVisibility = columnVisibility.get,
                                     rowSelection = rowSelection.get
                                   ),
-                                  onColumnVisibilityChange = stateInViewHandler(columnVisibility.mod),
-                                  onRowSelectionChange = stateInViewHandler(
-                                    rowSelection
-                                      .withOnMod: rs =>
-                                        // We'll only unfocus if something is selected. Otherwise this is
-                                        // called on initial load and prevents direct navigation to a url for
-                                        // a target, and also doesn't allow focusing of a newly created target
-                                        // while an observation is selected. See https://app.shortcut.com/lucuma/story/4425/select-newly-created-target
-                                        props.focusTargetId(none).unless_(rs.value.isEmpty)
-                                      .mod(_)
-                                  )
+                                  onColumnVisibilityChange = columnVisibility.handleTableUpdate,
+                                  onRowSelectionChange = rowSelection
+                                    .withOnMod: rs =>
+                                      // We'll only unfocus if something is selected. Otherwise this is
+                                      // called on initial load and prevents direct navigation to a url for
+                                      // a target, and also doesn't allow focusing of a newly created target
+                                      // while an observation is selected. See https://app.shortcut.com/lucuma/story/4425/select-newly-created-target
+                                      props.focusTargetId(none).unless_(rs.value.isEmpty)
+                                    .handleTableUpdate
                                 ),
                                 TableStore(props.userId, TableId.TargetsSummary, cols)
                               )

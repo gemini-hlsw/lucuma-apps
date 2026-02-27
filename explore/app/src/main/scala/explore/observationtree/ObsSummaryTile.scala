@@ -163,8 +163,8 @@ object ObsSummaryTile
                            rowSelection = rowSelection.get,
                            columnVisibility = columnVisibility.get
                          ),
-                         onRowSelectionChange = stateInViewHandler(rowSelection.mod),
-                         onColumnVisibilityChange = stateInViewHandler(columnVisibility.mod)
+                         onRowSelectionChange = rowSelection.handleTableUpdate,
+                         onColumnVisibilityChange = columnVisibility.handleTableUpdate
                        ),
                        TableStore(
                          props.userId,
