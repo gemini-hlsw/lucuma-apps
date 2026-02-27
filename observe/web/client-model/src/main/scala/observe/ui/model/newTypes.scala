@@ -3,9 +3,9 @@
 
 package observe.ui.model
 
-import lucuma.core.util.NewBoolean
 import cats.Eq
 import cats.syntax.eq.*
+import lucuma.core.util.NewBoolean
 import lucuma.react.table.ColumnFilters
 
 object IsAudioActivated extends NewBoolean

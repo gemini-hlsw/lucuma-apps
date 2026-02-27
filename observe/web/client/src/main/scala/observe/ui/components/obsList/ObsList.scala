@@ -7,7 +7,6 @@ import cats.Order.given
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.react.View
-// import crystal.react.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationWorkflowState
@@ -23,6 +22,7 @@ import lucuma.react.table.*
 import lucuma.refined.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.primereact.DebouncedInputText
+import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import observe.model.ExecutionState
 import observe.model.Observer
@@ -224,11 +224,6 @@ object ObsList
             ).sortable.withFilterMethod(FilterMethod.StringSelect())
           )
 
-      // TODO REVISE - OR put somewhere stable.
-      // given [K, V: Reusability]: Reusability[Map[K, V]] = Reusability.map
-      import observe.ui.model.given
-      given Reusability[ColumnFilters] = Reusability.byEq
-
       for
         // cols  <- // Try TableMeta
         //   useMemo(
@@ -239,13 +234,14 @@ object ObsList
         //      props.linkToExploreObs
         //     )
         //   )(columns(_, _, _, _, _))
-        upd1  <- useCallback(props.obsListGlobalFilter.withOnMod(Callback.log(_)).handleTableUpdate)
-        upd2  <- useCallback(props.obsListColumnFilters.withOnMod(Callback.log(_)).handleTableUpdate)
-        _      = println(s"JELOU ${props.obsListGlobalFilter.get} ${props.obsListColumnFilters.get}")
-        state <- useMemo((props.obsListGlobalFilter.get, props.obsListColumnFilters.get)):
-                   (globalFilter, columnFilters) =>
-                     PartialTableState(globalFilter = globalFilter, columnFilters = columnFilters)
-        table <-
+        upd1       <- useCallback(props.obsListGlobalFilter.withOnMod(Callback.log(_)).handleTableUpdate)
+        upd2       <- useCallback(props.obsListColumnFilters.withOnMod(Callback.log(_)).handleTableUpdate)
+        _           = println(s"JELOU ${props.obsListGlobalFilter.get} ${props.obsListColumnFilters.get}")
+        tableState <-
+          useMemo(props.obsListGlobalFilter.get, props.obsListColumnFilters.get):
+            (globalFilter, columnFilters) =>
+              PartialTableState(globalFilter = globalFilter, columnFilters = columnFilters)
+        table      <-
           useReactTable:
             TableOptions(
               columns,
@@ -269,7 +265,7 @@ object ObsList
               //   globalFilter = props.obsListGlobalFilter.get,
               //   columnFilters = props.obsListColumnFilters.get
               // ),
-              state = state,
+              state = tableState,
               // state = PartialTableState(
               //   globalFilter = props.obsListGlobalFilter.get,
               //   columnFilters = props.obsListColumnFilters.get

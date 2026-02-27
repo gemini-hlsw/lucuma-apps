@@ -23,7 +23,6 @@ import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.typed.tanstackVirtualCore as rawVirtual
 import lucuma.ui.primereact.*
 import lucuma.ui.react.given
-import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
@@ -69,6 +68,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           Callback: // Auto scroll to running step or next step.
             refOpt.map:
               _.scrollToIndex(rowIndex - 1, ScrollOptions)
+
+  // TODO Move somewhere else (lucuma-react??)
+  import lucuma.ui.reusability.given
+  // given Reusability[ColumnSizing] = Reusability.by(_.value)
 
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
@@ -144,6 +147,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 acquisitionPrompt
               )
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        tableState               <-
+          useMemo(dynTable.columnSizing, dynTable.columnVisibility):
+            (columnSizing, columnVisibility) =>
+              PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
         table                    <-
           useReactTable:
             TableOptions(
@@ -155,10 +162,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               getSubRows = (row, _) => row.subRows,
               columnResizeMode = ColumnResizeMode.OnChange,
               initialState = TableState(expanded = CurrentExpandedState),
-              state = PartialTableState(
-                columnSizing = dynTable.columnSizing,
-                columnVisibility = dynTable.columnVisibility
-              ),
+              state = tableState,
               onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
               meta = TableMeta(
                 props.requests,

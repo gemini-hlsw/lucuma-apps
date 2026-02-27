@@ -3,9 +3,10 @@
 
 package lucuma.ui.table
 
+import cats.Applicative
 import crystal.ViewF
 import lucuma.react.table.Updater
-import cats.Applicative
+
 import scalajs.js
 
 extension [F[_]: Applicative, A](view: ViewF[F, A])

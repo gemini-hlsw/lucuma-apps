@@ -13,6 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
+import lucuma.react.table.ColumnFilters
 import lucuma.ui.sso.UserVault
 import monocle.Focus
 import monocle.Lens
@@ -26,7 +27,6 @@ import observe.model.Operator
 import observe.model.StepProgress
 import observe.model.odb.ObsRecordedIds
 import observe.ui.model.enums.ClientMode
-import lucuma.react.table.ColumnFilters
 
 case class RootModelData(
   userVault:            Pot[Option[UserVault]],

@@ -107,6 +107,10 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 _.modify:
                   _ + (DragHandleColumnId -> (if (value) 35.toPx else 0.toPx)) +
                     (EditControlsColumnId -> (if (value) 70.toPx else 0.toPx))
+        tableState <-
+          useMemo(dynTable.columnSizing, dynTable.columnVisibility):
+            (columnSizing, columnVisibility) =>
+              PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
         table      <-
           useReactTable:
             TableOptions(
@@ -121,10 +125,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               initialState = TableState(
                 expanded = CurrentExpandedState
               ),
-              state = PartialTableState(
-                columnSizing = dynTable.columnSizing,
-                columnVisibility = dynTable.columnVisibility
-              ),
+              state = tableState,
               onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
               meta = TableMeta(props.isEditing, props.modAcquisition, props.modScience)
             )

@@ -594,6 +594,12 @@ object ProgramUsersTable:
                                 // gets in the DOM. It will be re-set on button click
                                 currentProgUser.set(rows.headOption)
         createInviteStatus <- useStateView(CreateInviteStatus.Idle)
+        tableState         <- useMemo(props.hiddenColumns): hiddenColumns =>
+                                PartialTableState(
+                                  columnVisibility = ColumnVisibility(
+                                    hiddenColumns.map(_.id -> Visibility.Hidden).toMap
+                                  )
+                                )
         table              <- useReactTable(
                                 TableOptions(
                                   cols,
@@ -608,11 +614,7 @@ object ProgramUsersTable:
                                     createInviteStatus,
                                     currentProgUser
                                   ),
-                                  state = PartialTableState(
-                                    columnVisibility = ColumnVisibility(
-                                      props.hiddenColumns.map(_.id -> Visibility.Hidden).toMap
-                                    )
-                                  )
+                                  state = tableState
                                 )
                               )
       } yield React.Fragment(

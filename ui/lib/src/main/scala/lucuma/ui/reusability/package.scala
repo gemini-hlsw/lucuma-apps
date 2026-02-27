@@ -152,15 +152,17 @@ trait ModelReusabiltyInstances
   given [D]: Reusability[Visit[D]]                           = Reusability.byEq
 
 trait TableReusabilityInstances:
-  given Reusability[SizePx]                    = Reusability.by(_.value)
-  given Reusability[ColumnId]                  = Reusability.by(_.value)
-  given Reusability[Visibility]                = Reusability.by(_.value)
-  given Reusability[Map[ColumnId, Visibility]] = Reusability.map
-  given Reusability[ColumnVisibility]          = Reusability.by(_.value)
-  given Reusability[SortDirection]             = Reusability.by(_.toDescending)
-  given Reusability[ColumnSort]                = Reusability.by(cs => (cs.columnId, cs.direction))
-  given Reusability[Sorting]                   = Reusability.by(_.value)
-  given [TF]: Reusability[TableState[TF]]      =
+  given Reusability[SizePx]               = Reusability.by(_.value)
+  given Reusability[ColumnId]             = Reusability.by(_.value)
+  given Reusability[Visibility]           = Reusability.by(_.value)
+  given Reusability[ColumnVisibility]     = Reusability.by(_.value.toSet)
+  given Reusability[ColumnSizing]         = Reusability.by(_.value.toSet)
+  given Reusability[SortDirection]        = Reusability.by(_.toDescending)
+  given Reusability[ColumnSort]           = Reusability.by(cs => (cs.columnId, cs.direction))
+  given Reusability[Sorting]              = Reusability.by(_.value)
+  given Reusability[ColumnFilters]        = Reusability.by(_.value.toSet)
+  given Reusability[RowSelection]         = Reusability.by(_.value.toSet)
+  given [TF]: Reusability[TableState[TF]] =
     Reusability.by(state => (state.columnVisibility, state.sorting))
 
 trait AladinReusabilityInstances extends UtilReusabilityInstances:

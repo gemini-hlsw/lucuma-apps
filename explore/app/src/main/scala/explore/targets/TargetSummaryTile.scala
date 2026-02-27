@@ -194,11 +194,15 @@ object TargetSummaryTile
                               targets.toList
                                 .filter((_, twid) => twid.disposition === disposition)
                                 .map(_._2)
+        rowSelection      = props.selectedTargetIds.as(targetIds2RowSelection)
+        tableState       <- useMemo(columnVisibility.get, rowSelection.get):
+                              (columnVisibility, rowSelection) =>
+                                PartialTableState(
+                                  columnVisibility = columnVisibility,
+                                  rowSelection = rowSelection
+                                )
         table            <- useReactTableWithStateStore:
                               import ctx.given
-
-                              val rowSelection: View[RowSelection] =
-                                props.selectedTargetIds.as(targetIds2RowSelection)
 
                               TableOptionsWithStateStore(
                                 TableOptions(
@@ -209,10 +213,7 @@ object TargetSummaryTile
                                   enableColumnResizing = true,
                                   columnResizeMode = ColumnResizeMode.OnChange,
                                   enableMultiRowSelection = true,
-                                  state = PartialTableState(
-                                    columnVisibility = columnVisibility.get,
-                                    rowSelection = rowSelection.get
-                                  ),
+                                  state = tableState,
                                   onColumnVisibilityChange = columnVisibility.handleTableUpdate,
                                   onRowSelectionChange = rowSelection
                                     .withOnMod: rs =>

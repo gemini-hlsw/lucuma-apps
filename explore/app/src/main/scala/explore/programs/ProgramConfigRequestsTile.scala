@@ -117,51 +117,49 @@ object ProgramConfigRequestsTile:
 
     val component = ScalaFnComponent[Body](props =>
       for
-        ctx     <- useContext(AppContext.ctx)
-        columns <- useMemo(()): _ =>
-                     List(
-                       rowColumn(ConfigRequestIdColumnId, _.request.id).withSize(90.toPx).sortable,
-                       columnBuilder.targetColumn(_.targetName)
-                     ) ++
-                       columnBuilder.configurationColumns(_.request.configuration) ++
-                       List(
-                         columnBuilder
-                           .obsListColumn(_.observations, props.programId, ctx),
-                         rowColumn(StatusColumnId, _.request.status)
-                           .withCell(c => stateIcon(c.value))
-                           .withSize(80.toPx)
-                           .sortable
-                       )
-        rows    <-
+        ctx         <- useContext(AppContext.ctx)
+        columns     <- useMemo(()): _ =>
+                         List(
+                           rowColumn(ConfigRequestIdColumnId, _.request.id).withSize(90.toPx).sortable,
+                           columnBuilder.targetColumn(_.targetName)
+                         ) ++
+                           columnBuilder.configurationColumns(_.request.configuration) ++
+                           List(
+                             columnBuilder
+                               .obsListColumn(_.observations, props.programId, ctx),
+                             rowColumn(StatusColumnId, _.request.status)
+                               .withCell(c => stateIcon(c.value))
+                               .withSize(80.toPx)
+                               .sortable
+                           )
+        rows        <-
           useMemo((props.configRequests, props.obs4ConfigRequests, props.targets)):
             (requests, obsMap, targets) => requests.map((_, r) => Row(r, obsMap, targets)).toList
-        table   <- useReactTableWithStateStore:
-                     import ctx.given
+        rowSelection = props.tileState.zoom(TileState.selected).as(rowIds2RowSelection)
+        tableState  <- useMemo(rowSelection.get): selected =>
+                         PartialTableState(rowSelection = selected)
+        table       <- useReactTableWithStateStore:
+                         import ctx.given
 
-                     val rowSelection: View[RowSelection] =
-                       props.tileState.zoom(TileState.selected).as(rowIds2RowSelection)
-
-                     TableOptionsWithStateStore(
-                       TableOptions(
-                         columns,
-                         rows,
-                         getRowId = (row, _, _) => RowId(row.request.id.toString),
-                         enableSorting = true,
-                         enableMultiRowSelection = true,
-                         state = PartialTableState(
-                           rowSelection = rowSelection.get
-                         ),
-                         onRowSelectionChange = rowSelection.handleTableUpdate
-                       ),
-                       TableStore(
-                         props.userId,
-                         TableId.RequestedConfigs,
-                         columns
-                       )
-                     )
-        _       <- useEffectOnMount:
-                     props.tileState.zoom(TileState.table).set(table.some)
-        resizer <- useResizeDetector
+                         TableOptionsWithStateStore(
+                           TableOptions(
+                             columns,
+                             rows,
+                             getRowId = (row, _, _) => RowId(row.request.id.toString),
+                             enableSorting = true,
+                             enableMultiRowSelection = true,
+                             state = tableState,
+                             onRowSelectionChange = rowSelection.handleTableUpdate
+                           ),
+                           TableStore(
+                             props.userId,
+                             TableId.RequestedConfigs,
+                             columns
+                           )
+                         )
+        _           <- useEffectOnMount:
+                         props.tileState.zoom(TileState.table).set(table.some)
+        resizer     <- useResizeDetector
       yield PrimeAutoHeightVirtualizedTable(
         table,
         _ => 32.toPx,
