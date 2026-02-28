@@ -22,7 +22,7 @@ private trait SequenceTable[S, D]:
   def science: Option[List[Atom[D]]]
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
   def isEditing: IsEditing
-  def modAcquisition: Endo[Atom[D]] => Callback
+  def modAcquisition: Endo[Option[Atom[D]]] => Callback
   def modScience: Endo[List[Atom[D]]] => Callback
 
   private def futureSteps(

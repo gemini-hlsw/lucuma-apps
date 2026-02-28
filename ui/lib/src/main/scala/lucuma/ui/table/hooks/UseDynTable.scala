@@ -26,7 +26,8 @@ class UseDynTable(
   initialColumnSizes:                  Map[ColumnId, ColumnSize],
   colState:                            DynTable.ColState,
   val onColumnSizingChangeHandler:     Updater[ColumnSizing] => Callback,
-  val onColumnVisibilityChangeHandler: Updater[ColumnVisibility] => Callback
+  val onColumnVisibilityChangeHandler: Updater[ColumnVisibility] => Callback,
+  val modCollapsedCols:                Endo[Boolean] => Callback
 ):
   def setInitialColWidths[R, TM, CM, TF](
     cols: List[ColumnDef[R, ?, TM, CM, TF, ?, ?]]
@@ -46,27 +47,32 @@ class UseDynTable(
 object UseDynTable:
   def useDynTable(dynTableDef: DynTable, width: SizePx): HookResult[UseDynTable] =
     for
-      colState <- useState(dynTableDef.initialState)
-      _        <- useEffectWithDeps(width): w => // Recompute columns upon resize
-                    CallbackTo(dynTableDef.adjustColSizes(w)(colState.value)) >>= colState.setState
+      colState         <- useState(dynTableDef.initialState)
+      areColsCollapsed <- useState(true)
+      _                <- useEffectWithDeps(width, areColsCollapsed.value):
+                            (w, areCollapsed) => // Recompute columns upon resize or ignored columns change
+                              CallbackTo(
+                                dynTableDef.adjustColSizes(w, areCollapsed)(colState.value)
+                              ) >>= colState.setState
     yield
       def onColumnSizingChangeHandler(updater: Updater[ColumnSizing]): Callback =
         colState.modState: oldState =>
-          dynTableDef.adjustColSizes(width):
+          dynTableDef.adjustColSizes(width, areColsCollapsed.value):
             updater match
               case Updater.Set(v)  => DynTable.ColState.resized.replace(v)(oldState)
               case Updater.Mod(fn) => DynTable.ColState.resized.modify(fn)(oldState)
 
       def onColumnVisibilityChangeHandler(updater: Updater[ColumnVisibility]): Callback =
         colState.modState: oldState =>
-          dynTableDef.adjustColSizes(width):
+          dynTableDef.adjustColSizes(width, areColsCollapsed.value):
             updater match
               case Updater.Set(v)  => DynTable.ColState.visibility.replace(v)(oldState)
               case Updater.Mod(fn) => DynTable.ColState.visibility.modify(fn)(oldState)
 
       UseDynTable(
-        dynTableDef.columnSizes,
+        dynTableDef.initialColumnSizes,
         colState.value,
         onColumnSizingChangeHandler,
-        onColumnVisibilityChangeHandler
+        onColumnVisibilityChangeHandler,
+        areColsCollapsed.modState
       )

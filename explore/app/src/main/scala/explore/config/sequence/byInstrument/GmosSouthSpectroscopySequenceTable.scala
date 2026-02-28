@@ -23,7 +23,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   acquisitonSN:   Option[SignalToNoiseAt],
   scienceSN:      Option[SignalToNoiseAt],
   isEditing:      IsEditing,
-  modAcquisition: Endo[Atom[gmos.DynamicConfig.GmosSouth]] => Callback,
+  modAcquisition: Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
   modScience:     Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback
 ) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]

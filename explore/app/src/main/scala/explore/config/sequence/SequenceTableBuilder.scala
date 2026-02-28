@@ -40,7 +40,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
 
   private case class TableMeta[D](
     isEditing:      IsEditing = IsEditing.False,
-    modAcquisition: Endo[Atom[D]] => Callback,
+    modAcquisition: Endo[Option[Atom[D]]] => Callback,
     modScience:     Endo[List[Atom[D]]] => Callback
   ) extends SequenceTableMeta[D]
 
@@ -77,7 +77,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     DynTable.ColState(
       resized = ColumnSizing(),
       visibility = ColumnVisibility()
-    )
+    ),
+    collapsibleCols = Set(DragHandleColumnId, EditControlsColumnId)
   )
 
   protected[sequence] val component =
@@ -100,13 +101,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
             )
         resize     <- useResizeDetector
         dynTable   <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
-        _          <-
-          useEffectWithDeps(props.isEditing.value):
-            value => // We have to handle column visibility through dynTable, so that column widths are correctly recomputed
-              dynTable.modifyColumnSizing:
-                _.modify:
-                  _ + (DragHandleColumnId -> (if (value) 35.toPx else 0.toPx)) +
-                    (EditControlsColumnId -> (if (value) 70.toPx else 0.toPx))
         tableState <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
@@ -129,6 +123,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
               meta = TableMeta(props.isEditing, props.modAcquisition, props.modScience)
             )
+        _          <-
+          useEffectWithDeps(props.isEditing.value): isEditing =>
+            dynTable.modCollapsedCols(_ => !isEditing)
         tableDnd   <- useVirtualizedTableDragAndDrop(
                         table,
                         DragHandleColumnId,

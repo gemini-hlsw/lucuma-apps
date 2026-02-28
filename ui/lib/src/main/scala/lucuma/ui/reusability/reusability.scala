@@ -34,6 +34,7 @@ import lucuma.react.table.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.aladin.facade.AladinOptions
 import lucuma.ui.sso.UserVault
+import lucuma.ui.table.ColumnSize
 import org.typelevel.cats.time.given
 
 import java.time.Duration
@@ -152,18 +153,20 @@ trait ModelReusabiltyInstances
   given [D]: Reusability[Visit[D]]                           = Reusability.byEq
 
 trait TableReusabilityInstances:
-  given Reusability[SizePx]               = Reusability.by(_.value)
-  given Reusability[ColumnId]             = Reusability.by(_.value)
-  given Reusability[Visibility]           = Reusability.by(_.value)
-  given Reusability[ColumnVisibility]     = Reusability.by(_.value.toSet)
-  given Reusability[ColumnSizing]         = Reusability.by(_.value.toSet)
-  given Reusability[SortDirection]        = Reusability.by(_.toDescending)
-  given Reusability[ColumnSort]           = Reusability.by(cs => (cs.columnId, cs.direction))
-  given Reusability[Sorting]              = Reusability.by(_.value)
-  given Reusability[ColumnFilters]        = Reusability.by(_.value.toSet)
-  given Reusability[RowSelection]         = Reusability.by(_.value.toSet)
-  given [TF]: Reusability[TableState[TF]] =
+  given Reusability[SizePx]                    = Reusability.by(_.value)
+  given Reusability[ColumnId]                  = Reusability.by(_.value)
+  given Reusability[Visibility]                = Reusability.by(_.value)
+  given Reusability[ColumnVisibility]          = Reusability.by(_.value.toSet)
+  given Reusability[ColumnSizing]              = Reusability.by(_.value.toSet)
+  given Reusability[SortDirection]             = Reusability.by(_.toDescending)
+  given Reusability[ColumnSort]                = Reusability.by(cs => (cs.columnId, cs.direction))
+  given Reusability[Sorting]                   = Reusability.by(_.value)
+  given Reusability[ColumnFilters]             = Reusability.by(_.value.toSet)
+  given Reusability[RowSelection]              = Reusability.by(_.value.toSet)
+  given [TF]: Reusability[TableState[TF]]      =
     Reusability.by(state => (state.columnVisibility, state.sorting))
+  given Reusability[ColumnSize]                = Reusability.byEq
+  given Reusability[Map[ColumnId, ColumnSize]] = Reusability.map
 
 trait AladinReusabilityInstances extends UtilReusabilityInstances:
   import scala.scalajs.js
