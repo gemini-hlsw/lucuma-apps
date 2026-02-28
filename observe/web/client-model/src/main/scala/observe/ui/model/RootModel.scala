@@ -13,6 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
+import lucuma.react.table.ColumnFilters
 import lucuma.ui.sso.UserVault
 import monocle.Focus
 import monocle.Lens
@@ -41,7 +42,9 @@ case class RootModelData(
   operator:             Option[Operator],
   userSelectionMessage: Option[NonEmptyString],
   globalLog:            FixedLengthBuffer[LogMessage],
-  isAudioActivated:     IsAudioActivated
+  isAudioActivated:     IsAudioActivated,
+  obsListGlobalFilter:  String,
+  obsListColumnFilters: ColumnFilters
 ) derives Eq:
   // TODO Readonly mode won't depend on user logged or not, but on their permissions.
   // For the moment we are requiring the STAFF role, so all logged users can operate.
@@ -119,7 +122,9 @@ object RootModelData:
       operator = none,
       userSelectionMessage = none,
       globalLog = FixedLengthBuffer.unsafe(MaxGlobalLogEntries),
-      isAudioActivated = IsAudioActivated.True
+      isAudioActivated = IsAudioActivated.True,
+      obsListGlobalFilter = "",
+      obsListColumnFilters = ColumnFilters.Empty
     )
 
   val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     = Focus[RootModelData](_.userVault)
@@ -145,5 +150,9 @@ object RootModelData:
     Focus[RootModelData](_.globalLog)
   val isAudioActivated: Lens[RootModelData, IsAudioActivated]                    =
     Focus[RootModelData](_.isAudioActivated)
+  val obsListGlobalFilter: Lens[RootModelData, String]                           =
+    Focus[RootModelData](_.obsListGlobalFilter)
+  val obsListColumnFilters: Lens[RootModelData, ColumnFilters]                   =
+    Focus[RootModelData](_.obsListColumnFilters)
 
 case class RootModel(clientConfig: Pot[ClientConfig], data: View[RootModelData])

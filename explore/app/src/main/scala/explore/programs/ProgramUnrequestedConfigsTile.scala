@@ -87,56 +87,54 @@ object ProgramUnrequestedConfigsTile:
     private val ColDef        = ColumnDef[Row]
     private def columnBuilder = ConfigurationTableColumnBuilder(ColDef)
 
-    val component = ScalaFnComponent[Body](props =>
-      for {
-        ctx     <- useContext(AppContext.ctx)
-        columns <- useMemo(()): _ =>
-                     columnBuilder.targetColumn(_.targetName) ::
-                       (columnBuilder.configurationColumns(_.configuration) :+
-                         columnBuilder.obsListColumn(_.observations.toList, props.programId, ctx))
-        rows    <- useMemo((props.configsWithoutRequests, props.targets)): (configs, targets) =>
-                     configs.toList.map((c, os) => Row(c, os, targets))
-        table   <- useReactTableWithStateStore {
-                     import ctx.given
+    private val rowIds2RowSelection: Iso[List[RowId], RowSelection] =
+      Iso[List[RowId], RowSelection](rowIds =>
+        RowSelection:
+          rowIds.map(_ -> true).toMap
+      )(selection =>
+        selection.value
+          .filter(_._2)
+          .keys
+          .toList
+      )
 
-                     val rowIds2RowSelection: Iso[List[RowId], RowSelection] =
-                       Iso[List[RowId], RowSelection](rowIds =>
-                         RowSelection:
-                           rowIds.map(_ -> true).toMap
-                       )(selection =>
-                         selection.value
-                           .filter(_._2)
-                           .keys
-                           .toList
+    private val component = ScalaFnComponent[Body](props =>
+      for
+        ctx         <- useContext(AppContext.ctx)
+        columns     <- useMemo(()): _ =>
+                         columnBuilder.targetColumn(_.targetName) ::
+                           (columnBuilder.configurationColumns(_.configuration) :+
+                             columnBuilder.obsListColumn(_.observations.toList, props.programId, ctx))
+        rows        <- useMemo((props.configsWithoutRequests, props.targets)): (configs, targets) =>
+                         configs.toList.map((c, os) => Row(c, os, targets))
+        rowSelection = props.tileState.zoom(TileState.selected).as(rowIds2RowSelection)
+        tableState  <- useMemo(rowSelection.get): rowSelection =>
+                         PartialTableState(rowSelection = rowSelection)
+        table       <- useReactTableWithStateStore {
+                         import ctx.given
+
+                         TableOptionsWithStateStore(
+                           TableOptions(
+                             columns,
+                             rows,
+                             getRowId = (row, _, _) => RowId(row.id),
+                             enableSorting = true,
+                             enableMultiRowSelection = true,
+                             state = tableState,
+                             onRowSelectionChange = rowSelection.handleTableUpdate
+                           ),
+                           TableStore(
+                             props.userId,
+                             TableId.UnrequestedConfigs,
+                             columns
+                           )
+                         )
+                       }
+        _           <- useEffectOnMount(
+                         props.tileState.zoom(TileState.table).set(table.some)
                        )
-
-                     val rowSelection: View[RowSelection] =
-                       props.tileState.zoom(TileState.selected).as(rowIds2RowSelection)
-
-                     TableOptionsWithStateStore(
-                       TableOptions(
-                         columns,
-                         rows,
-                         getRowId = (row, _, _) => RowId(row.id),
-                         enableSorting = true,
-                         enableMultiRowSelection = true,
-                         state = PartialTableState(
-                           rowSelection = rowSelection.get
-                         ),
-                         onRowSelectionChange = stateInViewHandler(rowSelection.mod)
-                       ),
-                       TableStore(
-                         props.userId,
-                         TableId.UnrequestedConfigs,
-                         columns
-                       )
-                     )
-                   }
-        _       <- useEffectOnMount(
-                     props.tileState.zoom(TileState.table).set(table.some)
-                   )
-        resizer <- useResizeDetector
-      } yield PrimeAutoHeightVirtualizedTable(
+        resizer     <- useResizeDetector
+      yield PrimeAutoHeightVirtualizedTable(
         table,
         _ => 32.toPx,
         striped = true,

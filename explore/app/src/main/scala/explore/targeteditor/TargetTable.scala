@@ -138,44 +138,44 @@ object TargetTable:
   protected val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx     <- useContext(AppContext.ctx)
-        cols    <- useMemo(props.readOnly): readOnly =>
-                     import ctx.given
+        ctx        <- useContext(AppContext.ctx)
+        cols       <- useMemo(props.readOnly): readOnly =>
+                        import ctx.given
 
-                     Option
-                       .unless(readOnly)(
-                         ColDef(
-                           DeleteColumnId,
-                           _.id,
-                           "",
-                           cell =>
-                             Button(
-                               text = true,
-                               clazz = ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                               icon = Icons.Trash,
-                               tooltip = "Delete",
-                               onClickE = (e: ReactMouseEvent) =>
-                                 e.preventDefaultCB >>
-                                   e.stopPropagationCB >>
-                                   cell.table.options.meta.foldMap(m =>
-                                     deleteTarget(
-                                       m.obsIds,
-                                       m.obsAndTargets,
-                                       cell.row.original.targetWithId,
-                                       m.onAsterismUpdate,
-                                       props.blindOffset
-                                     )
-                                   )
-                             ).tiny.compact,
-                           size = 35.toPx,
-                           enableSorting = false
-                         )
-                       )
-                       .toList ++
-                       TargetColumns.Builder.ForProgram(ColDef, _.regionOrCoords).AllColumns
-        vizTime <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
-                     IO(vizTime.getOrElse(Instant.now()))
-        rowsPot <-
+                        Option
+                          .unless(readOnly)(
+                            ColDef(
+                              DeleteColumnId,
+                              _.id,
+                              "",
+                              cell =>
+                                Button(
+                                  text = true,
+                                  clazz = ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                  icon = Icons.Trash,
+                                  tooltip = "Delete",
+                                  onClickE = (e: ReactMouseEvent) =>
+                                    e.preventDefaultCB >>
+                                      e.stopPropagationCB >>
+                                      cell.table.options.meta.foldMap(m =>
+                                        deleteTarget(
+                                          m.obsIds,
+                                          m.obsAndTargets,
+                                          cell.row.original.targetWithId,
+                                          m.onAsterismUpdate,
+                                          props.blindOffset
+                                        )
+                                      )
+                                ).tiny.compact,
+                              size = 35.toPx,
+                              enableSorting = false
+                            )
+                          )
+                          .toList ++
+                          TargetColumns.Builder.ForProgram(ColDef, _.regionOrCoords).AllColumns
+        vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
+                        IO(vizTime.getOrElse(Instant.now()))
+        rowsPot    <-
           useEffectKeepResultWithDeps((vizTime.value.toOption, props.obsTargets, props.site)):
             (vt, optObsTargets, site) =>
               import ctx.given
@@ -186,24 +186,26 @@ object TargetTable:
                   .map: rorc =>
                     // we want the blind offset last (sc-7428)
                     (rorc.science ++ rorc.blindOffset.toList).map(MotionCorrectedTarget.apply)
-        table   <- useReactTableWithStateStore:
-                     import ctx.given
+        tableState <- useMemo(props.columnVisibility.get): columnVisibility =>
+                        PartialTableState(columnVisibility = columnVisibility)
+        table      <- useReactTableWithStateStore:
+                        import ctx.given
 
-                     TableOptionsWithStateStore(
-                       TableOptions(
-                         cols,
-                         rowsPot.value.map(_.toOption.orEmpty),
-                         getRowId = (row, _, _) => RowId(row.id.toString),
-                         enableSorting = true,
-                         enableColumnResizing = true,
-                         columnResizeMode = ColumnResizeMode.OnChange,
-                         state = PartialTableState(columnVisibility = props.columnVisibility.get),
-                         onColumnVisibilityChange = stateInViewHandler(props.columnVisibility.mod),
-                         meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
-                       ),
-                       TableStore(props.userId, TableId.AsterismTargets, cols)
-                     )
-        adding  <- useStateView(AreAdding(false))
+                        TableOptionsWithStateStore(
+                          TableOptions(
+                            cols,
+                            rowsPot.value.map(_.toOption.orEmpty),
+                            getRowId = (row, _, _) => RowId(row.id.toString),
+                            enableSorting = true,
+                            enableColumnResizing = true,
+                            columnResizeMode = ColumnResizeMode.OnChange,
+                            state = tableState,
+                            onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
+                            meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
+                          ),
+                          TableStore(props.userId, TableId.AsterismTargets, cols)
+                        )
+        adding     <- useStateView(AreAdding(false))
       yield
         if (rowsPot.value.map(_.toOption.orEmpty).isEmpty)
           if (props.readOnly)

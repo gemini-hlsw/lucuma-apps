@@ -226,6 +226,8 @@ object ConstraintsSummaryTile
         rows             <-
           useMemo(props.constraintList):
             _.map(ConstraintGroup.fromTuple).toList.sortBy(_.constraintSet.summaryString)
+        tableState       <- useMemo(columnVisibility.get): columnVisibility =>
+                              PartialTableState(columnVisibility = columnVisibility)
         table            <- useReactTableWithStateStore:
                               import ctx.given
 
@@ -237,8 +239,8 @@ object ConstraintsSummaryTile
                                   enableSorting = true,
                                   enableColumnResizing = true,
                                   columnResizeMode = ColumnResizeMode.OnChange,
-                                  state = PartialTableState(columnVisibility = columnVisibility.get),
-                                  onColumnVisibilityChange = stateInViewHandler(columnVisibility.mod)
+                                  state = tableState,
+                                  onColumnVisibilityChange = columnVisibility.handleTableUpdate
                                 ),
                                 TableStore(props.userId, TableId.ConstraintsSummary, cols)
                               )

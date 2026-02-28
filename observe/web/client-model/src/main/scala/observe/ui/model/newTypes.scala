@@ -3,7 +3,12 @@
 
 package observe.ui.model
 
+import cats.Eq
+import cats.syntax.eq.*
 import lucuma.core.util.NewBoolean
+import lucuma.react.table.ColumnFilters
 
 object IsAudioActivated extends NewBoolean
 type IsAudioActivated = IsAudioActivated.Type
+
+given Eq[ColumnFilters] = Eq.instance((a, b) => a.value.toSet === b.value.toSet)

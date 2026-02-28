@@ -6,7 +6,7 @@ package observe.ui.components.obsList
 import cats.Order.given
 import cats.syntax.all.*
 import crystal.Pot
-import crystal.react.given
+import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationWorkflowState
@@ -22,6 +22,7 @@ import lucuma.react.table.*
 import lucuma.refined.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.primereact.DebouncedInputText
+import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import observe.model.ExecutionState
 import observe.model.Observer
@@ -33,15 +34,17 @@ import observe.ui.model.LoadedObservations
 import observe.ui.model.ObsSummary
 import observe.ui.model.SessionQueueRow
 import observe.ui.model.enums.ObsClass
-import observe.ui.model.reusability.given
+// import observe.ui.model.reusability.given
 
 case class ObsList(
-  readyObservations: List[ObsSummary],
-  executionState:    Map[Observation.Id, ExecutionState],
-  observer:          Option[Observer],
-  loadedObss:        LoadedObservations,
-  loadObs:           Reusable[Observation.Id => Callback],
-  linkToExploreObs:  Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
+  readyObservations:    List[ObsSummary],
+  executionState:       Map[Observation.Id, ExecutionState],
+  observer:             Option[Observer],
+  loadedObss:           LoadedObservations,
+  obsListGlobalFilter:  View[String],
+  obsListColumnFilters: View[ColumnFilters],
+  loadObs:              Reusable[Observation.Id => Callback],
+  linkToExploreObs:     Reusable[Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode]
 ) extends ReactFnProps(ObsList):
   val rows: List[SessionQueueRow] =
     readyObservations
@@ -87,7 +90,17 @@ case class ObsList(
 
 object ObsList
     extends ReactFnComponent[ObsList](props =>
-      val ColDef = ColumnDef[SessionQueueRow].WithColumnFilters.WithGlobalFilter[String]
+      case class TableMeta(
+        obsStates:          Map[Observation.Id, SequenceState],
+        pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
+        obsIsProcessing:    Map[Observation.Id, Boolean],
+        loadObs:            Observation.Id => Callback,
+        linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+      )
+
+      val ColDef = ColumnDef[SessionQueueRow].WithColumnFilters
+        .WithGlobalFilter[String]
+        .WithTableMeta[TableMeta]
 
       def rowClass(
         loadingPotOpt: Option[Pot[Unit]],
@@ -135,97 +148,138 @@ object ObsList
       val TargetColumnId: ColumnId      = ColumnId("target")
       val ConstraintsColumnId: ColumnId = ColumnId("constraints")
 
-      def columns(
-        obsStates:          Map[Observation.Id, SequenceState],
-        pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
-        obsIsProcessing:    Map[Observation.Id, Boolean],
-        loadObs:            Observation.Id => Callback,
-        linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
-      ): List[ColumnDef[SessionQueueRow, ?, Nothing, WithFilterMethod, String, ?, Nothing]] =
-        List(
-          ColDef(
-            StatusIconColumnId,
-            _.obsId,
-            header = "",
-            cell = cell =>
-              renderCentered(
-                if (pendingOrReadyObss.contains(cell.value))
-                  statusIconRenderer(pendingOrReadyObss.get(cell.value), obsStates.get(cell.value))
-                else
-                  Button(
-                    icon = Icons.FileArrowUp,
-                    size = Button.Size.Small,
-                    onClick = loadObs(cell.value),
-                    clazz = ObserveStyles.LoadButton,
-                    disabled = obsIsProcessing.get(cell.value).contains(true),
-                    tooltip = "Load observation"
-                  )
-              ),
-            size = 25.toPx,
-            enableResizing = false,
-            enableSorting = false
-          ),
-          ColDef(
-            ObsRefColumnId,
-            obs => obs.obsReference.toRight((obs.programId, obs.obsId)),
-            header = "Obs. Id",
-            cell = cell =>
-              <.span(cell.value.fold(_._2.shortName, _.label), linkToExploreObs(cell.value)),
-            size = 240.toPx
-          ).sortable.withFilterMethod(FilterMethod.Text(_.fold(_._2.shortName, _.label))),
-          ColDef(
-            InstrumentColumnId,
-            _.instrument,
-            header = "Instrument",
-            cell = _.value.shortName
-          ).sortable.withFilterMethod(FilterMethod.Select(_.shortName)),
-          ColDef(
-            ConfigColumnId,
-            _.configurationSummary.getOrElse("---"),
-            header = "Configuration",
-            cell = _.value
-          ).sortable.withFilterMethod(FilterMethod.StringText()),
-          ColDef(
-            TargetColumnId,
-            _.title,
-            header = "Target",
-            cell = _.value.some.filter(_.nonEmpty).getOrElse(UnknownTargetName)
-          ).sortable.withFilterMethod(FilterMethod.StringText()),
-          ColDef(
-            ConstraintsColumnId,
-            _.constraintsSummary,
-            header = "Constraints",
-            cell = _.value
-          ).sortable.withFilterMethod(FilterMethod.StringSelect())
-        )
-
-      // TODO REVISE - OR put somewhere stable.
-      given [K, V: Reusability]: Reusability[Map[K, V]] = Reusability.map
+      // def columns(
+      //   obsStates:          Map[Observation.Id, SequenceState],
+      //   pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
+      //   obsIsProcessing:    Map[Observation.Id, Boolean],
+      //   loadObs:            Observation.Id => Callback,
+      //   linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+      // ): List[ColumnDef[SessionQueueRow, ?, Nothing, WithFilterMethod, String, ?, Nothing]] =
+      val columns: Reusable[
+        List[ColumnDef[SessionQueueRow, ?, TableMeta, WithFilterMethod, String, ?, Nothing]]
+      ] =
+        Reusable.always:
+          List(
+            ColDef(
+              StatusIconColumnId,
+              _.obsId,
+              header = "",
+              cell = cell =>
+                cell.table.options.meta.map: meta =>
+                  renderCentered(
+                    if (meta.pendingOrReadyObss.contains(cell.value))
+                      statusIconRenderer(
+                        meta.pendingOrReadyObss.get(cell.value),
+                        meta.obsStates.get(cell.value)
+                      )
+                    else
+                      Button(
+                        icon = Icons.FileArrowUp,
+                        size = Button.Size.Small,
+                        onClick = meta.loadObs(cell.value),
+                        clazz = ObserveStyles.LoadButton,
+                        disabled = meta.obsIsProcessing.get(cell.value).contains(true),
+                        tooltip = "Load observation"
+                      )
+                  ),
+              size = 25.toPx,
+              enableResizing = false,
+              enableSorting = false
+            ),
+            ColDef(
+              ObsRefColumnId,
+              obs => obs.obsReference.toRight((obs.programId, obs.obsId)),
+              header = "Obs. Id",
+              cell = cell =>
+                cell.table.options.meta.map: meta =>
+                  <.span(
+                    cell.value.fold(_._2.shortName, _.label),
+                    meta.linkToExploreObs(cell.value)
+                  ),
+              size = 240.toPx
+            ).sortable.withFilterMethod(FilterMethod.Text(_.fold(_._2.shortName, _.label))),
+            ColDef(
+              InstrumentColumnId,
+              _.instrument,
+              header = "Instrument",
+              cell = _.value.shortName
+            ).sortable.withFilterMethod(FilterMethod.Select(_.shortName)),
+            ColDef(
+              ConfigColumnId,
+              _.configurationSummary.getOrElse("---"),
+              header = "Configuration",
+              cell = _.value
+            ).sortable.withFilterMethod(FilterMethod.StringText()),
+            ColDef(
+              TargetColumnId,
+              _.title,
+              header = "Target",
+              cell = _.value.some.filter(_.nonEmpty).getOrElse(UnknownTargetName)
+            ).sortable.withFilterMethod(FilterMethod.StringText()),
+            ColDef(
+              ConstraintsColumnId,
+              _.constraintsSummary,
+              header = "Constraints",
+              cell = _.value
+            ).sortable.withFilterMethod(FilterMethod.StringSelect())
+          )
 
       for
-        cols         <-
-          useMemo(
-            (props.obsStates,
-             props.pendingOrReadyObss,
-             props.obsIsProcessing,
-             props.loadObs,
-             props.linkToExploreObs
-            )
-          )(columns(_, _, _, _, _))
-        table        <-
+        // cols  <- // Try TableMeta
+        //   useMemo(
+        //     (props.obsStates,
+        //      props.pendingOrReadyObss,
+        //      props.obsIsProcessing,
+        //      props.loadObs,
+        //      props.linkToExploreObs
+        //     )
+        //   )(columns(_, _, _, _, _))
+        upd1       <- useCallback(props.obsListGlobalFilter.withOnMod(Callback.log(_)).handleTableUpdate)
+        upd2       <- useCallback(props.obsListColumnFilters.withOnMod(Callback.log(_)).handleTableUpdate)
+        _           = println(s"JELOU ${props.obsListGlobalFilter.get} ${props.obsListColumnFilters.get}")
+        tableState <-
+          useMemo(props.obsListGlobalFilter.get, props.obsListColumnFilters.get):
+            (globalFilter, columnFilters) =>
+              PartialTableState(globalFilter = globalFilter, columnFilters = columnFilters)
+        table      <-
           useReactTable:
             TableOptions(
-              cols,
-              Reusable.implicitly(props.rows),
+              columns,
+              // Reusable.implicitly(props.rows),
+              Reusable.always(props.rows),
               enableColumnResizing = true,
               columnResizeMode = ColumnResizeMode.OnChange,
               enableSorting = true,
               enableFilters = true,
               enableFacetedUniqueValues = true,
               enableGlobalFilter = true,
-              globalFilterFn = FilterMethod.globalFilterFn(cols)
+              globalFilterFn = FilterMethod.globalFilterFn(columns),
+              meta = TableMeta(
+                props.obsStates,
+                props.pendingOrReadyObss,
+                props.obsIsProcessing,
+                props.loadObs,
+                props.linkToExploreObs
+              ),
+              // initialState = TableState(
+              //   globalFilter = props.obsListGlobalFilter.get,
+              //   columnFilters = props.obsListColumnFilters.get
+              // ),
+              state = tableState,
+              // state = PartialTableState(
+              //   globalFilter = props.obsListGlobalFilter.get,
+              //   columnFilters = props.obsListColumnFilters.get
+              // ),
+              onGlobalFilterChange = x => Callback.log("GC") >> upd1(x),
+              onColumnFiltersChange = x => Callback.log("CC") >> upd2(x)
+              // onGlobalFilterChange = update =>
+              //   Callback.log(s"Global filter change: ${update}") >>
+              //     props.obsListGlobalFilter.handleTableUpdate(update),
+              // onColumnFiltersChange = update =>
+              //   Callback.log(s"Column filters change: ${update}") >>
+              //     props.obsListColumnFilters.handleTableUpdate(update)
             )
-        globalFilter <- useState("")
+      // globalFilter <- useState("")
       yield <.div(
         <.span(
           DebouncedInputText(

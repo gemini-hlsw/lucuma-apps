@@ -132,53 +132,55 @@ object SchedulingWindowsTile
       val WindowColId: ColumnId = ColumnId("TimingWindow")
       val DeleteColId: ColumnId = ColumnId("Delete")
 
-      for {
-        resize <- useResizeDetector
+      for
+        resize     <- useResizeDetector
         // cols
-        cols   <- useMemo(()): _ =>
-                    List(
-                      ColDef(WindowColId, _._1, size = 400.toPx).withCell: cell =>
-                        <.span(
-                          cell.value.renderVdom,
-                          <.span(Icons.ErrorIcon)
-                            .withTooltip(BadTimingWindow)
-                            .unless(cell.value.isValid)
-                        ),
-                      ColDef(DeleteColId, _._2, size = DeleteColWidth.toPx).withCell: cell =>
-                        Button(
-                          text = true,
-                          onClickE = e =>
-                            e.stopPropagationCB >>
-                              cell.table.options.meta
-                                .map:
-                                  _.updateWindows(sws =>
-                                    sws.take(cell.value) ++ sws.drop(cell.value + 1)
-                                  )
-                                .orEmpty
-                        ).compact.small(Icons.Trash)
-                    )
-        // rows
-        rows   <- useMemo(props.timingWindows.get):
-                    _.zipWithIndex.sorted
-        table  <- useReactTable:
-                    TableOptions(
-                      cols,
-                      rows,
-                      enableRowSelection = true,
-                      getRowId = (row, _, _) => RowId(row._2.toString),
-                      state = PartialTableState(
-                        columnSizing = ColumnSizing(
-                          WindowColId -> resize.width
-                            .map(w => (w - DeleteColWidth).toPx)
-                            .getOrElse(400.toPx)
-                        ),
-                        columnVisibility = ColumnVisibility(
-                          DeleteColId -> Visibility.fromVisible(!props.readonly)
+        cols       <- useMemo(()): _ =>
+                        List(
+                          ColDef(WindowColId, _._1, size = 400.toPx).withCell: cell =>
+                            <.span(
+                              cell.value.renderVdom,
+                              <.span(Icons.ErrorIcon)
+                                .withTooltip(BadTimingWindow)
+                                .unless(cell.value.isValid)
+                            ),
+                          ColDef(DeleteColId, _._2, size = DeleteColWidth.toPx).withCell: cell =>
+                            Button(
+                              text = true,
+                              onClickE = e =>
+                                e.stopPropagationCB >>
+                                  cell.table.options.meta
+                                    .map:
+                                      _.updateWindows(sws =>
+                                        sws.take(cell.value) ++ sws.drop(cell.value + 1)
+                                      )
+                                    .orEmpty
+                            ).compact.small(Icons.Trash)
                         )
-                      ),
-                      meta = TableMeta(props.timingWindows.mod)
-                    )
-      } yield
+        // rows
+        rows       <- useMemo(props.timingWindows.get):
+                        _.zipWithIndex.sorted
+        tableState <- useMemo(resize.width, props.readonly): (width, readonly) =>
+                        PartialTableState(
+                          columnSizing = ColumnSizing(
+                            WindowColId -> width
+                              .map(w => (w - DeleteColWidth).toPx)
+                              .getOrElse(400.toPx)
+                          ),
+                          columnVisibility = ColumnVisibility(
+                            DeleteColId -> Visibility.fromVisible(!readonly)
+                          )
+                        )
+        table      <- useReactTable:
+                        TableOptions(
+                          cols,
+                          rows,
+                          enableRowSelection = true,
+                          getRowId = (row, _, _) => RowId(row._2.toString),
+                          state = tableState,
+                          meta = TableMeta(props.timingWindows.mod)
+                        )
+      yield
         val title =
           <.span(
             if (props.readonly || tileSize.isMinimized) EmptyVdom

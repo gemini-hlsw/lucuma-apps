@@ -102,6 +102,19 @@ object ObsSummaryTile
               else Nil
             )
 
+      val obsIds2RowSelection: Iso[List[Observation.Id], RowSelection] =
+          Iso[List[Observation.Id], RowSelection](obsIds =>
+            RowSelection:
+              obsIds.map(obsId => RowId(obsId.toString) -> true).toMap
+          )(selection =>
+            selection.value
+              .filter(_._2)
+              .keys
+              .toList
+              .map(rowId => Observation.Id.parse(rowId.value))
+              .flattenOption
+          )
+
       for
         ctx                   <- useContext(AppContext.ctx)
         columnVisibility      <- useStateView[ColumnVisibility](DefaultColVisibility)
@@ -125,63 +138,48 @@ object ObsSummaryTile
                              val group   = obsGroup(obs.groupId, groups)
                              getObsRows(obs, targets, group, now)
 
-        table   <- useReactTableWithStateStore:
-                     import ctx.given
+        rowSelection        = props.selectedObsIds.as(obsIds2RowSelection)
+        tableState         <-
+          useMemo(rowSelection.get, columnVisibility.get): (rowSelection, columnVisibility) =>
+            PartialTableState(rowSelection = rowSelection, columnVisibility = columnVisibility)
+        table              <- useReactTableWithStateStore:
+                                import ctx.given
 
-                     val obsIds2RowSelection: Iso[List[Observation.Id], RowSelection] =
-                       Iso[List[Observation.Id], RowSelection](obsIds =>
-                         RowSelection:
-                           obsIds.map(obsId => RowId(obsId.toString) -> true).toMap
-                       )(selection =>
-                         selection.value
-                           .filter(_._2)
-                           .keys
-                           .toList
-                           .map(rowId => Observation.Id.parse(rowId.value))
-                           .flattenOption
-                       )
-
-                     val rowSelection: View[RowSelection] =
-                       props.selectedObsIds.as(obsIds2RowSelection)
-
-                     TableOptionsWithStateStore(
-                       TableOptions(
-                         cols,
-                         rowsPot.value.map(_.toOption.orEmpty),
-                         enableExpanding = true,
-                         getSubRows = (row, _) => row.subRows,
-                         getRowId = (row, _, _) =>
-                           RowId:
-                             row.value.fold(
-                               o => o.obs.id.toString + o.targetWithId.id.toString,
-                               _.obs.id.toString
-                             )
-                         ,
-                         enableSorting = true,
-                         enableMultiRowSelection = true,
-                         state = PartialTableState(
-                           rowSelection = rowSelection.get,
-                           columnVisibility = columnVisibility.get
-                         ),
-                         onRowSelectionChange = stateInViewHandler(rowSelection.mod),
-                         onColumnVisibilityChange = stateInViewHandler(columnVisibility.mod)
-                       ),
-                       TableStore(
-                         props.userId,
-                         TableId.ObservationsSummary,
-                         cols,
-                         ColumnsExcludedFromVisibility
-                       )
-                     )
-        _       <- useEffectOnMount:
-                     toggleAllRowsSelected.set: // TODO Can this whole dance be avoided now?
-                       ((v: Boolean) => table.toggleAllRowsSelected(v)).some
-        _       <- useEffectWithDeps(props.showScienceBand): showScienceBand =>
-                     table
-                       .getColumn(ScienceBandColumnId.value)
-                       .foldMap(_.toggleVisibility(showScienceBand))
-        resizer <- useResizeDetector
-        adding  <- useStateView(AddingObservation(false)) // adding new observation
+                                TableOptionsWithStateStore(
+                                  TableOptions(
+                                    cols,
+                                    rowsPot.value.map(_.toOption.orEmpty),
+                                    enableExpanding = true,
+                                    getSubRows = (row, _) => row.subRows,
+                                    getRowId = (row, _, _) =>
+                                      RowId:
+                                        row.value.fold(
+                                          o => o.obs.id.toString + o.targetWithId.id.toString,
+                                          _.obs.id.toString
+                                        )
+                                    ,
+                                    enableSorting = true,
+                                    enableMultiRowSelection = true,
+                                    state = tableState,
+                                    onRowSelectionChange = rowSelection.handleTableUpdate,
+                                    onColumnVisibilityChange = columnVisibility.handleTableUpdate
+                                  ),
+                                  TableStore(
+                                    props.userId,
+                                    TableId.ObservationsSummary,
+                                    cols,
+                                    ColumnsExcludedFromVisibility
+                                  )
+                                )
+        _                  <- useEffectOnMount:
+                                toggleAllRowsSelected.set: // TODO Can this whole dance be avoided now?
+                                  ((v: Boolean) => table.toggleAllRowsSelected(v)).some
+        _                  <- useEffectWithDeps(props.showScienceBand): showScienceBand =>
+                                table
+                                  .getColumn(ScienceBandColumnId.value)
+                                  .foldMap(_.toggleVisibility(showScienceBand))
+        resizer            <- useResizeDetector
+        adding             <- useStateView(AddingObservation(false)) // adding new observation
       yield
         val title = React.Fragment(
           toggleAllRowsSelected.get.map: toggleAllRowsSelected =>
