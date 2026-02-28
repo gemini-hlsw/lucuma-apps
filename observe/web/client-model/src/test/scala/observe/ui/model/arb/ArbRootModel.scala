@@ -14,6 +14,8 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
 import lucuma.core.util.arb.ArbUid.given
+import lucuma.react.table.ColumnFilters
+import lucuma.react.table.ColumnId
 import lucuma.ui.sso.UserVault
 import lucuma.ui.sso.arb.ArbUserVault.given
 import observe.common.FixedLengthBuffer
@@ -65,6 +67,9 @@ trait ArbRootModel:
       usm   <- arbitrary[Option[NonEmptyString]]
       log   <- arbitrary[FixedLengthBuffer[LogMessage]]
       audio <- arbitrary[IsAudioActivated]
+      gf    <- arbitrary[String]
+      cf    <-
+        arbitrary[Map[String, String]].map(_.map((k, v) => ColumnId(k) -> v)).map(ColumnFilters(_))
     yield RootModelData(
       uv,
       ros,
@@ -79,7 +84,9 @@ trait ArbRootModel:
       op,
       usm,
       log,
-      audio
+      audio,
+      gf,
+      cf
     )
 
   given Cogen[RootModelData] = Cogen[
@@ -97,7 +104,9 @@ trait ArbRootModel:
       Option[Operator],
       Option[NonEmptyString],
       FixedLengthBuffer[LogMessage],
-      IsAudioActivated
+      IsAudioActivated,
+      String,
+      Map[String, String]
     )
   ].contramap: x =>
     (x.userVault,
@@ -113,7 +122,9 @@ trait ArbRootModel:
      x.operator,
      x.userSelectionMessage,
      x.globalLog,
-     x.isAudioActivated
+     x.isAudioActivated,
+     x.obsListGlobalFilter,
+     x.obsListColumnFilters.value.map((k, v) => k.value -> v.toString)
     )
 
 object ArbRootModel extends ArbRootModel
