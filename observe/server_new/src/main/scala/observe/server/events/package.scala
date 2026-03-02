@@ -58,10 +58,11 @@ extension (e: SystemEvent)
       case SystemEvent.StopCompleted(id, _, _, _) => true
       case SystemEvent.Aborted(id, _, _, _)       => true
       case SystemEvent.PartialResult(_, _, _, _)  => true
-      case SystemEvent.Failed(id, _, _)           => true
+      case SystemEvent.Failed(_, _, _, _)         => true
+      case SystemEvent.LoadFailed(_, _, _)        => true
       case SystemEvent.Executed(_)                => true
       case SystemEvent.Executing(_)               => true
       case SystemEvent.SequenceComplete(_)        => true
-      case SystemEvent.Paused(id, _, _)           => true
+      case SystemEvent.Paused(id, _, _, _)        => true
       case SystemEvent.BreakpointReached(id)      => true
       case _                                      => false
