@@ -34,7 +34,6 @@ import observe.ui.model.LoadedObservations
 import observe.ui.model.ObsSummary
 import observe.ui.model.SessionQueueRow
 import observe.ui.model.enums.ObsClass
-// import observe.ui.model.reusability.given
 
 case class ObsList(
   readyObservations:    List[ObsSummary],
@@ -148,13 +147,6 @@ object ObsList
       val TargetColumnId: ColumnId      = ColumnId("target")
       val ConstraintsColumnId: ColumnId = ColumnId("constraints")
 
-      // def columns(
-      //   obsStates:          Map[Observation.Id, SequenceState],
-      //   pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
-      //   obsIsProcessing:    Map[Observation.Id, Boolean],
-      //   loadObs:            Observation.Id => Callback,
-      //   linkToExploreObs:   Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
-      // ): List[ColumnDef[SessionQueueRow, ?, Nothing, WithFilterMethod, String, ?, Nothing]] =
       val columns: Reusable[
         List[ColumnDef[SessionQueueRow, ?, TableMeta, WithFilterMethod, String, ?, Nothing]]
       ] =
@@ -225,18 +217,6 @@ object ObsList
           )
 
       for
-        // cols  <- // Try TableMeta
-        //   useMemo(
-        //     (props.obsStates,
-        //      props.pendingOrReadyObss,
-        //      props.obsIsProcessing,
-        //      props.loadObs,
-        //      props.linkToExploreObs
-        //     )
-        //   )(columns(_, _, _, _, _))
-        upd1       <- useCallback(props.obsListGlobalFilter.withOnMod(Callback.log(_)).handleTableUpdate)
-        upd2       <- useCallback(props.obsListColumnFilters.withOnMod(Callback.log(_)).handleTableUpdate)
-        _           = println(s"JELOU ${props.obsListGlobalFilter.get} ${props.obsListColumnFilters.get}")
         tableState <-
           useMemo(props.obsListGlobalFilter.get, props.obsListColumnFilters.get):
             (globalFilter, columnFilters) =>
@@ -245,8 +225,7 @@ object ObsList
           useReactTable:
             TableOptions(
               columns,
-              // Reusable.implicitly(props.rows),
-              Reusable.always(props.rows),
+              Reusable.implicitly(props.rows),
               enableColumnResizing = true,
               columnResizeMode = ColumnResizeMode.OnChange,
               enableSorting = true,
@@ -261,25 +240,10 @@ object ObsList
                 props.loadObs,
                 props.linkToExploreObs
               ),
-              // initialState = TableState(
-              //   globalFilter = props.obsListGlobalFilter.get,
-              //   columnFilters = props.obsListColumnFilters.get
-              // ),
               state = tableState,
-              // state = PartialTableState(
-              //   globalFilter = props.obsListGlobalFilter.get,
-              //   columnFilters = props.obsListColumnFilters.get
-              // ),
-              onGlobalFilterChange = x => Callback.log("GC") >> upd1(x),
-              onColumnFiltersChange = x => Callback.log("CC") >> upd2(x)
-              // onGlobalFilterChange = update =>
-              //   Callback.log(s"Global filter change: ${update}") >>
-              //     props.obsListGlobalFilter.handleTableUpdate(update),
-              // onColumnFiltersChange = update =>
-              //   Callback.log(s"Column filters change: ${update}") >>
-              //     props.obsListColumnFilters.handleTableUpdate(update)
+              onGlobalFilterChange = props.obsListGlobalFilter.handleTableUpdate,
+              onColumnFiltersChange = props.obsListColumnFilters.handleTableUpdate
             )
-      // globalFilter <- useState("")
       yield <.div(
         <.span(
           DebouncedInputText(
