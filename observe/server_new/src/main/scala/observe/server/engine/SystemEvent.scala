@@ -34,16 +34,19 @@ object SystemEvent {
     i:      Int,
     r:      Partial[R]
   ) extends SystemEvent
-  case class Paused(id: Observation.Id, i: Int, r: Result.Paused) extends SystemEvent
-  case class Failed(id: Observation.Id, i: Int, e: Result.Error)  extends SystemEvent
-  case class Busy(id: Observation.Id, clientId: ClientId)         extends SystemEvent
-  case class BreakpointReached(id: Observation.Id)                extends SystemEvent
-  case class Executed(id: Observation.Id)                         extends SystemEvent
-  case class Executing(id: Observation.Id)                        extends SystemEvent
-  case class StepComplete(id: Observation.Id)                     extends SystemEvent
-  case class SequencePaused(id: Observation.Id)                   extends SystemEvent
-  case class SequenceComplete(id: Observation.Id)                 extends SystemEvent
-  case object Null                                                extends SystemEvent
+  case class Paused(id: Observation.Id, stepId: Step.Id, i: Int, r: Result.Paused)
+      extends SystemEvent
+  case class Failed(id: Observation.Id, stepId: Step.Id, i: Int, e: Result.Error)
+      extends SystemEvent
+  case class LoadFailed(id: Observation.Id, i: Int, e: Result.Error) extends SystemEvent
+  case class Busy(id: Observation.Id, clientId: ClientId)            extends SystemEvent
+  case class BreakpointReached(id: Observation.Id)                   extends SystemEvent
+  case class Executed(id: Observation.Id)                            extends SystemEvent
+  case class Executing(id: Observation.Id)                           extends SystemEvent
+  case class StepComplete(id: Observation.Id)                        extends SystemEvent
+  case class SequencePaused(id: Observation.Id)                      extends SystemEvent
+  case class SequenceComplete(id: Observation.Id)                    extends SystemEvent
+  case object Null                                                   extends SystemEvent
 
   // Single action commands
   case class SingleRunCompleted[R <: RetVal](actionCoords: ActionCoords, r: OK[R])

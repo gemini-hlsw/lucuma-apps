@@ -269,8 +269,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           case Right(r @ Result.OKStopped(_)) => Stream.emit(Event.stopCompleted(id, stepId, i, r))
           case Right(r @ Result.OKAborted(_)) => Stream.emit(Event.aborted(id, stepId, i, r))
           case Right(r @ Result.Partial(_))   => Stream.emit(Event.partial(id, stepId, i, r))
-          case Right(e @ Result.Error(_))     => Stream.emit(Event.failed(id, i, e))
-          case Right(r @ Result.Paused(_))    => Stream.emit(Event.paused(id, i, r))
+          case Right(e @ Result.Error(_))     => Stream.emit(Event.failed(id, stepId, i, e))
+          case Right(r @ Result.Paused(_))    => Stream.emit(Event.paused(id, stepId, i, r))
           case Left(t: Throwable)             => Stream.raiseError[F](t)
   }
 
@@ -483,10 +483,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         debug(s"Engine: From sequence $obsId: Partial result ($r)") *>
           partialResult(obsId, i, r) *>
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
-      case Paused(obsId, i, r)           =>
+      case Paused(obsId, _, i, r)        =>
         debug("Engine: Action paused") *>
           actionPause(obsId, i, r) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
-      case Failed(obsId, i, e)           =>
+      case Failed(obsId, _, i, e)        =>
+        logError(e) *> fail(obsId)(i, e) *>
+          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+      case LoadFailed(obsId, i, e)       =>
         logError(e) *> fail(obsId)(i, e) *>
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case Busy(obsId, _)                =>
