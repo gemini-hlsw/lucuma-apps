@@ -94,6 +94,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _)                                =>
+        BasicConfiguration.Igrins2LongSlit().some
       case _                                                                               => none)
 
 object ConfigSelection:

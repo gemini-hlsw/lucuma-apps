@@ -220,23 +220,32 @@ object SpectroscopyModeRow {
 
   given Decoder[SpectroscopyModeRow] = c =>
     for {
-      name       <- c.downField("name").as[NonEmptyString]
-      focalPlane <- c.downField("focalPlane").as[FocalPlane]
-      capability <- c.downField("capability").as[Option[SpectroscopyCapabilities]]
-      ao         <- c.downField("adaptiveOptics").as[Boolean]
-      λmin       <- c.downField("wavelengthMin").as[Wavelength]
-      λmax       <- c.downField("wavelengthMax").as[Wavelength]
-      λoptimal   <- c.downField("wavelengthOptimal").as[Wavelength]
-      λcoverage  <- c.downField("wavelengthCoverage").as[Wavelength] // It is wavelength in the odb
-      resolution <- c.downField("resolution").as[PosInt]
-      slitWidth  <- c.downField("slitWidth").as[Angle]
-      slitLength <- c.downField("slitLength").as[Angle]
-      gmosNorth  <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthSpectroscopy]]
-      gmosSouth  <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthSpectroscopy]]
-      flamingos2 <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Spectroscopy]]
+      name           <- c.downField("name").as[NonEmptyString]
+      instrument     <- c.downField("instrument").as[Instrument]
+      disperserLabel <- c.downField("disperserLabel").as[NonEmptyString]
+      fpuLabel       <- c.downField("fpuLabel").as[NonEmptyString]
+      filterLabel    <- c.downField("filterLabel").as[Option[NonEmptyString]]
+      focalPlane     <- c.downField("focalPlane").as[FocalPlane]
+      capability     <- c.downField("capability").as[Option[SpectroscopyCapabilities]]
+      ao             <- c.downField("adaptiveOptics").as[Boolean]
+      λmin           <- c.downField("wavelengthMin").as[Wavelength]
+      λmax           <- c.downField("wavelengthMax").as[Wavelength]
+      λoptimal       <- c.downField("wavelengthOptimal").as[Wavelength]
+      λcoverage      <- c.downField("wavelengthCoverage").as[Wavelength] // It is wavelength in the odb
+      resolution     <- c.downField("resolution").as[PosInt]
+      slitWidth      <- c.downField("slitWidth").as[Angle]
+      slitLength     <- c.downField("slitLength").as[Angle]
+      gmosNorth      <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthSpectroscopy]]
+      gmosSouth      <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthSpectroscopy]]
+      flamingos2     <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Spectroscopy]]
     } yield gmosNorth
       .orElse(gmosSouth)
       .orElse(flamingos2)
+      .orElse(
+        Option.when(instrument === Instrument.Igrins2)(
+          ItcInstrumentConfig.Igrins2Spectroscopy(disperserLabel, filterLabel, fpuLabel)
+        )
+      )
       .map { i =>
         SpectroscopyModeRow(
           none,

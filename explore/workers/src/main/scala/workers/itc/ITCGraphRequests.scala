@@ -68,6 +68,14 @@ object ITCGraphRequests:
           customSedTimestamps,
           m
         ).some
+      case m: ItcInstrumentConfig.Igrins2Spectroscopy                =>
+        ItcGraphRequestParams(
+          exposureTimeMode,
+          constraints,
+          targets,
+          customSedTimestamps,
+          m
+        ).some
       case _                                                         =>
         none
 

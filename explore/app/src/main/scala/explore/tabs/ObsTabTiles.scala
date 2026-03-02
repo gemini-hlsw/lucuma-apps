@@ -238,7 +238,7 @@ object ObsTabTiles:
           ): (site, obsTime, targets) =>
             import ctx.given
             (obsTime,
-            // Only non-sidereals need the site for tracking, so only get tracking if we have a site or if there are no non-sidereal targets
+             // Only non-sidereals need the site for tracking, so only get tracking if we have a site or if there are no non-sidereal targets
              targets.filter: ts =>
                site.isDefined || ts.forall(TargetWithId.target.andThen(Target.nonsidereal).isEmpty)
             )
@@ -436,7 +436,8 @@ object ObsTabTiles:
                 ).some
               case Some(_: BasicConfiguration.GmosNorthLongSlit) |
                   Some(_: BasicConfiguration.GmosSouthLongSlit) |
-                  Some(_: BasicConfiguration.Flamingos2LongSlit) =>
+                  Some(_: BasicConfiguration.Flamingos2LongSlit) |
+                  Some(_: BasicConfiguration.Igrins2LongSlit) =>
                 ItcSpectroscopyTile(
                   props.vault.userId,
                   props.observation.get,

@@ -53,6 +53,7 @@ import lucuma.core.util.Timestamp
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
@@ -361,6 +362,7 @@ object ConfigurationTile
                       props.itcTargets,
                       props.baseCoordinates,
                       props.obsConf.calibrationRole,
+                      // TODO: IGRINS2 remove unlessA when supported in the ODB
                       props.selectedConfig.get
                         .toBasicConfiguration()
                         .map: bc =>
@@ -369,7 +371,7 @@ object ConfigurationTile
                             props.pacAndMode,
                             bc.toInput,
                             bc.obsModeType.defaultPosAngleOptions
-                          )
+                          ).unlessA(BasicConfiguration.igrins2LongSlit.getOption(bc).isDefined)
                         .orEmpty,
                       props.modes,
                       props.customSedTimestamps,
