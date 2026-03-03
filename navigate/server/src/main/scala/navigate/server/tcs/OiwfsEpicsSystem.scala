@@ -56,9 +56,7 @@ object OiwfsEpicsSystem {
       DarkCommandImpl(telltale, channels, timeout, params :+ p)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      writeChannel(telltale, channels.detSigModeSeqDarkDir)(
-        CadDirective.CLEAR.pure[F]
-      ) *> params.compile *> writeChannel(telltale, channels.detSigModeSeqDarkDir)(
+      params.compile *> writeChannel(telltale, channels.detSigModeSeqDarkDir)(
         CadDirective.START.pure[F]
       ) *>
         VerifiedEpics.liftF(Temporal[F].sleep(commandWaitTime).as(ApplyCommandResult.Completed))
@@ -78,12 +76,9 @@ object OiwfsEpicsSystem {
       ClosedLoopCommandImpl(telltale, channels, timeout, params :+ p)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      writeChannel(telltale, channels.detSigModeSeqDir)(
-        CadDirective.CLEAR.pure[F]
+      params.compile *> writeChannel(telltale, channels.detSigModeSeqDir)(
+        CadDirective.START.pure[F]
       ) *>
-        params.compile *> writeChannel(telltale, channels.detSigModeSeqDir)(
-          CadDirective.START.pure[F]
-        ) *>
         VerifiedEpics.liftF(Temporal[F].sleep(commandWaitTime).as(ApplyCommandResult.Completed))
 
     override def zernikes2m2(enable: Int): ClosedLoopCommand[F] = addParam(
@@ -101,12 +96,9 @@ object OiwfsEpicsSystem {
       SignalProcCommandImpl(telltale, channels, timeout, params :+ p)
 
     override def post: VerifiedEpics[F, F, ApplyCommandResult] =
-      writeChannel(telltale, channels.detSigInitDir)(
-        CadDirective.CLEAR.pure[F]
+      params.compile *> writeChannel(telltale, channels.detSigInitDir)(
+        CadDirective.START.pure[F]
       ) *>
-        params.compile *> writeChannel(telltale, channels.detSigInitDir)(
-          CadDirective.START.pure[F]
-        ) *>
         VerifiedEpics.liftF(Temporal[F].sleep(commandWaitTime).as(ApplyCommandResult.Completed))
 
     override def filename(name: String): SignalProcCommand[F] = addParam(
