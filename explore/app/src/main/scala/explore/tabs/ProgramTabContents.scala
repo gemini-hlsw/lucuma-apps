@@ -130,10 +130,13 @@ object ProgramTabContents
           )(_ =>
             for tileState <- useStateView(ProgramConfigRequestsTile.TileState.Empty)
             yield TileContents(
-              title = ProgramConfigRequestsTile.Title(
-                props.configRequests,
-                props.userIsReadonlyCoi,
-                tileState.get
+              title = React.Fragment(
+                HelpIcon("program/requested-ccc.md".refined),
+                ProgramConfigRequestsTile.Title(
+                  props.configRequests,
+                  props.userIsReadonlyCoi,
+                  tileState.get
+                )
               ),
               body = ProgramConfigRequestsTile.Body(
                 userId,
@@ -153,11 +156,14 @@ object ProgramTabContents
           )(_ =>
             for tileState <- useStateView(ProgramUnrequestedConfigsTile.TileState.Empty)
             yield TileContents(
-              title = ProgramUnrequestedConfigsTile.Title(
-                props.configRequests,
-                props.observations,
-                props.userIsReadonlyCoi,
-                tileState.get
+              title = React.Fragment(
+                HelpIcon("program/unrequested-ccc.md".refined),
+                ProgramUnrequestedConfigsTile.Title(
+                  props.configRequests,
+                  props.observations,
+                  props.userIsReadonlyCoi,
+                  tileState.get
+                )
               ),
               body = ProgramUnrequestedConfigsTile.Body(
                 userId,
