@@ -5,6 +5,7 @@ package explore.tabs
 
 import cats.data.NonEmptySet
 import cats.syntax.all.*
+import explore.components.SimpleTile
 import explore.components.Tile
 import explore.components.TileContents
 import explore.components.TileController
@@ -36,7 +37,7 @@ case class ObsGroupTiles(
 object ObsGroupTiles
     extends ReactFnComponent[ObsGroupTiles](props =>
       val editTile: Tile[?] =
-        Tile.Inline(
+        SimpleTile(
           GroupEditTileIds.GroupEditId.id,
           s"${
               if props.group.get.system then props.group.get.name.foldMap(_.value)

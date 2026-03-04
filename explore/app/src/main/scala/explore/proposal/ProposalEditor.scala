@@ -12,6 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.common.Aligner
 import explore.components.HelpIcon
+import explore.components.SimpleTile
 import explore.components.Tile
 import explore.components.TileContents
 import explore.components.TileController
@@ -226,7 +227,7 @@ object ProposalEditor
               )
 
           val detailsTile =
-            Tile.Inline(ProposalTabTileIds.DetailsId.id, "Details")(tileSize =>
+            SimpleTile(ProposalTabTileIds.DetailsId.id, "Details")(tileSize =>
               TileContents(
                 title = ProposalDetailsTitle(
                   props.undoCtx,
@@ -246,7 +247,7 @@ object ProposalEditor
             )
 
           val usersTile =
-            Tile.Inline(ProposalTabTileIds.UsersId.id, "Investigators")(_ =>
+            SimpleTile(ProposalTabTileIds.UsersId.id, "Investigators")(_ =>
               TileContents(
                 title = <.div(
                   ExploreStyles.AddProgramUserButton,
@@ -282,7 +283,7 @@ object ProposalEditor
             else s"Abstract (${abstractCounter.value} words)"
 
           val abstractTile =
-            Tile.Inline(
+            SimpleTile(
               ProposalTabTileIds.AbstractId.id,
               absTitle,
               bodyClass = ExploreStyles.ProposalAbstract
@@ -301,7 +302,7 @@ object ProposalEditor
             )
 
           val attachmentsTile =
-            Tile.Inline(
+            SimpleTile(
               ProposalTabTileIds.AttachmentsId.id,
               "Attachments",
               tileClass = ExploreStyles.ProposalAttachmentsTile
