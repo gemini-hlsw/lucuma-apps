@@ -12,7 +12,6 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
-import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.model.enums.StepExecutionState
 import monocle.Focus
@@ -20,7 +19,6 @@ import monocle.Lens
 
 enum StepRecord[+D]:
   def id: Step.Id
-  def created: Timestamp
   def executionState: StepExecutionState
   def interval: Option[TimestampInterval]
   def instrumentConfig: D
@@ -29,11 +27,9 @@ enum StepRecord[+D]:
   def observeClass: ObserveClass
   def qaState: Option[DatasetQaState]
   def datasets: List[Dataset]
-  def generatedId: Option[Step.Id]
 
   case GmosNorth(
     id:               Step.Id,
-    created:          Timestamp,
     executionState:   StepExecutionState,
     interval:         Option[TimestampInterval],
     instrumentConfig: gmos.DynamicConfig.GmosNorth,
@@ -41,13 +37,11 @@ enum StepRecord[+D]:
     telescopeConfig:  TelescopeConfig,
     observeClass:     ObserveClass,
     qaState:          Option[DatasetQaState],
-    datasets:         List[Dataset],
-    generatedId:      Option[Step.Id]
+    datasets:         List[Dataset]
   ) extends StepRecord[gmos.DynamicConfig.GmosNorth]
 
   case GmosSouth(
     id:               Step.Id,
-    created:          Timestamp,
     executionState:   StepExecutionState,
     interval:         Option[TimestampInterval],
     instrumentConfig: gmos.DynamicConfig.GmosSouth,
@@ -55,13 +49,11 @@ enum StepRecord[+D]:
     telescopeConfig:  TelescopeConfig,
     observeClass:     ObserveClass,
     qaState:          Option[DatasetQaState],
-    datasets:         List[Dataset],
-    generatedId:      Option[Step.Id]
+    datasets:         List[Dataset]
   ) extends StepRecord[gmos.DynamicConfig.GmosSouth]
 
   case Flamingos2(
     id:               Step.Id,
-    created:          Timestamp,
     executionState:   StepExecutionState,
     interval:         Option[TimestampInterval],
     instrumentConfig: Flamingos2DynamicConfig,
@@ -69,8 +61,7 @@ enum StepRecord[+D]:
     telescopeConfig:  TelescopeConfig,
     observeClass:     ObserveClass,
     qaState:          Option[DatasetQaState],
-    datasets:         List[Dataset],
-    generatedId:      Option[Step.Id]
+    datasets:         List[Dataset]
   ) extends StepRecord[Flamingos2DynamicConfig]
 
 object StepRecord:
@@ -81,9 +72,6 @@ object StepRecord:
 
     val id: Lens[GmosNorth, Step.Id] =
       Focus[GmosNorth](_.id)
-
-    val created: Lens[GmosNorth, Timestamp] =
-      Focus[GmosNorth](_.created)
 
     val executionState: Lens[GmosNorth, StepExecutionState] =
       Focus[GmosNorth](_.executionState)
@@ -115,9 +103,6 @@ object StepRecord:
     val id: Lens[GmosSouth, Step.Id] =
       Focus[GmosSouth](_.id)
 
-    val created: Lens[GmosSouth, Timestamp] =
-      Focus[GmosSouth](_.created)
-
     val executionState: Lens[GmosSouth, StepExecutionState] =
       Focus[GmosSouth](_.executionState)
 
@@ -147,9 +132,6 @@ object StepRecord:
 
     val id: Lens[Flamingos2, Step.Id] =
       Focus[Flamingos2](_.id)
-
-    val created: Lens[Flamingos2, Timestamp] =
-      Focus[Flamingos2](_.created)
 
     val executionState: Lens[Flamingos2, StepExecutionState] =
       Focus[Flamingos2](_.executionState)

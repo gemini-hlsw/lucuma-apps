@@ -60,8 +60,8 @@ object TestOdbProxy {
         )
       )
 
-    def startStep(generatedId: Option[Step.Id]): State =
-      State.currentStep.replace(generatedId)(this)
+    def startStep(stepId: Option[Step.Id]): State =
+      State.currentStep.replace(stepId)(this)
 
     private def advanceAtom(
       a: Atom[DynamicConfig.GmosNorth]
