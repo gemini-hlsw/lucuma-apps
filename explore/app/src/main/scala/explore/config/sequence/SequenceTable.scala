@@ -16,7 +16,6 @@ import lucuma.ui.sequence.*
 
 private trait SequenceTable[S, D]:
   def visits: List[Visit[D]]
-  // def config: ExecutionConfig[S, D]
   def staticConfig: S
   def acquisition: Option[Atom[D]]
   def science: Option[List[Atom[D]]]
