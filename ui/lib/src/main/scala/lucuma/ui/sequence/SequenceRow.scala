@@ -178,7 +178,6 @@ object SequenceRow:
     val isFinished   = true
     val stepEstimate = none
 
-    def created: Timestamp
     def interval: Option[TimestampInterval]
 
   object Executed:
@@ -203,15 +202,7 @@ object SequenceRow:
       val instrumentConfig = stepRecord.instrumentConfig.some
       val stepConfig       = stepRecord.stepConfig.some
       val telescopeConfig  = stepRecord.telescopeConfig.some
-      export stepRecord.{
-        created,
-        datasets,
-        executionState,
-        generatedId,
-        id => stepId,
-        interval,
-        qaState
-      }
+      export stepRecord.{datasets, executionState, id => stepId, interval, qaState}
 
     object ExecutedStep:
       given [D]: Eq[ExecutedStep[D]] = Eq.derived

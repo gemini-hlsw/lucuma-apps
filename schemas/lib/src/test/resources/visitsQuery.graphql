@@ -13,7 +13,6 @@ query {
           atomRecords {
             matches {
               id
-              created
               executionState
               interval {
                 start
@@ -23,7 +22,6 @@ query {
               steps {
                 matches {
                   id
-                  created
                   executionState
                   interval {
                     start

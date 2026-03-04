@@ -16,20 +16,16 @@ object ExecutionVisitsSubquery
         matches {
           id
           instrument
-          created
           interval $TimestampIntervalSubquery
           atomRecords {
             matches {
               id
-              created
               executionState
               interval $TimestampIntervalSubquery
               sequenceType
-              generatedId
               steps {
                 matches {
                   id
-                  created
                   executionState
                   interval $TimestampIntervalSubquery
                   stepConfig {
@@ -59,7 +55,6 @@ object ExecutionVisitsSubquery
                       isWritten
                     }
                   }
-                  generatedId
                   gmosNorth $GmosNorthDynamicConfigSubquery
                   gmosSouth $GmosSouthDynamicConfigSubquery
                   flamingos2 $Flamingos2DynamicConfigSubquery           
