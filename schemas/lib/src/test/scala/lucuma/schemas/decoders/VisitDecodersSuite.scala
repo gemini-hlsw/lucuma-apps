@@ -53,9 +53,6 @@ class VisitDecodersSuite extends InputStreamSuite {
         atoms = List(
           AtomRecord.GmosNorth(
             id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
-            created = Timestamp.unsafeFromLocalDateTime(
-              LocalDateTime.of(2024, 2, 12, 17, 22, 6, 673584000)
-            ),
             executionState = AtomExecutionState.NotStarted,
             interval = TimestampInterval
               .between(
@@ -71,9 +68,6 @@ class VisitDecodersSuite extends InputStreamSuite {
             steps = List(
               StepRecord.GmosNorth(
                 id = Step.Id.fromUuid(UUID.fromString("7adfa674-3753-4158-8dd8-cd08eddbb802")),
-                created = Timestamp.unsafeFromLocalDateTime(
-                  LocalDateTime.of(2024, 2, 12, 17, 22, 7, 490332000)
-                ),
                 executionState = StepExecutionState.NotStarted,
                 interval = TimestampInterval
                   .between(
@@ -133,9 +127,6 @@ class VisitDecodersSuite extends InputStreamSuite {
         atoms = List(
           AtomRecord.GmosSouth(
             id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
-            created = Timestamp.unsafeFromLocalDateTime(
-              LocalDateTime.of(2024, 2, 12, 17, 22, 6, 673584000)
-            ),
             executionState = AtomExecutionState.NotStarted,
             interval = TimestampInterval
               .between(
@@ -151,9 +142,6 @@ class VisitDecodersSuite extends InputStreamSuite {
             steps = List(
               StepRecord.GmosSouth(
                 id = Step.Id.fromUuid(UUID.fromString("7adfa674-3753-4158-8dd8-cd08eddbb802")),
-                created = Timestamp.unsafeFromLocalDateTime(
-                  LocalDateTime.of(2024, 2, 12, 17, 22, 7, 490332000)
-                ),
                 executionState = StepExecutionState.NotStarted,
                 interval = TimestampInterval
                   .between(
