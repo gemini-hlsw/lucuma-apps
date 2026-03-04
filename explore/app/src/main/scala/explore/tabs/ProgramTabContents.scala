@@ -78,7 +78,7 @@ object ProgramTabContents
           props.userPreferences.programsTabLayout
 
         val detailsTile =
-          Tile.Inline(
+          SimpleTile(
             ProgramTabTileIds.DetailsId.id,
             "Program Details"
           )(_ =>
@@ -94,7 +94,7 @@ object ProgramTabContents
           props.users.get.count(pu => pu.role =!= ProgramUserRole.Pi && pu.hasDataAccess)
 
         val dataSharingTile =
-          Tile.Inline(
+          SimpleTile(
             ProgramTabTileIds.DataUsers.id,
             s"Data Sharing ($countOfDataAccess)"
           )(_ =>
@@ -124,7 +124,7 @@ object ProgramTabContents
           )
 
         val configurationRequestsTile =
-          Tile.Inline(
+          SimpleTile(
             ProgramTabTileIds.ChangeRequestsId.id,
             s"Requested Coordinates + Configurations + Constraints (${props.configRequests.get.size})"
           )(_ =>
@@ -150,7 +150,7 @@ object ProgramTabContents
           )
 
         val unrequestedConfigsTile =
-          Tile.Inline(
+          SimpleTile(
             ProgramTabTileIds.UnrequestedConfigsId.id,
             s"Unrequested Coordinates + Configurations + Constraints (${props.configsWithoutRequests.size})"
           )(_ =>

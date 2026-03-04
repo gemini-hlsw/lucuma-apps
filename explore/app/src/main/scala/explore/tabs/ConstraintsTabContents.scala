@@ -12,6 +12,7 @@ import crystal.react.reuse.*
 import explore.*
 import explore.actions.ObservationPasteIntoConstraintSetAction
 import explore.components.FocusedStatus
+import explore.components.SimpleTile
 import explore.components.Tile
 import explore.components.TileContents
 import explore.components.TileController
@@ -205,7 +206,7 @@ object ConstraintsTabContents extends TwoPanels:
                       "Some of the current observations are executed. Only unexecuted observations will be modified.".some
                     else none
 
-                  Tile.Inline(
+                  SimpleTile(
                     ObsTabTileIds.ConstraintsId.id,
                     constraintsTitle,
                     backButton.some

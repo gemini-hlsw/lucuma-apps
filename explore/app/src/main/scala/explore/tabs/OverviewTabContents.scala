@@ -12,6 +12,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.attachments.AttachmentsTile
 import explore.common.Aligner
+import explore.components.SimpleTile
 import explore.components.Tile
 import explore.components.TileContents
 import explore.components.TileController
@@ -79,7 +80,7 @@ object OverviewTabContents
 
         val defaultLayouts = ExploreGridLayouts.sectionLayout(GridLayoutSection.OverviewLayout)
 
-        val warningsAndErrorsTile = Tile.Inline(
+        val warningsAndErrorsTile = SimpleTile(
           OverviewTabTileIds.WarningsAndErrorsId.id,
           "Warnings And Errors"
         )(tileSize =>
@@ -116,7 +117,7 @@ object OverviewTabContents
 
         // only edit program description here for non-science programs. For science programs it
         // is edited as the abstract on the proposals tab.
-        val descriptionTile =
+        val descriptionTile: Tile[?] =
           if (props.detailsUndoSetter.get.programType === ProgramType.Science)
             Tile.Dummy(OverviewTabTileIds.DescriptionId.id)
           else
@@ -134,10 +135,10 @@ object OverviewTabContents
             val descriptionView                                                            =
               descriptionAligner.view(_.orUnassign)
 
-            Tile.Inline(
+            SimpleTile(
               OverviewTabTileIds.DescriptionId.id,
-                       "Description",
-                       bodyClass = ExploreStyles.ProgramDescription
+              "Description",
+              bodyClass = ExploreStyles.ProgramDescription
             )(_ =>
               TileContents(
                 title = <.div(ExploreStyles.TitleUndoButtons)(

@@ -171,37 +171,3 @@ object Tile:
 
   object Dummy
       extends TileComponent[Dummy]((_, _) => HookResult(TileContents(EmptyVdom, EmptyVdom)))
-
-  object Inline:
-    def apply(
-      id:               Tile.TileId,
-      title:            VdomNode,
-      backButton:       Option[VdomNode] = None,
-      canMinimize:      Boolean = true,
-      canMaximize:      Boolean = true,
-      hidden:           Boolean = false,
-      initialSizeState: TileSizeState = TileSizeState.Maximized,
-      controllerClass:  Css = Css.Empty, // applied to wrapping div when in a TileController.
-      bodyClass:        Css = Css.Empty, // applied to tile body
-      tileClass:        Css = Css.Empty, // applied to the tile
-      tileTitleClass:   Css = Css.Empty  // applied to the title
-    )(render: TileSizeState => HookResult[TileContents]): Tile[?] = {
-      case class NoPropsTile()
-          extends Tile[NoPropsTile](
-            id,
-            title,
-            backButton,
-            canMinimize,
-            canMaximize,
-            hidden,
-            initialSizeState,
-            controllerClass,
-            bodyClass,
-            tileClass,
-            tileTitleClass
-          )(NoPropsTile)
-
-      object NoPropsTile extends TileComponent[NoPropsTile]((_, tileSize) => render(tileSize))
-
-      NoPropsTile()
-    }
