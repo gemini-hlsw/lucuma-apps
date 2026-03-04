@@ -97,6 +97,10 @@ $brightness: var(--aladin-image-brightness);
       color: var(--patrol-field-intersection-color);
     }
 
+    .patrol-field-no-zones {
+      color: var(--patrol-field-no-zones-color);
+    }
+
     .p-menuitem-link {
       padding: 0.6em;
 

@@ -18,6 +18,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
 import lucuma.ags.PatrolFieldVisualization
+import lucuma.ags.DebugShape
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
@@ -39,16 +40,18 @@ import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
 
 import scala.collection.immutable.SortedMap
+import lucuma.core.geom.offsets.OffsetPosition
 
 // Hooks for shapes
 def usePatrolFieldShapes(
-  vizConf:         Option[ConfigurationForVisualization],
-  selectedGS:      Option[AgsAnalysis.Usable],
-  baseCoordinates: Option[Coordinates],
-  blindOffset:     Option[Coordinates],
-  pfVisibility:    AGSVisibility,
-  anglesToTest:    Option[NonEmptyList[Angle]],
-  agsState:        Option[AgsState]
+  vizConf:             Option[ConfigurationForVisualization],
+  selectedGS:          Option[AgsAnalysis.Usable],
+  baseCoordinates:     Option[Coordinates],
+  blindOffset:         Option[Coordinates],
+  scienceTargetCoords: List[Coordinates],
+  pfVisibility:        AGSVisibility,
+  anglesToTest:        Option[NonEmptyList[Angle]],
+  agsState:            Option[AgsState]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   def createAgsParams(
@@ -84,10 +87,19 @@ def usePatrolFieldShapes(
       case GeometryType.SciUnguidedOffset => VisualizationStyles.PatrolFieldScienceOffset
       case GeometryType.AgsIntersection   => VisualizationStyles.PatrolFieldIntersectionDebug
       case GeometryType.AgsVignetting     => VisualizationStyles.DebugScienceVignetting
+      case GeometryType.NoZone            => VisualizationStyles.PatrolFieldNoZones
 
   useMemo(
-    (vizConf, selectedGS, baseCoordinates, blindOffset, pfVisibility, anglesToTest, agsState)
-  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, _, _, _) =>
+    (vizConf,
+     selectedGS,
+     baseCoordinates,
+     blindOffset,
+     scienceTargetCoords,
+     pfVisibility,
+     anglesToTest,
+     agsState
+    )
+  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, scienceTargetCoords, _, _, _) =>
     val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
 
     val allAngles =
@@ -114,8 +126,20 @@ def usePatrolFieldShapes(
           vizConf.flatMap(_.asSciOffsets)
         )
 
-      val visualizations: NonEmptyList[PatrolFieldVisualization] =
-        AgsVisualization.patrolFieldGeometries(agsParams, positions.value.toNonEmptyList)
+      val noZoneOffsets: List[OffsetPosition] =
+        val sciOffsets   = scienceTargetCoords
+          .map(_.diff(baseCoords).offset)
+          .map(OffsetPosition(GeometryType.NoZone, _, Angle.Angle0))
+        val blindOffsets = blindOffset
+          .map(o => baseCoords.diff(o).offset)
+          .map(o => OffsetPosition(GeometryType.NoZone, o, Angle.Angle0))
+          .toList
+        (sciOffsets ++ blindOffsets).distinct
+
+      val visualizations: NonEmptyList[DebugShape] =
+        AgsVisualization.patrolFieldGeometries(agsParams,
+                                               positions.value.toNonEmptyList
+        ) ++ AgsVisualization.noZoneShapes(agsParams, noZoneOffsets)
 
       val individualFields: List[(Css, ShapeExpression)] =
         visualizations.toList
@@ -128,25 +152,25 @@ def usePatrolFieldShapes(
               case GeometryType.SciGuidedOffset   => pfVisibility.showScienceOffset.value
               case GeometryType.SciUnguidedOffset => pfVisibility.showScienceOffset.value
               case GeometryType.AgsIntersection   => pfVisibility.showIntersection.value
+              case GeometryType.NoZone            => pfVisibility.showNoZones.value
               case GeometryType.AgsVignetting     => false
           .zipWithIndex
           .map: (pfv, idx) =>
             val baseCss = pfv.position.geometryType.css
             val idxCss  = Css(s"pf-idx-$idx")
-            (baseCss |+| idxCss, pfv.posPatrolField)
+            (baseCss |+| idxCss, pfv.shape)
 
       val intersections: List[(Css, ShapeExpression)] =
         if (pfVisibility.showIntersection.value)
           visualizations.toList
             .groupBy(_.position.posAngle)
             .values
-            .zipWithIndex
-            .map: (pfvs, idx) =>
-              val idxCss = Css(s"pf-intersection-$idx")
-              (VisualizationStyles.PatrolFieldIntersectionDebug |+| idxCss,
-               pfvs.head.paIntersection
-              )
+            .map:
+              _.collectFirst:
+                case PatrolFieldVisualization(_, _, i, _) =>
+                  (VisualizationStyles.PatrolFieldIntersectionDebug, i)
             .toList
+            .flattenOption
         else
           List.empty
 
