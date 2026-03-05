@@ -24,6 +24,9 @@ object ModesQueriesGQL:
         ) {
           name
           instrument
+          disperserLabel
+          fpuLabel
+          filterLabel
           focalPlane
           capability
           adaptiveOptics

@@ -56,6 +56,8 @@ trait syntax:
           InstrumentMode.GmosNorthImaging(filter, none).some
         case ItcInstrumentConfig.GmosSouthImaging(filter, modeOverrides)                    =>
           InstrumentMode.GmosSouthImaging(filter, none).some
+        case ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _)                               =>
+          InstrumentMode.Igrins2Spectroscopy().some
         case _                                                                              => None
 
   // We may consider adjusting this to consider small variations of RV identical for the

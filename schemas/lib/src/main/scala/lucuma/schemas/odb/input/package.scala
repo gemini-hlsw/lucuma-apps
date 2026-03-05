@@ -650,6 +650,9 @@ extension (i: BasicConfiguration)
           filter = filter.assign,
           fpu = fpu.assign
         )
+    // TODO: IGRINS2 fix when supported in the ODB
+    case BasicConfiguration.Igrins2LongSlit                                                       =>
+      throw new NotImplementedError("Igrins2 is not yet supported in the ODB")
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

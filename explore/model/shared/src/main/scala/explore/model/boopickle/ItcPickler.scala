@@ -91,6 +91,8 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcInstrumentConfig.GmosSouthImaging] = generatePickler
 
+  given Pickler[ItcInstrumentConfig.Igrins2Spectroscopy] = generatePickler
+
   given Pickler[ItcInstrumentConfig] =
     compositePickler[ItcInstrumentConfig]
       .addConcreteType[ItcInstrumentConfig.GmosNorthSpectroscopy]
@@ -101,6 +103,7 @@ trait ItcPicklers extends CommonPicklers {
       .addConcreteType[ItcInstrumentConfig.GenericSpectroscopy]
       .addConcreteType[ItcInstrumentConfig.GmosNorthImaging]
       .addConcreteType[ItcInstrumentConfig.GmosSouthImaging]
+      .addConcreteType[ItcInstrumentConfig.Igrins2Spectroscopy]
 
   given Pickler[ModeWavelength] = picklerNewType(ModeWavelength)
 

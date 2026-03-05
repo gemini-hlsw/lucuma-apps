@@ -305,6 +305,8 @@ trait DisplayImplicits:
       s"GMOS-S Imaging $filterStr"
     case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)        =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
+    case BasicConfiguration.Igrins2LongSlit                              =>
+      s"IGRINS2"
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 

@@ -62,6 +62,8 @@ case class ObsSummary(
           filters.map(_.shortName).toList.mkString(", ").some
         case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu) =>
           s"${disperser.shortName} ${fpu.shortName}".some
+        case BasicConfiguration.Igrins2LongSlit                       =>
+          none
 
   lazy val instrumentConfigurationSummary: String =
     s"${instrument.shortName} ${configurationSummary.orEmpty}"

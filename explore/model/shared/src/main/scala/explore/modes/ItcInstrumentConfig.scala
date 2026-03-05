@@ -142,6 +142,26 @@ object ItcInstrumentConfig:
 
   }
 
+  // Igrins2 is a static instrument. It always has a disperser and filter, but they are fixed.
+  // We get the grating, filter and fpu strings from the query for display purposes.
+  case class Igrins2Spectroscopy(
+    grating: NonEmptyString,
+    filter:  Option[NonEmptyString],
+    fpu:     NonEmptyString
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = NonEmptyString
+    type Filter   = Option[NonEmptyString]
+    type FPU      = NonEmptyString
+    type Override = Unit
+    val gratingDisplay: Display[Grating] = Display.byShortName(_.value)
+    val filterStr: String                = filter.fold("none")(_.value)
+    val instrument                       = Instrument.Igrins2
+    val site                             = Site.GN
+    val hasFilter                        = true
+    val mode                             = ScienceMode.Spectroscopy
+
+  }
+
   case class GpiSpectroscopy(grating: GpiDisperser, filter: GpiFilter) extends ItcInstrumentConfig
       derives Eq {
     type Grating  = GpiDisperser
