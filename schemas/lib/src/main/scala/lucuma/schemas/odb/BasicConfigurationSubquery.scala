@@ -35,5 +35,8 @@ object BasicConfigurationSubquery
             filter
             fpu
           }
+          igrins2LongSlit {
+            offsetMode
+          }
         }
       """

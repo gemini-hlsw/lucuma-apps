@@ -133,5 +133,12 @@ object ObservingModeSubquery
               exposureTimeMode $ExposureTimeModeSubquery
             }
           }
+          igrins2LongSlit {
+            exposureTimeMode $ExposureTimeModeSubquery
+            defaultOffsetMode
+            explicitOffsetMode
+            defaultSaveSVCImages
+            explicitSaveSVCImages
+          }
         }
       """

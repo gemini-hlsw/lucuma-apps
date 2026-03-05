@@ -34,6 +34,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
     case _: ObservingMode.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
+    case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
 
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case o: ObservingMode.GmosNorthLongSlit => o.fpu.asLeft.some
@@ -46,6 +47,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosNorthImaging   => Site.GN
     case _: ObservingMode.GmosSouthImaging   => Site.GS
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
+    case _: ObservingMode.Igrins2LongSlit    => Site.GN
 
   def toBasicConfiguration: BasicConfiguration = this match
     case n: ObservingMode.GmosNorthLongSlit                =>
@@ -58,6 +60,8 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
       BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
     case f: ObservingMode.Flamingos2LongSlit               =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
+    case _: ObservingMode.Igrins2LongSlit                  =>
+      BasicConfiguration.Igrins2LongSlit
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -85,6 +89,8 @@ object ObservingMode:
             c.downField("gmosSouthImaging").as[GmosSouthImaging]
           .orElse:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
+          .orElse:
+            c.downField("igrins2LongSlit").as[Igrins2LongSlit]
           .orElse:
             DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
@@ -617,6 +623,37 @@ object ObservingMode:
     val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]        =
       Focus[Flamingos2LongSlit](_.acquisition)
 
+  case class Igrins2LongSlit(
+    exposureTimeMode:      ExposureTimeMode,
+    defaultOffsetMode:     Igrins2OffsetMode,
+    explicitOffsetMode:    Option[Igrins2OffsetMode],
+    defaultSaveSVCImages:  Boolean,
+    explicitSaveSVCImages: Option[Boolean]
+  ) extends ObservingMode(Instrument.Igrins2) derives Eq:
+    val offsetMode: Igrins2OffsetMode = explicitOffsetMode.getOrElse(defaultOffsetMode)
+    val saveSVCImages: Boolean        = explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
+
+    def isCustomized: Boolean =
+      explicitOffsetMode.exists(_ =!= defaultOffsetMode) ||
+        explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages)
+
+    def revertCustomizations: Igrins2LongSlit =
+      this.copy(explicitOffsetMode = None, explicitSaveSVCImages = None)
+
+  object Igrins2LongSlit:
+    given Decoder[Igrins2LongSlit] = deriveDecoder
+
+    val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]            =
+      Focus[Igrins2LongSlit](_.exposureTimeMode)
+    val defaultOffsetMode: Lens[Igrins2LongSlit, Igrins2OffsetMode]          =
+      Focus[Igrins2LongSlit](_.defaultOffsetMode)
+    val explicitOffsetMode: Lens[Igrins2LongSlit, Option[Igrins2OffsetMode]] =
+      Focus[Igrins2LongSlit](_.explicitOffsetMode)
+    val defaultSaveSVCImages: Lens[Igrins2LongSlit, Boolean]                 =
+      Focus[Igrins2LongSlit](_.defaultSaveSVCImages)
+    val explicitSaveSVCImages: Lens[Igrins2LongSlit, Option[Boolean]]        =
+      Focus[Igrins2LongSlit](_.explicitSaveSVCImages)
+
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
 
@@ -631,3 +668,6 @@ object ObservingMode:
 
   val flamingos2LongSlit: Prism[ObservingMode, Flamingos2LongSlit] =
     GenPrism[ObservingMode, Flamingos2LongSlit]
+
+  val igrins2LongSlit: Prism[ObservingMode, Igrins2LongSlit] =
+    GenPrism[ObservingMode, Igrins2LongSlit]

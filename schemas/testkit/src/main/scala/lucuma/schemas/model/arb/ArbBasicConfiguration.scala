@@ -136,6 +136,9 @@ trait ArbBasicConfiguration {
     Cogen[NonEmptyList[GmosSouthFilter]]
       .contramap(_.filters)
 
+  given Cogen[BasicConfiguration.Igrins2LongSlit.type] =
+    Cogen[Unit].contramap(_ => ())
+
   given Cogen[BasicConfiguration] =
     Cogen[Either[
       BasicConfiguration.Igrins2LongSlit.type,
