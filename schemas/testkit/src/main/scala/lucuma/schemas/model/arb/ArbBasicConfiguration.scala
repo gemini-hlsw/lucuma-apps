@@ -73,9 +73,9 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu)
     )
 
-  given Arbitrary[BasicConfiguration.Igrins2LongSlit] =
-    Arbitrary[BasicConfiguration.Igrins2LongSlit](
-      Gen.const(BasicConfiguration.Igrins2LongSlit())
+  given Arbitrary[BasicConfiguration.Igrins2LongSlit.type] =
+    Arbitrary[BasicConfiguration.Igrins2LongSlit.type](
+      Gen.const(BasicConfiguration.Igrins2LongSlit)
     )
 
   given Arbitrary[BasicConfiguration] = Arbitrary[BasicConfiguration](
@@ -85,7 +85,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosNorthImaging],
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
-      arbitrary[BasicConfiguration.Igrins2LongSlit]
+      arbitrary[BasicConfiguration.Igrins2LongSlit.type]
     )
   )
 
@@ -125,7 +125,7 @@ trait ArbBasicConfiguration {
         )
       )
 
-  given Cogen[BasicConfiguration.Igrins2LongSlit] =
+  given Cogen[BasicConfiguration.Igrins2LongSlit.type] =
     Cogen[Unit].contramap(_ => ())
 
   given Cogen[BasicConfiguration.GmosNorthImaging] =
@@ -138,7 +138,7 @@ trait ArbBasicConfiguration {
 
   given Cogen[BasicConfiguration] =
     Cogen[Either[
-      BasicConfiguration.Igrins2LongSlit,
+      BasicConfiguration.Igrins2LongSlit.type,
       Either[
         BasicConfiguration.Flamingos2LongSlit,
         Either[
@@ -154,7 +154,7 @@ trait ArbBasicConfiguration {
       ]
     ]]
       .contramap {
-        case i: BasicConfiguration.Igrins2LongSlit    => i.asLeft
+        case BasicConfiguration.Igrins2LongSlit       => BasicConfiguration.Igrins2LongSlit.asLeft
         case f: BasicConfiguration.Flamingos2LongSlit => f.asLeft.asRight
         case n: BasicConfiguration.GmosNorthLongSlit  => n.asLeft.asRight.asRight
         case s: BasicConfiguration.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight

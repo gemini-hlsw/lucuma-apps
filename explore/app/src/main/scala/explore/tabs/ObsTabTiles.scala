@@ -437,7 +437,7 @@ object ObsTabTiles:
               case Some(_: BasicConfiguration.GmosNorthLongSlit) |
                   Some(_: BasicConfiguration.GmosSouthLongSlit) |
                   Some(_: BasicConfiguration.Flamingos2LongSlit) |
-                  Some(_: BasicConfiguration.Igrins2LongSlit) =>
+                  Some(_: BasicConfiguration.Igrins2LongSlit.type) =>
                 ItcSpectroscopyTile(
                   props.vault.userId,
                   props.observation.get,

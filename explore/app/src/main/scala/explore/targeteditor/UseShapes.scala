@@ -17,8 +17,8 @@ import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
-import lucuma.ags.PatrolFieldVisualization
 import lucuma.ags.DebugShape
+import lucuma.ags.PatrolFieldVisualization
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
@@ -29,6 +29,7 @@ import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.gmos
 import lucuma.core.geom.offsets.GeometryType
+import lucuma.core.geom.offsets.OffsetPosition
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
@@ -40,7 +41,6 @@ import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
 
 import scala.collection.immutable.SortedMap
-import lucuma.core.geom.offsets.OffsetPosition
 
 // Hooks for shapes
 def usePatrolFieldShapes(
@@ -72,7 +72,7 @@ def usePatrolFieldShapes(
       case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) =>
         AgsParams
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
-      case BasicConfiguration.Igrins2LongSlit()             =>
+      case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
     guideProbe match
       case GuideProbe.PWFS1 => params.withPWFS1.some

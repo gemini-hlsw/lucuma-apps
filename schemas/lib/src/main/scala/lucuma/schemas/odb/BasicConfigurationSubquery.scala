@@ -11,6 +11,7 @@ object BasicConfigurationSubquery
     extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]("ObservingMode"):
   override val subquery: String = s"""
         {
+          instrument
           gmosNorthLongSlit {
             grating
             filter
