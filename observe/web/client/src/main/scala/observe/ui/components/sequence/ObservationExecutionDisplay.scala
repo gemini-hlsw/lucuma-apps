@@ -12,10 +12,10 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Observation
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
-import lucuma.core.model.sequence.Step
 import lucuma.react.common.*
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.DefaultErrorRender
+import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
@@ -100,14 +100,14 @@ object ObservationExecutionDisplay
               val requests: ObservationRequests =
                 rootModelData.obsRequests.getOrElse(loadedObsId, ObservationRequests.Idle)
 
-              val selectedStep: Option[Step.Id] =
-                rootModelData.obsSelectedStep(loadedObsId)
+              val selectedRowId: Option[SelectedRowId] =
+                rootModelData.obsSelectedRow(loadedObsId)
 
-              val setSelectedStep: Step.Id => Callback = stepId =>
+              val setSelectedRowId: SelectedRowId => Callback = rowId =>
                 props.rootModelData
-                  .zoom(RootModelData.userSelectedStep.at(loadedObsId))
-                  .mod: oldStepId =>
-                    if (oldStepId.contains_(stepId)) none else stepId.some
+                  .zoom(RootModelData.userSelectedRow.at(loadedObsId))
+                  .mod: oldRowId =>
+                    if (oldRowId.contains_(rowId)) none else rowId.some
 
               ObservationSequence(
                 loadedObsId,
@@ -117,8 +117,8 @@ object ObservationExecutionDisplay
                 currentRecordedVisit,
                 progress,
                 requests,
-                selectedStep,
-                setSelectedStep,
+                selectedRowId,
+                setSelectedRowId,
                 rootModelData.clientMode
               )
             },

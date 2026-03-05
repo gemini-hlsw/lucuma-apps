@@ -4,6 +4,7 @@
 package lucuma.ui.sequence
 
 import cats.Eq
+import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
@@ -37,7 +38,7 @@ import monocle.macros.GenPrism
  * row to the visit.
  */
 trait SequenceRow[+D]:
-  def id: Either[Visit.Id, Step.Id]
+  def id: Ior[Visit.Id, Step.Id] // Executed steps have both.
   protected def instrumentConfig: Option[D]
   def stepConfig: Option[StepConfig]
   def telescopeConfig: Option[TelescopeConfig]
@@ -47,8 +48,14 @@ trait SequenceRow[+D]:
 
   lazy val rowId: RowId = RowId:
     id match
-      case Left(visitId) => visitId.toString
-      case Right(stepId) => stepId.toString
+      case Ior.Left(visitId)         => visitId.toString
+      case Ior.Right(stepId)         => stepId.toString
+      case Ior.Both(visitId, stepId) => s"$visitId-$stepId"
+
+  lazy val selectableRowId: Option[SelectedRowId] = id match
+    case Ior.Left(visitId)         => none
+    case Ior.Right(stepId)         => SelectedRowId(none, stepId).some
+    case Ior.Both(visitId, stepId) => SelectedRowId(visitId.some, stepId).some
 
   lazy val instrument: Option[Instrument] = instrumentConfig.map:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => Instrument.GmosNorth
@@ -130,7 +137,7 @@ object SequenceRow:
     signalToNoise: Option[SignalToNoise],
     seqType:       SequenceType
   ) extends SequenceRow[D]:
-    val id               = step.id.asRight
+    val id               = Ior.right(step.id)
     val instrumentConfig = step.instrumentConfig.some
     val stepConfig       = step.stepConfig.some
     val telescopeConfig  = step.telescopeConfig.some
@@ -185,7 +192,7 @@ object SequenceRow:
       visit:         Visit[D],
       signalToNoise: Option[SignalToNoise]
     ) extends Executed[D]:
-      val id               = visit.id.asLeft
+      val id               = Ior.left(visit.id)
       val instrumentConfig = none
       val stepConfig       = none
       val telescopeConfig  = none
@@ -195,10 +202,11 @@ object SequenceRow:
       given [D]: Eq[ExecutedVisit[D]] = Eq.derived
 
     case class ExecutedStep[+D](
+      visitId:       Visit.Id,
       stepRecord:    StepRecord[D],
       signalToNoise: Option[SignalToNoise]
     ) extends Executed[D]:
-      val id               = stepRecord.id.asRight
+      val id               = Ior.both(visitId, stepRecord.id)
       val instrumentConfig = stepRecord.instrumentConfig.some
       val stepConfig       = stepRecord.stepConfig.some
       val telescopeConfig  = stepRecord.telescopeConfig.some

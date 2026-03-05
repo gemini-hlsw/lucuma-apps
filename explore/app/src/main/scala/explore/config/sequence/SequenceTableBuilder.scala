@@ -84,7 +84,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
             cell.row.original.value.toOption
               .map(_.step)
               .collect:
-                case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
+                case step @ SequenceRow.Executed.ExecutedStep(_, _, _) =>
                   renderVisitExtraRow(
                     step,
                     showOngoingLabel = true,
@@ -207,7 +207,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               estimateSize = index =>
                 table.getRowModel().rows.get(index).map(_.original.value) match
                   case Some(
-                        Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _), _))
+                        Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _), _))
                       ) =>
                     SequenceRowHeight.WithExtra
                   case _ =>
@@ -233,10 +233,10 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                     val step: SequenceRow[D] = stepRow.step
                     TagMod(
                       step match
-                        case SequenceRow.Executed.ExecutedStep(step, _)                       =>
+                        case SequenceRow.Executed.ExecutedStep(_, step, _)                    =>
                           SequenceStyles.RowHasExtra |+|
                             ExploreStyles.SequenceRowDone.unless_(
-                              step.executionState == StepExecutionState.Ongoing
+                              step.executionState === StepExecutionState.Ongoing
                             )
                         case SequenceRow.FutureStep(_, _, firstOf, _, _) if firstOf.isDefined =>
                           ExploreStyles.SequenceRowFirstInAtom
@@ -260,8 +260,8 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                         TagMod(^.paddingLeft := "0")
                       case id if id == ExtraRowColumnId     =>
                         stepRow.step match // Extra row is shown in a selected row or in an executed step row.
-                          case SequenceRow.Executed.ExecutedStep(_, _) => extraRowMod
-                          case _                                       => TagMod.empty
+                          case SequenceRow.Executed.ExecutedStep(_, _, _) => extraRowMod
+                          case _                                          => TagMod.empty
                       case _                                =>
                         TagMod.empty
             )

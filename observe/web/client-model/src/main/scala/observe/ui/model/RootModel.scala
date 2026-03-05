@@ -12,8 +12,8 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Step
 import lucuma.react.table.ColumnFilters
+import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sso.UserVault
 import monocle.Focus
 import monocle.Lens
@@ -35,7 +35,7 @@ case class RootModelData(
   executionState:       Map[Observation.Id, ExecutionState], // Execution state on the server
   recordedIds:          ObsRecordedIds,                      // Map[Observation.Id, RecordedVisit]
   obsProgress:          Map[Observation.Id, StepProgress],
-  userSelectedStep:     Map[Observation.Id, Step.Id],
+  userSelectedRow:      Map[Observation.Id, SelectedRowId],
   obsRequests:          Map[Observation.Id, ObservationRequests],
   conditions:           Conditions,
   observer:             Option[Observer],
@@ -92,8 +92,11 @@ case class RootModelData(
   def isObsLocked(obsId: Observation.Id): Boolean =
     executionState.get(obsId).exists(_.isLocked)
 
-  def obsSelectedStep(obsId: Observation.Id): Option[Step.Id] =
-    executionState.get(obsId).flatMap(_.runningStepId).orElse(userSelectedStep.get(obsId))
+  def obsSelectedRow(obsId: Observation.Id): Option[SelectedRowId] =
+    executionState
+      .get(obsId)
+      .flatMap(_.runningStepId.map(stepId => SelectedRowId(none, stepId)))
+      .orElse(userSelectedRow.get(obsId))
 
   def withLoginResult(result: Either[Throwable, Option[UserVault]]): RootModelData =
     val vault: Option[UserVault] = result.toOption.flatten
@@ -116,7 +119,7 @@ object RootModelData:
       recordedIds = ObsRecordedIds.Empty,
       obsProgress = Map.empty,
       obsRequests = Map.empty,
-      userSelectedStep = Map.empty,
+      userSelectedRow = Map.empty,
       conditions = Conditions.Default,
       observer = none,
       operator = none,
@@ -137,8 +140,8 @@ object RootModelData:
   val recordedIds: Lens[RootModelData, ObsRecordedIds]                           = Focus[RootModelData](_.recordedIds)
   val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]        =
     Focus[RootModelData](_.obsProgress)
-  val userSelectedStep: Lens[RootModelData, Map[Observation.Id, Step.Id]]        =
-    Focus[RootModelData](_.userSelectedStep)
+  val userSelectedRow: Lens[RootModelData, Map[Observation.Id, SelectedRowId]]   =
+    Focus[RootModelData](_.userSelectedRow)
   val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
     Focus[RootModelData](_.obsRequests)
   val conditions: Lens[RootModelData, Conditions]                                = Focus[RootModelData](_.conditions)

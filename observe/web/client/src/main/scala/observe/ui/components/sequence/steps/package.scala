@@ -85,9 +85,9 @@ extension [D](row: SequenceRow[D])
 
   def stepState: StepState =
     row match
-      case CurrentAtomStepRow(step, _, _, _)                => step.status
-      case SequenceRow.FutureStep(_, _, _, _, _)            => StepState.Pending
-      case SequenceRow.Executed.ExecutedStep(stepRecord, _) =>
+      case CurrentAtomStepRow(step, _, _, _)                   => step.status
+      case SequenceRow.FutureStep(_, _, _, _, _)               => StepState.Pending
+      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
         stepRecord.executionState match
           case StepExecutionState.NotStarted => StepState.Pending
           case StepExecutionState.Ongoing    => StepState.Running
@@ -95,13 +95,13 @@ extension [D](row: SequenceRow[D])
           case StepExecutionState.Completed  => StepState.Completed
           case StepExecutionState.Stopped    => StepState.Completed
           case StepExecutionState.Abandoned  => StepState.Failed("Abandoned")
-      case _                                                => StepState.Completed
+      case _                                                   => StepState.Completed
 
   def fileIds: Option[NonEmptyChain[ImageFileId]] =
     row match
-      case CurrentAtomStepRow(step, _, _, _)                => step.fileId.map(NonEmptyChain.one(_))
-      case SequenceRow.Executed.ExecutedStep(stepRecord, _) =>
+      case CurrentAtomStepRow(step, _, _, _)                   => step.fileId.map(NonEmptyChain.one(_))
+      case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
         NonEmptyChain
           .fromSeq(stepRecord.datasets)
           .map(_.map(ds => ImageFileId(ds.filename.format.stripSuffix(".fits"))))
-      case _                                                => none
+      case _                                                   => none

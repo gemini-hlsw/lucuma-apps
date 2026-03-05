@@ -3,12 +3,15 @@
 
 package lucuma.ui.sequence
 
+import cats.Eq
+import cats.derived.*
 import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.ObserveClass
 import lucuma.core.math.SignalToNoise
+import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -26,6 +29,8 @@ import lucuma.ui.LucumaIcons
 import lucuma.ui.LucumaStyles
 import lucuma.ui.utils.Render
 import lucuma.ui.utils.zipWithMappedIndex
+
+final case class SelectedRowId(visitId: Option[Visit.Id], stepId: Step.Id) derives Eq
 
 object SequenceRowHeight:
   val Regular: SizePx   = 25.toPx
