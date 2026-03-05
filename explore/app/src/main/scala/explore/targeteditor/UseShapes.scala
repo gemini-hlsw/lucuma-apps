@@ -273,5 +273,23 @@ def useVisualizationShapes(
            )
           )
         case ObservingModeType.Igrins2LongSlit                                         =>
-          (Css.Empty, None)
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _                                               =>
+              Css.Empty
+
+          (probeVisibilityCss,
+           Igrins2Geometry.igrins2Geometry(
+             baseCoords,
+             blindOffset,
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.flatMap(_.guidedAcqOffsets),
+             vizConf.map(_.posAngle),
+             vizConf.map(_.configuration),
+             vizConf.flatMap(_.trackType),
+             selectedGS,
+             candidatesVisibilityCss
+           )
+          )
   }.map(_.value)

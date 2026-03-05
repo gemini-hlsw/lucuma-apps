@@ -447,7 +447,7 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              case Some(BasicConfiguration.Igrins2LongSlit) | None => ItcEmptyTile().some
+              case None => ItcEmptyTile().some
 
           val obsConf: ObsConfiguration =
             ObsConfiguration(

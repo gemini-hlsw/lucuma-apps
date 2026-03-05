@@ -57,6 +57,7 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
+import lucuma.ui.components.UnderConstruction
 import lucuma.ui.syntax.all.given
 import monocle.Iso
 import queries.schemas.itc.syntax.*
@@ -196,6 +197,8 @@ object ConfigurationTile
         ObservingModeInput.GmosSouthLongSlit(GmosSouthLongSlitInput())
       val EmptyF2LongSlitInput: ObservingModeInput        =
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
+      val EmptyIgrins2LongSlitInput: ObservingModeInput    =
+        ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
       val EmptyGmosNorthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
@@ -300,6 +303,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.flamingos2LongSlit
                   .andThen(ObservingModeInput.Flamingos2LongSlit.value)
+                  .modify
+            )
+
+        val optIgrins2Aligner: Option[Aligner[Igrins2LongSlit, Igrins2LongSlitInput]] =
+          optModeAligner(EmptyIgrins2LongSlitInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.igrins2LongSlit,
+              modInput:
+                ObservingModeInput.igrins2LongSlit
+                  .andThen(ObservingModeInput.Igrins2LongSlit.value)
                   .modify
             )
 
@@ -449,7 +462,10 @@ object ConfigurationTile
                       props.permissions,
                       props.units,
                       props.isStaffOrAdmin
-                    )
+                    ),
+                  // IGRINS2 Long Slit
+                  optIgrins2Aligner.map: _ =>
+                    UnderConstruction()
                 )
             )
           )

@@ -18,6 +18,7 @@ import explore.modes.ItcInstrumentConfig
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
+import lucuma.refined.*
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosXBinning
@@ -220,6 +221,16 @@ final case class Observation(
           List(
             (ItcInstrumentConfig.Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu),
              f.exposureTimeMode
+            )
+          )
+        case (_, i: ObservingMode.Igrins2LongSlit)                                      =>
+          List(
+            (ItcInstrumentConfig.Igrins2Spectroscopy(
+               "SiGe immersion echelon".refined,
+               none,
+               "LongSlit".refined
+             ),
+             i.exposureTimeMode
             )
           )
         case _                                                                         =>
