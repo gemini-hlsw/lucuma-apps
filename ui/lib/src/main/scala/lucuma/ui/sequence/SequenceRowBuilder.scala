@@ -151,7 +151,7 @@ trait SequenceRowBuilder[D]:
         (
           created,
           steps
-            .map(SequenceRow.Executed.ExecutedStep(_, none)) // TODO Add SignalToNoise
+            .map(SequenceRow.Executed.ExecutedStep(visitId, _, none)) // TODO Add SignalToNoise
             .zipWithStepIndex(startIndex),
           datasetIndices.minOption.map(min => (min, datasetIndices.max))
         )

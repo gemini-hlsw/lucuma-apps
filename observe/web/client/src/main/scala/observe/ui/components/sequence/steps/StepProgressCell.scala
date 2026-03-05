@@ -39,7 +39,7 @@ case class StepProgressCell(
   systemOverrides: SystemOverrides,
   exposureTime:    TimeSpan,
   progress:        Option[StepProgress],
-  selectedStep:    Option[Step.Id],
+  // selectedStep:    Option[Step.Id],
   isPreview:       Boolean
 ) extends ReactFnProps(StepProgressCell):
   // def stepSelected(i: Step.Id): Boolean =

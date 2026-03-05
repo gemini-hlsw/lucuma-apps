@@ -34,8 +34,8 @@ private trait SequenceTable[S, D](
   def executionState: ExecutionState
   def currentRecordedVisit: Option[RecordedVisit]
   def progress: Option[StepProgress]
-  def selectedStepId: Option[Step.Id]
-  def setSelectedStepId: Step.Id => Callback
+  def selectedRowId: Option[SelectedRowId]
+  def setSelectedRowId: SelectedRowId => Callback
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
