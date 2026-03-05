@@ -52,6 +52,12 @@ object ConfigurationSubquery
         flamingos2LongSlit {
           disperser
         }
+        gmosNorthImaging {
+          filters
+        }
+        gmosSouthImaging {
+          filters
+        }
       }
     }
   """
