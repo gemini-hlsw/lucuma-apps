@@ -121,7 +121,7 @@ object UserSelectionForm:
                 ).unless(browserInfo.supportedOrcidBrowser),
                 Message(
                   text =
-                    "ORCID authentication does not work with some configurations of Safari and MacOS. If it doesn't work for you please try Chrome or Firefox.",
+                    "Warning: some features may not work as expected with Safari. For the best experience we recommend Exploring with Chrome or Firefox.",
                   severity = Message.Severity.Warning,
                   icon = LoginIcons.ExclamationTriangle
                 ).when(browserInfo.warnBrowser)
