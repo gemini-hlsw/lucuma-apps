@@ -375,7 +375,6 @@ object ConfigurationTile
                       props.itcTargets,
                       props.baseCoordinates,
                       props.obsConf.calibrationRole,
-                      // TODO: IGRINS2 remove unlessA when supported in the ODB
                       props.selectedConfig.get
                         .toBasicConfiguration()
                         .map: bc =>
@@ -384,7 +383,7 @@ object ConfigurationTile
                             props.pacAndMode,
                             bc.toInput,
                             bc.obsModeType.defaultPosAngleOptions
-                          ).unlessA(BasicConfiguration.igrins2LongSlit.getOption(bc).isDefined)
+                          )
                         .orEmpty,
                       props.modes,
                       props.customSedTimestamps,
