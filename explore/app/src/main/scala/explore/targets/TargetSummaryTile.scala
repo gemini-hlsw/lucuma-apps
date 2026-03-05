@@ -28,6 +28,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import lucuma.react.common.Css
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.PrimeStyles
@@ -83,10 +84,20 @@ object TargetSummaryTile
             ObservationsColumnId -> "Observations"
           )
 
-      given Display[TargetDisposition] = Display.byShortName:
-        case TargetDisposition.Science     => "Science"
-        case TargetDisposition.Calibration => "Calibration"
-        case TargetDisposition.BlindOffset => "Blind Offset"
+      given dot: Display[Option[TargetDisposition]] = Display.byShortName:
+        case Some(TargetDisposition.Science)     => "Science"
+        case Some(TargetDisposition.Calibration) => "Calibration"
+        case Some(TargetDisposition.BlindOffset) => "Blind Offset"
+        case None                                => "All"
+
+      given Enumerated[Option[TargetDisposition]] = Enumerated
+        .from(
+          None,
+          Some(TargetDisposition.Science),
+          Some(TargetDisposition.Calibration),
+          Some(TargetDisposition.BlindOffset)
+        )
+        .withTag(dot.shortName)
 
       val ColDef = ColumnDef[TargetWithId]
 
@@ -180,7 +191,7 @@ object TargetSummaryTile
       for
         ctx              <- useContext(AppContext.ctx)
         filesToImport    <- useStateView(List.empty[DOMFile])
-        disposition      <- useStateView(TargetDisposition.Science)
+        disposition      <- useStateView(TargetDisposition.Science.some)
         columnVisibility <- useStateView(TargetColumns.DefaultVisibility)
         cols             <- useMemo(()): _ =>
                               columns(
@@ -192,7 +203,7 @@ object TargetSummaryTile
                               )
         rows             <- useMemo(props.targets.get, disposition.get): (targets, disposition) =>
                               targets.toList
-                                .filter((_, twid) => twid.disposition === disposition)
+                                .filter((_, twid) => disposition.forall(_ === twid.disposition))
                                 .map(_._2)
         rowSelection      = props.selectedTargetIds.as(targetIds2RowSelection)
         tableState       <- useMemo(columnVisibility.get, rowSelection.get):
