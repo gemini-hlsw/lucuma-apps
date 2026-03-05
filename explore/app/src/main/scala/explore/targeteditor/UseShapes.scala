@@ -74,6 +74,7 @@ def usePatrolFieldShapes(
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
+
     guideProbe match
       case GuideProbe.PWFS1 => params.withPWFS1.some
       case GuideProbe.PWFS2 => params.withPWFS2.some
