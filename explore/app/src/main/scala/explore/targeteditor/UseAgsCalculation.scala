@@ -119,11 +119,10 @@ object UseAgsCalculation:
         applyGuideProbe(base, guideProbe)
 
       case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-        val base = Some(AgsParams.GmosImaging(port))
-        applyGuideProbe(base, guideProbe)
+        applyGuideProbe(AgsParams.GmosImaging(port).some, guideProbe)
 
       case ObservingModeType.Igrins2LongSlit =>
-        none
+        applyGuideProbe(AgsParams.Igrins2LongSlit().some, guideProbe)
 
   private def runAgsQuery(
     props:          AgsCalcProps,
