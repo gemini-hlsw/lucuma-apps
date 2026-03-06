@@ -28,6 +28,7 @@ import explore.model.TargetAttachmentAssignmentMap
 import explore.model.display.given
 import explore.model.enums.AppTab
 import explore.model.syntax.all.*
+import explore.observationtree.focusObs
 import explore.syntax.ui.*
 import explore.utils.*
 import fs2.dom
@@ -178,7 +179,7 @@ object AttachmentsTile
           ColDef(id, v => accessor(v.get), columnNames(id))
 
         def goToObs(obsId: Observation.Id): Callback =
-          ctx.pushPage((AppTab.Observations, props.programId, Focused.singleObs(obsId)).some)
+          focusObs(props.programId, obsId.some, ctx)
 
         def obsUrl(obsId: Observation.Id): String =
           ctx.pageUrl((AppTab.Observations, props.programId, Focused.singleObs(obsId)).some)

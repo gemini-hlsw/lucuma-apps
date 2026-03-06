@@ -92,16 +92,6 @@ object ObsTabContents extends TwoPanels:
       case Left(obs)    => List(obs.id)
       case Right(group) => flattenScreenOrder(children, group.id.some)
 
-  private def goToObs(
-    ctx:       AppContext[IO],
-    programId: Program.Id,
-    obsId:     Observation.Id
-  ): Callback =
-    ctx.setPageVia(
-      (AppTab.Observations, programId, Focused.singleObs(obsId)).some,
-      SetRouteVia.HistoryPush
-    )
-
   private def navigateObs(
     ctx:          AppContext[IO],
     programId:    Program.Id,
@@ -112,10 +102,10 @@ object ObsTabContents extends TwoPanels:
     focusedObsId match
       case Some(currentId) =>
         val idx = obsKeys.indexOf(currentId)
-        obsKeys.lift(idx + offset).foldMap(goToObs(ctx, programId, _))
+        obsKeys.lift(idx + offset).foldMap(id => focusObs(programId, id.some, ctx))
       case None            =>
         (if (offset > 0) obsKeys.headOption else obsKeys.lastOption)
-          .foldMap(goToObs(ctx, programId, _))
+          .foldMap(id => focusObs(programId, id.some, ctx))
 
   private val component =
     ScalaFnComponent
