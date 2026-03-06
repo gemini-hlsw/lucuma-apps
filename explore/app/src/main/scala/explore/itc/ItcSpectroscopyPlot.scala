@@ -61,6 +61,7 @@ object ItcSpectroscopyPlot {
       .setTickInterval(tick)
       .setMin(min)
       .setMax(max)
+      .setFloor(0.0) // Y can never be negative
       .setMinorTickInterval(tick / 3)
       .setLineWidth(1)
       .setLabels(YAxisLabelsOptions().setFormat("{value}"))
