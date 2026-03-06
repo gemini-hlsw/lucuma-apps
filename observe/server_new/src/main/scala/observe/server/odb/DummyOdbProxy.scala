@@ -43,6 +43,8 @@ class DummyOdbProxy[F[_]: Sync] extends OdbProxy[F] {
     obsPause,
     obsStop,
     sequenceStart,
+    stepContinue,
+    stepPause,
     stepStop
   }
 

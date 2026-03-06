@@ -30,6 +30,8 @@ trait OdbCommands[F[_]] private[odb] () {
   def stepEndStep(obsId:         Observation.Id, stepId:    Step.Id): F[Boolean]
   def stepAbort(obsId:           Observation.Id, stepId:    Step.Id): F[Boolean]
   def stepStop(obsId:            Observation.Id, stepId:    Step.Id): F[Boolean]
+  def stepPause(obsId:           Observation.Id, stepId:    Step.Id): F[Boolean]
+  def stepContinue(obsId:        Observation.Id, stepId:    Step.Id): F[Boolean]
   def obsContinue(obsId:         Observation.Id): F[Boolean]
   def obsPause(obsId:            Observation.Id, reason:    String): F[Boolean]
   def obsStop(obsId:             Observation.Id, reason:    String): F[Boolean]
