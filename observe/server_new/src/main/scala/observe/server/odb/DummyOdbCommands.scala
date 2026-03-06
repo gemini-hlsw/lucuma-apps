@@ -59,6 +59,10 @@ class DummyOdbCommands[F[_]: Sync] extends OdbCommands[F] {
 
   def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
 
+  def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+
+  def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
     false.pure[F]
 

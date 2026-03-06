@@ -15,7 +15,6 @@ import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
 
 case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB]) extends ODBQueryApi[IO]:
-
   override def queryVisits(
     obsId: Observation.Id,
     from:  Option[Visit.Id]
