@@ -303,6 +303,11 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === disperser && rFilter === filter && rFpu === fpu
             case _ => false
+      case _: ObservingMode.Igrins2LongSlit                                                     =>
+        matrix.find: row =>
+          row.instrument match
+            case _: ItcInstrumentConfig.Igrins2Spectroscopy => true
+            case _                                          => false
       case _                                                                                   => none
 
   def filtered(

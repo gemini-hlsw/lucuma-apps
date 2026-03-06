@@ -14,6 +14,7 @@ import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -24,6 +25,7 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
@@ -35,6 +37,7 @@ final case class Igrins2LongslitConfigPanel(
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Igrins2LongSlit, Igrins2LongSlitInput],
   revertConfig:    Callback,
+  confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits
@@ -44,6 +47,7 @@ object Igrins2LongslitConfigPanel
     extends ReactFnComponent[Igrins2LongslitConfigPanel](props =>
       for
         ctx       <- useContext(AppContext.ctx)
+        modeData  <- useModeData(props.confMatrix, props.observingMode.get)
         editState <- useStateView(ConfigEditState.View)
       yield
         import ctx.given
@@ -95,6 +99,13 @@ object Igrins2LongslitConfigPanel
                 props.units,
                 props.calibrationRole,
                 "ig2LongSlit".refined
+              )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact)(
+              LambdaAndIntervalFormValues(
+                modeData = modeData,
+                centralWavelength = BasicConfiguration.Igrins2LongSlit.optimalWavelength,
+                units = props.units
               )
             )
           ),

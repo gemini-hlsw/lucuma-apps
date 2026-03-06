@@ -1842,8 +1842,8 @@ svg.fa-check.explore-success-icon {
     padding: 0.5em;
     gap: 1em;
     grid-template:
-      'col1 col2' auto
-      / 1fr 1fr;
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
     border-bottom: 1px solid var(--site-border-color);
   }
 
@@ -1958,6 +1958,7 @@ svg.fa-check.explore-success-icon {
       grid-template:
         'col1' auto
         'col2' auto
+        'col3' auto
         / auto;
     }
 

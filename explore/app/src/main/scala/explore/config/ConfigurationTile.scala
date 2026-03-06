@@ -468,6 +468,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       ig2Aligner,
                       revertConfig,
+                      props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
                       props.units
