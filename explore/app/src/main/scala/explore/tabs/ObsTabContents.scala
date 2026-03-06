@@ -84,6 +84,39 @@ case class ObsTabContents(
 object ObsTabContents extends TwoPanels:
   private type Props = ObsTabContents
 
+  private def flattenScreenOrder(
+    children: Map[Option[Group.Id], List[Either[Observation, Group]]],
+    parentId: Option[Group.Id]
+  ): List[Observation.Id] =
+    children.get(parentId).orEmpty.flatMap:
+      case Left(obs)    => List(obs.id)
+      case Right(group) => flattenScreenOrder(children, group.id.some)
+
+  private def goToObs(
+    ctx:       AppContext[IO],
+    programId: Program.Id,
+    obsId:     Observation.Id
+  ): Callback =
+    ctx.setPageVia(
+      (AppTab.Observations, programId, Focused.singleObs(obsId)).some,
+      SetRouteVia.HistoryPush
+    )
+
+  private def navigateObs(
+    ctx:          AppContext[IO],
+    programId:    Program.Id,
+    focusedObsId: Option[Observation.Id],
+    obsKeys:      List[Observation.Id],
+    offset:       Int
+  ): Callback =
+    focusedObsId match
+      case Some(currentId) =>
+        val idx = obsKeys.indexOf(currentId)
+        obsKeys.lift(idx + offset).foldMap(goToObs(ctx, programId, _))
+      case None            =>
+        (if (offset > 0) obsKeys.headOption else obsKeys.lastOption)
+          .foldMap(goToObs(ctx, programId, _))
+
   private val component =
     ScalaFnComponent
       .withHooks[Props]
@@ -149,6 +182,8 @@ object ObsTabContents extends TwoPanels:
         (copyCallback, pasteCallback)
       ): (props, ctx, _, _, _, _, _, _, _) =>
         (copyCallback, pasteCallback) =>
+          val obsKeys = flattenScreenOrder(props.programSummaries.get.groupsChildren, none)
+
           def callbacks: ShortcutCallbacks = {
             case CopyAlt1 | CopyAlt2 => copyCallback
 
@@ -159,6 +194,10 @@ object ObsTabContents extends TwoPanels:
                 (AppTab.Observations, props.programId, Focused.None).some,
                 SetRouteVia.HistoryPush
               )
+
+            case Down => navigateObs(ctx, props.programId, props.focusedObsId, obsKeys, 1)
+
+            case Up => navigateObs(ctx, props.programId, props.focusedObsId, obsKeys, -1)
           }
           UseHotkeysProps(
             ((GoToSummary :: Up :: Down :: Nil) ::: (CopyKeys ::: PasteKeys)).toHotKeys,

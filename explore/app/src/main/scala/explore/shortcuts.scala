@@ -51,8 +51,9 @@ val Esc = Shortcut("ESC")
 
 val ShortcutsHelp1 = Shortcut("F1")
 val ShortcutsHelp2 = Shortcut("shift+?")
+val ShortcutsHelp3 = Shortcut("shift+slash")
 
-val ShortcutsHelpKeys = List(ShortcutsHelp1, ShortcutsHelp2)
+val ShortcutsHelpKeys = List(ShortcutsHelp1, ShortcutsHelp2, ShortcutsHelp3)
 
 val Down = Shortcut("j")
 val Up   = Shortcut("k")
