@@ -56,7 +56,6 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
-import lucuma.ui.components.UnderConstruction
 import lucuma.ui.syntax.all.given
 import monocle.Iso
 import queries.schemas.itc.syntax.*
@@ -462,8 +461,17 @@ object ConfigurationTile
                       props.isStaffOrAdmin
                     ),
                   // IGRINS2 Long Slit
-                  optIgrins2Aligner.map: _ =>
-                    UnderConstruction()
+                  optIgrins2Aligner.map: ig2Aligner =>
+                    Igrins2LongslitConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      ig2Aligner,
+                      revertConfig,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    )
                 )
             )
           )
