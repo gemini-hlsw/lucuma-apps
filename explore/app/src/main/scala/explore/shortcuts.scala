@@ -40,12 +40,12 @@ given Conversion[PartialFunction[Shortcut, Callback], HotkeysCallback] with
         .headOption
         .getOrEmpty
 
-val GoToObs         = Shortcut("o")
-val GoToTargets     = Shortcut("t")
-val GoToProposals   = Shortcut("r")
-val GoToConstraints = Shortcut("n")
-val GoToOverview    = Shortcut("w")
-val GoToSummary     = Shortcut("s")
+val GoToObs              = Shortcut("o")
+val GoToTargets          = Shortcut("t")
+val GoToProposals        = Shortcut("r")
+val GoToConstraints      = Shortcut("n")
+val GoToSummary          = Shortcut("s")
+val CycleWavelengthUnits = Shortcut("w")
 
 val Esc = Shortcut("ESC")
 

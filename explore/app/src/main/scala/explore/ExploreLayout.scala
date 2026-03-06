@@ -17,11 +17,13 @@ import explore.cache.PreferencesCacheController
 import explore.cache.ProgramCacheController
 import explore.cache.ResetType
 import explore.common.UserPreferencesQueries
+import explore.common.UserPreferencesQueries.WavelengthUnitsPreference
 import explore.components.ToastPortal
 import explore.components.ui.ExploreStyles
 import explore.events.ExploreEvent
 import explore.model.*
 import explore.model.enums.AppTab
+import explore.model.enums.WavelengthUnits
 import explore.programs.ProgramsPopup
 import explore.shortcuts.*
 import explore.shortcuts.given
@@ -33,7 +35,9 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
 import lucuma.core.model.ProposalReference
+import lucuma.core.model.User
 import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import lucuma.core.util.Timestamp
 import lucuma.react.common.*
 import lucuma.react.hotkeys.*
@@ -70,43 +74,69 @@ object ExploreLayout:
 
   private given Reusability[ToastRef] = Reusability.by_==
 
-  private def useMountHotkeys(ctx: AppContext[IO], helpCtx: HelpContext)(
-    routingInfo: Option[RoutingInfo]
+  private def cycleWavelengthUnits(
+    ctx:             AppContext[IO],
+    userId:          Option[User.Id],
+    wavelengthUnits: Option[View[WavelengthUnits]]
+  ): Callback =
+    import ctx.given
+
+    val allUnits = Enumerated[WavelengthUnits].all
+
+    (userId, wavelengthUnits)
+      .mapN: (uid, unitsView) =>
+        unitsView
+          .withOnMod: next =>
+            WavelengthUnitsPreference
+              .updateWavelengthUnits[IO](uid, next)
+              .runAsyncAndForget
+          .mod: w =>
+            allUnits.get((allUnits.indexOf(w) + 1) % allUnits.length).getOrElse(w)
+      .getOrEmpty
+
+  private def useMountHotkeys(
+    ctx:             AppContext[IO],
+    helpCtx:         HelpContext,
+    userId:          Option[User.Id],
+    wavelengthUnits: Option[View[WavelengthUnits]]
+  )(
+    routingInfo:     Option[RoutingInfo]
   ): HookResult[Unit] =
-    useGlobalHotkeysWithDeps(routingInfo): ri =>
-      ri.map: routingInfo =>
-        def goToTab(tab: AppTab) =
-          ctx.setPageVia(
-            (tab, routingInfo.programId, routingInfo.focused).some,
-            SetRouteVia.HistoryPush
+    useGlobalHotkeysWithDeps((routingInfo, userId, wavelengthUnits.isDefined)):
+      case (ri, uid, _) =>
+        ri.map: routingInfo =>
+          def goToTab(tab: AppTab) =
+            ctx.setPageVia(
+              (tab, routingInfo.programId, routingInfo.focused).some,
+              SetRouteVia.HistoryPush
+            )
+
+          val callbacks: ShortcutCallbacks =
+            case GoToObs                         =>
+              goToTab(AppTab.Observations)
+            case GoToTargets                     =>
+              goToTab(AppTab.Targets)
+            case GoToProposals                   =>
+              goToTab(AppTab.Proposal)
+            case GoToConstraints                 =>
+              goToTab(AppTab.Constraints)
+            case CycleWavelengthUnits            =>
+              cycleWavelengthUnits(ctx, uid, wavelengthUnits)
+            case ShortcutsHelp1 | ShortcutsHelp2 =>
+              helpCtx.displayedHelp.set(Some("shortcuts.md".refined))
+
+          UseHotkeysProps(
+            (ShortcutsHelpKeys :::
+              List(
+                GoToObs,
+                GoToTargets,
+                GoToProposals,
+                GoToConstraints,
+                CycleWavelengthUnits
+              )).toHotKeys,
+            callbacks
           )
-
-        val callbacks: ShortcutCallbacks =
-          case GoToObs                         =>
-            goToTab(AppTab.Observations)
-          case GoToTargets                     =>
-            goToTab(AppTab.Targets)
-          case GoToProposals                   =>
-            goToTab(AppTab.Proposal)
-          case GoToConstraints                 =>
-            goToTab(AppTab.Constraints)
-          case GoToOverview                    =>
-            goToTab(AppTab.Overview)
-          case ShortcutsHelp1 | ShortcutsHelp2 =>
-            helpCtx.displayedHelp.set(Some("shortcuts.md".refined))
-
-        UseHotkeysProps(
-          (ShortcutsHelpKeys :::
-            List(
-              GoToObs,
-              GoToTargets,
-              GoToProposals,
-              GoToConstraints,
-              GoToOverview
-            )).toHotKeys,
-          callbacks
-        )
-      .getOrElse(UseHotkeysProps(List.empty, Callback.empty))
+        .getOrElse(UseHotkeysProps(List.empty, Callback.empty))
 
   private def useMountProgressiveWebApp(
     bc:       BroadcastChannel[IO, ExploreEvent],
@@ -152,7 +182,12 @@ object ExploreLayout:
                                   _.fold(Callback(document.title = "Explore")): r =>
                                     Callback(document.title = s"Explore - ${r}")
         routingInfo           = RoutingInfo.from(props.resolution.page)
-        _                    <- useMountHotkeys(ctx, helpCtx)(routingInfo)
+        wavelengthUnits       = props.model.rootModel
+                                  .zoom:
+                                    RootModel.globalPreferences
+                                      .andThen(GlobalPreferences.wavelengthUnits)
+                                  .asView
+        _                    <- useMountHotkeys(ctx, helpCtx, props.model.userId, wavelengthUnits)(routingInfo)
         toastRef             <- useToastRef
         _                    <- useEffectWithDeps(toastRef):
                                   import ctx.given

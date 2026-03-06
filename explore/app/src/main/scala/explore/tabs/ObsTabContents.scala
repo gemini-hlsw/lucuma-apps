@@ -88,9 +88,12 @@ object ObsTabContents extends TwoPanels:
     children: Map[Option[Group.Id], List[Either[Observation, Group]]],
     parentId: Option[Group.Id]
   ): List[Observation.Id] =
-    children.get(parentId).orEmpty.flatMap:
-      case Left(obs)    => List(obs.id)
-      case Right(group) => flattenScreenOrder(children, group.id.some)
+    children
+      .get(parentId)
+      .orEmpty
+      .flatMap:
+        case Left(obs)    => List(obs.id)
+        case Right(group) => flattenScreenOrder(children, group.id.some)
 
   private def navigateObs(
     ctx:          AppContext[IO],
