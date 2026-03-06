@@ -96,12 +96,13 @@ object ObsTabContents extends TwoPanels:
         case Right(group) => flattenScreenOrder(children, group.id.some)
 
   private def navigateObs(
-    ctx:          AppContext[IO],
-    programId:    Program.Id,
-    focusedObsId: Option[Observation.Id],
-    obsKeys:      List[Observation.Id],
-    offset:       Int
+    ctx:            AppContext[IO],
+    programId:      Program.Id,
+    focusedObsId:   Option[Observation.Id],
+    groupsChildren: Map[Option[Group.Id], List[Either[Observation, Group]]],
+    offset:         Int
   ): Callback =
+    val obsKeys = flattenScreenOrder(groupsChildren, none)
     focusedObsId match
       case Some(currentId) =>
         val idx = obsKeys.indexOf(currentId)
@@ -175,8 +176,6 @@ object ObsTabContents extends TwoPanels:
         (copyCallback, pasteCallback)
       ): (props, ctx, _, _, _, _, _, _, _) =>
         (copyCallback, pasteCallback) =>
-          val obsKeys = flattenScreenOrder(props.programSummaries.get.groupsChildren, none)
-
           def callbacks: ShortcutCallbacks = {
             case CopyAlt1 | CopyAlt2 => copyCallback
 
@@ -188,9 +187,9 @@ object ObsTabContents extends TwoPanels:
                 SetRouteVia.HistoryPush
               )
 
-            case Down => navigateObs(ctx, props.programId, props.focusedObsId, obsKeys, 1)
+            case Down => navigateObs(ctx, props.programId, props.focusedObsId, props.programSummaries.get.groupsChildren, 1)
 
-            case Up => navigateObs(ctx, props.programId, props.focusedObsId, obsKeys, -1)
+            case Up => navigateObs(ctx, props.programId, props.focusedObsId, props.programSummaries.get.groupsChildren, -1)
           }
           UseHotkeysProps(
             ((GoToSummary :: Up :: Down :: Nil) ::: (CopyKeys ::: PasteKeys)).toHotKeys,
