@@ -25,6 +25,7 @@ import lucuma.ui.syntax.all.given
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
+import eu.timepit.refined.types.numeric.NonNegInt
 
 case class ItcSpectroscopyPlot(
   ccds:            NonEmptyChain[ItcCcd],
@@ -32,13 +33,18 @@ case class ItcSpectroscopyPlot(
   graphType:       GraphType,
   targetName:      String,
   signalToNoiseAt: Wavelength,
-  details:         PlotDetails
+  details:         PlotDetails,
+  ccdLabels:       Map[NonNegInt, String]
 ) extends ReactFnProps(ItcSpectroscopyPlot.component)
 
 object ItcSpectroscopyPlot {
+  private given Reusability[Map[NonNegInt, String]] = Reusability.map
+
   private def chartOptions(
     graph:           GraphResult,
     seriesPerCcd:    Int,
+    ccdRanges:       List[(Double, Double)],
+    ccdLabels:       Map[NonNegInt, String],
     targetName:      String,
     signalToNoiseAt: Wavelength
   ) = {
@@ -95,6 +101,33 @@ object ItcSpectroscopyPlot {
             .setLabel(XAxisPlotLinesLabelOptions().setText(f"$value%.1f nm"))
         ).toJSArray
 
+    val hasCcdLabels =
+      ccdRanges.length > 1 && ccdRanges.indices.forall(i => ccdLabels.exists(_._1.value === i))
+
+    val plotBands =
+      if (ccdRanges.length > 1)
+        ccdRanges.zipWithIndex
+          .map: (range, idx) =>
+            // from zipWithIndex we know it starts at 0
+            val index = NonNegInt.unsafeFrom(idx)
+
+            val band = XAxisPlotBandsOptions()
+              .setFrom(range._1)
+              .setTo(range._2)
+              .setClassName(s"plot-band-ccd-$idx")
+
+            if hasCcdLabels then
+              band.setLabel(
+                XAxisPlotBandsLabelOptions()
+                  .setText(ccdLabels(index))
+                  .setAlign(AlignValue.center)
+                  .setVerticalAlign(VerticalAlignValue.top)
+                  .setY(-15)
+              )
+            else band
+          .toJSArray
+      else js.Array()
+
     Options()
       .setChart:
         CommonOptions.clazz(ExploreStyles.ItcPlotChart)
@@ -109,6 +142,7 @@ object ItcSpectroscopyPlot {
           .setType(AxisTypeValue.linear)
           .setTitle(XAxisTitleOptions().setText("Wavelength (nm)"))
           .setPlotLines(plotLines)
+          .setPlotBands(plotBands)
       .setYAxis(List(yAxes).toJSArray)
       .setPlotOptions:
         PlotOptions()
@@ -189,19 +223,31 @@ object ItcSpectroscopyPlot {
 
   private val component = ScalaFnComponent[ItcSpectroscopyPlot]: props =>
     for {
-      itcGraphOptions <- useMemo((props.graphs, props.targetName, props.signalToNoiseAt)):
-                           (graphs, targetName, signalToNoiseAt) =>
-                             // Some instruments like igrins2 returne a chart per ccd
-                             graphs.toList
-                               .groupBy(_.graphType)
-                               .map: (graphType, groupedGraphs) =>
-                                 val seriesPerCcd =
-                                   groupedGraphs.headOption.foldMap(_.series.length)
+      itcGraphOptions <-
+        useMemo((props.graphs, props.targetName, props.signalToNoiseAt, props.ccdLabels)):
+          (graphs, targetName, signalToNoiseAt, ccdLabels) =>
+            // Some instruments like igrins2 returne a chart per ccd
+            graphs.toList
+              .groupBy(_.graphType)
+              .map: (graphType, groupedGraphs) =>
+                val seriesPerCcd =
+                  groupedGraphs.headOption.foldMap(_.series.length)
 
-                                 val merged =
-                                   GraphResult(graphType, groupedGraphs.flatMap(_.series))
-                                 graphType ->
-                                   chartOptions(merged, seriesPerCcd, targetName, signalToNoiseAt)
+                val ccdRanges = groupedGraphs.flatMap: gr =>
+                  gr.series.headOption.flatMap: s =>
+                    s.xAxis.map: axis =>
+                      (axis.start, axis.end)
+
+                val merged =
+                  GraphResult(graphType, groupedGraphs.flatMap(_.series))
+                graphType ->
+                  chartOptions(merged,
+                               seriesPerCcd,
+                               ccdRanges,
+                               ccdLabels,
+                               targetName,
+                               signalToNoiseAt
+                  )
       options         <- useMemo((props.graphType, itcGraphOptions)): (graphType, itcGraphOptions) =>
                            itcGraphOptions.get(graphType)
     } yield

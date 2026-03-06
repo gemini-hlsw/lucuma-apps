@@ -10,6 +10,7 @@ import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.*
+import eu.timepit.refined.numeric.NonNegative
 import explore.common.UserPreferencesQueries.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -36,6 +37,7 @@ import lucuma.react.primereact.SelectItem
 import lucuma.ui.format.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.refined.*
 
 extension (tuple: (ItcTarget, Either[ItcQueryProblem, ItcGraphResult]))
   def toTargetAndResults: TargetAndResults =
@@ -64,7 +66,7 @@ object ItcSpectroscopyTile
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
-            props.selectedConfig.getOrElse(List.empty),
+            props.selectedConfig.orEmpty,
             props.obsTargets,
             props.customSedTimestamps
           )
@@ -194,6 +196,13 @@ object ItcSpectroscopyTile
             graphResult.integrationTime.bandOrLine
               .fold(bandValues(sourceProfile), emissionLineValues(sourceProfile))
 
+          // ig2 will have multiple ccd labels
+          val ccdLabels = props.selectedConfig.orEmpty
+            .collectFirst:
+              case ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _) =>
+                Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
+            .orEmpty
+
           <.div(
             ExploreStyles.ItcPlotSection,
             ExploreStyles.ItcPlotDetailsHidden.unless(detailsView.get.value)
@@ -211,7 +220,8 @@ object ItcSpectroscopyTile
               graphTypeView.get,
               graphResult.target.name.value,
               signalToNoiseAt,
-              detailsView.get
+              detailsView.get,
+              ccdLabels
             ),
             ItcPlotControl(graphTypeView, detailsView)
           )
