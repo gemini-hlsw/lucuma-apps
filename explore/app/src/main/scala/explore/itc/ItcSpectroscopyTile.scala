@@ -34,10 +34,10 @@ import lucuma.itc.GraphType
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.SelectItem
+import lucuma.refined.*
 import lucuma.ui.format.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
-import lucuma.refined.*
 
 extension (tuple: (ItcTarget, Either[ItcQueryProblem, ItcGraphResult]))
   def toTargetAndResults: TargetAndResults =

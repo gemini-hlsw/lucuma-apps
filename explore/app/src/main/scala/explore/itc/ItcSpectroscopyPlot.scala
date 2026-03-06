@@ -5,6 +5,7 @@ package explore.itc
 
 import cats.data.NonEmptyChain
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.components.ui.ExploreStyles
 import explore.highcharts.*
 import explore.model.itc.*
@@ -25,7 +26,6 @@ import lucuma.ui.syntax.all.given
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters.*
-import eu.timepit.refined.types.numeric.NonNegInt
 
 case class ItcSpectroscopyPlot(
   ccds:            NonEmptyChain[ItcCcd],
