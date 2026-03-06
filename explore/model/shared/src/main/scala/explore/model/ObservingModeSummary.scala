@@ -25,12 +25,12 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 
 // Observing mode with explicit values merged over defaults. Used for grouping observations by configuration.
 enum ObservingModeSummary derives Order:

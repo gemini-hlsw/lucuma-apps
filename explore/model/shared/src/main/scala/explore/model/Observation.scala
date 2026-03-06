@@ -18,7 +18,6 @@ import explore.modes.ItcInstrumentConfig
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
-import lucuma.refined.*
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosXBinning
@@ -49,6 +48,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.odb.json.time.decoder.given
+import lucuma.refined.*
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
@@ -223,7 +223,7 @@ final case class Observation(
              f.exposureTimeMode
             )
           )
-        case (_, i: ObservingMode.Igrins2LongSlit)                                      =>
+        case (_, i: ObservingMode.Igrins2LongSlit)                                     =>
           List(
             (ItcInstrumentConfig.Igrins2Spectroscopy(
                "SiGe immersion echelon".refined,

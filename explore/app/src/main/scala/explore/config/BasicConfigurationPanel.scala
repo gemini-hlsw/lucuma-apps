@@ -116,6 +116,8 @@ private object BasicConfigurationPanel:
           if (creating.get.value) Icons.Spinner.withSpin(true)
           else LucumaIcons.Gears
 
+        val disabled = props.readonly || creating.get.value
+
         <.div(ExploreStyles.BasicConfigurationGrid)(
           <.div(
             ExploreStyles.BasicConfigurationForm,
@@ -123,14 +125,14 @@ private object BasicConfigurationPanel:
               id = "configuration-mode".refined,
               label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
               value = scienceModeType.withOnMod(switchMode),
-              disabled = props.readonly
+              disabled = disabled
             ),
             spectroscopyView.mapValue: s =>
               SpectroscopyConfigurationPanel(
                 props.selectedConfig.get.headOption.map(_.instrument),
                 exposureTimeView,
                 s,
-                props.readonly,
+                disabled,
                 props.units,
                 props.calibrationRole
               ),
@@ -139,7 +141,7 @@ private object BasicConfigurationPanel:
                 props.selectedConfig.get.headOption.map(_.instrument),
                 exposureTimeView,
                 s,
-                props.readonly,
+                disabled,
                 props.units,
                 props.calibrationRole
               )
