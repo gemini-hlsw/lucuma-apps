@@ -172,13 +172,13 @@ object ItcSpectroscopyPlot {
               .setClassName(graphClassName)
               .setLineWidth(1)
               .setColorIndex(colorIdx.toDouble)
+              .setLabel(SeriesLabelOptionsObject().setEnabled(false))
 
             if (firstCcd) opts.setId(id)
             else
               opts
                 .setLinkedTo(id)
                 .setShowInLegend(false)
-                .setLabel(SeriesLabelOptionsObject().setEnabled(false))
           .map(_.asInstanceOf[SeriesOptionsType])
           .toJSArray
   }
