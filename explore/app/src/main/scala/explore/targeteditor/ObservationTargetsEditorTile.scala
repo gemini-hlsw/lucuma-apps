@@ -110,8 +110,7 @@ object ObservationTargetsEditorTile
               props.obsTime.set(newValue) >>
                 cb(oldValue.getOrElse(Instant.now), newValue.getOrElse(Instant.now))
           ).withOnMod: ct =>
-            Callback.log(s"to the db $ct") *>
-              props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
+            props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
 
         val obsDurationView: View[Option[TimeSpan]] =
           props.obsDuration.withOnMod: t =>

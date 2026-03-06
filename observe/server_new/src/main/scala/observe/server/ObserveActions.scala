@@ -53,8 +53,7 @@ trait ObserveActions {
     stepId: Step.Id,
     fileId: ImageFileId
   ): F[Dataset] =
-    odb
-      .datasetStartExposure(obsId, stepId, fileId)
+    odb.datasetStartExposure(obsId, stepId, fileId)
 
   /**
    * Send the datasetEnd command to the odb
