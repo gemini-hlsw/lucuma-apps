@@ -38,6 +38,7 @@ case class ItcSpectroscopyPlot(
 object ItcSpectroscopyPlot {
   private def chartOptions(
     graph:           GraphResult,
+    seriesPerCcd:    Int,
     targetName:      String,
     signalToNoiseAt: Wavelength
   ) = {
@@ -81,9 +82,8 @@ object ItcSpectroscopyPlot {
       case GraphType.SignalPixelGraph => "Pixel"
 
     val plotLines = graph.graphType match
-      case GraphType.SignalGraph      => js.Array()
-      case GraphType.SignalPixelGraph => js.Array()
-      case GraphType.S2NGraph         =>
+      case GraphType.SignalGraph | GraphType.SignalPixelGraph => js.Array()
+      case GraphType.S2NGraph                                 =>
         val value = signalToNoiseAt.toNanometers.value.value.toDouble
         List(
           XAxisPlotLinesOptions()
@@ -122,9 +122,12 @@ object ItcSpectroscopyPlot {
               )
           )
       .setSeries:
-        graph.series
-          .map: series =>
-            SeriesLineOptions((), (), line)
+        graph.series.zipWithIndex
+          .map: (series, idx) =>
+            val colorIdx = if (seriesPerCcd > 0) idx % seriesPerCcd else idx
+            val firstCcd = idx < seriesPerCcd
+            val id       = s"series-$colorIdx"
+            val opts     = SeriesLineOptions((), (), line)
               .setName(series.title)
               .setYAxis(0)
               .setData(
@@ -134,6 +137,14 @@ object ItcSpectroscopyPlot {
               )
               .setClassName(graphClassName)
               .setLineWidth(1)
+              .setColorIndex(colorIdx.toDouble)
+
+            if (firstCcd) opts.setId(id)
+            else
+              opts
+                .setLinkedTo(id)
+                .setShowInLegend(false)
+                .setLabel(SeriesLabelOptionsObject().setEnabled(false))
           .map(_.asInstanceOf[SeriesOptionsType])
           .toJSArray
   }
@@ -180,14 +191,17 @@ object ItcSpectroscopyPlot {
     for {
       itcGraphOptions <- useMemo((props.graphs, props.targetName, props.signalToNoiseAt)):
                            (graphs, targetName, signalToNoiseAt) =>
+                             // Some instruments like igrins2 returne a chart per ccd
                              graphs.toList
-                               .map: graph =>
-                                 graph.graphType -> chartOptions(
-                                   graph,
-                                   targetName,
-                                   signalToNoiseAt
-                                 )
-                               .toMap
+                               .groupBy(_.graphType)
+                               .map: (graphType, groupedGraphs) =>
+                                 val seriesPerCcd =
+                                   groupedGraphs.headOption.foldMap(_.series.length)
+
+                                 val merged =
+                                   GraphResult(graphType, groupedGraphs.flatMap(_.series))
+                                 graphType ->
+                                   chartOptions(merged, seriesPerCcd, targetName, signalToNoiseAt)
       options         <- useMemo((props.graphType, itcGraphOptions)): (graphType, itcGraphOptions) =>
                            itcGraphOptions.get(graphType)
     } yield
