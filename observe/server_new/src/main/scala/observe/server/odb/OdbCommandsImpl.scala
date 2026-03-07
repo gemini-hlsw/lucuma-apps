@@ -346,7 +346,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug("ODB event observationContinue sent")
     yield true
 
-  override def obsPause(obsId: Observation.Id, reason: String): F[Boolean] =
+  override def obsPause(obsId: Observation.Id): F[Boolean] =
     for
       _              <- L.debug(s"Send ODB event observationPause for obsId: $obsId")
       visitId        <- getCurrentVisitId(obsId)
@@ -361,7 +361,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug("ODB event observationPause sent")
     yield true
 
-  override def obsStop(obsId: Observation.Id, reason: String): F[Boolean] =
+  override def obsStop(obsId: Observation.Id): F[Boolean] =
     for
       _              <- L.debug(s"Send ODB event observationStop for obsId: $obsId")
       visitId        <- getCurrentVisitId(obsId)

@@ -233,11 +233,11 @@ object TestOdbProxy {
         override def obsContinue(obsId: Observation.Id): F[Boolean] =
           addEvent(ObsContinue(obsId)).as(true)
 
-        override def obsPause(obsId: Observation.Id, reason: String): F[Boolean] =
-          addEvent(ObsPause(obsId, reason)).as(true)
+        override def obsPause(obsId: Observation.Id): F[Boolean] =
+          addEvent(ObsPause(obsId)).as(true)
 
-        override def obsStop(obsId: Observation.Id, reason: String): F[Boolean] =
-          addEvent(ObsStop(obsId, reason)).as(true)
+        override def obsStop(obsId: Observation.Id): F[Boolean] =
+          addEvent(ObsStop(obsId)).as(true)
 
         override def outCapture: F[List[OdbEvent]] = rf.get.map(_.out)
 
@@ -269,6 +269,6 @@ object TestOdbProxy {
   case class StepAbort(obsId: Observation.Id)                                 extends OdbEvent
   case class StepStop(obsId: Observation.Id)                                  extends OdbEvent
   case class ObsContinue(obsId: Observation.Id)                               extends OdbEvent
-  case class ObsPause(obsId: Observation.Id, reason: String)                  extends OdbEvent
-  case class ObsStop(obsId: Observation.Id, reason: String)                   extends OdbEvent
+  case class ObsPause(obsId: Observation.Id)                                  extends OdbEvent
+  case class ObsStop(obsId: Observation.Id)                                   extends OdbEvent
 }
