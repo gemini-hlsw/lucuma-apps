@@ -17,6 +17,7 @@ import explore.model.enums.AppTab
 import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
 import explore.model.reusability.given
+import explore.observationtree.focusObs
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationValidationCode
@@ -84,7 +85,7 @@ object ObservationValidationsTableBody {
       def obsUrl(obsId: Observation.Id): String    =
         ctx.pageUrl((AppTab.Observations, props.programId, Focused.singleObs(obsId)).some)
       def goToObs(obsId: Observation.Id): Callback =
-        ctx.pushPage((AppTab.Observations, props.programId, Focused.singleObs(obsId)).some)
+        focusObs(props.programId, obsId.some, ctx)
 
       def toggleAll(row: Row[Expandable[ValidationsTableRow], Nothing, ?, Nothing]): Callback =
         row.toggleExpanded() *> row.subRows.traverse(r => toggleAll(r)).void

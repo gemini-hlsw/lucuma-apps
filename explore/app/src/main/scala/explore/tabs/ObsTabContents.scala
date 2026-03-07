@@ -84,6 +84,33 @@ case class ObsTabContents(
 object ObsTabContents extends TwoPanels:
   private type Props = ObsTabContents
 
+  private def flattenScreenOrder(
+    children: Map[Option[Group.Id], List[Either[Observation, Group]]],
+    parentId: Option[Group.Id]
+  ): List[Observation.Id] =
+    children
+      .get(parentId)
+      .orEmpty
+      .flatMap:
+        case Left(obs)    => List(obs.id)
+        case Right(group) => flattenScreenOrder(children, group.id.some)
+
+  private def navigateObs(
+    ctx:            AppContext[IO],
+    programId:      Program.Id,
+    focusedObsId:   Option[Observation.Id],
+    groupsChildren: Map[Option[Group.Id], List[Either[Observation, Group]]],
+    offset:         Int
+  ): Callback =
+    val obsKeys = flattenScreenOrder(groupsChildren, none)
+    focusedObsId match
+      case Some(currentId) =>
+        val idx = obsKeys.indexOf(currentId)
+        obsKeys.lift(idx + offset).foldMap(id => focusObs(programId, id.some, ctx))
+      case None            =>
+        (if (offset > 0) obsKeys.headOption else obsKeys.lastOption)
+          .foldMap(id => focusObs(programId, id.some, ctx))
+
   private val component =
     ScalaFnComponent
       .withHooks[Props]
@@ -159,6 +186,10 @@ object ObsTabContents extends TwoPanels:
                 (AppTab.Observations, props.programId, Focused.None).some,
                 SetRouteVia.HistoryPush
               )
+
+            case Down => navigateObs(ctx, props.programId, props.focusedObsId, props.programSummaries.get.groupsChildren, 1)
+
+            case Up => navigateObs(ctx, props.programId, props.focusedObsId, props.programSummaries.get.groupsChildren, -1)
           }
           UseHotkeysProps(
             ((GoToSummary :: Up :: Down :: Nil) ::: (CopyKeys ::: PasteKeys)).toHotKeys,
