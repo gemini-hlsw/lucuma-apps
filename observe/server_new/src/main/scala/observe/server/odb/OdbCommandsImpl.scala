@@ -92,7 +92,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- L.debug(s"ODB event $stage sent")
+      _              <- L.debug(s"ODB event for step $stage sent")
     yield true
 
   override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
@@ -146,7 +146,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- L.debug(s"ODB event $stage sent")
+      _              <- L.debug(s"ODB event for dataset $stage sent")
     yield true
 
   override def datasetEndExposure(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
@@ -200,7 +200,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- L.debug(s"ODB event $sequenceCommand sent")
+      _              <- L.debug(s"ODB event for sequence $sequenceCommand sent")
     yield true
 
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
