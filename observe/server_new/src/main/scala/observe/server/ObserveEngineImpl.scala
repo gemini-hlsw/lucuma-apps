@@ -1325,11 +1325,20 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         Event.modifyState:
           configSystemHandle(obsId, stepId, sys, clientId)
 
+  private def notifyOdbSequencePaused(obsId: Observation.Id): F[Unit] =
+    systems.odb
+      .obsPause(obsId)
+      .ensure(
+        ObserveFailure
+          .Unexpected("Unable to send ObservationPaused message to ODB.")
+      )(identity)
+      .void
+
   def notifyODB(
     i: (EventResult, EngineState[F])
   ): F[(EventResult, EngineState[F])] =
     (i match {
-      case (SystemUpdate(SystemEvent.Failed(obsId, _, e), _), _)   =>
+      case (SystemUpdate(SystemEvent.Failed(obsId, _, e), _), _)      =>
         Logger[F].error(s"Error executing $obsId due to $e") <*
           systems.odb
             .stepAbort(obsId)
@@ -1337,15 +1346,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
               ObserveFailure
                 .Unexpected("Unable to send ObservationAborted message to ODB.")
             )(identity)
-      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _) =>
-        systems.odb
-          .obsPause(obsId)
-          .ensure(
-            ObserveFailure
-              .Unexpected("Unable to send ObservationPaused message to ODB.")
-          )(identity)
-          .void
-      case _                                                       => Applicative[F].unit
+      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)    =>
+        notifyOdbSequencePaused(obsId)
+      case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _) =>
+        notifyOdbSequencePaused(obsId)
+      case (UserCommandResponse(
+              UserEvent.ModifyState(_),
+              _,
+              Some(AtomCompleted(obsId, sequenceType, _))
+            ),
+            _
+          ) if sequenceType === SequenceType.Acquisition =>
+        notifyOdbSequencePaused(obsId)
+      case _                                                          => Applicative[F].unit
     }).as(i)
 
   private def updateSequenceEndo(
