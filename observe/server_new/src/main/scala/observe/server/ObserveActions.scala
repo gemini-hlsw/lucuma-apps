@@ -41,7 +41,6 @@ trait ObserveActions {
       .ensure(
         ObserveFailure.Unexpected("Unable to send ObservationAborted message to ODB.")
       )(identity)
-      // TODO IS it OK to ignore the Boolean return value?
       .as(Result.OKAborted(Response.Aborted(imageFileId)))
 
   /**
@@ -187,7 +186,15 @@ trait ObserveActions {
             val resumePaused: TimeSpan => Stream[F, Result] =
               (remaining: TimeSpan) =>
                 Stream
-                  .eval(c.continue.self(remaining))
+                  .eval(
+                    env.odb
+                      .stepContinue(env.obsId, stepId)
+                      .ensure(
+                        ObserveFailure
+                          .Unexpected("Unable to send ObservationContinue message to ODB.")
+                      )(identity)
+                      .flatMap(_ => c.continue.self(remaining))
+                  )
                   .flatMap(observeTail(fileId, stepId, env))
             val progress: ElapsedTime => Stream[F, Result]  =
               (elapsed: ElapsedTime) =>
@@ -197,29 +204,30 @@ trait ObserveActions {
                   .widen[Result]
             val stopPaused: Stream[F, Result]               =
               Stream
-                .eval {
-                  c.stopPaused.self
-                }
+                .eval(c.stopPaused.self)
                 .flatMap(observeTail(fileId, stepId, env))
             val abortPaused: Stream[F, Result]              =
               Stream
-                .eval {
-                  c.abortPaused.self
-                }
+                .eval(c.abortPaused.self)
                 .flatMap(observeTail(fileId, stepId, env))
 
-            Result
-              .Paused(
-                ObserveContext[F](
-                  resumePaused,
-                  progress,
-                  stopPaused,
-                  abortPaused,
-                  totalTime
-                )
+            env.odb
+              .stepPause(env.obsId, stepId)
+              .ensure(
+                ObserveFailure.Unexpected("Unable to send ObservationPaused message to ODB.")
+              )(identity)
+              .as(
+                Result
+                  .Paused(
+                    ObserveContext[F](
+                      resumePaused,
+                      progress,
+                      stopPaused,
+                      abortPaused,
+                      totalTime
+                    )
+                  )
               )
-              .pure[F]
-              .widen[Result]
           case _                     =>
             ObserveFailure
               .Execution("Observation paused for an instrument that does not support pause")
