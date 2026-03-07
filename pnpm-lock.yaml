@@ -36,8 +36,8 @@ importers:
         specifier: 1.1.0
         version: 1.1.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
-        specifier: 2.0.14
-        version: 2.0.14(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 2.0.15
+        version: 2.0.15(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@floating-ui/react':
         specifier: 0.27.18
         version: 0.27.18(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -366,8 +366,8 @@ packages:
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
     resolution: {integrity: sha512-lo4x9p7DAq3WeCknHXqkCNmzSMvyKfucl1BFF6K22BjdiRd+DavBwt4aGUQBGnIPGwZgNKrjmwAFj9xuYdLZDQ==}
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.14':
-    resolution: {integrity: sha512-UdEe7oMY1ElMiOGJpB5UD1+KfBLCfQTW7VovtP25OzvWEhedY7Q0Z8ysF278Mqrtu6S48ckfD63hhzDnDYzjWw==}
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.15':
+    resolution: {integrity: sha512-oN5RNmhAKUDayb+d7211IHdwq774SG1Qu9y27NXBDw3Gdpx7jPZXJhM+ZLgmXcQ4cQbEtf64vOU+2IcN289Ibg==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -4018,7 +4018,7 @@ snapshots:
       '@babel/runtime': 7.28.6
       css-box-model: 1.2.1
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.14(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.15(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.7.9
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
@@ -4045,8 +4045,8 @@ snapshots:
       '@atlaskit/ds-lib': 5.3.0(@types/react@19.2.10)(react@18.3.1)
       '@atlaskit/platform-feature-flags': 1.1.3(react@18.3.1)
       '@babel/runtime': 7.28.6
-      '@babel/traverse': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
       bind-event-listener: 3.0.0
       react: 18.3.1
     transitivePeerDependencies:
@@ -4110,7 +4110,7 @@ snapshots:
   '@babel/generator@7.28.6':
     dependencies:
       '@babel/parser': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
       jsesc: 3.1.0
@@ -4177,8 +4177,8 @@ snapshots:
 
   '@babel/helper-module-imports@7.28.6':
     dependencies:
-      '@babel/traverse': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/traverse': 7.29.0
+      '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
 
@@ -4252,7 +4252,7 @@ snapshots:
 
   '@babel/parser@7.28.6':
     dependencies:
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
 
   '@babel/parser@7.29.0':
     dependencies:
@@ -4754,7 +4754,7 @@ snapshots:
       '@babel/helper-globals': 7.28.0
       '@babel/parser': 7.28.6
       '@babel/template': 7.28.6
-      '@babel/types': 7.28.6
+      '@babel/types': 7.29.0
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
