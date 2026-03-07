@@ -6,6 +6,7 @@ package observe.server
 import cats.data.NonEmptyList
 import cats.effect.Temporal
 import fs2.Stream
+import lucuma.core.model.sequence.Step
 import observe.model.ActionType
 import observe.model.dhs.ImageFileId
 import observe.server.engine.Action
@@ -37,7 +38,8 @@ trait InstrumentActions[F[_]] {
    *   Properties of the observation
    */
   def observeActions(
-    env: ObserveEnvironment[F]
+    stepId: Step.Id,
+    env:    ObserveEnvironment[F]
   ): List[ParallelActions[F]]
 
   /**
@@ -61,12 +63,13 @@ object InstrumentActions {
     )
 
   private def launchObserve[F[_]](
+    stepId:    Step.Id,
     env:       ObserveEnvironment[F],
-    doObserve: (ImageFileId, ObserveEnvironment[F]) => Stream[F, Result]
+    doObserve: (ImageFileId, Step.Id, ObserveEnvironment[F]) => Stream[F, Result]
   ): Stream[F, Result] =
     Stream.eval(FileIdProvider.fileId(env)).flatMap { fileId =>
       Stream.emit(Result.Partial(FileIdAllocated(fileId))) ++
-        doObserve(fileId, env)
+        doObserve(fileId, stepId, env)
     }
 
   /**
@@ -80,11 +83,12 @@ object InstrumentActions {
         ObserveActions.observationProgressStream(env)
 
       override def observeActions(
+        stepId: Step.Id,
         obsEnv: ObserveEnvironment[F]
       ): List[ParallelActions[F]] =
         defaultObserveActions(
           observationProgressStream(obsEnv)
-            .mergeHaltR(launchObserve(obsEnv, ObserveActions.stdObserve[F]))
+            .mergeHaltR(launchObserve(stepId, obsEnv, ObserveActions.stdObserve[F]))
             .handleErrorWith(catchObsErrors[F])
         )
 

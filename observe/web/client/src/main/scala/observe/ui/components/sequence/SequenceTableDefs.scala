@@ -38,7 +38,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     requests:           ObservationRequests,
     executionState:     ExecutionState,
     progress:           Option[StepProgress],
-    selectedStepId:     Option[Step.Id],
+    selectedRowId:      Option[SelectedRowId],
     datasetIdsInFlight: Set[Dataset.Id],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
     onDatasetQaChange:  Dataset.Id => EditableQaFields => Callback,
@@ -166,7 +166,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
             cell.row.original.value.toOption
               .map(_.step)
               .map[VdomNode]:
-                case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
+                case step @ SequenceRow.Executed.ExecutedStep(_, _, _) =>
                   renderVisitExtraRow(
                     step,
                     showOngoingLabel = false,
@@ -178,12 +178,14 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                     ,
                     meta.datasetIdsInFlight
                   )
-                case step                                           =>
-                  (step.id.toOption, step.stepTypeDisplay, step.exposureTime).mapN:
-                    (stepId, stepType, exposureTime) =>
-                      meta.selectedStepId
-                        .filter(_ === stepId)
-                        .map: stepId =>
+                case step                                              =>
+                  (step.selectableRowId, step.stepTypeDisplay, step.exposureTime).mapN:
+                    (selectableRowId, stepType, exposureTime) =>
+                      meta.selectedRowId
+                        .filter(_ == selectableRowId)
+                        .map: selectedRowId =>
+                          val stepId: Step.Id = selectedRowId.stepId
+
                           StepProgressCell(
                             clientMode = clientMode,
                             instrument = instrument,
@@ -204,7 +206,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             systemOverrides = meta.executionState.systemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,
-                            selectedStep = meta.selectedStepId,
+                            // selectedStep = meta.selectedStepId,
                             isPreview = isPreview
                           )
       )

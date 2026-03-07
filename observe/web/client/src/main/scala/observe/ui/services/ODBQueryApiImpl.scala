@@ -16,9 +16,18 @@ import observe.model.Observation
 import observe.queries.VisitQueriesGQL
 import observe.ui.model.EditableQaFields
 import org.typelevel.log4cats.Logger
+import cats.Endo
+import cats.data.NonEmptyList
+import lucuma.schemas.model.StepRecord
 
 case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB], Logger[IO])
     extends ODBQueryApi[IO]:
+
+  // private def filterVisitSteps[D]: Endo[NonEmptyList[Visit[D]]] =
+  //   _.map: visit =>
+  //     Visit.gmosNorthAtomSteps.replace((steps: List[StepRecord[D]]) =>
+  //       steps.filter(_.visitId === visit.id)
+  //     )
 
   override def queryVisits(
     obsId: Observation.Id,
@@ -29,6 +38,12 @@ case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB], Logger[IO])
       .query(obsId, from.orIgnore)
       .raiseGraphQLErrors
       .map(_.observation.flatMap(_.execution))
+    // TODO REMOVE THIS LOGIC IF ODB GOES BACK TO PREVIOUS MODEL
+    // Otherwise, we split atomRecords into single visits and reorder them by type and end time, not start.
+    // .map:
+    //   _.map:
+    //     case ExecutionVisits.GmosNorth(visits) =>
+    //       ExecutionVisits.GmosNorth(filterVisitSteps(visits))
 
   override def querySequence(obsId: Observation.Id): IO[SequenceData] =
     SequenceQueriesGQL

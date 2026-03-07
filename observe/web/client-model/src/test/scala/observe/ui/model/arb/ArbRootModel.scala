@@ -10,12 +10,12 @@ import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.math.arb.ArbRefined.given
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
-import lucuma.core.util.arb.ArbUid.given
 import lucuma.react.table.ColumnFilters
 import lucuma.react.table.ColumnId
+import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.arb.ArbSelectedRowId.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.sso.arb.ArbUserVault.given
 import observe.common.FixedLengthBuffer
@@ -59,7 +59,7 @@ trait ArbRootModel:
       es    <- arbitrary[Map[Observation.Id, ExecutionState]]
       ri    <- arbitrary[ObsRecordedIds]
       sp    <- arbitrary[Map[Observation.Id, StepProgress]]
-      uss   <- arbitrary[Map[Observation.Id, Step.Id]]
+      usr   <- arbitrary[Map[Observation.Id, SelectedRowId]]
       or    <- arbitrary[Map[Observation.Id, ObservationRequests]]
       cs    <- arbitrary[Conditions]
       obs   <- arbitrary[Option[Observer]]
@@ -77,7 +77,7 @@ trait ArbRootModel:
       es,
       ri,
       sp,
-      uss,
+      usr,
       or,
       cs,
       obs,
@@ -97,7 +97,7 @@ trait ArbRootModel:
       Map[Observation.Id, ExecutionState],
       ObsRecordedIds,
       Map[Observation.Id, StepProgress],
-      Map[Observation.Id, Step.Id],
+      Map[Observation.Id, SelectedRowId],
       Map[Observation.Id, ObservationRequests],
       Conditions,
       Option[Observer],
@@ -115,7 +115,7 @@ trait ArbRootModel:
      x.executionState,
      x.recordedIds,
      x.obsProgress,
-     x.userSelectedStep,
+     x.userSelectedRow,
      x.obsRequests,
      x.conditions,
      x.observer,

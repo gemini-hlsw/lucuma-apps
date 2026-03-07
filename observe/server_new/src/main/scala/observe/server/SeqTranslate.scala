@@ -122,9 +122,7 @@ object SeqTranslate {
       stepType:      StepType,
       insSpec:       InstrumentSpecifics[S, D],
       instf:         SystemOverrides => InstrumentSystem[F],
-      instHeader:    KeywordsClient[F] => Header[F],
-      atomId:        Atom.Id,
-      sequenceType:  SequenceType
+      instHeader:    KeywordsClient[F] => Header[F]
     ): StepGen[F, D] = {
 
       def buildStep(
@@ -161,7 +159,7 @@ object SeqTranslate {
           )
           // Request the instrument to build the observe actions and merge them with the progress
           // Also catches any errors in the process of running an observation
-          inst.instrumentActions.observeActions(env)
+          inst.instrumentActions.observeActions(step.id, env)
         }
 
         SequenceGen.PendingStepGen[F, D](
@@ -171,40 +169,30 @@ object SeqTranslate {
           (ov: SystemOverrides) => instf(ov).observeControl,
           StepActionsGen(
             systemss.odb
-              .stepStartStep(
-                observation.id,
-                step.instrumentConfig,
-                step.stepConfig,
-                step.telescopeConfig,
-                step.observeClass,
-                step.id.some,
-                atomId,
-                insSpec.instrument,
-                sequenceType
-              )
+              .stepStartStep(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             systemss.odb
-              .stepStartConfigure(observation.id)
+              .stepStartConfigure(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             configs,
             systemss.odb
-              .stepEndConfigure(observation.id)
+              .stepEndConfigure(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             systemss.odb
-              .stepStartObserve(observation.id)
+              .stepStartObserve(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent),
             rest,
             systemss.odb
-              .stepEndObserve(observation.id)
+              .stepEndObserve(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent)
               .makeUninterruptible,
             systemss.odb
-              .stepEndStep(observation.id)
+              .stepEndStep(observation.id, step.id)
               .as(Response.Ignored)
               .toAction(ActionType.OdbEvent)
               .makeUninterruptible
@@ -300,9 +288,7 @@ object SeqTranslate {
                       insSpec,
                       (ov: SystemOverrides) =>
                         instf(ov, step.stepConfig.stepType, stepType, step.instrumentConfig),
-                      instHeader(step.instrumentConfig),
-                      atom.id,
-                      sequenceType
+                      instHeader(step.instrumentConfig)
                     )
               .separate
 

@@ -14,6 +14,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
@@ -34,8 +35,8 @@ final case class Flamingos2SequenceTable(
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
-  selectedStepId:       Option[Step.Id],
-  setSelectedStepId:    Step.Id => Callback,
+  selectedRowId:        Option[SelectedRowId],
+  setSelectedRowId:     SelectedRowId => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,

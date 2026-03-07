@@ -566,7 +566,7 @@ object ObserveEngine {
                   EngineHandle.logError(e)(s"Error reloading atom for observation [$obsId]") >>
                     EngineHandle
                       .fromSingleEvent(
-                        Event.failed(
+                        Event.loadFailed(
                           obsId,
                           0,
                           Result.Error(s"Error updating sequence, cannot continue: ${e.getMessage}")

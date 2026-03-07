@@ -20,6 +20,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.SelectedRowId
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.toast.*
 import monocle.Optional
@@ -46,8 +47,8 @@ case class ObservationSequence(
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
   requests:             ObservationRequests,
-  selectedStep:         Option[Step.Id],
-  setSelectedStep:      Step.Id => Callback,
+  selectedRowId:        Option[SelectedRowId],
+  setSelectedRowId:     SelectedRowId => Callback,
   clientMode:           ClientMode
 ) extends ReactFnProps(ObservationSequence)
 
@@ -176,8 +177,8 @@ object ObservationSequence
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
-                  props.selectedStep,
-                  props.setSelectedStep,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
@@ -194,8 +195,8 @@ object ObservationSequence
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
-                  props.selectedStep,
-                  props.setSelectedStep,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
@@ -222,8 +223,8 @@ object ObservationSequence
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
-                  props.selectedStep,
-                  props.setSelectedStep,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
@@ -240,8 +241,8 @@ object ObservationSequence
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
-                  props.selectedStep,
-                  props.setSelectedStep,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
@@ -266,8 +267,8 @@ object ObservationSequence
               props.executionState.get,
               props.currentRecordedVisit,
               props.progress,
-              props.selectedStep,
-              props.setSelectedStep,
+              props.selectedRowId,
+              props.setSelectedRowId,
               props.requests,
               isPreview = false,
               onBreakpointFlip,
