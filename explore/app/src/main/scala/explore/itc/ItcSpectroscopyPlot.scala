@@ -5,6 +5,7 @@ package explore.itc
 
 import cats.data.NonEmptyChain
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.components.ui.ExploreStyles
 import explore.highcharts.*
 import explore.model.itc.*
@@ -32,12 +33,18 @@ case class ItcSpectroscopyPlot(
   graphType:       GraphType,
   targetName:      String,
   signalToNoiseAt: Wavelength,
-  details:         PlotDetails
+  details:         PlotDetails,
+  ccdLabels:       Map[NonNegInt, String]
 ) extends ReactFnProps(ItcSpectroscopyPlot.component)
 
 object ItcSpectroscopyPlot {
+  private given Reusability[Map[NonNegInt, String]] = Reusability.map
+
   private def chartOptions(
     graph:           GraphResult,
+    seriesPerCcd:    Int,
+    ccdRanges:       List[(Double, Double)],
+    ccdLabels:       Map[NonNegInt, String],
     targetName:      String,
     signalToNoiseAt: Wavelength
   ) = {
@@ -54,6 +61,7 @@ object ItcSpectroscopyPlot {
       .setTickInterval(tick)
       .setMin(min)
       .setMax(max)
+      .setFloor(0.0) // Y can never be negative
       .setMinorTickInterval(tick / 3)
       .setLineWidth(1)
       .setLabels(YAxisLabelsOptions().setFormat("{value}"))
@@ -81,9 +89,8 @@ object ItcSpectroscopyPlot {
       case GraphType.SignalPixelGraph => "Pixel"
 
     val plotLines = graph.graphType match
-      case GraphType.SignalGraph      => js.Array()
-      case GraphType.SignalPixelGraph => js.Array()
-      case GraphType.S2NGraph         =>
+      case GraphType.SignalGraph | GraphType.SignalPixelGraph => js.Array()
+      case GraphType.S2NGraph                                 =>
         val value = signalToNoiseAt.toNanometers.value.value.toDouble
         List(
           XAxisPlotLinesOptions()
@@ -94,6 +101,33 @@ object ItcSpectroscopyPlot {
             .setZIndex(10)
             .setLabel(XAxisPlotLinesLabelOptions().setText(f"$value%.1f nm"))
         ).toJSArray
+
+    val hasCcdLabels =
+      ccdRanges.length > 1 && ccdRanges.indices.forall(i => ccdLabels.exists(_._1.value === i))
+
+    val plotBands =
+      if (ccdRanges.length > 1)
+        ccdRanges.zipWithIndex
+          .map: (range, idx) =>
+            // from zipWithIndex we know it starts at 0
+            val index = NonNegInt.unsafeFrom(idx)
+
+            val band = XAxisPlotBandsOptions()
+              .setFrom(range._1)
+              .setTo(range._2)
+              .setClassName(s"plot-band-ccd-$idx")
+
+            if hasCcdLabels then
+              band.setLabel(
+                XAxisPlotBandsLabelOptions()
+                  .setText(ccdLabels(index))
+                  .setAlign(AlignValue.center)
+                  .setVerticalAlign(VerticalAlignValue.top)
+                  .setY(-15)
+              )
+            else band
+          .toJSArray
+      else js.Array()
 
     Options()
       .setChart:
@@ -109,6 +143,7 @@ object ItcSpectroscopyPlot {
           .setType(AxisTypeValue.linear)
           .setTitle(XAxisTitleOptions().setText("Wavelength (nm)"))
           .setPlotLines(plotLines)
+          .setPlotBands(plotBands)
       .setYAxis(List(yAxes).toJSArray)
       .setPlotOptions:
         PlotOptions()
@@ -122,9 +157,12 @@ object ItcSpectroscopyPlot {
               )
           )
       .setSeries:
-        graph.series
-          .map: series =>
-            SeriesLineOptions((), (), line)
+        graph.series.zipWithIndex
+          .map: (series, idx) =>
+            val colorIdx = if (seriesPerCcd > 0) idx % seriesPerCcd else idx
+            val firstCcd = idx < seriesPerCcd
+            val id       = s"series-$colorIdx"
+            val opts     = SeriesLineOptions((), (), line)
               .setName(series.title)
               .setYAxis(0)
               .setData(
@@ -134,6 +172,14 @@ object ItcSpectroscopyPlot {
               )
               .setClassName(graphClassName)
               .setLineWidth(1)
+              .setColorIndex(colorIdx.toDouble)
+              .setLabel(SeriesLabelOptionsObject().setEnabled(false))
+
+            if (firstCcd) opts.setId(id)
+            else
+              opts
+                .setLinkedTo(id)
+                .setShowInLegend(false)
           .map(_.asInstanceOf[SeriesOptionsType])
           .toJSArray
   }
@@ -178,16 +224,31 @@ object ItcSpectroscopyPlot {
 
   private val component = ScalaFnComponent[ItcSpectroscopyPlot]: props =>
     for {
-      itcGraphOptions <- useMemo((props.graphs, props.targetName, props.signalToNoiseAt)):
-                           (graphs, targetName, signalToNoiseAt) =>
-                             graphs.toList
-                               .map: graph =>
-                                 graph.graphType -> chartOptions(
-                                   graph,
-                                   targetName,
-                                   signalToNoiseAt
-                                 )
-                               .toMap
+      itcGraphOptions <-
+        useMemo((props.graphs, props.targetName, props.signalToNoiseAt, props.ccdLabels)):
+          (graphs, targetName, signalToNoiseAt, ccdLabels) =>
+            // Some instruments like igrins2 returne a chart per ccd
+            graphs.toList
+              .groupBy(_.graphType)
+              .map: (graphType, groupedGraphs) =>
+                val seriesPerCcd =
+                  groupedGraphs.headOption.foldMap(_.series.length)
+
+                val ccdRanges = groupedGraphs.flatMap: gr =>
+                  gr.series.headOption.flatMap: s =>
+                    s.xAxis.map: axis =>
+                      (axis.start, axis.end)
+
+                val merged =
+                  GraphResult(graphType, groupedGraphs.flatMap(_.series))
+                graphType ->
+                  chartOptions(merged,
+                               seriesPerCcd,
+                               ccdRanges,
+                               ccdLabels,
+                               targetName,
+                               signalToNoiseAt
+                  )
       options         <- useMemo((props.graphType, itcGraphOptions)): (graphType, itcGraphOptions) =>
                            itcGraphOptions.get(graphType)
     } yield
