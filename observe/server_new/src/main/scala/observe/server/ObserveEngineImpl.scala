@@ -341,10 +341,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): F[Unit] =
     setObserver(id, user, observer) *>
       executeEngine.offer:
-        Event.modifyState[F](
+        Event.modifyState[F]:
           clearObsCmd(id) *>
             userNextAtom(id, atomType).as(SeqEvent.NullSeqEvent)
-        )
 
   def userNextAtom(
     id:       Observation.Id,
@@ -1338,7 +1337,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     i: (EventResult, EngineState[F])
   ): F[(EventResult, EngineState[F])] =
     (i match {
-      case (SystemUpdate(SystemEvent.Failed(obsId, _, e), _), _)      =>
+      case (SystemUpdate(SystemEvent.Failed(obsId, _, e), _), _)                 =>
         Logger[F].error(s"Error executing $obsId due to $e") <*
           systems.odb
             .stepAbort(obsId)
@@ -1346,19 +1345,26 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
               ObserveFailure
                 .Unexpected("Unable to send ObservationAborted message to ODB.")
             )(identity)
-      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)    =>
+      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)               =>
         notifyOdbSequencePaused(obsId)
-      case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _) =>
+      case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _)            =>
         notifyOdbSequencePaused(obsId)
-      case (UserCommandResponse(
-              UserEvent.ModifyState(_),
-              _,
-              Some(AtomCompleted(obsId, sequenceType, _))
-            ),
-            _
-          ) if sequenceType === SequenceType.Acquisition =>
-        notifyOdbSequencePaused(obsId)
-      case _                                                          => Applicative[F].unit
+      case (UserCommandResponse(UserEvent.ModifyState(_), _, Some(seqEvent)), _) =>
+        seqEvent match
+          case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
+            notifyOdbSequencePaused(obsId)
+          case NewAtomLoaded(obsId, sequenceType, atomId)                                         =>
+            systems.odb
+              .obsContinue(obsId)
+              .ensure(
+                ObserveFailure
+                  .Unexpected("Unable to send ObservationContinued message to ODB.")
+              )(identity)
+              .void
+          case _                                                                                  =>
+            Applicative[F].unit
+      case _                                                                     =>
+        Applicative[F].unit
     }).as(i)
 
   private def updateSequenceEndo(

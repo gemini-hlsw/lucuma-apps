@@ -473,31 +473,25 @@ object ObserveEngine {
     obsId:         Observation.Id,
     atomType:      SequenceType
   ): EngineHandle[F, Unit] =
-    EngineHandle.fromSingleEventF(
-      odb.read(obsId).map { odbObsData =>
-        translator
-          .nextAtom(odbObsData, atomType)
-          ._2
-          .map { atm =>
-            Event.modifyState[F](
-              EngineHandle
-                .modifyState_ { (st: EngineState[F]) =>
-                  updateAtom(obsId, atm.some)(st)
-                }
-                .flatMap(_ =>
-                  executeEngine.startNewAtom(obsId) *>
-                    EngineHandle.pure:
-                      SeqEvent.NewAtomLoaded(obsId, atm.sequenceType, atm.atomId)
-                )
-            )
-          }
-          .getOrElse(
-            Event.modifyState[F](
-              executeEngine.startNewAtom(obsId).as(SeqEvent.NoMoreAtoms(obsId))
-            )
-          )
-      }
-    )
+    EngineHandle.fromSingleEventF:
+      odb
+        .read(obsId)
+        .map: odbObsData =>
+          translator
+            .nextAtom(odbObsData, atomType)
+            ._2
+            .map: atm =>
+              Event.modifyState[F]:
+                EngineHandle
+                  .modifyState_ : (st: EngineState[F]) =>
+                    updateAtom(obsId, atm.some)(st)
+                  .flatMap: _ =>
+                    executeEngine.startNewAtom(obsId) *>
+                      EngineHandle.pure:
+                        SeqEvent.NewAtomLoaded(obsId, atm.sequenceType, atm.atomId)
+            .getOrElse:
+              Event.modifyState[F]:
+                executeEngine.startNewAtom(obsId).as(SeqEvent.NoMoreAtoms(obsId))
 
   def onAtomReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
