@@ -81,8 +81,8 @@ importers:
         specifier: 3.13.19
         version: 3.13.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       aladin-lite:
-        specifier: 3.8.1
-        version: 3.8.1
+        specifier: 3.8.2
+        version: 3.8.2
       highcharts:
         specifier: 12.5.0
         version: 12.5.0
@@ -278,8 +278,8 @@ importers:
         specifier: 7.2.0
         version: 7.2.0
       aladin-lite:
-        specifier: 3.8.1
-        version: 3.8.1
+        specifier: 3.8.2
+        version: 3.8.2
     devDependencies:
       '@atlaskit/pragmatic-drag-and-drop':
         specifier: 1.7.9
@@ -1916,8 +1916,8 @@ packages:
   ajv@8.17.1:
     resolution: {integrity: sha512-B/gBuNg5SiMTrPkC+A2+cW0RszwxYmn6VYxB/inlBStS5nx6xHIt/ehKRhIMhqusl7a8LjQoZnjCs5vhwxOQ1g==}
 
-  aladin-lite@3.8.1:
-    resolution: {integrity: sha512-0w+QUoRTo1dW4XumR6hd6nymdp9tLNCZL6f/M07DTUE+5DpBiORgL5765v77D5bhMIdNsHO9sH+YHjyJ0o6+Tg==}
+  aladin-lite@3.8.2:
+    resolution: {integrity: sha512-/VGtxSWZ4StdKgwjmzqNkUY/3iTaBZJ5F6bN+nAfcK1NEATcAb2CYJX4U8FElpwYMgKrypYQV5KniRzhVbH+nA==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -5723,7 +5723,7 @@ snapshots:
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
 
-  aladin-lite@3.8.1: {}
+  aladin-lite@3.8.2: {}
 
   ansi-regex@5.0.1: {}
 
