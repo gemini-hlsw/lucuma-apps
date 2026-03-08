@@ -20,6 +20,7 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.EditableQaFields
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.toast.*
 import monocle.Optional
@@ -29,7 +30,6 @@ import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
 import observe.ui.components.sequence.byInstrument.*
 import observe.ui.model.AppContext
-import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 import observe.ui.services.ODBQueryApi

@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package observe.ui.components.sequence.steps
+package lucuma.ui.sequence
 
 import cats.syntax.all.*
 import crystal.react.hooks.*
@@ -21,9 +21,6 @@ import lucuma.schemas.model.Dataset
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.given
 import lucuma.ui.syntax.render.*
-import observe.ui.Icons
-import observe.ui.ObserveStyles
-import observe.ui.model.EditableQaFields
 import org.scalajs.dom.KeyCode
 
 case class QaEditor(
@@ -42,11 +39,11 @@ object QaEditor
         val submit: Callback = props.onChange(props.dataset.id)(qaFields.get)
         val reset: Callback  = qaFields.set(props.editableQaFields)
 
-        <.span(ObserveStyles.QaStatusEditable, ^.onClick ==> panelRef.toggle)(
+        <.span(SequenceStyles.QaStatusEditable, ^.onClick ==> panelRef.toggle)(
           props.renderIcon,
-          <.span(ObserveStyles.QaStatusSelect)(Icons.ChevronDown),
+          <.span(SequenceStyles.QaStatusSelect)(SequenceIcons.ChevronDown),
           OverlayPanel(onHide = reset)(
-            <.form(ObserveStyles.QaEditorPanel)(
+            <.form(SequenceStyles.QaEditorPanel)(
               ^.onSubmit ==> { e => e.preventDefaultCB >> submit },
               ^.onKeyDown ==> { e =>
                 e.keyCode match // Allows submitting by pressing enter after changing the status.
@@ -55,7 +52,7 @@ object QaEditor
               }
             )(
               SelectButtonOptional[DatasetQaState](
-                clazz = ObserveStyles.QaStatusButtonStrip,
+                clazz = SequenceStyles.QaStatusButtonStrip,
                 value = qaFields.get.qaState,
                 options = Enumerated[DatasetQaState].all.map: qaState =>
                   SelectItem(qaState, qaState.tag),
@@ -79,14 +76,15 @@ object QaEditor
                 ^.autoComplete.off,
                 ^.onClick ==> (_.stopPropagationCB)
               ),
-              <.div(ObserveStyles.QaEditorPanelButtons)(
-                Button(icon = Icons.XMark, severity = Button.Severity.Danger).compact("Cancel"),
-                Button(icon = Icons.Check, severity = Button.Severity.Success).compact
+              <.div(SequenceStyles.QaEditorPanelButtons)(
+                Button(icon = SequenceIcons.XMark, severity = Button.Severity.Danger)
+                  .compact("Cancel"),
+                Button(icon = SequenceIcons.Check, severity = Button.Severity.Success).compact
                   .withMods(^.`type` := "submit")( // This way it works with "Enter" key.
                     "Save"
                   )
               )
             )
-          ).withMods(ObserveStyles.QaEditorOverlay).withRef(panelRef.ref)
+          ).withMods(SequenceStyles.QaEditorOverlay).withRef(panelRef.ref)
         )
     )

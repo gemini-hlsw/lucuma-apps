@@ -14,13 +14,13 @@ import lucuma.core.model.sequence.gmos
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.EditableQaFields
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
 import observe.ui.components.sequence.SequenceTable
 import observe.ui.components.sequence.SequenceTableBuilder
-import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 

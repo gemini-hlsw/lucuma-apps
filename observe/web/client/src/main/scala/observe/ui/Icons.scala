@@ -38,14 +38,6 @@ object Icons:
   private val faCaretRight: FAIcon = js.native
 
   @js.native
-  @JSImport("@fortawesome/pro-solid-svg-icons", "faCheck")
-  private val faCheck: FAIcon = js.native
-
-  @js.native
-  @JSImport("@fortawesome/pro-light-svg-icons", "faChevronDown")
-  val faChevronDown: FAIcon = js.native
-
-  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faChevronRight")
   private val faChevronRight: FAIcon = js.native
 
@@ -161,10 +153,6 @@ object Icons:
   @JSImport("@fortawesome/pro-solid-svg-icons", "faVolumeSlash")
   private val faVolumeSlash: FAIcon = js.native
 
-  @js.native
-  @JSImport("@fortawesome/sharp-solid-svg-icons", "faXmark")
-  private val faXMark: FAIcon = js.native
-
   // This is tedious but lets us do proper tree-shaking
   FontAwesome.library.add(
     faArrowsRotate,
@@ -174,8 +162,6 @@ object Icons:
     faBars,
     faCalendar,
     faCaretRight,
-    faCheck,
-    faChevronDown,
     faChevronRight,
     faCircle,
     faCircleCheck,
@@ -204,8 +190,7 @@ object Icons:
     faStop,
     faSun,
     faVolume,
-    faVolumeSlash,
-    faXMark
+    faVolumeSlash
   )
 
   inline def ArrowsRotate      = FontAwesomeIcon(faArrowsRotate)
@@ -215,8 +200,6 @@ object Icons:
   inline def Bars              = FontAwesomeIcon(faBars)
   inline def Calendar          = FontAwesomeIcon(faCalendar)
   inline def CaretRight        = FontAwesomeIcon(faCaretRight)
-  inline def Check             = FontAwesomeIcon(faCheck)
-  inline def ChevronDown       = FontAwesomeIcon(faChevronDown)
   inline def ChevronRight      = FontAwesomeIcon(faChevronRight)
   inline def Circle            = FontAwesomeIcon(faCircle)
   inline def CircleCheck       = FontAwesomeIcon(faCircleCheck)
@@ -246,7 +229,6 @@ object Icons:
   inline def Sun               = FontAwesomeIcon(faSun)
   inline def Volume            = FontAwesomeIcon(faVolume)
   inline def VolumeSlash       = FontAwesomeIcon(faVolumeSlash)
-  inline def XMark             = FontAwesomeIcon(faXMark)
 
   val CancelPause =
     LayeredIcon()(

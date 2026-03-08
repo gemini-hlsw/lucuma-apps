@@ -10,9 +10,9 @@ import japgolly.scalajs.react.feature.Context
 import lucuma.core.model.sequence.Dataset
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
+import lucuma.ui.sequence.EditableQaFields
 import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
-import observe.ui.model.EditableQaFields
 
 import scala.annotation.unused
 

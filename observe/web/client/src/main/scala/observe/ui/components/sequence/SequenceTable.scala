@@ -14,12 +14,12 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.*
+import lucuma.ui.sequence.EditableQaFields
 import observe.model.ExecutionState
 import observe.model.ObserveStep
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
 import observe.ui.components.sequence.steps.*
-import observe.ui.model.EditableQaFields
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 

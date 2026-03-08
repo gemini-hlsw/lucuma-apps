@@ -11,10 +11,10 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.schemas.odb.SequenceQueriesGQL
+import lucuma.ui.sequence.EditableQaFields
 import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
 import observe.queries.VisitQueriesGQL
-import observe.ui.model.EditableQaFields
 import org.typelevel.log4cats.Logger
 
 case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB], Logger[IO])
