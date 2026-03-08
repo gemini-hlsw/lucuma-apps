@@ -4,7 +4,6 @@
 package observe.ui.components.sequence
 
 import cats.Eq
-import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.hooks.*
 import crystal.react.syntax.effect.*
@@ -36,7 +35,6 @@ import observe.ui.model.AppContext
 import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
-import org.typelevel.log4cats.Logger
 
 import scala.scalajs.LinkingInfo
 
@@ -76,12 +74,12 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         resize                   <- useResizeDetector
         ctx                      <- useContext(AppContext.ctx)
         sequenceApi              <- useContext(SequenceApi.ctx)
-        given Logger[IO]          = ctx.logger
         cols                     <-
           useMemo((props.clientMode, props.instrument, props.obsId, props.isPreview)):
+            import ctx.given
             columnDefs(_, _, _, _)
         visitsData               <-
-          useMemo((props.visits, props.currentRecordedStepId)):
+          useMemo((props.instrumentVisits, props.currentRecordedStepId)):
             visitsSequences
         visits                    = visitsData.map(_._1)
         nextScienceIndex          = visitsData.map(_._2)
@@ -117,6 +115,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               acquisitionPromptRequest,
               acquisitionPromptClicked
             ) =>
+              import ctx.given
               val acquisitionPrompt: Option[AlertRow] =
                 Option.when(isWaitingAcquisitionPrompt)(
                   AlertRow(
@@ -167,8 +166,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.progress,
                 props.selectedStepId,
                 props.datasetIdsInFlight,
-                props.onBreakpointFlip,
-                props.onDatasetQaChange
+                props.onBreakpointFlip
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

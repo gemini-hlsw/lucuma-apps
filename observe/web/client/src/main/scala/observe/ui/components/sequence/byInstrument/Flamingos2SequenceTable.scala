@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import crystal.react.View
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
@@ -13,8 +14,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
-import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.EditableQaFields
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
@@ -30,7 +30,7 @@ final case class Flamingos2SequenceTable(
   config:               ExecutionConfig.Flamingos2,
   acquisitonSN:         Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
-  visits:               List[Visit.Flamingos2],
+  visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
@@ -39,11 +39,12 @@ final case class Flamingos2SequenceTable(
   requests:             ObservationRequests,
   isPreview:            Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  onDatasetQaChange:    Dataset.Id => EditableQaFields => Callback,
   datasetIdsInFlight:   Set[Dataset.Id]
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
-    with SpectroscopySequenceTable[Flamingos2DynamicConfig]
+    with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
+  val toInstrumentVisits =
+    case ExecutionVisits.Flamingos2(visits) => visits
 
 object Flamingos2SequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](

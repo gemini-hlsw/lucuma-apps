@@ -1,12 +1,13 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package queries.common
+package lucuma.schemas.odb
 
 import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
+// gql: import io.circe.refined.given
 // gql: import lucuma.schemas.decoders.given
 
 object VisitQueriesGQL:
@@ -28,28 +29,16 @@ object VisitQueriesGQL:
         shuffleCycles
       }
     """
-    // ${ExecutionVisitsSubquery.Fragments}
 
   @GraphQL
-  trait StepEventSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
-      subscription($$obsId: ObservationId!) {
-        executionEventAdded(input: { observationId: $$obsId, eventType: { EQ: STEP } }) {
-          value {
-            ... on StepEvent {
-              stepStage
-            }
+  trait UpdateDatasetQa extends GraphQLOperation[ObservationDB]:
+    val document = """
+      mutation($datasetId: DatasetId!, $qaState: DatasetQaState, $comment: NonEmptyString) {
+        updateDatasets( input: {WHERE: {id: {EQ: $datasetId}}, SET: {qaState: $qaState, comment: $comment}} ) {
+          datasets {
+            id
+            qaState
           }
-        }
-      }
-    """
-
-  @GraphQL
-  trait DatasetEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document = s"""
-      subscription($$obsId: ObservationId!) {
-        datasetEdit(input: { observationId: $$obsId }) {
-          value { id }
         }
       }
     """

@@ -3,8 +3,6 @@
 
 package observe.ui.components
 
-import cats.effect.IO
-import cats.syntax.all.*
 import crystal.react.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
@@ -14,17 +12,10 @@ import lucuma.core.model.sequence.Step
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
-import lucuma.schemas.model.AtomRecord
 import lucuma.schemas.model.Dataset
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
-import lucuma.schemas.model.StepRecord
-import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.EditableQaFields
 import lucuma.ui.sequence.SequenceData
-import lucuma.ui.syntax.toast.*
-import monocle.Optional
-import monocle.Traversal
 import observe.model.ExecutionState
 import observe.model.StepProgress
 import observe.model.odb.RecordedVisit
@@ -53,52 +44,6 @@ case class ObservationSequence(
 
 object ObservationSequence
     extends ReactFnComponent[ObservationSequence](props =>
-      val gmosNorthDatasets: Traversal[ExecutionVisits, List[Dataset]] =
-        ExecutionVisits.gmosNorth
-          .andThen(ExecutionVisits.GmosNorth.visits)
-          .each
-          .andThen(Visit.GmosNorth.atoms)
-          .each
-          .andThen(AtomRecord.GmosNorth.steps)
-          .each
-          .andThen(StepRecord.GmosNorth.datasets)
-
-      val gmosSouthDatasets: Traversal[ExecutionVisits, List[Dataset]] =
-        ExecutionVisits.gmosSouth
-          .andThen(ExecutionVisits.GmosSouth.visits)
-          .each
-          .andThen(Visit.GmosSouth.atoms)
-          .each
-          .andThen(AtomRecord.GmosSouth.steps)
-          .each
-          .andThen(StepRecord.GmosSouth.datasets)
-
-      val flamingos2Datasets: Traversal[ExecutionVisits, List[Dataset]] =
-        ExecutionVisits.flamingos2
-          .andThen(ExecutionVisits.Flamingos2.visits)
-          .each
-          .andThen(Visit.Flamingos2.atoms)
-          .each
-          .andThen(AtomRecord.Flamingos2.steps)
-          .each
-          .andThen(StepRecord.Flamingos2.datasets)
-
-      // This is only lawful if the traverse returns 0 or 1 instances of A.
-      def unsafeHeadOption[T, A](traversal: Traversal[T, A]): Optional[T, A] =
-        Optional[T, A](traversal.getAll(_).headOption)(traversal.replace)
-
-      def instrumentDatasetWithId(traversal: Traversal[ExecutionVisits, List[Dataset]])(
-        datasetId: Dataset.Id
-      ): Optional[ExecutionVisits, Dataset] =
-        unsafeHeadOption(traversal.each.filter(dataset => dataset.id === datasetId))
-
-      def datasetWithId(datasetId: Dataset.Id): Traversal[ExecutionVisits, Dataset] =
-        Traversal.applyN(
-          instrumentDatasetWithId(gmosNorthDatasets)(datasetId),
-          instrumentDatasetWithId(gmosSouthDatasets)(datasetId),
-          instrumentDatasetWithId(flamingos2Datasets)(datasetId)
-        )
-
       for
         ctx                <- useContext(AppContext.ctx)
         sequenceApi        <- useContext(SequenceApi.ctx)
@@ -126,31 +71,6 @@ object ObservationSequence
                     .runAsync
               )
 
-        val onDatasetQAChange: Dataset.Id => EditableQaFields => Callback =
-          datasetId =>
-            qaFields =>
-              props.visits.toOptionView.map { visits =>
-                def datasetQaView(datasetId: Dataset.Id): ViewList[EditableQaFields] =
-                  visits.zoom:
-                    datasetWithId(datasetId).andThen(EditableQaFields.fromDataset)
-
-                datasetIdsInFlight.modState(_ + datasetId) >>
-                  odbQueryApi
-                    .updateDatasetQa(datasetId, qaFields)
-                    .flatMap: _ =>
-                      (datasetQaView(datasetId).set(qaFields) >>
-                        datasetIdsInFlight.modState(_ - datasetId))
-                        .to[IO]
-                    .handleErrorWith: e =>
-                      (datasetIdsInFlight.modState(_ - datasetId) >>
-                        ctx.toast.show(
-                          s"Error updating dataset QA state for $datasetId: ${e.getMessage}",
-                          Message.Severity.Error,
-                          sticky = true
-                        )).to[IO]
-                    .runAsync
-              }.orEmpty // If there are no visits, there's nothing to change.
-
         val mismatchError = Message(
           text = "ERROR: Sequence and S/N are inconsistent.",
           severity = Message.Severity.Error
@@ -158,12 +78,6 @@ object ObservationSequence
 
         props.sequenceData match // TODO Show visits even if sequence data is not available
           case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
-            val visits: List[Visit.GmosNorth] =
-              props.visits.get
-                .collect:
-                  case ExecutionVisits.GmosNorth(vs) => vs.toList
-                .orEmpty
-
             signalToNoise match
               case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosNorthSpectroscopySequenceTable(
@@ -172,7 +86,7 @@ object ObservationSequence
                   config,
                   acquisitionSN,
                   scienceSN,
-                  visits,
+                  props.visits,
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
@@ -181,7 +95,6 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
               case ModeSignalToNoise.GmosNorthImaging(snByFilter)           =>
@@ -190,7 +103,7 @@ object ObservationSequence
                   props.obsId,
                   config,
                   snByFilter,
-                  visits,
+                  props.visits,
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
@@ -199,17 +112,10 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
               case _                                                        => mismatchError
           case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
-            val visits: List[Visit.GmosSouth] =
-              props.visits.get
-                .collect:
-                  case ExecutionVisits.GmosSouth(vs) => vs.toList
-                .orEmpty
-
             signalToNoise match
               case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosSouthSpectroscopySequenceTable(
@@ -218,7 +124,7 @@ object ObservationSequence
                   config,
                   acquisitionSN,
                   scienceSN,
-                  visits,
+                  props.visits,
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
@@ -227,7 +133,6 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
               case ModeSignalToNoise.GmosSouthImaging(snByFilter)           =>
@@ -236,7 +141,7 @@ object ObservationSequence
                   props.obsId,
                   config,
                   snByFilter,
-                  visits,
+                  props.visits,
                   props.executionState.get,
                   props.currentRecordedVisit,
                   props.progress,
@@ -245,7 +150,6 @@ object ObservationSequence
                   props.requests,
                   isPreview = false,
                   onBreakpointFlip,
-                  onDatasetQAChange,
                   datasetIdsInFlight.value
                 )
               case _                                                        => mismatchError
@@ -259,10 +163,7 @@ object ObservationSequence
               config,
               acquisitonSN,
               scienceSN,
-              props.visits.get
-                .collect:
-                  case ExecutionVisits.Flamingos2(visits) => visits.toList
-                .orEmpty,
+              props.visits,
               props.executionState.get,
               props.currentRecordedVisit,
               props.progress,
@@ -271,7 +172,6 @@ object ObservationSequence
               props.requests,
               isPreview = false,
               onBreakpointFlip,
-              onDatasetQAChange,
               datasetIdsInFlight.value
             )
           case _                                                                        => mismatchError

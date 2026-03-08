@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence.byInstrument
 
+import crystal.react.View
 import japgolly.scalajs.react.*
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.Instrument
@@ -13,8 +14,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.*
-import lucuma.schemas.model.Visit
-import lucuma.ui.sequence.EditableQaFields
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 import observe.model.ExecutionState
 import observe.model.StepProgress
@@ -29,7 +29,7 @@ final case class GmosNorthImagingSequenceTable(
   obsId:                Observation.Id,
   config:               ExecutionConfig.GmosNorth,
   snPerFilter:          Map[GmosNorthFilter, SignalToNoiseAt],
-  visits:               List[Visit.GmosNorth],
+  visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
   currentRecordedVisit: Option[RecordedVisit],
   progress:             Option[StepProgress],
@@ -38,13 +38,15 @@ final case class GmosNorthImagingSequenceTable(
   requests:             ObservationRequests,
   isPreview:            Boolean,
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  onDatasetQaChange:    Dataset.Id => EditableQaFields => Callback,
   datasetIdsInFlight:   Set[Dataset.Id]
 ) extends ReactFnProps(GmosNorthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth
     )
     with ImagingSequenceTable[gmos.DynamicConfig.GmosNorth, GmosNorthFilter]:
+  val toInstrumentVisits =
+    case ExecutionVisits.GmosNorth(visits) => visits
+
   val filterFromDynamicConfig: gmos.DynamicConfig.GmosNorth => Option[GmosNorthFilter] =
     _.filter
 

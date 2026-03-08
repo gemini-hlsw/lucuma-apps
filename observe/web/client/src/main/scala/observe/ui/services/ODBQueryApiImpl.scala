@@ -6,19 +6,15 @@ package observe.ui.services
 import cats.effect.IO
 import clue.*
 import clue.data.syntax.*
-import lucuma.core.model.sequence.Dataset
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.schemas.odb.SequenceQueriesGQL
-import lucuma.ui.sequence.EditableQaFields
+import lucuma.schemas.odb.VisitQueriesGQL
 import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
-import observe.queries.VisitQueriesGQL
-import org.typelevel.log4cats.Logger
 
-case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB], Logger[IO])
-    extends ODBQueryApi[IO]:
+case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB]) extends ODBQueryApi[IO]:
 
   override def queryVisits(
     obsId: Observation.Id,
@@ -43,11 +39,3 @@ case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB], Logger[IO])
         _.fold(
           IO.raiseError(Exception(s"Execution Configuration not defined for observation [$obsId]"))
         )(IO.pure(_))
-
-  override def updateDatasetQa(datasetId: Dataset.Id, qaFields: EditableQaFields): IO[Unit] =
-    VisitQueriesGQL
-      .UpdateDatasetQa[IO]
-      .execute(datasetId, qaFields.qaState.orUnassign, qaFields.comment.orUnassign)
-      .void
-      .onError:
-        case e => Logger[IO].error(e)(s"Error updating dataset QA state for $datasetId")

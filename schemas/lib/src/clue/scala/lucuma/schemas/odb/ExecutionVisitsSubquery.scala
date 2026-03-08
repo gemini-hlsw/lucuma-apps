@@ -4,10 +4,12 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.ExecutionVisits
 
+@GraphQL
 object ExecutionVisitsSubquery
     extends GraphQLSubquery.Typed[ObservationDB, Option[ExecutionVisits]]("Execution"):
   override val subquery: String = s"""

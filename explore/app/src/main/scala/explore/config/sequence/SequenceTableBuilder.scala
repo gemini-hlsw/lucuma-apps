@@ -5,7 +5,9 @@ package explore.config.sequence
 
 import cats.Endo
 import cats.Eq
+import cats.effect.IO
 import cats.syntax.all.*
+import clue.FetchClient
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.reusability.given
@@ -17,6 +19,7 @@ import lucuma.react.SizePx
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
@@ -25,6 +28,7 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
+import org.typelevel.log4cats.Logger
 
 import scala.scalajs.LinkingInfo
 
@@ -54,22 +58,21 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ExtraRowColumnId -> FixedSize(0.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
-  private lazy val columns: Reusable[List[ColDef.Type]] =
-    Reusable.always:
-      List(
-        SequenceColumns
-          .headerCell(HeaderColumnId, ColDef)
-          .withColumnSize(ColumnSizes(HeaderColumnId)),
-        ColDef(
-          ExtraRowColumnId,
-          header = "",
-          cell = _.row.original.value.toOption
-            .map(_.step)
-            .collect:
-              case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
-                renderVisitExtraRow(step, showOngoingLabel = true)
-        ).withColumnSize(ColumnSizes(ExtraRowColumnId))
-      ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
+  private def columns(using FetchClient[IO, ObservationDB], Logger[IO]): List[ColDef.Type] =
+    List(
+      SequenceColumns
+        .headerCell(HeaderColumnId, ColDef)
+        .withColumnSize(ColumnSizes(HeaderColumnId)),
+      ColDef(
+        ExtraRowColumnId,
+        header = "",
+        cell = _.row.original.value.toOption
+          .map(_.step)
+          .collect:
+            case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
+              renderVisitExtraRow(step, showOngoingLabel = true, ???, ???, ???, ???)
+      ).withColumnSize(ColumnSizes(ExtraRowColumnId))
+    ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
 
   private lazy val DynTableDef = DynTable(
     ColumnSizes,
@@ -87,6 +90,11 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         ctx        <- useContext(AppContext.ctx)
         visitsData <- useMemo(props.visits):
                         visitsSequences(_, none)
+        resize     <- useResizeDetector
+        dynTable   <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        cols       <- useMemo(()): _ =>
+                        import ctx.given
+                        dynTable.setInitialColWidths(columns)
         rows       <-
           useMemo(
             (visitsData, props.acquisitionRows, props.scienceRows, props.currentVisitId)
@@ -99,8 +107,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               acquisition,
               science
             )
-        resize     <- useResizeDetector
-        dynTable   <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         tableState <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
@@ -108,7 +114,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
         table      <-
           useReactTable:
             TableOptions(
-              columns.map(dynTable.setInitialColWidths),
+              cols,
               rows,
               enableSorting = false,
               enableColumnResizing = true,
@@ -212,7 +218,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 cell.row.original.value match
                   case Left(_)        => // Header
                     cell.column.id match
-                      case id if id == HeaderColumnId => TagMod(^.colSpan := columns.length)
+                      case id if id == HeaderColumnId => TagMod(^.colSpan := cols.length)
                       case _                          => ^.display.none
                   case Right(stepRow) =>
                     cell.column.id match

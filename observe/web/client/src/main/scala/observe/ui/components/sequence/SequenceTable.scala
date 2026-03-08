@@ -3,7 +3,9 @@
 
 package observe.ui.components.sequence
 
+import cats.data.NonEmptyList
 import cats.syntax.all.*
+import crystal.react.View
 import eu.timepit.refined.types.numeric.NonNegInt
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
@@ -12,9 +14,9 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.*
-import lucuma.ui.sequence.EditableQaFields
 import observe.model.ExecutionState
 import observe.model.ObserveStep
 import observe.model.StepProgress
@@ -30,7 +32,7 @@ private trait SequenceTable[S, D](
   def clientMode: ClientMode
   def obsId: Observation.Id
   def config: ExecutionConfig[S, D]
-  def visits: List[Visit[D]]
+  def visits: View[Option[ExecutionVisits]]
   def executionState: ExecutionState
   def currentRecordedVisit: Option[RecordedVisit]
   def progress: Option[StepProgress]
@@ -39,13 +41,19 @@ private trait SequenceTable[S, D](
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
-  def onDatasetQaChange: Dataset.Id => EditableQaFields => Callback
   def datasetIdsInFlight: Set[Dataset.Id]
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
+  def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
+
+  protected[sequence] lazy val instrumentVisits: List[Visit[D]] =
+    visits.get
+      .collect:
+        toInstrumentVisits.andThen(_.toList)
+      .orEmpty
 
   private lazy val lastVisitStepIds: Option[(Step.Id, Option[Step.Id])] =
-    visits.lastOption
+    instrumentVisits.lastOption
       .flatMap(_.atoms.lastOption)
       .flatMap(_.steps.lastOption)
       .map(s => (s.id, s.generatedId))

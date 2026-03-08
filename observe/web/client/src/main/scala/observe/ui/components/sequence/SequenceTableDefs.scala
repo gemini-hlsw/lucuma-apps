@@ -4,7 +4,9 @@
 package observe.ui.components.sequence
 
 import cats.Endo
+import cats.effect.IO
 import cats.syntax.all.*
+import clue.FetchClient
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -14,7 +16,7 @@ import lucuma.react.SizePx
 import lucuma.react.common.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
-import lucuma.schemas.model.enums.StepExecutionState
+import lucuma.schemas.ObservationDB
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
@@ -26,6 +28,7 @@ import observe.ui.ObserveStyles
 import observe.ui.components.sequence.steps.*
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
+import org.typelevel.log4cats.Logger
 
 import scalajs.js
 
@@ -40,7 +43,6 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     selectedStepId:     Option[Step.Id],
     datasetIdsInFlight: Set[Dataset.Id],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    onDatasetQaChange:  Dataset.Id => EditableQaFields => Callback,
     isEditing:          IsEditing = IsEditing.False,
     modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
     modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
@@ -116,6 +118,9 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     instrument: Instrument,
     obsId:      Observation.Id,
     isPreview:  Boolean
+  )(using
+    FetchClient[IO, ObservationDB],
+    Logger[IO]
   ): List[ColDef.TypeFor[?]] =
     List(
       SequenceColumns
@@ -169,13 +174,17 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                   renderVisitExtraRow(
                     step,
                     showOngoingLabel = false,
-                    step.executionState match
-                      case StepExecutionState.Completed | StepExecutionState.Stopped =>
-                        QaEditor(_, _, meta.onDatasetQaChange)
-                      case _                                                         =>
-                        (_, _) => EmptyVdom // Don't display QA editor for non-completed steps
-                    ,
-                    meta.datasetIdsInFlight
+                    ???,
+                    ???,
+                    ???,
+                    ??? // TODO
+                    // onQaChangeOpt = step.executionState match
+                    //   case StepExecutionState.Completed | StepExecutionState.Stopped =>
+                    //     meta.onDatasetQaChange.some
+                    //   case _                                                         =>
+                    //     none // Don't display QA editor for non-completed steps
+                    // ,
+                    // datasetIdsInFlight = meta.datasetIdsInFlight
                   )
                 case step                                           =>
                   (step.id.toOption, step.stepTypeDisplay, step.exposureTime).mapN:
