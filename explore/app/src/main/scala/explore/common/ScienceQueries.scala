@@ -14,13 +14,13 @@ import explore.model.ScienceRequirements
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
 import explore.undo.UndoSetter
-import explore.utils.ToastCtx
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.optics.syntax.lens.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.odb.input.*
+import lucuma.ui.primereact.ToastCtx
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 

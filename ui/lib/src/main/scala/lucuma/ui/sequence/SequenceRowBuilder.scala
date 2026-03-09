@@ -4,36 +4,41 @@
 package lucuma.ui.sequence
 
 import cats.data.NonEmptyList
+import cats.effect.IO
 import cats.syntax.all.*
+import clue.FetchClient
+import crystal.react.View
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosInt
-import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.UtcFormatter
-import lucuma.react.primereact.Tooltip
-import lucuma.react.primereact.tooltip.*
 import lucuma.react.table.Expandable
 import lucuma.react.table.Expanded
 import lucuma.react.table.RowId
+import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.AtomRecord
 import lucuma.schemas.model.Dataset
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.display.given
 import lucuma.ui.format.DurationFormatter
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
+import org.typelevel.log4cats.Logger
+
+import scala.collection.immutable.HashSet
 
 // Methods for building visits rows on the sequence table
-trait SequenceRowBuilder[D]:
+trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected type SequenceTableRowType = Expandable[HeaderOrRow[SequenceIndexedRow[D]]]
 
   protected def getRowId(row: SequenceTableRowType): RowId =
@@ -82,24 +87,16 @@ trait SequenceRowBuilder[D]:
   // private val ArchiveBaseUrl = "https://archive.gemini.edu/preview" // In case they want the image instead
   private val ArchiveBaseUrl = "https://archive.gemini.edu/fullheader"
 
-  private def renderQALabel(
-    qaState: Option[DatasetQaState],
-    comment: Option[NonEmptyString]
-  ): String =
-    qaState.fold("QA Not Set")(_.shortName) + comment.fold("")(c => s": $c")
-
-  private def renderQaIcon(
-    qaState: Option[DatasetQaState],
-    comment: Option[NonEmptyString]
-  ): VdomNode =
-    <.span(qaState.renderVdom)
-      .withTooltip(content = renderQALabel(qaState, comment), position = Tooltip.Position.Top)
-
   protected def renderVisitExtraRow(
     step:               SequenceRow.Executed.ExecutedStep[D],
     showOngoingLabel:   Boolean,
-    renderDatasetQa:    (Dataset, VdomNode) => VdomNode = (_, renderIcon) => renderIcon,
-    datasetIdsInFlight: Set[Dataset.Id] = Set.empty
+    enableQaEditor:     Boolean,
+    allVisits:          View[Option[ExecutionVisits]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]]
+  )(using
+    FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
+    Logger[IO]
   ) =
     <.div(SequenceStyles.VisitStepExtra)(
       <.span(SequenceStyles.VisitStepExtraDatetime)(
@@ -123,9 +120,17 @@ trait SequenceRowBuilder[D]:
                 )
               else datasetName,
               <.span(SequenceStyles.VisitStepExtraDatasetQAStatus)(
-                if datasetIdsInFlight.contains_(dataset.id)
+                if datasetIdsInFlight.get.contains(dataset.id)
                 then LucumaIcons.CircleNotch
-                else renderDatasetQa(dataset, renderQaIcon(dataset.qaState, dataset.comment))
+                else
+                  val qaIcon: VdomNode = renderQaIcon(dataset.qaState, dataset.comment)
+                  if enableQaEditor then
+                    QaEditor(
+                      dataset,
+                      qaIcon,
+                      onDatasetQaChange(allVisits, datasetIdsInFlight)
+                    )
+                  else qaIcon
               )
             )
           .toVdomArray

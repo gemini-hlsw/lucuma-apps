@@ -23,7 +23,6 @@ import explore.schedulingWindows.ObsIdSetSchedulingWindowsTile
 import explore.shortcuts.*
 import explore.shortcuts.given
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -37,7 +36,7 @@ import lucuma.react.resizeDetector.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.ui.LucumaStyles
 import lucuma.ui.reusability.given
-import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.all.{*, given}
 
 import scala.collection.immutable.SortedSet
 import scala.scalajs.LinkingInfo
@@ -81,9 +80,8 @@ object SchedulingTabContents extends TwoPanels:
                                     (ExploreClipboard
                                       .set(LocalClipboard.CopiedObservations(obsIdSet)) >>
                                       shadowClipboardObs.setStateAsync(obsIdSet.some))
-                                      .withToast(
+                                      .withToast:
                                         s"Copied observation(s) ${obsIdSet.idSet.toList.mkString(", ")}"
-                                      )
                                   .orUnit
                                   .runAsync
         // PASTE Action Callback

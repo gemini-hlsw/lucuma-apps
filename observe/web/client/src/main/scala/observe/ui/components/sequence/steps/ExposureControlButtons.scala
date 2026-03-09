@@ -13,6 +13,7 @@ import lucuma.react.common.*
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.*
 import lucuma.typed.primereact.components.ButtonGroup
+import lucuma.ui.sequence.SequenceIcons
 import observe.model.SequenceState
 import observe.model.operations.*
 import observe.model.operations.Operations.*
@@ -101,7 +102,7 @@ object ExposureControlButtons
                   case AbortObservation  =>
                     Button(
                       clazz = ObserveStyles.AbortButton,
-                      icon = Icons.XMark.withFixedWidth().withSize(IconSize.LG),
+                      icon = SequenceIcons.XMark.withFixedWidth().withSize(IconSize.LG),
                       tooltip = "Abort the current exposure",
                       tooltipOptions = DefaultTooltipOptions,
                       disabled =

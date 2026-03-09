@@ -16,12 +16,12 @@ import explore.model.AttachmentList
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.utils.OdbRestClient
-import explore.utils.ToastCtx
 import fs2.dom
 import japgolly.scalajs.react.*
 import lucuma.core.enums.AttachmentType
 import lucuma.core.model.Program
 import lucuma.core.util.Timestamp
+import lucuma.ui.primereact.ToastCtx
 import org.scalajs.dom.File as DomFile
 import org.typelevel.log4cats.Logger
 

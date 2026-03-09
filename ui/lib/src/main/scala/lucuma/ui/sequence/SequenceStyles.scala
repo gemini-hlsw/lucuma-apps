@@ -34,6 +34,13 @@ object SequenceStyles:
   val CloneButton: Css      = Css("lucuma-sequence-clone-button")
   val DeleteButton: Css     = Css("lucuma-sequence-delete-button")
 
+  val QaStatusEditable: Css     = Css("lucuma-sequence-qa-status-editable")
+  val QaStatusSelect: Css       = Css("lucuma-sequence-qa-status-select")
+  val QaEditorOverlay: Css      = Css("lucuma-sequence-qa-editor-overlay")
+  val QaEditorPanel: Css        = Css("lucuma-sequence-qa-editor-panel")
+  val QaStatusButtonStrip: Css  = Css("lucuma-sequence-qa-status-button-strip")
+  val QaEditorPanelButtons: Css = Css("lucuma-sequence-qa-editor-panel-buttons")
+
   object StepType:
     val Bias: Css   = Css("lucuma-sequence-step-type-bias")
     val Dark: Css   = Css("lucuma-sequence-step-type-dark")

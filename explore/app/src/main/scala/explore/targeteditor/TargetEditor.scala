@@ -57,6 +57,7 @@ import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.primereact.*
 import lucuma.ui.primereact.FormInputText
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.LucumaPrimeStyles

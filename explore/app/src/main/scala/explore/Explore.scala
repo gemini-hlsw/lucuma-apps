@@ -7,7 +7,6 @@ import cats.effect.Async
 import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.Sync
-import cats.effect.kernel.Deferred
 import cats.effect.std.Dispatcher
 import cats.effect.unsafe.implicits.global
 import cats.syntax.all.*
@@ -25,14 +24,13 @@ import explore.model.RootModel
 import explore.model.RoutingInfo
 import explore.model.WorkerClients
 import explore.model.enums.AppTab
-import explore.utils.ToastCtx
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
 import lucuma.react.primereact.Message
-import lucuma.react.primereact.ToastRef
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
 import org.http4s.Uri
@@ -141,7 +139,6 @@ object ExploreMain {
         httpClient            = buildNonCachingHttpClient[IO]
         _                    <- info"Git Commit: [${utils.gitHash.getOrElse("NONE")}]"
         _                    <- info"Config: ${appConfig.show}"
-        toastRef             <- Deferred[IO, ToastRef]
         ctx                  <- AppContext.from[IO](
                                   appConfig,
                                   reconnectionStrategy,
@@ -149,8 +146,7 @@ object ExploreMain {
                                   setPageVia,
                                   workerClients,
                                   httpClient,
-                                  bc,
-                                  toastRef
+                                  bc
                                 )
         _                    <- initializeItc(workerClients, appConfig.itcURI, ctx.toastCtx)
         r                    <- (ctx.sso.whoami, setupDOM[IO], showEnvironment[IO](appConfig.environment)).parTupled

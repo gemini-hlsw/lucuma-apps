@@ -46,7 +46,6 @@ import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Sidebar
 import lucuma.react.primereact.ToastRef
-import lucuma.react.primereact.hooks.all.*
 import lucuma.refined.*
 import lucuma.schemas.enums.ProposalStatus
 import lucuma.ui.components.SideTabs
@@ -71,8 +70,6 @@ case class ExploreLayout(
 
 object ExploreLayout:
   private type Props = ExploreLayout
-
-  private given Reusability[ToastRef] = Reusability.by_==
 
   private def cycleWavelengthUnits(
     ctx:             AppContext[IO],
@@ -188,15 +185,7 @@ object ExploreLayout:
                                       .andThen(GlobalPreferences.wavelengthUnits)
                                   .asView
         _                    <- useMountHotkeys(ctx, helpCtx, props.model.userId, wavelengthUnits)(routingInfo)
-        toastRef             <- useToastRef
-        _                    <- useEffectWithDeps(toastRef):
-                                  import ctx.given
-
-                                  toastRef =>
-                                    toastRef.ref.get
-                                      .flatMap:
-                                        _.map(_ => ctx.toastRef.complete(toastRef).void.runAsync).orEmpty
-        _                    <- useMountProgressiveWebApp(ctx.broadcastChannel, toastRef)
+        _                    <- useMountProgressiveWebApp(ctx.broadcastChannel, ctx.toastRef)
         _                    <- useEffectOnMount:
                                   ctx.broadcastChannel.postMessage(ExploreEvent.ExploreUIReady)
         userSelectionMessage <- useStateView(none[NonEmptyString])
@@ -450,5 +439,5 @@ object ExploreLayout:
               .getOrElse:
                 props.resolution.renderP(props.model)
           ),
-          ToastPortal(toastRef)
+          ToastPortal(ctx.toastRef)
         )

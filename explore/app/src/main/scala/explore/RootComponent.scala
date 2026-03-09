@@ -18,6 +18,7 @@ import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
 import lucuma.react.primereact.PrimeReactProvider
+import lucuma.react.primereact.hooks.all.*
 import lucuma.ui.syntax.all.*
 
 import scala.concurrent.duration.*
@@ -33,23 +34,27 @@ case class RootComponent(
 object RootComponent
     extends ReactFnComponent[RootComponent](props =>
       for
+        toastRef                        <- useToastRef
         rootModel                       <- useStateView(props.initialModel)
         attr: Option[ResourceAttributes] = rootModel.get.vault.map(ResourceAttributes.fromUserVault)
         programSummariesPot             <- useThrottlingStateView(pending[ProgramSummaries], 5.seconds)
-      yield PrimeReactProvider()(
-        AppContext.ctx.provide(props.ctx)(
-          props.ctx.tracing.map: c =>
-            Observability(
-              HoneycombOptions(
-                c.key,
-                c.serviceName,
-                version(props.ctx.environment).value,
-                attr.orUndefined
-              )
-            ),
-          HelpContext.Provider:
-            programSummariesPot.renderPot: programSummaries =>
-              props.router(RootModelViews(rootModel, programSummaries))
+      yield
+        import props.ctx.given
+
+        PrimeReactProvider()(
+          AppContext.ctx.provide(props.ctx.copy(toastRef = toastRef))(
+            props.ctx.tracing.map: c =>
+              Observability(
+                HoneycombOptions(
+                  c.key,
+                  c.serviceName,
+                  version(props.ctx.environment).value,
+                  attr.orUndefined
+                )
+              ),
+            HelpContext.Provider:
+              programSummariesPot.renderPot: programSummaries =>
+                props.router(RootModelViews(rootModel, programSummaries))
+          )
         )
-      )
     )

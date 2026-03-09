@@ -16,6 +16,7 @@ import lucuma.react.common.*
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.*
 import lucuma.ui.LucumaIcons
+import lucuma.ui.sequence.SequenceIcons
 import observe.model.SequenceState
 import observe.model.SubsystemEnabled
 import observe.model.SystemOverrides
@@ -133,6 +134,6 @@ object SubsystemControls
     ) {
   private val IdleIcon      = Icons.ArrowUpFromLine.withFixedWidth()
   private val RunningIcon   = LucumaIcons.CircleNotch.withFixedWidth()
-  private val CompletedIcon = Icons.Check.withFixedWidth()
+  private val CompletedIcon = SequenceIcons.Check.withFixedWidth()
   private val FailureIcon   = Icons.CircleExclamation.withFixedWidth().withInverse()
 }

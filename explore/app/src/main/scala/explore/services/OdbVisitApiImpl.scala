@@ -12,7 +12,8 @@ import lucuma.core.enums.StepStage
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
-import queries.common.VisitQueriesGQL.*
+import lucuma.schemas.odb.VisitQueriesGQL.ObservationVisits
+import queries.common.ObsQueriesGQL.*
 
 trait OdbVisitApiImpl[F[_]: Sync](using StreamingClient[F, ObservationDB]) extends OdbVisitApi[F]:
   def observationVisits(obsId: Observation.Id): F[Option[ExecutionVisits]] =

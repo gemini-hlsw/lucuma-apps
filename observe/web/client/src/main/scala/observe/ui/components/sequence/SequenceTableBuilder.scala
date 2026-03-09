@@ -4,7 +4,6 @@
 package observe.ui.components.sequence
 
 import cats.Eq
-import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.hooks.*
 import crystal.react.syntax.effect.*
@@ -36,8 +35,8 @@ import observe.ui.model.AppContext
 import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
-import org.typelevel.log4cats.Logger
 
+import scala.collection.immutable.HashSet
 import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
@@ -76,12 +75,12 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         resize                   <- useResizeDetector
         ctx                      <- useContext(AppContext.ctx)
         sequenceApi              <- useContext(SequenceApi.ctx)
-        given Logger[IO]          = ctx.logger
         cols                     <-
           useMemo((props.clientMode, props.instrument, props.obsId, props.isPreview)):
+            import ctx.given
             columnDefs(_, _, _, _)
         visitsData               <-
-          useMemo((props.visits, props.currentRecordedStepId)):
+          useMemo((props.instrumentVisits, props.currentRecordedStepId)):
             visitsSequences
         visits                    = visitsData.map(_._1)
         nextScienceIndex          = visitsData.map(_._2)
@@ -117,6 +116,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
               acquisitionPromptRequest,
               acquisitionPromptClicked
             ) =>
+              import ctx.given
               val acquisitionPrompt: Option[AlertRow] =
                 Option.when(isWaitingAcquisitionPrompt)(
                   AlertRow(
@@ -143,6 +143,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 scienceSteps,
                 acquisitionPrompt
               )
+        datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         tableState               <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
@@ -166,9 +167,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.executionState,
                 props.progress,
                 props.selectedStepId,
-                props.datasetIdsInFlight,
-                props.onBreakpointFlip,
-                props.onDatasetQaChange
+                props.visits,
+                datasetIdsInFlight,
+                props.onBreakpointFlip
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

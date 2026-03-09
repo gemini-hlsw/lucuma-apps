@@ -84,12 +84,6 @@ object ObserveStyles:
   val ReloadButton: Css               = Css("observe-reload-button")
   val SingleButton: Css               = Css("observe-single-button")
   val IconSoft: Css                   = Css("observe-icon-soft")
-  val QaStatusEditable: Css           = Css("observe-qa-status-editable")
-  val QaStatusSelect: Css             = Css("observe-qa-status-select")
-  val QaEditorOverlay: Css            = Css("observe-qa-editor-overlay")
-  val QaEditorPanel: Css              = Css("observe-qa-editor-panel")
-  val QaStatusButtonStrip: Css        = Css("observe-qa-status-button-strip")
-  val QaEditorPanelButtons: Css       = Css("observe-qa-editor-panel-buttons")
 
   val GuidingCell: Css     = Css("observe-guiding-cell")
   val OffsetsBlock: Css    = Css("observe-offsets-block")

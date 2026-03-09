@@ -7,12 +7,10 @@ import cats.effect.IO
 import cats.effect.Sync
 import japgolly.scalajs.react.React
 import japgolly.scalajs.react.feature.Context
-import lucuma.core.model.sequence.Dataset
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
-import observe.ui.model.EditableQaFields
 
 import scala.annotation.unused
 
@@ -24,9 +22,6 @@ trait ODBQueryApi[F[_]: Sync]:
     Sync[F].delay(???)
 
   def querySequence(@unused obsId: Observation.Id): F[SequenceData] =
-    Sync[F].delay(???)
-
-  def updateDatasetQa(@unused datasetId: Dataset.Id, @unused qa: EditableQaFields): F[Unit] =
     Sync[F].delay(???)
 
 object ODBQueryApi:

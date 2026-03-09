@@ -34,7 +34,6 @@ import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targets.TargetAddDeleteActions
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
@@ -52,6 +51,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.PrimeStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.toast.*
 import mouse.boolean.*
 import org.typelevel.log4cats.Logger
 

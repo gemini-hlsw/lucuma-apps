@@ -26,6 +26,7 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.react.table.ColumnId
 import lucuma.refined.*
 import lucuma.ui.primereact.LucumaPrimeStyles
+import lucuma.ui.primereact.ToastCtx
 import org.scalajs.dom.File as DomFile
 import org.typelevel.log4cats.Logger
 

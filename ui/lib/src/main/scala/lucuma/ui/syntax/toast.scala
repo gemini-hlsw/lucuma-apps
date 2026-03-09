@@ -11,6 +11,7 @@ import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import crystal.react.*
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Message
@@ -18,6 +19,8 @@ import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.LucumaIcons
 import lucuma.ui.LucumaStyles
+import lucuma.ui.primereact.ToastCtx
+import org.typelevel.log4cats.Logger
 
 trait toast:
   extension (toastRef: ToastRef)
@@ -77,5 +80,37 @@ trait toast:
                          ).to[F]
                    )
       yield toast
+
+  extension [F[_]: {Sync, ToastCtx}](f: F[Unit])
+    def withToast(
+      text:     String,
+      severity: Message.Severity = Message.Severity.Info,
+      sticky:   Boolean = false
+    ): F[Unit] =
+      f <* ToastCtx[F].showToast(text, severity, sticky)
+
+    def withToastBefore(
+      text:     String,
+      severity: Message.Severity = Message.Severity.Info,
+      sticky:   Boolean = false
+    ): F[Unit] =
+      ToastCtx[F].showToast(text, severity, sticky) *> f
+
+    def withToastDuring(
+      text:         String,
+      completeText: Option[String] = none,
+      errorText:    Option[String] = none
+    )(using UUIDGen[F], Monoid[F[Unit]]): F[Unit] =
+      ToastCtx[F].showToastDuring(text, completeText, errorText).use(_ => f)
+
+    def clearToastsAfter: F[Unit] =
+      f <* ToastCtx[F].clear()
+
+  extension (f: Callback)
+    def showToastCB(
+      text:     String,
+      severity: Message.Severity = Message.Severity.Info
+    )(using ToastCtx[DefaultA], Logger[DefaultA]): Callback =
+      f.toAsync.withToast(text, severity).runAsync
 
 object toast extends toast

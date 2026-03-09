@@ -5,8 +5,8 @@ package explore.services
 
 import cats.effect.Async
 import clue.StreamingClient
-import explore.utils.ToastCtx
 import lucuma.schemas.ObservationDB
+import lucuma.ui.primereact.ToastCtx
 import org.typelevel.log4cats.Logger
 
 case class OdbApiImpl[F[_]: Async](

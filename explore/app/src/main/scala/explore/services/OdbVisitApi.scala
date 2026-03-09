@@ -6,7 +6,7 @@ package explore.services
 import cats.effect.Resource
 import lucuma.core.model.Observation
 import lucuma.schemas.model.ExecutionVisits
-import queries.common.VisitQueriesGQL.*
+import queries.common.ObsQueriesGQL.*
 
 trait OdbVisitApi[F[_]]:
   def observationVisits(obsId: Observation.Id): F[Option[ExecutionVisits]]
