@@ -172,10 +172,10 @@ object ObsTabContents extends TwoPanels:
               case _                                           => IO.unit
             .runAsync
             .unless_(readonly)
-      .useGlobalHotkeysWithDepsBy((_, _, _, _, _, _, _, copyCallback, pasteCallback) =>
-        (copyCallback, pasteCallback)
+      .useGlobalHotkeysWithDepsBy((props, _, _, _, _, _, _, copyCallback, pasteCallback) =>
+        (copyCallback, pasteCallback, props.focusedObsId, props.programSummaries.get)
       ): (props, ctx, _, _, _, _, _, _, _) =>
-        (copyCallback, pasteCallback) =>
+        (copyCallback, pasteCallback, _, _) =>
           def callbacks: ShortcutCallbacks = {
             case CopyAlt1 | CopyAlt2 => copyCallback
 
