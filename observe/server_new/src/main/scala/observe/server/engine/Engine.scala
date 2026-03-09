@@ -173,9 +173,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                            if (qs.current.execution.exists(_.uninterruptible))
                              send(Event.executing(obsId)) *> send(Event.stepComplete(obsId))
                            else
-                             switch(obsId)(SequenceState.Idle) *> send(
-                               Event.sequencePaused(obsId)
-                             )
+                             switch(obsId)(SequenceState.Idle) *>
+                               send(Event.sequencePaused(obsId))
                          } else {
                            // after the last action of the step, we need to reload the sequence
                            switch(obsId)(

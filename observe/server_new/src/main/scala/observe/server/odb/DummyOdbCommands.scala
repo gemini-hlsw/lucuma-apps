@@ -71,10 +71,10 @@ class DummyOdbCommands[F[_]: Sync] extends OdbCommands[F] {
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
     false.pure[F]
 
-  override def obsPause(obsId: Observation.Id, reason: String): F[Boolean] =
+  override def obsPause(obsId: Observation.Id): F[Boolean] =
     false.pure[F]
 
-  override def obsStop(obsId: Observation.Id, reason: String): F[Boolean] =
+  override def obsStop(obsId: Observation.Id): F[Boolean] =
     false.pure[F]
 
   override def datasetStartReadout(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =

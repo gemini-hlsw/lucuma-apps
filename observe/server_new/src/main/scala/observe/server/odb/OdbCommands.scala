@@ -51,8 +51,8 @@ trait OdbCommands[F[_]] private[odb] () {
   def stepAbort(obsId:           Observation.Id): F[Boolean]
   def stepStop(obsId:            Observation.Id): F[Boolean]
   def obsContinue(obsId:         Observation.Id): F[Boolean]
-  def obsPause(obsId:            Observation.Id, reason: String): F[Boolean]
-  def obsStop(obsId:             Observation.Id, reason: String): F[Boolean]
+  def obsPause(obsId:            Observation.Id): F[Boolean]
+  def obsStop(obsId:             Observation.Id): F[Boolean]
 
   def getCurrentRecordedIds: F[ObsRecordedIds]
 }
