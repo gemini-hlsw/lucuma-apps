@@ -3,10 +3,12 @@
 
 package explore.config
 
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
+import crystal.react.syntax.all.toAsync
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -36,7 +38,7 @@ final case class Igrins2LongslitConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Igrins2LongSlit, Igrins2LongSlitInput],
-  revertConfig:    Callback,
+  revertConfig:    IO[Unit],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
@@ -49,11 +51,12 @@ object Igrins2LongslitConfigPanel
         ctx       <- useContext(AppContext.ctx)
         modeData  <- useModeData(props.confMatrix, props.observingMode.get)
         editState <- useStateView(ConfigEditState.View)
+        reverting <- useStateView(false)
       yield
         import ctx.given
 
         val disableEdit              =
-          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
+          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit || reverting.get
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
 
@@ -116,9 +119,10 @@ object Igrins2LongslitConfigPanel
               isCustomized = props.observingMode.get.isCustomized,
               revertConfig = props.revertConfig,
               revertCustomizations =
-                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
+                props.observingMode.view(_.toInput).mod(_.revertCustomizations).toAsync,
               sequenceChanged = props.sequenceChanged,
               !props.permissions.isFullEdit,
+              reverting = reverting,
               showAdvancedButton = false
             )
           )

@@ -88,19 +88,16 @@ object ItcSpectroscopyPlot {
       case GraphType.S2NGraph         => "Signal / Noise"
       case GraphType.SignalPixelGraph => "Pixel"
 
-    val plotLines = graph.graphType match
-      case GraphType.SignalGraph | GraphType.SignalPixelGraph => js.Array()
-      case GraphType.S2NGraph                                 =>
-        val value = signalToNoiseAt.toNanometers.value.value.toDouble
-        List(
-          XAxisPlotLinesOptions()
-            .setDashStyle(DashStyleValue.LongDash)
-            .setWidth(3)
-            .setValue(value)
-            .clazz(ExploreStyles.ItcPlotWvPlotLine)
-            .setZIndex(10)
-            .setLabel(XAxisPlotLinesLabelOptions().setText(f"$value%.1f nm"))
-        ).toJSArray
+    val value     = signalToNoiseAt.toNanometers.value.value.toDouble
+    val plotLines  = List(
+      XAxisPlotLinesOptions()
+        .setDashStyle(DashStyleValue.LongDash)
+        .setWidth(3)
+        .setValue(value)
+        .clazz(ExploreStyles.ItcPlotWvPlotLine)
+        .setZIndex(10)
+        .setLabel(XAxisPlotLinesLabelOptions().setText(f"$value%.1f nm"))
+    ).toJSArray
 
     val hasCcdLabels =
       ccdRanges.length > 1 && ccdRanges.indices.forall(i => ccdLabels.exists(_._1.value === i))
