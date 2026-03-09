@@ -34,6 +34,7 @@ import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
 import org.typelevel.log4cats.Logger
+import scala.collection.immutable.HashSet
 
 // Methods for building visits rows on the sequence table
 trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
@@ -90,7 +91,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     showOngoingLabel:   Boolean,
     enableQaEditor:     Boolean,
     allVisits:          View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[Set[Dataset.Id]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]],
     toastRef:           ToastRef
   )(using
     FetchClient[IO, ObservationDB],
@@ -118,7 +119,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
                 )
               else datasetName,
               <.span(SequenceStyles.VisitStepExtraDatasetQAStatus)(
-                if datasetIdsInFlight.get.contains_(dataset.id)
+                if datasetIdsInFlight.get.contains(dataset.id)
                 then LucumaIcons.CircleNotch
                 else
                   val qaIcon: VdomNode = renderQaIcon(dataset.qaState, dataset.comment)

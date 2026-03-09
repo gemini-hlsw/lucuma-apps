@@ -7,7 +7,6 @@ import crystal.react.View
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gmos
@@ -37,8 +36,7 @@ final case class GmosNorthSpectroscopySequenceTable(
   setSelectedStepId:    Step.Id => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  datasetIdsInFlight:   Set[Dataset.Id]
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
 ) extends ReactFnProps(GmosNorthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
       Instrument.GmosNorth

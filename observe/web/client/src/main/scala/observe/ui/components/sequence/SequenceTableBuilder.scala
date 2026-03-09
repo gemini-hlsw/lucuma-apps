@@ -37,6 +37,7 @@ import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 
 import scala.scalajs.LinkingInfo
+import scala.collection.immutable.HashSet
 
 // Helper to build component objects for instrument sequence tables.
 private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)
@@ -142,6 +143,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 scienceSteps,
                 acquisitionPrompt
               )
+        datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])
         dynTable                 <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
         tableState               <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
@@ -165,8 +167,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.executionState,
                 props.progress,
                 props.selectedStepId,
-                props.datasetIdsInFlight,
-                props.onBreakpointFlip
+                props.visits,
+                datasetIdsInFlight,
+                props.onBreakpointFlip,
+                ctx.toast
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

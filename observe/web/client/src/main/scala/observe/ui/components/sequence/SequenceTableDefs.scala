@@ -31,6 +31,11 @@ import observe.ui.model.enums.ClientMode
 import org.typelevel.log4cats.Logger
 
 import scalajs.js
+import lucuma.schemas.model.enums.StepExecutionState
+import crystal.react.View
+import lucuma.schemas.model.ExecutionVisits
+import lucuma.react.primereact.ToastRef
+import scala.collection.immutable.HashSet
 
 // Offload SequenceTable definitions to improve legibility.
 trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
@@ -41,8 +46,10 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     executionState:     ExecutionState,
     progress:           Option[StepProgress],
     selectedStepId:     Option[Step.Id],
-    datasetIdsInFlight: Set[Dataset.Id],
+    allVisits:          View[Option[ExecutionVisits]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
+    toastRef:           ToastRef,
     isEditing:          IsEditing = IsEditing.False,
     modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
     modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
@@ -174,17 +181,13 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                   renderVisitExtraRow(
                     step,
                     showOngoingLabel = false,
-                    ???,
-                    ???,
-                    ???,
-                    ??? // TODO
-                    // onQaChangeOpt = step.executionState match
-                    //   case StepExecutionState.Completed | StepExecutionState.Stopped =>
-                    //     meta.onDatasetQaChange.some
-                    //   case _                                                         =>
-                    //     none // Don't display QA editor for non-completed steps
-                    // ,
-                    // datasetIdsInFlight = meta.datasetIdsInFlight
+                    enableQaEditor = step.executionState match // QA editor only in completed steps
+                      case StepExecutionState.Completed | StepExecutionState.Stopped => true
+                      case _                                                         => false
+                    ,
+                    allVisits = meta.allVisits,
+                    datasetIdsInFlight = meta.datasetIdsInFlight,
+                    toastRef = meta.toastRef
                   )
                 case step                                           =>
                   (step.id.toOption, step.stepTypeDisplay, step.exposureTime).mapN:

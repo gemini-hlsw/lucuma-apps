@@ -41,7 +41,6 @@ private trait SequenceTable[S, D](
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
-  def datasetIdsInFlight: Set[Dataset.Id]
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]

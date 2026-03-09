@@ -31,6 +31,7 @@ import lucuma.ui.syntax.toast.*
 import monocle.Optional
 import monocle.Traversal
 import org.typelevel.log4cats.Logger
+import scala.collection.immutable.HashSet
 
 // Methods for dealing with dataset QA editing on the sequence table.
 trait SequenceQaEditHelper:
@@ -106,7 +107,7 @@ trait SequenceQaEditHelper:
 
   protected def onDatasetQaChange(
     visits:             View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[Set[Dataset.Id]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]],
     toastRef:           ToastRef
   )(using
     FetchClient[IO, ObservationDB],

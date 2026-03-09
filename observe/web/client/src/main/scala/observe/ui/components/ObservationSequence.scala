@@ -12,7 +12,6 @@ import lucuma.core.model.sequence.Step
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
-import lucuma.schemas.model.Dataset
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.ui.sequence.SequenceData
@@ -23,11 +22,8 @@ import observe.ui.components.sequence.byInstrument.*
 import observe.ui.model.AppContext
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
-import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 import observe.ui.utils.*
-
-import scala.collection.immutable.HashSet
 
 case class ObservationSequence(
   obsId:                Observation.Id,
@@ -45,16 +41,15 @@ case class ObservationSequence(
 object ObservationSequence
     extends ReactFnComponent[ObservationSequence](props =>
       for
-        ctx                <- useContext(AppContext.ctx)
-        sequenceApi        <- useContext(SequenceApi.ctx)
-        odbQueryApi        <- useContext(ODBQueryApi.ctx)
-        datasetIdsInFlight <- useState(HashSet.empty[Dataset.Id])
+        ctx         <- useContext(AppContext.ctx)
+        sequenceApi <- useContext(SequenceApi.ctx)
       yield
         import ctx.given
 
         val breakpoints: View[Set[Step.Id]] =
           props.executionState.zoom(ExecutionState.breakpoints)
 
+        // TODO Does it make sense to move this to SequenceBuilder? Then we don't need the hooks here.
         val onBreakpointFlip: (Observation.Id, Step.Id) => Callback =
           (obsId, stepId) =>
             breakpoints
@@ -94,8 +89,7 @@ object ObservationSequence
                   props.setSelectedStep,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip,
-                  datasetIdsInFlight.value
+                  onBreakpointFlip
                 )
               case ModeSignalToNoise.GmosNorthImaging(snByFilter)           =>
                 GmosNorthImagingSequenceTable(
@@ -111,8 +105,7 @@ object ObservationSequence
                   props.setSelectedStep,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip,
-                  datasetIdsInFlight.value
+                  onBreakpointFlip
                 )
               case _                                                        => mismatchError
           case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
@@ -132,8 +125,7 @@ object ObservationSequence
                   props.setSelectedStep,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip,
-                  datasetIdsInFlight.value
+                  onBreakpointFlip
                 )
               case ModeSignalToNoise.GmosSouthImaging(snByFilter)           =>
                 GmosSouthImagingSequenceTable(
@@ -149,8 +141,7 @@ object ObservationSequence
                   props.setSelectedStep,
                   props.requests,
                   isPreview = false,
-                  onBreakpointFlip,
-                  datasetIdsInFlight.value
+                  onBreakpointFlip
                 )
               case _                                                        => mismatchError
           case SequenceData(
@@ -171,8 +162,7 @@ object ObservationSequence
               props.setSelectedStep,
               props.requests,
               isPreview = false,
-              onBreakpointFlip,
-              datasetIdsInFlight.value
+              onBreakpointFlip
             )
           case _                                                                        => mismatchError
     )

@@ -7,7 +7,6 @@ import crystal.react.View
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -38,8 +37,7 @@ final case class Flamingos2SequenceTable(
   setSelectedStepId:    Step.Id => Callback,
   requests:             ObservationRequests,
   isPreview:            Boolean,
-  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-  datasetIdsInFlight:   Set[Dataset.Id]
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
