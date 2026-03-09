@@ -26,7 +26,6 @@ import explore.render.given
 import explore.services.OdbObservationApi
 import explore.undo.UndoSetter
 import explore.undo.Undoer
-import explore.utils.ToastCtx
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ScienceBand
@@ -41,6 +40,7 @@ import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.Message
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.render.*
 import lucuma.ui.utils.Render

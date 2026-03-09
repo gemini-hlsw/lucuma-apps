@@ -10,13 +10,13 @@ import crystal.react.hooks.*
 import explore.model.AppContext
 import explore.model.Focused
 import explore.model.enums.AppTab
-import explore.utils.ToastCtx
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ProposalReference
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message.Severity
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.syntax.pot.*
 
 case class ProposalReferenceResolver(proposalRef: ProposalReference)

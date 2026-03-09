@@ -49,7 +49,7 @@ import lucuma.react.primereact.Tree
 import lucuma.react.primereact.Tree.Node
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
-import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.all.{*, given}
 import lucuma.ui.utils.*
 import monocle.Iso
 import org.scalajs.dom

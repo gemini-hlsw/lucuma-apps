@@ -23,7 +23,6 @@ import explore.model.enums.AppTab
 import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ScienceBand

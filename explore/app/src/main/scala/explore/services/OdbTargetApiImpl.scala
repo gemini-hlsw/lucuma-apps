@@ -10,7 +10,6 @@ import clue.StreamingClient
 import clue.data.syntax.*
 import clue.syntax.*
 import explore.model.ObsIdSet
-import explore.utils.ToastCtx
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.schemas.ObservationDB
@@ -20,6 +19,7 @@ import lucuma.schemas.ObservationDB.Types.TargetPropertiesInput
 import lucuma.schemas.ObservationDB.Types.UpdateTargetsInput
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.odb.input.*
+import lucuma.ui.primereact.ToastCtx
 import queries.common.ProgramSummaryQueriesGQL.AllProgramTargets
 import queries.common.TargetQueriesGQL.*
 

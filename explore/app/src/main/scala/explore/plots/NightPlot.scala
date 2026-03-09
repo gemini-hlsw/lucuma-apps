@@ -17,7 +17,6 @@ import explore.model.ErrorMsgOr
 import explore.model.RegionOrTracking
 import explore.model.enums.TimeDisplay
 import explore.syntax.ui.*
-import explore.utils.ToastCtx
 import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -39,6 +38,7 @@ import lucuma.typed.highcharts.highchartsStrings.area
 import lucuma.typed.highcharts.mod as Highcharts
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.components.MoonPhase
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given

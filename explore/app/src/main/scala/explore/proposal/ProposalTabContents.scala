@@ -19,7 +19,6 @@ import explore.model.reusability.given
 import explore.services.OdbProposalApi
 import explore.syntax.ui.*
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType

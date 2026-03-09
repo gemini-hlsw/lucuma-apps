@@ -23,7 +23,6 @@ import explore.model.reusability.given
 import explore.services.OdbProgramApi
 import explore.syntax.ui.*
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -31,6 +30,7 @@ import lucuma.react.primereact.*
 import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.toast.*
 
 final case class ProgramNotesTile(
   programId:         Program.Id,

@@ -13,7 +13,6 @@ import explore.model.AppContext
 import explore.model.WorkerClients.PlotClient
 import explore.model.reusability.given
 import explore.syntax.ui.*
-import explore.utils.ToastCtx
 import explore.utils.tracking.*
 import fs2.Stream
 import japgolly.scalajs.react.*
@@ -27,6 +26,7 @@ import lucuma.react.primereact.Message
 import lucuma.typed.highcharts.highchartsStrings.line
 import lucuma.typed.highcharts.mod.*
 import lucuma.typed.highcharts.mod.Point
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.cats.time.given

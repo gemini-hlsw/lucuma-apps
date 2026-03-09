@@ -4,17 +4,12 @@
 package explore.utils
 
 import cats.FlatMap
-import cats.Monoid
 import cats.Semigroup
 import cats.effect.Clock
-import cats.effect.IO
-import cats.effect.Sync
 import cats.effect.Temporal
-import cats.effect.std.UUIDGen
 import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import crystal.Deglitcher
-import crystal.react.syntax.effect.*
 import eu.timepit.refined.types.numeric.NonNegLong
 import eu.timepit.refined.types.numeric.NonNegShort
 import explore.components.ui.ExploreStyles
@@ -25,7 +20,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.fa.IconSize
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.LucumaIcons
@@ -38,13 +32,6 @@ import scala.concurrent.duration.*
 extension (uri: Uri)
   def addPath(p: Uri.Path): Uri =
     uri.withPath(uri.path.concat(p))
-
-extension (f: Callback)
-  def showToastCB(text: String, severity: Message.Severity = Message.Severity.Info)(using
-    ToastCtx[IO],
-    Logger[IO]
-  ): Callback =
-    f.toAsync.withToast(text, severity).runAsync
 
 extension [F[_], O](s: Stream[F, O])
   /**
@@ -142,31 +129,6 @@ extension (bytes: NonNegLong)
       f"$value%.2f ${pre}B"
     }
   }
-
-extension [F[_]: {Sync, ToastCtx}](f: F[Unit])
-  def withToast(
-    text:     String,
-    severity: Message.Severity = Message.Severity.Info,
-    sticky:   Boolean = false
-  ): F[Unit] =
-    f <* ToastCtx[F].showToast(text, severity, sticky)
-
-  def withToastBefore(
-    text:     String,
-    severity: Message.Severity = Message.Severity.Info,
-    sticky:   Boolean = false
-  ): F[Unit] =
-    ToastCtx[F].showToast(text, severity, sticky) *> f
-
-  def withToastDuring(
-    text:         String,
-    completeText: Option[String] = none,
-    errorText:    Option[String] = none
-  )(using UUIDGen[F], Monoid[F[Unit]]): F[Unit] =
-    ToastCtx[F].showToastDuring(text, completeText, errorText).use(_ => f)
-
-  def clearToastsAfter: F[Unit] =
-    f <* ToastCtx[F].clear()
 
 extension (toastRef: ToastRef)
   def upgradePrompt(text: VdomNode, callback: Callback): Callback =

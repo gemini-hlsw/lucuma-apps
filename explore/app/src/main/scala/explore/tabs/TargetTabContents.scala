@@ -31,7 +31,6 @@ import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targets.TargetPasteAction
 import explore.targets.TargetSummaryTile
 import explore.undo.*
-import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -50,8 +49,9 @@ import lucuma.react.primereact.Message.Severity
 import lucuma.react.resizeDetector.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.schemas.model.*
+import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
-import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.all.{*, given}
 import monocle.Iso
 
 import java.time.Instant

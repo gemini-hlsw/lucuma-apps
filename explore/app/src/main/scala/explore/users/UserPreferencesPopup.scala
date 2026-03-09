@@ -21,7 +21,6 @@ import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import explore.syntax.ui.*
-import explore.utils.ToastCtx
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.RoleType
@@ -39,6 +38,7 @@ import lucuma.ui.LucumaStyles
 import lucuma.ui.components.CopyControl
 import lucuma.ui.components.SolarProgress
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.primereact.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given

@@ -16,7 +16,6 @@ import explore.model.enums.AppTab
 import explore.services.OdbApi
 import explore.services.OdbApiImpl
 import explore.utils
-import explore.utils.ToastCtx
 import fs2.concurrent.Topic
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
@@ -31,6 +30,7 @@ import lucuma.core.model.Program
 import lucuma.horizons.HorizonsClient
 import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import org.http4s.Uri
 import org.http4s.Uri.Scheme

@@ -17,7 +17,6 @@ import explore.model.Attachment
 import explore.model.AttachmentList
 import explore.model.syntax.all.*
 import explore.utils.OdbRestClient
-import explore.utils.ToastCtx
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.AttachmentType
@@ -30,6 +29,7 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import lucuma.ui.LucumaStyles
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import org.scalajs.dom.HTMLInputElement
 

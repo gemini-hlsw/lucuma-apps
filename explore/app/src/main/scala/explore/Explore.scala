@@ -25,7 +25,6 @@ import explore.model.RootModel
 import explore.model.RoutingInfo
 import explore.model.WorkerClients
 import explore.model.enums.AppTab
-import explore.utils.ToastCtx
 import fs2.dom.BroadcastChannel
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.*
@@ -33,6 +32,7 @@ import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.ToastRef
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
 import org.http4s.Uri

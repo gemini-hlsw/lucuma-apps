@@ -39,6 +39,7 @@ import lucuma.react.floatingui.syntax.*
 import lucuma.react.primereact.ConfirmPopup
 import lucuma.react.primereact.Dialog
 import lucuma.react.table.*
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.react.given
 import lucuma.ui.reusability.given
 import lucuma.ui.table.*
