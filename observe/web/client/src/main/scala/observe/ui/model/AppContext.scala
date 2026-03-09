@@ -19,6 +19,7 @@ import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.format.versionDateFormatter
 import lucuma.ui.format.versionDateTimeFormatter
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import observe.ui.BuildInfo
 import observe.ui.model.enums.AppTab
@@ -31,12 +32,14 @@ case class AppContext[F[_]](
   ssoClient:     SSOClient[F],
   pageUrl:       AppTab => String,
   setPageVia:    (AppTab, SetRouteVia) => Callback,
-  toast:         ToastRef
+  toastRef:      ToastRef
 )(using
   val F:         Async[F],
   val logger:    Logger[F],
   val odbClient: WebSocketJsClient[F, ObservationDB]
 ):
+  given ToastCtx[F] = new ToastCtx[F](toastRef)
+
   def initODBClient(payload: F[Map[String, Json]]): F[Unit] =
     odbClient.connect(payload).void
 

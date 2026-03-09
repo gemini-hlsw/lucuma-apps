@@ -3,9 +3,7 @@
 
 package lucuma.ui.primereact
 
-import cats.Applicative
 import cats.Monoid
-import cats.effect.Deferred
 import cats.effect.Resource
 import cats.effect.Sync
 import cats.effect.std.UUIDGen
@@ -16,45 +14,25 @@ import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
 import lucuma.ui.syntax.toast.*
 
-class ToastCtx[F[_]: Sync](toastRef: Deferred[F, ToastRef]):
+class ToastCtx[F[_]: Sync](toastRef: ToastRef):
   def showToast(
     text:     String,
     severity: Message.Severity = Message.Severity.Info,
     sticky:   Boolean = false
   ): F[Unit] =
-    toastRef.tryGet.flatMap:
-      _.map:
-        _.show(text, severity, sticky).to[F]
-      .getOrElse:
-        Applicative[F].unit
+    toastRef.show(text, severity, sticky).to[F]
 
   def showToast(messages: MessageItem*): F[Unit] =
-    toastRef.tryGet.flatMap:
-      _.map:
-        _.show(messages*).to[F]
-      .getOrElse:
-        Applicative[F].unit
+    toastRef.show(messages*).to[F]
 
   def replaceToast(message: MessageItem): F[Unit] =
-    toastRef.tryGet.flatMap:
-      _.map:
-        _.remove(message).to[F]
-      .getOrElse:
-        Applicative[F].unit
+    toastRef.remove(message).to[F]
 
   def removeToast(message: MessageItem): F[Unit] =
-    toastRef.tryGet.flatMap:
-      _.map:
-        _.remove(message).to[F]
-      .getOrElse:
-        Applicative[F].unit
+    toastRef.remove(message).to[F]
 
   def clear(): F[Unit] =
-    toastRef.tryGet.flatMap:
-      _.map:
-        _.clear().to[F]
-      .getOrElse:
-        Applicative[F].unit
+    toastRef.clear().to[F]
 
   def showToastDuring(
     text:         String,
@@ -64,13 +42,7 @@ class ToastCtx[F[_]: Sync](toastRef: Deferred[F, ToastRef]):
     UUIDGen[F],
     Monoid[F[Unit]]
   ): Resource[F, Unit] =
-    Resource
-      .eval(toastRef.tryGet)
-      .flatMap:
-        _.map:
-          _.showDuring(text, completeText, errorText)
-        .getOrElse:
-          Resource.unit[F]
+    toastRef.showDuring(text, completeText, errorText)
 
 object ToastCtx:
   def apply[F[_]](using ToastCtx[F]): ToastCtx[F] = summon[ToastCtx[F]]

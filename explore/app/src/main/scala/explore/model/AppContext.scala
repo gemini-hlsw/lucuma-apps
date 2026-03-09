@@ -55,7 +55,7 @@ case class AppContext[F[_]](
   environment:            ExecutionEnvironment,
   odbRestURI:             Uri,
   broadcastChannel:       BroadcastChannel[F, ExploreEvent],
-  toastRef:               Deferred[F, ToastRef],
+  toastRef:               ToastRef,
   resetProgramCacheTopic: Topic[F, Option[ProgramError]], // Error message (if any)
   simbadClient:           SimbadClient[F]
 )(using
@@ -127,10 +127,9 @@ object AppContext:
     setPageVia:           (Option[(AppTab, Program.Id, Focused)], SetRouteVia) => Callback,
     workerClients:        WorkerClients[F],
     httpClient:           Client[F],
-    broadcastChannel:     BroadcastChannel[F, ExploreEvent],
-    toastRef:             Deferred[F, ToastRef]
+    broadcastChannel:     BroadcastChannel[F, ExploreEvent]
   ): F[AppContext[F]] =
-    for {
+    for
       clients                <-
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
@@ -138,7 +137,7 @@ object AppContext:
       sedMatcher             <- SEDDataLoader.loadMatcher[F](httpClient, uri"")
       simbadClient            = SimbadClient.build(httpClient, sedMatcher, _.copy(scheme = Scheme.https.some))
       version                 = utils.version(config.environment)
-    } yield AppContext[F](
+    yield AppContext[F](
       version,
       clients,
       workerClients,
@@ -150,7 +149,7 @@ object AppContext:
       config.environment,
       config.odbRestURI,
       broadcastChannel,
-      toastRef,
+      null, // toastRef will be completed later in RootComponent
       resetProgramCacheTopic,
       simbadClient
     )

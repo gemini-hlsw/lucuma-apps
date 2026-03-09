@@ -15,7 +15,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
 import lucuma.react.primereact.Message
-import lucuma.react.primereact.ToastRef
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.ObservationDB
@@ -25,9 +24,9 @@ import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
 import lucuma.schemas.odb.VisitQueriesGQL
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
-import lucuma.ui.syntax.toast.*
 import monocle.Optional
 import monocle.Traversal
 import org.typelevel.log4cats.Logger
@@ -108,10 +107,10 @@ trait SequenceQaEditHelper:
 
   protected def onDatasetQaChange(
     visits:             View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    toastRef:           ToastRef
+    datasetIdsInFlight: View[HashSet[Dataset.Id]]
   )(using
     FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
     Logger[IO]
   ): Dataset.Id => EditableQaFields => Callback =
     datasetId =>
@@ -128,11 +127,11 @@ trait SequenceQaEditHelper:
                   datasetIdsInFlight.mod(_ - datasetId))
                   .to[IO]
               .handleErrorWith: e =>
-                (datasetIdsInFlight.mod(_ - datasetId) >>
-                  toastRef.show(
+                datasetIdsInFlight.async.mod(_ - datasetId) >>
+                  ToastCtx[IO].showToast(
                     s"Error updating dataset QA state for $datasetId: ${e.getMessage}",
                     Message.Severity.Error,
                     sticky = true
-                  )).to[IO]
+                  )
               .runAsync
         }.orEmpty // If there are no visits, there's nothing to change.

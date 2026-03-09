@@ -66,7 +66,7 @@ object Layout
                       props.rootModel.data.zoom(RootModelData.isAudioActivated),
                       props.rootModel.data.zoom(RootModelData.userVault).set(Pot(none)).toAsync
                     ),
-              Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(ctx.toast.ref),
+              Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(ctx.toastRef.ref),
               SideTabs(
                 "side-tabs".refined,
                 appTabView,

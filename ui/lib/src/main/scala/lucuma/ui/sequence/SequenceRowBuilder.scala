@@ -17,7 +17,6 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.UtcFormatter
-import lucuma.react.primereact.ToastRef
 import lucuma.react.table.Expandable
 import lucuma.react.table.Expanded
 import lucuma.react.table.RowId
@@ -30,6 +29,7 @@ import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.display.given
 import lucuma.ui.format.DurationFormatter
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
@@ -92,10 +92,10 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     showOngoingLabel:   Boolean,
     enableQaEditor:     Boolean,
     allVisits:          View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    toastRef:           ToastRef
+    datasetIdsInFlight: View[HashSet[Dataset.Id]]
   )(using
     FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
     Logger[IO]
   ) =
     <.div(SequenceStyles.VisitStepExtra)(
@@ -128,7 +128,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
                     QaEditor(
                       dataset,
                       qaIcon,
-                      onDatasetQaChange(allVisits, datasetIdsInFlight, toastRef)
+                      onDatasetQaChange(allVisits, datasetIdsInFlight)
                     )
                   else qaIcon
               )

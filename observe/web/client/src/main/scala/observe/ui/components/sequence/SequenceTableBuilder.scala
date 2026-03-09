@@ -169,8 +169,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.selectedStepId,
                 props.visits,
                 datasetIdsInFlight,
-                props.onBreakpointFlip,
-                ctx.toast
+                props.onBreakpointFlip
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)

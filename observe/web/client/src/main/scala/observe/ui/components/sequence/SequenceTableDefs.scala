@@ -15,12 +15,12 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.react.SizePx
 import lucuma.react.common.*
-import lucuma.react.primereact.ToastRef
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.enums.StepExecutionState
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
@@ -50,7 +50,6 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    toastRef:           ToastRef,
     isEditing:          IsEditing = IsEditing.False,
     modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
     modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
@@ -128,6 +127,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     isPreview:  Boolean
   )(using
     FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
     Logger[IO]
   ): List[ColDef.TypeFor[?]] =
     List(
@@ -187,8 +187,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                       case _                                                         => false
                     ,
                     allVisits = meta.allVisits,
-                    datasetIdsInFlight = meta.datasetIdsInFlight,
-                    toastRef = meta.toastRef
+                    datasetIdsInFlight = meta.datasetIdsInFlight
                   )
                 case step                                           =>
                   (step.id.toOption, step.stepTypeDisplay, step.exposureTime).mapN:

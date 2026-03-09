@@ -19,13 +19,13 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Dataset
 import lucuma.react.SizePx
-import lucuma.react.primereact.ToastRef
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.enums.StepExecutionState
+import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.sequence.SequenceColumns.*
@@ -51,7 +51,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   private case class TableMeta[D](
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    toastRef:           ToastRef,
     isEditing:          IsEditing = IsEditing.False,
     modAcquisition:     Endo[Option[Atom[D]]] => Callback,
     modScience:         Endo[List[Atom[D]]] => Callback,
@@ -68,7 +67,11 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     ExtraRowColumnId -> FixedSize(0.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
-  private def columns(using FetchClient[IO, ObservationDB], Logger[IO]): List[ColDef.Type] =
+  private def columns(using
+    FetchClient[IO, ObservationDB],
+    ToastCtx[IO],
+    Logger[IO]
+  ): List[ColDef.Type] =
     List(
       SequenceColumns
         .headerCell(HeaderColumnId, ColDef)
@@ -90,8 +93,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                         case StepExecutionState.Completed | StepExecutionState.Stopped => true
                         case _                                                         => false),
                     allVisits = meta.allVisits,
-                    datasetIdsInFlight = meta.datasetIdsInFlight,
-                    toastRef = meta.toastRef
+                    datasetIdsInFlight = meta.datasetIdsInFlight
                   )
       ).withColumnSize(ColumnSizes(ExtraRowColumnId))
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
@@ -130,8 +132,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               science
             )
         datasetIdsInFlight <- useStateView(HashSet.empty[Dataset.Id])
-        // TODO Change SequenceQaEditHelper to use an implicit ToastCtx when it's unified with observe
-        toastRef           <- useEffectResultOnMount(ctx.toastRef.get)
         tableState         <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
@@ -155,7 +155,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               meta = TableMeta(
                 props.visits,
                 datasetIdsInFlight,
-                toastRef.value.value.toOption.getOrElse(null),
                 props.isEditing,
                 props.modAcquisition,
                 props.modScience,
