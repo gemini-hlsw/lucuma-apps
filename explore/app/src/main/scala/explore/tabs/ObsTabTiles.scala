@@ -101,10 +101,10 @@ case class ObsTabTiles(
   userPreferences:  View[UserPreferences],
   readonly:         Boolean
 ) extends ReactFnProps(ObsTabTiles.component):
-  val isStaffOrAdmin        = vault.isStaffOrAdmin
-  val obsIsReadonly         =
-    readonly || (observation.get.isExecuted && !isStaffOrAdmin) || observation.get.isCompleted
-  val obsId: Observation.Id = observation.get.id
+  val isStaffOrAdminUser: Boolean = vault.isStaffOrAdmin
+  val obsIsReadonly: Boolean      =
+    readonly || (observation.get.isExecuted && !isStaffOrAdminUser) || observation.get.isCompleted
+  val obsId: Observation.Id       = observation.get.id
 
   val allConstraintSets: Set[ConstraintSet] = programSummaries.constraintGroups.map(_._2).toSet
 
@@ -409,7 +409,8 @@ object ObsTabTiles:
               customSedTimestamps,
               props.calibrationRole,
               sequenceChanged,
-              isEditing
+              isEditing,
+              props.isStaffOrAdminUser
             )
 
           val selectedItcConfig: Option[List[ItcInstrumentConfig]] =
@@ -553,8 +554,8 @@ object ObsTabTiles:
               props.attachments,
               props.vault.map(_.token),
               props.obsIsReadonly,
-              allowEditingOngoing = props.isStaffOrAdmin,
-              isStaffOrAdmin = props.isStaffOrAdmin,
+              allowEditingOngoing = props.isStaffOrAdminUser,
+              isStaffOrAdmin = props.isStaffOrAdminUser,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some
@@ -611,7 +612,7 @@ object ObsTabTiles:
               props.readonly, // execution status is taken care of in the configuration tile
               ObsIdSetEditInfo.of(props.observation.get),
               globalPreferences.get.wavelengthUnits,
-              props.isStaffOrAdmin,
+              props.isStaffOrAdminUser,
               selectedItcTarget
             )
 

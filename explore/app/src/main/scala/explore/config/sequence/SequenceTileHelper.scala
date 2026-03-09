@@ -27,7 +27,7 @@ import scala.concurrent.duration.*
 object SequenceTileHelper:
 
   protected[sequence] case class LiveSequence(
-    visits:   Reusable[Pot[Option[ExecutionVisits]]],
+    visits:   Reusable[Pot[View[Option[ExecutionVisits]]]],
     sequence: Reusable[Pot[View[Option[SequenceData]]]]
   ):
     val isReady: Boolean = visits.isReady && sequence.isReady
@@ -79,4 +79,4 @@ object SequenceTileHelper:
           // has been assigned, OR a new version of the custom sed has been uploaded. This is to
           // catch the latter case.
           refreshSequence.value
-    yield LiveSequence(visits.value, sequenceData.state)
+    yield LiveSequence(visits.state, sequenceData.state)

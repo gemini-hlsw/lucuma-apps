@@ -31,6 +31,7 @@ import lucuma.ui.syntax.toast.*
 import monocle.Optional
 import monocle.Traversal
 import org.typelevel.log4cats.Logger
+
 import scala.collection.immutable.HashSet
 
 // Methods for dealing with dataset QA editing on the sequence table.

@@ -4,6 +4,7 @@
 package explore.config.sequence.byInstrument
 
 import cats.Endo
+import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import japgolly.scalajs.react.callback.Callback
@@ -11,23 +12,26 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.*
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
-import lucuma.schemas.model.Visit
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 
 final case class GmosSouthSpectroscopySequenceTable(
-  visits:         List[Visit.GmosSouth],
-  staticConfig:   gmos.StaticConfig.GmosSouth,
-  acquisition:    Option[Atom[gmos.DynamicConfig.GmosSouth]],
-  science:        Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  acquisitonSN:   Option[SignalToNoiseAt],
-  scienceSN:      Option[SignalToNoiseAt],
-  isEditing:      IsEditing,
-  modAcquisition: Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
-  modScience:     Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback
+  visits:             View[Option[ExecutionVisits]],
+  staticConfig:       gmos.StaticConfig.GmosSouth,
+  acquisition:        Option[Atom[gmos.DynamicConfig.GmosSouth]],
+  science:            Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
+  acquisitonSN:       Option[SignalToNoiseAt],
+  scienceSN:          Option[SignalToNoiseAt],
+  isEditing:          IsEditing,
+  modAcquisition:     Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  modScience:         Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  isUserStaffOrAdmin: Boolean
 ) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
-    with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]
+    with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]:
+  val toInstrumentVisits =
+    case ExecutionVisits.GmosSouth(visits) => visits
 
 object GmosSouthSpectroscopySequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](

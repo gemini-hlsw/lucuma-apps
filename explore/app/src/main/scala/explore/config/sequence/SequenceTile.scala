@@ -42,9 +42,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.TooltipOptions
 import lucuma.refined.*
-import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.ModeSignalToNoise
-import lucuma.schemas.model.Visit
 import lucuma.ui.primereact.*
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
@@ -63,7 +61,8 @@ final case class SequenceTile(
   customSedTimestamps: List[Timestamp],
   calibrationRole:     Option[CalibrationRole],
   sequenceChanged:     View[Pot[Unit]],
-  isEditing:           View[IsEditing]
+  isEditing:           View[IsEditing],
+  isUserStaffOrAdmin:  Boolean
 ) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence", canMinimize = !isEditing.get)(
       SequenceTile // TODO Move isEditing state here, but we need to be able to change tile state from within tile
     )
@@ -289,7 +288,7 @@ object SequenceTile
             .flatMap: _ =>
               (liveSequence.visits.value, liveSequence.sequence.value.map(_.get)).tupled
             .renderPot(
-              (visitsOpt, sequenceDataOpt) =>
+              (visitsViewOpt, sequenceDataOpt) =>
                 // TODO Show visits even if sequence data is not available
                 sequenceDataOpt
                   .fold[VdomNode](
@@ -299,16 +298,10 @@ object SequenceTile
                     )
                   ) {
                     case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
-                      val visits: List[Visit.GmosNorth] =
-                        visitsOpt
-                          .collect:
-                            case ExecutionVisits.GmosNorth(vs) => vs.toList
-                          .orEmpty
-
                       signalToNoise match
                         case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
                           GmosNorthSpectroscopySequenceTable(
-                            visits,
+                            visitsViewOpt,
                             config.static,
                             resolveAcquisition(config, EditableSequence.gmosNorthAcquisition),
                             resolveScience(config, EditableSequence.gmosNorthScience),
@@ -316,31 +309,27 @@ object SequenceTile
                             scienceSn,
                             props.isEditing.get,
                             modSequence(EditableSequence.gmosNorthAcquisition),
-                            modSequence(EditableSequence.gmosNorthScience)
+                            modSequence(EditableSequence.gmosNorthScience),
+                            props.isUserStaffOrAdmin
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(
-                            visits,
+                            visitsViewOpt,
                             config.static,
                             resolveAcquisition(config, EditableSequence.gmosNorthAcquisition),
                             resolveScience(config, EditableSequence.gmosNorthScience),
                             snPerFilter,
                             props.isEditing.get,
                             modSequence(EditableSequence.gmosNorthAcquisition),
-                            modSequence(EditableSequence.gmosNorthScience)
+                            modSequence(EditableSequence.gmosNorthScience),
+                            props.isUserStaffOrAdmin
                           )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
-                      val visits: List[Visit.GmosSouth] =
-                        visitsOpt
-                          .collect:
-                            case ExecutionVisits.GmosSouth(vs) => vs.toList
-                          .orEmpty
-
                       signalToNoise match
                         case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
                           GmosSouthSpectroscopySequenceTable(
-                            visits,
+                            visitsViewOpt,
                             config.static,
                             resolveAcquisition(config, EditableSequence.gmosSouthAcquisition),
                             resolveScience(config, EditableSequence.gmosSouthScience),
@@ -348,18 +337,20 @@ object SequenceTile
                             scienceSn,
                             props.isEditing.get,
                             modSequence(EditableSequence.gmosSouthAcquisition),
-                            modSequence(EditableSequence.gmosSouthScience)
+                            modSequence(EditableSequence.gmosSouthScience),
+                            props.isUserStaffOrAdmin
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(
-                            visits,
+                            visitsViewOpt,
                             config.static,
                             resolveAcquisition(config, EditableSequence.gmosSouthAcquisition),
                             resolveScience(config, EditableSequence.gmosSouthScience),
                             snPerFilter,
                             props.isEditing.get,
                             modSequence(EditableSequence.gmosSouthAcquisition),
-                            modSequence(EditableSequence.gmosSouthScience)
+                            modSequence(EditableSequence.gmosSouthScience),
+                            props.isUserStaffOrAdmin
                           )
                         case _                                                        => mismatchError
                     case SequenceData(
@@ -367,10 +358,7 @@ object SequenceTile
                           ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
                         ) =>
                       Flamingos2SequenceTable(
-                        visitsOpt
-                          .collect:
-                            case ExecutionVisits.Flamingos2(visits) => visits.toList
-                          .orEmpty,
+                        visitsViewOpt,
                         config.static,
                         resolveAcquisition(config, EditableSequence.flamingos2Acquisition),
                         resolveScience(config, EditableSequence.flamingos2Science),
@@ -378,7 +366,8 @@ object SequenceTile
                         scienceSn,
                         props.isEditing.get,
                         modSequence(EditableSequence.flamingos2Acquisition),
-                        modSequence(EditableSequence.flamingos2Science)
+                        modSequence(EditableSequence.flamingos2Science),
+                        props.isUserStaffOrAdmin
                       )
                     case _                                                                        => mismatchError
                   },

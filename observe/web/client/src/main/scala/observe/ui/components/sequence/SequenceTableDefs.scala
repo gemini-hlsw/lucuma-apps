@@ -7,6 +7,7 @@ import cats.Endo
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
+import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -14,9 +15,12 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.*
 import lucuma.react.SizePx
 import lucuma.react.common.*
+import lucuma.react.primereact.ToastRef
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
@@ -30,12 +34,9 @@ import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 import org.typelevel.log4cats.Logger
 
-import scalajs.js
-import lucuma.schemas.model.enums.StepExecutionState
-import crystal.react.View
-import lucuma.schemas.model.ExecutionVisits
-import lucuma.react.primereact.ToastRef
 import scala.collection.immutable.HashSet
+
+import scalajs.js
 
 // Offload SequenceTable definitions to improve legibility.
 trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:

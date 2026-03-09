@@ -8,6 +8,8 @@ import cats.Eq
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
+import crystal.react.View
+import crystal.react.hooks.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.reusability.given
@@ -15,11 +17,14 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.Dataset
 import lucuma.react.SizePx
+import lucuma.react.primereact.ToastRef
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
@@ -30,6 +35,7 @@ import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 
+import scala.collection.immutable.HashSet
 import scala.scalajs.LinkingInfo
 
 private type SequenceColumnsType[D] =
@@ -43,9 +49,13 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   private type Props = SequenceTable[S, D]
 
   private case class TableMeta[D](
-    isEditing:      IsEditing = IsEditing.False,
-    modAcquisition: Endo[Option[Atom[D]]] => Callback,
-    modScience:     Endo[List[Atom[D]]] => Callback
+    allVisits:          View[Option[ExecutionVisits]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]],
+    toastRef:           ToastRef,
+    isEditing:          IsEditing = IsEditing.False,
+    modAcquisition:     Endo[Option[Atom[D]]] => Callback,
+    modScience:         Endo[List[Atom[D]]] => Callback,
+    isUserStaffOrAdmin: Boolean
   ) extends SequenceTableMeta[D]
 
   private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta[D]]
@@ -66,11 +76,23 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
       ColDef(
         ExtraRowColumnId,
         header = "",
-        cell = _.row.original.value.toOption
-          .map(_.step)
-          .collect:
-            case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
-              renderVisitExtraRow(step, showOngoingLabel = true, ???, ???, ???, ???)
+        cell = cell =>
+          cell.table.options.meta.map: meta =>
+            cell.row.original.value.toOption
+              .map(_.step)
+              .collect:
+                case step @ SequenceRow.Executed.ExecutedStep(_, _) =>
+                  renderVisitExtraRow(
+                    step,
+                    showOngoingLabel = true,
+                    enableQaEditor =
+                      meta.isUserStaffOrAdmin && (step.executionState match // QA editor only in completed steps
+                        case StepExecutionState.Completed | StepExecutionState.Stopped => true
+                        case _                                                         => false),
+                    allVisits = meta.allVisits,
+                    datasetIdsInFlight = meta.datasetIdsInFlight,
+                    toastRef = meta.toastRef
+                  )
       ).withColumnSize(ColumnSizes(ExtraRowColumnId))
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
 
@@ -87,15 +109,15 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx        <- useContext(AppContext.ctx)
-        visitsData <- useMemo(props.visits):
-                        visitsSequences(_, none)
-        resize     <- useResizeDetector
-        dynTable   <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
-        cols       <- useMemo(()): _ =>
-                        import ctx.given
-                        dynTable.setInitialColWidths(columns)
-        rows       <-
+        ctx                <- useContext(AppContext.ctx)
+        visitsData         <- useMemo(props.instrumentVisits):
+                                visitsSequences(_, none)
+        resize             <- useResizeDetector
+        dynTable           <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        cols               <- useMemo(()): _ =>
+                                import ctx.given
+                                dynTable.setInitialColWidths(columns)
+        rows               <-
           useMemo(
             (visitsData, props.acquisitionRows, props.scienceRows, props.currentVisitId)
           ): (visitsData, acquisition, science, currentVisitId) =>
@@ -107,11 +129,14 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               acquisition,
               science
             )
-        tableState <-
+        datasetIdsInFlight <- useStateView(HashSet.empty[Dataset.Id])
+        // TODO Change SequenceQaEditHelper to use an implicit ToastCtx when it's unified with observe
+        toastRef           <- useEffectResultOnMount(ctx.toastRef.get)
+        tableState         <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
               PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
-        table      <-
+        table              <-
           useReactTable:
             TableOptions(
               cols,
@@ -127,37 +152,45 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               ),
               state = tableState,
               onColumnSizingChange = dynTable.onColumnSizingChangeHandler,
-              meta = TableMeta(props.isEditing, props.modAcquisition, props.modScience)
+              meta = TableMeta(
+                props.visits,
+                datasetIdsInFlight,
+                toastRef.value.value.toOption.getOrElse(null),
+                props.isEditing,
+                props.modAcquisition,
+                props.modScience,
+                props.isUserStaffOrAdmin
+              )
             )
-        _          <-
+        _                  <-
           useEffectWithDeps(props.isEditing.value): isEditing =>
             dynTable.modCollapsedCols(_ => !isEditing)
-        tableDnd   <- useVirtualizedTableDragAndDrop(
-                        table,
-                        DragHandleColumnId,
-                        getData = _.original.value.toOption
-                          .flatMap:
-                            _.step match
-                              case SequenceRow.futureStep(fs) => (fs.stepId, fs.seqType).some
-                              case _                          => none,
-                        containerRef = resize.ref,
-                        onDrop = (sourceData, target) =>
-                          (table.options.meta,
-                           sourceData.map(_._1),
-                           sourceData.map(_._2),
-                           target.flatMap(_.data.map(_._1)),
-                           target.map(_.edge)
-                          )
-                            .mapN: (meta, sourceStepId, seqType, targetStepId, edge) =>
-                              meta.seqTypeMod(seqType):
-                                moveStep(sourceStepId, targetStepId, edge)
-                            .orEmpty,
-                        canDrop = (targetData, sourceArgs) =>
-                          targetData.exists: // Only allow dragging into same sequence type
-                            case (targetStepId, targetSeqType) =>
-                              sourceArgs.source.data.value.exists: (sourceStepId, sourceSeqType) =>
-                                sourceSeqType === targetSeqType && sourceStepId != targetStepId
-                      )
+        tableDnd           <- useVirtualizedTableDragAndDrop(
+                                table,
+                                DragHandleColumnId,
+                                getData = _.original.value.toOption
+                                  .flatMap:
+                                    _.step match
+                                      case SequenceRow.futureStep(fs) => (fs.stepId, fs.seqType).some
+                                      case _                          => none,
+                                containerRef = resize.ref,
+                                onDrop = (sourceData, target) =>
+                                  (table.options.meta,
+                                   sourceData.map(_._1),
+                                   sourceData.map(_._2),
+                                   target.flatMap(_.data.map(_._1)),
+                                   target.map(_.edge)
+                                  )
+                                    .mapN: (meta, sourceStepId, seqType, targetStepId, edge) =>
+                                      meta.seqTypeMod(seqType):
+                                        moveStep(sourceStepId, targetStepId, edge)
+                                    .orEmpty,
+                                canDrop = (targetData, sourceArgs) =>
+                                  targetData.exists: // Only allow dragging into same sequence type
+                                    case (targetStepId, targetSeqType) =>
+                                      sourceArgs.source.data.value.exists: (sourceStepId, sourceSeqType) =>
+                                        sourceSeqType === targetSeqType && sourceStepId != targetStepId
+                              )
       yield
         val extraRowMod: TagMod =
           TagMod(

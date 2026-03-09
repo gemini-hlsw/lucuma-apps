@@ -36,8 +36,8 @@ import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 
-import scala.scalajs.LinkingInfo
 import scala.collection.immutable.HashSet
+import scala.scalajs.LinkingInfo
 
 // Helper to build component objects for instrument sequence tables.
 private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrument)

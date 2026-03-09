@@ -34,6 +34,7 @@ import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
 import org.typelevel.log4cats.Logger
+
 import scala.collection.immutable.HashSet
 
 // Methods for building visits rows on the sequence table

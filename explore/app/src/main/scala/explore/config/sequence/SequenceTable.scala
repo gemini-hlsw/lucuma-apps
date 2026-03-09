@@ -4,19 +4,21 @@
 package explore.config.sequence
 
 import cats.Endo
+import cats.data.NonEmptyList
 import cats.syntax.all.*
+import crystal.react.View
 import japgolly.scalajs.react.callback.Callback
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.*
+import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.sequence.*
 
 private trait SequenceTable[S, D]:
-  def visits: List[Visit[D]]
-  // def config: ExecutionConfig[S, D]
+  def visits: View[Option[ExecutionVisits]]
   def staticConfig: S
   def acquisition: Option[Atom[D]]
   def science: Option[List[Atom[D]]]
@@ -24,6 +26,15 @@ private trait SequenceTable[S, D]:
   def isEditing: IsEditing
   def modAcquisition: Endo[Option[Atom[D]]] => Callback
   def modScience: Endo[List[Atom[D]]] => Callback
+  def isUserStaffOrAdmin: Boolean
+
+  def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
+
+  protected[sequence] lazy val instrumentVisits: List[Visit[D]] =
+    visits.get
+      .collect:
+        toInstrumentVisits.andThen(_.toList)
+      .orEmpty
 
   private def futureSteps(
     seqType:        SequenceType,
@@ -38,7 +49,7 @@ private trait SequenceTable[S, D]:
 
   private lazy val currentVisitData: Option[(Visit.Id, SequenceType, Boolean)] =
     // If the last atom of the last visit is Ongoing, the sequence is executing.
-    visits.lastOption
+    instrumentVisits.lastOption
       .filter:
         _.atoms.lastOption.exists:
           _.executionState === AtomExecutionState.Ongoing
