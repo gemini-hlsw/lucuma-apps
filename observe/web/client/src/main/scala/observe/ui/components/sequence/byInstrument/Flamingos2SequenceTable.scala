@@ -42,7 +42,7 @@ final case class Flamingos2SequenceTable(
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:
-  val toInstrumentVisits =
+  lazy val toInstrumentVisits =
     case ExecutionVisits.Flamingos2(visits) => visits
 
 object Flamingos2SequenceTable

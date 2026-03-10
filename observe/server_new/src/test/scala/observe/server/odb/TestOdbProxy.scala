@@ -199,6 +199,12 @@ object TestOdbProxy {
         override def datasetEndWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
           addEvent(DatasetEndWrite(obsId, fileId)).as(true)
 
+        override def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+          addEvent(StepContinue(obsId)).as(true)
+
+        override def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+          addEvent(StepPause(obsId)).as(true)
+
         override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepEndObserve(obsId)).as(true)
 
@@ -243,6 +249,8 @@ object TestOdbProxy {
   case class DatasetEndReadout(obsId: Observation.Id, fileId: ImageFileId)    extends OdbEvent
   case class DatasetStartWrite(obsId: Observation.Id, fileId: ImageFileId)    extends OdbEvent
   case class DatasetEndWrite(obsId: Observation.Id, fileId: ImageFileId)      extends OdbEvent
+  case class StepContinue(obsId: Observation.Id)                              extends OdbEvent
+  case class StepPause(obsId: Observation.Id)                                 extends OdbEvent
   case class StepEndObserve(obsId: Observation.Id)                            extends OdbEvent
   case class StepEndStep(obsId: Observation.Id)                               extends OdbEvent
   case class StepAbort(obsId: Observation.Id)                                 extends OdbEvent

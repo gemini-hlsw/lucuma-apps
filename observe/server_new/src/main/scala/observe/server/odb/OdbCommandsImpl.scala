@@ -206,7 +206,7 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
     recordSequenceEvent(obsId, SequenceCommand.Continue)
 
-  override def obsPause(obsId: Observation.Id, reason: String): F[Boolean] =
+  override def obsPause(obsId: Observation.Id): F[Boolean] =
     recordSequenceEvent(obsId, SequenceCommand.Pause)
 
   override def obsStop(obsId: Observation.Id): F[Boolean] =

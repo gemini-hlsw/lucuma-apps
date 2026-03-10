@@ -43,7 +43,7 @@ final case class GmosSouthSpectroscopySequenceTable(
       Instrument.GmosSouth
     )
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]:
-  val toInstrumentVisits =
+  lazy val toInstrumentVisits =
     case ExecutionVisits.GmosSouth(visits) => visits
 
 object GmosSouthSpectroscopySequenceTable

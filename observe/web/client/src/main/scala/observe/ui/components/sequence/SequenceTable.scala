@@ -65,10 +65,6 @@ private trait SequenceTable[S, D](
   protected[sequence] lazy val currentRecordedStepId: Option[Step.Id] =
     lastVisitStepId.filter(activeStepId.contains_(_))
 
-  println(s"Last visit step id: $lastVisitStepId")
-  println(s"Active step id.   : $activeStepId")
-  println(s"Current recordedid: $currentRecordedStepId")
-
   private def futureSteps(
     atoms:   List[Atom[D]],
     seqType: SequenceType

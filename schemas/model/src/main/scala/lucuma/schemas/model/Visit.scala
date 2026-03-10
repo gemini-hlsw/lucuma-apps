@@ -13,10 +13,10 @@ import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import monocle.Focus
 import monocle.Lens
-import monocle.Prism
-import monocle.macros.GenPrism
 import monocle.Optional
+import monocle.Prism
 import monocle.Traversal
+import monocle.macros.GenPrism
 
 enum Visit[+D]:
   def id: Visit.Id

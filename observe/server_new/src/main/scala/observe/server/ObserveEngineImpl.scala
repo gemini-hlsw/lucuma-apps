@@ -1364,7 +1364,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       case (SystemUpdate(SystemEvent.LoadFailed(obsId, _, e), _), _)             =>
         Logger[F].error(s"Error loading $obsId due to $e") <*
           systems.odb
-            .obsStop(obsId, e.msg)
+            .obsStop(obsId)
             .ensure(
               ObserveFailure
                 .Unexpected("Unable to send ObservationLoadFailed message to ODB.")

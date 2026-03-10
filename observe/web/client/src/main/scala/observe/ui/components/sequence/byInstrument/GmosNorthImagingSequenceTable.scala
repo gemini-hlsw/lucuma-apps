@@ -43,7 +43,7 @@ final case class GmosNorthImagingSequenceTable(
       Instrument.GmosNorth
     )
     with ImagingSequenceTable[gmos.DynamicConfig.GmosNorth, GmosNorthFilter]:
-  val toInstrumentVisits =
+  lazy val toInstrumentVisits =
     case ExecutionVisits.GmosNorth(visits) => visits
 
   val filterFromDynamicConfig: gmos.DynamicConfig.GmosNorth => Option[GmosNorthFilter] =
