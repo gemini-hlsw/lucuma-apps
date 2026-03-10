@@ -30,11 +30,13 @@ import queries.schemas.itc.syntax.*
 import workers.*
 
 object ITCRequests:
-  val cacheVersion = CacheVersion(23)
+  val cacheVersion = CacheVersion(24)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
-    case Error.SourceTooBright(halfWell) => ItcQueryProblem.SourceTooBright(halfWell)
-    case Error.General(message)          => ItcQueryProblem.GenericError(message)
+    case Error.SourceTooBright(halfWell)  => ItcQueryProblem.SourceTooBright(halfWell)
+    case Error.WavelengthAtOutOfRange(wv) =>
+      ItcQueryProblem.GenericError(Error.WavelengthAtOutOfRangeMessage)
+    case Error.General(message)           => ItcQueryProblem.GenericError(message)
 
   // Copied from https://gist.github.com/gvolpe/44e2263f9068efe298a1f30390de6d22
   def parTraverseN[F[_]: {Concurrent, Parallel}, G[_]: Traverse, A, B](

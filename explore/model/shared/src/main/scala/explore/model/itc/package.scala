@@ -28,6 +28,7 @@ import monocle.macros.GenPrism
 
 import scala.collection.immutable.SortedMap
 import scala.math.*
+import cats.data.NonEmptyChain
 
 // Do not turn into enum or compositePickler will break.
 sealed trait ItcQueryProblem(val message: String) derives Eq:
@@ -50,8 +51,17 @@ case class ItcTargetProblem(targetName: Option[NonEmptyString], problem: ItcQuer
   def format: String =
     targetName.fold(problem.message)(name => s"$name: ${problem.message}")
 
-// TODO: move to core
-private given Eq[SignalToNoiseAt] = Eq.by(x => (x.wavelength, x.single, x.total))
+extension (a: NonEmptyChain[ItcTargetProblem])
+  def format(prefix: String): String =
+    // Single target
+    if (a.length === 1)
+      a.toList
+        .map(_.problem.message)
+        .mkString(prefix, "\n", "")
+    else
+      a.toList
+        .map(_.format)
+        .mkString(prefix, "\n", "")
 
 sealed trait ItcResult derives Eq {
   def isSuccess: Boolean = this match {
