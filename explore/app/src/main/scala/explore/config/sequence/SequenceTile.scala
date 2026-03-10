@@ -383,9 +383,10 @@ object SequenceTile
                     case _                                                                        => mismatchError
                   },
               errorRender = m =>
+                val msg = m.getMessage.split(",\\s*").distinct.mkString(", ")
                 <.div(ExploreStyles.SequencesPanelError)(
                   Message(
-                    text = m.getMessage,
+                    text = msg,
                     severity = Message.Severity.Warning,
                     icon = Icons.ExclamationTriangle
                   )
