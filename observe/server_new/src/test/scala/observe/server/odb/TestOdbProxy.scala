@@ -43,42 +43,22 @@ trait TestOdbProxy[F[_]] extends OdbProxy[F]:
 object TestOdbProxy {
 
   case class State(
-    acquisition:    Option[Atom[DynamicConfig.GmosNorth]],
-    sciences:       List[Atom[DynamicConfig.GmosNorth]],
-    currentAtom:    Option[Atom.Id],
-    completedSteps: List[Step.Id],
-    currentStep:    Option[Step.Id],
-    out:            List[OdbEvent]
+    acquisition: Option[Atom[DynamicConfig.GmosNorth]],
+    sciences:    List[Atom[DynamicConfig.GmosNorth]],
+    out:         List[OdbEvent]
   ) {
-    def completeCurrentAtom: State =
-      currentAtom.fold(this)(a =>
-        copy(
-          currentAtom = none,
-          currentStep = none,
-          acquisition = acquisition.filter(_.id =!= a),
-          sciences = sciences.filter(_.id =!= a)
-        )
-      )
+    private def completeStepInAtom(
+      stepId: Step.Id
+    )(a: Atom[DynamicConfig.GmosNorth]): Option[Atom[DynamicConfig.GmosNorth]] =
+      NonEmptyList
+        .fromList(a.steps.filterNot(_.id === stepId))
+        .map: newSteps =>
+          a.copy(steps = newSteps)
 
-    def startStep(stepId: Option[Step.Id]): State =
-      State.currentStep.replace(stepId)(this)
-
-    private def advanceAtom(
-      a: Atom[DynamicConfig.GmosNorth]
-    ): Option[Atom[DynamicConfig.GmosNorth]] =
-      if currentAtom.exists(_ === a.id) then
-        val rest = NonEmptyList.fromList(a.steps.tail)
-        rest.map(r => a.copy(steps = r))
-      else a.some
-
-    def completeCurrentStep: State =
-      currentStep.fold(this)(s =>
-        copy(
-          currentStep = none,
-          completedSteps = (s :: completedSteps.reverse).reverse,
-          acquisition = acquisition.flatMap(advanceAtom),
-          sciences = sciences.map(advanceAtom).flattenOption
-        )
+    def completeStep(stepId: Step.Id): State =
+      copy(
+        acquisition = acquisition.flatMap(completeStepInAtom(stepId)),
+        sciences = sciences.map(completeStepInAtom(stepId)).flattenOption
       )
 
     def resetAcquisition(original: Option[Atom[DynamicConfig.GmosNorth]]): State =
@@ -86,7 +66,6 @@ object TestOdbProxy {
   }
 
   object State:
-    val currentStep: Lens[State, Option[Step.Id]]                  = Focus[State](_.currentStep)
     val sciences: Lens[State, List[Atom[DynamicConfig.GmosNorth]]] = Focus[State](_.sciences)
 
   def build[F[_]: Concurrent](
@@ -95,7 +74,7 @@ object TestOdbProxy {
     sciences:           List[Atom[DynamicConfig.GmosNorth]] = List.empty,
     updateStartObserve: State => State = identity
   ): F[TestOdbProxy[F]] = Ref
-    .of[F, State](State(acquisition, sciences, None, List.empty, None, List.empty))
+    .of[F, State](State(acquisition, sciences, List.empty))
     .map(rf =>
       new TestOdbProxy[F] {
         override def obsEditSubscription(obsId: Observation.Id): Resource[F, fs2.Stream[F, Unit]] =
@@ -161,8 +140,7 @@ object TestOdbProxy {
         override def sequenceStart(obsId: Observation.Id): F[Unit] = addEvent(SequenceStart(obsId))
 
         override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
-          rf.update(_.startStep(stepId.some)) >>
-            addEvent(StepStartStep(obsId))
+          addEvent(StepStartStep(obsId))
 
         override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
           addEvent(StepStartConfigure(obsId))
@@ -211,7 +189,7 @@ object TestOdbProxy {
         override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           rf.update { a =>
             // This is a hook to let a test caller modify the sequence at the end of a step
-            updateStartObserve(a).completeCurrentStep
+            updateStartObserve(a).completeStep(stepId)
           } *> addEvent(StepEndStep(obsId))
             .as(true)
 
