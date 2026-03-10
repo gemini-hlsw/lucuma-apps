@@ -242,9 +242,7 @@ object ItcSpectroscopyTile
                 valueRender = _.fold(
                   es =>
                     Message(
-                      text = es.toList
-                        .map(_.format)
-                        .mkString("Could not generate a graph:\n", "\n", ""),
+                      text = es.format("Could not generate a graph:"),
                       severity = Message.Severity.Warning
                     ),
                   (signalToNoiseAt, graphResult) => buildBody(userId, signalToNoiseAt, graphResult)

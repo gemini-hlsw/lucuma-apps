@@ -112,6 +112,10 @@ object ITCGraphRequests:
                                 itcTarget -> ItcQueryProblem
                                   .SourceTooBright(wellHalfFilledSeconds)
                                   .asLeft
+                              case Error.WavelengthAtOutOfRange(wv)             =>
+                                itcTarget -> ItcQueryProblem
+                                  .GenericError(Error.WavelengthAtOutOfRangeMessage)
+                                  .asLeft
                               case Error.General(message)                       =>
                                 itcTarget -> ItcQueryProblem.GenericError(message).asLeft
                     ,

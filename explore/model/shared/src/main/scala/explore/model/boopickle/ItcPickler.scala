@@ -278,11 +278,13 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[TargetGraphsResult] = generatePickler
 
-  given errorSourceTooBright: Pickler[Error.SourceTooBright] = generatePickler
-  given errorGeneral: Pickler[Error.General]                 = generatePickler
+  given errorSourceTooBright: Pickler[Error.SourceTooBright]               = generatePickler
+  given errorGeneral: Pickler[Error.General]                               = generatePickler
+  given errorWavelengthAtOutOfRange: Pickler[Error.WavelengthAtOutOfRange] = generatePickler
 
   given Pickler[Error] = compositePickler[Error]
     .addConcreteType[Error.SourceTooBright]
+    .addConcreteType[Error.WavelengthAtOutOfRange]
     .addConcreteType[Error.General]
 
   given Pickler[TargetGraphsResultOutcome] = picklerNewType(TargetGraphsResultOutcome)
