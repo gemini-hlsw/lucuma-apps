@@ -122,7 +122,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def ecsVentGatesMove(gateEast: Double, westGate: Double): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def tcsConfig(config: TcsConfig): F[ApplyCommandResult] =
+  override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
   override def slew(

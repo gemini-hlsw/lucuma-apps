@@ -502,10 +502,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   private val TcsConfigTimeout = FiniteDuration(60, SECONDS)
 
   // Added a 1.5 s wait between selecting the OIWFS and setting targets, to copy TCC
-  override def tcsConfig(config: TcsConfig): F[ApplyCommandResult] = for {
-    _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
+  override def tcsConfig(config: TcsConfig)(guide: GuideConfig): F[ApplyCommandResult] = for {
     _   <- resetAllTracking.verifiedRun(ConnectionTimeout)
-    _   <- disableGuide
+    _   <- pauseGuide
     p1f <- sys.ags.status.pwfs1Mechs.colFilter
              .verifiedRun(ConnectionTimeout)
              .attempt
@@ -521,13 +520,13 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  sys.tcsEpics.startCommand(TcsConfigTimeout)
                ).post
            ).verifiedRun(ConnectionTimeout)
+    _   <- resumeGuide(guide.tcsGuide)
   } yield r
 
   override def slew(
     slewOptions: SlewOptions,
     tcsConfig:   TcsConfig
   ): F[ApplyCommandResult] = for {
-    _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
     _   <- resetAllTracking.verifiedRun(ConnectionTimeout)
     _   <- (stopAllWfs *> disableGuide).whenA(slewOptions.stopGuide.value)
     _   <- disableTargetFilter.whenA(slewOptions.shortcircuitTargetFilter.value)
@@ -1666,8 +1665,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .verifiedRun(ConnectionTimeout)
 
   override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
-    sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout) *>
-      disableGuide *>
+    disableGuide *>
       lightPath(LightSource.Sky, LightSinkName.Ac) *>
       sys.hrwfs.status.filter.verifiedRun(ConnectionTimeout).flatMap { x =>
         (resetAllTracking *>
@@ -1686,7 +1684,6 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     val source = LightSource.Sky
 
     for {
-      _   <- sys.tcsEpics.clearErrors.verifiedRun(ConnectionTimeout)
       _   <- disableGuide
       p1f <- sys.ags.status.pwfs1Mechs.colFilter
                .verifiedRun(ConnectionTimeout)
