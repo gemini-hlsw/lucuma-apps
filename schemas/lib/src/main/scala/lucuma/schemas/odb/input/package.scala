@@ -18,6 +18,8 @@ import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.math.dimensional.*
 import lucuma.core.model.*
 import lucuma.core.model.ExposureTimeMode.*
+import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -872,3 +874,42 @@ extension (sc: StepConfig)
 extension (tc: TelescopeConfig)
   def toInput: TelescopeConfigInput =
     TelescopeConfigInput(offset = tc.offset.toInput.assign, guiding = tc.guiding.assign)
+
+extension (step: Step[gmos.DynamicConfig.GmosNorth])
+  def toInput: GmosNorthStepInput =
+    GmosNorthStepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (step: Step[gmos.DynamicConfig.GmosSouth])
+  def toInput: GmosSouthStepInput =
+    GmosSouthStepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (step: Step[Flamingos2DynamicConfig])
+  def toInput: Flamingos2StepInput =
+    Flamingos2StepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (atom: Atom[gmos.DynamicConfig.GmosNorth])
+  def toInput: GmosNorthAtomInput =
+    GmosNorthAtomInput(steps = atom.steps.map(_.toInput).toList)
+
+extension (atom: Atom[gmos.DynamicConfig.GmosSouth])
+  def toInput: GmosSouthAtomInput =
+    GmosSouthAtomInput(steps = atom.steps.map(_.toInput).toList)
+
+extension (atom: Atom[Flamingos2DynamicConfig])
+  def toInput: Flamingos2AtomInput =
+    Flamingos2AtomInput(steps = atom.steps.map(_.toInput).toList)

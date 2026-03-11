@@ -30,7 +30,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.ExecutionEnvironment
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
@@ -102,6 +103,8 @@ object SequenceTile
         _                        <- useEffectWithDeps(props.isEditing.get.value): _ =>
                                       undoStacks.set(UndoStacks.empty[IO, Option[EditableSequence]])
       yield
+        import ctx.given
+
         val execution: Execution           = props.obsExecution
         val staleCss: TagMod               = execution.digest.staleClass
         val staleTooltip: Option[VdomNode] = execution.digest.staleTooltip
@@ -128,23 +131,6 @@ object SequenceTile
                   .andThen(ExecutionConfig.acquisition)
                   .replace(none)
 
-        val replaceAllAcquisitions: Endo[InstrumentExecutionConfig] =
-          replaceAcquisition(
-            EditableSequence.gmosNorthAcquisition,
-            InstrumentExecutionConfig.gmosNorth
-              .andThen(InstrumentExecutionConfig.GmosNorth.executionConfig)
-          ) >>>
-            replaceAcquisition(
-              EditableSequence.gmosSouthAcquisition,
-              InstrumentExecutionConfig.gmosSouth
-                .andThen(InstrumentExecutionConfig.GmosSouth.executionConfig)
-            ) >>>
-            replaceAcquisition(
-              EditableSequence.flamingos2Acquisition,
-              InstrumentExecutionConfig.flamingos2
-                .andThen(InstrumentExecutionConfig.Flamingos2.executionConfig)
-            )
-
         def replaceScience[S, D](
           editableOptional:        Optional[EditableSequence, List[Atom[D]]],
           executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
@@ -166,29 +152,83 @@ object SequenceTile
                   .andThen(ExecutionConfig.science)
                   .replace(none)
 
-        val replaceAllScience: Endo[InstrumentExecutionConfig] =
-          replaceScience(
-            EditableSequence.gmosNorthScience,
-            InstrumentExecutionConfig.gmosNorth
-              .andThen(InstrumentExecutionConfig.GmosNorth.executionConfig)
-          ) >>>
-            replaceScience(
-              EditableSequence.gmosSouthScience,
-              InstrumentExecutionConfig.gmosSouth
-                .andThen(InstrumentExecutionConfig.GmosSouth.executionConfig)
-            ) >>>
-            replaceScience(
-              EditableSequence.flamingos2Science,
-              InstrumentExecutionConfig.flamingos2
-                .andThen(InstrumentExecutionConfig.Flamingos2.executionConfig)
-            )
+        def replaceRemoteAcquisition[D](
+          editableOptional: Optional[EditableSequence, Option[Atom[D]]],
+          modifyRemote:     List[Atom[D]] => IO[Unit]
+        ): IO[Unit] =
+          editableSequence.get
+            .flatMap(editableOptional.getOption)
+            .flatten
+            .foldMap: atom =>
+              modifyRemote(List(atom))
 
-        val commitEdits: Callback = // TODO Invoke ODB with new sequence
+        def replaceRemoteScience[D](
+          editableOptional: Optional[EditableSequence, List[Atom[D]]],
+          modifyRemote:     List[Atom[D]] => IO[Unit]
+        ): IO[Unit] =
+          editableSequence.get
+            .flatMap(editableOptional.getOption)
+            .foldMap: atoms =>
+              modifyRemote(atoms)
+
+        def replaceRemoteSequence[D](
+          acquisitionOptional: Optional[EditableSequence, Option[Atom[D]]],
+          scienceOptional:     Optional[EditableSequence, List[Atom[D]]],
+          modifyRemote:        SequenceType => List[Atom[D]] => IO[Unit]
+        ): Callback =
+          (replaceRemoteAcquisition(acquisitionOptional, modifyRemote(SequenceType.Acquisition)),
+           replaceRemoteScience(scienceOptional, modifyRemote(SequenceType.Science))
+          ).parTupled.void.runAsync
+
+        def replaceLocalSequence[S, D](
+          acquisitionOptional:     Optional[EditableSequence, Option[Atom[D]]],
+          scienceOptional:         Optional[EditableSequence, List[Atom[D]]],
+          executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
+        ): Callback =
           liveSequence.sequence.toOption
             .flatMap(_.toOptionView)
-            .map:
-              _.zoom(SequenceData.config).mod(replaceAllAcquisitions >>> replaceAllScience)
-            .orEmpty
+            .foldMap:
+              _.zoom(SequenceData.config).mod:
+                replaceAcquisition(acquisitionOptional, executionConfigOptional) >>>
+                  replaceScience(scienceOptional, executionConfigOptional)
+
+        def replaceSequence[S, D](
+          acquisitionOptional:     Optional[EditableSequence, Option[Atom[D]]],
+          scienceOptional:         Optional[EditableSequence, List[Atom[D]]],
+          executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]],
+          modifyRemote:            SequenceType => List[Atom[D]] => IO[Unit]
+        ): Callback =
+          replaceRemoteSequence(acquisitionOptional, scienceOptional, modifyRemote) >>
+            replaceLocalSequence(acquisitionOptional, scienceOptional, executionConfigOptional)
+
+        val commitEdits: Callback =
+          liveSequence.sequenceInstrument.foldMap:
+            case Instrument.GmosNorth  =>
+              replaceSequence(
+                EditableSequence.gmosNorthAcquisition,
+                EditableSequence.gmosNorthScience,
+                InstrumentExecutionConfig.gmosNorth
+                  .andThen(InstrumentExecutionConfig.GmosNorth.executionConfig),
+                seqType => atoms => ctx.odbApi.replaceGmosNorthSequence(props.obsId, seqType, atoms)
+              )
+            case Instrument.GmosSouth  =>
+              replaceSequence(
+                EditableSequence.gmosSouthAcquisition,
+                EditableSequence.gmosSouthScience,
+                InstrumentExecutionConfig.gmosSouth
+                  .andThen(InstrumentExecutionConfig.GmosSouth.executionConfig),
+                seqType => atoms => ctx.odbApi.replaceGmosSouthSequence(props.obsId, seqType, atoms)
+              )
+            case Instrument.Flamingos2 =>
+              replaceSequence(
+                EditableSequence.flamingos2Acquisition,
+                EditableSequence.flamingos2Science,
+                InstrumentExecutionConfig.flamingos2
+                  .andThen(InstrumentExecutionConfig.Flamingos2.executionConfig),
+                seqType =>
+                  atoms => ctx.odbApi.replaceFlamingos2Sequence(props.obsId, seqType, atoms)
+              )
+            case _                     => Callback.empty
 
         def resolveAcquisition[S, D](
           config:           ExecutionConfig[S, D],
@@ -248,10 +288,7 @@ object SequenceTile
                       tooltip = "Enter sequence editing mode",
                       tooltipOptions = TooltipOptions.Top
                     ).mini.compact
-                      .when(!props.isEditing.get && sizeState.isMaximized && liveSequence.isReady)
-                      .when( // TODO Remove once actually supported
-                        ctx.environment === ExecutionEnvironment.Development
-                      ),
+                      .when(!props.isEditing.get && sizeState.isMaximized && liveSequence.isReady),
                     React
                       .Fragment(
                         Button(
