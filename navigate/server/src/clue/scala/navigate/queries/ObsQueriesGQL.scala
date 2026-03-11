@@ -64,7 +64,7 @@ object ObsQueriesGQL:
         }
       }
     """
-      
+
     object Data {
       object Observations {
         object Matches {
@@ -107,7 +107,7 @@ object ObsQueriesGQL:
       object Observations {
         object Matches {
           object TargetEnvironment {
-            object GuideEnvironment   {
+            object GuideEnvironment {
               object GuideTargets {
                 type Nonsidereal = navigate.model.OdbNonsidereal
               }
@@ -117,4 +117,3 @@ object ObsQueriesGQL:
       }
     }
   }
-
