@@ -856,7 +856,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           case SystemEvent.SequenceComplete(obsId)                                 =>
             Stream.emit(SequenceComplete(obsId): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
-          case SystemEvent.Failed(obsId, _, Result.Error(msg))                     =>
+          case SystemEvent.Failed(obsId, _, _, Result.Error(msg))                  =>
+            Stream.emit(SequenceFailed(obsId, msg): TargetedClientEvent) ++
+              buildObserveStateStream(svs, odbProxy)
+          case SystemEvent.LoadFailed(obsId, _, Result.Error(msg))                 =>
             Stream.emit(SequenceFailed(obsId, msg): TargetedClientEvent) ++
               buildObserveStateStream(svs, odbProxy)
           case e if e.isModelUpdate                                                =>
@@ -893,7 +896,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     graceful: Boolean
   ): F[Unit] =
     setObserver(obsId, user, observer) *>
-      systems.odb.stepStop(obsId) *>
+      executeEngine.offer(
+        Event.getState: engineState =>
+          EngineState
+            .atSequence(obsId)
+            .andThen(SequenceData.seq)
+            .getOption(engineState)
+            .flatMap(_.currentStep)
+            .foldMap(step => Stream.eval(systems.odb.stepStop(obsId, step.id)))
+            .as(Event.nullEvent)
+      ) *>
       executeEngine
         .offer(Event.modifyState(setObsCmd(obsId, StopGracefully)))
         .whenA(graceful) *>
@@ -1337,10 +1349,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     i: (EventResult, EngineState[F])
   ): F[(EventResult, EngineState[F])] =
     (i match {
-      case (SystemUpdate(SystemEvent.Failed(obsId, _, e), _), _)                 =>
+      case (SystemUpdate(SystemEvent.Failed(obsId, stepId, _, e), _), _)         =>
         Logger[F].error(s"Error executing $obsId due to $e") <*
           systems.odb
-            .stepAbort(obsId)
+            .stepAbort(obsId, stepId)
             .ensure(
               ObserveFailure
                 .Unexpected("Unable to send ObservationAborted message to ODB.")
@@ -1349,6 +1361,14 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         notifyOdbSequencePaused(obsId)
       case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _)            =>
         notifyOdbSequencePaused(obsId)
+      case (SystemUpdate(SystemEvent.LoadFailed(obsId, _, e), _), _)             =>
+        Logger[F].error(s"Error loading $obsId due to $e") <*
+          systems.odb
+            .obsStop(obsId)
+            .ensure(
+              ObserveFailure
+                .Unexpected("Unable to send ObservationLoadFailed message to ODB.")
+            )(identity)
       case (UserCommandResponse(UserEvent.ModifyState(_), _, Some(seqEvent)), _) =>
         seqEvent match
           case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
@@ -1363,8 +1383,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
               .void
           case _                                                                                  =>
             Applicative[F].unit
-      case _                                                                     =>
-        Applicative[F].unit
+      case _                                                                     => Applicative[F].unit
     }).as(i)
 
   private def updateSequenceEndo(

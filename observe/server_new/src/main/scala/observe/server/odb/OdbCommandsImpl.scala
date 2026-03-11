@@ -9,38 +9,23 @@ import cats.effect.kernel.Ref
 import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import clue.FetchClientWithPars
-import clue.data.syntax.*
 import clue.syntax.*
 import lucuma.core.enums.DatasetStage
-import lucuma.core.enums.Instrument
-import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceCommand
-import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepStage
 import lucuma.core.model.Observation
 import lucuma.core.model.Visit
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.util.IdempotencyKey
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Scalars.VisitId
-import lucuma.schemas.ObservationDB.Types.RecordAtomInput
-import lucuma.schemas.ObservationDB.Types.RecordFlamingos2StepInput
-import lucuma.schemas.ObservationDB.Types.RecordGmosNorthStepInput
-import lucuma.schemas.ObservationDB.Types.RecordGmosSouthStepInput
 import lucuma.schemas.odb.input.*
 import observe.common.EventsGQL.*
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
-import observe.model.odb.RecordedAtomId
-import observe.model.odb.RecordedStepId
 import org.http4s.Header
 import org.http4s.Request
 import org.http4s.headers.`Idempotency-Key`
@@ -67,127 +52,71 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def addIdempotencyKey(idempotencyKey: IdempotencyKey): Endo[Request[F]] = req =>
     req.putHeaders(`Idempotency-Key`(idempotencyKey.toString))
 
-  override def visitStart[S](
-    obsId:     Observation.Id,
-    staticCfg: S
-  ): F[Unit] =
+  override def visitStart[S](obsId: Observation.Id, staticCfg: S): F[Unit] =
     for
       _   <- L.debug(s"Record visit for obsId: [$obsId]")
       vId <- recordVisit(obsId, staticCfg)
-      -   <- setCurrentVisitId(obsId, vId.some)
+      _   <- setCurrentVisitId(obsId, vId.some)
     yield ()
 
-  private def atomStart(
-    obsId:        Observation.Id,
-    instrument:   Instrument,
-    sequenceType: SequenceType,
-    generatedId:  Atom.Id
-  ): F[RecordedAtomId] =
+  override def sequenceStart(obsId: Observation.Id): F[Unit] =
     for
-      visitId <- getCurrentVisitId(obsId)
-      _       <-
-        L.debug(s"Record atom for obsId: $obsId and visitId: $visitId - GeneratedId: $generatedId")
-      atomId  <- recordAtom(visitId, sequenceType, instrument, generatedId)
-      -       <- setCurrentAtomId(obsId, generatedId, atomId)
-      _       <- L.debug(s"New atom recorded for obsId: $obsId - Recorded atomId: $atomId")
-    yield atomId
+      visitId        <- getCurrentVisitId(obsId)
+      _              <- L.debug(s"Send ODB event sequenceStart for obsId: $obsId, visitId: $visitId")
+      idempotencyKey <- newIdempotencyKey
+      _              <-
+        AddSequenceEventMutation[F]
+          .execute(
+            visitId,
+            SequenceCommand.Start,
+            idempotencyKey,
+            addIdempotencyKey(idempotencyKey)
+          )
+      _              <- L.debug(s"ODB event sequenceStart sent for obsId: $obsId")
+    yield ()
 
-  override def sequenceStart(
-    obsId: Observation.Id
-  ): F[Unit] = for
-    visitId        <- getCurrentVisitId(obsId)
-    _              <- L.debug(s"Send ODB event sequenceStart for obsId: $obsId, visitId: $visitId")
-    idempotencyKey <- newIdempotencyKey
-    _              <-
-      AddSequenceEventMutation[F]
-        .execute(visitId, SequenceCommand.Start, idempotencyKey, addIdempotencyKey(idempotencyKey))
-    _              <- L.debug(s"ODB event sequenceStart sent for obsId: $obsId")
-  yield ()
-
-  override def stepStartStep[D](
-    obsId:           Observation.Id,
-    dynamicConfig:   D,
-    stepConfig:      StepConfig,
-    telescopeConfig: CoreTelescopeConfig,
-    observeClass:    ObserveClass,
-    generatedId:     Option[Step.Id],
-    generatedAtomId: Atom.Id,
-    instrument:      Instrument,
-    sequenceType:    SequenceType
-  ): F[Unit] =
+  private def recordStepEvent(
+    obsId:  Observation.Id,
+    stepId: Step.Id,
+    stage:  StepStage
+  ): F[Boolean] =
     for
-      atomId         <-
-        getCurrentAtomId(obsId, generatedAtomId, atomStart(obsId, instrument, sequenceType, _))
-      stepId         <-
-        recordStep(atomId, dynamicConfig, stepConfig, telescopeConfig, observeClass, generatedId)
-      _              <- setCurrentStepId(obsId, stepId.some)
-      _              <- L.debug(s"Recorded step for obsId: $obsId, recordedStepId: $stepId")
+      visitId        <- getCurrentVisitId(obsId)
+      _              <- L.debug(s"Send ODB event $stage for obsId: $obsId, step $stepId")
       idempotencyKey <- newIdempotencyKey
       _              <- AddStepEventMutation[F]
                           .execute(
-                            stepId.value,
-                            StepStage.StartStep,
+                            stepId,
+                            visitId,
+                            stage,
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- L.debug(s"ODB event stepStartStep sent with stepId $stepId")
-    yield ()
-
-  override def stepStartConfigure(obsId: Observation.Id): F[Unit] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepStartConfigure for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId.value,
-                            StepStage.StartConfigure,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug(s"ODB event stepStartConfigure sent with stepId ${stepId.value}")
-    yield ()
-
-  override def stepEndConfigure(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepEndConfigure for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId.value,
-                            StepStage.EndConfigure,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event stepEndConfigure sent")
+      _              <- L.debug(s"ODB event for step $stage sent")
     yield true
 
-  override def stepStartObserve(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepStartObserve for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId.value,
-                            StepStage.StartObserve,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event stepStartObserve sent")
-    yield true
+  override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
+    recordStepEvent(obsId, stepId, StepStage.StartStep).void
+
+  override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
+    recordStepEvent(obsId, stepId, StepStage.StartConfigure).void
+
+  override def stepEndConfigure(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.EndConfigure)
+
+  override def stepStartObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.StartObserve)
 
   override def datasetStartExposure(
     obsId:  Observation.Id,
+    stepId: Step.Id,
     fileId: ImageFileId
   ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
     for
-      stepId         <- getCurrentStepId(obsId)
-      _              <-
-        L.debug:
-          s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
-      dataset        <- recordDataset(stepId, fileId)
+      _              <- L.debug:
+                          s"Send ODB event datasetStartExposure for obsId: $obsId, stepId: $stepId with fileId: $fileId"
+      visitId        <- getCurrentVisitId(obsId)
+      dataset        <- recordDataset(stepId, visitId, fileId)
       _              <- setCurrentDatasetId(obsId, fileId, dataset.id.some)
       _              <- L.debug(s"Recorded dataset id ${dataset.id}")
       idempotencyKey <- newIdempotencyKey
@@ -201,177 +130,90 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _              <- L.debug("ODB event datasetStartExposure sent")
     yield dataset
 
-  override def datasetEndExposure(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
+  private def recordDatasetEvent(
+    obsId:  Observation.Id,
+    fileId: ImageFileId,
+    stage:  DatasetStage
+  ): F[Boolean] =
     for
       datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event datasetEndExposure for obsId: $obsId datasetId: $datasetId")
+      _              <- L.debug(s"Send ODB event $stage for obsId: $obsId datasetId: $datasetId")
       idempotencyKey <- newIdempotencyKey
       _              <- AddDatasetEventMutation[F]
                           .execute(
                             datasetId,
-                            DatasetStage.EndExpose,
+                            stage,
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- L.debug("ODB event datasetEndExposure sent")
+      _              <- L.debug(s"ODB event for dataset $stage sent")
     yield true
+
+  override def datasetEndExposure(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
+    recordDatasetEvent(obsId, fileId, DatasetStage.EndExpose)
 
   override def datasetStartReadout(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    for
-      datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event datasetStartReadout for obsId: $obsId datasetId: $datasetId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddDatasetEventMutation[F]
-                          .execute(
-                            datasetId,
-                            DatasetStage.StartReadout,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event datasetStartReadout sent")
-    yield true
+    recordDatasetEvent(obsId, fileId, DatasetStage.StartReadout)
 
   override def datasetEndReadout(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    for
-      datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event datasetEndReadout for obsId: $obsId datasetId: $datasetId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddDatasetEventMutation[F]
-                          .execute(
-                            datasetId,
-                            DatasetStage.EndReadout,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event datasetEndReadout sent")
-    yield true
+    recordDatasetEvent(obsId, fileId, DatasetStage.EndReadout)
 
   override def datasetStartWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    for
-      datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event datasetStartWrite for obsId: $obsId datasetId: $datasetId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddDatasetEventMutation[F]
-                          .execute(
-                            datasetId,
-                            DatasetStage.StartWrite,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event datasetStartWrite sent")
-    yield true
+    recordDatasetEvent(obsId, fileId, DatasetStage.StartWrite)
 
   override def datasetEndWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
     for
-      datasetId      <- getCurrentDatasetId(obsId, fileId)
-      _              <- L.debug(s"Send ODB event datasetEndWrite for obsId: $obsId datasetId: $datasetId")
+      result <- recordDatasetEvent(obsId, fileId, DatasetStage.EndWrite)
+      _      <- setCurrentDatasetId(obsId, fileId, none)
+    yield result
+
+  override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.EndObserve)
+
+  override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.EndStep)
+
+  override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.Abort)
+
+  override def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.Stop)
+
+  override def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.Pause)
+
+  override def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+    recordStepEvent(obsId, stepId, StepStage.Continue)
+
+  private def recordSequenceEvent(
+    obsId:           Observation.Id,
+    sequenceCommand: SequenceCommand
+  ): F[Boolean] =
+    for
+      _              <- L.debug(s"Send ODB event $sequenceCommand for obsId: $obsId")
+      visitId        <- getCurrentVisitId(obsId)
       idempotencyKey <- newIdempotencyKey
-      _              <- AddDatasetEventMutation[F]
+      _              <- AddSequenceEventMutation[F]
                           .execute(
-                            datasetId,
-                            DatasetStage.EndWrite,
+                            visitId,
+                            sequenceCommand,
                             idempotencyKey,
                             addIdempotencyKey(idempotencyKey)
                           )
-      _              <- setCurrentDatasetId(obsId, fileId, none)
-      _              <- L.debug("ODB event datasetEndWrite sent")
-    yield true
-
-  override def stepEndObserve(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepEndConfigure for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId.value,
-                            StepStage.EndObserve,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event stepEndObserve sent")
-    yield true
-
-  override def stepEndStep(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepEndStep for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddStepEventMutation[F]
-                          .execute(
-                            stepId.value,
-                            StepStage.EndStep,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- setCurrentStepId(obsId, none)
-      _              <- L.debug("ODB event stepEndStep sent")
-    yield true
-
-  override def stepAbort(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepAbort for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <-
-        AddStepEventMutation[F]
-          .execute(stepId.value, StepStage.Abort, idempotencyKey, addIdempotencyKey(idempotencyKey))
-      _              <- setCurrentStepId(obsId, none)
-      _              <- L.debug("ODB event stepAbort sent")
-    yield true
-
-  override def stepStop(obsId: Observation.Id): F[Boolean] =
-    for
-      stepId         <- getCurrentStepId(obsId)
-      _              <- L.debug(s"Send ODB event stepStop for obsId: $obsId, step $stepId")
-      idempotencyKey <- newIdempotencyKey
-      _              <-
-        AddStepEventMutation[F]
-          .execute(stepId.value, StepStage.Stop, idempotencyKey, addIdempotencyKey(idempotencyKey))
-      _              <- L.debug("ODB event stepStop sent")
+      _              <- L.debug(s"ODB event for sequence $sequenceCommand sent")
     yield true
 
   override def obsContinue(obsId: Observation.Id): F[Boolean] =
-    for
-      _              <- L.debug(s"Send ODB event observationContinue for obsId: $obsId")
-      visitId        <- getCurrentVisitId(obsId)
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddSequenceEventMutation[F]
-                          .execute(
-                            visitId,
-                            SequenceCommand.Continue,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event observationContinue sent")
-    yield true
+    recordSequenceEvent(obsId, SequenceCommand.Continue)
 
   override def obsPause(obsId: Observation.Id): F[Boolean] =
-    for
-      _              <- L.debug(s"Send ODB event observationPause for obsId: $obsId")
-      visitId        <- getCurrentVisitId(obsId)
-      idempotencyKey <- newIdempotencyKey
-      _              <- AddSequenceEventMutation[F]
-                          .execute(
-                            visitId,
-                            SequenceCommand.Pause,
-                            idempotencyKey,
-                            addIdempotencyKey(idempotencyKey)
-                          )
-      _              <- L.debug("ODB event observationPause sent")
-    yield true
+    recordSequenceEvent(obsId, SequenceCommand.Pause)
 
   override def obsStop(obsId: Observation.Id): F[Boolean] =
     for
-      _              <- L.debug(s"Send ODB event observationStop for obsId: $obsId")
-      visitId        <- getCurrentVisitId(obsId)
-      idempotencyKey <- newIdempotencyKey
-      _              <-
-        AddSequenceEventMutation[F]
-          .execute(visitId, SequenceCommand.Stop, idempotencyKey, addIdempotencyKey(idempotencyKey))
-      _              <- setCurrentVisitId(obsId, none)
-      _              <- L.debug("ODB event observationStop sent")
-    yield true
+      result <- recordSequenceEvent(obsId, SequenceCommand.Stop)
+      _      <- setCurrentVisitId(obsId, none)
+    yield result
 
   private def recordVisit[S](
     obsId:     Observation.Id,
@@ -411,111 +253,17 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
         .raiseGraphQLErrors
         .map(_.recordFlamingos2Visit.visit.id)
 
-  private def recordAtom(
-    visitId:      Visit.Id,
-    sequenceType: SequenceType,
-    instrument:   Instrument,
-    generatedId:  Atom.Id
-  ): F[RecordedAtomId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordAtomMutation[F]
-        .execute(
-          RecordAtomInput(
-            visitId,
-            instrument,
-            sequenceType,
-            generatedId.assign,
-            idempotencyKey.assign
-          ),
-          addIdempotencyKey(idempotencyKey)
-        )
-        .raiseGraphQLErrors
-        .map(_.recordAtom.atomRecord.id)
-        .map(RecordedAtomId(_))
-
-  private def recordStep[D](
-    atomId:          RecordedAtomId,
-    dynamicConfig:   D,
-    stepConfig:      StepConfig,
-    telescopeConfig: TelescopeConfig,
-    observeClass:    ObserveClass,
-    generatedId:     Option[Step.Id]
-  ): F[RecordedStepId] = dynamicConfig match {
-    case s @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  =>
-      recordGmosNorthStep:
-        RecordGmosNorthStepInput(
-          atomId.value,
-          s.toInput,
-          stepConfig.toInput,
-          telescopeConfig.toInput.assign,
-          observeClass,
-          generatedId.orIgnore
-        )
-    case s @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  =>
-      recordGmosSouthStep:
-        RecordGmosSouthStepInput(
-          atomId.value,
-          s.toInput,
-          stepConfig.toInput,
-          telescopeConfig.toInput.assign,
-          observeClass,
-          generatedId.orIgnore
-        )
-    case s @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) =>
-      recordFlamingos2Step:
-        RecordFlamingos2StepInput(
-          atomId.value,
-          s.toInput,
-          stepConfig.toInput,
-          telescopeConfig.toInput.assign,
-          observeClass,
-          generatedId.orIgnore
-        )
-  }
-
-  private def recordGmosNorthStep(input: RecordGmosNorthStepInput): F[RecordedStepId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordGmosNorthStepMutation[F]
-        .execute(
-          RecordGmosNorthStepInput.idempotencyKey.replace(idempotencyKey.assign)(input),
-          addIdempotencyKey(idempotencyKey)
-        )
-        .raiseGraphQLErrors
-        .map(_.recordGmosNorthStep.stepRecord.id)
-        .map(RecordedStepId(_))
-
-  private def recordGmosSouthStep(input: RecordGmosSouthStepInput): F[RecordedStepId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordGmosSouthStepMutation[F]
-        .execute(
-          RecordGmosSouthStepInput.idempotencyKey.replace(idempotencyKey.assign)(input),
-          addIdempotencyKey(idempotencyKey)
-        )
-        .raiseGraphQLErrors
-        .map(_.recordGmosSouthStep.stepRecord.id)
-        .map(RecordedStepId(_))
-
-  private def recordFlamingos2Step(input: RecordFlamingos2StepInput): F[RecordedStepId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordFlamingos2StepMutation[F]
-        .execute(
-          RecordFlamingos2StepInput.idempotencyKey.replace(idempotencyKey.assign)(input),
-          addIdempotencyKey(idempotencyKey)
-        )
-        .raiseGraphQLErrors
-        .map(_.recordFlamingos2Step.stepRecord.id)
-        .map(RecordedStepId(_))
-
   private def recordDataset(
-    stepId: RecordedStepId,
-    fileId: ImageFileId
+    stepId:  Step.Id,
+    visitId: Visit.Id,
+    fileId:  ImageFileId
   ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
     Sync[F]
       .delay(Dataset.Filename.parse(normalizeFilename(fileId.value)).get)
       .flatMap: fileName =>
         newIdempotencyKey.flatMap: idempotencyKey =>
           RecordDatasetMutation[F]
-            .execute(stepId.value, fileName, idempotencyKey, addIdempotencyKey(idempotencyKey))
+            .execute(stepId, visitId, fileName, idempotencyKey, addIdempotencyKey(idempotencyKey))
             .raiseGraphQLErrors
             .map(_.recordDataset.dataset)
 

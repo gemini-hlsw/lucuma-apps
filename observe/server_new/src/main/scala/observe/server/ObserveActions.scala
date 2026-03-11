@@ -8,6 +8,7 @@ import cats.effect.Concurrent
 import cats.effect.Temporal
 import cats.syntax.all.*
 import fs2.Stream
+import lucuma.core.model.sequence.Step
 import lucuma.core.util.TimeSpan
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation
@@ -32,14 +33,14 @@ trait ObserveActions {
   def abortTail[F[_]: MonadThrow](
     odb:         OdbProxy[F],
     obsId:       Observation.Id,
+    stepId:      Step.Id,
     imageFileId: ImageFileId
   ): F[Result] =
     odb
-      .stepAbort(obsId)
+      .stepAbort(obsId, stepId)
       .ensure(
         ObserveFailure.Unexpected("Unable to send ObservationAborted message to ODB.")
       )(identity)
-      // TODO IS it OK to ignore the Boolean return value?
       .as(Result.OKAborted(Response.Aborted(imageFileId)))
 
   /**
@@ -48,10 +49,10 @@ trait ObserveActions {
   private def sendDataStart[F[_]](
     odb:    OdbProxy[F],
     obsId:  Observation.Id,
+    stepId: Step.Id,
     fileId: ImageFileId
   ): F[Dataset] =
-    odb
-      .datasetStartExposure(obsId, fileId)
+    odb.datasetStartExposure(obsId, stepId, fileId)
 
   /**
    * Send the datasetEnd command to the odb
@@ -125,10 +126,11 @@ trait ObserveActions {
    */
   def observePreamble[F[_]: {Concurrent, Logger}](
     fileId: ImageFileId,
+    stepId: Step.Id,
     obsEnv: ObserveEnvironment[F]
   ): F[ObserveCommandResult] =
     for {
-      d <- sendDataStart(obsEnv.odb, obsEnv.obsId, fileId)
+      d <- sendDataStart(obsEnv.odb, obsEnv.obsId, stepId, fileId)
       _ <- notifyObserveStart(obsEnv)
       _ <- obsEnv
              .headers(obsEnv.ctx)
@@ -167,6 +169,7 @@ trait ObserveActions {
    */
   private def observeTail[F[_]: Temporal](
     fileId: ImageFileId,
+    stepId: Step.Id,
     env:    ObserveEnvironment[F]
   )(r: ObserveCommandResult): Stream[F, Result] =
     Stream.eval(r match {
@@ -175,7 +178,7 @@ trait ObserveActions {
       case ObserveCommandResult.Stopped =>
         okTail(fileId, stopped = true, env)
       case ObserveCommandResult.Aborted =>
-        abortTail(env.odb, env.obsId, fileId)
+        abortTail(env.odb, env.obsId, stepId, fileId)
       case ObserveCommandResult.Paused  =>
         val totalTime = env.inst.calcObserveTime
         env.inst.observeControl match {
@@ -183,8 +186,16 @@ trait ObserveActions {
             val resumePaused: TimeSpan => Stream[F, Result] =
               (remaining: TimeSpan) =>
                 Stream
-                  .eval(c.continue.self(remaining))
-                  .flatMap(observeTail(fileId, env))
+                  .eval(
+                    env.odb
+                      .stepContinue(env.obsId, stepId)
+                      .ensure(
+                        ObserveFailure
+                          .Unexpected("Unable to send ObservationContinue message to ODB.")
+                      )(identity)
+                      .flatMap(_ => c.continue.self(remaining))
+                  )
+                  .flatMap(observeTail(fileId, stepId, env))
             val progress: ElapsedTime => Stream[F, Result]  =
               (elapsed: ElapsedTime) =>
                 env.inst
@@ -193,29 +204,30 @@ trait ObserveActions {
                   .widen[Result]
             val stopPaused: Stream[F, Result]               =
               Stream
-                .eval {
-                  c.stopPaused.self
-                }
-                .flatMap(observeTail(fileId, env))
+                .eval(c.stopPaused.self)
+                .flatMap(observeTail(fileId, stepId, env))
             val abortPaused: Stream[F, Result]              =
               Stream
-                .eval {
-                  c.abortPaused.self
-                }
-                .flatMap(observeTail(fileId, env))
+                .eval(c.abortPaused.self)
+                .flatMap(observeTail(fileId, stepId, env))
 
-            Result
-              .Paused(
-                ObserveContext[F](
-                  resumePaused,
-                  progress,
-                  stopPaused,
-                  abortPaused,
-                  totalTime
-                )
+            env.odb
+              .stepPause(env.obsId, stepId)
+              .ensure(
+                ObserveFailure.Unexpected("Unable to send ObservationPaused message to ODB.")
+              )(identity)
+              .as(
+                Result
+                  .Paused(
+                    ObserveContext[F](
+                      resumePaused,
+                      progress,
+                      stopPaused,
+                      abortPaused,
+                      totalTime
+                    )
+                  )
               )
-              .pure[F]
-              .widen[Result]
           case _                     =>
             ObserveFailure
               .Execution("Observation paused for an instrument that does not support pause")
@@ -228,11 +240,12 @@ trait ObserveActions {
    */
   def stdObserve[F[_]: {Temporal, Logger}](
     fileId: ImageFileId,
+    stepId: Step.Id,
     obsEnv: ObserveEnvironment[F]
   ): Stream[F, Result] =
     for {
-      result <- Stream.eval(observePreamble(fileId, obsEnv))
-      ret    <- observeTail(fileId, obsEnv)(result)
+      result <- Stream.eval(observePreamble(fileId, stepId, obsEnv))
+      ret    <- observeTail(fileId, stepId, obsEnv)(result)
     } yield ret
 
 }

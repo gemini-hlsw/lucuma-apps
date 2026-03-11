@@ -4,6 +4,7 @@
 package observe.ui.components.sequence.steps
 
 import cats.Eq
+import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Breakpoint
@@ -18,7 +19,7 @@ case class CurrentAtomStepRow[+D](
   isFirstOfAtom: Boolean,
   signalToNoise: Option[SignalToNoise]
 ) extends SequenceRow[D]:
-  val id                   = step.id.asRight
+  val id                   = Ior.right(step.id)
   val instrumentConfig     = step.instConfig.config.asInstanceOf[D].some
   val stepConfig           = step.stepConfig.some
   val telescopeConfig      = step.telescopeConfig.some

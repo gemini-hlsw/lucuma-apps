@@ -24,8 +24,8 @@ object EventsGQL:
   @GraphQL
   trait AddStepEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($stepId: StepId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!)  {
-        addStepEvent(input: { stepId: $stepId, stepStage: $stg, idempotencyKey: $idempotencyKey } ) {
+      mutation($stepId: StepId!, $visitId: VisitId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!)  {
+        addStepEvent(input: { stepId: $stepId, visitId: $visitId stepStage: $stg, idempotencyKey: $idempotencyKey } ) {
           event { id }
         }
       }
@@ -44,8 +44,8 @@ object EventsGQL:
   @GraphQL
   trait RecordDatasetMutation extends GraphQLOperation[ObservationDB]:
     val document = """
-      mutation($stepId: StepId!, $filename: DatasetFilename!, $idempotencyKey: IdempotencyKey!) {
-        recordDataset(input: { stepId: $stepId, filename: $filename, idempotencyKey: $idempotencyKey } ) {
+      mutation($stepId: StepId!, $visitId: VisitId!, $filename: DatasetFilename!, $idempotencyKey: IdempotencyKey!) {
+        recordDataset(input: { stepId: $stepId, visitId: $visitId, filename: $filename, idempotencyKey: $idempotencyKey } ) {
           dataset {
             id
             reference {
@@ -53,26 +53,6 @@ object EventsGQL:
               observation { label }
             }
           }
-        }
-      }
-      """
-
-  @GraphQL
-  trait RecordAtomMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($input: RecordAtomInput!) {
-        recordAtom(input: $input) {
-          atomRecord { id }
-        }
-      }
-      """
-
-  @GraphQL
-  trait RecordGmosNorthStepMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($input: RecordGmosNorthStepInput!) {
-        recordGmosNorthStep(input: $input) {
-          stepRecord { id }
         }
       }
       """
@@ -88,31 +68,11 @@ object EventsGQL:
       """
 
   @GraphQL
-  trait RecordGmosSouthStepMutation  extends GraphQLOperation[ObservationDB]:
-    // val document = """
-    val document = """
-      mutation($input: RecordGmosSouthStepInput!) {
-        recordGmosSouthStep(input: $input) {
-          stepRecord { id }
-        }
-      }
-      """
-  @GraphQL
   trait RecordGmosSouthVisitMutation extends GraphQLOperation[ObservationDB]:
     val document = """
       mutation($obsId: ObservationId!, $staticCfg: GmosSouthStaticInput!, $idempotencyKey: IdempotencyKey!) {
         recordGmosSouthVisit(input: { observationId: $obsId, gmosSouth: $staticCfg, idempotencyKey: $idempotencyKey } ) {
           visit { id }
-        }
-      }
-      """
-
-  @GraphQL
-  trait RecordFlamingos2StepMutation extends GraphQLOperation[ObservationDB]:
-    val document = """
-      mutation($input: RecordFlamingos2StepInput!) {
-        recordFlamingos2Step(input: $input) {
-          stepRecord { id }
         }
       }
       """

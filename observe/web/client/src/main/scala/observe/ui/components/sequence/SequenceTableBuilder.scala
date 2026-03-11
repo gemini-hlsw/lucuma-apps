@@ -166,7 +166,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.requests,
                 props.executionState,
                 props.progress,
-                props.selectedStepId,
+                props.selectedRowId,
                 props.visits,
                 datasetIdsInFlight,
                 props.onBreakpointFlip
@@ -181,7 +181,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 (props.runningStepId ++ props.nextStepId).map(_.toString).toList
 
             Callback.when(props.runningStepId.isEmpty)(
-              props.nextStepId.map(props.setSelectedStepId(_)).orEmpty
+              props.nextStepId
+                .map(stepId => props.setSelectedRowId(SelectedRowId(none, stepId)))
+                .orEmpty
             ) >>
               scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
                 .delayMs(1) // https://github.com/TanStack/virtual/issues/615
@@ -208,9 +210,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
       yield
         extension (step: SequenceRow[D])
           def isSelected: Boolean =
-            props.selectedStepId match
-              case Some(stepId) => step.id.contains(stepId)
-              case _            => false
+            props.selectedRowId match
+              case Some(rowId) => step.selectableRowId.contains(rowId)
+              case _           => false
 
         val tableStyle: Css =
           ObserveStyles.ObserveTable |+| ObserveStyles.StepTable |+| SequenceStyles.SequenceTable
@@ -219,24 +221,28 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           row.value.toOption
             .map(_.step)
             .map: step =>
-              val stepIdOpt: Option[Step.Id] = step.id.toOption
-              val stepHasBreakpoint: Boolean =
-                stepIdOpt.exists(props.executionState.breakpoints.contains_)
+              val selectableRowIdOpt: Option[SelectedRowId] = step.selectableRowId
+              val stepHasBreakpoint: Boolean                =
+                selectableRowIdOpt
+                  .exists: selectedRowId =>
+                    props.executionState.breakpoints.contains_(selectedRowId.stepId)
 
               TagMod(
-                stepIdOpt
-                  .map: stepId =>
+                selectableRowIdOpt
+                  .map: selectableRowId =>
                     TagMod(
                       // Only in dev mode, show step id on hover.
                       if (LinkingInfo.developmentMode) {
                         val executionState: Option[StepExecutionState] = step match
-                          case SequenceRow.Executed.ExecutedStep(stepRecord, _) =>
+                          case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
                             stepRecord.executionState.some
-                          case _                                                =>
+                          case _                                                   =>
                             none
-                        ^.title := stepId.toString + executionState.fold("")(es => s" ($es)")
+                        ^.title := s"${selectableRowId.stepId}" +
+                          selectableRowId.visitId.fold("")(vid => s" Visit: $vid") +
+                          executionState.fold("")(es => s" ($es)")
                       } else TagMod.empty,
-                      (^.onClick --> props.setSelectedStepId(stepId))
+                      (^.onClick --> props.setSelectedRowId(selectableRowId))
                         .when:
                           step.stepTime === StepTime.Present
                         .unless:
@@ -291,9 +297,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                   ObserveStyles.BreakpointTableCell
                 case id if id == ExtraRowColumnId   =>
                   stepRow.step match // Extra row is shown in a selected row or in an executed step row.
-                    case SequenceRow.Executed.ExecutedStep(_, _) => extraRowMod
-                    case step if step.isSelected                 => extraRowMod
-                    case _                                       => TagMod.empty
+                    case SequenceRow.Executed.ExecutedStep(_, _, _) => extraRowMod
+                    case step if step.isSelected                    => extraRowMod
+                    case _                                          => TagMod.empty
                 case _                              =>
                   TagMod.empty
 
@@ -319,11 +325,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
-            case Some(Right(SequenceIndexedRow(CurrentAtomStepRow(_, _, _, _), _)))          =>
+            case Some(Right(SequenceIndexedRow(CurrentAtomStepRow(_, _, _, _), _)))             =>
               SequenceRowHeight.WithExtra
-            case Some(Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _), _))) =>
+            case Some(Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _), _))) =>
               SequenceRowHeight.WithExtra
-            case _                                                                           =>
+            case _                                                                              =>
               SequenceRowHeight.Regular
 
         React.Fragment(

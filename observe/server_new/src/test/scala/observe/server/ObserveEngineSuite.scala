@@ -473,14 +473,13 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   private def systemsWithTargetName(name: String): IO[Systems[IO]] =
-    defaultSystems.map(
+    defaultSystems.map:
       _.copy(tcsKeywordReader = new DummyTcsKeywordsReader.DummyTcsKeywordReaderImpl[IO] {
         override def sourceATarget: TargetKeywordsReader[IO] =
           new DummyTargetKeywordsReader.DummyTargetKeywordsReaderImpl[IO] {
             override def objectName: IO[String] = name.pure[IO]
           }
       })
-    )
 
   test("ObserveEngine start should start the sequence if it passes the target check") {
     val seq = testTargetSequence("proof".refined)
@@ -1093,17 +1092,7 @@ class ObserveEngineSuite extends TestCommon {
     }
 
     val chk = List(
-      (ev: TestOdbProxy.OdbEvent) =>
-        assertEquals(
-          ev,
-          TestOdbProxy.StepStartStep(
-            seqObsId1,
-            dynamicCfg1,
-            stepCfg1,
-            telescopeCfg1,
-            ObserveClass.Science
-          )
-        ),
+      (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepStartStep(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepStartConfigure(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepEndConfigure(seqObsId1)),
       (ev: TestOdbProxy.OdbEvent) => assertEquals(ev, TestOdbProxy.StepStartObserve(seqObsId1)),

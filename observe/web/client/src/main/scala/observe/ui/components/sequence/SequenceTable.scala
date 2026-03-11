@@ -36,8 +36,8 @@ private trait SequenceTable[S, D](
   def executionState: ExecutionState
   def currentRecordedVisit: Option[RecordedVisit]
   def progress: Option[StepProgress]
-  def selectedStepId: Option[Step.Id]
-  def setSelectedStepId: Step.Id => Callback
+  def selectedRowId: Option[SelectedRowId]
+  def setSelectedRowId: SelectedRowId => Callback
   def requests: ObservationRequests
   def isPreview: Boolean
   def onBreakpointFlip: (Observation.Id, Step.Id) => Callback
@@ -51,19 +51,19 @@ private trait SequenceTable[S, D](
         toInstrumentVisits.andThen(_.toList)
       .orEmpty
 
-  private lazy val lastVisitStepIds: Option[(Step.Id, Option[Step.Id])] =
+  private lazy val lastVisitStepId: Option[Step.Id] =
     instrumentVisits.lastOption
       .flatMap(_.atoms.lastOption)
       .flatMap(_.steps.lastOption)
-      .map(s => (s.id, s.generatedId))
+      .map(_.id)
 
   private lazy val activeStepId: Option[Step.Id] =
     executionState.loadedSteps.find(_.isActive).map(_.id)
 
-  // Obtain the id of the last recorded step only if its generated step id is the same
+  // Obtain the id of the last recorded step only if its step id is the same
   // as the currently executing step. This will be filtered out from the visit steps.
   protected[sequence] lazy val currentRecordedStepId: Option[Step.Id] =
-    lastVisitStepIds.filter((_, generatedId) => activeStepId === generatedId).map(_._1)
+    lastVisitStepId.filter(activeStepId.contains_(_))
 
   private def futureSteps(
     atoms:   List[Atom[D]],

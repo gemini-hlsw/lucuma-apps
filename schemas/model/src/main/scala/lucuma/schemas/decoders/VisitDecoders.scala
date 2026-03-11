@@ -54,7 +54,6 @@ trait VisitDecoders:
   given Decoder[StepRecord.GmosNorth] = Decoder.instance: c =>
     for
       id               <- c.downField("id").as[Step.Id]
-      created          <- c.downField("created").as[Timestamp]
       executionState   <- c.downField("executionState").as[StepExecutionState]
       interval         <- c.downField("interval").as[Option[TimestampInterval]]
       instrumentConfig <- c.downField("gmosNorth").as[gmos.DynamicConfig.GmosNorth]
@@ -63,10 +62,8 @@ trait VisitDecoders:
       observeClass     <- c.downField("observeClass").as[ObserveClass]
       qaState          <- c.downField("qaState").as[Option[DatasetQaState]]
       datasets         <- c.downField("datasets").downField("matches").as[List[Dataset]]
-      generatedId      <- c.downField("generatedId").as[Option[Step.Id]]
     yield StepRecord.GmosNorth(
       id,
-      created,
       executionState,
       interval,
       instrumentConfig,
@@ -74,14 +71,12 @@ trait VisitDecoders:
       telescopeConfig,
       observeClass,
       qaState,
-      datasets,
-      generatedId
+      datasets
     )
 
   given Decoder[StepRecord.GmosSouth] = Decoder.instance: c =>
     for
       id               <- c.downField("id").as[Step.Id]
-      created          <- c.downField("created").as[Timestamp]
       executionState   <- c.downField("executionState").as[StepExecutionState]
       interval         <- c.downField("interval").as[Option[TimestampInterval]]
       instrumentConfig <- c.downField("gmosSouth").as[gmos.DynamicConfig.GmosSouth]
@@ -90,10 +85,8 @@ trait VisitDecoders:
       observeClass     <- c.downField("observeClass").as[ObserveClass]
       qaState          <- c.downField("qaState").as[Option[DatasetQaState]]
       datasets         <- c.downField("datasets").downField("matches").as[List[Dataset]]
-      generatedId      <- c.downField("generatedId").as[Option[Step.Id]]
     yield StepRecord.GmosSouth(
       id,
-      created,
       executionState,
       interval,
       instrumentConfig,
@@ -101,14 +94,12 @@ trait VisitDecoders:
       telescopeConfig,
       observeClass,
       qaState,
-      datasets,
-      generatedId
+      datasets
     )
 
   given Decoder[StepRecord.Flamingos2] = Decoder.instance: c =>
     for
       id               <- c.downField("id").as[Step.Id]
-      created          <- c.downField("created").as[Timestamp]
       executionState   <- c.downField("executionState").as[StepExecutionState]
       interval         <- c.downField("interval").as[Option[TimestampInterval]]
       instrumentConfig <- c.downField("flamingos2").as[Flamingos2DynamicConfig]
@@ -117,10 +108,8 @@ trait VisitDecoders:
       observeClass     <- c.downField("observeClass").as[ObserveClass]
       qaState          <- c.downField("qaState").as[Option[DatasetQaState]]
       datasets         <- c.downField("datasets").downField("matches").as[List[Dataset]]
-      generatedId      <- c.downField("generatedId").as[Option[Step.Id]]
     yield StepRecord.Flamingos2(
       id,
-      created,
       executionState,
       interval,
       instrumentConfig,
@@ -128,46 +117,37 @@ trait VisitDecoders:
       telescopeConfig,
       observeClass,
       qaState,
-      datasets,
-      generatedId
+      datasets
     )
 
   given decoderAtomGmosNorth: Decoder[AtomRecord.GmosNorth] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
-      created        <- c.downField("created").as[Timestamp]
       executionState <- c.downField("executionState").as[AtomExecutionState]
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[StepRecord.GmosNorth]]
-      generatedId    <- c.downField("generatedId").as[Option[Atom.Id]]
     yield AtomRecord.GmosNorth(
       id,
-      created,
       executionState,
       interval,
       sequenceType,
-      steps,
-      generatedId
+      steps
     )
 
   given decoderAtomGmosSouth: Decoder[AtomRecord.GmosSouth] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
-      created        <- c.downField("created").as[Timestamp]
       executionState <- c.downField("executionState").as[AtomExecutionState]
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[StepRecord.GmosSouth]]
-      generatedId    <- c.downField("generatedId").as[Option[Atom.Id]]
     yield AtomRecord.GmosSouth(
       id,
-      created,
       executionState,
       interval,
       sequenceType,
-      steps,
-      generatedId
+      steps
     )
 
   given decoderAtomFlamingos2: Decoder[AtomRecord.Flamingos2] = Decoder.instance: c =>
@@ -178,15 +158,12 @@ trait VisitDecoders:
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[StepRecord.Flamingos2]]
-      generatedId    <- c.downField("generatedId").as[Option[Atom.Id]]
     yield AtomRecord.Flamingos2(
       id,
-      created,
       executionState,
       interval,
       sequenceType,
-      steps,
-      generatedId
+      steps
     )
 
   // We must specify a name since the automatic names only take the last part of the type path,

@@ -139,6 +139,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
 
   private def buildVisitRows(
     visitId:       Visit.Id,
+    created:       Timestamp,
     atoms:         List[AtomRecord[D]],
     sequenceType:  SequenceType,
     currentStepId: Option[Step.Id], // Will be removed from visit rows
@@ -153,9 +154,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         val datasetIndices = steps.flatMap(_.datasets).map(_.index.value)
 
         (
-          steps.head.created,
+          created,
           steps
-            .map(SequenceRow.Executed.ExecutedStep(_, none)) // TODO Add SignalToNoise
+            .map(SequenceRow.Executed.ExecutedStep(visitId, _, none)) // TODO Add SignalToNoise
             .zipWithStepIndex(startIndex),
           datasetIndices.minOption.map(min => (min, datasetIndices.max))
         )
@@ -189,11 +190,18 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
         // Acquisition indices restart at 1 in each visit.
         // Science indices continue from one visit to the next.
         val (acquisition, nextAcquisitionIndex) =
-          buildVisitRows(visit.id, visit.acquisitionAtoms, SequenceType.Acquisition, currentStepId)
+          buildVisitRows(
+            visit.id,
+            visit.created,
+            visit.acquisitionAtoms,
+            SequenceType.Acquisition,
+            currentStepId
+          )
 
         val (science, nextScienceIndex) =
           buildVisitRows(
             visit.id,
+            visit.created,
             visit.scienceAtoms,
             SequenceType.Science,
             currentStepId,

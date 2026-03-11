@@ -13,6 +13,10 @@ import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import monocle.Focus
 import monocle.Lens
+import monocle.Optional
+import monocle.Prism
+import monocle.Traversal
+import monocle.macros.GenPrism
 
 enum Visit[+D]:
   def id: Visit.Id
@@ -97,3 +101,21 @@ object Visit:
 
     val atoms: Lens[Flamingos2, List[AtomRecord.Flamingos2]] =
       Focus[Flamingos2](_.atoms)
+
+  val gmosNorth: Prism[Visit[?], Visit.GmosNorth]   = GenPrism[Visit[?], Visit.GmosNorth]
+  val gmosSouth: Prism[Visit[?], Visit.GmosSouth]   = GenPrism[Visit[?], Visit.GmosSouth]
+  val flamingos2: Prism[Visit[?], Visit.Flamingos2] = GenPrism[Visit[?], Visit.Flamingos2]
+
+  val gmosNorthAtoms: Optional[Visit[?], List[AtomRecord.GmosNorth]]   =
+    gmosNorth.andThen(Visit.GmosNorth.atoms)
+  val gmosSouthAtoms: Optional[Visit[?], List[AtomRecord.GmosSouth]]   =
+    gmosSouth.andThen(Visit.GmosSouth.atoms)
+  val flamingos2Atoms: Optional[Visit[?], List[AtomRecord.Flamingos2]] =
+    flamingos2.andThen(Visit.Flamingos2.atoms)
+
+  val gmosNorthAtomSteps: Traversal[Visit[?], List[StepRecord.GmosNorth]]   =
+    gmosNorthAtoms.each.andThen(AtomRecord.GmosNorth.steps)
+  val gmosSouthAtomSteps: Traversal[Visit[?], List[StepRecord.GmosSouth]]   =
+    gmosSouthAtoms.each.andThen(AtomRecord.GmosSouth.steps)
+  val flamingos2AtomSteps: Traversal[Visit[?], List[StepRecord.Flamingos2]] =
+    flamingos2Atoms.each.andThen(AtomRecord.Flamingos2.steps)

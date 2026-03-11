@@ -10,9 +10,6 @@ import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosLong
-import lucuma.core.enums.Instrument
-import lucuma.core.enums.ObserveClass
-import lucuma.core.enums.SequenceType
 import lucuma.core.enums.SkyBackground
 import lucuma.core.enums.WaterVapor
 import lucuma.core.model.CloudExtinction
@@ -26,8 +23,6 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
@@ -42,49 +37,28 @@ import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
 
-trait TestOdbProxy[F[_]] extends OdbProxy[F] {
+trait TestOdbProxy[F[_]] extends OdbProxy[F]:
   def outCapture: F[List[TestOdbProxy.OdbEvent]]
-}
 
 object TestOdbProxy {
 
   case class State(
-    acquisition:    Option[Atom[DynamicConfig.GmosNorth]],
-    sciences:       List[Atom[DynamicConfig.GmosNorth]],
-    currentAtom:    Option[Atom.Id],
-    completedSteps: List[Step.Id],
-    currentStep:    Option[Step.Id],
-    out:            List[OdbEvent]
+    acquisition: Option[Atom[DynamicConfig.GmosNorth]],
+    sciences:    List[Atom[DynamicConfig.GmosNorth]],
+    out:         List[OdbEvent]
   ) {
-    def completeCurrentAtom: State =
-      currentAtom.fold(this)(a =>
-        copy(
-          currentAtom = none,
-          currentStep = none,
-          acquisition = acquisition.filter(_.id =!= a),
-          sciences = sciences.filter(_.id =!= a)
-        )
-      )
+    private def completeStepInAtom(
+      stepId: Step.Id
+    )(a: Atom[DynamicConfig.GmosNorth]): Option[Atom[DynamicConfig.GmosNorth]] =
+      NonEmptyList
+        .fromList(a.steps.filterNot(_.id === stepId))
+        .map: newSteps =>
+          a.copy(steps = newSteps)
 
-    def startStep(generatedId: Option[Step.Id]): State =
-      State.currentStep.replace(generatedId)(this)
-
-    private def advanceAtom(
-      a: Atom[DynamicConfig.GmosNorth]
-    ): Option[Atom[DynamicConfig.GmosNorth]] =
-      if currentAtom.exists(_ === a.id) then
-        val rest = NonEmptyList.fromList(a.steps.tail)
-        rest.map(r => a.copy(steps = r))
-      else a.some
-
-    def completeCurrentStep: State =
-      currentStep.fold(this)(s =>
-        copy(
-          currentStep = none,
-          completedSteps = (s :: completedSteps.reverse).reverse,
-          acquisition = acquisition.flatMap(advanceAtom),
-          sciences = sciences.map(advanceAtom).flattenOption
-        )
+    def completeStep(stepId: Step.Id): State =
+      copy(
+        acquisition = acquisition.flatMap(completeStepInAtom(stepId)),
+        sciences = sciences.map(completeStepInAtom(stepId)).flattenOption
       )
 
     def resetAcquisition(original: Option[Atom[DynamicConfig.GmosNorth]]): State =
@@ -92,8 +66,6 @@ object TestOdbProxy {
   }
 
   object State:
-    val currentStep: Lens[State, Option[Step.Id]]                  = Focus[State](_.currentStep)
-    val currentAtom: Lens[State, Option[Atom.Id]]                  = Focus[State](_.currentAtom)
     val sciences: Lens[State, List[Atom[DynamicConfig.GmosNorth]]] = Focus[State](_.sciences)
 
   def build[F[_]: Concurrent](
@@ -102,7 +74,7 @@ object TestOdbProxy {
     sciences:           List[Atom[DynamicConfig.GmosNorth]] = List.empty,
     updateStartObserve: State => State = identity
   ): F[TestOdbProxy[F]] = Ref
-    .of[F, State](State(acquisition, sciences, None, List.empty, None, List.empty))
+    .of[F, State](State(acquisition, sciences, List.empty))
     .map(rf =>
       new TestOdbProxy[F] {
         override def obsEditSubscription(obsId: Observation.Id): Resource[F, fs2.Stream[F, Unit]] =
@@ -167,32 +139,23 @@ object TestOdbProxy {
 
         override def sequenceStart(obsId: Observation.Id): F[Unit] = addEvent(SequenceStart(obsId))
 
-        override def stepStartStep[D](
-          obsId:           Observation.Id,
-          dynamicConfig:   D,
-          stepConfig:      StepConfig,
-          telescopeConfig: CoreTelescopeConfig,
-          observeClass:    ObserveClass,
-          generatedId:     Option[Step.Id],
-          generatedAtomId: Atom.Id,
-          instrument:      Instrument,
-          sequenceType:    SequenceType
-        ): F[Unit] =
-          rf.update(State.currentAtom.replace(generatedAtomId.some)) >>
-            rf.update(_.startStep(generatedId)) >>
-            addEvent(StepStartStep(obsId, dynamicConfig, stepConfig, telescopeConfig, observeClass))
+        override def stepStartStep[D](obsId: Observation.Id, stepId: Step.Id): F[Unit] =
+          addEvent(StepStartStep(obsId))
 
-        override def stepStartConfigure(obsId: Observation.Id): F[Unit] = addEvent(
-          StepStartConfigure(obsId)
-        )
+        override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
+          addEvent(StepStartConfigure(obsId))
 
-        override def stepEndConfigure(obsId: Observation.Id): F[Boolean] =
+        override def stepEndConfigure(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepEndConfigure(obsId)).as(true)
 
-        override def stepStartObserve(obsId: Observation.Id): F[Boolean] =
+        override def stepStartObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepStartObserve(obsId)).as(true)
 
-        override def datasetStartExposure(obsId: Observation.Id, fileId: ImageFileId): F[Dataset] =
+        override def datasetStartExposure(
+          obsId:  Observation.Id,
+          stepId: Step.Id,
+          fileId: ImageFileId
+        ): F[Dataset] =
           addEvent(DatasetStartExposure(obsId, fileId)) *> Dataset(
             lucuma.core.model.sequence.Dataset
               .Id(PosLong.unsafeFrom(scala.util.Random.between(1L, Long.MaxValue))),
@@ -214,20 +177,26 @@ object TestOdbProxy {
         override def datasetEndWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
           addEvent(DatasetEndWrite(obsId, fileId)).as(true)
 
-        override def stepEndObserve(obsId: Observation.Id): F[Boolean] =
+        override def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+          addEvent(StepContinue(obsId)).as(true)
+
+        override def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
+          addEvent(StepPause(obsId)).as(true)
+
+        override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepEndObserve(obsId)).as(true)
 
-        override def stepEndStep(obsId: Observation.Id): F[Boolean] =
+        override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           rf.update { a =>
             // This is a hook to let a test caller modify the sequence at the end of a step
-            updateStartObserve(a).completeCurrentStep
+            updateStartObserve(a).completeStep(stepId)
           } *> addEvent(StepEndStep(obsId))
             .as(true)
 
-        override def stepAbort(obsId: Observation.Id): F[Boolean] =
+        override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepAbort(obsId)).as(true)
 
-        override def stepStop(obsId: Observation.Id): F[Boolean] =
+        override def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
           addEvent(StepStop(obsId)).as(true)
 
         override def obsContinue(obsId: Observation.Id): F[Boolean] =
@@ -248,13 +217,7 @@ object TestOdbProxy {
   sealed trait OdbEvent
   case class VisitStart[S](obsId: Observation.Id, staticCfg: S)               extends OdbEvent
   case class SequenceStart(obsId: Observation.Id)                             extends OdbEvent
-  case class StepStartStep[D](
-    obsId:           Observation.Id,
-    dynamicConfig:   D,
-    stepConfig:      StepConfig,
-    telescopeConfig: CoreTelescopeConfig,
-    observeClass:    ObserveClass
-  ) extends OdbEvent
+  case class StepStartStep[D](obsId: Observation.Id)                          extends OdbEvent
   case class StepStartConfigure(obsId: Observation.Id)                        extends OdbEvent
   case class StepEndConfigure(obsId: Observation.Id)                          extends OdbEvent
   case class StepStartObserve(obsId: Observation.Id)                          extends OdbEvent
@@ -264,6 +227,8 @@ object TestOdbProxy {
   case class DatasetEndReadout(obsId: Observation.Id, fileId: ImageFileId)    extends OdbEvent
   case class DatasetStartWrite(obsId: Observation.Id, fileId: ImageFileId)    extends OdbEvent
   case class DatasetEndWrite(obsId: Observation.Id, fileId: ImageFileId)      extends OdbEvent
+  case class StepContinue(obsId: Observation.Id)                              extends OdbEvent
+  case class StepPause(obsId: Observation.Id)                                 extends OdbEvent
   case class StepEndObserve(obsId: Observation.Id)                            extends OdbEvent
   case class StepEndStep(obsId: Observation.Id)                               extends OdbEvent
   case class StepAbort(obsId: Observation.Id)                                 extends OdbEvent

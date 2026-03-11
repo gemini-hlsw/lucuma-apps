@@ -9,26 +9,12 @@ import cats.syntax.option.*
 import io.circe.*
 import lucuma.core.model.Observation
 import lucuma.core.model.Visit
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Dataset
-import lucuma.core.model.sequence.Step
 import lucuma.core.util.NewType
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 import observe.model.dhs.ImageFileId
-import observe.model.odb.DatasetIdMap
-import observe.model.odb.RecordedAtomId
-import observe.model.odb.RecordedStepId
-
-// Atom.Ids and Step.Ids exist both in input sequences and in recorded ones.
-// So, it is useful to have a new type for recorded ones in order to distinguish them.
-// Visit.Ids and Dataset.Ids only exist in recorded sequences, so they don't need a new type.
-object RecordedAtomId extends NewType[Atom.Id]
-type RecordedAtomId = RecordedAtomId.Type
-
-object RecordedStepId extends NewType[Step.Id]
-type RecordedStepId = RecordedStepId.Type
 
 object DatasetIdMap extends NewType[Map[ImageFileId, Dataset.Id]]:
   val Empty: DatasetIdMap                                             =
@@ -40,45 +26,15 @@ type DatasetIdMap = DatasetIdMap.Type
 given KeyEncoder[ImageFileId] = KeyEncoder.instance(_.value)
 given KeyDecoder[ImageFileId] = KeyDecoder.instance(ImageFileId(_).some)
 
-case class RecordedStep(
-  stepId:     RecordedStepId,
-  datasetIds: DatasetIdMap = DatasetIdMap.Empty
-) derives Eq,
-      Encoder.AsObject,
-      Decoder
-object RecordedStep:
-  val stepId: Lens[RecordedStep, RecordedStepId]   = Focus[RecordedStep](_.stepId)
-  val datasetIds: Lens[RecordedStep, DatasetIdMap] = Focus[RecordedStep](_.datasetIds)
-
-case class RecordedAtom(
-  generatedId: Atom.Id,
-  atomId:      RecordedAtomId,
-  step:        Option[RecordedStep] = None
-) derives Eq,
-      Encoder.AsObject,
-      Decoder
-object RecordedAtom:
-  val generatedId: Lens[RecordedAtom, Atom.Id]       = Focus[RecordedAtom](_.generatedId)
-  val atomId: Lens[RecordedAtom, RecordedAtomId]     = Focus[RecordedAtom](_.atomId)
-  val step: Lens[RecordedAtom, Option[RecordedStep]] = Focus[RecordedAtom](_.step)
-  val stepId: Optional[RecordedAtom, RecordedStepId] =
-    step.some.andThen(RecordedStep.stepId)
-
-case class RecordedVisit(visitId: Visit.Id, atom: Option[RecordedAtom] = None)
+case class RecordedVisit(visitId: Visit.Id, datasetIds: DatasetIdMap = DatasetIdMap.Empty)
     derives Eq,
       Encoder.AsObject,
       Decoder
 object RecordedVisit:
   val visitId: Lens[RecordedVisit, Visit.Id]                                      = Focus[RecordedVisit](_.visitId)
-  val atom: Lens[RecordedVisit, Option[RecordedAtom]]                             = Focus[RecordedVisit](_.atom)
-  val atomId: Optional[RecordedVisit, RecordedAtomId]                             =
-    atom.some.andThen(RecordedAtom.atomId)
-  val step: Optional[RecordedVisit, Option[RecordedStep]]                         =
-    atom.some.andThen(RecordedAtom.step)
-  val stepId: Optional[RecordedVisit, RecordedStepId]                             =
-    atom.some.andThen(RecordedAtom.stepId)
+  val datasetIds: Lens[RecordedVisit, DatasetIdMap]                               = Focus[RecordedVisit](_.datasetIds)
   def datasetId(fileId: ImageFileId): Optional[RecordedVisit, Option[Dataset.Id]] =
-    step.some.andThen(RecordedStep.datasetIds).andThen(DatasetIdMap.at(fileId))
+    datasetIds.andThen(DatasetIdMap.at(fileId))
 
 object ObsRecordedIds extends NewType[Map[Observation.Id, RecordedVisit]]:
   val Empty: ObsRecordedIds                                                  =
