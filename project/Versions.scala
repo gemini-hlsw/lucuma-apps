@@ -44,7 +44,7 @@ object Versions {
   val mUnit                  = "1.2.1"
   val mUnitCatsEffect        = "2.1.0"
   val mUnitScalacheck        = "1.2.0"
-  val natchez                = "0.3.8"
+  val natchez                = "0.3.9"
   val natchezHttp4s          = "0.6.1"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.9"
