@@ -5,6 +5,7 @@ package explore.model.itc
 
 import cats.Eq
 import cats.data.EitherNec
+import cats.data.NonEmptyChain
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.refTypeEq
@@ -28,7 +29,6 @@ import monocle.macros.GenPrism
 
 import scala.collection.immutable.SortedMap
 import scala.math.*
-import cats.data.NonEmptyChain
 
 // Do not turn into enum or compositePickler will break.
 sealed trait ItcQueryProblem(val message: String) derives Eq:

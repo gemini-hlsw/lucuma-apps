@@ -15,6 +15,7 @@ import explore.model.Observation
 import explore.model.syntax.all.needsITC
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.Instrument
 import lucuma.core.model.Target
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
@@ -30,7 +31,9 @@ object SequenceTileHelper:
     visits:   Reusable[Pot[View[Option[ExecutionVisits]]]],
     sequence: Reusable[Pot[View[Option[SequenceData]]]]
   ):
-    val isReady: Boolean = visits.isReady && sequence.isReady
+    val isReady: Boolean                       = visits.isReady && sequence.isReady
+    val sequenceInstrument: Option[Instrument] =
+      sequence.value.toOption.flatMap(_.get).map(_.config.instrument)
 
   protected object LiveSequence:
     given Reusability[LiveSequence] = Reusability.by(x => (x.visits, x.sequence))

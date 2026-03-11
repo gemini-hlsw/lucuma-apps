@@ -19,7 +19,8 @@ import monocle.Lens
 final case class SequenceData(
   config:        InstrumentExecutionConfig,
   signalToNoise: ModeSignalToNoise
-) derives Eq
+) derives Eq:
+  export config.{instrument, isComplete}
 
 object SequenceData:
   def fromOdbResponse(data: SequenceQuery.Data): Option[SequenceData] =
