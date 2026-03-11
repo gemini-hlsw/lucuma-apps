@@ -1295,7 +1295,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     active:          VerifiedEpics[F, F, BinaryYesNo],
     cmds:            FiniteDuration => WfsCommands[F],
     darkFilenameCmd: String => VerifiedEpics[F, F, ApplyCommandResult],
-    observeCmd:      TimeSpan => F[ApplyCommandResult]
+    observeCmd:      TimeSpan => F[ApplyCommandResult],
+    state:           Lens[State, WfsConfigState]
   )(exposureTime: TimeSpan): F[ApplyCommandResult] = {
     val expTimeout: FiniteDuration = FiniteDuration(exposureTime.toMicroseconds,
                                                     TimeUnit.MICROSECONDS
@@ -1318,6 +1319,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                      .interval(exposureTime.toSeconds.toDouble)
                      .post(ObserveCommand.CommandType.TemporarlyOn)
                      .verifiedRun(ConnectionTimeout) <* Temporal[F].sleep(postObserveDelay)
+      _         <- stateRef.update(state.replace(WfsConfigState(none, none)))
       _         <- observeCmd(exposureTime).whenA(wfsActive)
     } yield ret
   }
@@ -1327,7 +1329,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.pwfs1On,
     sys.tcsEpics.startPwfs1Command,
     (fn: String) => sys.tcsEpics.startCommand(timeout).pwfs1Commands.dark.filename(fn).post,
-    t => setupPwfs1Observe(t, !guideUsesPwfs1(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide))
+    t => setupPwfs1Observe(t, !guideUsesPwfs1(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    Focus[State](_.pwfs1)
   )
 
   def takePwfs2Sky(guide: GuideConfig): TimeSpan => F[ApplyCommandResult] = takeWfsSky(
@@ -1335,7 +1338,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.pwfs2On,
     sys.tcsEpics.startPwfs2Command,
     (fn: String) => sys.tcsEpics.startCommand(timeout).pwfs2Commands.dark.filename(fn).post,
-    t => setupPwfs2Observe(t, !guideUsesPwfs2(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide))
+    t => setupPwfs2Observe(t, !guideUsesPwfs2(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    Focus[State](_.pwfs2)
   )
 
   def takeOiwfsSky(guide: GuideConfig): TimeSpan => F[ApplyCommandResult] = takeWfsSky(
@@ -1343,7 +1347,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.oiwfsOn,
     sys.tcsEpics.startOiwfsCommand,
     (fn: String) => sys.oiwfs.startDarkCommand(timeout).filename(fn).post,
-    t => setupOiwfsObserve(t, !guideUsesOiwfs(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide))
+    t => setupOiwfsObserve(t, !guideUsesOiwfs(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    Focus[State](_.oiwfs)
   )
 
   def disableTargetFilter: F[ApplyCommandResult] =
