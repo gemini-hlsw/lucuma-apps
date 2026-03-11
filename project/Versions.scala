@@ -47,7 +47,7 @@ object Versions {
   val natchez                = "0.3.8"
   val natchezHttp4s          = "0.6.1"
   val pprint                 = "0.9.6"
-  val pureConfig             = "0.17.9"
+  val pureConfig             = "0.17.10"
   val sbtBuildInfo           = "0.13.1"
   val sbtLucuma              = "0.14.10"
   val sbtRevolver            = "0.10.0"
