@@ -30,7 +30,7 @@ object Versions {
   val javaTimeJs             = "2.6.0"
   val jwt                    = "11.0.3"
   val kittens                = "3.5.0"
-  val log4Cats               = "2.7.1"
+  val log4Cats               = "2.8.0"
   val log4CatsLogLevel       = "0.3.1"
   val log4s                  = "1.10.0"
   val logback                = "1.5.26"
