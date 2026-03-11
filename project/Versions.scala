@@ -2,7 +2,7 @@ object Versions {
   val acm                    = "0.1.1"
   val boopickle              = "1.5.0"
   val cats                   = "2.13.0"
-  val catsEffect             = "3.6.3"
+  val catsEffect             = "3.7.0"
   val catsParse              = "1.1.0"
   val catsRetry              = "4.0.0"
   val catsTestkitScalaTest   = "2.1.5"
