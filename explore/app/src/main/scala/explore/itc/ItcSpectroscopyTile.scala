@@ -199,7 +199,7 @@ object ItcSpectroscopyTile
           // ig2 will have multiple ccd labels
           val ccdLabels = props.selectedConfig.orEmpty
             .collectFirst:
-              case ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _) =>
+              case ItcInstrumentConfig.Igrins2Spectroscopy() =>
                 Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
             .orEmpty
 

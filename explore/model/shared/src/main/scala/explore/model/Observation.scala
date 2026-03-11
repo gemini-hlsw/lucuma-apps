@@ -48,7 +48,6 @@ import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.odb.json.time.decoder.given
-import lucuma.refined.*
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
@@ -225,13 +224,7 @@ final case class Observation(
           )
         case (_, i: ObservingMode.Igrins2LongSlit)                                     =>
           List(
-            (ItcInstrumentConfig.Igrins2Spectroscopy(
-               "SiGe immersion echelon".refined,
-               none,
-               "LongSlit".refined
-             ),
-             i.exposureTimeMode
-            )
+            (ItcInstrumentConfig.Igrins2Spectroscopy(), i.exposureTimeMode)
           )
         case _                                                                         =>
           List.empty

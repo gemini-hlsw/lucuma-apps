@@ -56,7 +56,7 @@ trait syntax:
           InstrumentMode.GmosNorthImaging(filter, none).some
         case ItcInstrumentConfig.GmosSouthImaging(filter, modeOverrides)                    =>
           InstrumentMode.GmosSouthImaging(filter, none).some
-        case ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _)                               =>
+        case ItcInstrumentConfig.Igrins2Spectroscopy()                                      =>
           InstrumentMode.Igrins2Spectroscopy().some
         case _                                                                              => None
 

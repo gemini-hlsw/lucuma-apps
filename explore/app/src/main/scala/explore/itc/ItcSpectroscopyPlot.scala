@@ -89,7 +89,7 @@ object ItcSpectroscopyPlot {
       case GraphType.SignalPixelGraph => "Pixel"
 
     val value     = signalToNoiseAt.toNanometers.value.value.toDouble
-    val plotLines  = List(
+    val plotLines = List(
       XAxisPlotLinesOptions()
         .setDashStyle(DashStyleValue.LongDash)
         .setWidth(3)

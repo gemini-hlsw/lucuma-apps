@@ -3,12 +3,10 @@
 
 package explore.config
 
-import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import crystal.react.syntax.all.toAsync
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -38,7 +36,7 @@ final case class Igrins2LongslitConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Igrins2LongSlit, Igrins2LongSlitInput],
-  revertConfig:    IO[Unit],
+  revertConfig:    Callback,
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
@@ -119,10 +117,9 @@ object Igrins2LongslitConfigPanel
               isCustomized = props.observingMode.get.isCustomized,
               revertConfig = props.revertConfig,
               revertCustomizations =
-                props.observingMode.view(_.toInput).mod(_.revertCustomizations).toAsync,
+                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
               sequenceChanged = props.sequenceChanged,
               !props.permissions.isFullEdit,
-              reverting = reverting,
               showAdvancedButton = false
             )
           )

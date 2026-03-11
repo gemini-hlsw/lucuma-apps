@@ -243,7 +243,7 @@ object SpectroscopyModeRow {
       .orElse(flamingos2)
       .orElse(
         Option.when(instrument === Instrument.Igrins2)(
-          ItcInstrumentConfig.Igrins2Spectroscopy(disperserLabel, filterLabel, fpuLabel)
+          ItcInstrumentConfig.Igrins2Spectroscopy()
         )
       )
       .map { i =>
@@ -303,7 +303,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                 ) =>
               rGrating === disperser && rFilter === filter && rFpu === fpu
             case _ => false
-      case _: ObservingMode.Igrins2LongSlit                                                     =>
+      case _: ObservingMode.Igrins2LongSlit                                                    =>
         matrix.find: row =>
           row.instrument match
             case _: ItcInstrumentConfig.Igrins2Spectroscopy => true
