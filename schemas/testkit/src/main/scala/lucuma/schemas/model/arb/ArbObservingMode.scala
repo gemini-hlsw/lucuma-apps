@@ -538,31 +538,67 @@ trait ArbObservingMode {
         )
       )
 
+  given Arbitrary[ObservingMode.Igrins2LongSlit] =
+    Arbitrary[ObservingMode.Igrins2LongSlit](
+      for {
+        exposureTimeMode      <- arbitrary[ExposureTimeMode]
+        defaultOffsetMode     <- arbitrary[Igrins2OffsetMode]
+        explicitOffsetMode    <- arbitrary[Option[Igrins2OffsetMode]]
+        defaultSaveSVCImages  <- arbitrary[Boolean]
+        explicitSaveSVCImages <- arbitrary[Option[Boolean]]
+      } yield ObservingMode.Igrins2LongSlit(
+        exposureTimeMode,
+        defaultOffsetMode,
+        explicitOffsetMode,
+        defaultSaveSVCImages,
+        explicitSaveSVCImages
+      )
+    )
+
+  given Cogen[ObservingMode.Igrins2LongSlit] =
+    Cogen[
+      (ExposureTimeMode, Igrins2OffsetMode, Option[Igrins2OffsetMode], Boolean, Option[Boolean])
+    ]
+      .contramap(o =>
+        (
+          o.exposureTimeMode,
+          o.defaultOffsetMode,
+          o.explicitOffsetMode,
+          o.defaultSaveSVCImages,
+          o.explicitSaveSVCImages
+        )
+      )
+
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
       arbitrary[ObservingMode.GmosSouthLongSlit],
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
-      arbitrary[ObservingMode.Flamingos2LongSlit]
+      arbitrary[ObservingMode.Flamingos2LongSlit],
+      arbitrary[ObservingMode.Igrins2LongSlit]
     )
   )
 
   given Cogen[ObservingMode] =
     Cogen[Either[
-      ObservingMode.Flamingos2LongSlit,
-      Either[ObservingMode.GmosNorthLongSlit, Either[ObservingMode.GmosSouthLongSlit,
-                                                     Either[ObservingMode.GmosNorthImaging,
-                                                            ObservingMode.GmosSouthImaging
-                                                     ]
-      ]]
+      ObservingMode.Igrins2LongSlit,
+      Either[
+        ObservingMode.Flamingos2LongSlit,
+        Either[ObservingMode.GmosNorthLongSlit, Either[ObservingMode.GmosSouthLongSlit,
+                                                       Either[ObservingMode.GmosNorthImaging,
+                                                              ObservingMode.GmosSouthImaging
+                                                       ]
+        ]]
+      ]
     ]]
       .contramap {
-        case f: ObservingMode.Flamingos2LongSlit => f.asLeft
-        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight
-        case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight
-        case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight
-        case s: ObservingMode.GmosSouthImaging   => s.asRight.asRight.asRight.asRight
+        case i: ObservingMode.Igrins2LongSlit    => i.asLeft
+        case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight
+        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight
+        case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthImaging   => s.asRight.asRight.asRight.asRight.asRight
       }
 
 }

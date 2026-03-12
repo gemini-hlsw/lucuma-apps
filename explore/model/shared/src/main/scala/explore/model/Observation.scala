@@ -190,6 +190,8 @@ final case class Observation(
         InstrumentOverrides.GmosImaging().some
       case _: ObservingMode.GmosSouthImaging   =>
         InstrumentOverrides.GmosImaging().some
+      case _: ObservingMode.Igrins2LongSlit    =>
+        InstrumentOverrides.Igrins2Spectroscopy().some
 
   // Imaging modes can return multiple configs due to multiple filters.
   def toInstrumentConfig(targets: TargetList): List[(ItcInstrumentConfig, ExposureTimeMode)] =
@@ -219,6 +221,10 @@ final case class Observation(
             (ItcInstrumentConfig.Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu),
              f.exposureTimeMode
             )
+          )
+        case (_, i: ObservingMode.Igrins2LongSlit)                                     =>
+          List(
+            (ItcInstrumentConfig.Igrins2Spectroscopy(), i.exposureTimeMode)
           )
         case _                                                                         =>
           List.empty

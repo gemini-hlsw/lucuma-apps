@@ -3828,6 +3828,11 @@ input ObservingModeInput @oneOf {
   The flamingos2LongSlit field must be either specified or skipped altogether.  It cannot be unset with a null value.
   """
   flamingos2LongSlit: Flamingos2LongSlitInput
+
+  """
+  The igrins2LongSlit field must be either specified or skipped altogether.  It cannot be unset with a null value.
+  """
+  igrins2LongSlit: Igrins2LongSlitInput
 }
 
 """Edit science requirements"""
@@ -6676,6 +6681,71 @@ input Flamingos2LongSlitInput {
   acquisition: Flamingos2LongSlitAcquisitionInput
 }
 
+"""IGRINS-2 Offset Mode"""
+enum Igrins2OffsetMode {
+  """Igrins2OffsetMode NodAlongSlit"""
+  NOD_ALONG_SLIT
+
+  """Igrins2OffsetMode NodToSky"""
+  NOD_TO_SKY
+}
+
+"""IGRINS-2 Long Slit mode"""
+type Igrins2LongSlit {
+  """The exposure time mode used for ITC lookup for the science sequence."""
+  exposureTimeMode: ExposureTimeMode!
+
+  """
+  The offset mode is either explicitly specified in explicitOffsetMode or else
+  taken from defaultOffsetMode
+  """
+  offsetMode: Igrins2OffsetMode!
+
+  """Default offset mode"""
+  defaultOffsetMode: Igrins2OffsetMode!
+
+  """
+  Optional explicitly specified offset mode. If set it overrides the default.
+  """
+  explicitOffsetMode: Igrins2OffsetMode
+
+  """
+  Whether to save SVC images, either explicitly specified in
+  explicitSaveSVCImages or else taken from defaultSaveSVCImages
+  """
+  saveSVCImages: Boolean!
+
+  """Default save SVC images setting"""
+  defaultSaveSVCImages: Boolean!
+
+  """
+  Optional explicitly specified save SVC images setting. If set it overrides
+  the default.
+  """
+  explicitSaveSVCImages: Boolean
+}
+
+"""Edit or create IGRINS-2 Long Slit configuration"""
+input Igrins2LongSlitInput {
+  """
+  The exposureTimeMode field may be unset by assigning a null value, or ignored
+  by skipping it altogether
+  """
+  exposureTimeMode: ExposureTimeModeInput
+
+  """
+  The offset mode field may be unset by assigning a null value, or ignored by
+  skipping it altogether
+  """
+  explicitOffsetMode: Igrins2OffsetMode
+
+  """
+  The save SVC images field may be unset by assigning a null value, or ignored
+  by skipping it altogether
+  """
+  explicitSaveSVCImages: Boolean
+}
+
 """Metadata for `enum FilterType`"""
 type FilterTypeMeta {
   tag: FilterType!
@@ -8838,6 +8908,7 @@ type ConfigurationObservingMode {
   gmosNorthImaging: ConfigurationGmosNorthImaging
   gmosSouthImaging: ConfigurationGmosSouthImaging
   flamingos2LongSlit: ConfigurationFlamingos2LongSlit
+  igrins2LongSlit: ConfigurationIgrins2LongSlit
 }
 
 type ConfigurationGmosNorthLongSlit {
@@ -8858,6 +8929,10 @@ type ConfigurationGmosSouthImaging {
 
 type ConfigurationFlamingos2LongSlit {
   disperser: Flamingos2Disperser!
+}
+
+type ConfigurationIgrins2LongSlit {
+  ignore: Ignore
 }
 
 scalar ConfigurationRequestId
@@ -9836,6 +9911,9 @@ type ObservingMode {
 
   """Flamingos 2 Long Slit mode"""
   flamingos2LongSlit: Flamingos2LongSlit
+
+  """IGRINS-2 Long Slit mode"""
+  igrins2LongSlit: Igrins2LongSlit
 }
 
 type ObservingModeGroup {

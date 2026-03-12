@@ -186,11 +186,25 @@
     fill-opacity: 0.1;
   }
 
+  .igrins2-svc-fov {
+    stroke: cyan;
+    stroke-width: 0.8px;
+  }
+
+  .igrins2-science-slit {
+    stroke: blue;
+    stroke-width: 0.8px;
+    fill-opacity: 0.1;
+    fill: lightgray;
+  }
+
+  &.igrins2-candidates-area-visible .igrins2-candidates-area,
   &.flamingos2-candidates-area-visible .flamingos2-candidates-area,
   &.gmos-candidates-area-visible .gmos-candidates-area {
     display: inline;
   }
 
+  .igrins2-candidates-area,
   .flamingos2-candidates-area,
   .gmos-candidates-area {
     display: none;

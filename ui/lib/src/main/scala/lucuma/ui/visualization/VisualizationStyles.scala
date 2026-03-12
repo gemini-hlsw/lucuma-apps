@@ -59,6 +59,12 @@ object VisualizationStyles:
   val Flamingos2PatrolField: Css           = Css("flamingos2-patrol-field")
   val Flamingos2PatrolFieldVisible: Css    = Css("flamingos2-patrol-field-visible")
 
+  // IGRINS2-specific styles
+  val Igrins2SvcFov: Css                = Css("igrins2-svc-fov")
+  val Igrins2ScienceSlit: Css           = Css("igrins2-science-slit")
+  val Igrins2CandidatesArea: Css        = Css("igrins2-candidates-area")
+  val Igrins2CandidatesAreaVisible: Css = Css("igrins2-candidates-area-visible")
+
   // Debug patrol fields
   val PatrolFieldBase: Css              = Css("patrol-field-base")
   val PatrolFieldBlindOffset: Css       = Css("patrol-field-blind-offset")

@@ -120,18 +120,21 @@ object ConfigurationTableColumnBuilder {
   )
 
   extension (mode: Configuration.ObservingMode)
-    def fpu: String       = mode match
+    def fpu: String = mode match
       case GmosNorthLongSlit(_)  => "LongSlit"
       case GmosSouthLongSlit(_)  => "LongSlit"
       case Flamingos2LongSlit(_) => "LongSlit"
       case GmosNorthImaging(_)   => "Imaging"
       case GmosSouthImaging(_)   => "Imaging"
+      case Igrins2LongSlit       => "LongSlit"
+
     def disperser: String = mode match
       case GmosNorthLongSlit(grating)    => grating.shortName
       case GmosSouthLongSlit(grating)    => grating.shortName
       case Flamingos2LongSlit(disperser) => disperser.shortName
       case GmosNorthImaging(filters)     => filters.map(_.shortName).mkString(",")
       case GmosSouthImaging(filters)     => filters.map(_.shortName).mkString(",")
+      case Igrins2LongSlit               => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =
     val targetNames =

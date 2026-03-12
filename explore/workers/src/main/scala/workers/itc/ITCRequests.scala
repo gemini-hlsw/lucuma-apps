@@ -136,7 +136,7 @@ object ITCRequests:
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
           case (m @ ItcInstrumentConfig.GmosSouthImaging(_, _), exposureTimeMode)            =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.Igrins2Spectroscopy(_, _, _), exposureTimeMode)      =>
+          case (m @ ItcInstrumentConfig.Igrins2Spectroscopy(), exposureTimeMode)             =>
             ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode

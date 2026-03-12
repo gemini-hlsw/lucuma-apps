@@ -379,6 +379,8 @@ object ExploreStyles:
   val BasicConfigurationButtons: Css    = Css("explore-basic-configuration-buttons")
   val Flamingos2UpperGrid: Css          = Css("explore-flamingos2-upper-grid")
   val Flamingos2LowerGrid: Css          = Css("explore-flamingos2-lower-grid")
+  val Igrins2UpperGrid: Css             = Css("explore-igrins2-upper-grid")
+  val Igrins2LowerGrid: Css             = Css("explore-igrins2-lower-grid")
   val GmosLongSlitUpperGrid: Css        = Css("explore-gmos-longslit-upper-grid")
   val GmosLongSlitLowerGrid: Css        = Css("explore-gmos-longslit-lower-grid")
   val GmosImagingUpperGrid: Css         = Css("explore-gmos-imaging-upper-grid")

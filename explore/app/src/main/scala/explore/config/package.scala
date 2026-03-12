@@ -107,7 +107,8 @@ def useModeData(
           ObservingMode.Flamingos2LongSlit(disperser = yDisperser, filter = yFilter, fpu = yFpu)
         ) =>
       xDisperser === yDisperser && xFilter === yFilter && xFpu === yFpu
-    case _ => false
+    case (ObservingMode.Igrins2LongSlit, ObservingMode.Igrins2LongSlit) => true
+    case _                                                              => false
 
   for row <- useMemo((obsMode, confMatrix.matrix.length)): (obsMode, _) =>
                confMatrix.getRowByInstrumentConfig(obsMode)

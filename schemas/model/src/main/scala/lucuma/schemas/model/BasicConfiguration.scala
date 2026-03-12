@@ -39,20 +39,20 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Igrins2LongSlit               => none
 
   def siteFor: Site = this match
-    case _: BasicConfiguration.GmosNorthLongSlit    => Site.GN
-    case _: BasicConfiguration.GmosSouthLongSlit    => Site.GS
-    case _: BasicConfiguration.GmosNorthImaging     => Site.GN
-    case _: BasicConfiguration.GmosSouthImaging     => Site.GS
-    case _: BasicConfiguration.Flamingos2LongSlit   => Site.GS
-    case _: BasicConfiguration.Igrins2LongSlit.type => Site.GN
+    case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
+    case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
+    case _: BasicConfiguration.GmosNorthImaging   => Site.GN
+    case _: BasicConfiguration.GmosSouthImaging   => Site.GS
+    case _: BasicConfiguration.Flamingos2LongSlit => Site.GS
+    case BasicConfiguration.Igrins2LongSlit       => Site.GN
 
   def obsModeType: ObservingModeType = this match
-    case n: BasicConfiguration.GmosNorthLongSlit    => ObservingModeType.GmosNorthLongSlit
-    case s: BasicConfiguration.GmosSouthLongSlit    => ObservingModeType.GmosSouthLongSlit
-    case n: BasicConfiguration.GmosNorthImaging     => ObservingModeType.GmosNorthImaging
-    case s: BasicConfiguration.GmosSouthImaging     => ObservingModeType.GmosSouthImaging
-    case s: BasicConfiguration.Flamingos2LongSlit   => ObservingModeType.Flamingos2LongSlit
-    case s: BasicConfiguration.Igrins2LongSlit.type => ObservingModeType.Igrins2LongSlit
+    case n: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
+    case s: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
+    case n: BasicConfiguration.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
+    case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
+    case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
+    case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -61,6 +61,9 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       cw.some
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       CentralWavelength(filter.wavelength).some
+    case BasicConfiguration.Igrins2LongSlit                           =>
+      // TODO: What is the right value?
+      CentralWavelength(Wavelength.unsafeFromIntPicometers(1800000)).some
     case _                                                            =>
       none
 
@@ -76,6 +79,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
+      // TODO: What is the right value?
       AGSWavelength(BasicConfiguration.Igrins2LongSlit.optimalWavelength)
 
   def conditionsWavelength: Wavelength = this match
@@ -90,6 +94,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
+      // TODO: What is the right value?
       BasicConfiguration.Igrins2LongSlit.optimalWavelength
 
   // Let's always return a fallback for viz
@@ -123,16 +128,12 @@ object BasicConfiguration:
                         c.downField("flamingos2LongSlit")
                           .as[Flamingos2LongSlit]
                           .orElse:
-                            c.downField("instrument")
-                              .as[Instrument]
-                              .flatMap:
-                                case Instrument.Igrins2 =>
-                                  Igrins2LongSlit.asRight
-                                case _                  =>
-                                  DecodingFailure(
-                                    "Could not decode BasicConfiguration",
-                                    c.history
-                                  ).asLeft
+                            c.downField("igrins2LongSlit")
+                              .as[Igrins2LongSlit.type]
+                              .orElse:
+                                DecodingFailure("Could not decode BasicConfiguration",
+                                                c.history
+                                ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -180,7 +181,8 @@ object BasicConfiguration:
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     // This is the optimal wavelength from the modes query, but we don't have access to that info
     // here so we'll hardcode it - for now at least.
-    val optimalWavelength: Wavelength = Wavelength.fromIntNanometers(1975).get
+    val optimalWavelength: Wavelength   = Wavelength.fromIntNanometers(1975).get
+    given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
     GenPrism[BasicConfiguration, GmosNorthLongSlit]

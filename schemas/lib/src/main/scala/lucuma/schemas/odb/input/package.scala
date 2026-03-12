@@ -592,6 +592,13 @@ extension (o: ObservingMode.Flamingos2LongSlit)
     acquisition = o.acquisition.toInput.assign
   )
 
+extension (o: ObservingMode.Igrins2LongSlit)
+  def toInput: Igrins2LongSlitInput = Igrins2LongSlitInput(
+    exposureTimeMode = o.exposureTimeMode.toInput.assign,
+    explicitOffsetMode = o.explicitOffsetMode.orUnassign,
+    explicitSaveSVCImages = o.explicitSaveSVCImages.orUnassign
+  )
+
 extension (b: ObservingMode)
   def toInput: ObservingModeInput = b match
     case o: ObservingMode.GmosNorthLongSlit  =>
@@ -604,6 +611,8 @@ extension (b: ObservingMode)
       ObservingModeInput.GmosSouthImaging(o.toInput)
     case o: ObservingMode.Flamingos2LongSlit =>
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
+    case o: ObservingMode.Igrins2LongSlit    =>
+      ObservingModeInput.Igrins2LongSlit(o.toInput)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -652,9 +661,10 @@ extension (i: BasicConfiguration)
           filter = filter.assign,
           fpu = fpu.assign
         )
-    // TODO: IGRINS2 fix when supported in the ODB
+    // TODO: should we consider offset mode and saveSVCImages?
     case BasicConfiguration.Igrins2LongSlit                                                       =>
-      throw new NotImplementedError("Igrins2 is not yet supported in the ODB")
+      ObservingModeInput.Igrins2LongSlit:
+        Igrins2LongSlitInput()
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

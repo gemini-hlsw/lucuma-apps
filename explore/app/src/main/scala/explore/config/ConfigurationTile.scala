@@ -53,7 +53,6 @@ import lucuma.core.util.Timestamp
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
@@ -196,6 +195,8 @@ object ConfigurationTile
         ObservingModeInput.GmosSouthLongSlit(GmosSouthLongSlitInput())
       val EmptyF2LongSlitInput: ObservingModeInput        =
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
+      val EmptyIgrins2LongSlitInput: ObservingModeInput   =
+        ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
       val EmptyGmosNorthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
@@ -303,6 +304,16 @@ object ConfigurationTile
                   .modify
             )
 
+        val optIgrins2Aligner: Option[Aligner[Igrins2LongSlit, Igrins2LongSlitInput]] =
+          optModeAligner(EmptyIgrins2LongSlitInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.igrins2LongSlit,
+              modInput:
+                ObservingModeInput.igrins2LongSlit
+                  .andThen(ObservingModeInput.Igrins2LongSlit.value)
+                  .modify
+            )
+
         val optGmosNorthImagingAligner: Option[Aligner[GmosNorthImaging, GmosNorthImagingInput]] =
           optModeAligner(EmptyGmosNorthImagingInput).flatMap:
             _.zoomOpt(
@@ -362,7 +373,6 @@ object ConfigurationTile
                       props.itcTargets,
                       props.baseCoordinates,
                       props.obsConf.calibrationRole,
-                      // TODO: IGRINS2 remove unlessA when supported in the ODB
                       props.selectedConfig.get
                         .toBasicConfiguration()
                         .map: bc =>
@@ -371,7 +381,7 @@ object ConfigurationTile
                             props.pacAndMode,
                             bc.toInput,
                             bc.obsModeType.defaultPosAngleOptions
-                          ).unlessA(BasicConfiguration.igrins2LongSlit.getOption(bc).isDefined)
+                          )
                         .orEmpty,
                       props.modes,
                       props.customSedTimestamps,
@@ -449,6 +459,19 @@ object ConfigurationTile
                       props.permissions,
                       props.units,
                       props.isStaffOrAdmin
+                    ),
+                  // IGRINS2 Long Slit
+                  optIgrins2Aligner.map: ig2Aligner =>
+                    Igrins2LongslitConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      ig2Aligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
                     )
                 )
             )

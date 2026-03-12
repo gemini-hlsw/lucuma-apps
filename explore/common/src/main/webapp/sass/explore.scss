@@ -1837,6 +1837,25 @@ svg.fa-check.explore-success-icon {
     border-bottom: 1px solid var(--site-border-color);
   }
 
+  .explore-igrins2-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--site-border-color);
+  }
+
+  .explore-igrins2-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'buttons' auto
+      / auto;
+  }
+
   .explore-gmos-longslit-lower-grid,
   .explore-flamingos2-lower-grid {
     display: grid;
@@ -1928,6 +1947,14 @@ svg.fa-check.explore-success-icon {
     .explore-gmos-longslit-upper-grid,
     .explore-gmos-imaging-upper-grid,
     .explore-flamingos2-upper-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
+        'col3' auto
+        / auto;
+    }
+
+    .explore-igrins2-upper-grid {
       grid-template:
         'col1' auto
         'col2' auto
