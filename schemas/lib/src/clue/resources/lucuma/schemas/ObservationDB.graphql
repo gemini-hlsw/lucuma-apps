@@ -8908,6 +8908,7 @@ type ConfigurationObservingMode {
   gmosNorthImaging: ConfigurationGmosNorthImaging
   gmosSouthImaging: ConfigurationGmosSouthImaging
   flamingos2LongSlit: ConfigurationFlamingos2LongSlit
+  igrins2LongSlit: ConfigurationIgrins2LongSlit
 }
 
 type ConfigurationGmosNorthLongSlit {
@@ -8928,6 +8929,10 @@ type ConfigurationGmosSouthImaging {
 
 type ConfigurationFlamingos2LongSlit {
   disperser: Flamingos2Disperser!
+}
+
+type ConfigurationIgrins2LongSlit {
+  ignore: Ignore
 }
 
 scalar ConfigurationRequestId
@@ -14181,10 +14186,6 @@ type CalculatedObservationWorkflow {
   state: CalculationState! @deprecated(reason: "Use `calculationState` instead.")
   value: ObservationWorkflow!
 }
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 73e1fdd605 (Fix for the revert config button)
 
 input Flamingos2StepInput {
   instrumentConfig: Flamingos2DynamicInput!
@@ -14307,10 +14308,4 @@ sequence.
 """
 type ReplaceGmosSouthSequenceResult {
   sequence: [GmosSouthAtom!]!
-<<<<<<< HEAD
 }
-=======
->>>>>>> 4f64b32610 (Update schema to support igrins2 observations)
-=======
-}
->>>>>>> 73e1fdd605 (Fix for the revert config button)
