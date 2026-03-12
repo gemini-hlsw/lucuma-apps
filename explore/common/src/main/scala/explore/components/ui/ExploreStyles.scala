@@ -484,6 +484,7 @@ object ExploreStyles:
   val TargetSearchPreview: Css            = Css("explore-target-search-preview")
   val TargetSearchAladin: Css             = Css("aladin-search-target")
   val TargetSearchPreviewPlaceholder: Css = Css("explore-target-search-preview-placeholder")
+  val TargetSearchPreviewName: Css        = Css("explore-target-search-preview-name")
   val TargetSearchResults: Css            = Css("explore-target-search-results")
 
   // Configuration Request Editor Popup

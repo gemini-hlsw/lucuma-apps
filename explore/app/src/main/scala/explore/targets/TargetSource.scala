@@ -3,13 +3,11 @@
 
 package explore.targets
 
-import cats.Order
 import cats.effect.Async
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.TargetList
-import japgolly.scalajs.react.ReactCats.*
-import japgolly.scalajs.react.Reusability
+import explore.model.TargetSourceKind
 import lucuma.catalog.CatalogTargetResult
 import lucuma.catalog.clients.SimbadClient
 import lucuma.core.enums.CatalogName
@@ -24,6 +22,7 @@ import org.typelevel.log4cats.Logger
 sealed trait TargetSource[F[_]]:
   def name: String
   def existing: Boolean
+  def kind: TargetSourceKind
 
   // whether the target source can be previewed in Aladin. Non-sidereal sources,
   // for example, cannot be previewed because they don't have a location.
@@ -34,8 +33,8 @@ sealed trait TargetSource[F[_]]:
 object TargetSource:
   case class FromProgram[F[_]: Async](targets: TargetList, filterToOs: Boolean = false)
       extends TargetSource[F]:
-    val name = "Program"
-
+    val name                = "Program"
+    val kind                = TargetSourceKind.Program
     val existing: Boolean   = true
     val canPreview: Boolean = true
 
@@ -57,8 +56,8 @@ object TargetSource:
   case class FromSimbad[F[_]: {Async, Logger as L}](
     simbad: SimbadClient[F]
   ) extends TargetSource[F]:
-    val name: String = CatalogName.Simbad.tag.capitalize
-
+    val name: String        = CatalogName.Simbad.tag.capitalize
+    val kind                = TargetSourceKind.Simbad
     val existing: Boolean   = false
     val canPreview: Boolean = true
 
@@ -123,8 +122,8 @@ object TargetSource:
   case class FromHorizons[F[_]: {Async, Logger as L}](
     horizons: HorizonsClient[F]
   ) extends TargetSource[F]:
-    val name: String = "Horizons"
-
+    val name: String        = "Horizons"
+    val kind                = TargetSourceKind.Horizons
     val existing: Boolean   = false
     val canPreview: Boolean = false
 
@@ -150,16 +149,3 @@ object TargetSource:
             )
 
     override def toString: String = name
-
-  // TODO Test
-  given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.from {
-    // doesn't make sense to have more than one of each source, but we'll put FromProgram first,
-    // then Simbad then Horizons.
-    case (TargetSource.FromProgram(_, _), _) => -1
-    case (_, TargetSource.FromProgram(_, _)) => 1
-    case (TargetSource.FromSimbad(_), _)     => -1
-    case (_, TargetSource.FromSimbad(_))     => 1
-    case _                                   => 0
-  }
-
-  given reuseTargetSource[F[_]]: Reusability[TargetSource[F]] = Reusability.byEq

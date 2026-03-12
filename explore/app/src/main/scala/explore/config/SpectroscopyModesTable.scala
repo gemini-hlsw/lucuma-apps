@@ -3,11 +3,11 @@
 
 package explore.config
 
+import algebra.instances.all.*
 import cats.data.*
 import cats.effect.*
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
-import algebra.instances.all.*
 import coulomb.*
 import coulomb.syntax.*
 import coulomb.units.accepted.ArcSecond

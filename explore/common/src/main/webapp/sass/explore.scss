@@ -1252,6 +1252,14 @@ $search-preview-margin: 5px;
   }
 }
 
+.explore-target-search-preview-name {
+  @include lucumaUICommon.text-ellipsis;
+
+  text-align: center;
+  font-weight: bold;
+  padding: 0.3em 0;
+}
+
 .explore-target-search-preview-placeholder {
   display: flex;
   border: 1px solid var(--site-border-color);

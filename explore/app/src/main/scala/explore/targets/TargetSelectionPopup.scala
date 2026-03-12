@@ -4,6 +4,7 @@
 package explore.targets
 
 import cats.Eq
+import cats.Order
 import cats.Order.*
 import cats.data.NonEmptyList
 import cats.derived.*
@@ -74,6 +75,8 @@ object TargetSelectionPopup:
 
   private given Reusability[SelectedTarget] = Reusability.byEq
   private given Reusability[AladinOptions]  = reusability.all
+
+  private given orderTargetSource[F[_]]: Order[TargetSource[F]] = Order.by(_.kind)
 
   private def addResults(
     source:         TargetSource[IO],
@@ -266,7 +269,10 @@ object TargetSelectionPopup:
                     customize = v => aladinRef.setState(v.some)
                   )(^.key := selectedTarget.get.foldMap(t => s"${t.source}-${t.resultIndex}"))
                 }
-                .getOrElse(<.div(ExploreStyles.TargetSearchPreviewPlaceholder, "Preview"))
+                .getOrElse(<.div(ExploreStyles.TargetSearchPreviewPlaceholder, "Preview")),
+              selectedTarget.get.map(st =>
+                <.div(ExploreStyles.TargetSearchPreviewName)(st.target.name.value)
+              )
             )
           ,
           results.get.map { case (source, sourceResults) =>
