@@ -56,7 +56,7 @@ trait TcsBaseController[F[_]] {
     shutterEnable: Boolean
   ): F[ApplyCommandResult]
   def ecsVentGatesMove(gateEast:        Double, westGate:       Double): F[ApplyCommandResult]
-  def tcsConfig(config:                 TcsConfig): F[ApplyCommandResult]
+  def tcsConfig(config:                 TcsConfig)(guide:       GuideConfig): F[ApplyCommandResult]
   def slew(slewOptions:                 SlewOptions, tcsConfig: TcsConfig): F[ApplyCommandResult]
   def swapTarget(swapConfig:            SwapConfig): F[ApplyCommandResult]
   def restoreTarget(config:             TcsConfig): F[ApplyCommandResult]

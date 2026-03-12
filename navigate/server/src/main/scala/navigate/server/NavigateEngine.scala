@@ -325,7 +325,7 @@ object NavigateEngine {
       TcsConfigure(config),
       cats.data.State
         .modify[State](_.focus(_.onSwappedTarget).replace(false))
-        .as(systems.tcsCommon.tcsConfig(config))
+        .as(stateRef.get.flatMap(st => systems.tcsCommon.tcsConfig(config)(st.guideConfig)))
     )
 
     override def slew(
