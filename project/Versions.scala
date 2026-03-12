@@ -16,7 +16,7 @@ object Versions {
   val disciplineMUnit        = "2.0.0"
   val epicsCa                = "1.3.2"
   val epicsJca               = "2.4.10"
-  val fs2                    = "3.12.2"
+  val fs2                    = "3.13.0"
   val fs2Data                = "1.11.0"
   val fs2Dom                 = "0.3.0-M1"
   val geminiLocales          = "0.12.1"
