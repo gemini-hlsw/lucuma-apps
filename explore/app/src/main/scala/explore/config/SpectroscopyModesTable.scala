@@ -7,7 +7,10 @@ import cats.data.*
 import cats.effect.*
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
+import algebra.instances.all.*
 import coulomb.*
+import coulomb.syntax.*
+import coulomb.units.accepted.ArcSecond
 import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
@@ -35,6 +38,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.geom.flamingos2.flamingos2SlitWidthPixels
 import lucuma.core.geom.gmos.gmosSlitWidthPixels
+import lucuma.core.geom.igrins2.Igrins2PixelScale
 import lucuma.core.math.*
 import lucuma.core.math.units.Pixels
 import lucuma.core.model.*
@@ -162,6 +166,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         fmtGmos(px, ccd.xBin)
       case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _) =>
         val px = flamingos2SlitWidthPixels(slitWidth.value)
+        f"$px%2.1f px"
+      case ItcInstrumentConfig.Igrins2Spectroscopy()           =>
+        val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
+        val px              = widthArcSeconds / Igrins2PixelScale
         f"$px%2.1f px"
       case _                                                   => ""
     }
