@@ -3,13 +3,16 @@
 
 package explore.config
 
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.config.offsets.OffsetInput
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
@@ -19,6 +22,7 @@ import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnComponent
@@ -29,7 +33,9 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.utils.toNelOfViews
 
 final case class Igrins2LongslitConfigPanel(
   programId:       Program.Id,
@@ -46,10 +52,13 @@ final case class Igrins2LongslitConfigPanel(
 object Igrins2LongslitConfigPanel
     extends ReactFnComponent[Igrins2LongslitConfigPanel](props =>
       for
-        ctx       <- useContext(AppContext.ctx)
-        modeData  <- useModeData(props.confMatrix, props.observingMode.get)
-        editState <- useStateView(ConfigEditState.View)
-        reverting <- useStateView(false)
+        ctx                 <- useContext(AppContext.ctx)
+        modeData            <- useModeData(props.confMatrix, props.observingMode.get)
+        editState           <- useStateView(ConfigEditState.View)
+        reverting           <- useStateView(false)
+        unModdedOffsetsView <- useStateView(props.observingMode.get.offsets)
+        _                   <- useEffectWithDeps((props.observingMode.get.offsets, props.observingMode.get.offsetMode)):
+                                 (offsets, _) => unModdedOffsetsView.set(offsets)
       yield
         import ctx.given
 
@@ -58,14 +67,38 @@ object Igrins2LongslitConfigPanel
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
 
-        val offsetModeView: View[Option[Igrins2OffsetMode]] = props.observingMode
+        val explicitOffsetsView: View[Option[NonEmptyList[Offset]]] = props.observingMode
+          .zoom(
+            ObservingMode.Igrins2LongSlit.explicitOffsets,
+            Igrins2LongSlitInput.explicitOffsets.modify
+          )
+          .view(_.map(_.toList.map(_.toInput)).orUnassign)
+
+        val offsetModeAligner = props.observingMode
           .zoom(
             ObservingMode.Igrins2LongSlit.explicitOffsetMode,
             Igrins2LongSlitInput.explicitOffsetMode.modify
           )
-          .view(_.orUnassign)
+
+        val offsetModeView: View[Option[Igrins2OffsetMode]] =
+          offsetModeAligner
+            .view(_.orUnassign)
+            .withOnMod: _ =>
+              explicitOffsetsView.set(none)
 
         val defaultOffsetMode = props.observingMode.get.defaultOffsetMode
+
+        val defaultOffsets: NonEmptyList[Offset] = props.observingMode.get.defaultOffsets
+
+        val localOffsetsView: View[NonEmptyList[Offset]] =
+          unModdedOffsetsView.withOnMod: nel =>
+            val newOffsets =
+              if nel === defaultOffsets
+              then none
+              else nel.some
+            explicitOffsetsView.set(newOffsets)
+
+        val isNodAlongSlit = props.observingMode.get.offsetMode === Igrins2OffsetMode.NodAlongSlit
 
         val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
           .zoom(
@@ -88,7 +121,49 @@ object Igrins2LongslitConfigPanel
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
                 resetToOriginal = true
-              )
+              ),
+              if isNodAlongSlit then
+                val qOffsetsView: View[Option[NonEmptyList[Offset.Q]]] =
+                  View[Option[NonEmptyList[Offset.Q]]](
+                    explicitOffsetsView.get.map(_.map(_.q)),
+                    (mod, cb) =>
+                      val current  = explicitOffsetsView.get.map(_.map(_.q))
+                      val modified = mod(current)
+                      explicitOffsetsView.set(
+                        modified.map(_.map(q => Offset(Offset.P.Zero, q)))
+                      ) >> cb(current, modified)
+                  )
+                OffsetsControl(
+                  view = qOffsetsView,
+                  defaultValue = defaultOffsets.map(_.q),
+                  onChange = props.sequenceChanged,
+                  disabled = disableEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                )
+              else
+                React.Fragment(
+                  <.span(
+                    "Spatial Offsets",
+                    HelpIcon("configuration/spatial-offsets.md".refined),
+                    CustomizedGroupAddon(
+                      "original",
+                      explicitOffsetsView.set(none),
+                      allowRevertCustomization
+                    ).when(explicitOffsetsView.get.isDefined)
+                  ),
+                  React.Fragment(
+                    localOffsetsView.toNelOfViews.toList.zipWithIndex
+                      .map: (offsetView, idx) =>
+                        OffsetInput(
+                          id = NonEmptyString.unsafeFrom(s"spatial-offsets-$idx"),
+                          offset = offsetView,
+                          readonly = disableEdit,
+                          clazz = LucumaPrimeStyles.FormField
+                        )
+                      .toVdomArray
+                  )
+                )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
