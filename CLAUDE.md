@@ -5,11 +5,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 Lucuma Apps is a monorepo for the Gemini Observatory's astronomical observation software. It contains three main applications:
+
 - **Explore** — Observation planning web app (Scala.js SPA)
 - **Observe** — Observation execution system (Scala.js frontend + http4s backend)
 - **Navigate** — Telescope navigation system (JVM server with EPICS integration)
 
 Plus two shared libraries:
+
 - **schemas** — Cross-compiled (JVM + JS) GraphQL schema definitions and domain model types
 - **ui** — Shared UI component library (Scala.js only)
 
@@ -96,6 +98,7 @@ Note: Scalafmt and Scalafix CI checks are currently disabled in the build.
 ### GraphQL Code Generation (Clue)
 
 The `sbt-clue` plugin generates Scala code from GraphQL:
+
 - Schemas: `schemas/lib/src/clue/resources/lucuma/schemas/*.graphql`
 - Query definitions: `src/clue/scala/` directories (e.g., `explore/app/src/clue/scala/queries/`)
 - Queries use `@GraphQL` annotation on traits extending `GraphQLOperation[Schema]`
@@ -105,6 +108,7 @@ The `sbt-clue` plugin generates Scala code from GraphQL:
 ### State Management (Crystal Views)
 
 The `crystal` library provides reactive state via `View[A]`:
+
 - `View[A]` is an optic-aware reactive state holder that propagates changes to React components
 - `view.zoom(lens)` creates a narrower View focused on a subfield
 - `view.mod(f)` applies a pure modification, `view.set(a)` replaces the value
