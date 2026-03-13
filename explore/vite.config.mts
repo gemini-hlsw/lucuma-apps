@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'path';
 import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
-import { defineConfig, UserConfig } from 'vite';
+import { defineConfig, PluginOption, UserConfig } from 'vite';
 import env from 'vite-plugin-env-compatible';
 import mkcert from 'vite-plugin-mkcert';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -95,9 +95,9 @@ const pathExists = async (path: PathLike) => {
 /**
  * Vite plugin to cache enum metadata from ODB with 1-hour TTL
  */
-const enumMetadataPlugin = (publicDirDev: string) => ({
+const enumMetadataPlugin = (publicDirDev: string): PluginOption => ({
   name: 'enum-metadata-cache',
-  configureServer(server: any) {
+  configureServer(server) {
     let cachedMetadata: { data: string; timestamp: number } | null = null;
     const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
 
@@ -132,7 +132,7 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
       }
     };
 
-    server.middlewares.use(async (req: any, res: any, next: any) => {
+    server.middlewares.use(async (req, res, next) => {
       if (req.url?.startsWith('/api/enumMetadata')) {
         try {
           let metadata: string;
@@ -155,6 +155,7 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
       }
     });
 
+    // @ts-ignore
     server.__enumMetadataCache = {
       clear: () => {
         cachedMetadata = null;
@@ -166,9 +167,9 @@ const enumMetadataPlugin = (publicDirDev: string) => ({
 /**
  * Vite plugin to reload the page when environment configuration changes
  */
-const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string) => ({
+const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOption => ({
   name: 'reload-on-environments-change',
-  configureServer(server: any) {
+  configureServer(server) {
     const { ws, watcher } = server;
 
     const sourceFiles = [
@@ -190,7 +191,9 @@ const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string) => ({
             path.resolve(publicDirDev, 'environments.conf.json'),
           );
           // Clear enum metadata cache since ODB URL might have changed
+          // @ts-ignore
           if (server.__enumMetadataCache) {
+            // @ts-ignore
             server.__enumMetadataCache.clear();
           }
           console.log('Configuration updated, triggering reload...');
@@ -283,6 +286,7 @@ export default defineConfig(async ({ mode }) => {
       ],
     },
     css: {
+      transformer: 'postcss',
       preprocessorOptions: {
         scss: {
           charset: false,
