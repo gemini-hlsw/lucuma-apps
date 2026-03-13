@@ -546,18 +546,29 @@ trait ArbObservingMode {
         explicitOffsetMode    <- arbitrary[Option[Igrins2OffsetMode]]
         defaultSaveSVCImages  <- arbitrary[Boolean]
         explicitSaveSVCImages <- arbitrary[Option[Boolean]]
+        defaultOffsets        <- arbitrary[NonEmptyList[Offset]]
+        explicitOffsets       <- arbitrary[Option[NonEmptyList[Offset]]]
       } yield ObservingMode.Igrins2LongSlit(
         exposureTimeMode,
         defaultOffsetMode,
         explicitOffsetMode,
         defaultSaveSVCImages,
-        explicitSaveSVCImages
+        explicitSaveSVCImages,
+        defaultOffsets,
+        explicitOffsets
       )
     )
 
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
-      (ExposureTimeMode, Igrins2OffsetMode, Option[Igrins2OffsetMode], Boolean, Option[Boolean])
+      (ExposureTimeMode,
+       Igrins2OffsetMode,
+       Option[Igrins2OffsetMode],
+       Boolean,
+       Option[Boolean],
+       NonEmptyList[Offset],
+       Option[NonEmptyList[Offset]]
+      )
     ]
       .contramap(o =>
         (
@@ -565,7 +576,9 @@ trait ArbObservingMode {
           o.defaultOffsetMode,
           o.explicitOffsetMode,
           o.defaultSaveSVCImages,
-          o.explicitSaveSVCImages
+          o.explicitSaveSVCImages,
+          o.defaultOffsets,
+          o.explicitOffsets
         )
       )
 

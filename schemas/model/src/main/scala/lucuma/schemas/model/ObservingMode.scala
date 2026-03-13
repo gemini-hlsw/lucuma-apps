@@ -628,17 +628,21 @@ object ObservingMode:
     defaultOffsetMode:     Igrins2OffsetMode,
     explicitOffsetMode:    Option[Igrins2OffsetMode],
     defaultSaveSVCImages:  Boolean,
-    explicitSaveSVCImages: Option[Boolean]
+    explicitSaveSVCImages: Option[Boolean],
+    defaultOffsets:        NonEmptyList[Offset],
+    explicitOffsets:       Option[NonEmptyList[Offset]]
   ) extends ObservingMode(Instrument.Igrins2) derives Eq:
     val offsetMode: Igrins2OffsetMode = explicitOffsetMode.getOrElse(defaultOffsetMode)
     val saveSVCImages: Boolean        = explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
+    val offsets: NonEmptyList[Offset] = explicitOffsets.getOrElse(defaultOffsets)
 
     def isCustomized: Boolean =
       explicitOffsetMode.exists(_ =!= defaultOffsetMode) ||
-        explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages)
+        explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages) ||
+        explicitOffsets.exists(_ =!= defaultOffsets)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitOffsetMode = None, explicitSaveSVCImages = None)
+      this.copy(explicitOffsetMode = None, explicitSaveSVCImages = None, explicitOffsets = None)
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
@@ -653,6 +657,10 @@ object ObservingMode:
       Focus[Igrins2LongSlit](_.defaultSaveSVCImages)
     val explicitSaveSVCImages: Lens[Igrins2LongSlit, Option[Boolean]]        =
       Focus[Igrins2LongSlit](_.explicitSaveSVCImages)
+    val defaultOffsets: Lens[Igrins2LongSlit, NonEmptyList[Offset]]          =
+      Focus[Igrins2LongSlit](_.defaultOffsets)
+    val explicitOffsets: Lens[Igrins2LongSlit, Option[NonEmptyList[Offset]]] =
+      Focus[Igrins2LongSlit](_.explicitOffsets)
 
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
