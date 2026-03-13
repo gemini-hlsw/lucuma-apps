@@ -51,7 +51,7 @@ This will rebuild the client continuously whenever you make changes.
 To run the client, in a terminal window on the project root:
 
 ```
-    pnpm observe exec vite
+    pnpm observe dev
 ```
 
 # Deployment

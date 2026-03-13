@@ -58,7 +58,7 @@ val buildJsModule = taskKey[File]("Build JS module for deployment")
 
 lazy val esModule = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-  Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
+  Compile / fastLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(true) },
   Compile / fullLinkJS / scalaJSLinkerConfig ~= { _.withSourceMap(false) },
   Compile / fastLinkJS / scalaJSLinkerConfig ~= (_.withModuleSplitStyle(
     ModuleSplitStyle.FewestModules

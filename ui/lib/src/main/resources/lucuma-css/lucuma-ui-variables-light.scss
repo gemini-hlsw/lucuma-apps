@@ -1,6 +1,8 @@
 // =================
 //  LIGHT THEME VARS
 // =================
+@use 'sass:color';
+
 @mixin colors-light {
   --color-text-base-h: 0;
   --color-text-base-s: 0%;
@@ -152,48 +154,45 @@
   --form-prompt-background: var(--negative-background-color);
 }
 
-/* stylelint-disable scss/at-rule-no-unknown */
-/* stylelint-disable scss/no-global-function-names */
 @mixin button-light {
-  @textColor: rgba(0, 0, 0, 0.6);
-  @activeColor: #216ba5;
-  @tertiaryTextColor: rgba(0, 0, 0, 0.6);
-  @tertiaryHoverColor: lighten(fadein(@tertiaryTextColor, 100%), 20%);
-  @tertiaryActiveColor: lighten(@tertiaryHoverColor, 20%);
+  $text-color: rgb(0 0 0 / 60%);
+  $active-color: hsl(206deg 67% 39%);
+  $tertiary-text-color: rgb(0 0 0 / 60%);
+  $tertiary-hover-color: color.adjust($tertiary-text-color, $alpha: 0.4, $lightness: 20%);
+  $tertiary-active-color: color.adjust($tertiary-hover-color, $lightness: 20%);
 
   --button-hover-background-color: hsl(220deg 2.9% 79.8%);
   --button-basic-hover-background-color: hsl(0deg 0% 100%);
   --button-background-color: hsl(210deg 3% 88%);
   --button-background-color-semi: hsl(210deg 3% 88% / 75%);
-  --button-text-color: @textColor;
-  --button-active-color: @activeColor;
-  --button-tertiary-text-color: @textColor;
-  --button-tertiary-line-color: lighten(@tertiaryTextColor, 20%);
-  --button-tertiary-hover-color: @tertiaryHoverColor;
-  --button-tertiary-hover-line-color: lighten(@tertiaryHoverColor, 20%);
-  --button-tertiary-focus-color: @tertiaryHoverColor;
-  --button-tertiary-focus-line-color: lighten(@tertiaryHoverColor, 20%);
-  --button-tertiary-active-color: @tertiaryActiveColor;
-  --button-tertiary-active-line-color: lighten(@tertiaryActiveColor, 20%);
+  --button-text-color: #{$text-color};
+  --button-active-color: #{$active-color};
+  --button-tertiary-text-color: #{$tertiary-text-color};
+  --button-tertiary-line-color: #{color.adjust($tertiary-text-color, $lightness: 20%)};
+  --button-tertiary-hover-color: #{$tertiary-hover-color};
+  --button-tertiary-hover-line-color: #{color.adjust($tertiary-hover-color, $lightness: 20%)};
+  --button-tertiary-focus-color: #{$tertiary-hover-color};
+  --button-tertiary-focus-line-color: #{color.adjust($tertiary-hover-color, $lightness: 20%)};
+  --button-tertiary-active-color: #{$tertiary-active-color};
+  --button-tertiary-active-line-color: #{color.adjust($tertiary-active-color, $lightness: 20%)};
 }
 
 @mixin label-light {
   --label-background-color: hsl(0deg 0% 91%);
-  --label-inverted-background-color: darken(#e8e8e8, 20%);
+  --label-inverted-background-color: #{color.adjust(#e8e8e8, $lightness: -20%)};
   --label-ribbon-shadow-color: rgb(0 0 0 / 15%);
 }
 
 @mixin tile-light {
   --tile-background: @lightGrey;
-  --tile-title-background: darken(@lightGrey, 10%);
   --tile-title-color: var(--color-text-base);
   --tile-resize-handle-brightness: 0;
 }
 
 @mixin obs-badge-light {
   --obs-badge-color: var(--site-text-color);
-  --obs-badge-background: darken(@lightGrey, 20%);
-  --obs-selected-badge-background: darken(@lightGrey, 10%);
+  --obs-badge-background: #{color.adjust(#d4d4d5, $lightness: -20%)};
+  --obs-selected-badge-background: #{color.adjust(#d4d4d5, $lightness: -10%)};
 }
 
 @mixin menu-light {
@@ -205,8 +204,6 @@
   --menu-secondary-hover-item-color: var(--input-color);
   --menu-tabular-active-background: none @white;
 }
-/* stylelint-enable scss/no-global-function-names */
-/* stylelint-enable scss/at-rule-no-unknown */
 
 @mixin segment-light {
   // FIXME it isn't clear which is a segment default background
