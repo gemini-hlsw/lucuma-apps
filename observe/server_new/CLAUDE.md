@@ -32,6 +32,7 @@ The event loop runs as an `fs2.Stream` pipeline: events arrive via input/stream 
 ### Global State
 
 **`EngineState[F]`** (`EngineState.scala`):
+
 ```
 queues:     ExecutionQueues          — Map[QueueId, ExecutionQueue]
 selected:   Selected[F]             — Currently loaded sequence per instrument
@@ -81,13 +82,13 @@ preStep → preConfig → [parallel config actions] → postConfig → preObserv
 
 Every subsystem follows a consistent 4-file pattern:
 
-| File | Purpose |
-|------|---------|
-| `*Controller.scala` | Trait defining the subsystem API |
-| `*ControllerEpics.scala` | Real implementation via EPICS channels |
-| `*ControllerSim.scala` | Simulated implementation for testing |
-| `*ControllerDisabled.scala` | No-op implementation |
-| `*Epics.scala` | Raw EPICS channel access wrapper |
+| File                        | Purpose                                |
+| --------------------------- | -------------------------------------- |
+| `*Controller.scala`         | Trait defining the subsystem API       |
+| `*ControllerEpics.scala`    | Real implementation via EPICS channels |
+| `*ControllerSim.scala`      | Simulated implementation for testing   |
+| `*ControllerDisabled.scala` | No-op implementation                   |
+| `*Epics.scala`              | Raw EPICS channel access wrapper       |
 
 **Active instruments**: GMOS North/South, Flamingos-2
 **WIP instruments**: GNIRS, GSAOI, GPI, Ghost, NIRI, NIFS (commented out)
@@ -101,12 +102,12 @@ Every subsystem follows a consistent 4-file pattern:
 
 ## Integration Points
 
-| System | Interface | Protocol |
-|--------|-----------|----------|
-| **EPICS** | `EpicsCommand[F]`, per-subsystem `*Epics[F]` | EPICS channels via `CaService`/`CaCommandSender` |
-| **ODB** | `OdbProxy[F]` (read), `OdbCommands[F]` (lifecycle events) | GraphQL queries/mutations/subscriptions |
-| **DHS** | `DhsClient[F]` | HTTP (image creation, FITS keywords) |
-| **GDS** | `GdsClient[F]` | HTTP (keyword management for GPI/Ghost) |
+| System    | Interface                                                 | Protocol                                         |
+| --------- | --------------------------------------------------------- | ------------------------------------------------ |
+| **EPICS** | `EpicsCommand[F]`, per-subsystem `*Epics[F]`              | EPICS channels via `CaService`/`CaCommandSender` |
+| **ODB**   | `OdbProxy[F]` (read), `OdbCommands[F]` (lifecycle events) | GraphQL queries/mutations/subscriptions          |
+| **DHS**   | `DhsClient[F]`                                            | HTTP (image creation, FITS keywords)             |
+| **GDS**   | `GdsClient[F]`                                            | HTTP (keyword management for GPI/Ghost)          |
 
 Java enums in `src/main/java/` define EPICS channel value types (`BinaryOnOff`, `DetectorState`, `ParkState`, etc.).
 
