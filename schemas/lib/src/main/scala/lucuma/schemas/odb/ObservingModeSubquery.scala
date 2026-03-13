@@ -139,6 +139,8 @@ object ObservingModeSubquery
             explicitOffsetMode
             defaultSaveSVCImages
             explicitSaveSVCImages
+            defaultOffsets $OffsetSubquery
+            explicitOffsets $OffsetSubquery
           }
         }
       """
