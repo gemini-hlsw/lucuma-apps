@@ -81,18 +81,21 @@ object TargetSelectionTable:
     // table
     .useReactTableBy((_, cols, rows) => TableOptions(cols, rows, enableSorting = true))
     .render((props, _, _, table) =>
-      PrimeTable(
-        table,
-        striped = true,
-        compact = Compact.Very,
-        tableMod = ExploreStyles.ExploreTable,
-        headerCellMod = headerCell =>
-          columnClasses.get(headerCell.column.id).orEmpty |+| ExploreStyles.StickyHeader,
-        rowMod = rowTagMod: row =>
-          TagMod(
-            ExploreStyles.TableRowSelected.when_(props.selectedIndex.contains_(row.index.toInt)),
-            ^.onClick --> props.onClick(row.original, row.index.toInt)
-          ),
-        cellMod = cellTagMod(cell => columnClasses.get(cell.column.id).orEmpty)
+      <.div(ExploreStyles.ExploreTable |+| ExploreStyles.ExploreSelectableTable)(
+        PrimeTable(
+          table,
+          striped = true,
+          compact = Compact.Very,
+          tableMod = ExploreStyles.ExploreTable,
+          headerCellMod = headerCell =>
+            columnClasses.get(headerCell.column.id).orEmpty |+| ExploreStyles.StickyHeader,
+          rowMod = rowTagMod: row =>
+            TagMod(
+              ExploreStyles.TableRowSelected.when_(props.selectedIndex.contains_(row.index)),
+              ^.cursor.pointer,
+              ^.onClick --> props.onClick(row.original, row.index)
+            ),
+          cellMod = cellTagMod(cell => columnClasses.get(cell.column.id).orEmpty)
+        )
       )
     )
