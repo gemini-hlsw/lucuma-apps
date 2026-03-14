@@ -1,7 +1,7 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package observer.server
+package observe.server
 
 import cats.Applicative
 import cats.effect.Sync
@@ -40,9 +40,8 @@ given GiapiConfig[ImageFileId] = _.value
  */
 private[server] abstract class AbstractGiapiInstrumentController[F[_]: Sync, CFG, C <: GiapiClient[
   F
-]](client: C, configureTimeout: TimeSpan)(implicit
-  L: Logger[F]
-) extends GiapiInstrumentController[F, CFG] {
+]](client: C, configureTimeout: TimeSpan)(using L: Logger[F])
+    extends GiapiInstrumentController[F, CFG] {
 
   def name: String
   def configuration(config: CFG): F[Configuration]
