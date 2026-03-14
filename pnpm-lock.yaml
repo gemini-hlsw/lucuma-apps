@@ -297,7 +297,7 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(react@18.3.1)
       '@tanstack/react-table':
-        specifier: ^8.21.3
+        specifier: 8.21.3
         version: 8.21.3(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@tanstack/react-virtual':
         specifier: 3.13.21
