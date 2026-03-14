@@ -3,8 +3,10 @@
 
 package explore.config
 
+import cats.data.Nested
 import cats.data.NonEmptyList
 import cats.syntax.all.*
+import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
@@ -25,6 +27,7 @@ import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.igrins2.defaultOffsetsFor
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -51,21 +54,28 @@ final case class Igrins2LongslitConfigPanel(
 
 object Igrins2LongslitConfigPanel
     extends ReactFnComponent[Igrins2LongslitConfigPanel](props =>
-      for
-        ctx                 <- useContext(AppContext.ctx)
-        modeData            <- useModeData(props.confMatrix, props.observingMode.get)
-        editState           <- useStateView(ConfigEditState.View)
-        reverting           <- useStateView(false)
-        unModdedOffsetsView <- useStateView(props.observingMode.get.offsets)
-        _                   <- useEffectWithDeps((props.observingMode.get.offsets, props.observingMode.get.offsetMode)):
-                                 (offsets, _) => unModdedOffsetsView.set(offsets)
-      yield
+      for {
+        ctx               <- useContext(AppContext.ctx)
+        modeData          <- useModeData(props.confMatrix, props.observingMode.get)
+        editState         <- useStateView(ConfigEditState.View)
+        reverting         <- useStateView(false)
+        offsets            = props.observingMode.get.explicitOffsets.getOrElse(
+                               NonEmptyList.fromListUnsafe(
+                                 defaultOffsetsFor(props.observingMode.get.offsetMode)
+                               )
+                             )
+        localOffsetsState <- useStateView(offsets)
+        _                 <- useEffectWithDeps(offsets):
+                               localOffsetsState.set
+      } yield
         import ctx.given
 
         val disableEdit              =
           editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit || reverting.get
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
+
+        val defaultOffsetMode = props.observingMode.get.defaultOffsetMode
 
         val explicitOffsetsView: View[Option[NonEmptyList[Offset]]] = props.observingMode
           .zoom(
@@ -74,24 +84,29 @@ object Igrins2LongslitConfigPanel
           )
           .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
-        val offsetModeAligner = props.observingMode
-          .zoom(
-            ObservingMode.Igrins2LongSlit.explicitOffsetMode,
-            Igrins2LongSlitInput.explicitOffsetMode.modify
-          )
-
         val offsetModeView: View[Option[Igrins2OffsetMode]] =
-          offsetModeAligner
+          props.observingMode
+            .zoom(
+              ObservingMode.Igrins2LongSlit.explicitOffsetMode.get,
+              (f: Option[Igrins2OffsetMode] => Option[Igrins2OffsetMode]) =>
+                ObservingMode.Igrins2LongSlit.explicitOffsetMode
+                  .modify(f)
+                  .andThen(ObservingMode.Igrins2LongSlit.explicitOffsets.replace(none)),
+              (f: Input[Igrins2OffsetMode] => Input[Igrins2OffsetMode]) =>
+                Igrins2LongSlitInput.explicitOffsetMode
+                  .modify(f)
+                  .andThen(
+                    Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign)
+                  )
+            )
             .view(_.orUnassign)
-            .withOnMod: _ =>
-              explicitOffsetsView.set(none)
 
-        val defaultOffsetMode = props.observingMode.get.defaultOffsetMode
-
-        val defaultOffsets: NonEmptyList[Offset] = props.observingMode.get.defaultOffsets
+        val defaultOffsets: NonEmptyList[Offset] =
+          NonEmptyList.fromListUnsafe(defaultOffsetsFor(props.observingMode.get.offsetMode))
 
         val localOffsetsView: View[NonEmptyList[Offset]] =
-          unModdedOffsetsView.withOnMod: nel =>
+          localOffsetsState.withOnMod: nel =>
+            // reset offsets if the same as the default
             val newOffsets =
               if nel === defaultOffsets
               then none
@@ -123,15 +138,10 @@ object Igrins2LongslitConfigPanel
                 resetToOriginal = true
               ),
               if isNodAlongSlit then
+                // View to map the explicit offsets to the q component
                 val qOffsetsView: View[Option[NonEmptyList[Offset.Q]]] =
-                  View[Option[NonEmptyList[Offset.Q]]](
-                    explicitOffsetsView.get.map(_.map(_.q)),
-                    (mod, cb) =>
-                      val current  = explicitOffsetsView.get.map(_.map(_.q))
-                      val modified = mod(current)
-                      explicitOffsetsView.set(
-                        modified.map(_.map(q => Offset(Offset.P.Zero, q)))
-                      ) >> cb(current, modified)
+                  explicitOffsetsView.zoom(Nested(_).map(_.q).value)(f =>
+                    o => f(Nested(o).map(_.q).value).map(_.map(q => Offset.Zero.copy(q = q)))
                   )
                 OffsetsControl(
                   view = qOffsetsView,
@@ -174,7 +184,7 @@ object Igrins2LongslitConfigPanel
                 !props.permissions.isFullEdit,
                 props.units,
                 props.calibrationRole,
-                "ig2LongSlit".refined
+                "ig2-etm".refined
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
