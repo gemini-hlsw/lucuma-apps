@@ -19,6 +19,7 @@ import observe.server.tcs.TcsEpics.VirtualGemsTelescope
 
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.LocalDateTime
 
 sealed trait CRFollow extends Product with Serializable
 
@@ -84,6 +85,9 @@ trait TcsKeywordsReader[F[_]] {
   def ut: F[String]
 
   def date: F[String]
+
+  // Combination of date and UT
+  def dateUT: F[String]
 
   def m2Baffle: F[String]
 
@@ -241,7 +245,14 @@ object DummyTcsKeywordsReader {
     override def ut: F[String] = "00:00:00".pure[F]
 
     override def date: F[String] =
-      LocalDate.of(2019, 1, 1).format(DateTimeFormatter.ISO_LOCAL_DATE).pure[F]
+      LocalDate.of(2025, 1, 1).format(DateTimeFormatter.ISO_LOCAL_DATE).pure[F]
+
+    // Combination of date and UT
+    def dateUT: F[String] =
+      LocalDateTime
+        .of(2025, 1, 1, 0, 0, 0)
+        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        .pure[F]
 
     override def m2Baffle: F[String] = "OUT".pure[F]
 
@@ -369,6 +380,13 @@ object TcsKeywordsReaderEpics extends TcsKeywordDefaults {
     override def ut: F[String] = sys.ut.safeValOrDefault
 
     override def date: F[String] = sys.date.safeValOrDefault
+
+    // date and time come on ISO 8601 formmatt but with just one decimal
+    override def dateUT: F[String] =
+      (sys.date, sys.ut)
+        .mapN: (d, t) =>
+          s"${d}T${t}"
+        .safeValOrDefault
 
     override def m2Baffle: F[String] = sys.m2Baffle.safeValOrDefault
 
