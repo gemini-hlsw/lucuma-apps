@@ -148,8 +148,8 @@ importers:
         version: 2.0.9
     devDependencies:
       '@vitejs/plugin-react':
-        specifier: 5.1.4
-        version: 5.1.4(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
+        specifier: 5.2.0
+        version: 5.2.0(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
       postcss:
         specifier: 8.5.8
         version: 8.5.8
@@ -239,8 +239,8 @@ importers:
         version: 2.0.9
     devDependencies:
       '@vitejs/plugin-react':
-        specifier: 5.1.4
-        version: 5.1.4(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
+        specifier: 5.2.0
+        version: 5.2.0(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
       postcss:
         specifier: 8.5.8
         version: 8.5.8
@@ -303,8 +303,8 @@ importers:
         specifier: 3.13.21
         version: 3.13.21(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@vitejs/plugin-react':
-        specifier: 5.1.4
-        version: 5.1.4(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
+        specifier: 5.2.0
+        version: 5.2.0(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
@@ -1900,11 +1900,11 @@ packages:
   '@ungap/structured-clone@1.3.0':
     resolution: {integrity: sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==}
 
-  '@vitejs/plugin-react@5.1.4':
-    resolution: {integrity: sha512-VIcFLdRi/VYRU8OL/puL7QXMYafHmqOnwTZY50U1JPlCNj30PxCMx65c494b1K9be9hX83KVt0+gTEwTWLqToA==}
+  '@vitejs/plugin-react@5.2.0':
+    resolution: {integrity: sha512-YmKkfhOAi3wsB1PhJq5Scj3GXMn3WvtQ/JC0xoopuHoXSdmtdStOpFrYaT1kie2YgFBcIe64ROzMYRjCrYOdYw==}
     engines: {node: ^20.19.0 || >=22.12.0}
     peerDependencies:
-      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
+      vite: ^4.2.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0
 
   acorn-import-attributes@1.9.5:
     resolution: {integrity: sha512-n02Vykv5uA3eHGM/Z2dQrcD56kL8TyDb2p1+0P83PClMnC/nc+anbQRhIOWnSq4Ke/KvDPrY3C9hDtC/A3eHnQ==}
@@ -4137,7 +4137,7 @@ snapshots:
 
   '@babel/generator@7.28.6':
     dependencies:
-      '@babel/parser': 7.28.6
+      '@babel/parser': 7.29.0
       '@babel/types': 7.29.0
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
@@ -4777,10 +4777,10 @@ snapshots:
 
   '@babel/traverse@7.28.6':
     dependencies:
-      '@babel/code-frame': 7.28.6
-      '@babel/generator': 7.28.6
+      '@babel/code-frame': 7.29.0
+      '@babel/generator': 7.29.1
       '@babel/helper-globals': 7.28.0
-      '@babel/parser': 7.28.6
+      '@babel/parser': 7.29.0
       '@babel/template': 7.28.6
       '@babel/types': 7.29.0
       debug: 4.4.3
@@ -5701,7 +5701,7 @@ snapshots:
 
   '@ungap/structured-clone@1.3.0': {}
 
-  '@vitejs/plugin-react@5.1.4(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))':
+  '@vitejs/plugin-react@5.2.0(vite@7.3.1(@types/node@25.1.0)(sass@1.98.0)(terser@5.46.0))':
     dependencies:
       '@babel/core': 7.29.0
       '@babel/plugin-transform-react-jsx-self': 7.27.1(@babel/core@7.29.0)
