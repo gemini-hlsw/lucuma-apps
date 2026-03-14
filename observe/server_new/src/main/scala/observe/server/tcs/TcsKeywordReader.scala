@@ -18,8 +18,8 @@ import observe.server.tcs.FocalPlaneScale.*
 import observe.server.tcs.TcsEpics.VirtualGemsTelescope
 
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 sealed trait CRFollow extends Product with Serializable
 

@@ -287,14 +287,11 @@ package object keywords {
     def safeValOrDefault: F[A] = safeVal.orDefault
   }
 
-  implicit class SafeDefaultOps[F[_]: ApplicativeThrow, A: DefaultHeaderValue](
-    v: F[A]
-  ) {
+  extension [F[_]: ApplicativeThrow, A: DefaultHeaderValue](v: F[A])
     // Check if there is an error reading a value and if there is a failure
     // use the default
     def safeValOrDefault: F[A] =
       v.handleError(_ => DefaultHeaderValue[A].default)
-  }
 
   def buildKeyword[F[_]: MonadThrow, A: DefaultHeaderValue](
     get:  F[A],
@@ -345,6 +342,17 @@ package object keywords {
       .flatMap { bag =>
         keywClient.setKeywords(id, bag, finalFlag = false)
       }
+
+  def sendGdsKeywords[F[_]: {MonadThrow, Logger as L}](
+    id:         ImageFileId,
+    keywClient: GdsClient[F],
+    b:          List[KeywordBag => F[KeywordBag]]
+  ): F[Unit] =
+    GdsInstrument
+      .bundleKeywords(b)
+      .redeemWith(e => L.error(e.getMessage) *> KeywordBag.empty.pure[F], _.pure[F])
+      .flatMap: bag =>
+        keywClient.setKeywords(id, bag)
 
   def dummyHeader[F[_]: Applicative]: Header[F] = new Header[F] {
     override def sendBefore(
