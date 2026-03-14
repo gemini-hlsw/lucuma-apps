@@ -173,6 +173,8 @@ trait TcsKeywordsReader[F[_]] {
 
   def f2InstPort: F[Int]
 
+  def igrins2InstPort: F[Int]
+
   def crFollow: F[Option[CRFollow]]
 
 }
@@ -322,6 +324,8 @@ object DummyTcsKeywordsReader {
     override def gsaoiInstPort: F[Int] = 0.pure[F]
 
     override def f2InstPort: F[Int] = 0.pure[F]
+
+    override def igrins2InstPort: F[Int] = 0.pure[F]
 
     override def crFollow: F[Option[CRFollow]] = CRFollow.Off.some.pure[F].widen[Option[CRFollow]]
 
@@ -534,6 +538,8 @@ object TcsKeywordsReaderEpics extends TcsKeywordDefaults {
     override def nifsInstPort: F[Int] = sys.nifsPort.safeValOrDefault
 
     override def gsaoiInstPort: F[Int] = sys.gsaoiPort.safeValOrDefault
+
+    override def igrins2InstPort: F[Int] = sys.igrins2Port.safeValOrDefault
 
     override def f2InstPort: F[Int] = sys.f2Port.safeValOrDefault
 
