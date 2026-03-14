@@ -21,6 +21,8 @@ final case class OffsetInput(
   id:         NonEmptyString,
   offset:     View[Offset],
   readonly:   Boolean,
+  pEnabled:   Boolean = true,
+  qEnabled:   Boolean = true,
   inputClass: Css = Css.Empty,
   labelClass: Css = Css.Empty,
   clazz:      Css = Css.Empty // for the outter div
@@ -38,7 +40,7 @@ object OffsetInput
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
           placeholder = "0.0",
-          disabled = props.readonly,
+          disabled = props.readonly || !props.pEnabled,
           inputClass = props.inputClass,
           labelClass = props.labelClass
         ),
@@ -49,7 +51,7 @@ object OffsetInput
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
           placeholder = "0.0",
-          disabled = props.readonly,
+          disabled = props.readonly || !props.qEnabled,
           inputClass = props.inputClass,
           labelClass = props.labelClass
         )

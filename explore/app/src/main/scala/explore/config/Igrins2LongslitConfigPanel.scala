@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.data.Nested
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import clue.data.Input
@@ -108,9 +107,7 @@ object Igrins2LongslitConfigPanel
           localOffsetsState.withOnMod: nel =>
             // reset offsets if the same as the default
             val newOffsets =
-              if nel === defaultOffsets
-              then none
-              else nel.some
+              if nel === defaultOffsets then none else nel.some
             explicitOffsetsView.set(newOffsets)
 
         val isNodAlongSlit = props.observingMode.get.offsetMode === Igrins2OffsetMode.NodAlongSlit
@@ -137,43 +134,29 @@ object Igrins2LongslitConfigPanel
                 allowRevertCustomization = allowRevertCustomization,
                 resetToOriginal = true
               ),
-              if isNodAlongSlit then
-                // View to map the explicit offsets to the q component
-                val qOffsetsView: View[Option[NonEmptyList[Offset.Q]]] =
-                  explicitOffsetsView.zoom(Nested(_).map(_.q).value)(f =>
-                    o => f(Nested(o).map(_.q).value).map(_.map(q => Offset.Zero.copy(q = q)))
-                  )
-                OffsetsControl(
-                  view = qOffsetsView,
-                  defaultValue = defaultOffsets.map(_.q),
-                  onChange = props.sequenceChanged,
-                  disabled = disableEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                )
-              else
+              React.Fragment(
+                <.span(
+                  "Spatial Offsets",
+                  HelpIcon("configuration/spatial-offsets.md".refined),
+                  CustomizedGroupAddon(
+                    "original",
+                    explicitOffsetsView.set(none),
+                    allowRevertCustomization
+                  ).when(explicitOffsetsView.get.isDefined)
+                ),
                 React.Fragment(
-                  <.span(
-                    "Spatial Offsets",
-                    HelpIcon("configuration/spatial-offsets.md".refined),
-                    CustomizedGroupAddon(
-                      "original",
-                      explicitOffsetsView.set(none),
-                      allowRevertCustomization
-                    ).when(explicitOffsetsView.get.isDefined)
-                  ),
-                  React.Fragment(
-                    localOffsetsView.toNelOfViews.toList.zipWithIndex
-                      .map: (offsetView, idx) =>
-                        OffsetInput(
-                          id = NonEmptyString.unsafeFrom(s"spatial-offsets-$idx"),
-                          offset = offsetView,
-                          readonly = disableEdit,
-                          clazz = LucumaPrimeStyles.FormField
-                        )
-                      .toVdomArray
-                  )
+                  localOffsetsView.toNelOfViews.toList.zipWithIndex
+                    .map: (offsetView, idx) =>
+                      OffsetInput(
+                        id = NonEmptyString.unsafeFrom(s"spatial-offsets-$idx"), // can't be empty
+                        offset = offsetView,
+                        readonly = disableEdit,
+                        clazz = LucumaPrimeStyles.FormField,
+                        pEnabled = !isNodAlongSlit
+                      )
+                    .toVdomArray
                 )
+              )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
@@ -184,7 +167,7 @@ object Igrins2LongslitConfigPanel
                 !props.permissions.isFullEdit,
                 props.units,
                 props.calibrationRole,
-                "ig2-etm".refined
+                "ig2LongSlit".refined
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
