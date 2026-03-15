@@ -14,13 +14,13 @@ import observe.server.keywords.*
 import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
-object Igrins2Header {
+object Igrins2Header:
 
   def header[F[_]: MonadThrow: Logger](
     gdsClient:         GdsClient[F],
     tcsKeywordsReader: TcsKeywordsReader[F]
   ): Header[F] =
-    new Header[F] {
+    new Header[F]:
       override def sendBefore(
         obsId:       Id,
         id:          ImageFileId,
@@ -45,5 +45,3 @@ object Igrins2Header {
                           buildString(tcsKeywordsReader.date, KeywordName.DATEEND)
                         )
         )
-    }
-}

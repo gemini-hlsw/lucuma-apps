@@ -5,7 +5,7 @@ package observe.server.igrins2
 
 import cats.MonadThrow
 import cats.data.Kleisli
-import cats.effect.Async
+import cats.effect.Temporal
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
@@ -24,7 +24,7 @@ import observe.server.keywords.GdsInstrument
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
 
-final case class Igrins2[F[_]: Logger: Async](
+final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
   config:     Igrins2Config
 ) extends GdsInstrument[F]
@@ -43,13 +43,12 @@ final case class Igrins2[F[_]: Logger: Async](
   val abort: F[Unit] = controller.abort
 
   def sequenceComplete: F[Unit] =
-    Logger[F].info("IGRINS 2 Sequence complete") *>
-      controller.sequenceComplete.handleErrorWith { e =>
-        Logger[F].error(e)("Error in sequence complete")
-      }
+    L.info("IGRINS 2 Sequence complete") *>
+      controller.sequenceComplete.handleErrorWith: e =>
+        L.error(e)("Error in sequence complete")
 
   override def observeControl: InstrumentSystem.ObserveControl[F] =
-    InstrumentSystem.UnpausableControl(InstrumentSystem.StopObserveCmd(_ => Async[F].unit),
+    InstrumentSystem.UnpausableControl(InstrumentSystem.StopObserveCmd(_ => F.unit),
                                        InstrumentSystem.AbortObserveCmd(abort)
     )
 
@@ -68,7 +67,7 @@ final case class Igrins2[F[_]: Logger: Async](
   override def notifyObserveEnd: F[Unit] =
     controller.endObserve
 
-  override def notifyObserveStart: F[Unit] = Async[F].unit
+  override def notifyObserveStart: F[Unit] = F.unit
 
   override def calcObserveTime: TimeSpan =
     TimeSpan.Zero
