@@ -64,8 +64,7 @@ object Igrins2LongslitConfigPanel
                                )
                              )
         localOffsetsState <- useStateView(offsets)
-        _                 <- useEffectWithDeps(offsets):
-                               localOffsetsState.set
+        _                 <- useEffectWithDeps(offsets)(localOffsetsState.set)
       } yield
         import ctx.given
 
@@ -83,6 +82,7 @@ object Igrins2LongslitConfigPanel
           )
           .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
+        // We need to reset the offests when offset mode changes.
         val offsetModeView: View[Option[Igrins2OffsetMode]] =
           props.observingMode
             .zoom(
@@ -94,9 +94,7 @@ object Igrins2LongslitConfigPanel
               (f: Input[Igrins2OffsetMode] => Input[Igrins2OffsetMode]) =>
                 Igrins2LongSlitInput.explicitOffsetMode
                   .modify(f)
-                  .andThen(
-                    Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign)
-                  )
+                  .andThen(Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign))
             )
             .view(_.orUnassign)
 
@@ -132,12 +130,13 @@ object Igrins2LongslitConfigPanel
                 disabled = disableEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
-                resetToOriginal = true
+                resetToOriginal = true,
+                helpId = Some("configuration/igrins2/offset-mode.md".refined),
               ),
               React.Fragment(
                 <.span(
                   "Spatial Offsets",
-                  HelpIcon("configuration/spatial-offsets.md".refined),
+                  HelpIcon("configuration/igrins2/spatial-offsets.md".refined),
                   CustomizedGroupAddon(
                     "original",
                     explicitOffsetsView.set(none),
