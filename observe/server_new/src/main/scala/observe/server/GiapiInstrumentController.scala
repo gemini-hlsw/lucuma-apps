@@ -19,6 +19,7 @@ import observe.server.ObserveFailure
 import observe.server.ObserveFailure.Execution
 import observe.server.ObserveFailure.ObserveException
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import scala.concurrent.duration.*
 
@@ -64,14 +65,14 @@ private[server] abstract class AbstractGiapiInstrumentController[F[_]: Sync, CFG
   }.adaptError(adaptGiapiError)
 
   override def applyConfig(config: CFG): F[Unit] =
-    L.debug(s"Start $name configuration") *>
+    debug"Start $name configuration" *>
       configure(config) *>
-      L.debug(s"Configuration for $name sent")
+      debug"Configuration for $name sent"
 
   override def observe(fileId: ImageFileId, expTime: TimeSpan): F[ImageFileId] = (
-    L.debug(s"Send observe to $name, file id $fileId and $expTime") *>
+    debug"Send observe to $name, file id $fileId and $expTime" *>
       client.observe(fileId, expTime.toDuration) *>
-      L.debug(s"Completed $name observe")
+      debug"Completed $name observe"
   )
     .as(fileId)
     .adaptError(adaptGiapiError)

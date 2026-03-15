@@ -23,6 +23,7 @@ import observe.server.keywords.GdsClient
 import observe.server.keywords.GdsInstrument
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
@@ -43,7 +44,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   val abort: F[Unit] = controller.abort
 
   def sequenceComplete: F[Unit] =
-    L.info("IGRINS 2 Sequence complete") *>
+    info"IGRINS 2 Sequence complete" *>
       controller.sequenceComplete.handleErrorWith: e =>
         L.error(e)("Error in sequence complete")
 
@@ -106,6 +107,8 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 object Igrins2:
   object specifics extends InstrumentSpecifics[Igrins2StaticConfig, Igrins2DynamicConfig]:
 
-    override def instrument: Instrument = Instrument.Igrins2
+    override def instrument: Instrument =
+      Instrument.Igrins2
 
-    override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName = LightSinkName.Igrins2
+    override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName =
+      LightSinkName.Igrins2
