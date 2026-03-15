@@ -90,4 +90,17 @@ object ProgressUtil {
           .widen[Progress]
       }
       .takeThrough(x => x.remaining.value > TimeSpan.Zero || x.stage === ObserveStage.Exposure)
+
+  /**
+   * Simulated countdown with observation stage provided by instrument
+   */
+  def realCountdownWithObsStage[F[_]: Temporal](
+    total:       TimeSpan,
+    secondsLeft: Stream[F, TimeSpan],
+    stage:       => F[ObserveStage]
+  ): Stream[F, Progress] =
+    for {
+      t <- secondsLeft
+      p <- Stream.eval(stage.map(ObsProgress(total, RemainingTime(t), _)))
+    } yield p
 }

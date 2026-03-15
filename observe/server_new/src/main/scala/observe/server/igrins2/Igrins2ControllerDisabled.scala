@@ -4,17 +4,17 @@
 package observe.server.igrins2
 
 import cats.Applicative
-import cats.implicits._
-import org.typelevel.log4cats.Logger
+import cats.implicits.*
+import fs2.Stream
+import lucuma.core.util.TimeSpan
 import observe.model.Observation
 import observe.model.dhs.ImageFileId
-import observe.server.overrideLogMessage
 import observe.server.keywords.GdsClient
 import observe.server.keywords.KeywordBag
-import lucuma.core.util.TimeSpan
-import fs2.Stream
+import observe.server.overrideLogMessage
+import org.typelevel.log4cats.Logger
 
-class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Controller[F] {
+class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Controller[F]:
   private val name = "IGRINS2"
 
   override def exposureProgress: F[Stream[F, Int]] =
@@ -35,7 +35,7 @@ class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Contro
 
   def dcIsWritingMEF: F[Boolean] = false.pure[F]
 
-  override def gdsClient: GdsClient[F] = new GdsClient[F] {
+  override def gdsClient: GdsClient[F] = new GdsClient[F]:
     override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
       overrideLogMessage(name, "setKeywords")
 
@@ -45,10 +45,6 @@ class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Contro
     override def closeObservation(id: ImageFileId): F[Unit] =
       overrideLogMessage(name, "closeObservation")
 
-    override def abortObservation(id: ImageFileId): F[Unit] =
-      overrideLogMessage(name, "abortObservation")
-  }
-
   override def applyConfig(config: Igrins2Config): F[Unit] = overrideLogMessage(name, "applyConfig")
 
   override def observe(fileId: ImageFileId, expTime: TimeSpan): F[ImageFileId] =
@@ -57,4 +53,3 @@ class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Contro
   override def endObserve: F[Unit] = overrideLogMessage(name, "endObserve")
 
   override def abort: F[Unit] = overrideLogMessage(name, "abort")
-}

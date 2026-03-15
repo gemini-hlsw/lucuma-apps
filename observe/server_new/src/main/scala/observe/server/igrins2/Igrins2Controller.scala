@@ -3,18 +3,18 @@
 
 package observe.server.igrins2
 
-import observe.server.keywords.GdsClient
-import giapi.client.igrins2.Igrins2Client
-import observe.server.AbstractGiapiInstrumentController
-import observe.server.GiapiInstrumentController
 import cats.effect.Sync
-import cats.syntax.all._
-import org.typelevel.log4cats.Logger
-import giapi.client.commands.Configuration
-import giapi.client.GiapiClient
+import cats.syntax.all.*
 import fs2.Stream
+import giapi.client.GiapiClient
+import giapi.client.commands.Configuration
+import giapi.client.igrins2.Igrins2Client
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
+import observe.server.AbstractGiapiInstrumentController
+import observe.server.GiapiInstrumentController
+import observe.server.keywords.GdsClient
+import org.typelevel.log4cats.Logger
 
 trait Igrins2Config:
   def configuration: Configuration

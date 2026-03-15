@@ -10,10 +10,18 @@ enum ObserveStage(val tag: String) derives Enumerated:
   case Preparing  extends ObserveStage("Preparing")
   case Exposure   extends ObserveStage("Exposure")
   case ReadingOut extends ObserveStage("ReadingOut")
+  case WritingMEF extends ObserveStage("WritingMEF")
 
 object ObserveStage:
   def fromBooleans(prep: Boolean, exp: Boolean, rdout: Boolean): ObserveStage =
     if (prep) Preparing
     else if (exp) Exposure
     else if (rdout) ReadingOut
+    else Idle
+
+  def fromBooleans(prep: Boolean, acq: Boolean, rdout: Boolean, mef: Boolean): ObserveStage =
+    if (prep) Preparing
+    else if (acq) Exposure
+    else if (rdout) ReadingOut
+    else if (mef) WritingMEF
     else Idle
