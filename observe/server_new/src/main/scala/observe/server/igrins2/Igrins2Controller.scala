@@ -9,6 +9,7 @@ import fs2.Stream
 import giapi.client.GiapiClient
 import giapi.client.commands.Configuration
 import giapi.client.igrins2.Igrins2Client
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import observe.server.AbstractGiapiInstrumentController
@@ -16,8 +17,25 @@ import observe.server.GiapiInstrumentController
 import observe.server.keywords.GdsClient
 import org.typelevel.log4cats.Logger
 
-trait Igrins2Config:
+sealed trait Igrins2Config:
   def configuration: Configuration
+  def exposureTime: TimeSpan
+  val readoutTime: TimeSpan
+
+object Igrins2Config:
+  def apply(d: Igrins2DynamicConfig): Igrins2Config =
+    val expTSecs = d.exposure.toSeconds.toDouble
+    // TODO pass along p/q and state (save svc)
+    // ig2:seq:p
+    // ig2:seq:q
+    // ig2:seq:state
+    val config   = Configuration.single("ig2:dcs:expTime", expTSecs) |+|
+      Configuration.single("ig2:seq:state", "sci")
+
+    new Igrins2Config:
+      override def configuration: Configuration = config
+      override def exposureTime: TimeSpan       = d.exposure
+      override val readoutTime: TimeSpan        = d.readoutTime
 
 trait Igrins2Controller[F[_]] extends GiapiInstrumentController[F, Igrins2Config]:
   def gdsClient: GdsClient[F]

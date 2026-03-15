@@ -59,9 +59,8 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
         .as(ObserveCommandResult.Success: ObserveCommandResult)
 
   override def configure: F[ConfigResult[F]] =
-    Igrins2
-      .fromSequenceConfig[F]
-      .flatMap(controller.applyConfig)
+    controller
+      .applyConfig(config)
       .as(ConfigResult[F](this))
 
   override def notifyObserveEnd: F[Unit] =
@@ -70,16 +69,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   override def notifyObserveStart: F[Unit] = F.unit
 
   override def calcObserveTime: TimeSpan =
-    TimeSpan.Zero
-    // MonadError[F, Throwable].catchNonFatal {
-    //   val obsTime =
-    //     for {
-    //       exp <- config.extractObsAs[JDouble](SPIgrins2.EXPOSURE_TIME_PROP)
-    //       t    = Seconds(exp.toDouble)
-    //       f    = SPIgrins2.readoutTime(t)
-    //     } yield t + f + readoutOverhead
-    //   obsTime.getOrElse(readoutOverhead)
-    // }
+    config.exposureTime +| config.readoutTime +| readoutOverhead
 
   override def observeProgress(
     total:   TimeSpan,
@@ -114,35 +104,6 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 }
 
 object Igrins2:
-  def fromSequenceConfig[F[_]: MonadThrow]: F[Igrins2Config] =
-    MonadThrow[F].raiseError(new NotImplementedError("Igrins2 not implemented yet"))
-
-    // We need to port this to gpp
-    // EitherT {
-    //   Sync[F].delay {
-    //     (for {
-    //       expTime       <-
-    //         config.extractObsAs[JDouble](SPIgrins2.EXPOSURE_TIME_PROP).map(_.toDouble.seconds)
-    //       clazz         <- config.extractObsAs[String](InstConstants.OBS_CLASS_PROP)
-    //       p              = config.extractTelescopeAs[String](P_OFFSET_PROP)
-    //       q              = config.extractTelescopeAs[String](Q_OFFSET_PROP)
-    //       obsClass       = clazz match {
-    //                          case "acq" | "acqCal" => "acq"
-    //                          case "dayCal"         => "dayCal"
-    //                          case _                => "sci"
-    //                        }
-    //       igrins2Config <-
-    //         Right(new Igrins2Config {
-    //           override def configuration: Configuration =
-    //             Configuration.single("ig2:dcs:expTime", expTime.value) |+|
-    //               Configuration.single("ig2:seq:state", obsClass) |+|
-    //               p.foldMap(p => Configuration.single("ig2:seq:p", p.toDouble)) |+|
-    //               q.foldMap(q => Configuration.single("ig2:seq:q", q.toDouble))
-    //         })
-    //     } yield igrins2Config).leftMap(e => SeqexecFailure.Unexpected(ConfigUtilOps.explain(e)))
-    //   }
-    // }.widenRethrowT
-
   object specifics extends InstrumentSpecifics[Igrins2StaticConfig, Igrins2DynamicConfig]:
 
     override def instrument: Instrument = Instrument.Igrins2
