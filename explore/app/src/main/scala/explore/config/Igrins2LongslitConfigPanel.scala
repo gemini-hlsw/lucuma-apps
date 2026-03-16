@@ -3,13 +3,17 @@
 
 package explore.config
 
+import cats.data.NonEmptyList
 import cats.syntax.all.*
+import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.config.offsets.OffsetInput
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.display.given
@@ -19,8 +23,10 @@ import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
+import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.igrins2.defaultOffsetsFor
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -29,7 +35,9 @@ import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.utils.toNelOfViews
 
 final case class Igrins2LongslitConfigPanel(
   programId:       Program.Id,
@@ -45,12 +53,19 @@ final case class Igrins2LongslitConfigPanel(
 
 object Igrins2LongslitConfigPanel
     extends ReactFnComponent[Igrins2LongslitConfigPanel](props =>
-      for
-        ctx       <- useContext(AppContext.ctx)
-        modeData  <- useModeData(props.confMatrix, props.observingMode.get)
-        editState <- useStateView(ConfigEditState.View)
-        reverting <- useStateView(false)
-      yield
+      for {
+        ctx               <- useContext(AppContext.ctx)
+        modeData          <- useModeData(props.confMatrix, props.observingMode.get)
+        editState         <- useStateView(ConfigEditState.View)
+        reverting         <- useStateView(false)
+        offsets            = props.observingMode.get.explicitOffsets.getOrElse(
+                               NonEmptyList.fromListUnsafe(
+                                 defaultOffsetsFor(props.observingMode.get.offsetMode)
+                               )
+                             )
+        localOffsetsState <- useStateView(offsets)
+        _                 <- useEffectWithDeps(offsets)(localOffsetsState.set)
+      } yield
         import ctx.given
 
         val disableEdit              =
@@ -58,14 +73,42 @@ object Igrins2LongslitConfigPanel
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
 
-        val offsetModeView: View[Option[Igrins2OffsetMode]] = props.observingMode
-          .zoom(
-            ObservingMode.Igrins2LongSlit.explicitOffsetMode,
-            Igrins2LongSlitInput.explicitOffsetMode.modify
-          )
-          .view(_.orUnassign)
-
         val defaultOffsetMode = props.observingMode.get.defaultOffsetMode
+
+        val explicitOffsetsView: View[Option[NonEmptyList[Offset]]] = props.observingMode
+          .zoom(
+            ObservingMode.Igrins2LongSlit.explicitOffsets,
+            Igrins2LongSlitInput.explicitOffsets.modify
+          )
+          .view(_.map(_.toList.map(_.toInput)).orUnassign)
+
+        // We need to reset the offests when offset mode changes.
+        val offsetModeView: View[Option[Igrins2OffsetMode]] =
+          props.observingMode
+            .zoom(
+              ObservingMode.Igrins2LongSlit.explicitOffsetMode.get,
+              (f: Option[Igrins2OffsetMode] => Option[Igrins2OffsetMode]) =>
+                ObservingMode.Igrins2LongSlit.explicitOffsetMode
+                  .modify(f)
+                  .andThen(ObservingMode.Igrins2LongSlit.explicitOffsets.replace(none)),
+              (f: Input[Igrins2OffsetMode] => Input[Igrins2OffsetMode]) =>
+                Igrins2LongSlitInput.explicitOffsetMode
+                  .modify(f)
+                  .andThen(Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign))
+            )
+            .view(_.orUnassign)
+
+        val defaultOffsets: NonEmptyList[Offset] =
+          NonEmptyList.fromListUnsafe(defaultOffsetsFor(props.observingMode.get.offsetMode))
+
+        val localOffsetsView: View[NonEmptyList[Offset]] =
+          localOffsetsState.withOnMod: nel =>
+            // reset offsets if the same as the default
+            val newOffsets =
+              if nel === defaultOffsets then none else nel.some
+            explicitOffsetsView.set(newOffsets)
+
+        val isNodAlongSlit = props.observingMode.get.offsetMode === Igrins2OffsetMode.NodAlongSlit
 
         val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
           .zoom(
@@ -87,7 +130,31 @@ object Igrins2LongslitConfigPanel
                 disabled = disableEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
-                resetToOriginal = true
+                resetToOriginal = true,
+                helpId = Some("configuration/igrins2/offset-mode.md".refined),
+              ),
+              React.Fragment(
+                <.span(
+                  "Spatial Offsets",
+                  HelpIcon("configuration/igrins2/spatial-offsets.md".refined),
+                  CustomizedGroupAddon(
+                    "original",
+                    explicitOffsetsView.set(none),
+                    allowRevertCustomization
+                  ).when(explicitOffsetsView.get.isDefined)
+                ),
+                React.Fragment(
+                  localOffsetsView.toNelOfViews.toList.zipWithIndex
+                    .map: (offsetView, idx) =>
+                      OffsetInput(
+                        id = NonEmptyString.unsafeFrom(s"spatial-offsets-$idx"), // can't be empty
+                        offset = offsetView,
+                        readonly = disableEdit,
+                        clazz = LucumaPrimeStyles.FormField,
+                        pEnabled = !isNodAlongSlit
+                      )
+                    .toVdomArray
+                )
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
