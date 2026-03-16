@@ -5,7 +5,18 @@ package navigate.server.tcs
 
 import lucuma.core.util.Enumerated
 
-enum FollowStatus(val tag: String) extends Product with Serializable derives Enumerated {
+enum FollowStatus(val tag: String) derives Enumerated {
   case NotFollowing extends FollowStatus("NotFollowing")
   case Following    extends FollowStatus("Following")
+
+}
+
+object FollowStatus {
+
+  extension (v: FollowStatus) {
+    def isFollowing: Boolean = v match {
+      case FollowStatus.NotFollowing => false
+      case FollowStatus.Following    => true
+    }
+  }
 }
