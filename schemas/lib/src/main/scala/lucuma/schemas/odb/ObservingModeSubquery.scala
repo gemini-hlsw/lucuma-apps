@@ -130,6 +130,8 @@ object ObservingModeSubquery
             explicitOffsets $OffsetSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
+              defaultFilter
+              explicitFilter
               exposureTimeMode $ExposureTimeModeSubquery
             }
           }
