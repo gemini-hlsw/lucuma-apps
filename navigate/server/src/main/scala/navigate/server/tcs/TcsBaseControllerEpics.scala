@@ -520,6 +520,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  sys.tcsEpics.startCommand(TcsConfigTimeout)
                ).post
            ).verifiedRun(ConnectionTimeout)
+    trk <- isTracking(guide)
+    _   <- sys.tcsEpics.status
+             .waitInPosition(SettleTime, offsetTimeout(MaxClearedOffset))
+             .verifiedRun(ConnectionTimeout)
+             .whenA(trk)
     _   <- resumeGuide(guide.tcsGuide)
   } yield r
 
@@ -2389,6 +2394,21 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.pwfs2,
     sys.pwfs2
   )
+
+  def isTracking(guideConfig: GuideConfig): F[Boolean] = getTelescopeState.map { t =>
+    t.mount.following.isFollowing ||
+    t.crcs.following.isFollowing ||
+    t.scs.following.isFollowing ||
+    (guideUsesPwfs1(guideConfig.tcsGuide.m1Guide,
+                    guideConfig.tcsGuide.m2Guide
+    ) && t.pwfs1.following.isFollowing) ||
+    (guideUsesPwfs2(guideConfig.tcsGuide.m1Guide,
+                    guideConfig.tcsGuide.m2Guide
+    ) && t.pwfs2.following.isFollowing) ||
+    (guideUsesOiwfs(guideConfig.tcsGuide.m1Guide,
+                    guideConfig.tcsGuide.m2Guide
+    ) && t.oiwfs.following.isFollowing)
+  }
 
 }
 
