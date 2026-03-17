@@ -389,6 +389,19 @@ trait ArbObservingMode {
       )
     )
 
+  given Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition] =
+    Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition](
+      for {
+        defaultFilter    <- arbitrary[Flamingos2Filter]
+        explicitFilter   <- arbitrary[Option[Flamingos2Filter]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.Flamingos2LongSlit.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        exposureTimeMode
+      )
+    )
+
   given Arbitrary[ObservingMode.Flamingos2LongSlit] =
     Arbitrary[ObservingMode.Flamingos2LongSlit](
       for {
@@ -407,7 +420,7 @@ trait ArbObservingMode {
         defaultOffsets     <- arbitrary[NonEmptyList[Offset]]
         explicitOffsets    <- arbitrary[Option[NonEmptyList[Offset]]]
         exposureTimeMode   <- arbitrary[ExposureTimeMode]
-        acquistionEtm      <- arbitrary[ExposureTimeMode]
+        acquisition        <- arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition]
       } yield ObservingMode.Flamingos2LongSlit(
         initialDisperser,
         disperser,
@@ -424,9 +437,15 @@ trait ArbObservingMode {
         defaultOffsets,
         explicitOffsets,
         exposureTimeMode,
-        ObservingMode.Flamingos2LongSlit.Acquisition(acquistionEtm)
+        acquisition
       )
     )
+
+  given Cogen[ObservingMode.Flamingos2LongSlit.Acquisition] =
+    Cogen[
+      (Flamingos2Filter, Option[Flamingos2Filter], ExposureTimeMode)
+    ]
+      .contramap(a => (a.defaultFilter, a.explicitFilter, a.exposureTimeMode))
 
   given Cogen[ObservingMode.Flamingos2LongSlit] =
     Cogen[
@@ -445,7 +464,7 @@ trait ArbObservingMode {
        NonEmptyList[Offset],
        Option[NonEmptyList[Offset]],
        ExposureTimeMode,
-       ExposureTimeMode
+       ObservingMode.Flamingos2LongSlit.Acquisition
       )
     ]
       .contramap(o =>
@@ -465,7 +484,7 @@ trait ArbObservingMode {
           o.defaultOffsets,
           o.explicitOffsets,
           o.exposureTimeMode,
-          o.acquisition.exposureTimeMode
+          o.acquisition
         )
       )
 

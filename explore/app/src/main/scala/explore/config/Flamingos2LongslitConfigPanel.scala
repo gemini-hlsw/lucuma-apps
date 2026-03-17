@@ -71,6 +71,7 @@ object Flamingos2LongslitConfigPanel
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
         val disableSimpleEdit        =
           disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
+        val disableAdvancedAcqEdit   = disableAdvancedEdit && !props.permissions.isOnlyForOngoing
         val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
 
@@ -154,6 +155,20 @@ object Flamingos2LongslitConfigPanel
                   Flamingos2LongSlitAcquisitionInput.exposureTimeMode.modify
             )
             .view(_.toInput.assign)
+
+        val explicitAcquisitionFilterView: View[Option[Flamingos2Filter]] =
+          acquisition
+            .zoom(ObservingMode.Flamingos2LongSlit.Acquisition.explicitFilter,
+                  Flamingos2LongSlitAcquisitionInput.explicitFilter.modify
+            )
+            .view(_.orUnassign)
+
+        val defaultAcquisitionFilter =
+          props.observingMode.get.acquisition.defaultFilter
+
+        val excludedAcquistionFilters = 
+          Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
+
 
         val defaultDecker = props.observingMode.get.defaultDecker
 
@@ -272,6 +287,23 @@ object Flamingos2LongslitConfigPanel
             )(
               <.div(
                 ExploreStyles.AcquisitionCustomizationGrid,
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  CustomizableEnumSelectOptional(
+                    id = "f2-acq-filter".refined,
+                    view = explicitAcquisitionFilterView.withDefault(
+                      defaultAcquisitionFilter
+                    ),
+                    defaultValue = defaultAcquisitionFilter.some,
+                    label = "Filter".some,
+                    helpId = Some("configuration/f2/acquisition-filter.md".refined),
+                    exclude = excludedAcquistionFilters,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization =
+                      allowRevertCustomization || props.permissions.isOnlyForOngoing
+                  )
+                ),
                 <.div(
                   LucumaPrimeStyles.FormColumnCompact,
                   ExposureTimeModeEditor(

@@ -567,7 +567,8 @@ object ObservingMode:
         explicitReads.isDefined ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
-        explicitOffsets.exists(_ =!= defaultOffsets)
+        explicitOffsets.exists(_ =!= defaultOffsets) ||
+        acquisition.isCustomized
 
     def revertCustomizations: Flamingos2LongSlit =
       this.copy(
@@ -578,14 +579,28 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitOffsets = None
+        explicitOffsets = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object Flamingos2LongSlit:
-    case class Acquisition(exposureTimeMode: ExposureTimeMode) derives Decoder, Eq
+    case class Acquisition(
+      defaultFilter:    Flamingos2Filter,
+      explicitFilter:   Option[Flamingos2Filter],
+      exposureTimeMode: ExposureTimeMode
+    ) derives Decoder,
+          Eq:
+      def isCustomized: Boolean             =
+        explicitFilter.exists(_ =!= defaultFilter)
+      def revertCustomizations: Acquisition =
+        this.copy(explicitFilter = None)
 
     object Acquisition:
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode] =
+      val defaultFilter: Lens[Acquisition, Flamingos2Filter]          =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[Flamingos2Filter]] =
+        Focus[Acquisition](_.explicitFilter)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]       =
         Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[Flamingos2LongSlit] = deriveDecoder
