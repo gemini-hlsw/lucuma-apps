@@ -26,19 +26,17 @@ import lucuma.core.model.Observation
 import lucuma.core.model.User
 import lucuma.core.model.sequence.Step
 import monocle.Lens
-import monocle.syntax.all.focus
 import mouse.all.*
 import observe.model.*
 import observe.model.config.*
 import observe.model.enums.BatchExecState
 import observe.model.enums.Resource
 import observe.model.enums.RunOverride
-import observe.server.SequenceGen.AtomGen
-import observe.server.engine.EngineStep
 import observe.server.engine.Event
 import observe.server.engine.Handle.given
-import observe.server.engine.{EngineStep as _, *}
+import observe.server.engine.*
 import observe.server.events.*
+import observe.server.odb.OdbObservationData
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
 
@@ -59,7 +57,7 @@ trait ObserveEngine[F[_]] {
     runOverride: RunOverride
   ): F[Unit]
 
-  def loadNextAtom(
+  def loadNextStep(
     obsId:    Observation.Id,
     user:     User,
     observer: Observer,
@@ -218,10 +216,12 @@ trait ObserveEngine[F[_]] {
 
   private[server] def loadSequenceEndo(
     observer: Option[Observer],
-    seqg:     SequenceGen[F],
+    odbData:  OdbObservationData,
+    stepGen:  Option[StepGen[F]],
     l:        Lens[EngineState[F], Option[SequenceData[F]]],
     cleanup:  F[Unit]
-  ): Endo[EngineState[F]] = ODBSequencesLoader.loadSequenceEndo(observer, seqg, l, cleanup)
+  ): Endo[EngineState[F]] =
+    ODBSequencesLoader.loadSequenceEndo(observer, odbData, stepGen, l, cleanup)
 }
 
 object ObserveEngine {
@@ -245,7 +245,7 @@ object ObserveEngine {
           .filter(_._2.started)
           .keys
           .toList
-          .mapFilter(s.seqGen.resourceAtCoords)
+          .mapFilter(s.resourceAtCoords)
       )
       .toSet
 
@@ -255,7 +255,7 @@ object ObserveEngine {
    */
   def resourcesInUse[F[_]](st: EngineState[F]): Set[Resource | Instrument] =
     observations(st)
-      .mapFilter(s => s.seq.status.isRunning.option(s.seqGen.resources))
+      .mapFilter(s => s.seq.status.isRunning.option(s.resources))
       .foldK ++
       systemsBeingConfigured(st)
 
@@ -394,7 +394,7 @@ object ObserveEngine {
   ): Set[Observation.Id] =
     findRunnableObservations(qid)(st).intersect(sids)
 
-  private def onAtomComplete[F[_]: MonadCancelThrow](
+  private def onStepComplete[F[_]: MonadCancelThrow](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F]
   )(
@@ -405,68 +405,65 @@ object ObserveEngine {
       .getState[F, EngineState[F], Event[F]]
       .map(EngineState.atSequence[F](obsId).getOption)
       .flatMap {
-        _.map { seq =>
-          seq.seqGen.nextAtom.sequenceType match {
-            case SequenceType.Acquisition =>
-              Handle.pure[F, EngineState[F], Event[F], SeqEvent](
-                SeqEvent.AtomCompleted(
-                  obsId,
-                  SequenceType.Acquisition,
-                  seq.seqGen.nextAtom.atomId
+        _.flatMap(_.currentStep)
+          .map { completedStep =>
+            completedStep.sequenceType match {
+              case SequenceType.Acquisition =>
+                // For acquisition, signal completion and wait for user prompt.
+                Handle.pure[F, EngineState[F], Event[F], SeqEvent](
+                  SeqEvent.AtomCompleted(
+                    obsId,
+                    SequenceType.Acquisition,
+                    completedStep.atomId
+                  )
                 )
-              )
-            case SequenceType.Science     =>
-              tryNewAtom[F](odb, translator, executeEngine, obsId, SequenceType.Science)
-                .as(
-                  SeqEvent.AtomCompleted(obsId, SequenceType.Science, seq.seqGen.nextAtom.atomId)
-                )
+              case SequenceType.Science     =>
+                tryNewStep[F](odb, translator, executeEngine, obsId, SequenceType.Science)
+                  .as(
+                    SeqEvent.AtomCompleted(
+                      obsId,
+                      SequenceType.Science,
+                      completedStep.atomId
+                    )
+                  )
+            }
           }
-        }.getOrElse(
-          EngineHandle.pure[F, SeqEvent](NullSeqEvent)
-        )
+          .getOrElse(
+            EngineHandle.pure[F, SeqEvent](NullSeqEvent)
+          )
       }
 
-  private def updateAtom[F[_]](
-    obsId: Observation.Id,
-    atm:   Option[AtomGen[F]] // May be None if the sequence is completed
+  private def updateStep[F[_]](
+    obsId:   Observation.Id,
+    stepGen: Option[StepGen[F]]
   ): Endo[EngineState[F]] =
     (st: EngineState[F]) =>
       EngineState
         .atSequence[F](obsId)
         .modify { (seqData: SequenceData[F]) =>
-          val newSeqData: SequenceData[F] = // Replace nextAtom
-            atm.fold(seqData): a =>
-              SequenceData.seqGen.modify(SequenceGen.replaceNextAtom(a))(seqData)
+          val newStep: Option[engine.EngineStep[F]] =
+            stepGen.map: sg =>
+              generateStep(
+                sg,
+                seqData.overrides,
+                HeaderExtraData(st.conditions, st.operator, seqData.observer)
+              )._1
 
-          newSeqData
-            .focus(_.seq)
-            .modify(
-              s => // Initialize the sequence state
-                val steps: List[EngineStep[F]] =
-                  toStepList(
-                    newSeqData.seqGen,
-                    newSeqData.overrides,
-                    HeaderExtraData(st.conditions, st.operator, newSeqData.observer)
-                  ).map(_._1) // Ignore breakpoints
-
-                val newState: Sequence.State[F] =
-                  Sequence.State.init(
-                    atm.fold(Sequence.empty[F](obsId)) { a =>
-                      Sequence.sequence[F](obsId, a.atomId, steps, s.breakpoints)
-                    }
-                  )
-
-                // Revive sequence if it was completed - or complete if no more steps
-                val newSeqState: SequenceState =
-                  if s.status.isCompleted && atm.nonEmpty then SequenceState.Idle
-                  else if atm.isEmpty then SequenceState.Completed
-                  else s.status
-
-                Sequence.State.status.replace(newSeqState)(newState)
+          val newSeqState: Sequence.State[F] =
+            Sequence.State.init(
+              Sequence(obsId, newStep, seqData.seq.breakpoints)
             )
+
+          // Revive sequence if it was completed - or complete if no more steps
+          val newStatus: SequenceState =
+            if seqData.seq.status.isCompleted && stepGen.nonEmpty then SequenceState.Idle
+            else if stepGen.isEmpty then SequenceState.Completed
+            else seqData.seq.status
+
+          SequenceData.seq.replace(Sequence.State.status.replace(newStatus)(newSeqState))(seqData)
         }(st)
 
-  def tryNewAtom[F[_]: MonadCancelThrow](
+  def tryNewStep[F[_]: MonadCancelThrow](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
@@ -478,22 +475,27 @@ object ObserveEngine {
         .read(obsId)
         .map: odbObsData =>
           translator
-            .nextAtom(odbObsData, atomType)
+            .nextStep(odbObsData, atomType)
             ._2
-            .map: atm =>
+            .map: stepGen =>
               Event.modifyState[F]:
                 EngineHandle
                   .modifyState_ : (st: EngineState[F]) =>
-                    updateAtom(obsId, atm.some)(st)
+                    updateStep(obsId, stepGen.some)(st)
                   .flatMap: _ =>
-                    executeEngine.startNewAtom(obsId) *>
+                    executeEngine.startNewStep(obsId) *>
                       EngineHandle.pure:
-                        SeqEvent.NewAtomLoaded(obsId, atm.sequenceType, atm.atomId)
+                        SeqEvent.NewStepLoaded(
+                          obsId,
+                          stepGen.sequenceType,
+                          stepGen.atomId,
+                          stepGen.id
+                        )
             .getOrElse:
               Event.modifyState[F]:
-                executeEngine.startNewAtom(obsId).as(SeqEvent.NoMoreAtoms(obsId))
+                executeEngine.startNewStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
 
-  def onAtomReload[F[_]: {MonadCancelThrow, Logger}](
+  def onStepReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F]
   )(
@@ -504,22 +506,24 @@ object ObserveEngine {
     EngineHandle.getState
       .map(EngineState.atSequence[F](obsId).getOption)
       .flatMap {
-        _.map { seq =>
-          tryAtomReload[F](
-            odb,
-            translator,
-            executeEngine,
-            obsId,
-            seq.seqGen.nextAtom.sequenceType,
-            reloadReason
+        _.flatMap(_.currentStep)
+          .map { step =>
+            tryStepReload[F](
+              odb,
+              translator,
+              executeEngine,
+              obsId,
+              step.sequenceType,
+              reloadReason
+            )
+              .as(SeqEvent.NullSeqEvent)
+          }
+          .getOrElse(
+            EngineHandle.pure[F, SeqEvent](NullSeqEvent)
           )
-            .as(SeqEvent.NullSeqEvent)
-        }.getOrElse(
-          EngineHandle.pure[F, SeqEvent](NullSeqEvent)
-        )
       }
 
-  private def tryAtomReload[F[_]: {MonadCancelThrow, Logger}](
+  private def tryStepReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
@@ -539,31 +543,34 @@ object ObserveEngine {
           EngineHandle.fromSingleEvent:
             Event.modifyState[F]:
               (for
-                _          <- EngineHandle.debug(s"Reloading atom for observation [$obsId]")
-                odbObsData <- EngineHandle.liftF(odb.read(obsId))
-                atomGen    <-
+                _        <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
+                odbData  <- EngineHandle.liftF(odb.read(obsId))
+                stepGen  <-
                   EngineHandle.modifyState: (oldState: EngineState[F]) =>
-                    val atomGen: Option[AtomGen[F]] = translator.nextAtom(odbObsData, atomType)._2
-                    val newState: EngineState[F]    = updateAtom(obsId, atomGen)(oldState)
-                    (newState, atomGen)
-                continue   <-
-                  atomGen.fold(
+                    val stepGen: Option[StepGen[F]] =
+                      translator.nextStep(odbData, atomType)._2
+                    val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
+                    (newState, stepGen)
+                continue <-
+                  stepGen.fold(
                     EngineHandle.fromSingleEvent(Event.finished(obsId)).as(SeqEvent.NullSeqEvent)
-                  ): atm =>
+                  ): sg =>
                     if reloadReason == ReloadReason.SequenceFlow then
-                      executeEngine.startNewAtom(obsId).as(SeqEvent.NullSeqEvent)
+                      executeEngine.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
                     else
                       Handle.pure:
-                        SeqEvent.NewAtomLoaded(obsId, atm.sequenceType, atm.atomId)
+                        SeqEvent.NewStepLoaded(obsId, sg.sequenceType, sg.atomId, sg.id)
               yield continue)
                 .handleErrorWith: e =>
-                  EngineHandle.logError(e)(s"Error reloading atom for observation [$obsId]") >>
+                  EngineHandle.logError(e)(s"Error reloading step for observation [$obsId]") >>
                     EngineHandle
                       .fromSingleEvent(
                         Event.loadFailed(
                           obsId,
                           0,
-                          Result.Error(s"Error updating sequence, cannot continue: ${e.getMessage}")
+                          Result.Error(
+                            s"Error updating sequence, cannot continue: ${e.getMessage}"
+                          )
                         )
                       )
                       .as(SeqEvent.NullSeqEvent)
@@ -583,8 +590,8 @@ object ObserveEngine {
     rc  <- Ref.of[F, Conditions](Conditions.Default)
     tr  <- createTranslator(site, systems, rc, environment)
     eng <- Engine.build[F](
-             onAtomComplete[F](systems.odb, tr),
-             onAtomReload[F](systems.odb, tr)
+             onStepComplete[F](systems.odb, tr),
+             onStepReload[F](systems.odb, tr)
            )
   } yield new ObserveEngineImpl[F](eng, systems, conf, tr, rc)
 }

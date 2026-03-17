@@ -5,45 +5,25 @@ package observe.server.engine
 
 import cats.effect.IO
 import cats.syntax.option.*
-import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.enums.SequenceType
-import lucuma.core.model.sequence.Atom
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
 import observe.model.Conditions
 import observe.model.Observation
 import observe.model.SystemOverrides
 import observe.server.EngineState
 import observe.server.Selected
 import observe.server.SequenceData
-import observe.server.SequenceGen
-
-import java.util.UUID
+import observe.server.TestCommon.*
 
 object TestUtil {
   def initStateWithSequence(obsId: Observation.Id, seq: Sequence.State[IO]): EngineState[IO] =
     EngineState[IO](
       queues = Map.empty,
       selected = Selected(
-        gmosNorth = SequenceData(
+        gmosNorth = SequenceData.GmosNorth[IO](
           observer = none,
           overrides = SystemOverrides.AllEnabled,
-          seqGen = SequenceGen.GmosNorth[IO](
-            obsData = OdbObservation(
-              id = obsId,
-              title = NonEmptyString.unsafeFrom("Test Observation"),
-              program = null,           // Not used in tests
-              targetEnvironment = null, // Not used in tests
-              constraintSet = null,     // Not used in tests
-              timingWindows = List.empty,
-              signalToNoise = null // Not used in tests
-            ),
-            staticCfg = null, // Not used in tests
-            nextAtom = SequenceGen.AtomGen.GmosNorth[IO](
-              atomId = Atom.Id.fromUuid(UUID.randomUUID()),
-              sequenceType = SequenceType.Science,
-              steps = List.empty
-            )
-          ),
+          obsData = odbObservation(obsId),
+          staticCfg = staticCfg1,
+          currentStep = none,
           seq = seq,
           pendingObsCmd = none,
           visitStartDone = false,

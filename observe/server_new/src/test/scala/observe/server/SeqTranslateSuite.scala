@@ -11,15 +11,14 @@ import fs2.Stream
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.util.TimeSpan
-import monocle.syntax.all.focus
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.Conditions
 import observe.model.SequenceState
 import observe.model.dhs.*
-import observe.server.SequenceGen.StepStatusGen
 import observe.server.TestCommon.*
 import observe.server.engine.Action
 import observe.server.engine.EngineStep
@@ -28,7 +27,6 @@ import observe.server.engine.Response
 import observe.server.engine.Response.Observed
 import observe.server.engine.Result
 import observe.server.engine.Sequence
-import observe.server.engine.Sequence.State
 
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
@@ -45,37 +43,31 @@ class SeqTranslateSuite extends TestCommon {
       )
     )
 
-  private val seqg =
-    SequenceGen.replaceNextAtom(
-      sequence(seqObsId1).nextAtom
-        .focus(_.steps)
-        .replace(
-          List(
-            SequenceGen.PendingStepGen(
-              stepId(1),
-              Monoid.empty[DataId],
-              Set(Instrument.GmosNorth),
-              _ => InstrumentSystem.Uncontrollable,
-              SequenceGen.StepActionsGen(
-                odbAction[IO],
-                odbAction[IO],
-                Map.empty,
-                odbAction[IO],
-                odbAction[IO],
-                (_, _) => List(observeActions(Action.ActionState.Idle)),
-                odbAction[IO],
-                odbAction[IO]
-              ),
-              StepStatusGen.Null,
-              dynamicCfg1,
-              stepCfg1,
-              telescopeCfg1,
-              signalToNoise = none,
-              breakpoint = Breakpoint.Disabled
-            )
-          )
-        )
-    )(sequence(seqObsId1))
+  // Build a StepGen with a custom observe (post) action
+  private val testStepGen: StepGen.GmosNorth[IO] =
+    StepGen.GmosNorth[IO](
+      atomId = atomId1,
+      sequenceType = SequenceType.Science,
+      id = stepId(1),
+      dataId = Monoid.empty[DataId],
+      resources = Set(Instrument.GmosNorth),
+      obsControl = _ => InstrumentSystem.Uncontrollable,
+      generator = StepActionsGen(
+        odbAction[IO],
+        odbAction[IO],
+        Map.empty,
+        odbAction[IO],
+        odbAction[IO],
+        (_, _) => List(observeActions(Action.ActionState.Idle)),
+        odbAction[IO],
+        odbAction[IO]
+      ),
+      instConfig = dynamicCfg1,
+      config = stepCfg1,
+      telescopeConfig = telescopeCfg1,
+      signalToNoise = none,
+      breakpoint = Breakpoint.Disabled
+    )
 
   // Function to advance the execution of a step up to certain Execution
   @tailrec
@@ -131,26 +123,25 @@ class SeqTranslateSuite extends TestCommon {
     (ODBSequencesLoader
       .loadSequenceEndo[IO](
         None,
-        seqg,
+        gmosNorthOdbData(seqObsId1),
+        testStepGen.some,
         EngineState.instrumentLoaded(Instrument.GmosNorth),
         IO.unit
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .modify {
-          case State.Zipper(zipper, status, singleRuns, breakpoints) =>
-            State.Zipper(
-              zipper.copy(
-                focus = advanceStepUntil(
-                  zipper.focus,
-                  _.focus.execution.exists(_.kind === ActionType.Observe)
+        .modify { st =>
+          st.currentStep match
+            case Some(z) =>
+              st.copy(
+                currentStep = Some(
+                  advanceStepUntil(
+                    z,
+                    _.focus.execution.exists(_.kind === ActionType.Observe)
+                  )
                 )
-              ),
-              status,
-              singleRuns,
-              breakpoints
-            )
-          case s @ State.Final(_, _, _)                              => s
+              )
+            case None    => st
         } >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)

@@ -6,10 +6,8 @@ package observe.server.engine
 import cats.syntax.all.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.model.Observation
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import monocle.Lens
-import monocle.macros.GenLens
 import observe.model.SequenceState
 import observe.model.SequenceState.HasInternalStop
 import observe.model.SequenceState.HasUserStop
@@ -17,228 +15,142 @@ import observe.server.engine.Action.ActionState
 import observe.server.engine.Result.RetVal
 
 /**
- * A list of `Step`s grouped by target and instrument.
+ * A single pending step for an observation.
  */
 case class Sequence[F[_]] private (
   id:          Observation.Id,
-  atomId:      Option[Atom.Id],
-  steps:       List[EngineStep[F]],
+  step:        Option[EngineStep[F]],
   breakpoints: Breakpoints
 )
 
-object Sequence {
+object Sequence:
 
   def empty[F[_]](obsId: Observation.Id): Sequence[F] =
-    Sequence(obsId, none, List.empty, Breakpoints.empty)
+    Sequence(obsId, none, Breakpoints.empty)
 
-  def sequence[F[_]](
+  def apply[F[_]](
     obsId:       Observation.Id,
-    atomId:      Atom.Id,
-    steps:       List[EngineStep[F]],
+    step:        EngineStep[F],
     breakpoints: Breakpoints
   ): Sequence[F] =
-    Sequence(obsId, atomId.some, steps, breakpoints)
+    new Sequence(obsId, step.some, breakpoints)
+
+  def apply[F[_]](
+    obsId:       Observation.Id,
+    step:        Option[EngineStep[F]],
+    breakpoints: Breakpoints
+  ): Sequence[F] =
+    new Sequence(obsId, step, breakpoints)
 
   /**
-   * Sequence Zipper. This structure is optimized for the actual `Sequence` execution.
+   * Simplified state for single-step execution. Replaces the old Zipper/Final sealed trait.
+   * `currentStep` is `Some` when a step is actively executing, `None` when idle/done.
    */
-  case class Zipper[F[_]](
+  case class State[F[_]](
     obsId:       Observation.Id,
-    atomId:      Option[Atom.Id],
-    pending:     List[EngineStep[F]],
-    focus:       EngineStep.Zipper[F],
-    done:        List[EngineStep[F]],
-    breakpoints: Breakpoints
-  ) {
+    status:      SequenceState,
+    currentStep: Option[EngineStep.Zipper[F]], // None = idle/done, Some = executing
+    breakpoints: Breakpoints,
+    singleRuns:  Map[ActionCoordsInSeq, ActionState]
+  ):
 
     /**
-     * Runs the next execution. If the current `Step` is completed it adds the `StepZ` under focus
-     * to the list of completed `Step`s and makes the next pending `Step` the current one.
-     *
-     * If there are still `Execution`s that have not finished in the current `Step` or if there are
-     * no more pending `Step`s it returns `None`.
-     *
-     * It skips steps, but honoring breakpoints.
+     * Advances execution within the current step's execution groups. Returns `None` if the step is
+     * completed (no more execution groups).
      */
-    val next: Option[Zipper[F]] =
-      focus.next match {
-        // Step completed
-        case None      =>
-          pending match {
-            case Nil             => None
-            case stepp :: stepps =>
-              (EngineStep.Zipper.currentify(stepp), focus.uncurrentify).mapN((curr, stepd) =>
-                Zipper(
-                  obsId,
-                  atomId,
-                  stepps,
-                  curr,
-                  done :+ stepd,
-                  breakpoints
-                )
-              )
-          }
-        // Current step ongoing
-        case Some(stz) => Some(Zipper(obsId, atomId, pending, stz, done, breakpoints))
-      }
+    val next: Option[State[F]] =
+      currentStep match
+        case None    => None
+        case Some(z) =>
+          val newBreakpoints: Breakpoints = breakpoints - z.id
+          z.next match
+            case None      => // Step completed - all execution groups done
+              Some(copy(currentStep = None, breakpoints = newBreakpoints))
+            case Some(stz) => // More execution groups to run
+              Some(copy(currentStep = Some(stz), breakpoints = newBreakpoints))
 
-    def rollback: Zipper[F] = this.copy(focus = focus.rollback)
+    val pending: List[EngineStep[F]] = Nil // No pending steps with single-step execution
 
-    /**
-     * Obtain the resulting `Sequence` only if all `Step`s have been completed. This is a special
-     * way of *unzipping* a `Zipper`.
-     */
-    val uncurrentify: Option[Sequence[F]] =
-      if (pending.isEmpty)
-        focus.uncurrentify.map(x => Sequence(obsId, atomId, done :+ x, breakpoints))
-      else None
+    def rollback: State[F] = copy(currentStep = currentStep.map(_.rollback))
 
-    /**
-     * Unzip a `Zipper`. This creates a single `Sequence` with either completed `Step`s or pending
-     * `Step`s.
-     */
-    val toSequence: Sequence[F] =
-      Sequence(obsId, atomId, done ++ List(focus.toStep) ++ pending, breakpoints)
-  }
-
-  object Zipper {
-
-    /**
-     * Make a `Zipper` from a `Sequence` only if all the `Step`s in the `Sequence` are pending. This
-     * is a special way of *zipping* a `Sequence`.
-     */
-    def currentify[F[_]](seq: Sequence[F]): Option[Zipper[F]] =
-      seq.steps match {
-        case Nil           => None
-        case step :: steps =>
-          EngineStep.Zipper
-            .currentify(step)
-            .map(
-              Zipper(seq.id, seq.atomId, steps, _, Nil, seq.breakpoints)
-            )
-      }
-
-    def zipper[F[_]](seq: Sequence[F]): Option[Zipper[F]] =
-      separate(seq).flatMap { case (pending, done) =>
-        pending match {
-          case Nil     => None
-          case s :: ss =>
-            EngineStep.Zipper
-              .currentify(s)
-              .map(
-                Zipper(seq.id, seq.atomId, ss, _, done, seq.breakpoints)
-              )
+    def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): State[F] =
+      copy(
+        breakpoints = breakpointsDelta.foldLeft(breakpoints) { case (accum, (stepId, breakpoint)) =>
+          if breakpoint === Breakpoint.Enabled then accum + stepId else accum - stepId
         }
-      }
-
-    // We would use MonadPlus' `separate` if we wanted to separate Actions or
-    // Results, but here we want only Steps.
-    private def separate[F[_]](
-      seq: Sequence[F]
-    ): Option[(List[EngineStep[F]], List[EngineStep[F]])] =
-      seq.steps.foldLeftM[Option, (List[EngineStep[F]], List[EngineStep[F]])]((Nil, Nil))(
-        (acc, step) =>
-          if (step.status.isPending)
-            acc.leftMap(_ :+ step).some
-          else if (step.status.isFinished)
-            acc.map(_ :+ step).some
-          else none
       )
 
-    def focus[F[_]]: Lens[Zipper[F], EngineStep.Zipper[F]] =
-      GenLens[Zipper[F]](_.focus)
-
-    def current[F[_]]: Lens[Zipper[F], Execution[F]] =
-      focus.andThen(EngineStep.Zipper.current)
-
-  }
-
-  sealed trait State[F[_]] {
-
-    /**
-     * Returns a new `State` where the next pending `Step` is been made the current `Step` under
-     * execution and the previous current `Step` is placed in the completed `Sequence`.
-     *
-     * If the current `Step` has `Execution`s not completed or there are no more pending `Step`s it
-     * returns `None`.
-     */
-    val next: Option[State[F]]
-
-    /**
-     * Tells if we are at the last action of the current step
-     */
-    val isLastAction: Boolean
-
-    val status: SequenceState
-
-    val pending: List[EngineStep[F]]
-
-    def rollback: State[F]
-
-    def breakpoints: Breakpoints
-
-    def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): State[F]
-
-    def getCurrentBreakpoint: Boolean
+    def getCurrentBreakpoint: Boolean =
+      currentStep.exists(z => breakpoints.contains(z.id) && z.done.isEmpty)
 
     /**
      * Current Execution
      */
-    val current: Execution[F]
+    val current: Execution[F] =
+      currentStep.map(_.focus).getOrElse(Execution.empty)
 
-    val currentStep: Option[EngineStep[F]]
+    val engineCurrentStep: Option[EngineStep[F]] = currentStep.map(_.toStep)
 
-    val done: List[EngineStep[F]]
+    val done: List[EngineStep[F]] =
+      currentStep.flatMap(_.uncurrentify).toList
 
-    /**
-     * Given an index of a current `Action` it replaces such `Action` with the `Result` and returns
-     * the new modified `State`.
-     *
-     * If the index doesn't exist, the new `State` is returned unmodified.
-     */
-    def mark(i: Int)(r: Result): State[F]
+    def mark(i: Int)(r: Result): State[F] =
+      currentStep match
+        case None    => this
+        case Some(z) =>
+          val updated = EngineStep.Zipper.current[F].modify(_.mark(i)(r))(z)
+          copy(currentStep = Some(updated))
 
-    def start(i: Int): State[F]
+    def start(i: Int): State[F] =
+      currentStep match
+        case None    => this
+        case Some(z) =>
+          val updated = EngineStep.Zipper.current[F].modify(_.start(i))(z)
+          copy(currentStep = Some(updated), singleRuns = Map.empty)
 
-    /**
-     * Updates the steps executions. It preserves the number of steps.
-     * @param stepDefs
-     *   New executions.
-     * @return
-     *   Updated state
-     */
-    def update(stepDefs: List[List[ParallelActions[F]]]): State[F]
+    def update(stepDef: Option[List[ParallelActions[F]]]): State[F] =
+      (currentStep, stepDef) match
+        case (Some(z), Some(t)) => copy(currentStep = Some(z.update(t)))
+        case _                  => this
 
-    /**
-     * Unzip `State`. This creates a single `Sequence` with either completed `Step`s or pending
-     * `Step`s.
-     */
-    val toSequence: Sequence[F]
+    val toSequence: Sequence[F] =
+      Sequence(obsId, currentStep.map(_.toStep), breakpoints)
 
     // Functions to handle single run of Actions
-    def startSingle(c: ActionCoordsInSeq): State[F]
+    def startSingle(c: ActionCoordsInSeq): State[F] =
+      currentStep match
+        case Some(z) if z.done.nonEmpty => this // already past initial execution
+        case _                          =>
+          copy(singleRuns = singleRuns + (c -> ActionState.Started))
 
-    def failSingle(c: ActionCoordsInSeq, err: Result.Error): State[F]
+    def failSingle(c: ActionCoordsInSeq, err: Result.Error): State[F] =
+      if getSingleState(c).started
+      then copy(singleRuns = singleRuns + (c -> ActionState.Failed(err)))
+      else this
 
-    def completeSingle[V <: RetVal](c: ActionCoordsInSeq, r: V): State[F]
+    def completeSingle[V <: RetVal](c: ActionCoordsInSeq, r: V): State[F] =
+      if getSingleState(c).started
+      then copy(singleRuns = singleRuns + (c -> ActionState.Completed(r)))
+      else this
 
-    def getSingleState(c: ActionCoordsInSeq): ActionState
+    def getSingleState(c: ActionCoordsInSeq): ActionState =
+      singleRuns.getOrElse(c, ActionState.Idle)
 
-    def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]]
+    def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
+      for
+        step <- toSequence.step.filter(_.id === c.stepId)
+        exec <- step.executions.get(c.execIdx.value)
+        act  <- exec.get(c.actIdx.value)
+      yield act
 
-    val getSingleActionStates: Map[ActionCoordsInSeq, ActionState]
+    val getSingleActionStates: Map[ActionCoordsInSeq, ActionState] = singleRuns
 
-    def clearSingles: State[F]
-  }
+    def clearSingles: State[F] = copy(singleRuns = Map.empty)
 
-  object State {
+  object State:
 
     def status[F[_]]: Lens[State[F], SequenceState] =
-      // `State` doesn't provide `.copy`
-      Lens[State[F], SequenceState](_.status)(s => {
-        case Zipper(st, _, x, bs) => Zipper(st, s, x, bs)
-        case Final(st, _, bs)     => Final(st, s, bs)
-      })
+      Lens[State[F], SequenceState](_.status)(s => st => st.copy(status = s))
 
     def isRunning[F[_]](st: State[F]): Boolean = st.status.isRunning
 
@@ -246,10 +158,9 @@ object Sequence {
 
     def userStopRequested[F[_]](st: State[F]): Boolean = st.status.isUserStopRequested
 
-    def anyStopRequested[F[_]](st: State[F]): Boolean = st.status match {
+    def anyStopRequested[F[_]](st: State[F]): Boolean = st.status match
       case SequenceState.Running(u, i, _, _, _) => u || i
       case _                                    => false
-    }
 
     def isWaitingUserPrompt[F[_]](st: State[F]): Boolean = st.status.isWaitingUserPrompt
 
@@ -266,204 +177,36 @@ object Sequence {
     }
 
     /**
-     * Initialize a `State` passing a `Sequence` of pending `Step`s.
+     * Initialize a `State` from a single step (EngineStep).
      */
-    // TODO: Make this function `apply`?
-    def init[F[_]](q: Sequence[F]): State[F] =
-      Sequence.Zipper
-        .zipper[F](q)
-        .map(Zipper(_, SequenceState.Idle, Map.empty, q.breakpoints))
-        .getOrElse(Final(q, SequenceState.Idle, q.breakpoints))
+    def init[F[_]](obsId: Observation.Id, step: EngineStep[F]): State[F] =
+      EngineStep.Zipper.currentify(step) match
+        case Some(z) =>
+          State(obsId, SequenceState.Idle, Some(z), Breakpoints.empty, Map.empty)
+        case None    =>
+          State(obsId, SequenceState.Idle, None, Breakpoints.empty, Map.empty)
 
     /**
-     * Rebuilds the state of a sequence with a new steps definition, but preserving breakpoints and
-     * skip marks The sequence must not be running.
-     * @param steps
-     *   New sequence definition
-     * @param st
-     *   Old sequence state
-     * @return
-     *   The new sequence state
+     * Initialize a `State` from a `Sequence`.
+     */
+    def init[F[_]](q: Sequence[F]): State[F] =
+      val zipper = q.step.flatMap(EngineStep.Zipper.currentify)
+      State(q.id, SequenceState.Idle, zipper, q.breakpoints, Map.empty)
+
+    /**
+     * Create an empty/idle state with no step loaded.
+     */
+    def idle[F[_]](obsId: Observation.Id): State[F] =
+      State(obsId, SequenceState.Idle, None, Breakpoints.empty, Map.empty)
+
+    /**
+     * Rebuilds the state of a sequence with a new steps definition. The sequence must not be
+     * running.
      */
     def reload[F[_]](
-      steps:    List[EngineStep[F]],
+      step:     Option[EngineStep[F]],
       oldState: State[F]
     ): State[F] =
       if oldState.status.isRunning
       then oldState
-      else
-        init(
-          oldState.toSequence.copy(steps = steps)
-        )
-
-    /**
-     * This is the `State` in Zipper mode, which means is under execution.
-     */
-    case class Zipper[F[_]](
-      zipper:      Sequence.Zipper[F],
-      status:      SequenceState,
-      singleRuns:  Map[ActionCoordsInSeq, ActionState],
-      breakpoints: Breakpoints
-    ) extends State[F] { self =>
-
-      override val next: Option[State[F]] =
-        val newBreakpoints: Breakpoints = breakpoints - zipper.focus.id
-        zipper.next match
-          // Last execution
-          case None    => zipper.uncurrentify.map(Final[F](_, status, newBreakpoints))
-          case Some(x) => Zipper(x, status, singleRuns, newBreakpoints).some
-
-      override val isLastAction: Boolean =
-        zipper.focus.pending.isEmpty
-
-      /**
-       * Current Execution
-       */
-      override val current: Execution[F] =
-        // Queue
-        zipper
-          // Step
-          .focus
-          // Execution
-          .focus
-
-      override val currentStep: Option[EngineStep[F]] = zipper.focus.toStep.some
-
-      override val pending: List[EngineStep[F]] = zipper.pending
-
-      override def rollback: Zipper[F] = self.copy(zipper = zipper.rollback)
-
-      // override def setBreakpoints(stepIds: Set[Step.Id], v: Breakpoint): State[F] =
-      override def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): State[F] =
-        self.copy(
-          breakpoints =
-            breakpointsDelta.foldLeft(breakpoints) { case (accum, (stepId, breakpoint)) =>
-              if breakpoint === Breakpoint.Enabled then accum + stepId else accum - stepId
-            }
-        )
-
-      override def getCurrentBreakpoint: Boolean =
-        breakpoints.contains(zipper.focus.id) && zipper.focus.done.isEmpty
-
-      override val done: List[EngineStep[F]] = zipper.done
-
-      private val zipperL: Lens[Zipper[F], Sequence.Zipper[F]] =
-        GenLens[Zipper[F]](_.zipper)
-
-      override def mark(i: Int)(r: Result): State[F] = {
-        val currentExecutionL: Lens[Zipper[F], Execution[F]] =
-          zipperL.andThen(Sequence.Zipper.current)
-
-        currentExecutionL.modify(_.mark(i)(r))(self)
-      }
-
-      override def start(i: Int): State[F] = {
-
-        val currentExecutionL: Lens[Zipper[F], Execution[F]] =
-          zipperL.andThen(Sequence.Zipper.current)
-
-        currentExecutionL.modify(_.start(i))(self).clearSingles
-      }
-
-      // Some rules:
-      // 1. Done steps cannot change.
-      // 2. Running step cannot change `done` or `focus` executions
-      // 3. Must preserve breakpoints and skip marks
-      override def update(stepDefs: List[List[ParallelActions[F]]]): State[F] =
-        stepDefs.drop(zipper.done.length) match {
-          case t :: ts =>
-            zipperL.modify(zp =>
-              zp.copy(
-                focus = zp.focus.update(t),
-                pending = pending.zip(ts).map { case (step, exes) =>
-                  step.copy(executions = exes)
-                } ++ pending.drop(ts.length)
-              )
-            )(this)
-          case _       => this
-        }
-
-      override val toSequence: Sequence[F] = zipper.toSequence
-
-      override def startSingle(c: ActionCoordsInSeq): State[F] =
-        if (zipper.done.exists(_.id === c.stepId))
-          self
-        else self.copy(singleRuns = singleRuns + (c -> ActionState.Started))
-
-      override def failSingle(c: ActionCoordsInSeq, err: Result.Error): State[F] =
-        if (getSingleState(c).started)
-          self.copy(singleRuns = singleRuns + (c -> ActionState.Failed(err)))
-        else
-          self
-
-      override def completeSingle[V <: RetVal](c: ActionCoordsInSeq, r: V): State[F] =
-        if (getSingleState(c).started)
-          self.copy(singleRuns = singleRuns + (c -> ActionState.Completed(r)))
-        else
-          self
-
-      override def getSingleState(c: ActionCoordsInSeq): ActionState =
-        singleRuns.getOrElse(c, ActionState.Idle)
-
-      override val getSingleActionStates: Map[ActionCoordsInSeq, ActionState] = singleRuns
-
-      override def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
-        for {
-          step <- toSequence.steps.find(_.id === c.stepId)
-          exec <- step.executions.get(c.execIdx.value)
-          act  <- exec.get(c.actIdx.value)
-        } yield act
-
-      override def clearSingles: State[F] = self.copy(singleRuns = Map.empty)
-    }
-
-    /**
-     * `State`. This doesn't have any `Step` under execution, there are only completed `Step`s.
-     */
-    case class Final[F[_]](seq: Sequence[F], status: SequenceState, breakpoints: Breakpoints)
-        extends State[F] { self =>
-
-      override val next: Option[State[F]] = None
-
-      override val current: Execution[F] = Execution.empty
-
-      override val isLastAction: Boolean = true
-
-      override val currentStep: Option[EngineStep[F]] = none
-
-      override val pending: List[EngineStep[F]] = Nil
-
-      override def rollback: Final[F] = self
-
-      override def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): State[F] = self
-
-      override def getCurrentBreakpoint: Boolean = false
-
-      override val done: List[EngineStep[F]] = seq.steps
-
-      override def mark(i: Int)(r: Result): State[F] = self
-
-      override def start(i: Int): State[F] = self
-
-      override def update(stepDefs: List[List[ParallelActions[F]]]): State[F] = self
-
-      override val toSequence: Sequence[F] = seq
-
-      override def startSingle(c: ActionCoordsInSeq): State[F] = self
-
-      override def failSingle(c: ActionCoordsInSeq, err: Result.Error): State[F] = self
-
-      override def completeSingle[V <: RetVal](c: ActionCoordsInSeq, r: V): State[F] = self
-
-      override def getSingleState(c: ActionCoordsInSeq): ActionState = ActionState.Idle
-
-      override val getSingleActionStates: Map[ActionCoordsInSeq, ActionState] = Map.empty
-
-      override def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] = None
-
-      override val clearSingles: State[F] = self
-    }
-
-  }
-
-}
+      else oldState.copy(currentStep = step.flatMap(EngineStep.Zipper.currentify))

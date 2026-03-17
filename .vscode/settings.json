@@ -11,5 +11,6 @@
   },
   "editor.formatOnSave": true,
   "stylelint.validate": ["css", "scss"],
-  "postman.settings.dotenv-detection-notification-visibility": false
+  "postman.settings.dotenv-detection-notification-visibility": false,
+  "claudeCode.enableNewConversationShortcut": false
 }

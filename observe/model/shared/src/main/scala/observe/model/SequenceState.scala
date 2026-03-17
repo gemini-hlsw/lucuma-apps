@@ -21,7 +21,7 @@ enum SequenceState(val name: String) derives Eq, Encoder, Decoder:
     userStop:          SequenceState.HasUserStop,
     internalStop:      SequenceState.HasInternalStop,
     waitingUserPrompt: SequenceState.IsWaitingUserPrompt,
-    waitingNextAtom:   SequenceState.IsWaitingNextAtom,
+    waitingNextStep:   SequenceState.IsWaitingNextStep,
     starting:          SequenceState.IsStarting
   )                        extends SequenceState("Running")
   case Completed           extends SequenceState("Completed")
@@ -89,8 +89,8 @@ object SequenceState:
   object IsWaitingUserPrompt extends NewBoolean { val Yes = True; val No = False }
   type IsWaitingUserPrompt = IsWaitingUserPrompt.Type
 
-  object IsWaitingNextAtom extends NewBoolean { val Yes = True; val No = False }
-  type IsWaitingNextAtom = IsWaitingNextAtom.Type
+  object IsWaitingNextStep extends NewBoolean { val Yes = True; val No = False }
+  type IsWaitingNextStep = IsWaitingNextStep.Type
 
   object IsStarting extends NewBoolean { val Yes = True; val No = False }
   type IsStarting = IsStarting.Type
@@ -101,7 +101,7 @@ object SequenceState:
         userStop = HasUserStop.No,
         internalStop = HasInternalStop.No,
         waitingUserPrompt = IsWaitingUserPrompt.No,
-        waitingNextAtom = IsWaitingNextAtom.No,
+        waitingNextStep = IsWaitingNextStep.No,
         starting = IsStarting.No
       )
 
@@ -114,8 +114,8 @@ object SequenceState:
     val waitingUserPrompt: Lens[SequenceState.Running, IsWaitingUserPrompt] =
       Focus[SequenceState.Running](_.waitingUserPrompt)
 
-    val waitingNextAtom: Lens[SequenceState.Running, IsWaitingNextAtom] =
-      Focus[SequenceState.Running](_.waitingNextAtom)
+    val waitingNextStep: Lens[SequenceState.Running, IsWaitingNextStep] =
+      Focus[SequenceState.Running](_.waitingNextStep)
 
     val starting: Lens[SequenceState.Running, IsStarting] =
       Focus[SequenceState.Running](_.starting)

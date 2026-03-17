@@ -8,8 +8,8 @@ import cats.data.OptionT
 import cats.effect.IO
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
+import lucuma.core.enums.Breakpoint
 import lucuma.core.model.Observation as LObservation
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import observe.common.test.*
 import observe.model.ActionType
@@ -29,13 +29,11 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   private val seqId = LObservation.Id(PosLong.unsafeFrom(1))
 
-  private val atomId = Atom.Id(UUID.fromString("ad387bf4-093d-11ee-be56-0242ac120002"))
-
   // All tests check the output of running a sequence against the expected sequence of updates.
 
   private val executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.startNewAtom(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.startNewAtom(obsId).as(SeqEvent.NullSeqEvent)
+    (eng, obsId) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent),
+    (eng, obsId, _) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   def simpleStep(id: Step.Id): EngineStep[IO] =
@@ -68,87 +66,46 @@ class SequenceSuite extends munit.CatsEffectSuite {
     } yield v.map(_._2)
 
   test("stop on breakpoints") {
+    // With single-step execution, a breakpoint on the current step
+    // causes getCurrentBreakpoint to return true and the sequence stays Idle.
+    val seq = Sequence.State.init(
+      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
+    )
+
+    assert(seq.status === SequenceState.Idle)
+    assert(seq.getCurrentBreakpoint)
+  }
+
+  test("resume execution to completion after a breakpoint") {
+    // Verify breakpoint is initially set
+    val seqWithBp = Sequence.State.init(
+      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
+    )
+    assert(seqWithBp.getCurrentBreakpoint)
+
+    // Clear breakpoint and run to completion
+    val cleared =
+      seqWithBp.setBreakpoints(Set((stepId(1), Breakpoint.Disabled)))
+    assert(!cleared.getCurrentBreakpoint)
 
     val qs0: EngineState[IO] =
-      TestUtil.initStateWithSequence(
-        seqId,
-        Sequence.State.init(
-          Sequence.sequence(
-            seqId,
-            atomId,
-            List(
-              simpleStep(stepId(1)),
-              simpleStep(stepId(2))
-            ),
-            breakpoints = Breakpoints(Set(stepId(2)))
-          )
-        )
-      )
+      TestUtil.initStateWithSequence(seqId, cleared)
 
     val qs1 = runToCompletion(qs0)
 
     (for {
       s <- OptionT(qs1)
       t <- OptionT.pure(s.sequences(seqId))
-      r <- OptionT.pure(t.seq match {
-             case Sequence.State.Zipper(zipper, status, _, _) =>
-               zipper.done.length === 1 && zipper.pending.isEmpty && status === SequenceState.Idle
-             case _                                           => false
-           })
-    } yield r).value.map(_.getOrElse(fail("Sequence not found"))).assert
-  }
-
-  test("resume execution to completion after a breakpoint") {
-
-    val qs0: EngineState[IO] =
-      TestUtil.initStateWithSequence(
-        seqId,
-        Sequence.State.init(
-          Sequence.sequence(
-            obsId = seqId,
-            atomId,
-            steps = List(
-              simpleStep(stepId(1)),
-              simpleStep(stepId(2)),
-              simpleStep(stepId(3))
-            ),
-            breakpoints = Breakpoints(Set(stepId(2)))
-          )
-        )
-      )
-
-    val qs1 = runToCompletion(qs0)
-
-    val c1: IO[Boolean] = (for {
-      s <- OptionT(qs1)
-      t <- OptionT.pure(s.sequences(seqId))
-      r <- OptionT.pure(t.seq match {
-             case Sequence.State.Zipper(zipper, _, _, _) => zipper.pending.nonEmpty
-             case _                                      => false
-           })
-    } yield r).value.map(_.getOrElse(fail("Sequence not found")))
-
-    val c2: IO[Boolean] = (for {
-      qs2 <- OptionT(qs1)
-      s   <- OptionT(runToCompletion(qs2))
-      t   <- OptionT.pure(s.sequences(seqId))
-      r   <- OptionT.pure(t.seq match {
-               case f @ Sequence.State.Final(_, status, _) =>
-                 f.done.length === 3 && status === SequenceState.Completed
-               case _                                      => false
-             })
-    } yield r: Boolean).value.map(_.getOrElse(fail("Sequence not found")))
-
-    (c1, c2).mapN((a, b) => a && b).assert
-
+    } yield t.seq.status === SequenceState.Completed && t.seq.currentStep.isEmpty)
+      .value
+      .map(_.getOrElse(fail("Sequence not found")))
+      .assert
   }
 
   // TODO: Share these fixtures with StepSpec
   private object DummyResult extends Result.RetVal
   private val result: Result              = Result.OK(DummyResult)
   private val action: Action[IO]          = fromF[IO](ActionType.Undefined, IO(result))
-  private val completedAction: Action[IO] =
-    action.copy(state = Action.State(Action.ActionState.Completed(DummyResult), Nil))
 
   def simpleStep2(
     pending: List[ParallelActions[IO]],
@@ -176,61 +133,13 @@ class SequenceSuite extends munit.CatsEffectSuite {
     )
 
   }
-  val stepz0: EngineStep.Zipper[IO]       = simpleStep2(Nil, Execution.empty, Nil)
-  val stepza0: EngineStep.Zipper[IO]      =
-    simpleStep2(List(NonEmptyList.one(action)), Execution.empty, Nil)
-  val stepza1: EngineStep.Zipper[IO]      =
-    simpleStep2(List(NonEmptyList.one(action)), Execution(List(completedAction)), Nil)
+  // Step zipper with done.nonEmpty (step has progressed past initial execution)
   val stepzr0: EngineStep.Zipper[IO]      =
     simpleStep2(Nil, Execution.empty, List(NonEmptyList.one(result)))
-  val stepzr1: EngineStep.Zipper[IO]      =
-    simpleStep2(Nil, Execution(List(completedAction, completedAction)), Nil)
-  val stepzr2: EngineStep.Zipper[IO]      = simpleStep2(
-    Nil,
-    Execution(List(completedAction, completedAction)),
-    List(NonEmptyList.one(result))
-  )
-  val stepzar0: EngineStep.Zipper[IO]     =
-    simpleStep2(Nil, Execution(List(completedAction, action)), Nil)
-  val stepzar1: EngineStep.Zipper[IO]     = simpleStep2(
-    List(NonEmptyList.one(action)),
-    Execution(List(completedAction, completedAction)),
-    List(NonEmptyList.one(result))
-  )
-
-  def simpleSequenceZipper(focus: EngineStep.Zipper[IO]): Sequence.Zipper[IO] =
-    Sequence.Zipper(seqId, atomId.some, Nil, focus, Nil, Breakpoints.empty)
-  val seqz0: Sequence.Zipper[IO]                                              = simpleSequenceZipper(stepz0)
-  val seqza0: Sequence.Zipper[IO]                                             = simpleSequenceZipper(stepza0)
-  val seqza1: Sequence.Zipper[IO]                                             = simpleSequenceZipper(stepza1)
-  val seqzr0: Sequence.Zipper[IO]                                             = simpleSequenceZipper(stepzr0)
-  val seqzr1: Sequence.Zipper[IO]                                             = simpleSequenceZipper(stepzr1)
-  val seqzr2: Sequence.Zipper[IO]                                             = simpleSequenceZipper(stepzr2)
-  val seqzar0: Sequence.Zipper[IO]                                            = simpleSequenceZipper(stepzar0)
-  val seqzar1: Sequence.Zipper[IO]                                            = simpleSequenceZipper(stepzar1)
-
-  test("next should be None when there are no more pending executions") {
-    assert(seqz0.next.isEmpty)
-    assert(seqza0.next.isEmpty)
-    assert(seqza1.next.nonEmpty)
-    assert(seqzr0.next.isEmpty)
-    assert(seqzr1.next.isEmpty)
-    assert(seqzr2.next.isEmpty)
-    assert(seqzar0.next.isEmpty)
-    assert(seqzar1.next.nonEmpty)
-  }
 
   test("startSingle should mark a single Action as started") {
     val seq = Sequence.State.init(
-      Sequence.sequence(
-        obsId = seqId,
-        atomId,
-        steps = List(
-          simpleStep(stepId(1)),
-          simpleStep(stepId(2))
-        ),
-        breakpoints = Breakpoints(Set(stepId(1)))
-      )
+      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
     )
 
     val c = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(1))
@@ -243,72 +152,24 @@ class SequenceSuite extends munit.CatsEffectSuite {
   }
 
   test("startSingle should not start single Action from completed Step") {
-    val seq1 = Sequence.State.init(
-      Sequence.sequence(
-        obsId = seqId,
-        atomId,
-        steps = List(
-          EngineStep(
-            id = stepId(1),
-            executions = List(
-              NonEmptyList.of(completedAction, completedAction), // Execution
-              NonEmptyList.one(completedAction) // Execution
-            )
-          ),
-          EngineStep(
-            id = stepId(2),
-            executions = List(
-              NonEmptyList.of(action, action), // Execution
-              NonEmptyList.one(action) // Execution
-            )
-          )
-        ),
-        breakpoints = Breakpoints.empty
-      )
-    )
-    val seq2 = Sequence.State.Final(
-      Sequence.sequence(
-        obsId = seqId,
-        atomId,
-        steps = List(
-          EngineStep(
-            id = stepId(1),
-            executions = List(
-              NonEmptyList.of(completedAction, completedAction), // Execution
-              NonEmptyList.one(completedAction) // Execution
-            )
-          )
-        ),
-        breakpoints = Breakpoints.empty
-      ),
-      SequenceState.Completed,
-      Breakpoints.empty
+    // A step that has progressed past initial execution (done.nonEmpty)
+    val seq1 = Sequence.State[IO](
+      obsId = seqId,
+      status = SequenceState.Idle,
+      currentStep = Some(stepzr0),
+      breakpoints = Breakpoints.empty,
+      singleRuns = Map.empty
     )
     val c1   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
 
     assert(seq1.startSingle(c1).getSingleState(c1).isIdle)
-    assert(seq2.startSingle(c1).getSingleState(c1).isIdle)
-
   }
 
   test("failSingle should mark a single running Action as failed") {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
     val seq = Sequence.State
       .init(
-        Sequence.sequence(
-          obsId = seqId,
-          atomId,
-          steps = List(
-            EngineStep(
-              id = stepId(1),
-              executions = List(
-                NonEmptyList.of(action, action), // Execution
-                NonEmptyList.one(action) // Execution
-              )
-            )
-          ),
-          breakpoints = Breakpoints.empty
-        )
+        Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
       )
       .startSingle(c)
     val c2  = ActionCoordsInSeq(stepId(1), ExecutionIndex(1), ActionIndex(0))
@@ -321,20 +182,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
     val seq = Sequence.State
       .init(
-        Sequence.sequence(
-          obsId = seqId,
-          atomId,
-          steps = List(
-            EngineStep(
-              id = stepId(1),
-              executions = List(
-                NonEmptyList.of(action, action), // Execution
-                NonEmptyList.one(action) // Execution
-              )
-            )
-          ),
-          breakpoints = Breakpoints.empty
-        )
+        Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
       )
       .startSingle(c)
 
