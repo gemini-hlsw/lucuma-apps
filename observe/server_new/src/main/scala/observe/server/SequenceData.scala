@@ -4,21 +4,21 @@
 package observe.server
 
 import cats.syntax.eq.*
+import lucuma.core.enums.Instrument
+import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.core.model.sequence.gmos
 import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
+import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd
 import observe.model.enums.Resource
 import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.Sequence
-import lucuma.core.enums.Instrument
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
-import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
-import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 
 sealed trait SequenceData[F[_]]:
   type S
