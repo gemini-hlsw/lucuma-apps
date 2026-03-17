@@ -231,7 +231,7 @@ trait ServerEventHandler:
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
-      case ClientEvent.AtomLoaded(obsId, sequenceType, atomId)                            =>
+      case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)                     =>
         rootModelDataMod:
           RootModelData.loadedObservations
             .andThen(LoadedObservations.Value)

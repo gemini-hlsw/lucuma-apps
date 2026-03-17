@@ -30,8 +30,8 @@ import Handle.given
 class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   streamQueue: Queue[F, Stream[F, Event[F]]],
   inputQueue:  Queue[F, Event[F]],
-  atomLoad:    (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
-  atomReload:  (Engine[F], Observation.Id, ReloadReason) => EngineHandle[F, SeqEvent]
+  stepLoad:    (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
+  stepReload:  (Engine[F], Observation.Id, ReloadReason) => EngineHandle[F, SeqEvent]
 ) {
   val L: Logger[F] = Logger[F]
 
@@ -51,13 +51,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                 userStop = HasUserStop.No,
                 internalStop = HasInternalStop.No,
                 waitingUserPrompt = IsWaitingUserPrompt.No,
-                waitingNextAtom = IsWaitingNextAtom.Yes,
+                waitingNextStep = IsWaitingNextStep.Yes,
                 starting = IsStarting.Yes
               )
             )(
               seq.rollback
             )
-          ) *> send(Event.modifyState(atomReload(this, obsId, ReloadReason.SequenceFlow)))
+          ) *> send(Event.modifyState(stepReload(this, obsId, ReloadReason.SequenceFlow)))
         }.whenA(seq.status.isIdle || seq.status.isError)
       case None      => Handle.unit
     }
@@ -124,11 +124,11 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
    *   List of new steps definitions
    * @return
    */
-  def update(obsId: Observation.Id, steps: List[EngineStep[F]]): Endo[EngineState[F]] =
-    EngineState.sequenceStateAt(obsId).modify(_.update(steps.map(_.executions)))
+  def update(obsId: Observation.Id, step: Option[EngineStep[F]]): Endo[EngineState[F]] =
+    EngineState.sequenceStateAt(obsId).modify(_.update(step.map(_.executions)))
 
-  def updateSteps(steps: List[EngineStep[F]]): Endo[Sequence.State[F]] =
-    _.update(steps.map(_.executions))
+  def updateStep(step: Option[EngineStep[F]]): Endo[Sequence.State[F]] =
+    _.update(step.map(_.executions))
 
   /**
    * Adds the current `Execution` to the completed `Queue`, makes the next pending `Execution` the
@@ -146,53 +146,33 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
               case SequenceState.Running(userStop, internalStop, _, _, _) =>
                 seq.next match {
                   // Empty state
-                  case None                                     =>
+                  case None                               =>
                     send(Event.finished(obsId))
-                  // Final State
-                  case Some(qs @ Sequence.State.Final(_, _, _)) =>
-                    EngineHandle.replaceSequenceState(obsId)(qs) *> switch(obsId)(
-                      SequenceState.Running(
-                        userStop,
-                        internalStop,
-                        waitingUserPrompt = IsWaitingUserPrompt.Yes,
-                        waitingNextAtom = IsWaitingNextAtom.Yes, // TODO Should this be No?
-                        starting = IsStarting.No
-                      )
-                    ) *> send(Event.modifyState(atomLoad(this, obsId)))
-                  // Step execution completed. Check requested stop and breakpoint here.
-                  case Some(qs)                                 =>
+                  // Step completed (no more execution groups)
+                  case Some(qs) if qs.currentStep.isEmpty =>
+                    EngineHandle.replaceSequenceState(obsId)(qs) *>
+                      (if (userStop || internalStop)
+                         switch(obsId)(SequenceState.Idle) *>
+                           send(Event.sequencePaused(obsId))
+                       else
+                         switch(obsId)(
+                           SequenceState.Running(
+                             userStop,
+                             internalStop,
+                             waitingUserPrompt = IsWaitingUserPrompt.No,
+                             waitingNextStep = IsWaitingNextStep.Yes,
+                             starting = IsStarting.No
+                           )
+                         ) *> send(Event.stepComplete(obsId))
+                           *> send(Event.modifyState(stepLoad(this, obsId))))
+                  // Execution group completed. Check requested stop and breakpoint.
+                  case Some(qs)                           =>
                     EngineHandle.replaceSequenceState(obsId)(qs) *>
                       (if (
                          qs.getCurrentBreakpoint && !qs.current.execution
                            .exists(_.uninterruptible)
                        ) {
                          switch(obsId)(SequenceState.Idle) *> send(Event.breakpointReached(obsId))
-                       } else if (seq.isLastAction) {
-                         // Only process stop states after the last action of the step.
-                         if (userStop || internalStop) {
-                           if (qs.current.execution.exists(_.uninterruptible))
-                             send(Event.executing(obsId)) *> send(Event.stepComplete(obsId))
-                           else
-                             switch(obsId)(SequenceState.Idle) *>
-                               send(Event.sequencePaused(obsId))
-                         } else {
-                           // after the last action of the step, we need to reload the sequence
-                           switch(obsId)(
-                             SequenceState.Running(
-                               userStop,
-                               internalStop,
-                               waitingUserPrompt = IsWaitingUserPrompt.No,
-                               waitingNextAtom = IsWaitingNextAtom.Yes,
-                               starting = IsStarting.No
-                             )
-                           ) *> send(
-                             Event
-                               .modifyState(
-                                 atomReload(this, obsId, ReloadReason.SequenceFlow)
-                               )
-                           )
-                             *> send(Event.stepComplete(obsId))
-                         }
                        } else send(Event.executing(obsId)))
                 }
               case _                                                      => EngineHandle.unit
@@ -201,7 +181,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           .getOrElse(EngineHandle.unit)
       )
 
-  def startNewAtom(obsId: Observation.Id): EngineHandle[F, Unit] =
+  def startNewStep(obsId: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(obsId)
       .flatMap(seqState =>
@@ -209,36 +189,28 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           .map { seq =>
             seq.status match {
               case SequenceState
-                    .Running(userStop, internalStop, _, IsWaitingNextAtom.Yes, isStarting) =>
+                    .Running(userStop, internalStop, _, IsWaitingNextStep.Yes, isStarting) =>
                 if (!isStarting && (userStop || internalStop)) {
-                  seq match {
-                    // Final State
-                    case Sequence.State.Final[F](_, _, _) =>
-                      send(Event.finished(obsId))
-                    // Execution completed
-                    case _                                => switch(obsId)(SequenceState.Idle)
-                  }
+                  if (seq.currentStep.isEmpty)
+                    send(Event.finished(obsId))
+                  else
+                    switch(obsId)(SequenceState.Idle)
                 } else {
-                  seq match {
-                    // Final State
-                    case Sequence.State.Final[F](_, _, _) =>
-                      send(Event.finished(obsId))
-                    // Execution completed. Check breakpoint here
-                    case _                                =>
-                      if (!isStarting && seq.getCurrentBreakpoint) {
-                        switch(obsId)(SequenceState.Idle) *> send(Event.breakpointReached(obsId))
-                      } else
-                        switch(obsId)(
-                          SequenceState.Running(
-                            userStop,
-                            internalStop,
-                            IsWaitingUserPrompt.No,
-                            IsWaitingNextAtom.No,
-                            IsStarting.No
-                          )
-                        ) *>
-                          send(Event.executing(obsId))
-                  }
+                  if (seq.currentStep.isEmpty)
+                    send(Event.finished(obsId))
+                  else if (!isStarting && seq.getCurrentBreakpoint)
+                    switch(obsId)(SequenceState.Idle) *> send(Event.breakpointReached(obsId))
+                  else
+                    switch(obsId)(
+                      SequenceState.Running(
+                        userStop,
+                        internalStop,
+                        IsWaitingUserPrompt.No,
+                        IsWaitingNextStep.No,
+                        IsStarting.No
+                      )
+                    ) *>
+                      send(Event.executing(obsId))
                 }
               case _ => EngineHandle.unit
             }
@@ -278,24 +250,25 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       EngineState
         .sequenceStateAt(obsId)
         .getOption(st)
-        .map {
-          case seq @ Sequence.State.Final(_, _, _)     =>
-            // The sequence is marked as completed here
-            EngineHandle.replaceSequenceState(obsId)(seq) >>
-              send(Event.finished(obsId))
-          case seq @ Sequence.State.Zipper(z, _, _, _) =>
-            val stepId                         = z.focus.toStep.id
-            val u: List[Stream[F, Event[F]]]   =
-              seq.current.actions
-                .map(_.gen)
-                .zipWithIndex
-                .map(act(obsId, stepId, _))
-            val v: Stream[F, Event[F]]         = Stream.emits(u).parJoin(u.length)
-            val w: List[EngineHandle[F, Unit]] =
-              seq.current.actions.indices
-                .map(i => EngineHandle.modifySequenceState[F](obsId)(_.start(i)))
-                .toList
-            w.sequence *> Handle.fromEventStream(v)
+        .map { seq =>
+          seq.currentStep match
+            case None    =>
+              // No step executing — sequence is done
+              EngineHandle.replaceSequenceState(obsId)(seq) >>
+                send(Event.finished(obsId))
+            case Some(z) =>
+              val stepId                         = z.id
+              val u: List[Stream[F, Event[F]]]   =
+                seq.current.actions
+                  .map(_.gen)
+                  .zipWithIndex
+                  .map(act(obsId, stepId, _))
+              val v: Stream[F, Event[F]]         = Stream.emits(u).parJoin(u.length)
+              val w: List[EngineHandle[F, Unit]] =
+                seq.current.actions.indices
+                  .map(i => EngineHandle.modifySequenceState[F](obsId)(_.start(i)))
+                  .toList
+              w.sequence *> Handle.fromEventStream(v)
         }
         .getOrElse(EngineHandle.unit)
     )
@@ -380,10 +353,12 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
     EngineHandle
       .getSequenceState(obsId)
       .flatMap(_.collect {
-        case s @ Sequence.State.Zipper(z, _, _, _)
-            if Sequence.State.isRunning(s) && s.current.execution.lift(i).exists(Action.paused) =>
+        case s
+            if s.currentStep.exists(z =>
+              Sequence.State.isRunning(s) && s.current.execution.lift(i).exists(Action.paused)
+            ) =>
           EngineHandle.modifySequenceState[F](obsId)(_.start(i)) *>
-            EngineHandle.fromEventStream(act(obsId, z.focus.toStep.id, (cont, i)))
+            EngineHandle.fromEventStream(act(obsId, s.currentStep.get.id, (cont, i)))
       }.getOrElse(EngineHandle.unit))
 
   /**
@@ -592,17 +567,6 @@ object Engine {
     type EventData = E
   }
 
-  def build[F[_]: {Concurrent, Logger}](
-    loadNextAtom:   (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
-    reloadNextAtom: (Engine[F], Observation.Id, ReloadReason) => EngineHandle[F, SeqEvent]
-  ): F[Engine[F]] = for {
-    sq <- Queue.unbounded[F, Stream[F, Event[F]]]
-    iq <- Queue.unbounded[F, Event[F]]
-  } yield new Engine(sq, iq, loadNextAtom, reloadNextAtom)
-
-  /**
-   * Builds the initial state of a sequence
-   */
   def load[F[_]](seq: Sequence[F]): Sequence.State[F] =
     Sequence.State.init(seq)
 
@@ -611,8 +575,16 @@ object Engine {
    */
   def reload[F[_]](
     oldSeqState: Sequence.State[F],
-    steps:       List[EngineStep[F]]
+    step:        Option[EngineStep[F]]
   ): Sequence.State[F] =
-    Sequence.State.reload(steps, oldSeqState)
+    Sequence.State.reload(step, oldSeqState)
+
+  def build[F[_]: {Concurrent, Logger}](
+    loadNextStep:   (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
+    reloadNextStep: (Engine[F], Observation.Id, ReloadReason) => EngineHandle[F, SeqEvent]
+  ): F[Engine[F]] = for {
+    sq <- Queue.unbounded[F, Stream[F, Event[F]]]
+    iq <- Queue.unbounded[F, Event[F]]
+  } yield new Engine(sq, iq, loadNextStep, reloadNextStep)
 
 }

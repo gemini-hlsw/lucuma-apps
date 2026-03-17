@@ -15,12 +15,12 @@ import observe.server.gmos.GmosController.Config.*
 
 class GmosStepsView[F[_]] extends StepsView[F] {
   override def stepView(
-    stepg:         SequenceGen.InstrumentStepGen[F],
+    stepg:         StepGen[F],
     step:          engine.EngineStep[F],
     altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
     pendingObsCmd: Option[PendingObserveCmd]
   ): ObserveStep = {
-    val nodAndShuffle: Option[GmosController.Config.NsConfig.NodAndShuffle] = stepg.genData match {
+    val nodAndShuffle: Option[GmosController.Config.NsConfig.NodAndShuffle] = stepg.statusGen match {
       case Gmos.GmosStatusGen(ns: NsConfig.NodAndShuffle) => ns.some
       case _                                              => none
     }
@@ -64,12 +64,7 @@ class GmosStepsView[F[_]] extends StepsView[F] {
             e.cycles,
             runningState.flatten
           ),
-          fileId = StepsView
-            .fileId(step.executions)
-            .orElse(stepg.some.collect {
-              case SequenceGen.CompletedStepGen(_, _, fileId, _, _, _, _) =>
-                fileId
-            }.flatten),
+          fileId = StepsView.fileId(step.executions),
           pendingObserveCmd =
             (observeStatus(step.executions) === ActionStatus.Running).option(pendingObsCmd).flatten
         )

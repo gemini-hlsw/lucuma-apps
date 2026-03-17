@@ -17,7 +17,6 @@ import observe.model.Operator
 import observe.model.QueueId
 import observe.model.SystemOverrides
 import observe.server.InstrumentSystem.ElapsedTime
-import observe.server.SequenceGen.StepGen
 import observe.server.engine.Event
 import observe.server.engine.Result
 import observe.server.engine.Result.PauseContext
@@ -57,12 +56,12 @@ private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe-engine")
 
 type EventQueue[F[_]] = Queue[F, Event[F]]
 
-def toStepList[F[_]](
-  seq:         SequenceGen[F],
+def generateStep[F[_]](
+  step:        StepGen[F],
   overrides:   SystemOverrides,
   headerExtra: HeaderExtraData
-): List[(engine.EngineStep[F], Breakpoint)] =
-  seq.nextAtom.steps.map(StepGen.generate(_, overrides, headerExtra))
+): (engine.EngineStep[F], Breakpoint) =
+  StepGen.generate(step, overrides, headerExtra)
 
 // If f is true continue, otherwise fail
 def failUnlessM[F[_]: MonadThrow](f: F[Boolean], err: Exception): F[Unit] =

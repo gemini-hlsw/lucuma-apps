@@ -86,8 +86,12 @@ object ClientEvent:
 
   case class ProgressEvent(progress: ObservationProgress) extends AllClientEvent derives Eq
 
-  case class AtomLoaded(obsId: Observation.Id, sequenceType: SequenceType, atomId: Atom.Id)
-      extends AllClientEvent derives Eq
+  case class StepLoaded(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    atomId:       Atom.Id,
+    stepId:       Step.Id
+  ) extends AllClientEvent derives Eq
 
   case class UserNotification(memo: Notification) extends SingleClientEvent derives Eq
 

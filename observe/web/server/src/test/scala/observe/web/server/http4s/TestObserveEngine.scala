@@ -195,7 +195,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     s0: EngineState[F]
   ): fs2.Stream[F, (EventResult, EngineState[F])] = Stream.empty
 
-  override def loadNextAtom(
+  override def loadNextStep(
     id:       Observation.Id,
     user:     User,
     observer: Observer,

@@ -86,9 +86,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     st.sequences
       .get(obsId)
       .exists(seqData =>
-        seqData.seqGen.resources.intersect(used).isEmpty && (
+        seqData.resources.intersect(used).isEmpty && (
           st.queues.values.filter(_.status.running).exists(_.queue.contains(obsId)) ||
-            seqData.seqGen.resources.intersect(reservedByQueues).isEmpty
+            seqData.resources.intersect(reservedByQueues).isEmpty
         )
       )
   }
@@ -97,16 +97,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   private def findStartingStep(
     obs:    SequenceData[F],
     stepId: Option[Step.Id]
-  ): Option[SequenceGen.InstrumentStepGen[F]] = for {
+  ): Option[StepGen[F]] = for {
     stp    <- stepId.orElse(obs.seq.currentStep.map(_.id))
-    stpGen <- obs.seqGen.nextAtom.steps.find(_.id === stp)
+    stpGen <- obs.currentStep.filter(_.id === stp)
   } yield stpGen
 
   private def findFirstCheckRequiredStep(
     obs:    SequenceData[F],
     stepId: Step.Id
-  ): Option[SequenceGen.InstrumentStepGen[F]] =
-    obs.seqGen.nextAtom.steps.dropWhile(_.id =!= stepId).find(a => stepRequiresChecks(a.config))
+  ): Option[StepGen[F]] =
+    obs.currentStep.filter(s => s.id === stepId && stepRequiresChecks(s.config))
 
   /**
    * Check if the target on the TCS matches the Observe target
@@ -116,7 +116,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   private def sequenceTcsTargetMatch(
     seqData: SequenceData[F]
   ): F[Option[TargetCheckOverride]] =
-    seqData.seqGen.obsData.targetEnvironment.firstScienceTarget
+    seqData.obsData.targetEnvironment.firstScienceTarget
       .map(_.targetName.toString)
       .map { seqTarget =>
         systems.tcsKeywordReader.sourceATarget.objectName.map { tcsTarget =>
@@ -227,7 +227,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                 .fromEventStream(
                   Stream.eval[F, Event[F]](
                     systems.odb
-                      .visitStart(obsId, seq.seqGen.staticCfg)
+                      .visitStart(obsId, seq.staticCfg)
                       .as(
                         Event.modifyState:
                           EngineHandle
@@ -287,13 +287,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                 (ststp.some,
                  List(
                    tchk,
-                   observingConditionsMatch(st.conditions, seq.seqGen.obsData.constraintSet)
+                   observingConditionsMatch(st.conditions, seq.obsData.constraintSet)
                  )
                    .collect { case Some(x) => x }
                    .widen[SeqCheck]
                 )
               })
-                .getOrElse((none[SequenceGen.InstrumentStepGen[F]], List.empty[SeqCheck]).pure[F])
+                .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
             }
             .flatMap { case (stpg, checks) =>
               (checkResources(obsId)(st), stpg, checks, runOverride) match {
@@ -333,7 +333,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           startChecks(executeEngine.start(obsId), obsId, clientId, none, runOverride)
       )
 
-  override def loadNextAtom(
+  override def loadNextStep(
     id:       Observation.Id,
     user:     User,
     observer: Observer,
@@ -343,9 +343,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState[F]:
           clearObsCmd(id) *>
-            userNextAtom(id, atomType).as(SeqEvent.NullSeqEvent)
+            userNextStep(id, atomType).as(SeqEvent.NullSeqEvent)
 
-  def userNextAtom(
+  def userNextStep(
     id:       Observation.Id,
     atomType: SequenceType
   ): EngineHandle[F, Unit] =
@@ -355,7 +355,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         .getOption(st)
         .flatMap: seq =>
           seq.seq.pending.isEmpty.option:
-            ObserveEngine.tryNewAtom(systems.odb, translator, executeEngine, id, atomType)
+            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, id, atomType)
         .getOrElse(EngineHandle.unit)
 
   override def requestPause(
@@ -419,7 +419,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             (
               EngineState
                 .atSequence(obsId)
-                .modify(Focus[SequenceData[F]](_.observer).replace(name.some)) >>>
+                .modify(SequenceData.observer.replace(name.some)) >>>
                 refreshSequence(obsId)
             ).withEvent(SetObserver(obsId, user.some, name))
 
@@ -463,7 +463,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       systems.odb.resetAcquisition(obsId) >>
         systems.odb
           .read(obsId)
-          .flatMap(translator.translateSequence)
+          .map { odbData =>
+            val (errs, stepGen) = translator.nextStep(odbData, SequenceType.Acquisition)
+            (errs, odbData, stepGen)
+          }
           .attempt
           .flatMap(
             _.fold(
@@ -481,73 +484,60 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                       )
                     )
                   ),
-              {
-                case (err, None)       =>
-                  Logger[F]
-                    .warn(
-                      err.headOption
-                        .map(e => s"Error loading observation $obsId: ${e.getMessage}$author")
-                        .getOrElse(s"Error loading observation $obsId")
-                    )
-                    .as(
-                      Event.pure(
-                        SeqEvent.NotifyUser(
-                          Notification.LoadingFailed(
-                            obsId,
-                            List(
-                              s"Error loading observation $obsId"
-                            ) ++ err.headOption.toList.map(e => e.getMessage)
-                          ),
-                          clientId
-                        )
-                      )
-                    )
-                case (errs, Some(seq)) =>
-                  errs.isEmpty
-                    .fold(
-                      Logger[F].warn(s"Loaded observation $obsId$author"),
-                      Logger[F]
-                        .warn:
-                          s"Loaded observation $obsId with warnings: ${errs.mkString}$author"
-                    )
-                    .as(
-                      Event.modifyState {
-                        EngineHandle.modifyStateF { (st: EngineState[F]) =>
-                          val l = EngineState.instrumentLoaded[F](seq.instrument)
-                          if (l.get(st).forall(s => executeEngine.canUnload(s.seq))) {
-                            st.sequencesByInstrument
-                              .get(seq.instrument)
-                              .foldMap(_.cleanup) >> // End background obsEdit subscription
-                              // Start new obsEdit subscription
-                              mountOdbObsSubscription(obsId).map { cleanup =>
-                                (st.sequences
-                                   .get(obsId)
-                                   .fold(
-                                     ODBSequencesLoader
-                                       .loadSequenceEndo(observer.some, seq, l, cleanup)
-                                   )(_ => ODBSequencesLoader.reloadSequenceEndo(seq, l))(st),
-                                 LoadSequence(obsId, clientId)
-                                )
-                              }
-                          } else {
-                            (
-                              st,
-                              SeqEvent
-                                .NotifyUser(
-                                  Notification.LoadingFailed(
-                                    obsId,
-                                    List(
-                                      s"Error loading observation $obsId",
-                                      s"A sequence is running on instrument ${seq.instrument}"
-                                    )
-                                  ),
-                                  clientId
-                                ): SeqEvent
-                            ).pure[F]
-                          }
+              { case (errs, odbData, stepGen) =>
+                errs.isEmpty
+                  .fold(
+                    Logger[F].warn(s"Loaded observation $obsId$author"),
+                    Logger[F]
+                      .warn:
+                        s"Loaded observation $obsId with warnings: ${errs.mkString}$author"
+                  )
+                  .as(
+                    Event.modifyState {
+                      EngineHandle.modifyStateF { (st: EngineState[F]) =>
+                        val l = EngineState.instrumentLoaded[F](i)
+                        if (l.get(st).forall(s => executeEngine.canUnload(s.seq))) {
+                          st.sequencesByInstrument
+                            .get(i)
+                            .foldMap(_.cleanup) >> // End background obsEdit subscription
+                            // Start new obsEdit subscription
+                            mountOdbObsSubscription(obsId).map { cleanup =>
+                              (st.sequences
+                                 .get(obsId)
+                                 .fold(
+                                   ODBSequencesLoader
+                                     .loadSequenceEndo(
+                                       observer.some,
+                                       odbData,
+                                       stepGen,
+                                       l,
+                                       cleanup
+                                     )
+                                 )(_ =>
+                                   ODBSequencesLoader.reloadSequenceEndo(stepGen, l)
+                                 )(st),
+                               LoadSequence(obsId, clientId)
+                              )
+                            }
+                        } else {
+                          (
+                            st,
+                            SeqEvent
+                              .NotifyUser(
+                                Notification.LoadingFailed(
+                                  obsId,
+                                  List(
+                                    s"Error loading observation $obsId",
+                                    s"A sequence is running on instrument $i"
+                                  )
+                                ),
+                                clientId
+                              ): SeqEvent
+                          ).pure[F]
                         }
                       }
-                    )
+                    }
+                  )
               }
             )
           )
@@ -650,40 +640,35 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): Option[TargetedClientEvent] =
     qState.sequences
       .get(c.obsId)
-      .flatMap(_.seqGen.resourceAtCoords(c.actCoords))
+      .flatMap(_.resourceAtCoords(c.actCoords))
       .map(res => SingleActionEvent(c.obsId, c.actCoords.stepId, res, clientAction, errorMsg))
 
   private def viewSequence(obsSeq: SequenceData[F]): SequenceView = {
     val st         = obsSeq.seq
     val seq        = st.toSequence
-    val instrument = obsSeq.seqGen.instrument
-    val seqType    = obsSeq.seqGen.nextAtom.sequenceType
+    val instrument = obsSeq.instrument
+    val seqType    = obsSeq.currentStep.map(_.sequenceType)
 
     def splitWhere[A](l: List[A])(p: A => Boolean): (List[A], List[A]) =
       l.splitAt(l.indexWhere(p))
 
-    def resources(s: SequenceGen.InstrumentStepGen[F]): List[Resource | Instrument] = s match {
-      case s: SequenceGen.PendingStepGen[F, ?] => s.resources.toList
-      case _                                   => List.empty
-    }
-
     def engineSteps(seq: Sequence[F]): List[ObserveStep] =
-      obsSeq.seqGen.nextAtom.steps.zip(seq.steps).map { case (a, b) =>
+      (obsSeq.currentStep, seq.step).mapN { (sg, es) =>
         val stepResources =
-          resources(a).mapFilter(x =>
-            obsSeq.seqGen
-              .configActionCoord(a.id, x)
+          sg.resources.toList.mapFilter(x =>
+            obsSeq
+              .configActionCoord(sg.id, x)
               .map(i => (x, obsSeq.seq.getSingleState(i).actionStatus))
           )
         StepsView
           .stepsView(instrument)
           .stepView(
-            a,
-            b,
+            sg,
+            es,
             stepResources,
             obsSeq.pendingObsCmd
           )
-      } match {
+      }.toList match {
         // The sequence could be empty
         case Nil => Nil
         // Find first Pending ObserveStep when no ObserveStep is Running and mark it as Running
@@ -711,10 +696,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     // TODO: Implement willStopIn
     SequenceView(
       seq.id,
-      SequenceMetadata(instrument, obsSeq.observer, obsSeq.seqGen.obsData.title),
+      SequenceMetadata(instrument, obsSeq.observer, obsSeq.obsData.title),
       st.status,
       obsSeq.overrides,
-      seqType,
+      seqType.getOrElse(SequenceType.Science),
       engSteps,
       None,
       stepResources,
@@ -766,8 +751,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       case ResourceBusy(obsId, stepId, resource, clientId)                                    =>
         Stream.emit:
           UserNotification(Notification.SubsystemBusy(obsId, stepId, resource)).forClient(clientId)
-      case NewAtomLoaded(obsId, sequenceType, atomId)                                         =>
-        Stream.emit[F, TargetedClientEvent](ClientEvent.AtomLoaded(obsId, sequenceType, atomId)) ++
+      case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                   =>
+        Stream.emit[F, TargetedClientEvent](
+          ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)
+        ) ++
           buildObserveStateStream(svs, odbProxy)
       case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
         Stream.emit[F, TargetedClientEvent](ClientEvent.AcquisitionPromptReached(obsId))
@@ -788,9 +775,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     def svs: SequencesQueue[SequenceView] =
       SequencesQueue(
         List(
-          qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.seqGen.obsData.id),
-          qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.seqGen.obsData.id),
-          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.seqGen.obsData.id)
+          qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.obsData.id),
+          qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.obsData.id),
+          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsData.id)
         ).flattenOption.toMap,
         qState.conditions,
         qState.operator,
@@ -1307,7 +1294,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       if (configSystemCheck(sys, st)) {
         st.sequences
           .get(obsId)
-          .flatMap(_.seqGen.configActionCoord(stepId, sys))
+          .flatMap(_.configActionCoord(stepId, sys))
           .map: c =>
             executeEngine
               .startSingle(ActionCoords(obsId, c))
@@ -1373,7 +1360,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         seqEvent match
           case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
             notifyOdbSequencePaused(obsId)
-          case NewAtomLoaded(obsId, sequenceType, atomId)                                         =>
+          case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                 =>
             systems.odb
               .obsContinue(obsId)
               .ensure(
@@ -1391,15 +1378,16 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     operator:   Option[Operator]
   ): Endo[SequenceData[F]] =
     (sd: SequenceData[F]) =>
-      val stepsWithBreakpoints: List[(EngineStep[F], Breakpoint)] =
-        toStepList(
-          sd.seqGen,
-          sd.overrides,
-          HeaderExtraData(conditions, operator, sd.observer)
-        )
+      val newStep: Option[EngineStep[F]] =
+        sd.currentStep.map: sg =>
+          generateStep(
+            sg,
+            sd.overrides,
+            HeaderExtraData(conditions, operator, sd.observer)
+          )._1
 
       SequenceData.seq.modify(
-        executeEngine.updateSteps(stepsWithBreakpoints.map(_._1))
+        executeEngine.updateStep(newStep)
       )(sd)
 
   private def refreshSequence(id: Observation.Id): Endo[EngineState[F]] = (st: EngineState[F]) =>
@@ -1510,7 +1498,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine
         .offer:
           Event.modifyState:
-            ObserveEngine.onAtomReload[F](systems.odb, translator)(
+            ObserveEngine.onStepReload[F](systems.odb, translator)(
               executeEngine,
               obsId,
               ReloadReason.EditEvent

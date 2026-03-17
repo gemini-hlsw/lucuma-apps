@@ -5,153 +5,114 @@ package observe.server
 
 import cats.Endo
 import cats.syntax.all.*
-import lucuma.core.enums.Breakpoint
-import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import monocle.Lens
-import monocle.std.option
-import observe.model.Observation
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.server.engine.Breakpoints
 import observe.server.engine.BreakpointsDelta
 import observe.server.engine.Engine
-import observe.server.engine.EngineStep
 import observe.server.engine.Sequence
-
-import scala.annotation.unused
-
-import odb.OdbProxy
-
-final class ODBSequencesLoader[F[_]](
-  @unused odbProxy:   OdbProxy[F],
-  @unused translator: SeqTranslate[F],
-  @unused execEngine: Engine[F]
-) {
-
-//  private def unloadEvent(seqId: Observation.Id): EventType[F] =
-//    Event.modifyState[F, EngineState[F], SeqEvent](
-//      { (st: EngineState[F]) =>
-//        EngineState
-//          .atSequence[F](seqId)
-//          .getOption(st)
-//          .map { seq =>
-//            if (execEngine.canUnload(seq.seq)) {
-//              EngineState.instrumentLoaded(seq.seqGen.instrument).replace(none)(st)
-//            } else st
-//          }
-//          .getOrElse(st)
-//      }.withEvent(UnloadSequence(seqId)).toHandle
-//    )
-
-//  def loadEvents(seqId: Observation.Id): F[List[EventType[F]]] = {
-//    // Three ways of handling errors are mixed here: java exceptions, Either and MonadError
-//    val t: F[(List[Throwable], Option[SequenceGen[F]])] =
-//      odbProxy.read(seqId).flatMap(translator.sequence)
-//
-//    def loadSequenceEvent(seqg: SequenceGen[F]): EventType[F] =
-//      Event.modifyState[F, EngineState[F], SeqEvent]({ (st: EngineState[F]) =>
-//        st.sequences
-//          .get(seqId)
-//          .fold(ODBSequencesLoader.loadSequenceEndo(none, seqg, execEngine))(_ =>
-//            ODBSequencesLoader.reloadSequenceEndo(seqId, seqg, execEngine)
-//          )(st)
-//      }.withEvent(LoadSequence(seqId)).toHandle)
-//
-//    t.map {
-//      case (UnrecognizedInstrument(_) :: _, None) =>
-//        List.empty
-//      case (err :: _, None)                       =>
-//        val explanation = explain(err)
-//        List(Event.logDebugMsgF[F, EngineState[F], SeqEvent](explanation))
-//      case (errs, Some(seq))                      =>
-//        loadSequenceEvent(seq).pure[F] :: errs.map(e =>
-//          Event.logDebugMsgF[F, EngineState[F], SeqEvent](explain(e))
-//        )
-//      case _                                      => Nil
-//    }.recover { case e => List(Event.logDebugMsgF[F, EngineState[F], SeqEvent](explain(e))) }
-//  }.map(_.sequence).flatten
-
-  // private def explain(err: Throwable): String =
-  //   err match {
-  //     case s: ObserveFailure => ObserveFailure.explain(s)
-  //     case _                 => ObserveFailure.explain(ObserveException(err))
-  //   }
-
-//  def refreshSequenceList(
-//    odbList: List[Observation.Id],
-//    st:      EngineState[F]
-//  ): F[List[EventType[F]]] = {
-//    val observeList = st.sequences.keys.toList
-//
-//    val loads = odbList.diff(observeList).traverse(loadEvents).map(_.flatten)
-//
-//    val unloads = observeList.diff(odbList).map(unloadEvent)
-//
-//    loads.map(_ ++ unloads)
-//  }
-
-}
+import observe.server.odb.OdbObservationData
 
 object ODBSequencesLoader {
 
-  private def toEngineSequence[F[_]](
-    id:                   Observation.Id,
-    atomId:               Atom.Id,
+  /**
+   * Build the engine step from a StepGen, generating the breakpoint delta.
+   */
+  private def buildStep[F[_]](
+    stepGen:              StepGen[F],
     overrides:            SystemOverrides,
-    seq:                  SequenceGen[F],
     headerExtra:          HeaderExtraData,
     preservedBreakpoints: Breakpoints
-  ): Sequence[F] =
-    val stepsWithBreakpoints: List[(EngineStep[F], Breakpoint)] =
-      toStepList(seq, overrides, headerExtra)
-    val steps: List[EngineStep[F]]                              = stepsWithBreakpoints.map(_._1)
-    val breakpoints: Breakpoints                                =
-      preservedBreakpoints.merge(BreakpointsDelta.fromStepsWithBreakpoints(stepsWithBreakpoints))
-    Sequence.sequence(id, atomId, steps, breakpoints)
+  ): (engine.EngineStep[F], Breakpoints) =
+    val (engineStep, breakpoint) = generateStep(stepGen, overrides, headerExtra)
+    val breakpoints              =
+      preservedBreakpoints.merge(
+        BreakpointsDelta.fromStepsWithBreakpoints(List((engineStep, breakpoint)))
+      )
+    (engineStep, breakpoints)
 
+  /**
+   * Create a new SequenceData for a freshly loaded observation. Constructs the appropriate
+   * instrument-specific subclass based on the execution config.
+   */
   private[server] def loadSequenceEndo[F[_]](
     observer: Option[Observer],
-    seqg:     SequenceGen[F],
+    odbData:  OdbObservationData,
+    stepGen:  Option[StepGen[F]],
     l:        Lens[EngineState[F], Option[SequenceData[F]]],
     cleanup:  F[Unit]
   ): Endo[EngineState[F]] = st =>
-    l.modify(oldSeqData =>
-      SequenceData[F](
-        observer,
-        SystemOverrides.AllEnabled,
-        seqg,
-        Engine.load(
-          toEngineSequence(
-            seqg.obsData.id,
-            seqg.nextAtom.atomId,
-            SystemOverrides.AllEnabled,
-            seqg,
-            HeaderExtraData(st.conditions, st.operator, observer),
-            oldSeqData.map(_.seq.breakpoints).getOrElse(Breakpoints.empty)
-          )
-        ),
-        none,
-        cleanup
-      ).some
-    )(st)
+    val headerExtra          = HeaderExtraData(st.conditions, st.operator, observer)
+    val preservedBreakpoints =
+      l.get(st).map(_.seq.breakpoints).getOrElse(Breakpoints.empty)
 
-  private[server] def reloadSequenceEndo[F[_]](
-    seqg: SequenceGen[F],
-    l:    Lens[EngineState[F], Option[SequenceData[F]]]
-  ): Endo[EngineState[F]] = st =>
-    l.andThen(option.some)
-      .modify(sd =>
-        sd.copy(
-          seqGen = seqg,
-          seq = Engine.reload(
-            sd.seq,
-            toStepList(
-              seqg,
-              sd.overrides,
-              HeaderExtraData(st.conditions, st.operator, sd.observer)
-            ).map(_._1)
-          )
+    val (engineStep, breakpoints) = stepGen
+      .map(buildStep(_, SystemOverrides.AllEnabled, headerExtra, preservedBreakpoints))
+      .map((s, b) => (s.some, b))
+      .getOrElse((none, preservedBreakpoints))
+
+    val seqState = Engine.load(
+      Sequence(odbData.observation.id, engineStep, breakpoints)
+    )
+
+    val seqData: SequenceData[F] = odbData.executionConfig match
+      case InstrumentExecutionConfig.GmosNorth(ec)  =>
+        SequenceData.GmosNorth(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          obsData = odbData.observation,
+          staticCfg = ec.static,
+          currentStep = stepGen.collect { case StepGen.gmosNorth(gn) => gn },
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false,
+          cleanup = cleanup
         )
-      )(st)
+      case InstrumentExecutionConfig.GmosSouth(ec)  =>
+        SequenceData.GmosSouth(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          obsData = odbData.observation,
+          staticCfg = ec.static,
+          currentStep = stepGen.collect { case StepGen.gmosSouth(gs) => gs },
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false,
+          cleanup = cleanup
+        )
+      case InstrumentExecutionConfig.Flamingos2(ec) =>
+        SequenceData.Flamingos2(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          obsData = odbData.observation,
+          staticCfg = ec.static,
+          currentStep = stepGen.collect { case StepGen.flamingos2(f2) => f2 },
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false,
+          cleanup = cleanup
+        )
+      case InstrumentExecutionConfig.Igrins2(_)     =>
+        sys.error("Igrins2 is not supported")
+
+    l.replace(seqData.some)(st)
+
+  /**
+   * Reload the step definition for an existing sequence. Preserves observer, overrides, etc.
+   */
+  private[server] def reloadSequenceEndo[F[_]](
+    stepGen: Option[StepGen[F]],
+    l:       Lens[EngineState[F], Option[SequenceData[F]]]
+  ): Endo[EngineState[F]] = st =>
+    l.some
+      .modify { sd =>
+        val headerExtra = HeaderExtraData(st.conditions, st.operator, sd.observer)
+        val engineStep  = stepGen.map: sg =>
+          generateStep(sg, sd.overrides, headerExtra)._1
+        val newSeqState = Engine.reload(sd.seq, engineStep)
+        SequenceData.seq.replace(newSeqState)(sd)
+      }(st)
 
 }

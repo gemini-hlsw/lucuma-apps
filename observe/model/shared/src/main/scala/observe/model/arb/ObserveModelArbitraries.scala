@@ -88,7 +88,7 @@ trait ObserveModelArbitraries {
       u <- arbitrary[HasUserStop]
       i <- arbitrary[HasInternalStop]
       w <- arbitrary[IsWaitingUserPrompt]
-      a <- arbitrary[IsWaitingNextAtom]
+      a <- arbitrary[IsWaitingNextStep]
       s <- arbitrary[IsStarting]
     } yield SequenceState.Running(u, i, w, a, s)
   }

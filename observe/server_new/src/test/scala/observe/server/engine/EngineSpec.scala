@@ -5,9 +5,7 @@ package observe.server.engine
 
 import cats.Eq
 import cats.effect.IO
-import lucuma.core.model.sequence.Atom
 import lucuma.core.util.arb.ArbGid.given
-import lucuma.core.util.arb.ArbUid.given
 import observe.model.Observation
 import observe.model.SequenceState
 import observe.model.arb.ObserveModelArbitraries.given
@@ -21,19 +19,24 @@ final class EngineSpec extends munit.DisciplineSuite {
 
   given Arbitrary[Sequence[IO]] = Arbitrary {
     for {
-      id  <- arbitrary[Observation.Id]
-      aid <- arbitrary[Atom.Id]
-    } yield Sequence.sequence(id, aid, List(), Breakpoints.empty)
+      id <- arbitrary[Observation.Id]
+    } yield Sequence(id, None, Breakpoints.empty)
   }
 
   given Arbitrary[Sequence.State[IO]] = Arbitrary {
     for {
       seq <- arbitrary[Sequence[IO]]
       st  <- arbitrary[SequenceState]
-    } yield Sequence.State.Final(seq, st, Breakpoints.empty)
+    } yield Sequence.State[IO](
+      obsId = seq.id,
+      status = st,
+      currentStep = None,
+      breakpoints = Breakpoints.empty,
+      singleRuns = Map.empty
+    )
   }
 
   given Cogen[Sequence.State[IO]] =
-    Cogen[Observation.Id].contramap(_.toSequence.id)
+    Cogen[Observation.Id].contramap(_.obsId)
 
 }
