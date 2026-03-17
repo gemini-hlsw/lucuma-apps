@@ -13,12 +13,12 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import monocle.Prism
+import monocle.macros.GenPrism
 import observe.model.SystemOverrides
 import observe.model.dhs.DataId
 import observe.model.enums.Resource
 import observe.server.engine.EngineStep
-import monocle.Prism
-import monocle.macros.GenPrism
 
 sealed trait StepGen[F[_]]:
   type D
