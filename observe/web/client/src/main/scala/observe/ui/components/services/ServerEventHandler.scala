@@ -173,7 +173,7 @@ trait ServerEventHandler:
           (RootModelData.executionState
             .at(obsId)
             .some
-            .andThen(ExecutionState.stepResources.at(stepId).some.at(subsystem))
+            .andThen(ExecutionState.stepResources.at(subsystem))
             .replace:
               event match
                 case SingleActionState.Started   => ActionStatus.Running.some
@@ -231,7 +231,7 @@ trait ServerEventHandler:
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
-      case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)                     =>
+      case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)                    =>
         rootModelDataMod:
           RootModelData.loadedObservations
             .andThen(LoadedObservations.Value)

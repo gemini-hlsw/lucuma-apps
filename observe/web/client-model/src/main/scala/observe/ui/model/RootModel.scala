@@ -95,7 +95,7 @@ case class RootModelData(
   def obsSelectedRow(obsId: Observation.Id): Option[SelectedRowId] =
     executionState
       .get(obsId)
-      .flatMap(_.runningStepId.map(stepId => SelectedRowId(none, stepId)))
+      .flatMap(_.runningStep.map(step => SelectedRowId(none, step.id)))
       .orElse(userSelectedRow.get(obsId))
 
   def withLoginResult(result: Either[Throwable, Option[UserVault]]): RootModelData =

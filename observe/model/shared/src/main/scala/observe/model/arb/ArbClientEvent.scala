@@ -44,25 +44,9 @@ import ArbObsRecordedIds.given
 import ArbObservationProgress.given
 import ArbSystem.given
 import ArbUserPrompt.given
+import ArbExecutionState.given
 
 trait ArbClientEvent:
-  given Cogen[ExecutionState] =
-    Cogen[
-      (SequenceState,
-       Option[Step.Id],
-       Option[NsRunningState],
-       List[(Step.Id, List[(Resource | Instrument, ActionStatus)])],
-       List[Step.Id]
-      )
-    ].contramap(x =>
-      (x.sequenceState,
-       x.runningStepId,
-       x.nsState,
-       x.stepResources.view.mapValues(_.toList).toList,
-       x.breakpoints.toList
-      )
-    )
-
   given Arbitrary[ClientEvent.ObserveState] = Arbitrary:
     for
       s    <- arbitrary[SequencesQueue[SequenceView]]

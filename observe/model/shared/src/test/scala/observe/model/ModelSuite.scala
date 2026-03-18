@@ -58,7 +58,7 @@ class ModelSuite extends munit.DisciplineSuite:
   checkAll("Eq[StepProgress]", EqTests[StepProgress].eqv)
   checkAll("Eq[ObservationProgress]", EqTests[ObservationProgress].eqv)
   checkAll("Codec[ObservationProgress]", CodecTests[ObservationProgress].codec)
-  checkAll("Eq[RunningStep]", EqTests[RunningStep].eqv)
+  checkAll("Eq[RunningStep]", EqTests[RunningStepProgress].eqv)
   checkAll("Eq[BatchCommandState]", EqTests[BatchCommandState].eqv)
   checkAll("Eq[ApplyCommandResult]", EqTests[ApplyCommandResult].eqv)
   checkAll("Eq[ObserveCommandResult]", EqTests[ObserveCommandResult].eqv)

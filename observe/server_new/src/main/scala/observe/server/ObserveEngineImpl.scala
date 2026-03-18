@@ -38,6 +38,7 @@ import observe.model.UserPrompt.ObsConditionsCheckOverride
 import observe.model.UserPrompt.SeqCheck
 import observe.model.UserPrompt.TargetCheckOverride
 import observe.model.config.*
+import observe.model.enums.ActionStatus
 import observe.model.enums.BatchExecState
 import observe.model.enums.ObserveLogLevel
 import observe.model.enums.PendingObserveCmd
@@ -513,9 +514,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                                        l,
                                        cleanup
                                      )
-                                 )(_ =>
-                                   ODBSequencesLoader.reloadSequenceEndo(stepGen, l)
-                                 )(st),
+                                 )(_ => ODBSequencesLoader.reloadSequenceEndo(stepGen, l))(st),
                                LoadSequence(obsId, clientId)
                               )
                             }
@@ -652,7 +651,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     def splitWhere[A](l: List[A])(p: A => Boolean): (List[A], List[A]) =
       l.splitAt(l.indexWhere(p))
 
-    def engineSteps(seq: Sequence[F]): List[ObserveStep] =
+    def engineRunningStep(seq: Sequence[F]): Option[ObserveStep] =
       (obsSeq.currentStep, seq.step).mapN { (sg, es) =>
         val stepResources =
           sg.resources.toList.mapFilter(x =>
@@ -668,30 +667,32 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             stepResources,
             obsSeq.pendingObsCmd
           )
-      }.toList match {
-        // The sequence could be empty
-        case Nil => Nil
-        // Find first Pending ObserveStep when no ObserveStep is Running and mark it as Running
-        // When waiting user prompt, the sequence is Running, but no steps are.
-        case steps
-            if (Sequence.State.isRunning(st) && !Sequence.State.isWaitingUserPrompt(st)) && steps
-              .forall(_.status =!= StepState.Running) =>
-          val (xs, ys) = splitWhere(steps)(_.status === StepState.Pending)
-          xs ++ ys.headOption.map(ObserveStep.status.replace(StepState.Running)).toList ++ ys.tail
-        case steps
-            if st.status === SequenceState.Idle && steps.exists(_.status === StepState.Running) =>
-          val (xs, ys) = splitWhere(steps)(_.status === StepState.Running)
-          xs ++ ys.headOption.map(ObserveStep.status.replace(StepState.Paused)).toList ++ ys.tail
-        case x   => x
-      }
+      } // match {
+      //   // No running step
+      //   case None => None
+      //   // Find first Pending ObserveStep when no ObserveStep is Running and mark it as Running
+      //   // When waiting user prompt, the sequence is Running, but no steps are.
+      //   case Some(step)
+      //       if (Sequence.State.isRunning(st) &&
+      //         !Sequence.State.isWaitingUserPrompt(st)) &&
+      //         step.status =!= StepState.Running =>
+      //     val (xs, ys) = splitWhere(steps)(_.status === StepState.Pending)
+      //     xs ++ ys.headOption.map(ObserveStep.status.replace(StepState.Running)).toList ++ ys.tail
+      //   case steps
+      //       if st.status === SequenceState.Idle && steps.exists(_.status === StepState.Running) =>
+      //     val (xs, ys) = splitWhere(steps)(_.status === StepState.Running)
+      //     xs ++ ys.headOption.map(ObserveStep.status.replace(StepState.Paused)).toList ++ ys.tail
+      //   case x    => x
+      // }
 
-    val engSteps      = engineSteps(seq)
-    val stepResources = engSteps.map {
-      case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
-        id -> configStatus.toMap
-      case ObserveStep.NodAndShuffle(id, _, _, _, _, _, _, configStatus, _, _) =>
-        id -> configStatus.toMap
-    }.toMap
+    val engStep: Option[ObserveStep]                            = engineRunningStep(seq)
+    val stepResources: Map[Resource | Instrument, ActionStatus] =
+      engStep.foldMap {
+        case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
+          configStatus
+        case ObserveStep.NodAndShuffle(id, _, _, _, _, _, _, configStatus, _, _) =>
+          configStatus
+      }.toMap
 
     // TODO: Implement willStopIn
     SequenceView(
@@ -700,7 +701,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       st.status,
       obsSeq.overrides,
       seqType.getOrElse(SequenceType.Science),
-      engSteps,
+      engStep,
       None,
       stepResources,
       st.breakpoints.value
@@ -751,7 +752,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       case ResourceBusy(obsId, stepId, resource, clientId)                                    =>
         Stream.emit:
           UserNotification(Notification.SubsystemBusy(obsId, stepId, resource)).forClient(clientId)
-      case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                   =>
+      case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                 =>
         Stream.emit[F, TargetedClientEvent](
           ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)
         ) ++

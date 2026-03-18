@@ -118,9 +118,9 @@ trait ObserveModelArbitraries {
       s  <- arbitrary[SequenceState]
       o  <- arbitrary[SystemOverrides]
       st <- arbitrary[SequenceType]
-      t  <- arbitrary[List[ObserveStep]]
+      t  <- arbitrary[Option[ObserveStep]]
       i  <- arbitrary[Option[Int]]
-      a  <- arbitrary[Map[Step.Id, Map[Resource | Instrument, ActionStatus]]]
+      a  <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       b  <- arbitrary[Set[Step.Id]]
     } yield SequenceView(id, m, s, o, st, t, i, a, b)
   }
@@ -150,7 +150,7 @@ trait ObserveModelArbitraries {
         SequenceState,
         SystemOverrides,
         SequenceType,
-        List[ObserveStep],
+        Option[ObserveStep],
         Option[Int],
         List[Step.Id]
       )
@@ -161,7 +161,7 @@ trait ObserveModelArbitraries {
          s.status,
          s.systemOverrides,
          s.sequenceType,
-         s.steps,
+         s.runningStep,
          s.willStopIn,
          s.breakpoints.toList
         )

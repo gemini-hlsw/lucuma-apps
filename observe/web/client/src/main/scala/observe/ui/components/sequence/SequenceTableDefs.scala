@@ -165,7 +165,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
               ).when(
                 cell.row.index.toInt > 0 &&
                   List(StepTime.Present, StepTime.Future).contains_(step.stepTime) &&
-                  meta.executionState.runningStepId =!= stepId
+                  meta.executionState.runningStep.map(_.id) =!= stepId
               )
             )
       ),
@@ -205,15 +205,15 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             isFinished = step.isFinished,
                             obsId = obsId,
                             requests = meta.requests,
-                            runningStepId = meta.executionState.runningStepId,
+                            runningStepId = meta.executionState.runningStep.map(_.id),
                             fileIds = step.fileIds,
                             sequenceState = meta.executionState.sequenceState,
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),
-                            subsystemStatus = meta.executionState.stepResources
-                              .find(_._1 === stepId)
-                              .map(_._2.toMap)
-                              .getOrElse(Map.empty),
+                            subsystemStatus = meta.executionState.stepResources,
+                              // .find(_._1 === stepId)
+                              // .map(_._2.toMap)
+                              // .getOrElse(Map.empty),
                             systemOverrides = meta.executionState.systemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,

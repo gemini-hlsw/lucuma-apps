@@ -6,7 +6,7 @@ package observe.model.arb
 import cats.syntax.option.*
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbUid.given
-import observe.model.RunningStep
+import observe.model.RunningStepProgress
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
@@ -14,16 +14,16 @@ import org.scalacheck.Gen
 
 trait ArbRunningStep {
 
-  given arbRunningStep: Arbitrary[RunningStep] =
+  given arbRunningStep: Arbitrary[RunningStepProgress] =
     Arbitrary {
       for {
         id <- arbitrary[Step.Id]
         l  <- Gen.posNum[Int]
         i  <- Gen.choose(l, Int.MaxValue)
-      } yield RunningStep.fromInt(id.some, l, i).getOrElse(RunningStep.Zero)
+      } yield RunningStepProgress.fromInt(id.some, l, i).getOrElse(RunningStepProgress.Zero)
     }
 
-  given runningStepCogen: Cogen[RunningStep] =
+  given runningStepCogen: Cogen[RunningStepProgress] =
     Cogen[(Option[Step.Id], Int, Int)].contramap(x => (x.id, x.last, x.total))
 
 }

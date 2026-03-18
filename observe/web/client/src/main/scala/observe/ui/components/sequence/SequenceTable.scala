@@ -58,7 +58,7 @@ private trait SequenceTable[S, D](
       .map(_.id)
 
   private lazy val activeStepId: Option[Step.Id] =
-    executionState.loadedSteps.find(_.isActive).map(_.id)
+    executionState.runningStep.filter(_.isActive).map(_.id)
 
   // Obtain the id of the last recorded step only if its step id is the same
   // as the currently executing step. This will be filtered out from the visit steps.
@@ -71,41 +71,41 @@ private trait SequenceTable[S, D](
   ): List[SequenceRow.FutureStep[D]] =
     SequenceRow.FutureStep.fromAtoms(atoms, signalToNoise(seqType), seqType)
 
-  protected[sequence] lazy val currentAtomPendingSteps: List[ObserveStep] =
-    executionState.loadedSteps.filterNot(_.isFinished)
-
-  protected[sequence] def currentStepsToRows(
-    currentSteps: List[ObserveStep],
+  // TODO Remove CurrentAtomStepRow and have the renderer handle the runningStep?
+  protected[sequence] def runningStepToRow(
+    runningStep:  Option[ObserveStep],
     sequenceType: SequenceType
-  ): List[CurrentAtomStepRow[D]] =
-    currentSteps.map: step =>
+  ): Option[CurrentAtomStepRow[D]] =
+    runningStep.map: step =>
       CurrentAtomStepRow(
         step,
         breakpoint =
           if (executionState.breakpoints.contains_(step.id)) Breakpoint.Enabled
           else Breakpoint.Disabled,
-        isFirstOfAtom = currentSteps.headOption.exists(_.id === step.id),
+        // isFirstOfAtom = currentSteps.headOption.exists(_.id === step.id),
+        isFirstOfAtom = false, // See how to determine this... If we keep using this model.
         step.signalToNoise.filter: _ =>
           sequenceType === SequenceType.Science || step.instConfig.config.shouldShowAcquisitionSn
       )
 
-  protected[sequence] lazy val (currentAcquisitionRows, currentScienceRows)
-    : (List[SequenceRow[D]], List[SequenceRow[D]]) =
-    executionState.sequenceType match
-      case SequenceType.Acquisition =>
-        (currentStepsToRows(currentAtomPendingSteps, SequenceType.Acquisition),
-         config.science.map(s => futureSteps(List(s.nextAtom), SequenceType.Science)).orEmpty
-        )
-      case SequenceType.Science     =>
-        (config.acquisition
-           .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
-           .orEmpty,
-         currentStepsToRows(currentAtomPendingSteps, SequenceType.Science)
-        )
+  // protected[sequence] lazy val (currentAcquisitionRows, currentScienceRows)
+  //   : (List[SequenceRow[D]], List[SequenceRow[D]]) =
+  //   executionState.sequenceType match
+  //     case SequenceType.Acquisition =>
+  //       (currentStepsToRows(currentAtomPendingSteps, SequenceType.Acquisition),
+  //        config.science.map(s => futureSteps(List(s.nextAtom), SequenceType.Science)).orEmpty
+  //       )
+  //     case SequenceType.Science     =>
+  //       (config.acquisition
+  //          .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
+  //          .orEmpty,
+  //        currentStepsToRows(currentAtomPendingSteps, SequenceType.Science)
+  //       )
 
   protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =
-    currentScienceRows ++ config.science
-      .map(s => futureSteps(s.possibleFuture, SequenceType.Science))
+    // currentScienceRows ++
+    config.science
+      .map(s => futureSteps(s.nextAtom +: s.possibleFuture, SequenceType.Science))
       .orEmpty
 
   protected[sequence] lazy val acquisitionRows: List[SequenceRow[D]] =
@@ -113,13 +113,23 @@ private trait SequenceTable[S, D](
     // We also hide acquisition if the sequence is complete
     if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || scienceRows.isEmpty
     then List.empty
-    else currentAcquisitionRows
+    else
+      config.acquisition
+        .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
+        .orEmpty
+    // else currentAcquisitionRows
 
   // Alert position is right after currently executing atom.
   protected[sequence] lazy val alertPosition: NonNegInt =
-    NonNegInt.unsafeFrom(currentAtomPendingSteps.length)
+    // TODO
+    NonNegInt.unsafeFrom(acquisitionRows.length)
+    // NonNegInt.unsafeFrom(currentAtomPendingSteps.length)
 
-  protected[sequence] lazy val runningStepId: Option[Step.Id] = executionState.runningStepId
+  protected[sequence] lazy val runningStepId: Option[Step.Id] = executionState.runningStep.map(_.id)
 
   protected[sequence] lazy val nextStepId: Option[Step.Id] =
-    currentAtomPendingSteps.headOption.map(_.id)
+    // TODO Compute the first unexecuted step.
+    acquisitionRows.headOption
+      .orElse(scienceRows.headOption)
+      .flatMap(_.id.toOption)
+    // currentAtomPendingSteps.headOption.map(_.id)

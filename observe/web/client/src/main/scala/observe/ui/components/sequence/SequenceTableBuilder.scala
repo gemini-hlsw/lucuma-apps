@@ -253,7 +253,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 ObserveStyles.RowIdle.unless_(step.isSelected),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
-                ObserveStyles.StepRowPossibleFuture.when_(step.stepTime === StepTime.Future),
                 step.stepState match
                   case s if s.hasError                      => ObserveStyles.StepRowError
                   case StepState.Paused                     => ObserveStyles.StepRowWarning
