@@ -63,7 +63,8 @@ final case class SequenceTile(
   calibrationRole:     Option[CalibrationRole],
   sequenceChanged:     View[Pot[Unit]],
   isEditing:           View[IsEditing],
-  isUserStaffOrAdmin:  Boolean
+  isUserStaffOrAdmin:  Boolean,
+  isEditable:          Boolean
 ) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence", canMinimize = !isEditing.get)(
       SequenceTile // TODO Move isEditing state here, but we need to be able to change tile state from within tile
     )
@@ -289,7 +290,9 @@ object SequenceTile
                       tooltip = "Enter sequence editing mode",
                       tooltipOptions = TooltipOptions.Top
                     ).mini.compact
-                      .when(!props.isEditing.get && sizeState.isMaximized && liveSequence.isReady),
+                      .when(
+                        props.isEditable && !props.isEditing.get && sizeState.isMaximized && liveSequence.isReady
+                      ),
                     React
                       .Fragment(
                         Button(
