@@ -33,6 +33,8 @@ enum ExecutionVisits(val instrument: Instrument) derives Eq:
         GmosSouth(removeDuplicateVisitOverlap(leftVisits, rightVisits))
       case (Flamingos2(leftVisits), Flamingos2(rightVisits)) =>
         Flamingos2(removeDuplicateVisitOverlap(leftVisits, rightVisits))
+      case (Igrins2(leftVisits), Igrins2(rightVisits))       =>
+        Igrins2(removeDuplicateVisitOverlap(leftVisits, rightVisits))
       case (left, right)                                     =>
         throw new Exception:
           s"Attempted to join ExecutionVisits for different instruments: ${left.instrument} and ${right.instrument}"
@@ -46,6 +48,9 @@ enum ExecutionVisits(val instrument: Instrument) derives Eq:
   case Flamingos2(visits: NonEmptyList[Visit.Flamingos2])
       extends ExecutionVisits(Instrument.Flamingos2)
 
+  case Igrins2(visits: NonEmptyList[Visit.Igrins2])
+      extends ExecutionVisits(Instrument.Igrins2)
+
 object ExecutionVisits:
   val gmosNorth: Prism[ExecutionVisits, ExecutionVisits.GmosNorth] =
     GenPrism[ExecutionVisits, ExecutionVisits.GmosNorth]
@@ -55,6 +60,9 @@ object ExecutionVisits:
 
   val flamingos2: Prism[ExecutionVisits, ExecutionVisits.Flamingos2] =
     GenPrism[ExecutionVisits, ExecutionVisits.Flamingos2]
+
+  val igrins2: Prism[ExecutionVisits, ExecutionVisits.Igrins2] =
+    GenPrism[ExecutionVisits, ExecutionVisits.Igrins2]
 
   object GmosNorth:
     val visits: Lens[GmosNorth, NonEmptyList[Visit.GmosNorth]] =
@@ -67,3 +75,7 @@ object ExecutionVisits:
   object Flamingos2:
     val visits: Lens[Flamingos2, NonEmptyList[Visit.Flamingos2]] =
       Focus[Flamingos2](_.visits)
+
+  object Igrins2:
+    val visits: Lens[Igrins2, NonEmptyList[Visit.Igrins2]] =
+      Focus[Igrins2](_.visits)

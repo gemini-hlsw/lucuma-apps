@@ -8,6 +8,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional
@@ -27,6 +28,9 @@ enum EditableSequence:
     acquisition: Option[Atom[Flamingos2DynamicConfig]],
     science:     Option[List[Atom[Flamingos2DynamicConfig]]]
   )
+  case Igrins2(
+    science: Option[List[Atom[Igrins2DynamicConfig]]]
+  )
 
 object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence"?
   import SequenceTileHelper.*
@@ -37,6 +41,8 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     GenPrism[EditableSequence, EditableSequence.GmosSouth]
   val flamingos2: Prism[EditableSequence, EditableSequence.Flamingos2] =
     GenPrism[EditableSequence, EditableSequence.Flamingos2]
+  val igrins2: Prism[EditableSequence, EditableSequence.Igrins2]     =
+    GenPrism[EditableSequence, EditableSequence.Igrins2]
 
   object GmosNorth:
     val acquisition: Lens[EditableSequence.GmosNorth, Option[Atom[gmos.DynamicConfig.GmosNorth]]] =
@@ -58,6 +64,10 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     val science: Lens[EditableSequence.Flamingos2, Option[List[Atom[Flamingos2DynamicConfig]]]] =
       Focus[EditableSequence.Flamingos2](_.science)
 
+  object Igrins2:
+    val science: Lens[EditableSequence.Igrins2, Option[List[Atom[Igrins2DynamicConfig]]]] =
+      Focus[EditableSequence.Igrins2](_.science)
+
   val gmosNorthAcquisition: Optional[EditableSequence, Option[Atom[gmos.DynamicConfig.GmosNorth]]] =
     gmosNorth.andThen(GmosNorth.acquisition)
   val gmosNorthScience: Optional[EditableSequence, List[Atom[gmos.DynamicConfig.GmosNorth]]]       =
@@ -70,6 +80,8 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     flamingos2.andThen(Flamingos2.acquisition)
   val flamingos2Science: Optional[EditableSequence, List[Atom[Flamingos2DynamicConfig]]]           =
     flamingos2.andThen(Flamingos2.science).some
+  val igrins2Science: Optional[EditableSequence, List[Atom[Igrins2DynamicConfig]]]               =
+    igrins2.andThen(Igrins2.science).some
 
   def fromLiveSequence(live: LiveSequence): Option[EditableSequence] =
     live.sequence.toOption
@@ -88,5 +100,9 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
         case InstrumentExecutionConfig.Flamingos2(execution) =>
           EditableSequence.Flamingos2(
             acquisition = execution.acquisition.map(a => a.nextAtom),
+            science = execution.science.map(a => a.nextAtom +: a.possibleFuture)
+          )
+        case InstrumentExecutionConfig.Igrins2(execution)   =>
+          EditableSequence.Igrins2(
             science = execution.science.map(a => a.nextAtom +: a.possibleFuture)
           )

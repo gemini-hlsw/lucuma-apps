@@ -9,6 +9,7 @@ import cats.syntax.all.given
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import monocle.Focus
@@ -50,6 +51,13 @@ enum Visit[+D]:
     interval: Option[TimestampInterval],
     atoms:    List[AtomRecord.Flamingos2]
   ) extends Visit[Flamingos2DynamicConfig]
+
+  case Igrins2(
+    id:       Visit.Id,
+    created:  Timestamp,
+    interval: Option[TimestampInterval],
+    atoms:    List[AtomRecord.Igrins2]
+  ) extends Visit[Igrins2DynamicConfig]
 
 object Visit:
   type Id = lucuma.core.model.Visit.Id
@@ -102,9 +110,25 @@ object Visit:
     val atoms: Lens[Flamingos2, List[AtomRecord.Flamingos2]] =
       Focus[Flamingos2](_.atoms)
 
+  object Igrins2:
+    given Eq[Igrins2] = Eq.derived
+
+    val id: Lens[Igrins2, Visit.Id] =
+      Focus[Igrins2](_.id)
+
+    val created: Lens[Igrins2, Timestamp] =
+      Focus[Igrins2](_.created)
+
+    val interval: Lens[Igrins2, Option[TimestampInterval]] =
+      Focus[Igrins2](_.interval)
+
+    val atoms: Lens[Igrins2, List[AtomRecord.Igrins2]] =
+      Focus[Igrins2](_.atoms)
+
   val gmosNorth: Prism[Visit[?], Visit.GmosNorth]   = GenPrism[Visit[?], Visit.GmosNorth]
   val gmosSouth: Prism[Visit[?], Visit.GmosSouth]   = GenPrism[Visit[?], Visit.GmosSouth]
   val flamingos2: Prism[Visit[?], Visit.Flamingos2] = GenPrism[Visit[?], Visit.Flamingos2]
+  val igrins2: Prism[Visit[?], Visit.Igrins2]       = GenPrism[Visit[?], Visit.Igrins2]
 
   val gmosNorthAtoms: Optional[Visit[?], List[AtomRecord.GmosNorth]]   =
     gmosNorth.andThen(Visit.GmosNorth.atoms)
@@ -112,6 +136,8 @@ object Visit:
     gmosSouth.andThen(Visit.GmosSouth.atoms)
   val flamingos2Atoms: Optional[Visit[?], List[AtomRecord.Flamingos2]] =
     flamingos2.andThen(Visit.Flamingos2.atoms)
+  val igrins2Atoms: Optional[Visit[?], List[AtomRecord.Igrins2]]       =
+    igrins2.andThen(Visit.Igrins2.atoms)
 
   val gmosNorthAtomSteps: Traversal[Visit[?], List[StepRecord.GmosNorth]]   =
     gmosNorthAtoms.each.andThen(AtomRecord.GmosNorth.steps)
@@ -119,3 +145,5 @@ object Visit:
     gmosSouthAtoms.each.andThen(AtomRecord.GmosSouth.steps)
   val flamingos2AtomSteps: Traversal[Visit[?], List[StepRecord.Flamingos2]] =
     flamingos2Atoms.each.andThen(AtomRecord.Flamingos2.steps)
+  val igrins2AtomSteps: Traversal[Visit[?], List[StepRecord.Igrins2]]       =
+    igrins2Atoms.each.andThen(AtomRecord.Igrins2.steps)

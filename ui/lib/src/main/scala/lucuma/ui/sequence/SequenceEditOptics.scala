@@ -10,6 +10,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.react.pragmaticdnd.Edge
 import monocle.Optional
 import monocle.Prism
@@ -34,6 +35,12 @@ trait SequenceEditOptics[D]:
       case _                           => None
     }(_.asInstanceOf[D])
 
+  protected val igrins2DynamicConfig: Prism[D, Igrins2DynamicConfig] =
+    Prism[D, Igrins2DynamicConfig] {
+      case ig2: Igrins2DynamicConfig => Some(ig2)
+      case _                         => None
+    }(_.asInstanceOf[D])
+
   protected val gmosNorth: Optional[Step[D], gmos.DynamicConfig.GmosNorth] =
     Step.instrumentConfig.andThen(gmosNorthDynamicConfig)
 
@@ -42,6 +49,9 @@ trait SequenceEditOptics[D]:
 
   protected val flamingos2: Optional[Step[D], Flamingos2DynamicConfig] =
     Step.instrumentConfig.andThen(flamingos2DyamicConfig)
+
+  protected val igrins2: Optional[Step[D], Igrins2DynamicConfig] =
+    Step.instrumentConfig.andThen(igrins2DynamicConfig)
 
   protected def combineOptionalsReplace[S, A](optionals: Optional[S, A]*)(a: A): S => S =
     Function.chain(optionals.map(_.replace(a)))

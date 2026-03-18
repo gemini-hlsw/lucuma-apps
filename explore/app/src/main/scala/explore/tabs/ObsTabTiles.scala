@@ -49,6 +49,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -401,6 +402,8 @@ object ObsTabTiles:
 
           val notesTile = NotesTile(notesView, hidden = hideTiles)
 
+          val isEditable = !props.observation.get.observingMode.exists(_.instrument === Instrument.Igrins2)
+
           val sequenceTile =
             SequenceTile(
               props.obsId,
@@ -410,7 +413,8 @@ object ObsTabTiles:
               props.calibrationRole,
               sequenceChanged,
               isEditing,
-              props.isStaffOrAdminUser
+              props.isStaffOrAdminUser,
+              isEditable
             )
 
           val selectedItcConfig: Option[List[ItcInstrumentConfig]] =

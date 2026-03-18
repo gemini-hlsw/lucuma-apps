@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.model.enums.StepExecutionState
 import monocle.Focus
@@ -63,6 +64,18 @@ enum StepRecord[+D]:
     qaState:          Option[DatasetQaState],
     datasets:         List[Dataset]
   ) extends StepRecord[Flamingos2DynamicConfig]
+
+  case Igrins2(
+    id:               Step.Id,
+    executionState:   StepExecutionState,
+    interval:         Option[TimestampInterval],
+    instrumentConfig: Igrins2DynamicConfig,
+    stepConfig:       StepConfig,
+    telescopeConfig:  TelescopeConfig,
+    observeClass:     ObserveClass,
+    qaState:          Option[DatasetQaState],
+    datasets:         List[Dataset]
+  ) extends StepRecord[Igrins2DynamicConfig]
 
 object StepRecord:
   given [A]: Eq[StepRecord[A]] = Eq.derived
@@ -156,3 +169,33 @@ object StepRecord:
 
     val datasets: Lens[Flamingos2, List[Dataset]] =
       Focus[Flamingos2](_.datasets)
+
+  object Igrins2:
+    given Eq[Igrins2] = Eq.derived
+
+    val id: Lens[Igrins2, Step.Id] =
+      Focus[Igrins2](_.id)
+
+    val executionState: Lens[Igrins2, StepExecutionState] =
+      Focus[Igrins2](_.executionState)
+
+    val interval: Lens[Igrins2, Option[TimestampInterval]] =
+      Focus[Igrins2](_.interval)
+
+    val instrumentConfig: Lens[Igrins2, Igrins2DynamicConfig] =
+      Focus[Igrins2](_.instrumentConfig)
+
+    val stepConfig: Lens[Igrins2, StepConfig] =
+      Focus[Igrins2](_.stepConfig)
+
+    val telescopeConfig: Lens[Igrins2, TelescopeConfig] =
+      Focus[Igrins2](_.telescopeConfig)
+
+    val observeClass: Lens[Igrins2, ObserveClass] =
+      Focus[Igrins2](_.observeClass)
+
+    val qaState: Lens[Igrins2, Option[DatasetQaState]] =
+      Focus[Igrins2](_.qaState)
+
+    val datasets: Lens[Igrins2, List[Dataset]] =
+      Focus[Igrins2](_.datasets)
