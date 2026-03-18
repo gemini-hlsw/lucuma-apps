@@ -2685,6 +2685,14 @@ enum KeywordName(
   /** @group Constructors */
   case TARGET2 extends KeywordName("TARGET2", "TARGET2")
 
+  /** @group Constructors */
+  case HAEND extends KeywordName("HAEND", "HAEND")
+
+  /** @group Constructors */
+  case DATEEND extends KeywordName("DATEEND", "DATE_END")
+
+  /** @group Constructors */
+  case ORIGNAME extends KeywordName("ORIGNAME", "ORIGNAME")
 }
 
 object KeywordName {

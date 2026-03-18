@@ -30,18 +30,17 @@ case class Selected[F[_]](
   flamingos2: Option[SequenceData[F]]
 )
 
-object Selected        {
+object Selected:
   def none[F[_]]: Selected[F] = Selected(None, None, None)
-}
 
 case class HeaderExtraData(
   conditions: Conditions,
   operator:   Option[Operator],
   observer:   Option[Observer]
 )
-object HeaderExtraData {
+
+object HeaderExtraData:
   val default: HeaderExtraData = HeaderExtraData(Conditions.Default, None, None)
-}
 
 case class ObserveContext[F[_]](
   resumePaused: TimeSpan => Stream[F, Result],

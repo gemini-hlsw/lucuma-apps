@@ -13,6 +13,7 @@ import observe.model.enums.KeywordName
 import org.typelevel.log4cats.Logger
 
 import java.util.Locale
+import scala.annotation.targetName
 
 package keywords {
 
@@ -62,31 +63,27 @@ package keywords {
     }
   }
 
-  object GdsInstrument {
+  object GdsInstrument:
     def bundleKeywords[F[_]: Monad](
       ks: List[KeywordBag => F[KeywordBag]]
     ): F[KeywordBag] =
-      ks.foldLeft(Applicative[F].pure(KeywordBag.empty)) { case (a, b) => a.flatMap(b) }
+      ks.foldLeft(KeywordBag.empty.pure[F])(_.flatMap(_))
 
-    def kb[F[_]: Monad]: KeywordsBundler[F] = new KeywordsBundler[F] {
-      def bundleKeywords(
-        ks: List[KeywordBag => F[KeywordBag]]
-      ): F[KeywordBag] =
-        GdsInstrument.bundleKeywords(ks)
-    }
-  }
+    def kb[F[_]: Monad]: KeywordsBundler[F] =
+      new KeywordsBundler[F]:
+        def bundleKeywords(ks: List[KeywordBag => F[KeywordBag]]): F[KeywordBag] =
+          GdsInstrument.bundleKeywords(ks)
 
-//  abstract class GdsInstrument[F[_]: Monad] extends KeywordsClient[F] {
-//    val gdsClient: GdsClient[F]
-//
-//    def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
-//      gdsClient.setKeywords(id, keywords)
-//
-//    def closeImage(id: ImageFileId): F[Unit] =
-//      gdsClient.closeObservation(id)
-//
-//    def keywordsBundler: KeywordsBundler[F] = GdsInstrument.kb[F]
-//  }
+  abstract class GdsInstrument[F[_]: Monad] extends KeywordsClient[F]:
+    val gdsClient: GdsClient[F]
+
+    def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
+      gdsClient.setKeywords(id, keywords)
+
+    def closeImage(id: ImageFileId): F[Unit] =
+      gdsClient.closeObservation(id)
+
+    def keywordsBundler: KeywordsBundler[F] = GdsInstrument.kb[F]
 
   sealed trait KeywordType extends Product with Serializable
 
@@ -275,26 +272,21 @@ package object keywords {
   // Keywords are read and they can fail or be missing
   // This Operation will preserve the value if defined or use the default
   // In case it either fails or is empty
-  implicit class KeywordValueSafeOps[
-    F[_]: ApplicativeThrow,
-    A: DefaultHeaderValue
-  ](v: F[Option[A]]) {
+  extension [F[_]: ApplicativeThrow, A](v: F[Option[A]])
     private def safeVal: F[Option[A]] = v.attempt.map {
       case Right(a @ Some(_)) => a
       case _                  => None
     }
 
-    def safeValOrDefault: F[A] = safeVal.orDefault
-  }
+    @targetName("optionSafeValOrDefault")
+    def safeValOrDefault(using DefaultHeaderValue[A]): F[A] = safeVal.orDefault
 
-  implicit class SafeDefaultOps[F[_]: ApplicativeThrow, A: DefaultHeaderValue](
-    v: F[A]
-  ) {
+  extension [F[_]: ApplicativeThrow, A](v: F[A])
     // Check if there is an error reading a value and if there is a failure
     // use the default
-    def safeValOrDefault: F[A] =
+    @targetName("safeValOrDefault")
+    def safeValOrDefault(using DefaultHeaderValue[A]): F[A] =
       v.handleError(_ => DefaultHeaderValue[A].default)
-  }
 
   def buildKeyword[F[_]: MonadThrow, A: DefaultHeaderValue](
     get:  F[A],
@@ -345,6 +337,17 @@ package object keywords {
       .flatMap { bag =>
         keywClient.setKeywords(id, bag, finalFlag = false)
       }
+
+  def sendGdsKeywords[F[_]: {MonadThrow, Logger as L}](
+    id:         ImageFileId,
+    keywClient: GdsClient[F],
+    b:          List[KeywordBag => F[KeywordBag]]
+  ): F[Unit] =
+    GdsInstrument
+      .bundleKeywords(b)
+      .redeemWith(e => L.error(e.getMessage) *> KeywordBag.empty.pure[F], _.pure[F])
+      .flatMap: bag =>
+        keywClient.setKeywords(id, bag)
 
   def dummyHeader[F[_]: Applicative]: Header[F] = new Header[F] {
     override def sendBefore(
