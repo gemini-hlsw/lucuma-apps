@@ -16,6 +16,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
@@ -61,6 +62,7 @@ trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => Instrument.GmosNorth
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => Instrument.GmosSouth
     case Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => Instrument.Flamingos2
+    case Igrins2DynamicConfig(_)                            => Instrument.Igrins2
 
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
@@ -74,11 +76,13 @@ trait SequenceRow[+D]:
     case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => gn.centralWavelength
     case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => gs.centralWavelength
     case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => f2.centralWavelength.some
+    case Igrins2DynamicConfig(_)                                 => none
 
   lazy val exposureTime: Option[TimeSpan] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(exposure, _, _, _, _, _, _)  => exposure.some
     case gmos.DynamicConfig.GmosSouth(exposure, _, _, _, _, _, _)  => exposure.some
     case Flamingos2DynamicConfig(exposure, _, _, _, _, _, _, _, _) => exposure.some
+    case Igrins2DynamicConfig(exposure)                            => exposure.some
     case _                                                         => none
 
   // There's no unified grating type, so we return a string.

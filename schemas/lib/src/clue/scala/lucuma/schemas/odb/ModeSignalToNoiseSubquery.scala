@@ -47,5 +47,12 @@ object ModeSignalToNoiseSubquery
             }
           }
         }
+        ... on ItcIgrins2Spectroscopy {
+          spectroscopyScience {
+            selected {
+              signalToNoiseAt $SignalToNoiseAtSubquery
+            }
+          }
+        }
       }
   """

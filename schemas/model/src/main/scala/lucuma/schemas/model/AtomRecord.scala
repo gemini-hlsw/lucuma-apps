@@ -9,6 +9,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.model.enums.AtomExecutionState
 import monocle.Focus
@@ -44,6 +45,14 @@ enum AtomRecord[+D]:
     sequenceType:   SequenceType,
     steps:          List[StepRecord.Flamingos2]
   ) extends AtomRecord[Flamingos2DynamicConfig]
+
+  case Igrins2 protected[schemas] (
+    id:             Atom.Id,
+    executionState: AtomExecutionState,
+    interval:       Option[TimestampInterval],
+    sequenceType:   SequenceType,
+    steps:          List[StepRecord.Igrins2]
+  ) extends AtomRecord[Igrins2DynamicConfig]
 
 object AtomRecord:
   given [A]: Eq[AtomRecord[A]] = Eq.derived
@@ -98,3 +107,21 @@ object AtomRecord:
 
     val steps: Lens[Flamingos2, List[StepRecord.Flamingos2]] =
       Focus[Flamingos2](_.steps)
+
+  object Igrins2:
+    given Eq[Igrins2] = Eq.derived
+
+    val id: Lens[Igrins2, Atom.Id] =
+      Focus[Igrins2](_.id)
+
+    val executionState: Lens[Igrins2, AtomExecutionState] =
+      Focus[Igrins2](_.executionState)
+
+    val interval: Lens[Igrins2, Option[TimestampInterval]] =
+      Focus[Igrins2](_.interval)
+
+    val sequenceType: Lens[Igrins2, SequenceType] =
+      Focus[Igrins2](_.sequenceType)
+
+    val steps: Lens[Igrins2, List[StepRecord.Igrins2]] =
+      Focus[Igrins2](_.steps)

@@ -255,10 +255,21 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       snCol
     )
 
+  lazy val ForIgrins2: List[colDef.TypeFor[?]] =
+    List(
+      indexAndTypeCol,
+      exposureCol,
+      guideStateCol,
+      pOffsetCol,
+      qOffsetCol,
+      snCol
+    )
+
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
       case Instrument.Flamingos2                       => ForFlamingos2
+      case Instrument.Igrins2                          => ForIgrins2
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
@@ -307,10 +318,14 @@ object SequenceColumns:
         ReadModeColumnId -> Resizable(75.toPx, min = 75.toPx)
       )
 
+    val ForIgrins2: Map[ColumnId, ColumnSize] =
+      CommonColumnSizes
+
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
+        case Instrument.Igrins2                          => ForIgrins2
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 
@@ -342,10 +357,19 @@ object SequenceColumns:
       FPUColumnId
     ).reverse
 
+    val ForIgrins2: List[ColumnId] = List(
+      PColumnId,
+      QColumnId,
+      GuideColumnId,
+      ExposureColumnId,
+      SNColumnId
+    ).reverse
+
     def apply(instrument: Instrument): List[ColumnId] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
+        case Instrument.Igrins2                          => ForIgrins2
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 

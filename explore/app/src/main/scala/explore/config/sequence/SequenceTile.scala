@@ -228,6 +228,7 @@ object SequenceTile
                 seqType =>
                   atoms => ctx.odbApi.replaceFlamingos2Sequence(props.obsId, seqType, atoms)
               )
+            case Instrument.Igrins2    => Callback.empty
             case _                     => Callback.empty
 
         def resolveAcquisition[S, D](
@@ -406,10 +407,17 @@ object SequenceTile
                         modSequence(EditableSequence.flamingos2Science),
                         props.isUserStaffOrAdmin
                       )
-                    case SequenceData(InstrumentExecutionConfig.Igrins2(_), _)                    =>
-                      Message(
-                        text = "IGRINS-2 sequence not available.",
-                        severity = Message.Severity.Info
+                    case SequenceData(
+                          InstrumentExecutionConfig.Igrins2(config),
+                          ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                        ) =>
+                      Igrins2SequenceTable(
+                        visitsViewOpt,
+                        config.static,
+                        config.science.map(a => a.nextAtom +: a.possibleFuture),
+                        scienceSn,
+                        IsEditing.False,
+                        props.isUserStaffOrAdmin
                       )
                     case _                                                                        => mismatchError
                   },
