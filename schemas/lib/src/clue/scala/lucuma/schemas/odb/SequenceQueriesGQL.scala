@@ -50,6 +50,13 @@ object SequenceQueriesGQL:
               acquisition { ...flamingos2SequenceFields }
               science { ...flamingos2SequenceFields }
             }
+            igrins2 {
+              static {
+                saveSVCImages
+                offsetMode
+              }
+              science { ...igrins2SequenceFields }
+            }
           }
         }
 
@@ -165,6 +172,29 @@ object SequenceQueriesGQL:
         fragment flamingos2SequenceFields on Flamingos2ExecutionSequence {
           nextAtom { ...flamingos2AtomFields }
           possibleFuture { ...flamingos2AtomFields }
+          hasMore
+        }
+
+        fragment igrins2AtomFields on Igrins2Atom {
+          id
+          description
+          steps {
+            id
+            instrumentConfig $Igrins2DynamicConfigSubquery
+            stepConfig { ...stepConfigFields }
+            telescopeConfig {
+              offset $OffsetSubquery
+              guiding
+            }
+            estimate { ...stepEstimateFields }
+            observeClass
+            breakpoint
+          }
+        }
+
+        fragment igrins2SequenceFields on Igrins2ExecutionSequence {
+          nextAtom { ...igrins2AtomFields }
+          possibleFuture { ...igrins2AtomFields }
           hasMore
         }
       """
