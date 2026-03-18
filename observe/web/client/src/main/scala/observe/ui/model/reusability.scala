@@ -15,7 +15,7 @@ import lucuma.ui.sequence.SequenceRow
 import observe.model.ClientConfig
 import observe.model.ExecutionState
 import observe.model.NodAndShuffleStatus
-import observe.model.RunningStep
+import observe.model.RunningStepProgress
 import observe.model.SequenceState
 import observe.model.StepProgress
 import observe.ui.components.sequence.steps.CurrentAtomStepRow
@@ -32,7 +32,7 @@ object reusability:
   given Reusability[OffsetsDisplay]                        = Reusability.byEq
   given [S: Eq, D: Eq]: Reusability[ExecutionConfig[S, D]] = Reusability.byEq
   given Reusability[GmosNodAndShuffle]                     = Reusability.byEq
-  given Reusability[RunningStep]                           = Reusability.byEq
+  given Reusability[RunningStepProgress]                   = Reusability.byEq
   given Reusability[NodAndShuffleStatus]                   = Reusability.byEq
   given Reusability[ExecutionState]                        = Reusability.byEq
   given Reusability[ClientConfig]                          = Reusability.byEq

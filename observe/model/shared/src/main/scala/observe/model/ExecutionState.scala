@@ -26,8 +26,7 @@ case class ExecutionState(
   sequenceState:   SequenceState,
   observer:        Option[Observer],
   sequenceType:    SequenceType,
-  loadedSteps:     List[ObserveStep],
-  runningStepId:   Option[Step.Id],
+  runningStep:     Option[ObserveStep],
   nsState:         Option[NsRunningState],
   stepResources:   Map[Step.Id, Map[Resource | Instrument, ActionStatus]],
   systemOverrides: SystemOverrides,
@@ -39,7 +38,7 @@ case class ExecutionState(
 
   // If there's a running step or resource, the step is considered locked.
   lazy val isLocked: Boolean =
-    runningStepId.isDefined || stepResources.exists(
+    runningStep.isDefined || stepResources.exists(
       _._2.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
     )
 
@@ -50,8 +49,7 @@ object ExecutionState:
   val sequenceState: Lens[ExecutionState, SequenceState]                                          = Focus[ExecutionState](_.sequenceState)
   val observer: Lens[ExecutionState, Option[Observer]]                                            = Focus[ExecutionState](_.observer)
   val sequenceType: Lens[ExecutionState, SequenceType]                                            = Focus[ExecutionState](_.sequenceType)
-  val loadedSteps: Lens[ExecutionState, List[ObserveStep]]                                        = Focus[ExecutionState](_.loadedSteps)
-  val runningStepId: Lens[ExecutionState, Option[Step.Id]]                                        = Focus[ExecutionState](_.runningStepId)
+  val runningStep: Lens[ExecutionState, Option[ObserveStep]]                                      = Focus[ExecutionState](_.runningStep)
   val nsState: Lens[ExecutionState, Option[NsRunningState]]                                       = Focus[ExecutionState](_.nsState)
   val stepResources: Lens[ExecutionState, Map[Step.Id, Map[Resource | Instrument, ActionStatus]]] =
     Focus[ExecutionState](_.stepResources)

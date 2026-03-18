@@ -396,8 +396,7 @@ object TestCommon {
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
-        configs =
-          resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
+        configs = resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
         odbAction[IO],
         odbAction[IO],
         post = (_, _) => Nil,
@@ -420,14 +419,14 @@ object TestCommon {
   } yield st.nextStep(odbObsData, SequenceType.Acquisition)._2
 
   /**
-   * Convenience: load a sequence into engine state from OdbObservationData + StepGen.
-   * Replaces the old pattern: `ODBSequencesLoader.loadSequenceEndo(None, sequenceGen, lens, cleanup)`
+   * Convenience: load a sequence into engine state from OdbObservationData + StepGen. Replaces the
+   * old pattern: `ODBSequencesLoader.loadSequenceEndo(None, sequenceGen, lens, cleanup)`
    */
   def loadSequence(
-    id:        Observation.Id,
-    sg:        Option[StepGen.GmosNorth[IO]],
-    lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]],
-    cleanup:   IO[Unit] = IO.unit
+    id:      Observation.Id,
+    sg:      Option[StepGen.GmosNorth[IO]],
+    lens:    monocle.Lens[EngineState[IO], Option[SequenceData[IO]]],
+    cleanup: IO[Unit] = IO.unit
   ): cats.Endo[EngineState[IO]] =
     ODBSequencesLoader.loadSequenceEndo[IO](
       None,
@@ -438,8 +437,8 @@ object TestCommon {
     )
 
   /**
-   * Convenience: build a GmosNorth sequence with a single step and default resources.
-   * Replaces the old `sequence(obsId)` helper.
+   * Convenience: build a GmosNorth sequence with a single step and default resources. Replaces the
+   * old `sequence(obsId)` helper.
    */
   def loadDefaultSequence(
     id: Observation.Id
@@ -447,8 +446,8 @@ object TestCommon {
     loadSequence(id, stepGen(id).some, EngineState.instrumentLoaded(Instrument.GmosNorth))
 
   /**
-   * Convenience: build a GmosNorth sequence with a single step and configurable resources.
-   * For GmosSouth instruments, uses the GmosSouth ODB data and lens.
+   * Convenience: build a GmosNorth sequence with a single step and configurable resources. For
+   * GmosSouth instruments, uses the GmosSouth ODB data and lens.
    */
   def loadSequenceWithResources(
     id:        Observation.Id,

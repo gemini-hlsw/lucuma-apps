@@ -11,7 +11,7 @@ import japgolly.scalajs.react.Reusability
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import observe.model.Observer
-import observe.model.RunningStep
+import observe.model.RunningStepProgress
 import observe.model.SequenceState
 import observe.ui.model.enums.ObsClass
 
@@ -22,7 +22,7 @@ case class SessionQueueRow(
   obsClass:      ObsClass,
   loaded:        Boolean,
   nextStepToRun: Option[Step.Id],
-  runningStep:   Option[RunningStep],
+  runningStep:   Option[RunningStepProgress],
   inDayCalQueue: Boolean
 ) derives Eq:
   export obsSummary.*
