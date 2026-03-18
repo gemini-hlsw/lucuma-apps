@@ -9,9 +9,9 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import monocle.Focus
+import monocle.Optional
 import observe.model.enums.ActionStatus
 import observe.model.enums.Resource
-import monocle.Optional
 
 case class SequenceView(
   obsId:           Observation.Id,
@@ -21,7 +21,7 @@ case class SequenceView(
   sequenceType:    SequenceType,
   runningStep:     Option[ObserveStep],
   willStopIn:      Option[Int],
-  stepResources:   Map[Step.Id, Map[Resource | Instrument, ActionStatus]],
+  stepResources:   Map[Resource | Instrument, ActionStatus],
   breakpoints:     Set[Step.Id]
 ) derives Eq:
 

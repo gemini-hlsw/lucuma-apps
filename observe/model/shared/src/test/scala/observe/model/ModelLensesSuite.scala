@@ -25,7 +25,7 @@ class ModelLensesSuite extends munit.DisciplineSuite with ModelLenses {
 
   checkAll("event observer name lens", LensTests(obsNameL))
   checkAll("each step traversal", TraversalTests(eachStepT))
-  checkAll("observation steps lens", LensTests(obsStepsL))
+  checkAll("observation steps lens", LensTests(obsRunningStepL))
   checkAll("each view traversal", TraversalTests(eachViewT))
   checkAll("sequence queue lens", LensTests(sessionQueueL))
 

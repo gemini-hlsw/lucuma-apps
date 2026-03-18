@@ -35,7 +35,7 @@ trait ArbExecutionState:
       sequenceType    <- arbitrary[SequenceType]
       step            <- arbitrary[Option[ObserveStep]]
       nsState         <- arbitrary[Option[NsRunningState]]
-      stepResources   <- arbitrary[Map[Step.Id, Map[Resource | Instrument, ActionStatus]]]
+      stepResources   <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       systemOverrides <- arbitrary[SystemOverrides]
       breakpoints     <- arbitrary[Set[Step.Id]]
     yield ExecutionState(
@@ -57,7 +57,7 @@ trait ArbExecutionState:
         SequenceType,
         Option[ObserveStep],
         Option[NsRunningState],
-        List[(Step.Id, List[(Resource | Instrument, ActionStatus)])],
+        List[(Resource | Instrument, ActionStatus)],
         SystemOverrides,
         List[Step.Id]
       )
@@ -67,7 +67,7 @@ trait ArbExecutionState:
        x.sequenceType,
        x.runningStep,
        x.nsState,
-       x.stepResources.view.mapValues(_.toList).toList,
+       x.stepResources.toList,
        x.systemOverrides,
        x.breakpoints.toList
       )

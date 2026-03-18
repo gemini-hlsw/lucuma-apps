@@ -28,7 +28,7 @@ case class ExecutionState(
   sequenceType:    SequenceType,
   runningStep:     Option[ObserveStep],
   nsState:         Option[NsRunningState],
-  stepResources:   Map[Step.Id, Map[Resource | Instrument, ActionStatus]],
+  stepResources:   Map[Resource | Instrument, ActionStatus],
   systemOverrides: SystemOverrides,
   breakpoints:     Set[Step.Id] = Set.empty,
   pausedStep:      Option[PausedStep] = None
@@ -38,21 +38,19 @@ case class ExecutionState(
 
   // If there's a running step or resource, the step is considered locked.
   lazy val isLocked: Boolean =
-    runningStep.isDefined || stepResources.exists(
-      _._2.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
-    )
+    runningStep.isDefined || stepResources.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
 
   lazy val isWaitingAcquisitionPrompt: Boolean =
     sequenceType === SequenceType.Acquisition && sequenceState.isWaitingUserPrompt
 
 object ExecutionState:
-  val sequenceState: Lens[ExecutionState, SequenceState]                                          = Focus[ExecutionState](_.sequenceState)
-  val observer: Lens[ExecutionState, Option[Observer]]                                            = Focus[ExecutionState](_.observer)
-  val sequenceType: Lens[ExecutionState, SequenceType]                                            = Focus[ExecutionState](_.sequenceType)
-  val runningStep: Lens[ExecutionState, Option[ObserveStep]]                                      = Focus[ExecutionState](_.runningStep)
-  val nsState: Lens[ExecutionState, Option[NsRunningState]]                                       = Focus[ExecutionState](_.nsState)
-  val stepResources: Lens[ExecutionState, Map[Step.Id, Map[Resource | Instrument, ActionStatus]]] =
+  val sequenceState: Lens[ExecutionState, SequenceState]                            = Focus[ExecutionState](_.sequenceState)
+  val observer: Lens[ExecutionState, Option[Observer]]                              = Focus[ExecutionState](_.observer)
+  val sequenceType: Lens[ExecutionState, SequenceType]                              = Focus[ExecutionState](_.sequenceType)
+  val runningStep: Lens[ExecutionState, Option[ObserveStep]]                        = Focus[ExecutionState](_.runningStep)
+  val nsState: Lens[ExecutionState, Option[NsRunningState]]                         = Focus[ExecutionState](_.nsState)
+  val stepResources: Lens[ExecutionState, Map[Resource | Instrument, ActionStatus]] =
     Focus[ExecutionState](_.stepResources)
-  val systemOverrides: Lens[ExecutionState, SystemOverrides]                                      =
+  val systemOverrides: Lens[ExecutionState, SystemOverrides]                        =
     Focus[ExecutionState](_.systemOverrides)
-  val breakpoints: Lens[ExecutionState, Set[Step.Id]]                                             = Focus[ExecutionState](_.breakpoints)
+  val breakpoints: Lens[ExecutionState, Set[Step.Id]]                               = Focus[ExecutionState](_.breakpoints)

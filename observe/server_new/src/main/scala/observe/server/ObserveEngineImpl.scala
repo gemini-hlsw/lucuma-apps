@@ -38,6 +38,7 @@ import observe.model.UserPrompt.ObsConditionsCheckOverride
 import observe.model.UserPrompt.SeqCheck
 import observe.model.UserPrompt.TargetCheckOverride
 import observe.model.config.*
+import observe.model.enums.ActionStatus
 import observe.model.enums.BatchExecState
 import observe.model.enums.ObserveLogLevel
 import observe.model.enums.PendingObserveCmd
@@ -684,13 +685,14 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       //   case x    => x
       // }
 
-    val engSteps      = engineRunningStep(seq)
-    val stepResources = engSteps.map {
-      case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
-        id -> configStatus.toMap
-      case ObserveStep.NodAndShuffle(id, _, _, _, _, _, _, configStatus, _, _) =>
-        id -> configStatus.toMap
-    }.toMap
+    val engStep: Option[ObserveStep]                            = engineRunningStep(seq)
+    val stepResources: Map[Resource | Instrument, ActionStatus] =
+      engStep.foldMap {
+        case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
+          configStatus
+        case ObserveStep.NodAndShuffle(id, _, _, _, _, _, _, configStatus, _, _) =>
+          configStatus
+      }.toMap
 
     // TODO: Implement willStopIn
     SequenceView(
@@ -699,7 +701,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       st.status,
       obsSeq.overrides,
       seqType.getOrElse(SequenceType.Science),
-      engSteps,
+      engStep,
       None,
       stepResources,
       st.breakpoints.value

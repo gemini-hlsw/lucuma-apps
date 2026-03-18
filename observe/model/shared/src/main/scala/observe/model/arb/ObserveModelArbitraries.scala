@@ -120,7 +120,7 @@ trait ObserveModelArbitraries {
       st <- arbitrary[SequenceType]
       t  <- arbitrary[Option[ObserveStep]]
       i  <- arbitrary[Option[Int]]
-      a  <- arbitrary[Map[Step.Id, Map[Resource | Instrument, ActionStatus]]]
+      a  <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       b  <- arbitrary[Set[Step.Id]]
     } yield SequenceView(id, m, s, o, st, t, i, a, b)
   }

@@ -88,23 +88,24 @@ private trait SequenceTable[S, D](
           sequenceType === SequenceType.Science || step.instConfig.config.shouldShowAcquisitionSn
       )
 
-  protected[sequence] lazy val (currentAcquisitionRows, currentScienceRows)
-    : (List[SequenceRow[D]], List[SequenceRow[D]]) =
-    executionState.sequenceType match
-      case SequenceType.Acquisition =>
-        (currentStepsToRows(currentAtomPendingSteps, SequenceType.Acquisition),
-         config.science.map(s => futureSteps(List(s.nextAtom), SequenceType.Science)).orEmpty
-        )
-      case SequenceType.Science     =>
-        (config.acquisition
-           .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
-           .orEmpty,
-         currentStepsToRows(currentAtomPendingSteps, SequenceType.Science)
-        )
+  // protected[sequence] lazy val (currentAcquisitionRows, currentScienceRows)
+  //   : (List[SequenceRow[D]], List[SequenceRow[D]]) =
+  //   executionState.sequenceType match
+  //     case SequenceType.Acquisition =>
+  //       (currentStepsToRows(currentAtomPendingSteps, SequenceType.Acquisition),
+  //        config.science.map(s => futureSteps(List(s.nextAtom), SequenceType.Science)).orEmpty
+  //       )
+  //     case SequenceType.Science     =>
+  //       (config.acquisition
+  //          .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
+  //          .orEmpty,
+  //        currentStepsToRows(currentAtomPendingSteps, SequenceType.Science)
+  //       )
 
   protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =
-    currentScienceRows ++ config.science
-      .map(s => futureSteps(s.possibleFuture, SequenceType.Science))
+    // currentScienceRows ++
+    config.science
+      .map(s => futureSteps(s.nextAtom +: s.possibleFuture, SequenceType.Science))
       .orEmpty
 
   protected[sequence] lazy val acquisitionRows: List[SequenceRow[D]] =
@@ -112,13 +113,23 @@ private trait SequenceTable[S, D](
     // We also hide acquisition if the sequence is complete
     if executionState.isWaitingAcquisitionPrompt || executionState.sequenceType === SequenceType.Science || scienceRows.isEmpty
     then List.empty
-    else currentAcquisitionRows
+    else
+      config.acquisition
+        .map(a => futureSteps(List(a.nextAtom), SequenceType.Acquisition))
+        .orEmpty
+    // else currentAcquisitionRows
 
   // Alert position is right after currently executing atom.
   protected[sequence] lazy val alertPosition: NonNegInt =
-    NonNegInt.unsafeFrom(currentAtomPendingSteps.length)
+    // TODO
+    NonNegInt.unsafeFrom(acquisitionRows.length)
+    // NonNegInt.unsafeFrom(currentAtomPendingSteps.length)
 
   protected[sequence] lazy val runningStepId: Option[Step.Id] = executionState.runningStep.map(_.id)
 
   protected[sequence] lazy val nextStepId: Option[Step.Id] =
-    currentAtomPendingSteps.headOption.map(_.id)
+    // TODO Compute the first unexecuted step.
+    acquisitionRows.headOption
+      .orElse(scienceRows.headOption)
+      .flatMap(_.id.toOption)
+    // currentAtomPendingSteps.headOption.map(_.id)
