@@ -55,6 +55,7 @@ trait ModeSignalToNoiseDecoders:
       c.downField("itcType")
         .as[Itc.Type]
         .flatMap:
-          case Itc.Type.Spectroscopy     => c.as[ModeSignalToNoise.Spectroscopy]
-          case Itc.Type.GmosNorthImaging => c.as[ModeSignalToNoise.GmosNorthImaging]
-          case Itc.Type.GmosSouthImaging => c.as[ModeSignalToNoise.GmosSouthImaging]
+          case Itc.Type.Spectroscopy        => c.as[ModeSignalToNoise.Spectroscopy]
+          case Itc.Type.GmosNorthImaging    => c.as[ModeSignalToNoise.GmosNorthImaging]
+          case Itc.Type.GmosSouthImaging    => c.as[ModeSignalToNoise.GmosSouthImaging]
+          case Itc.Type.Igrins2Spectroscopy => c.as[ModeSignalToNoise.Spectroscopy]

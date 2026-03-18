@@ -406,6 +406,11 @@ object SequenceTile
                         modSequence(EditableSequence.flamingos2Science),
                         props.isUserStaffOrAdmin
                       )
+                    case SequenceData(InstrumentExecutionConfig.Igrins2(_), _)                    =>
+                      Message(
+                        text = "IGRINS-2 sequence not available.",
+                        severity = Message.Severity.Info
+                      )
                     case _                                                                        => mismatchError
                   },
               errorRender = m =>
