@@ -32,8 +32,6 @@ import lucuma.schemas.model.*
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
 
-import scala.annotation.targetName
-
 trait VisitDecoders:
   given Decoder[Dataset.Filename] = Decoder.instance: c =>
     c.as[String]
@@ -178,7 +176,6 @@ trait VisitDecoders:
   given decoderAtomFlamingos2: Decoder[AtomRecord.Flamingos2] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
-      created        <- c.downField("created").as[Timestamp]
       executionState <- c.downField("executionState").as[AtomExecutionState]
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
@@ -286,14 +283,10 @@ trait VisitDecoders:
       .map:
         ExecutionVisits.Igrins2(_)
 
-  @targetName("ExecutionVisitsDecoder")
-  given Decoder[Option[ExecutionVisits]] =
+  given Decoder[ExecutionVisits] =
     List(
       Decoder[ExecutionVisits.GmosNorth].widen,
       Decoder[ExecutionVisits.GmosSouth].widen,
       Decoder[ExecutionVisits.Flamingos2].widen,
       Decoder[ExecutionVisits.Igrins2].widen
-    )
-      .reduceLeft(_ or _)
-      .map(_.some)
-      .or(Decoder.const(none))
+    ).reduceLeft(_ or _)
