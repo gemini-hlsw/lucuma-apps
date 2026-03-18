@@ -328,7 +328,7 @@ object Flamingos2LongslitConfigPanel
                 props.observingMode.view(_.toInput).mod(_.revertCustomizations),
               sequenceChanged = props.sequenceChanged,
               !props.permissions.isFullEdit,
-              showAdvancedButton = props.isStaff
+              showAdvancedButton = true
             )
           )
         )
