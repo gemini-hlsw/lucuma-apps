@@ -169,6 +169,8 @@ object Flamingos2LongslitConfigPanel
         val excludedAcquistionFilters = 
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
+        val excludedSpectroscopyFilters =
+          Enumerated[Flamingos2Filter].all.filterNot(_.supportsSpectroscopy).toSet
 
         val defaultDecker = props.observingMode.get.defaultDecker
 
@@ -192,6 +194,7 @@ object Flamingos2LongslitConfigPanel
                 view = filterView,
                 defaultValue = props.observingMode.get.initialFilter,
                 label = "Filter".some,
+                exclude = excludedSpectroscopyFilters,
                 helpId = Some("configuration/f2/filter.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
@@ -328,7 +331,7 @@ object Flamingos2LongslitConfigPanel
                 props.observingMode.view(_.toInput).mod(_.revertCustomizations),
               sequenceChanged = props.sequenceChanged,
               !props.permissions.isFullEdit,
-              showAdvancedButton = props.isStaff
+              showAdvancedButton = true
             )
           )
         )
