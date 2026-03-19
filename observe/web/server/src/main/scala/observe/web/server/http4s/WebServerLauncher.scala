@@ -300,11 +300,12 @@ object WebServerLauncher extends IOApp with LogInitialization {
     site:                 Site,
     executionEnvironment: ExecutionEnvironment
   ): Resource[F, EntryPoint[F]] =
-    Honeycomb.entryPoint(ServiceName): cb =>
-      Sync[F].delay:
-        cb.setWriteKey(config.writeKey)
-        cb.setDataset(s"$ServiceName-$site-$executionEnvironment")
-        cb.build()
+    config.writeKey.fold(Resource.pure(EntryPoint.noop[F])): key =>
+      Honeycomb.entryPoint(ServiceName): cb =>
+        Sync[F].delay:
+          cb.setWriteKey(key)
+          cb.setDataset(s"$ServiceName-$site-$executionEnvironment")
+          cb.build()
 
   /** Reads the configuration and launches the observe engine and web server */
   def observe: IO[ExitCode] = {

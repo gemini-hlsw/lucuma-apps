@@ -6,4 +6,4 @@ package observe.model.config
 import cats.Eq
 import cats.derived.*
 
-final case class HoneycombConfiguration(writeKey: String) derives Eq
+final case class HoneycombConfiguration(writeKey: Option[String]) derives Eq

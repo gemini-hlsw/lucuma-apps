@@ -76,6 +76,8 @@ given ConfigReader[WebServerConfiguration] = ConfigReader.derived
 
 given ConfigReader[LucumaSSOConfiguration] = ConfigReader.derived
 
+given ConfigReader[HoneycombConfiguration] = ConfigReader.derived
+
 given ConfigReader[ObserveConfiguration] = ConfigReader.derived
 
 def loadConfiguration[F[_]: Sync](config: ConfigObjectSource): F[ObserveConfiguration] =
