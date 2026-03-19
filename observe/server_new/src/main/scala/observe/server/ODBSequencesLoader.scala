@@ -20,42 +20,40 @@ object ODBSequencesLoader {
   /**
    * Build the engine step from a StepGen, generating the breakpoint delta.
    */
-  private def buildStep[F[_]](
-    stepGen:              StepGen[F],
-    overrides:            SystemOverrides,
-    headerExtra:          HeaderExtraData,
-    preservedBreakpoints: Breakpoints
-  ): (engine.EngineStep[F], Breakpoints) =
-    val (engineStep, breakpoint) = generateStep(stepGen, overrides, headerExtra)
-    val breakpoints              =
-      preservedBreakpoints.merge(
-        BreakpointsDelta.fromStepsWithBreakpoints(List((engineStep, breakpoint)))
-      )
-    (engineStep, breakpoints)
+  // private def buildEngineStep[F[_]](
+  //   stepGen:              StepGen[F],
+  //   overrides:            SystemOverrides,
+  //   headerExtra:          HeaderExtraData,
+  //   preservedBreakpoints: Breakpoints
+  // ): (engine.EngineStep[F], Breakpoints) =
+  //   val (engineStep, breakpoint) = generateStep(stepGen, overrides, headerExtra)
+  //   val breakpoints              =
+  //     preservedBreakpoints.merge(
+  //       BreakpointsDelta.fromStepsWithBreakpoints(List((engineStep, breakpoint)))
+  //     )
+  //   (engineStep, breakpoints)
 
   /**
    * Create a new SequenceData for a freshly loaded observation. Constructs the appropriate
    * instrument-specific subclass based on the execution config.
    */
-  private[server] def loadSequenceEndo[F[_]](
-    observer: Option[Observer],
-    odbData:  OdbObservationData,
-    stepGen:  Option[StepGen[F]],
-    l:        Lens[EngineState[F], Option[SequenceData[F]]],
-    cleanup:  F[Unit]
+  private[server] def loadSequenceMod[F[_]](
+    observer:               Option[Observer],
+    odbData:                OdbObservationData,
+    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]],
+    cleanup:                F[Unit]
   ): Endo[EngineState[F]] = st =>
-    val headerExtra          = HeaderExtraData(st.conditions, st.operator, observer)
-    val preservedBreakpoints =
-      l.get(st).map(_.seq.breakpoints).getOrElse(Breakpoints.empty)
+    val initialBreakpoints: Breakpoints =
+      odbData.executionConfig match
+        case InstrumentExecutionConfig.GmosNorth(ec)  => Breakpoints.fromExecutionConfig(ec)
+        case InstrumentExecutionConfig.GmosSouth(ec)  => Breakpoints.fromExecutionConfig(ec)
+        case InstrumentExecutionConfig.Flamingos2(ec) => Breakpoints.fromExecutionConfig(ec)
+        case InstrumentExecutionConfig.Igrins2(_)     =>
+          sys.error("Igrins2 is not supported")
 
-    val (engineStep, breakpoints) = stepGen
-      .map(buildStep(_, SystemOverrides.AllEnabled, headerExtra, preservedBreakpoints))
-      .map((s, b) => (s.some, b))
-      .getOrElse((none, preservedBreakpoints))
-
-    val seqState = Engine.load(
-      Sequence(odbData.observation.id, engineStep, breakpoints)
-    )
+    val seqState: Sequence.State[F] =
+      Engine.initialSequenceState:
+        Sequence(odbData.observation.id, none, initialBreakpoints)
 
     val seqData: SequenceData[F] = odbData.executionConfig match
       case InstrumentExecutionConfig.GmosNorth(ec)  =>
@@ -64,7 +62,8 @@ object ODBSequencesLoader {
           overrides = SystemOverrides.AllEnabled,
           obsData = odbData.observation,
           staticCfg = ec.static,
-          currentStep = stepGen.collect { case StepGen.gmosNorth(gn) => gn },
+          // currentStep = stepGen.collect { case StepGen.gmosNorth(gn) => gn },
+          currentStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false,
@@ -76,7 +75,8 @@ object ODBSequencesLoader {
           overrides = SystemOverrides.AllEnabled,
           obsData = odbData.observation,
           staticCfg = ec.static,
-          currentStep = stepGen.collect { case StepGen.gmosSouth(gs) => gs },
+          // currentStep = stepGen.collect { case StepGen.gmosSouth(gs) => gs },
+          currentStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false,
@@ -88,7 +88,8 @@ object ODBSequencesLoader {
           overrides = SystemOverrides.AllEnabled,
           obsData = odbData.observation,
           staticCfg = ec.static,
-          currentStep = stepGen.collect { case StepGen.flamingos2(f2) => f2 },
+          // currentStep = stepGen.collect { case StepGen.flamingos2(f2) => f2 },
+          currentStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false,
@@ -97,12 +98,12 @@ object ODBSequencesLoader {
       case InstrumentExecutionConfig.Igrins2(_)     =>
         sys.error("Igrins2 is not supported")
 
-    l.replace(seqData.some)(st)
+    instrumentSequenceLens.replace(seqData.some)(st)
 
   /**
    * Reload the step definition for an existing sequence. Preserves observer, overrides, etc.
    */
-  private[server] def reloadSequenceEndo[F[_]](
+  private[server] def reloadSequenceMod[F[_]](
     stepGen: Option[StepGen[F]],
     l:       Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>

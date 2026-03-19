@@ -28,7 +28,7 @@ final class EngineSpec extends munit.DisciplineSuite {
       seq <- arbitrary[Sequence[IO]]
       st  <- arbitrary[SequenceState]
     } yield Sequence.State[IO](
-      obsId = seq.id,
+      obsId = seq.obsId,
       status = st,
       currentStep = None,
       breakpoints = Breakpoints.empty,

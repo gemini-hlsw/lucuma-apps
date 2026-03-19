@@ -464,10 +464,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       systems.odb.resetAcquisition(obsId) >>
         systems.odb
           .read(obsId)
-          .map { odbData =>
-            val (errs, stepGen) = translator.nextStep(odbData, SequenceType.Acquisition)
+          .map: odbData =>
+            val (errs, stepGen): (List[Throwable], Option[StepGen[F]]) =
+              translator.nextStep(odbData, SequenceType.Acquisition)
             (errs, odbData, stepGen)
-          }
           .attempt
           .flatMap(
             _.fold(
@@ -496,8 +496,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                   .as(
                     Event.modifyState {
                       EngineHandle.modifyStateF { (st: EngineState[F]) =>
-                        val l = EngineState.instrumentLoaded[F](i)
-                        if (l.get(st).forall(s => executeEngine.canUnload(s.seq))) {
+                        val instrumentSequenceLens = EngineState.instrumentLoaded[F](i)
+                        if (
+                          instrumentSequenceLens.get(st).forall(s => executeEngine.canUnload(s.seq))
+                        ) {
                           st.sequencesByInstrument
                             .get(i)
                             .foldMap(_.cleanup) >> // End background obsEdit subscription
@@ -507,14 +509,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                                  .get(obsId)
                                  .fold(
                                    ODBSequencesLoader
-                                     .loadSequenceEndo(
+                                     .loadSequenceMod(
                                        observer.some,
                                        odbData,
-                                       stepGen,
-                                       l,
+                                       //  stepGen,
+                                       instrumentSequenceLens,
                                        cleanup
                                      )
-                                 )(_ => ODBSequencesLoader.reloadSequenceEndo(stepGen, l))(st),
+                                 )(_ =>
+                                   ODBSequencesLoader.reloadSequenceMod(
+                                     stepGen,
+                                     instrumentSequenceLens
+                                   )
+                                 )(st),
                                LoadSequence(obsId, clientId)
                               )
                             }
@@ -652,7 +659,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       l.splitAt(l.indexWhere(p))
 
     def engineRunningStep(seq: Sequence[F]): Option[ObserveStep] =
-      (obsSeq.currentStep, seq.step).mapN { (sg, es) =>
+      (obsSeq.currentStep, seq.loadedStep).mapN { (sg, es) =>
         val stepResources =
           sg.resources.toList.mapFilter(x =>
             obsSeq
@@ -696,7 +703,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
 
     // TODO: Implement willStopIn
     SequenceView(
-      seq.id,
+      seq.obsId,
       SequenceMetadata(instrument, obsSeq.observer, obsSeq.obsData.title),
       st.status,
       obsSeq.overrides,

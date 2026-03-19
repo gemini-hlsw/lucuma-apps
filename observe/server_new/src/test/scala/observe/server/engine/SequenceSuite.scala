@@ -96,16 +96,15 @@ class SequenceSuite extends munit.CatsEffectSuite {
     (for {
       s <- OptionT(qs1)
       t <- OptionT.pure(s.sequences(seqId))
-    } yield t.seq.status === SequenceState.Completed && t.seq.currentStep.isEmpty)
-      .value
+    } yield t.seq.status === SequenceState.Completed && t.seq.currentStep.isEmpty).value
       .map(_.getOrElse(fail("Sequence not found")))
       .assert
   }
 
   // TODO: Share these fixtures with StepSpec
   private object DummyResult extends Result.RetVal
-  private val result: Result              = Result.OK(DummyResult)
-  private val action: Action[IO]          = fromF[IO](ActionType.Undefined, IO(result))
+  private val result: Result     = Result.OK(DummyResult)
+  private val action: Action[IO] = fromF[IO](ActionType.Undefined, IO(result))
 
   def simpleStep2(
     pending: List[ParallelActions[IO]],
@@ -134,7 +133,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   }
   // Step zipper with done.nonEmpty (step has progressed past initial execution)
-  val stepzr0: EngineStep.Zipper[IO]      =
+  val stepzr0: EngineStep.Zipper[IO] =
     simpleStep2(Nil, Execution.empty, List(NonEmptyList.one(result)))
 
   test("startSingle should mark a single Action as started") {

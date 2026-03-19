@@ -121,10 +121,9 @@ class SeqTranslateSuite extends TestCommon {
 
   val baseState: EngineState[IO] =
     (ODBSequencesLoader
-      .loadSequenceEndo[IO](
+      .loadSequenceMod[IO](
         None,
         gmosNorthOdbData(seqObsId1),
-        testStepGen.some,
         EngineState.instrumentLoaded(Instrument.GmosNorth),
         IO.unit
       ) >>>
