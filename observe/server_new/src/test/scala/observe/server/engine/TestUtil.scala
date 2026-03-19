@@ -14,21 +14,26 @@ import observe.server.SequenceData
 import observe.server.TestCommon.*
 
 object TestUtil {
-  def initStateWithSequence(obsId: Observation.Id, seq: Sequence.State[IO]): EngineState[IO] =
+  def initStateWithSequence(
+    obsId: Observation.Id,
+    seq:   SequenceState[IO]
+  ): EngineState[IO] =
     EngineState[IO](
       queues = Map.empty,
       selected = Selected(
-        gmosNorth = SequenceData.GmosNorth[IO](
-          observer = none,
-          overrides = SystemOverrides.AllEnabled,
-          obsData = odbObservation(obsId),
-          staticCfg = staticCfg1,
-          currentStep = none,
-          seq = seq,
-          pendingObsCmd = none,
-          visitStartDone = false,
-          cleanup = IO.unit
-        ).some,
+        gmosNorth = SequenceData
+          .GmosNorth[IO](
+            observer = none,
+            overrides = SystemOverrides.AllEnabled,
+            obsData = odbObservation(obsId),
+            staticCfg = staticCfg1,
+            currentStep = none,
+            seq = seq,
+            pendingObsCmd = none,
+            visitStartDone = false,
+            cleanup = IO.unit
+          )
+          .some,
         gmosSouth = none,
         flamingos2 = none
       ),

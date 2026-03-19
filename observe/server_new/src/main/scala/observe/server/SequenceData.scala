@@ -18,7 +18,7 @@ import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd
 import observe.model.enums.Resource
 import observe.server.engine.ActionCoordsInSeq
-import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 
 sealed trait SequenceData[F[_]]:
   type S
@@ -30,7 +30,7 @@ sealed trait SequenceData[F[_]]:
   def obsData: OdbObservation
   def staticCfg: S
   def currentStep: Option[StepGen.Aux[F, D]]
-  def seq: Sequence.State[F]
+  def seq: SequenceState[F]
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
   def cleanup: F[Unit]
@@ -62,8 +62,8 @@ object SequenceData:
   def flamingos2[F[_]]: Prism[SequenceData[F], SequenceData.Flamingos2[F]] =
     GenPrism[SequenceData[F], SequenceData.Flamingos2[F]]
 
-  def seq[F[_]]: Lens[SequenceData[F], Sequence.State[F]] =
-    Lens[SequenceData[F], Sequence.State[F]](_.seq)(seq => {
+  def seq[F[_]]: Lens[SequenceData[F], SequenceState[F]] =
+    Lens[SequenceData[F], SequenceState[F]](_.seq)(seq => {
       case gmosNorth(s)  => s.copy(seq = seq)
       case gmosSouth(s)  => s.copy(seq = seq)
       case flamingos2(s) => s.copy(seq = seq)
@@ -103,7 +103,7 @@ object SequenceData:
     obsData:        OdbObservation,
     staticCfg:      gmos.StaticConfig.GmosNorth,
     currentStep:    Option[StepGen.Aux[F, gmos.DynamicConfig.GmosNorth]],
-    seq:            Sequence.State[F],
+    seq:            SequenceState[F],
     pendingObsCmd:  Option[PendingObserveCmd],
     visitStartDone: Boolean,
     cleanup:        F[Unit]
@@ -118,7 +118,7 @@ object SequenceData:
     obsData:        OdbObservation,
     staticCfg:      gmos.StaticConfig.GmosSouth,
     currentStep:    Option[StepGen.Aux[F, gmos.DynamicConfig.GmosSouth]],
-    seq:            Sequence.State[F],
+    seq:            SequenceState[F],
     pendingObsCmd:  Option[PendingObserveCmd],
     visitStartDone: Boolean,
     cleanup:        F[Unit]
@@ -133,7 +133,7 @@ object SequenceData:
     obsData:        OdbObservation,
     staticCfg:      Flamingos2StaticConfig,
     currentStep:    Option[StepGen.Aux[F, Flamingos2DynamicConfig]],
-    seq:            Sequence.State[F],
+    seq:            SequenceState[F],
     pendingObsCmd:  Option[PendingObserveCmd],
     visitStartDone: Boolean,
     cleanup:        F[Unit]

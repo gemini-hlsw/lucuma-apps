@@ -26,7 +26,7 @@ import observe.server.engine.Execution
 import observe.server.engine.Response
 import observe.server.engine.Response.Observed
 import observe.server.engine.Result
-import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
@@ -144,7 +144,7 @@ class SeqTranslateSuite extends TestCommon {
         } >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
+        .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init))(EngineState.default[IO])
 
   // Observe started

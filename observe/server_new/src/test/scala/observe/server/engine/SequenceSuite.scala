@@ -68,7 +68,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
   test("stop on breakpoints") {
     // With single-step execution, a breakpoint on the current step
     // causes getCurrentBreakpoint to return true and the sequence stays Idle.
-    val seq = Sequence.State.init(
+    val seq = SequenceState.init(
       Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
     )
 
@@ -78,7 +78,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   test("resume execution to completion after a breakpoint") {
     // Verify breakpoint is initially set
-    val seqWithBp = Sequence.State.init(
+    val seqWithBp = SequenceState.init(
       Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
     )
     assert(seqWithBp.getCurrentBreakpoint)
@@ -137,7 +137,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     simpleStep2(Nil, Execution.empty, List(NonEmptyList.one(result)))
 
   test("startSingle should mark a single Action as started") {
-    val seq = Sequence.State.init(
+    val seq = SequenceState.init(
       Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
     )
 
@@ -152,7 +152,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   test("startSingle should not start single Action from completed Step") {
     // A step that has progressed past initial execution (done.nonEmpty)
-    val seq1 = Sequence.State[IO](
+    val seq1 = SequenceState[IO](
       obsId = seqId,
       status = SequenceStatus.Idle,
       currentStep = Some(stepzr0),
@@ -166,7 +166,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   test("failSingle should mark a single running Action as failed") {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
-    val seq = Sequence.State
+    val seq = SequenceState
       .init(
         Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
       )
@@ -179,7 +179,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   test("failSingle should mark a single running Action as completed") {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
-    val seq = Sequence.State
+    val seq = SequenceState
       .init(
         Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
       )

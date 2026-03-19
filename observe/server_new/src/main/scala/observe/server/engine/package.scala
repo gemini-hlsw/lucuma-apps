@@ -111,21 +111,21 @@ object EngineHandle {
 
   def getSequenceState[F[_]: MonadCancelThrow](
     obsId: Observation.Id
-  ): EngineHandle[F, Option[Sequence.State[F]]] =
+  ): EngineHandle[F, Option[SequenceState[F]]] =
     inspectState(EngineState.sequenceStateAt(obsId).getOption(_))
 
   def inspectSequenceState[F[_]: MonadCancelThrow, A](obsId: Observation.Id)(
-    f: Sequence.State[F] => A
+    f: SequenceState[F] => A
   ): EngineHandle[F, Option[A]] =
     getSequenceState(obsId).map(_.map(f))
 
   def modifySequenceState[F[_]: Monad](obsId: Observation.Id)(
-    f: Sequence.State[F] => Sequence.State[F]
+    f: SequenceState[F] => SequenceState[F]
   ): EngineHandle[F, Unit] =
     modifyState_(EngineState.sequenceStateAt(obsId).modify(f))
 
   def replaceSequenceState[F[_]: Monad](obsId: Observation.Id)(
-    s: Sequence.State[F]
+    s: SequenceState[F]
   ): EngineHandle[F, Unit] =
     modifyState_(EngineState.sequenceStateAt(obsId).replace(s))
 
@@ -139,7 +139,7 @@ object EngineHandle {
   def printSequenceState[F[_]: {MonadCancelThrow, Logger}](
     obsId: Observation.Id
   ): EngineHandle[F, Unit] =
-    inspectSequenceState(obsId): (qs: Sequence.State[F]) =>
+    inspectSequenceState(obsId): (qs: SequenceState[F]) =>
       StateT.liftF(Logger[F].debug(s"$qs"))
     .void
 }

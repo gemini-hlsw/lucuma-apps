@@ -91,7 +91,7 @@ class PackageSuite extends munit.CatsEffectSuite {
   val qs1: EngineState[IO]  =
     TestUtil.initStateWithSequence(
       seqId,
-      Sequence.State.init(
+      SequenceState.init(
         Sequence(
           obsId = observationId(2),
           loadedStep = EngineStep(
@@ -142,7 +142,7 @@ class PackageSuite extends munit.CatsEffectSuite {
                  .last
       } yield v.map(_._2)
 
-    qs.map(_.exists(s => Sequence.State.isRunning(s.sequences(seqId).seq))).assert
+    qs.map(_.exists(s => SequenceState.isRunning(s.sequences(seqId).seq))).assert
   }
 
   test("there should be 0 pending executions after execution") {
@@ -164,7 +164,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     val s0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
             loadedStep = EngineStep(
@@ -194,7 +194,7 @@ class PackageSuite extends munit.CatsEffectSuite {
   }
 
   test("sequencestate should stay as running when action pauses itself") {
-    actionPause.map(_.exists(s => Sequence.State.isRunning(s.sequences(seqId).seq))).assert
+    actionPause.map(_.exists(s => SequenceState.isRunning(s.sequences(seqId).seq))).assert
   }
 
   test("engine should change action state to Paused if output is Paused") {
@@ -246,7 +246,7 @@ class PackageSuite extends munit.CatsEffectSuite {
       r           <- {
         val qs = TestUtil.initStateWithSequence(
           seqId,
-          Sequence.State.init(
+          SequenceState.init(
             Sequence(
               obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(2)),
               loadedStep = EngineStep(
@@ -292,7 +292,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     def s0(e: Throwable): EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(4)),
             loadedStep = EngineStep(
@@ -324,7 +324,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     val s0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -380,7 +380,7 @@ class PackageSuite extends munit.CatsEffectSuite {
   val qs2: EngineState[IO] =
     TestUtil.initStateWithSequence(
       seqId,
-      Sequence.State.init(
+      SequenceState.init(
         Sequence(
           obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
           loadedStep = EngineStep(

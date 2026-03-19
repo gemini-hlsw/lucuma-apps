@@ -12,6 +12,7 @@ import observe.model.SystemOverrides
 import observe.server.engine.Breakpoints
 import observe.server.engine.Engine
 import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 import observe.server.odb.OdbObservationData
 
 object ODBSequencesLoader {
@@ -50,7 +51,7 @@ object ODBSequencesLoader {
         case InstrumentExecutionConfig.Igrins2(_)     =>
           sys.error("Igrins2 is not supported")
 
-    val seqState: Sequence.State[F] =
+    val seqState: SequenceState[F] =
       Engine.initialSequenceState:
         Sequence(odbData.observation.id, none, initialBreakpoints)
 
