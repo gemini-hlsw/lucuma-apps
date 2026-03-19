@@ -72,7 +72,6 @@ object ObserveStyles:
   val StepRowDone: Css           = Css("observe-step-row-done")
   val StepRowWithBreakpoint: Css = Css("observe-step-row-with-breakpoint")
   val StepRowFirstInAtom: Css    = Css("observe-stepRow-first-in-atom")
-  val StepRowPossibleFuture: Css = Css("observe-step-row-possible-future")
 
   val ObservationStepProgressBar: Css = Css("observe-observation-progress-bar")
   val ControlButtonStrip: Css         = Css("observe-control-button-strip")

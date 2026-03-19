@@ -646,10 +646,6 @@ body {
     }
     /* stylelint-enable scss/comment-no-empty */
 
-    tr.observe-step-row-possible-future {
-      opacity: 0.6;
-    }
-
     // The actual cell is translated.
     td.observe-breakpoint-table-cell {
       vertical-align: top;
