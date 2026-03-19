@@ -15,7 +15,7 @@ import observe.model.ExecutionState
 import observe.model.NsRunningState
 import observe.model.ObserveStep
 import observe.model.Observer
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.arb.ArbNsRunningState.given
 import observe.model.arb.ObserveModelArbitraries.given
@@ -30,7 +30,7 @@ import ArbObserveStep.given
 trait ArbExecutionState:
   given Arbitrary[ExecutionState] = Arbitrary:
     for
-      sequenceState   <- arbitrary[SequenceState]
+      sequenceStatus  <- arbitrary[SequenceStatus]
       observer        <- arbitrary[Option[Observer]]
       sequenceType    <- arbitrary[SequenceType]
       step            <- arbitrary[Option[ObserveStep]]
@@ -39,7 +39,7 @@ trait ArbExecutionState:
       systemOverrides <- arbitrary[SystemOverrides]
       breakpoints     <- arbitrary[Set[Step.Id]]
     yield ExecutionState(
-      sequenceState,
+      sequenceStatus,
       observer,
       sequenceType,
       step,
@@ -52,7 +52,7 @@ trait ArbExecutionState:
   given Cogen[ExecutionState] =
     Cogen[
       (
-        SequenceState,
+        SequenceStatus,
         Option[Observer],
         SequenceType,
         Option[ObserveStep],
@@ -62,7 +62,7 @@ trait ArbExecutionState:
         List[Step.Id]
       )
     ].contramap: x =>
-      (x.sequenceState,
+      (x.sequenceStatus,
        x.observer,
        x.sequenceType,
        x.runningStep,

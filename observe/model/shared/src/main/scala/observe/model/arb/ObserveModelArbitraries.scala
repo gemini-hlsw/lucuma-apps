@@ -81,23 +81,23 @@ trait ObserveModelArbitraries {
     } yield SequenceMetadata(i, o, n)
   }
 
-  import SequenceState.*
+  import SequenceStatus.*
 
-  given Arbitrary[SequenceState.Running] = Arbitrary[SequenceState.Running] {
+  given Arbitrary[SequenceStatus.Running] = Arbitrary[SequenceStatus.Running] {
     for {
       u <- arbitrary[HasUserStop]
       i <- arbitrary[HasInternalStop]
       w <- arbitrary[IsWaitingUserPrompt]
       a <- arbitrary[IsWaitingNextStep]
       s <- arbitrary[IsStarting]
-    } yield SequenceState.Running(u, i, w, a, s)
+    } yield SequenceStatus.Running(u, i, w, a, s)
   }
 
-  given Arbitrary[SequenceState] = Arbitrary[SequenceState] {
+  given Arbitrary[SequenceStatus] = Arbitrary[SequenceStatus] {
     for {
-      f <- Gen.oneOf(SequenceState.Completed, SequenceState.Idle)
-      r <- arbitrary[SequenceState.Running]
-      a <- arbitrary[String].map(SequenceState.Failed.apply)
+      f <- Gen.oneOf(SequenceStatus.Completed, SequenceStatus.Idle)
+      r <- arbitrary[SequenceStatus.Running]
+      a <- arbitrary[String].map(SequenceStatus.Failed.apply)
       s <- Gen.oneOf(f, r, a)
     } yield s
   }
@@ -115,7 +115,7 @@ trait ObserveModelArbitraries {
     for {
       id <- arbitrary[Observation.Id]
       m  <- arbitrary[SequenceMetadata]
-      s  <- arbitrary[SequenceState]
+      s  <- arbitrary[SequenceStatus]
       o  <- arbitrary[SystemOverrides]
       st <- arbitrary[SequenceType]
       t  <- arbitrary[Option[ObserveStep]]
@@ -129,7 +129,7 @@ trait ObserveModelArbitraries {
   given Cogen[ActionType] =
     Cogen[String].contramap(_.productPrefix)
 
-  given Cogen[SequenceState] =
+  given Cogen[SequenceStatus] =
     Cogen[String].contramap(_.productPrefix)
 
   given Cogen[SequenceMetadata] =
@@ -147,7 +147,7 @@ trait ObserveModelArbitraries {
       (
         Observation.Id,
         SequenceMetadata,
-        SequenceState,
+        SequenceStatus,
         SystemOverrides,
         SequenceType,
         Option[ObserveStep],

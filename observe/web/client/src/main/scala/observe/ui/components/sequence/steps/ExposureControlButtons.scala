@@ -14,7 +14,7 @@ import lucuma.react.fa.IconSize
 import lucuma.react.primereact.*
 import lucuma.typed.primereact.components.ButtonGroup
 import lucuma.ui.sequence.SequenceIcons
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.operations.*
 import observe.model.operations.Operations.*
 import observe.ui.Icons
@@ -30,7 +30,7 @@ import observe.ui.services.SequenceApi
 case class ExposureControlButtons(
   obsId:          Observation.Id,
   instrument:     Instrument,
-  sequenceState:  SequenceState,
+  sequenceStatus: SequenceStatus,
   stepId:         Step.Id,
   isPausedInStep: Boolean,
   isExposure:     Boolean,
@@ -40,9 +40,9 @@ case class ExposureControlButtons(
   val operations: List[Operations] =
     instrument.operations(OperationLevel.Observation, isPausedInStep, isMultiLevel)
 
-  val isRunning: Boolean = sequenceState.isRunning
+  val isRunning: Boolean = sequenceStatus.isRunning
 
-  val isStopRequested: Boolean = sequenceState.isStopRequested
+  val isStopRequested: Boolean = sequenceStatus.isStopRequested
 
   val requestInFlight: Boolean = requests.stepRequestInFlight
 

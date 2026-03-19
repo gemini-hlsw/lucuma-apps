@@ -16,7 +16,7 @@ import observe.model.enums.Resource
 case class SequenceView(
   obsId:           Observation.Id,
   metadata:        SequenceMetadata,
-  status:          SequenceState,
+  status:          SequenceStatus,
   systemOverrides: SystemOverrides,
   sequenceType:    SequenceType,
   runningStep:     Option[ObserveStep],
@@ -34,9 +34,9 @@ case class SequenceView(
   // // Returns where on the sequence the execution is at
   // def runningStepProgress: Option[RunningStepProgress] =
   //   status match
-  //     case SequenceState.Running(_, _, _, _, _) => progress
-  //     case SequenceState.Failed(_)              => progress
-  //     case SequenceState.Aborted                => progress
+  //     case SequenceStatus.Running(_, _, _, _, _) => progress
+  //     case SequenceStatus.Failed(_)              => progress
+  //     case SequenceStatus.Aborted                => progress
   //     case _                                    => none
 
   def pausedStep: Option[PausedStep] =

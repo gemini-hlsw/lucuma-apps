@@ -26,7 +26,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.StepState
 import observe.ui.Icons
 import observe.ui.ObserveStyles
@@ -191,8 +191,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         _                        <-
           // When sequence changes state or step, auto scroll to running step.
           useEffectWithDeps(
-            (props.executionState.sequenceState.isRunning,
-             props.executionState.sequenceState.isWaitingUserPrompt,
+            (props.executionState.sequenceStatus.isRunning,
+             props.executionState.sequenceStatus.isWaitingUserPrompt,
              props.runningStepId
             )
           ): (_, _, runningStepId) =>
@@ -201,12 +201,12 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
             scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
         _                        <- // If sequence completes, expand last visit.
-          useEffectWithDeps(props.executionState.sequenceState):
-            case SequenceState.Completed =>
+          useEffectWithDeps(props.executionState.sequenceStatus):
+            case SequenceStatus.Completed =>
               table.modExpanded:
                 case Expanded.AllRows    => Expanded.AllRows
                 case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
-            case _                       => Callback.empty
+            case _                        => Callback.empty
       yield
         extension (step: SequenceRow[D])
           def isSelected: Boolean =

@@ -13,8 +13,8 @@ import lucuma.core.model.sequence.Step
 import monocle.Optional
 import mouse.boolean.*
 import observe.model.Observation
-import observe.model.SequenceState
-import observe.model.SequenceState.*
+import observe.model.SequenceStatus
+import observe.model.SequenceStatus.*
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
@@ -38,7 +38,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   /**
    * Changes the `Status` and returns the new `Queue.State`.
    */
-  private def switch(obsId: Observation.Id)(st: SequenceState): EngineHandle[F, Unit] =
+  private def switch(obsId: Observation.Id)(st: SequenceStatus): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(obsId)(Sequence.State.status.replace(st))
 
   def start(obsId: Observation.Id): EngineHandle[F, Unit] =
@@ -47,7 +47,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         {
           EngineHandle.replaceSequenceState(obsId)(
             Sequence.State.status.replace(
-              SequenceState.Running(
+              SequenceStatus.Running(
                 userStop = HasUserStop.No,
                 internalStop = HasInternalStop.No,
                 waitingUserPrompt = IsWaitingUserPrompt.No,
@@ -143,7 +143,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         seqState
           .map { seq =>
             seq.status match {
-              case SequenceState.Running(userStop, internalStop, _, _, _) =>
+              case SequenceStatus.Running(userStop, internalStop, _, _, _) =>
                 seq.next match {
                   // Empty state
                   case None                               =>
@@ -152,11 +152,11 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                   case Some(qs) if qs.currentStep.isEmpty =>
                     EngineHandle.replaceSequenceState(obsId)(qs) *>
                       (if (userStop || internalStop)
-                         switch(obsId)(SequenceState.Idle) *>
+                         switch(obsId)(SequenceStatus.Idle) *>
                            send(Event.sequencePaused(obsId))
                        else
                          switch(obsId)(
-                           SequenceState.Running(
+                           SequenceStatus.Running(
                              userStop,
                              internalStop,
                              waitingUserPrompt = IsWaitingUserPrompt.No,
@@ -172,10 +172,10 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                          qs.getCurrentBreakpoint && !qs.current.execution
                            .exists(_.uninterruptible)
                        ) {
-                         switch(obsId)(SequenceState.Idle) *> send(Event.breakpointReached(obsId))
+                         switch(obsId)(SequenceStatus.Idle) *> send(Event.breakpointReached(obsId))
                        } else send(Event.executing(obsId)))
                 }
-              case _                                                      => EngineHandle.unit
+              case _                                                       => EngineHandle.unit
             }
           }
           .getOrElse(EngineHandle.unit)
@@ -188,21 +188,21 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         seqState
           .map { seq =>
             seq.status match {
-              case SequenceState
+              case SequenceStatus
                     .Running(userStop, internalStop, _, IsWaitingNextStep.Yes, isStarting) =>
                 if (!isStarting && (userStop || internalStop)) {
                   if (seq.currentStep.isEmpty)
                     send(Event.finished(obsId))
                   else
-                    switch(obsId)(SequenceState.Idle)
+                    switch(obsId)(SequenceStatus.Idle)
                 } else {
                   if (seq.currentStep.isEmpty)
                     send(Event.finished(obsId))
                   else if (!isStarting && seq.getCurrentBreakpoint)
-                    switch(obsId)(SequenceState.Idle) *> send(Event.breakpointReached(obsId))
+                    switch(obsId)(SequenceStatus.Idle) *> send(Event.breakpointReached(obsId))
                   else
                     switch(obsId)(
-                      SequenceState.Running(
+                      SequenceStatus.Running(
                         userStop,
                         internalStop,
                         IsWaitingUserPrompt.No,
@@ -331,7 +331,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
     r:     Result.OKAborted[R]
   ): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState[F](obsId)(_.mark(i)(r)) *>
-      switch(obsId)(SequenceState.Aborted)
+      switch(obsId)(SequenceStatus.Aborted)
 
   private def partialResult[R <: PartialVal](
     obsId: Observation.Id,
@@ -367,7 +367,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
    */
   private def fail(obsId: Observation.Id)(i: Int, e: Result.Error): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState[F](obsId)(_.mark(i)(e)) *>
-      switch(obsId)(SequenceState.Failed(e.msg))
+      switch(obsId)(SequenceStatus.Failed(e.msg))
 
   private def logError(e: Result.Error): EngineHandle[F, Unit] = error(e.errMsg.getOrElse(e.msg))
 
@@ -489,7 +489,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case SequenceComplete(obsId)       =>
         debug("Engine: Finished") *>
-          switch(obsId)(SequenceState.Completed) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          switch(obsId)(SequenceStatus.Completed) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case SingleRunCompleted(c, r)      =>
         debug(s"Engine: single action $c completed with result $r") *>
           completeSingleRun(c, r.response) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))

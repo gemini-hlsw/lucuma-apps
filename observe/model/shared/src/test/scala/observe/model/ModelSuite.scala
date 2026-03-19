@@ -41,7 +41,7 @@ class ModelSuite extends munit.DisciplineSuite:
   checkAll("Eq[NsSubexposure]", EqTests[NsSubexposure].eqv)
   checkAll("Eq[NodAndShuffleStatus]", EqTests[NodAndShuffleStatus].eqv)
   checkAll("Eq[ObserveStep.NodAndShuffle]", EqTests[ObserveStep.NodAndShuffle].eqv)
-  checkAll("Eq[SequenceState]", EqTests[SequenceState].eqv)
+  checkAll("Eq[SequenceStatus]", EqTests[SequenceStatus].eqv)
   checkAll("Eq[ActionType]", EqTests[ActionType].eqv)
   checkAll("Eq[SequenceMetadata]", EqTests[SequenceMetadata].eqv)
   checkAll("Eq[SequenceView]", EqTests[SequenceView].eqv)

@@ -17,7 +17,7 @@ import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.sequence.SequenceIcons
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.SubsystemEnabled
 import observe.model.SystemOverrides
 import observe.model.enums.*
@@ -42,12 +42,12 @@ case class SubsystemControls(
   subsystems:        List[Resource | Instrument],
   subsystemStatus:   Map[Resource | Instrument, ActionStatus],
   subsystemRequests: Map[Resource | Instrument, OperationRequest],
-  sequenceState:     SequenceState,
+  sequenceStatus:    SequenceStatus,
   systemOverrides:   SystemOverrides,
   clientMode:        ClientMode
 ) extends ReactFnProps(SubsystemControls):
   private val canOperate: Boolean =
-    clientMode.canOperate && sequenceState.isIdle
+    clientMode.canOperate && sequenceStatus.isIdle
 
   private def subsystemState(subsystem: Resource | Instrument): (ActionStatus, OperationRequest) =
     (subsystemStatus.getOrElse(subsystem, ActionStatus.Pending),

@@ -38,8 +38,8 @@ import observe.model.ClientId
 import observe.model.Conditions
 import observe.model.Observer
 import observe.model.Operator
-import observe.model.SequenceState
-import observe.model.SequenceState.*
+import observe.model.SequenceStatus
+import observe.model.SequenceStatus.*
 import observe.model.SystemOverrides
 import observe.model.UserPrompt
 import observe.model.dhs.DataId
@@ -188,7 +188,7 @@ class ObserveEngineSuite extends TestCommon {
         EngineState
           .sequenceStateAt[IO](seqObsId1)
           .andThen(Sequence.State.status[IO])
-          .replace(SequenceState.Running.Init)
+          .replace(SequenceStatus.Running.Init)
     ).apply(EngineState.default[IO])
 
     (for {
@@ -216,7 +216,7 @@ class ObserveEngineSuite extends TestCommon {
         EngineState
           .sequenceStateAt[IO](seqObsId1)
           .andThen(Sequence.State.status[IO])
-          .replace(SequenceState.Running.Init)
+          .replace(SequenceStatus.Running.Init)
     ).apply(EngineState.default[IO])
 
     (for {
@@ -276,7 +276,7 @@ class ObserveEngineSuite extends TestCommon {
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine
@@ -312,7 +312,7 @@ class ObserveEngineSuite extends TestCommon {
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine
@@ -346,7 +346,7 @@ class ObserveEngineSuite extends TestCommon {
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine

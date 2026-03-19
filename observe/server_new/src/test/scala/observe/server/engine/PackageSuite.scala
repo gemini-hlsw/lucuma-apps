@@ -23,7 +23,7 @@ import observe.common.test.stepId
 import observe.model.ActionType
 import observe.model.ClientId
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.enums.Resource
 import observe.model.enums.Resource.TCS
 import observe.server.EngineState
@@ -111,11 +111,11 @@ class PackageSuite extends munit.CatsEffectSuite {
     (eng, obsId, _) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
-  def isFinished(status: SequenceState): Boolean = status match {
-    case SequenceState.Idle      => true
-    case SequenceState.Completed => true
-    case SequenceState.Failed(_) => true
-    case _                       => false
+  def isFinished(status: SequenceStatus): Boolean = status match {
+    case SequenceStatus.Idle      => true
+    case SequenceStatus.Completed => true
+    case SequenceStatus.Failed(_) => true
+    case _                        => false
   }
 
   def runToCompletion(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
@@ -154,7 +154,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     val qs = runToCompletion(qs1)
     qs.map(
       _.exists(s =>
-        s.sequences(seqId).seq.status === SequenceState.Completed &&
+        s.sequences(seqId).seq.status === SequenceStatus.Completed &&
           s.sequences(seqId).seq.currentStep.isEmpty
       )
     ).assert
@@ -229,7 +229,7 @@ class PackageSuite extends munit.CatsEffectSuite {
           x.sequences(seqId).seq.current.actions.isEmpty && (x
             .sequences(seqId)
             .seq
-            .status === SequenceState.Completed)
+            .status === SequenceStatus.Completed)
         )
       )
       .assert

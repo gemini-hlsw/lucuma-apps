@@ -22,7 +22,7 @@ case class ObsHeader(
   observation:      ObsSummary,
   loadedObsId:      Option[Pot[Observation.Id]],
   refreshing:       Pot[View[Boolean]],
-  sequenceState:    SequenceState,
+  sequenceStatus:   SequenceStatus,
   requests:         ObservationRequests,
   overrides:        Option[View[SystemOverrides]],
   observer:         View[Option[Observer]],
@@ -39,7 +39,7 @@ object ObsHeader
             SeqControlButtons(
               props.observation.obsId,
               props.refreshing,
-              props.sequenceState,
+              props.sequenceStatus,
               props.requests
             ),
             s"${props.observation.title} [${props.observation.refAndId}]",

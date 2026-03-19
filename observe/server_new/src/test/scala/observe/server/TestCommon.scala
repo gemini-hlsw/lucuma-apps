@@ -62,7 +62,7 @@ import observe.model.ActionType
 import observe.model.ClientId
 import observe.model.Conditions
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.config.*
 import observe.model.dhs.*
@@ -124,11 +124,11 @@ trait TestCommon extends munit.CatsEffectSuite {
       .last)
       .map(_.map(_._2))
 
-  def isFinished(status: SequenceState): Boolean = status match {
-    case SequenceState.Idle      => true
-    case SequenceState.Completed => true
-    case SequenceState.Failed(_) => true
-    case _                       => false
+  def isFinished(status: SequenceStatus): Boolean = status match {
+    case SequenceStatus.Idle      => true
+    case SequenceStatus.Completed => true
+    case SequenceStatus.Failed(_) => true
+    case _                        => false
   }
 
 }

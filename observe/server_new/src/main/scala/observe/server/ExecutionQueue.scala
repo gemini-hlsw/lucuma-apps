@@ -9,7 +9,7 @@ import monocle.Focus
 import monocle.Lens
 import observe.model.BatchCommandState
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.enums.Resource
 import observe.server.ExecutionQueue.SequenceInQueue
 
@@ -23,7 +23,7 @@ object ExecutionQueue {
   case class SequenceInQueue(
     obsId:      Observation.Id,
     instrument: Instrument,
-    state:      SequenceState,
+    state:      SequenceStatus,
     resources:  Set[Resource | Instrument]
   )
 

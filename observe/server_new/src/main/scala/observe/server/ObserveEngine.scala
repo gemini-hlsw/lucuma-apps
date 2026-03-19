@@ -454,9 +454,9 @@ object ObserveEngine {
             )
 
           // Revive sequence if it was completed - or complete if no more steps
-          val newStatus: SequenceState =
-            if seqData.seq.status.isCompleted && stepGen.nonEmpty then SequenceState.Idle
-            else if stepGen.isEmpty then SequenceState.Completed
+          val newStatus: SequenceStatus =
+            if seqData.seq.status.isCompleted && stepGen.nonEmpty then SequenceStatus.Idle
+            else if stepGen.isEmpty then SequenceStatus.Completed
             else seqData.seq.status
 
           SequenceData.seq.replace(Sequence.State.status.replace(newStatus)(newSeqState))(seqData)

@@ -13,9 +13,9 @@ import munit.CatsEffectSuite
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.ClientId
-import observe.model.SequenceState
-import observe.model.SequenceState.*
-import observe.model.SequenceState.HasUserStop
+import observe.model.SequenceStatus
+import observe.model.SequenceStatus.*
+import observe.model.SequenceStatus.HasUserStop
 import observe.model.StepState
 import observe.model.enums.Resource
 import observe.server.EngineState
@@ -179,12 +179,12 @@ class StepSuite extends CatsEffectSuite {
     } yield Result.OK(DummyResult)
   )
 
-  def isFinished(status: SequenceState): Boolean = status match {
-    case SequenceState.Idle      => true
-    case SequenceState.Completed => true
-    case SequenceState.Failed(_) => true
-    case SequenceState.Aborted   => true
-    case _                       => false
+  def isFinished(status: SequenceStatus): Boolean = status match {
+    case SequenceStatus.Idle      => true
+    case SequenceStatus.Completed => true
+    case SequenceStatus.Failed(_) => true
+    case SequenceStatus.Aborted   => true
+    case _                        => false
   }
 
   private def runToCompletioIO(s0: EngineState[IO]) =
@@ -249,7 +249,7 @@ class StepSuite extends CatsEffectSuite {
       l.map(_.seq).exists { s =>
         // After pause, the step should still be in progress (observe execution pending)
         // and sequence status should be Idle (paused)
-        s.currentStep.isDefined && s.status === SequenceState.Idle
+        s.currentStep.isDefined && s.status === SequenceStatus.Idle
       }
     }.assert
 
@@ -264,7 +264,7 @@ class StepSuite extends CatsEffectSuite {
         seqId,
         Sequence.State[IO](
           obsId = observationId(1),
-          status = SequenceState.Idle,
+          status = SequenceStatus.Idle,
           currentStep = Some(
             EngineStep.Zipper(
               id = stepId(2),
@@ -313,7 +313,7 @@ class StepSuite extends CatsEffectSuite {
         seqId,
         Sequence.State[IO](
           obsId = observationId(1),
-          status = SequenceState.Running(
+          status = SequenceStatus.Running(
             HasUserStop.Yes,
             HasInternalStop.No,
             IsWaitingUserPrompt.No,
@@ -396,7 +396,7 @@ class StepSuite extends CatsEffectSuite {
               ).actions.length == 1
             case _                             => false
           }
-        } && (s.status === SequenceState.Idle)
+        } && (s.status === SequenceStatus.Idle)
       }
     }.assert
   }
@@ -448,7 +448,7 @@ class StepSuite extends CatsEffectSuite {
         .flatMap(_._2.sequences.get(seqId))
         .map(_.seq)
         .exists { s =>
-          s.currentStep.isEmpty && s.status === SequenceState.Completed
+          s.currentStep.isEmpty && s.status === SequenceStatus.Completed
         }
     }.assert
   }
@@ -488,7 +488,7 @@ class StepSuite extends CatsEffectSuite {
               ).results.length == 1 && Execution(ex3.toList).actions.length == 1
             case _                                  => false
           }
-        } && (s.status == SequenceState.Failed(errMsg)) // And that it ended in error
+        } && (s.status == SequenceStatus.Failed(errMsg)) // And that it ended in error
       }
     }.assert
   }
@@ -519,7 +519,7 @@ class StepSuite extends CatsEffectSuite {
 
     qs1.map { x =>
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
-        s.currentStep.isEmpty && s.status === SequenceState.Completed
+        s.currentStep.isEmpty && s.status === SequenceStatus.Completed
       }
     }.assert *>
       ref.get.map(_ === 1).assert
@@ -549,7 +549,7 @@ class StepSuite extends CatsEffectSuite {
     qs1.map { x =>
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
         // And that it ended in aborted
-        s.status === SequenceState.Aborted
+        s.status === SequenceStatus.Aborted
       }
     }.assert
   }
@@ -579,7 +579,7 @@ class StepSuite extends CatsEffectSuite {
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
         // Without the error we should have a value 2
         // And that it ended in error
-        s.status === SequenceState.Failed(errMsg)
+        s.status === SequenceStatus.Failed(errMsg)
       }
     }.assert
   }
@@ -662,7 +662,7 @@ class StepSuite extends CatsEffectSuite {
       }
       val b  = x.lastOption.flatMap(_.sequences.get(seqId)).map(_.seq) match {
         case Some(s) =>
-          s.currentStep.isEmpty && s.status === SequenceState.Completed
+          s.currentStep.isEmpty && s.status === SequenceStatus.Completed
         case _       => false
       }
       a && b

@@ -10,7 +10,6 @@ import monocle.Lens
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.server.engine.Breakpoints
-import observe.server.engine.BreakpointsDelta
 import observe.server.engine.Engine
 import observe.server.engine.Sequence
 import observe.server.odb.OdbObservationData

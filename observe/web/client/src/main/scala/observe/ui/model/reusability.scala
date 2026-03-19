@@ -16,7 +16,7 @@ import observe.model.ClientConfig
 import observe.model.ExecutionState
 import observe.model.NodAndShuffleStatus
 import observe.model.RunningStepProgress
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.ui.components.sequence.steps.CurrentAtomStepRow
 import observe.ui.model.enums.ClientMode
@@ -26,7 +26,7 @@ import observe.ui.model.enums.OperationRequest
 
 object reusability:
   given Reusability[ClientMode]                            = Reusability.byEq
-  given Reusability[SequenceState]                         = Reusability.byEq
+  given Reusability[SequenceStatus]                        = Reusability.byEq
   given Reusability[ObservationRequests]                   = Reusability.byEq
   given Reusability[ObsClass]                              = Reusability.byEq
   given Reusability[OffsetsDisplay]                        = Reusability.byEq
@@ -39,7 +39,7 @@ object reusability:
   given Reusability[PersistentClientStatus]                = Reusability.byEq
   given Reusability[StepProgress]                          = Reusability.byEq
   given Reusability[OperationRequest]                      = Reusability.byEq
-  given Reusability[Map[Observation.Id, SequenceState]]    = Reusability.map
+  given Reusability[Map[Observation.Id, SequenceStatus]]   = Reusability.map
   given Reusability[RootModelData]                         = Reusability.byEq
   // Since we extend the hierarchy here, we need to provide this instance manually
   given [D: Eq]: Reusability[SequenceRow[D]]               = Reusability:

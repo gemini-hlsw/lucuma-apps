@@ -3,11 +3,11 @@
 
 package observe.ui.components.sequence.steps
 
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.ui.model.enums.ClientMode
 
 sealed trait ControlButtonResolver[A]:
-  def extractor(a: A): (ClientMode, SequenceState, Boolean) // ExecutionStep)
+  def extractor(a: A): (ClientMode, SequenceStatus, Boolean) // ExecutionStep)
 
   def controlButtonsActive(a: A): Boolean =
     val (clientMode, state, isRunningStep) = extractor(a)
@@ -15,10 +15,10 @@ sealed trait ControlButtonResolver[A]:
 
 object ControlButtonResolver:
   def build[A](
-    extractorFn: A => (ClientMode, SequenceState, Boolean)
+    extractorFn: A => (ClientMode, SequenceStatus, Boolean)
   ): ControlButtonResolver[A] =
     new ControlButtonResolver[A]:
-      override def extractor(a: A): (ClientMode, SequenceState, Boolean) = extractorFn(a)
+      override def extractor(a: A): (ClientMode, SequenceStatus, Boolean) = extractorFn(a)
 
 extension [A](a: A)(using resolver: ControlButtonResolver[A])
   def controlButtonsActive: Boolean =
