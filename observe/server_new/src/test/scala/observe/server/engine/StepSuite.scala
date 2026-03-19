@@ -216,7 +216,7 @@ class StepSuite extends CatsEffectSuite {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -262,7 +262,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State[IO](
+        SequenceState[IO](
           obsId = observationId(1),
           status = SequenceStatus.Idle,
           currentStep = Some(
@@ -311,7 +311,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State[IO](
+        SequenceState[IO](
           obsId = observationId(1),
           status = SequenceStatus.Running(
             HasUserStop.Yes,
@@ -360,7 +360,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -406,7 +406,7 @@ class StepSuite extends CatsEffectSuite {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -459,7 +459,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -501,7 +501,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -530,7 +530,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -559,7 +559,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -589,7 +589,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(
@@ -616,7 +616,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        Sequence.State.init(
+        SequenceState.init(
           Sequence(
             obsId = seqId,
             loadedStep = EngineStep(

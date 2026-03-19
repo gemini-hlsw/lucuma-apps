@@ -448,8 +448,8 @@ object ObserveEngine {
                 HeaderExtraData(st.conditions, st.operator, seqData.observer)
               )._1
 
-          val newSeqState: Sequence.State[F] =
-            Sequence.State.init(
+          val newSeqState: SequenceState[F] =
+            SequenceState.init(
               Sequence(obsId, newStep, seqData.seq.breakpoints)
             )
 
@@ -459,7 +459,8 @@ object ObserveEngine {
             else if stepGen.isEmpty then SequenceStatus.Completed
             else seqData.seq.status
 
-          SequenceData.seq.replace(Sequence.State.status.replace(newStatus)(newSeqState))(seqData)
+          SequenceData.seq
+            .replace(SequenceState.status.replace(newStatus)(newSeqState))(seqData)
         }(st)
 
   def tryNewStep[F[_]: MonadCancelThrow](

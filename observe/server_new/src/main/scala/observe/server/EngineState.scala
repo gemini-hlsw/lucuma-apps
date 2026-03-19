@@ -16,7 +16,7 @@ import observe.model.Conditions
 import observe.model.Observation
 import observe.model.Operator
 import observe.server.engine.Engine
-import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 
 case class EngineState[F[_]](
   queues:     ExecutionQueues,
@@ -119,7 +119,9 @@ object EngineState {
         else es
     )
 
-  def sequenceStateAt[F[_]](obsId: Observation.Id): Optional[EngineState[F], Sequence.State[F]] =
+  def sequenceStateAt[F[_]](
+    obsId: Observation.Id
+  ): Optional[EngineState[F], SequenceState[F]] =
     sequenceDataAt(obsId).andThen(SequenceData.seq)
 
   def engineState[F[_]]: Engine.State[F, EngineState[F]] =

@@ -15,7 +15,7 @@ import org.scalacheck.Cogen
 
 final class EngineSpec extends munit.DisciplineSuite {
 
-  given Eq[Sequence.State[IO]] = Eq.fromUniversalEquals
+  given Eq[SequenceState[IO]] = Eq.fromUniversalEquals
 
   given Arbitrary[Sequence[IO]] = Arbitrary {
     for {
@@ -23,11 +23,11 @@ final class EngineSpec extends munit.DisciplineSuite {
     } yield Sequence(id, None, Breakpoints.empty)
   }
 
-  given Arbitrary[Sequence.State[IO]] = Arbitrary {
+  given Arbitrary[SequenceState[IO]] = Arbitrary {
     for {
       seq <- arbitrary[Sequence[IO]]
       st  <- arbitrary[SequenceStatus]
-    } yield Sequence.State[IO](
+    } yield SequenceState[IO](
       obsId = seq.obsId,
       status = st,
       currentStep = None,
@@ -36,7 +36,7 @@ final class EngineSpec extends munit.DisciplineSuite {
     )
   }
 
-  given Cogen[Sequence.State[IO]] =
+  given Cogen[SequenceState[IO]] =
     Cogen[Observation.Id].contramap(_.obsId)
 
 }

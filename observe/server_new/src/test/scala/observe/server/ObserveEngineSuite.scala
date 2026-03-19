@@ -51,7 +51,7 @@ import observe.server.SeqEvent.RequestConfirmation
 import observe.server.engine.EventResult
 import observe.server.engine.EventResult.Outcome
 import observe.server.engine.EventResult.SystemUpdate
-import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 import observe.server.engine.SystemEvent
 import observe.server.engine.user
 import observe.server.odb.TestOdbProxy
@@ -187,7 +187,7 @@ class ObserveEngineSuite extends TestCommon {
         ) >>>
         EngineState
           .sequenceStateAt[IO](seqObsId1)
-          .andThen(Sequence.State.status[IO])
+          .andThen(SequenceState.status[IO])
           .replace(SequenceStatus.Running.Init)
     ).apply(EngineState.default[IO])
 
@@ -215,7 +215,7 @@ class ObserveEngineSuite extends TestCommon {
         ) >>>
         EngineState
           .sequenceStateAt[IO](seqObsId1)
-          .andThen(Sequence.State.status[IO])
+          .andThen(SequenceState.status[IO])
           .replace(SequenceStatus.Running.Init)
     ).apply(EngineState.default[IO])
 
@@ -275,7 +275,7 @@ class ObserveEngineSuite extends TestCommon {
     ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
+        .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
@@ -311,7 +311,7 @@ class ObserveEngineSuite extends TestCommon {
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
+        .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
@@ -345,7 +345,7 @@ class ObserveEngineSuite extends TestCommon {
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
+        .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {

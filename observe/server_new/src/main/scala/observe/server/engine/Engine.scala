@@ -39,14 +39,14 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
    * Changes the `Status` and returns the new `Queue.State`.
    */
   private def switch(obsId: Observation.Id)(st: SequenceStatus): EngineHandle[F, Unit] =
-    EngineHandle.modifySequenceState(obsId)(Sequence.State.status.replace(st))
+    EngineHandle.modifySequenceState(obsId)(SequenceState.status.replace(st))
 
   def start(obsId: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.getSequenceState(obsId).flatMap {
       case Some(seq) =>
         {
           EngineHandle.replaceSequenceState(obsId)(
-            Sequence.State.status.replace(
+            SequenceState.status.replace(
               SequenceStatus.Running(
                 userStop = HasUserStop.No,
                 internalStop = HasInternalStop.No,
@@ -63,10 +63,10 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
     }
 
   def pause(id: Observation.Id): EngineHandle[F, Unit] =
-    EngineHandle.modifySequenceState(id)(Sequence.State.userStopSet(HasUserStop.Yes))
+    EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.Yes))
 
   private def cancelPause(id: Observation.Id): EngineHandle[F, Unit] =
-    EngineHandle.modifySequenceState(id)(Sequence.State.userStopSet(HasUserStop.No))
+    EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.No))
 
   def startSingle(c: ActionCoords): EngineHandle[F, Outcome] =
     EngineHandle.getState.flatMap { st =>
@@ -114,7 +114,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   def canUnload(obsId: Observation.Id)(st: EngineState[F]): Boolean =
     EngineState.sequenceStateAt(obsId).getOption(st).forall(canUnload)
 
-  def canUnload(seq: Sequence.State[F]): Boolean = Sequence.State.canUnload(seq)
+  def canUnload(seq: SequenceState[F]): Boolean = SequenceState.canUnload(seq)
 
   /**
    * Refresh the steps executions of an existing sequence. Does not add nor remove steps.
@@ -127,7 +127,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   def update(obsId: Observation.Id, step: Option[EngineStep[F]]): Endo[EngineState[F]] =
     EngineState.sequenceStateAt(obsId).modify(_.update(step.map(_.executions)))
 
-  def updateStep(step: Option[EngineStep[F]]): Endo[Sequence.State[F]] =
+  def updateStep(step: Option[EngineStep[F]]): Endo[SequenceState[F]] =
     _.update(step.map(_.executions))
 
   /**
@@ -282,9 +282,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       .flatMap(_.map { s =>
         (EngineHandle.fromEventStream(f) >>
           EngineHandle.modifySequenceState(obsId)(
-            Sequence.State.internalStopSet(HasInternalStop.Yes)
+            SequenceState.internalStopSet(HasInternalStop.Yes)
           ))
-          .whenA(Sequence.State.isRunning(s))
+          .whenA(SequenceState.isRunning(s))
       }.getOrElse(EngineHandle.unit))
 
   /**
@@ -342,7 +342,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
 
   def actionPause(id: Observation.Id, i: Int, p: Result.Paused): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(s =>
-      Sequence.State.internalStopSet(HasInternalStop.No)(s).mark(i)(p)
+      SequenceState.internalStopSet(HasInternalStop.No)(s).mark(i)(p)
     )
 
   private def actionResume(
@@ -355,7 +355,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       .flatMap(_.collect {
         case s
             if s.currentStep.exists(z =>
-              Sequence.State.isRunning(s) && s.current.execution.lift(i).exists(Action.paused)
+              SequenceState
+                .isRunning(s) && s.current.execution.lift(i).exists(Action.paused)
             ) =>
           EngineHandle.modifySequenceState[F](obsId)(_.start(i)) *>
             EngineHandle.fromEventStream(act(obsId, s.currentStep.get.id, (cont, i)))
@@ -559,7 +560,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
 object Engine {
 
   trait State[F[_], D] {
-    def sequenceStateIndex(sid: Observation.Id): Optional[D, Sequence.State[F]]
+    def sequenceStateIndex(sid: Observation.Id): Optional[D, SequenceState[F]]
   }
 
   trait Types[S, E] {
@@ -567,17 +568,17 @@ object Engine {
     type EventData = E
   }
 
-  def initialSequenceState[F[_]](seq: Sequence[F]): Sequence.State[F] =
-    Sequence.State.init(seq)
+  def initialSequenceState[F[_]](seq: Sequence[F]): SequenceState[F] =
+    SequenceState.init(seq)
 
   /**
    * Redefines an existing sequence. Changes the step actions, removes steps, adds new steps.
    */
   def reload[F[_]](
-    oldSeqState: Sequence.State[F],
+    oldSeqState: SequenceState[F],
     step:        Option[EngineStep[F]]
-  ): Sequence.State[F] =
-    Sequence.State.reload(step, oldSeqState)
+  ): SequenceState[F] =
+    SequenceState.reload(step, oldSeqState)
 
   def build[F[_]: {Concurrent, Logger}](
     loadNextStep:   (Engine[F], Observation.Id) => EngineHandle[F, SeqEvent],
