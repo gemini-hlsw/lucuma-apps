@@ -97,6 +97,7 @@ object Igrins2LongslitConfigPanel
                   .andThen(Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign))
             )
             .view(_.orUnassign)
+            .withOnMod(_ => props.sequenceChanged)
 
         val defaultOffsets: NonEmptyList[Offset] =
           NonEmptyList.fromListUnsafe(defaultOffsetsFor(props.observingMode.get.offsetMode))
@@ -106,7 +107,7 @@ object Igrins2LongslitConfigPanel
             // reset offsets if the same as the default
             val newOffsets =
               if nel === defaultOffsets then none else nel.some
-            explicitOffsetsView.set(newOffsets)
+            explicitOffsetsView.set(newOffsets) >> props.sequenceChanged
 
         val isNodAlongSlit = props.observingMode.get.offsetMode === Igrins2OffsetMode.NodAlongSlit
 
@@ -131,7 +132,7 @@ object Igrins2LongslitConfigPanel
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
                 resetToOriginal = true,
-                helpId = Some("configuration/igrins2/offset-mode.md".refined),
+                helpId = Some("configuration/igrins2/offset-mode.md".refined)
               ),
               React.Fragment(
                 <.span(

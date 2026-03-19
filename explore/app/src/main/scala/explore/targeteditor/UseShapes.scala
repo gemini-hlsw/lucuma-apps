@@ -284,7 +284,6 @@ def useVisualizationShapes(
              baseCoords,
              blindOffset,
              vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.flatMap(_.guidedAcqOffsets),
              vizConf.map(_.posAngle),
              vizConf.map(_.configuration),
              vizConf.flatMap(_.trackType),

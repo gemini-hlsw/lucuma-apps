@@ -11,7 +11,9 @@ import crystal.react.*
 import crystal.react.hooks.*
 import explore.*
 import explore.model.AppContext
+import explore.model.Execution
 import explore.model.Observation
+import explore.model.reusability.given
 import explore.model.syntax.all.needsITC
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CalibrationRole
@@ -40,6 +42,7 @@ object SequenceTileHelper:
 
   protected[sequence] def useLiveSequence(
     obsId:               Observation.Id,
+    obsExecution:        Execution,
     targetIds:           List[Target.Id],
     customSedTimestamps: List[Timestamp],
     calibrationRole:     Option[CalibrationRole]
@@ -81,5 +84,9 @@ object SequenceTileHelper:
           // if the timestamp for a custom sed attachment changes, it means either a new custom sed
           // has been assigned, OR a new version of the custom sed has been uploaded. This is to
           // catch the latter case.
+          refreshSequence.value
+      _                                       <-
+        useEffectWithDeps(obsExecution): _ =>
+          // if the obs execution changes let's refresh
           refreshSequence.value
     yield LiveSequence(visits.state, sequenceData.state)

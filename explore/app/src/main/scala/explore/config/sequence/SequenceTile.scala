@@ -77,6 +77,7 @@ object SequenceTile
         ctx                      <- useContext(AppContext.ctx)
         liveSequence             <- useLiveSequence(
                                       props.obsId,
+                                      props.obsExecution,
                                       props.asterismIds.toList,
                                       props.customSedTimestamps,
                                       props.calibrationRole
