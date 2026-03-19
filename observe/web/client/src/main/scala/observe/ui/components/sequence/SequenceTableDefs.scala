@@ -207,13 +207,13 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             requests = meta.requests,
                             runningStepId = meta.executionState.runningStep.map(_.id),
                             fileIds = step.fileIds,
-                            sequenceState = meta.executionState.sequenceState,
+                            sequenceStatus = meta.executionState.sequenceStatus,
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),
                             subsystemStatus = meta.executionState.stepResources,
-                              // .find(_._1 === stepId)
-                              // .map(_._2.toMap)
-                              // .getOrElse(Map.empty),
+                            // .find(_._1 === stepId)
+                            // .map(_._2.toMap)
+                            // .getOrElse(Map.empty),
                             systemOverrides = meta.executionState.systemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,

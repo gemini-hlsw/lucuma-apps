@@ -23,7 +23,7 @@ import observe.model.enums.Resource
  * recorded ids in the ODB.
  */
 case class ExecutionState(
-  sequenceState:   SequenceState,
+  sequenceStatus:  SequenceStatus,
   observer:        Option[Observer],
   sequenceType:    SequenceType,
   runningStep:     Option[ObserveStep],
@@ -41,10 +41,10 @@ case class ExecutionState(
     runningStep.isDefined || stepResources.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
 
   lazy val isWaitingAcquisitionPrompt: Boolean =
-    sequenceType === SequenceType.Acquisition && sequenceState.isWaitingUserPrompt
+    sequenceType === SequenceType.Acquisition && sequenceStatus.isWaitingUserPrompt
 
 object ExecutionState:
-  val sequenceState: Lens[ExecutionState, SequenceState]                            = Focus[ExecutionState](_.sequenceState)
+  val sequenceStatus: Lens[ExecutionState, SequenceStatus]                          = Focus[ExecutionState](_.sequenceStatus)
   val observer: Lens[ExecutionState, Option[Observer]]                              = Focus[ExecutionState](_.observer)
   val sequenceType: Lens[ExecutionState, SequenceType]                              = Focus[ExecutionState](_.sequenceType)
   val runningStep: Lens[ExecutionState, Option[ObserveStep]]                        = Focus[ExecutionState](_.runningStep)

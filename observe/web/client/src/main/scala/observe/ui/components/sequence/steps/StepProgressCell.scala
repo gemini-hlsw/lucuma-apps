@@ -13,7 +13,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
 import lucuma.ui.sequence.StepTypeDisplay
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
@@ -33,7 +33,7 @@ case class StepProgressCell(
   requests:        ObservationRequests,
   runningStepId:   Option[Step.Id],
   fileIds:         Option[NonEmptyChain[ImageFileId]],
-  sequenceState:   SequenceState,
+  sequenceStatus:  SequenceStatus,
   isPausedInStep:  Boolean,
   subsystemStatus: Map[Resource | Instrument, ActionStatus],
   systemOverrides: SystemOverrides,
@@ -48,7 +48,8 @@ case class StepProgressCell(
 
   // We can have a runningStepId but the state as Idle if last step was aborted.
   private val isRunning: Boolean =
-    requests.subsystemInFlight(stepId) || (runningStepId.contains_(stepId) && !sequenceState.isIdle)
+    requests
+      .subsystemInFlight(stepId) || (runningStepId.contains_(stepId) && !sequenceStatus.isIdle)
 
   val anyError: Boolean =
     subsystemStatus.exists(_._2 === ActionStatus.Failed)
@@ -72,7 +73,7 @@ object StepProgressCell
         ExposureControlButtons(
           props.obsId,
           props.instrument,
-          props.sequenceState,
+          props.sequenceStatus,
           props.stepId,
           props.isPausedInStep,
           props.progress.exists(_.isExposure),
@@ -137,7 +138,7 @@ object StepProgressCell
           props.subsystemStatus.map(_._1).toList,
           props.subsystemStatus,
           props.requests.subsystemRun.getOrElse(props.stepId, Map.empty),
-          props.sequenceState,
+          props.sequenceStatus,
           props.systemOverrides,
           props.clientMode
         ),
@@ -156,7 +157,7 @@ object StepProgressCell
           ObservationProgressBar(
             props.obsId,
             props.stepId,
-            props.sequenceState,
+            props.sequenceStatus,
             props.exposureTime,
             props.progress,
             props.fileIds,

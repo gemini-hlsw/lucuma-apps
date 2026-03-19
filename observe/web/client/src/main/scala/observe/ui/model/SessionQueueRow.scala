@@ -12,12 +12,12 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import observe.model.Observer
 import observe.model.RunningStepProgress
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.ui.model.enums.ObsClass
 
 case class SessionQueueRow(
   obsSummary:    ObsSummary,
-  status:        SequenceState,
+  status:        SequenceStatus,
   observer:      Option[Observer],
   obsClass:      ObsClass,
   loaded:        Boolean,

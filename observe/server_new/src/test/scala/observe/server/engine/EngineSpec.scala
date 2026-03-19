@@ -7,7 +7,7 @@ import cats.Eq
 import cats.effect.IO
 import lucuma.core.util.arb.ArbGid.given
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.arb.ObserveModelArbitraries.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
@@ -26,7 +26,7 @@ final class EngineSpec extends munit.DisciplineSuite {
   given Arbitrary[Sequence.State[IO]] = Arbitrary {
     for {
       seq <- arbitrary[Sequence[IO]]
-      st  <- arbitrary[SequenceState]
+      st  <- arbitrary[SequenceStatus]
     } yield Sequence.State[IO](
       obsId = seq.obsId,
       status = st,

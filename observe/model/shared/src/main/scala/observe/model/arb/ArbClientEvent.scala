@@ -18,15 +18,12 @@ import observe.model.Conditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
-import observe.model.NsRunningState
 import observe.model.ObservationProgress
 import observe.model.Operator
-import observe.model.SequenceState
 import observe.model.SequenceView
 import observe.model.SequencesQueue
 import observe.model.UserPrompt.ChecksOverride
 import observe.model.arb.ObserveModelArbitraries.given
-import observe.model.enums.ActionStatus
 import observe.model.enums.Resource
 import observe.model.events.*
 import observe.model.events.ClientEvent.SingleActionState
@@ -39,7 +36,6 @@ import org.scalacheck.Gen
 import ArbClientConfig.given
 import ArbLogMessage.given
 import ArbNotification.given
-import ArbNsRunningState.given
 import ArbObsRecordedIds.given
 import ArbObservationProgress.given
 import ArbSystem.given

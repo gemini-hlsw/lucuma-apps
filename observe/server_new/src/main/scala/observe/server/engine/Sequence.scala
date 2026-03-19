@@ -8,9 +8,9 @@ import lucuma.core.enums.Breakpoint
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
 import monocle.Lens
-import observe.model.SequenceState
-import observe.model.SequenceState.HasInternalStop
-import observe.model.SequenceState.HasUserStop
+import observe.model.SequenceStatus
+import observe.model.SequenceStatus.HasInternalStop
+import observe.model.SequenceStatus.HasUserStop
 import observe.server.engine.Action.ActionState
 import observe.server.engine.Result.RetVal
 
@@ -48,7 +48,7 @@ object Sequence:
    */
   case class State[F[_]](
     obsId:       Observation.Id,
-    status:      SequenceState,
+    status:      SequenceStatus,
     currentStep: Option[EngineStep.Zipper[F]], // None = idle/done, Some = executing
     breakpoints: Breakpoints,
     singleRuns:  Map[ActionCoordsInSeq, ActionState]
@@ -149,8 +149,8 @@ object Sequence:
 
   object State:
 
-    def status[F[_]]: Lens[State[F], SequenceState] =
-      Lens[State[F], SequenceState](_.status)(s => st => st.copy(status = s))
+    def status[F[_]]: Lens[State[F], SequenceStatus] =
+      Lens[State[F], SequenceStatus](_.status)(s => st => st.copy(status = s))
 
     def isRunning[F[_]](st: State[F]): Boolean = st.status.isRunning
 
@@ -159,21 +159,21 @@ object Sequence:
     def userStopRequested[F[_]](st: State[F]): Boolean = st.status.isUserStopRequested
 
     def anyStopRequested[F[_]](st: State[F]): Boolean = st.status match
-      case SequenceState.Running(u, i, _, _, _) => u || i
-      case _                                    => false
+      case SequenceStatus.Running(u, i, _, _, _) => u || i
+      case _                                     => false
 
     def isWaitingUserPrompt[F[_]](st: State[F]): Boolean = st.status.isWaitingUserPrompt
 
     def isStarting[F[_]](st: State[F]): Boolean = st.status.isStarting
 
     def userStopSet[F[_]](v: HasUserStop): State[F] => State[F] = status.modify {
-      case r @ SequenceState.Running(_, _, _, _, _) => r.copy(userStop = v)
-      case r                                        => r
+      case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(userStop = v)
+      case r                                         => r
     }
 
     def internalStopSet[F[_]](v: HasInternalStop): State[F] => State[F] = status.modify {
-      case r @ SequenceState.Running(_, _, _, _, _) => r.copy(internalStop = v)
-      case r                                        => r
+      case r @ SequenceStatus.Running(_, _, _, _, _) => r.copy(internalStop = v)
+      case r                                         => r
     }
 
     /**
@@ -182,22 +182,22 @@ object Sequence:
     def init[F[_]](obsId: Observation.Id, step: EngineStep[F]): State[F] =
       EngineStep.Zipper.currentify(step) match
         case Some(z) =>
-          State(obsId, SequenceState.Idle, Some(z), Breakpoints.empty, Map.empty)
+          State(obsId, SequenceStatus.Idle, Some(z), Breakpoints.empty, Map.empty)
         case None    =>
-          State(obsId, SequenceState.Idle, None, Breakpoints.empty, Map.empty)
+          State(obsId, SequenceStatus.Idle, None, Breakpoints.empty, Map.empty)
 
     /**
      * Initialize a `State` from a `Sequence`.
      */
     def init[F[_]](q: Sequence[F]): State[F] =
       val zipper = q.loadedStep.flatMap(EngineStep.Zipper.currentify)
-      State(q.obsId, SequenceState.Idle, zipper, q.breakpoints, Map.empty)
+      State(q.obsId, SequenceStatus.Idle, zipper, q.breakpoints, Map.empty)
 
     /**
      * Create an empty/idle state with no step loaded.
      */
     def idle[F[_]](obsId: Observation.Id): State[F] =
-      State(obsId, SequenceState.Idle, None, Breakpoints.empty, Map.empty)
+      State(obsId, SequenceStatus.Idle, None, Breakpoints.empty, Map.empty)
 
     /**
      * Rebuilds the state of a sequence with a new steps definition. The sequence must not be

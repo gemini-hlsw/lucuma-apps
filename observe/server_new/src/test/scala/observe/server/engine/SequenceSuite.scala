@@ -14,7 +14,7 @@ import lucuma.core.model.sequence.Step
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.ClientId
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
@@ -45,11 +45,11 @@ class SequenceSuite extends munit.CatsEffectSuite {
       )
     )
 
-  def isFinished(status: SequenceState): Boolean = status match {
-    case SequenceState.Idle      => true
-    case SequenceState.Completed => true
-    case SequenceState.Failed(_) => true
-    case _                       => false
+  def isFinished(status: SequenceStatus): Boolean = status match {
+    case SequenceStatus.Idle      => true
+    case SequenceStatus.Completed => true
+    case SequenceStatus.Failed(_) => true
+    case _                        => false
   }
 
   def runToCompletion(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
@@ -72,7 +72,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
       Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
     )
 
-    assert(seq.status === SequenceState.Idle)
+    assert(seq.status === SequenceStatus.Idle)
     assert(seq.getCurrentBreakpoint)
   }
 
@@ -96,7 +96,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     (for {
       s <- OptionT(qs1)
       t <- OptionT.pure(s.sequences(seqId))
-    } yield t.seq.status === SequenceState.Completed && t.seq.currentStep.isEmpty).value
+    } yield t.seq.status === SequenceStatus.Completed && t.seq.currentStep.isEmpty).value
       .map(_.getOrElse(fail("Sequence not found")))
       .assert
   }
@@ -154,7 +154,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     // A step that has progressed past initial execution (done.nonEmpty)
     val seq1 = Sequence.State[IO](
       obsId = seqId,
-      status = SequenceState.Idle,
+      status = SequenceStatus.Idle,
       currentStep = Some(stepzr0),
       breakpoints = Breakpoints.empty,
       singleRuns = Map.empty

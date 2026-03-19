@@ -208,7 +208,7 @@ trait ServerEventHandler:
             (_.withAdjustedLoadedObservations(sequenceExecution.keySet)) >>>
             sequenceExecution
               .collect:
-                case (obsId, execState) if !execState.sequenceState.isRunning =>
+                case (obsId, execState) if !execState.sequenceStatus.isRunning =>
                   RootModelData.obsProgress.at(obsId).replace(none)
               .toList
               .combineAll

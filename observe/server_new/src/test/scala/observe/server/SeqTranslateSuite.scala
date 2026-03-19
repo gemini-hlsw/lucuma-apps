@@ -17,7 +17,7 @@ import lucuma.core.util.TimeSpan
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.Conditions
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.dhs.*
 import observe.server.TestCommon.*
 import observe.server.engine.Action
@@ -145,7 +145,7 @@ class SeqTranslateSuite extends TestCommon {
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init))(EngineState.default[IO])
+        .replace(SequenceStatus.Running.Init))(EngineState.default[IO])
 
   // Observe started
   private val s0: EngineState[IO] = EngineState

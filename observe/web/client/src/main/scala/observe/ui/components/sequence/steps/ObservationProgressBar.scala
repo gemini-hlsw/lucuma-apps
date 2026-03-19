@@ -17,7 +17,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.ProgressBar
 import lucuma.ui.reusability.given
 import observe.model.ObserveStage
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.StepProgress
 import observe.model.dhs.ImageFileId
 import observe.ui.ObserveStyles
@@ -31,16 +31,16 @@ import scala.concurrent.duration.*
 case class ObservationProgressBar(
   obsId:          Observation.Id,
   stepId:         Step.Id,
-  sequenceState:  SequenceState,
+  sequenceStatus: SequenceStatus,
   exposureTime:   TimeSpan,
   progress:       Option[StepProgress],
   fileIds:        Option[NonEmptyChain[ImageFileId]],
   isPausedInStep: Boolean
 ) extends ReactFnProps(ObservationProgressBar):
-  val isStopRequested: Boolean = sequenceState.isStopRequested
+  val isStopRequested: Boolean = sequenceStatus.isStopRequested
 
   val isStatic: Boolean =
-    isStopRequested || !sequenceState.isRunning ||
+    isStopRequested || !sequenceStatus.isRunning ||
       !progress.map(_.stage).contains_(ObserveStage.Exposure) ||
       isPausedInStep
 

@@ -14,7 +14,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.enums.RunOverride
 import observe.ui.Icons
 import observe.ui.ObserveStyles
@@ -24,18 +24,18 @@ import observe.ui.model.enums.OperationRequest
 import observe.ui.services.SequenceApi
 
 case class SeqControlButtons(
-  obsId:         Observation.Id,
-  refreshing:    Pot[View[Boolean]],
-  sequenceState: SequenceState,
-  requests:      ObservationRequests
+  obsId:          Observation.Id,
+  refreshing:     Pot[View[Boolean]],
+  sequenceStatus: SequenceStatus,
+  requests:       ObservationRequests
 ) extends ReactFnProps(SeqControlButtons):
-  val isUserStopRequested: Boolean   = sequenceState.isUserStopRequested
+  val isUserStopRequested: Boolean   = sequenceStatus.isUserStopRequested
   val isPauseInFlight: Boolean       = requests.pause === OperationRequest.InFlight
   val isCancelPauseInFlight: Boolean = requests.cancelPause === OperationRequest.InFlight
-  val isRunning: Boolean             = sequenceState.isRunning
-  val isWaitingUserPrompt: Boolean   = sequenceState.isWaitingUserPrompt
+  val isRunning: Boolean             = sequenceStatus.isRunning
+  val isWaitingUserPrompt: Boolean   = sequenceStatus.isWaitingUserPrompt
   val isRefreshing: Boolean          = props.refreshing.exists(_.get)
-  val isCompleted: Boolean           = sequenceState.isCompleted
+  val isCompleted: Boolean           = sequenceStatus.isCompleted
 
 object SeqControlButtons
     extends ReactFnComponent[SeqControlButtons](props =>

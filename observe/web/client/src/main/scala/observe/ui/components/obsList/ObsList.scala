@@ -26,7 +26,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import observe.model.ExecutionState
 import observe.model.Observer
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.UnknownTargetName
 import observe.ui.Icons
 import observe.ui.ObserveStyles
@@ -53,8 +53,8 @@ case class ObsList(
           obs,
           executionState
             .get(obs.obsId)
-            .map(_.sequenceState)
-            .getOrElse(SequenceState.Idle),
+            .map(_.sequenceStatus)
+            .getOrElse(SequenceStatus.Idle),
           observer,
           ObsClass.Nighttime,
           loadedObss.value.contains(obs.obsId),
@@ -65,8 +65,8 @@ case class ObsList(
           false
         )
 
-  val obsStates: Map[Observation.Id, SequenceState] =
-    executionState.view.mapValues(_.sequenceState).toMap
+  val obsStates: Map[Observation.Id, SequenceStatus] =
+    executionState.view.mapValues(_.sequenceStatus).toMap
 
   // Observations here are ready if they are loaded in the server, and also their sequences are loaded in the client.
   val fullyLoadedObss: Map[Observation.Id, Pot[Unit]] =
@@ -90,7 +90,7 @@ case class ObsList(
 object ObsList
     extends ReactFnComponent[ObsList](props =>
       case class TableMeta(
-        obsStates:          Map[Observation.Id, SequenceState],
+        obsStates:          Map[Observation.Id, SequenceStatus],
         pendingOrReadyObss: Map[Observation.Id, Pot[Unit]],
         obsIsProcessing:    Map[Observation.Id, Boolean],
         loadObs:            Observation.Id => Callback,
@@ -108,7 +108,7 @@ object ObsList
       ): Css =
         val isLoaded: Boolean = loadedObsIds.contains_(row.obsId)
 
-        if (row.status === SequenceState.Completed)
+        if (row.status === SequenceStatus.Completed)
           ObserveStyles.RowPositive
         else if (row.status.isRunning)
           ObserveStyles.RowWarning
@@ -121,20 +121,20 @@ object ObsList
 
       def statusIconRenderer(
         loadingPotOpt: Option[Pot[Unit]],
-        statusOpt:     Option[SequenceState]
+        statusOpt:     Option[SequenceStatus]
       ): VdomNode =
         val icon: VdomNode =
           (loadingPotOpt, statusOpt) match
-            case (Some(Pot.Pending), _)                                                        => LucumaIcons.CircleNotch
-            case (Some(Pot.Ready(_)), None)                                                    => LucumaIcons.CircleNotch
-            case (Some(Pot.Ready(_)), Some(SequenceState.Idle))                                => Icons.FileCheck
-            case (Some(Pot.Ready(_)), Some(SequenceState.Completed))                           =>
+            case (Some(Pot.Pending), _)                                                         => LucumaIcons.CircleNotch
+            case (Some(Pot.Ready(_)), None)                                                     => LucumaIcons.CircleNotch
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.Idle))                                => Icons.FileCheck
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.Completed))                           =>
               Icons.FileCheck
-            case (Some(Pot.Ready(_)), Some(SequenceState.Running(_, _, _, _, _)))              =>
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.Running(_, _, _, _, _)))              =>
               LucumaIcons.CircleNotch
-            case (Some(Pot.Ready(_)), Some(SequenceState.Failed(_))) | (Some(Pot.Error(_)), _) =>
+            case (Some(Pot.Ready(_)), Some(SequenceStatus.Failed(_))) | (Some(Pot.Error(_)), _) =>
               Icons.FileCross
-            case _                                                                             => EmptyVdom
+            case _                                                                              => EmptyVdom
         icon
 
       def renderCentered(node: VdomNode, css: Css = Css.Empty): VdomNode =

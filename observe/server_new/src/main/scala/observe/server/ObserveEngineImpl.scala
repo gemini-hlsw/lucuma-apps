@@ -655,9 +655,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     val instrument = obsSeq.instrument
     val seqType    = obsSeq.currentStep.map(_.sequenceType)
 
-    def splitWhere[A](l: List[A])(p: A => Boolean): (List[A], List[A]) =
-      l.splitAt(l.indexWhere(p))
-
     def engineRunningStep(seq: Sequence[F]): Option[ObserveStep] =
       (obsSeq.currentStep, seq.loadedStep).mapN { (sg, es) =>
         val stepResources =
