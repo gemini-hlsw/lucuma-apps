@@ -19,6 +19,7 @@ import clue.http4s.Http4sWebSocketClient
 import clue.natchez.NatchezMiddleware
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
+import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
 import lucuma.schemas.ObservationDB
@@ -33,6 +34,7 @@ import observe.server.gems.*
 import observe.server.gmos.*
 import observe.server.gsaoi.*
 import observe.server.gws.*
+import observe.server.igrins2.Igrins2Controller
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
@@ -408,7 +410,31 @@ object Systems {
     //      (ghostClient, ghostGDS(httpClient)).mapN(GhostController(_, _))
     //    }
     //
-    def gws: IO[GwsKeywordReader[IO]]            =
+
+    def igrins2[F[_]: Async: Logger](
+      httpClient:   Client[F],
+      instanceName: String
+    ): Resource[F, Igrins2Controller[F]] = {
+      def igrins2Client: Resource[F, Igrins2Client[F]] =
+        if (settings.systemControl.igrins2.command)
+          Igrins2Client
+            .igrins2Client[F](s"igrins2-observe-$instanceName",
+                              settings.igrins2Url.value.renderString
+            )
+        else Igrins2Client.simulatedIgrins2Client
+
+      def igrins2GDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
+        Resource.pure[F, GdsClient[F]](
+          GdsClient(if (settings.systemControl.igrins2Gds.command) httpClient
+                    else GdsClient.alwaysOkClient[F],
+                    settings.igrins2Gds.value
+          )
+        )
+
+      (igrins2Client, igrins2GDS(httpClient)).mapN(Igrins2Controller(_, _))
+    }
+
+    def gws: IO[GwsKeywordReader[IO]] =
       if (settings.systemControl.gws.realKeywords)
         GwsEpics.instance[IO](service, tops).map(GwsKeywordsReaderEpics[IO])
       else GwsKeywordsReaderDummy[IO].pure[IO]

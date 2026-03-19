@@ -14,22 +14,24 @@ trait ArbSystemsControlConfiguration {
   given Arbitrary[SystemsControlConfiguration] =
     Arbitrary {
       for {
-        altair   <- arbitrary[ControlStrategy]
-        gems     <- arbitrary[ControlStrategy]
-        dhs      <- arbitrary[ControlStrategy]
-        f2       <- arbitrary[ControlStrategy]
-        gcal     <- arbitrary[ControlStrategy]
-        gmos     <- arbitrary[ControlStrategy]
-        gnirs    <- arbitrary[ControlStrategy]
-        gpi      <- arbitrary[ControlStrategy]
-        gpiGds   <- arbitrary[ControlStrategy]
-        ghost    <- arbitrary[ControlStrategy]
-        ghostGds <- arbitrary[ControlStrategy]
-        gsaoi    <- arbitrary[ControlStrategy]
-        gws      <- arbitrary[ControlStrategy]
-        nifs     <- arbitrary[ControlStrategy]
-        niri     <- arbitrary[ControlStrategy]
-        tcs      <- arbitrary[ControlStrategy]
+        altair     <- arbitrary[ControlStrategy]
+        gems       <- arbitrary[ControlStrategy]
+        dhs        <- arbitrary[ControlStrategy]
+        f2         <- arbitrary[ControlStrategy]
+        gcal       <- arbitrary[ControlStrategy]
+        gmos       <- arbitrary[ControlStrategy]
+        gnirs      <- arbitrary[ControlStrategy]
+        gpi        <- arbitrary[ControlStrategy]
+        gpiGds     <- arbitrary[ControlStrategy]
+        ghost      <- arbitrary[ControlStrategy]
+        ghostGds   <- arbitrary[ControlStrategy]
+        igrins2    <- arbitrary[ControlStrategy]
+        igrins2Gds <- arbitrary[ControlStrategy]
+        gsaoi      <- arbitrary[ControlStrategy]
+        gws        <- arbitrary[ControlStrategy]
+        nifs       <- arbitrary[ControlStrategy]
+        niri       <- arbitrary[ControlStrategy]
+        tcs        <- arbitrary[ControlStrategy]
       } yield SystemsControlConfiguration(altair,
                                           gems,
                                           dhs,
@@ -41,6 +43,8 @@ trait ArbSystemsControlConfiguration {
                                           gpiGds,
                                           ghost,
                                           ghostGds,
+                                          igrins2,
+                                          igrins2Gds,
                                           gsaoi,
                                           gws,
                                           nifs,

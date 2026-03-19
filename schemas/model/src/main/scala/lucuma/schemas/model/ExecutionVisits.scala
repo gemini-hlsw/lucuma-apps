@@ -48,8 +48,7 @@ enum ExecutionVisits(val instrument: Instrument) derives Eq:
   case Flamingos2(visits: NonEmptyList[Visit.Flamingos2])
       extends ExecutionVisits(Instrument.Flamingos2)
 
-  case Igrins2(visits: NonEmptyList[Visit.Igrins2])
-      extends ExecutionVisits(Instrument.Igrins2)
+  case Igrins2(visits: NonEmptyList[Visit.Igrins2]) extends ExecutionVisits(Instrument.Igrins2)
 
 object ExecutionVisits:
   val gmosNorth: Prism[ExecutionVisits, ExecutionVisits.GmosNorth] =

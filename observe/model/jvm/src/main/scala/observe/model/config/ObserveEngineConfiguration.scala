@@ -16,6 +16,9 @@ type GpiUriSettings = GpiUriSettings.Type
 object GhostUriSettings extends NewType[Uri]
 type GhostUriSettings = GhostUriSettings.Type
 
+object Igrins2UriSettings extends NewType[Uri]
+type Igrins2UriSettings = Igrins2UriSettings.Type
+
 /**
  * Configuration of the Observe Engine
  * @param odbHttp
@@ -42,6 +45,10 @@ type GhostUriSettings = GhostUriSettings.Type
  *   URL for GHOST GMP
  * @param ghostGds
  *   URL for GHOST's GDS
+ * @param igrins2Url
+ *   URL for IGRINS-2 GMP
+ * @param igrins2Gds
+ *   URL for IGRINS-2 GDS
  * @param tops
  *   Used to select the top component for epics subsystems
  * @param epicsCaAddrList
@@ -66,6 +73,8 @@ case class ObserveEngineConfiguration(
   gpiGDS:                  GpiUriSettings,
   ghostUrl:                GhostUriSettings,
   ghostGds:                GhostUriSettings,
+  igrins2Url:              Igrins2UriSettings,
+  igrins2Gds:              Igrins2UriSettings,
   tops:                    String,
   epicsCaAddrList:         Option[String],
   readRetries:             Int,

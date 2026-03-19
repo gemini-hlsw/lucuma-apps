@@ -21,6 +21,8 @@ case class SystemsControlConfiguration(
   gpiGds:     ControlStrategy,
   ghost:      ControlStrategy,
   ghostGds:   ControlStrategy,
+  igrins2:    ControlStrategy,
+  igrins2Gds: ControlStrategy,
   gsaoi:      ControlStrategy,
   gws:        ControlStrategy,
   nifs:       ControlStrategy,
