@@ -18,8 +18,8 @@ import observe.server.engine.Result.RetVal
  * A single pending step for an observation.
  */
 case class Sequence[F[_]] private (
-  id:          Observation.Id,
-  step:        Option[EngineStep[F]],
+  obsId:       Observation.Id,
+  loadedStep:  Option[EngineStep[F]],
   breakpoints: Breakpoints
 )
 
@@ -30,17 +30,17 @@ object Sequence:
 
   def apply[F[_]](
     obsId:       Observation.Id,
-    step:        EngineStep[F],
+    loadedStep:  EngineStep[F],
     breakpoints: Breakpoints
   ): Sequence[F] =
-    new Sequence(obsId, step.some, breakpoints)
+    new Sequence(obsId, loadedStep.some, breakpoints)
 
   def apply[F[_]](
     obsId:       Observation.Id,
-    step:        Option[EngineStep[F]],
+    loadedStep:  Option[EngineStep[F]],
     breakpoints: Breakpoints
   ): Sequence[F] =
-    new Sequence(obsId, step, breakpoints)
+    new Sequence(obsId, loadedStep, breakpoints)
 
   /**
    * Simplified state for single-step execution. Replaces the old Zipper/Final sealed trait.
@@ -138,7 +138,7 @@ object Sequence:
 
     def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
       for
-        step <- toSequence.step.filter(_.id === c.stepId)
+        step <- toSequence.loadedStep.filter(_.id === c.stepId)
         exec <- step.executions.get(c.execIdx.value)
         act  <- exec.get(c.actIdx.value)
       yield act
@@ -190,8 +190,8 @@ object Sequence:
      * Initialize a `State` from a `Sequence`.
      */
     def init[F[_]](q: Sequence[F]): State[F] =
-      val zipper = q.step.flatMap(EngineStep.Zipper.currentify)
-      State(q.id, SequenceState.Idle, zipper, q.breakpoints, Map.empty)
+      val zipper = q.loadedStep.flatMap(EngineStep.Zipper.currentify)
+      State(q.obsId, SequenceState.Idle, zipper, q.breakpoints, Map.empty)
 
     /**
      * Create an empty/idle state with no step loaded.

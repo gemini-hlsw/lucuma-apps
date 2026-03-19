@@ -567,7 +567,7 @@ object Engine {
     type EventData = E
   }
 
-  def load[F[_]](seq: Sequence[F]): Sequence.State[F] =
+  def initialSequenceState[F[_]](seq: Sequence[F]): Sequence.State[F] =
     Sequence.State.init(seq)
 
   /**

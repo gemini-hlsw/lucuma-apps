@@ -94,7 +94,7 @@ class PackageSuite extends munit.CatsEffectSuite {
       Sequence.State.init(
         Sequence(
           obsId = observationId(2),
-          step = EngineStep(
+          loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
               NonEmptyList.of(configureTcs, configureInst), // Execution
@@ -167,7 +167,7 @@ class PackageSuite extends munit.CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(
@@ -249,7 +249,7 @@ class PackageSuite extends munit.CatsEffectSuite {
           Sequence.State.init(
             Sequence(
               obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(2)),
-              step = EngineStep(
+              loadedStep = EngineStep(
                 id = stepId(1),
                 executions = List(
                   NonEmptyList.one(
@@ -295,7 +295,7 @@ class PackageSuite extends munit.CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(4)),
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(
@@ -327,7 +327,7 @@ class PackageSuite extends munit.CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = sId,
               executions = List(
                 NonEmptyList.one(
@@ -383,7 +383,7 @@ class PackageSuite extends munit.CatsEffectSuite {
       Sequence.State.init(
         Sequence(
           obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
-          step = EngineStep(
+          loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
               NonEmptyList.one(

@@ -177,10 +177,14 @@ class ObserveEngineSuite extends TestCommon {
 
   test("ObserveEngine should not run 2nd sequence because it's using the same resource") {
     val s0 = (
-      loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)) >>>
-        loadSequenceWithResources(seqObsId2, Set(Instrument.GmosSouth, TCS),
-          EngineState.instrumentLoaded(Instrument.GmosSouth)) >>>
+      loadSequenceWithResources(seqObsId1,
+                                Set(Instrument.GmosNorth, TCS),
+                                EngineState.instrumentLoaded(Instrument.GmosNorth)
+      ) >>>
+        loadSequenceWithResources(seqObsId2,
+                                  Set(Instrument.GmosSouth, TCS),
+                                  EngineState.instrumentLoaded(Instrument.GmosSouth)
+        ) >>>
         EngineState
           .sequenceStateAt[IO](seqObsId1)
           .andThen(Sequence.State.status[IO])
@@ -201,10 +205,14 @@ class ObserveEngineSuite extends TestCommon {
 
   test("ObserveEngine should run 2nd sequence when there are no shared resources") {
     val s0 = (
-      loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)) >>>
-        loadSequenceWithResources(seqObsId2, Set(Instrument.GmosSouth),
-          EngineState.instrumentLoaded(Instrument.GmosSouth)) >>>
+      loadSequenceWithResources(seqObsId1,
+                                Set(Instrument.GmosNorth, TCS),
+                                EngineState.instrumentLoaded(Instrument.GmosNorth)
+      ) >>>
+        loadSequenceWithResources(seqObsId2,
+                                  Set(Instrument.GmosSouth),
+                                  EngineState.instrumentLoaded(Instrument.GmosSouth)
+        ) >>>
         EngineState
           .sequenceStateAt[IO](seqObsId1)
           .andThen(Sequence.State.status[IO])
@@ -231,8 +239,10 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine configSystem should run a system configuration") {
-    val s0 = loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth))
+    val s0 = loadSequenceWithResources(seqObsId1,
+                                       Set(Instrument.GmosNorth, TCS),
+                                       EngineState.instrumentLoaded(Instrument.GmosNorth)
+    )
       .apply(EngineState.default[IO])
 
     (for {
@@ -259,8 +269,10 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine should not run a system configuration if sequence is running") {
-    val s0 = (loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)) >>>
+    val s0 = (loadSequenceWithResources(seqObsId1,
+                                        Set(Instrument.GmosNorth, TCS),
+                                        EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
@@ -289,10 +301,14 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine should not run a system configuration if system is in use") {
-    val s0 = (loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)) >>>
-      loadSequenceWithResources(seqObsId2, Set(Instrument.GmosSouth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosSouth)) >>>
+    val s0 = (loadSequenceWithResources(seqObsId1,
+                                        Set(Instrument.GmosNorth, TCS),
+                                        EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      loadSequenceWithResources(seqObsId2,
+                                Set(Instrument.GmosSouth, TCS),
+                                EngineState.instrumentLoaded(Instrument.GmosSouth)
+      ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
@@ -319,10 +335,14 @@ class ObserveEngineSuite extends TestCommon {
   test(
     "ObserveEngine should run a system configuration when other sequence is running with other systems"
   ) {
-    val s0 = (loadSequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS),
-        EngineState.instrumentLoaded(Instrument.GmosNorth)) >>>
-      loadSequenceWithResources(seqObsId2, Set(Instrument.GmosNorth, Gcal),
-        EngineState.instrumentLoaded(Instrument.GmosSouth)) >>>
+    val s0 = (loadSequenceWithResources(seqObsId1,
+                                        Set(Instrument.GmosNorth, TCS),
+                                        EngineState.instrumentLoaded(Instrument.GmosNorth)
+    ) >>>
+      loadSequenceWithResources(seqObsId2,
+                                Set(Instrument.GmosNorth, Gcal),
+                                EngineState.instrumentLoaded(Instrument.GmosSouth)
+      ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .andThen(Sequence.State.status[IO])
@@ -383,8 +403,7 @@ class ObserveEngineSuite extends TestCommon {
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
-        configs =
-          resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
+        configs = resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
         odbAction[IO],
         odbAction[IO],
         post = (_, _) => Nil,
@@ -414,10 +433,9 @@ class ObserveEngineSuite extends TestCommon {
     val (obs, sg) = testTargetSequenceData("proof".refined)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
+      .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        sg.some,
         EngineState.instrumentLoaded(Instrument.GmosNorth),
         IO.unit
       )
@@ -447,10 +465,9 @@ class ObserveEngineSuite extends TestCommon {
     val (obs, sg) = testTargetSequenceData("proof".refined)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
+      .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        sg.some,
         EngineState.instrumentLoaded(Instrument.GmosNorth),
         IO.unit
       )
@@ -480,10 +497,9 @@ class ObserveEngineSuite extends TestCommon {
     val (obs, sg) = testTargetSequenceData("proof".refined)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
+      .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        sg.some,
         EngineState.instrumentLoaded(Instrument.GmosNorth),
         IO.unit
       )
@@ -609,8 +625,7 @@ class ObserveEngineSuite extends TestCommon {
       generator = StepActionsGen(
         odbAction[IO],
         odbAction[IO],
-        configs =
-          resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
+        configs = resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
         odbAction[IO],
         odbAction[IO],
         post = (_, _) => Nil,
@@ -630,10 +645,9 @@ class ObserveEngineSuite extends TestCommon {
   test("ObserveEngine start should start the sequence if it passes the conditions check") {
     val (obs, sg) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      sg.some,
       EngineState.instrumentLoaded(Instrument.GmosNorth),
       IO.unit
     ) >>>
@@ -671,10 +685,9 @@ class ObserveEngineSuite extends TestCommon {
   test("ObserveEngine start should not start the sequence if it fails the conditions check") {
     val (obs, sg) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      sg.some,
       EngineState.instrumentLoaded(Instrument.GmosNorth),
       IO.unit
     ) >>>
@@ -725,10 +738,9 @@ class ObserveEngineSuite extends TestCommon {
   test("ObserveEngine start should start the sequence that fails conditions check if forced") {
     val (obs, sg) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      sg.some,
       EngineState.instrumentLoaded(Instrument.GmosNorth),
       IO.unit
     ) >>>
@@ -839,10 +851,9 @@ class ObserveEngineSuite extends TestCommon {
       oseq          <- odb.read(seqObsId1)
       seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
                            oseq,
-                           seqo,
                            EngineState.instrumentLoaded(Instrument.GmosNorth),
                            IO.unit
                          )
@@ -948,10 +959,9 @@ class ObserveEngineSuite extends TestCommon {
       oseq          <- odb.read(seqObsId1)
       seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
                            oseq,
-                           seqo,
                            EngineState.instrumentLoaded(Instrument.GmosNorth),
                            IO.unit
                          )
@@ -1085,10 +1095,9 @@ class ObserveEngineSuite extends TestCommon {
       oseq          <- odb.read(seqObsId1)
       seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
                            oseq,
-                           seqo,
                            EngineState.instrumentLoaded(Instrument.GmosNorth),
                            IO.unit
                          )
@@ -1177,10 +1186,9 @@ class ObserveEngineSuite extends TestCommon {
       oseq          <- odb.read(seqObsId1)
       seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
                            oseq,
-                           seqo,
                            EngineState.instrumentLoaded(Instrument.GmosNorth),
                            IO.unit
                          )

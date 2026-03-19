@@ -214,14 +214,13 @@ trait ObserveEngine[F[_]] {
     s0: EngineState[F]
   ): Stream[F, (EventResult, EngineState[F])]
 
-  private[server] def loadSequenceEndo(
-    observer: Option[Observer],
-    odbData:  OdbObservationData,
-    stepGen:  Option[StepGen[F]],
-    l:        Lens[EngineState[F], Option[SequenceData[F]]],
-    cleanup:  F[Unit]
+  private[server] def loadSequenceMod(
+    observer:               Option[Observer],
+    odbData:                OdbObservationData,
+    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]],
+    cleanup:                F[Unit]
   ): Endo[EngineState[F]] =
-    ODBSequencesLoader.loadSequenceEndo(observer, odbData, stepGen, l, cleanup)
+    ODBSequencesLoader.loadSequenceMod(observer, odbData, instrumentSequenceLens, cleanup)
 }
 
 object ObserveEngine {

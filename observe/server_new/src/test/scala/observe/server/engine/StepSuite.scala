@@ -219,7 +219,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(configureTcs, configureInst, triggerPause(eng)), // Execution
@@ -363,7 +363,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(configureTcs, configureInst), // Execution
@@ -409,7 +409,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(configureTcs, configureInst), // Execution
@@ -462,7 +462,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.of(configureTcs, configureInst), // Execution
@@ -504,7 +504,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(action)
@@ -533,7 +533,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(aborted)
@@ -562,7 +562,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(errorSet2(errMsg))
@@ -592,7 +592,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(fatalError(errMsg))
@@ -619,7 +619,7 @@ class StepSuite extends CatsEffectSuite {
         Sequence.State.init(
           Sequence(
             obsId = seqId,
-            step = EngineStep(
+            loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
                 NonEmptyList.one(

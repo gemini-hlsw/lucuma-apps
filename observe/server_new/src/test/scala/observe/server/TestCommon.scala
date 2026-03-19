@@ -428,10 +428,9 @@ object TestCommon {
     lens:    monocle.Lens[EngineState[IO], Option[SequenceData[IO]]],
     cleanup: IO[Unit] = IO.unit
   ): cats.Endo[EngineState[IO]] =
-    ODBSequencesLoader.loadSequenceEndo[IO](
+    ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbData(id),
-      sg,
       lens,
       cleanup
     )
@@ -454,10 +453,9 @@ object TestCommon {
     resources: Set[observe.model.enums.Resource | Instrument],
     lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
-    ODBSequencesLoader.loadSequenceEndo[IO](
+    ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbData(id),
-      stepGenWithResources(1, resources).some,
       lens,
       IO.unit
     )
