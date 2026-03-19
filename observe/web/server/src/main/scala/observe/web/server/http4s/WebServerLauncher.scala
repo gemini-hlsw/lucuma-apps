@@ -287,7 +287,13 @@ object WebServerLauncher extends IOApp with LogInitialization {
   )(using Logger[IO], Trace[IO]): Resource[IO, ObserveEngine[IO]] =
     for {
       caS  <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
-      sys  <- Systems.build(conf.site, httpClient, conf.observeEngine, conf.lucumaSSO, caS)
+      sys  <- Systems.build(conf.site,
+                            httpClient,
+                            conf.observeEngine,
+                            conf.lucumaSSO,
+                            caS,
+                            conf.webServer.externalBaseUrl
+              )
       seqE <-
         Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine, conf.environment))
     } yield seqE
