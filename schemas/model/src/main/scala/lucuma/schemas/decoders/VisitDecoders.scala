@@ -9,6 +9,7 @@ import eu.timepit.refined.types.numeric.PosShort
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.DecodingFailure
+import io.circe.Json
 import io.circe.refined.given
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.Instrument
@@ -211,7 +212,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.GmosNorth => Right(())
-                      case _                               => Left(DecodingFailure("Not a GmosNorth Visit", c.history))
+                      case i                               =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in GmosNorth decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -223,7 +227,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.GmosSouth => Right(())
-                      case _                               => Left(DecodingFailure("Not a GmosSouth Visit", c.history))
+                      case i                               =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in GmosSouth decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -235,7 +242,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.Flamingos2 => Right(())
-                      case _                                => Left(DecodingFailure("Not a Flamingos2 Visit", c.history))
+                      case i                                =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in Flamingos2 decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -284,9 +294,20 @@ trait VisitDecoders:
         ExecutionVisits.Igrins2(_)
 
   given Decoder[ExecutionVisits] =
+  val decoderNoVisits: Decoder[Option[ExecutionVisits]] = Decoder.instance: c =>
+    c.downField("visits")
+      .downField("matches")
+      .as[List[Json]]
+      .flatMap: list =>
+        if list.isEmpty then Right(none)
+        else Left(DecodingFailure("Expected no visits but found some", c.history))
+
+  given Decoder[Option[ExecutionVisits]] =
     List(
       Decoder[ExecutionVisits.GmosNorth].widen,
       Decoder[ExecutionVisits.GmosSouth].widen,
       Decoder[ExecutionVisits.Flamingos2].widen,
       Decoder[ExecutionVisits.Igrins2].widen
     ).reduceLeft(_ or _)
+      .map(_.some)
+      .or(decoderNoVisits)
