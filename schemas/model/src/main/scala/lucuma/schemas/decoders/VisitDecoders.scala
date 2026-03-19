@@ -293,7 +293,6 @@ trait VisitDecoders:
       .map:
         ExecutionVisits.Igrins2(_)
 
-  given Decoder[ExecutionVisits] =
   val decoderNoVisits: Decoder[Option[ExecutionVisits]] = Decoder.instance: c =>
     c.downField("visits")
       .downField("matches")
