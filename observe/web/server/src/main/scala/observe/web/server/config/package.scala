@@ -62,9 +62,11 @@ given ConfigReader[PublicKey] =
 
 given ConfigReader[SystemsControlConfiguration] = ConfigReader.derived
 
-given ConfigReader[GpiUriSettings] = ConfigReader[Uri].map(GpiUriSettings.apply(_))
+given ConfigReader[GpiUriSettings] = ConfigReader[Uri].map(GpiUriSettings.apply)
 
-given ConfigReader[GhostUriSettings] = ConfigReader[Uri].map(GhostUriSettings.apply(_))
+given ConfigReader[GhostUriSettings] = ConfigReader[Uri].map(GhostUriSettings.apply)
+
+given ConfigReader[Igrins2UriSettings] = ConfigReader[Uri].map(Igrins2UriSettings.apply)
 
 given ConfigReader[ObserveEngineConfiguration] = ConfigReader.derived
 
@@ -73,6 +75,8 @@ given ConfigReader[TLSConfig] = ConfigReader.derived
 given ConfigReader[WebServerConfiguration] = ConfigReader.derived
 
 given ConfigReader[LucumaSSOConfiguration] = ConfigReader.derived
+
+given ConfigReader[HoneycombConfiguration] = ConfigReader.derived
 
 given ConfigReader[ObserveConfiguration] = ConfigReader.derived
 

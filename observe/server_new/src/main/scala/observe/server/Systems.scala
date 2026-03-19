@@ -19,6 +19,7 @@ import clue.http4s.Http4sWebSocketClient
 import clue.natchez.NatchezMiddleware
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
+import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
 import lucuma.schemas.ObservationDB
@@ -33,6 +34,7 @@ import observe.server.gems.*
 import observe.server.gmos.*
 import observe.server.gsaoi.*
 import observe.server.gws.*
+import observe.server.igrins2.Igrins2Controller
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
@@ -50,6 +52,7 @@ import org.typelevel.log4cats.Logger
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
+import observe.server.igrins2.Igrins2ControllerDisabled
 
 case class Systems[F[_]] private[server] (
   odb:                 OdbProxy[F],
@@ -60,6 +63,7 @@ case class Systems[F[_]] private[server] (
   flamingos2:          Flamingos2Controller[F],
   gmosSouth:           GmosSouthController[F],
   gmosNorth:           GmosNorthController[F],
+  igrins2:             Igrins2Controller[F],
   /*  gnirs:               GnirsController[F],
   gsaoi:               GsaoiController[F],
   gpi:                 GpiController[F],
@@ -85,10 +89,11 @@ case class Systems[F[_]] private[server] (
 object Systems {
 
   case class Builder(
-    settings: ObserveEngineConfiguration,
-    sso:      LucumaSSOConfiguration,
-    service:  CaService,
-    tops:     Map[String, String]
+    settings:     ObserveEngineConfiguration,
+    sso:          LucumaSSOConfiguration,
+    service:      CaService,
+    tops:         Map[String, String],
+    instanceName: String
   )(using L: Logger[IO], T: Temporal[IO])(using Trace[IO]) {
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, reason) =>
@@ -408,7 +413,31 @@ object Systems {
     //      (ghostClient, ghostGDS(httpClient)).mapN(GhostController(_, _))
     //    }
     //
-    def gws: IO[GwsKeywordReader[IO]]            =
+
+    def igrins2[F[_]: Async: Logger](
+      httpClient:   Client[F],
+      instanceName: String
+    ): Resource[F, Igrins2Controller[F]] = {
+      def igrins2Client: Resource[F, Igrins2Client[F]] =
+        if (settings.systemControl.igrins2.command)
+          Igrins2Client
+            .igrins2Client[F](s"igrins2-observe-$instanceName",
+                              settings.igrins2Url.value.renderString
+            )
+        else Igrins2Client.simulatedIgrins2Client
+
+      def igrins2GDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
+        Resource.pure[F, GdsClient[F]](
+          GdsClient(if (settings.systemControl.igrins2Gds.command) httpClient
+                    else GdsClient.alwaysOkClient[F],
+                    settings.igrins2Gds.value
+          )
+        )
+
+      (igrins2Client, igrins2GDS(httpClient)).mapN(Igrins2Controller(_, _))
+    }
+
+    def gws: IO[GwsKeywordReader[IO]] =
       if (settings.systemControl.gws.realKeywords)
         GwsEpics.instance[IO](service, tops).map(GwsKeywordsReaderEpics[IO])
       else GwsKeywordsReaderDummy[IO].pure[IO]
@@ -427,6 +456,7 @@ object Systems {
         (gemsCtr, gemsKR, gsaoiCtr, gsaoiKR)               = w
         //        (gnirsCtr, gnirsKR)                        <- Resource.eval(gnirs)
         f2Controller                                      <- Resource.eval(flamingos2)
+        igrins2Ctr                                        <- igrins2(httpClient, instanceName)
         //        (niriCtr, niriKR)                          <- Resource.eval(niri)
         //        (nifsCtr, nifsKR)                          <- Resource.eval(nifs)
         gms                                               <- Resource.eval(gmosObjects(site))
@@ -449,6 +479,7 @@ object Systems {
         //        ghostController,
         //        niriCtr,
         //        nifsCtr,
+        igrins2Ctr,
         altairCtr,
         gemsCtr,
         gcdb,
@@ -475,13 +506,14 @@ object Systems {
       .toMap
 
   def build(
-    site:       Site,
-    httpClient: Client[IO],
-    settings:   ObserveEngineConfiguration,
-    sso:        LucumaSSOConfiguration,
-    service:    CaService
+    site:         Site,
+    httpClient:   Client[IO],
+    settings:     ObserveEngineConfiguration,
+    sso:          LucumaSSOConfiguration,
+    service:      CaService,
+    instanceName: String
   )(using T: Temporal[IO], L: Logger[IO])(using Trace[IO]): Resource[IO, Systems[IO]] =
-    Builder(settings, sso, service, decodeTops(settings.tops)).build(site, httpClient)
+    Builder(settings, sso, service, decodeTops(settings.tops), instanceName).build(site, httpClient)
 
   def dummy[F[_]: {Async, Logger}]: F[Systems[F]] =
     GuideConfigDb
@@ -496,6 +528,7 @@ object Systems {
           Flamingos2ControllerDisabled[F],
           GmosControllerDisabled[F, GmosController.GmosSite.South.type]("south"),
           GmosControllerDisabled[F, GmosController.GmosSite.North.type]("north"),
+          Igrins2ControllerDisabled[F],
           AltairControllerSim[F],
           GemsControllerSim[F],
           guideDb,
