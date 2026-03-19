@@ -7,7 +7,6 @@ import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
-import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
@@ -72,7 +71,6 @@ object Igrins2Geometry extends PwfsGeometry:
     referenceCoordinates:    Coordinates,
     blindOffset:             Option[Coordinates],
     scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
-    acquisitionOffsets:      Option[NonEmptySet[GuidedOffset]],
     fallbackPosAngle:        Option[Angle],
     conf:                    Option[BasicConfiguration],
     trackType:               Option[TrackType],
@@ -98,7 +96,7 @@ object Igrins2Geometry extends PwfsGeometry:
               referenceCoordinates.some,
               blindOffset,
               NonEmptyList.one(posAngle),
-              acquisitionOffsets.map(AcquisitionOffsets.apply),
+              none,
               scienceOffsets.map(ScienceOffsets.apply)
             )
 
