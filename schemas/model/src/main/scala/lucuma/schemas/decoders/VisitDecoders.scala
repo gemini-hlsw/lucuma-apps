@@ -9,6 +9,7 @@ import eu.timepit.refined.types.numeric.PosShort
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.DecodingFailure
+import io.circe.Json
 import io.circe.refined.given
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.Instrument
@@ -31,8 +32,6 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.model.*
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
-
-import scala.annotation.targetName
 
 trait VisitDecoders:
   given Decoder[Dataset.Filename] = Decoder.instance: c =>
@@ -178,7 +177,6 @@ trait VisitDecoders:
   given decoderAtomFlamingos2: Decoder[AtomRecord.Flamingos2] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
-      created        <- c.downField("created").as[Timestamp]
       executionState <- c.downField("executionState").as[AtomExecutionState]
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
@@ -214,7 +212,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.GmosNorth => Right(())
-                      case _                               => Left(DecodingFailure("Not a GmosNorth Visit", c.history))
+                      case i                               =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in GmosNorth decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -226,7 +227,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.GmosSouth => Right(())
-                      case _                               => Left(DecodingFailure("Not a GmosSouth Visit", c.history))
+                      case i                               =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in GmosSouth decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -238,7 +242,10 @@ trait VisitDecoders:
       instrument <- c.downField("instrument").as[Instrument]
       _          <- instrument match
                       case i if i === Instrument.Flamingos2 => Right(())
-                      case _                                => Left(DecodingFailure("Not a Flamingos2 Visit", c.history))
+                      case i                                =>
+                        Left(
+                          DecodingFailure(s"Attempted to decode a $i visit in Flamingos2 decoder", c.history)
+                        )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
@@ -286,14 +293,20 @@ trait VisitDecoders:
       .map:
         ExecutionVisits.Igrins2(_)
 
-  @targetName("ExecutionVisitsDecoder")
+  val decoderNoVisits: Decoder[Option[ExecutionVisits]] = Decoder.instance: c =>
+    c.downField("visits")
+      .downField("matches")
+      .as[List[Json]]
+      .flatMap: list =>
+        if list.isEmpty then Right(none)
+        else Left(DecodingFailure("Expected no visits but found some", c.history))
+
   given Decoder[Option[ExecutionVisits]] =
     List(
       Decoder[ExecutionVisits.GmosNorth].widen,
       Decoder[ExecutionVisits.GmosSouth].widen,
       Decoder[ExecutionVisits.Flamingos2].widen,
       Decoder[ExecutionVisits.Igrins2].widen
-    )
-      .reduceLeft(_ or _)
+    ).reduceLeft(_ or _)
       .map(_.some)
-      .or(Decoder.const(none))
+      .or(decoderNoVisits)
