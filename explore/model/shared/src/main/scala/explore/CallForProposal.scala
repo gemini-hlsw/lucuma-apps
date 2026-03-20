@@ -20,14 +20,14 @@ import lucuma.core.model.Semester
 import lucuma.core.util.DateInterval
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Timestamp
-
-import java.time.LocalDate
-import java.time.temporal.ChronoUnit
 import lucuma.odb.json.limits.decoder.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
+
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 case class CallPartner(
   partner:            Partner,

@@ -28,14 +28,13 @@ import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
-
-import java.time.LocalDate
 import lucuma.schemas.enums.ProposalStatus
 import lucuma.schemas.model.TargetWithId
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 
+import java.time.LocalDate
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
