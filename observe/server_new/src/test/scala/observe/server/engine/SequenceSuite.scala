@@ -9,6 +9,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation as LObservation
 import lucuma.core.model.sequence.Step
 import observe.common.test.*
@@ -27,7 +28,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe-engine")
 
-  private val seqId = LObservation.Id(PosLong.unsafeFrom(1))
+  private val obsId = LObservation.Id(PosLong.unsafeFrom(1))
 
   // All tests check the output of running a sequence against the expected sequence of updates.
 
@@ -56,11 +57,11 @@ class SequenceSuite extends munit.CatsEffectSuite {
     for {
       eng <- executionEngine
       _   <-
-        eng.offer(Event.start[IO](seqId, user, ClientId(UUID.randomUUID)))
+        eng.offer(Event.start[IO](obsId, user, ClientId(UUID.randomUUID)))
       v   <- eng
                .process(PartialFunction.empty)(s0)
                .drop(1)
-               .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
+               .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
                .compile
                .last
     } yield v.map(_._2)
@@ -69,7 +70,10 @@ class SequenceSuite extends munit.CatsEffectSuite {
     // With single-step execution, a breakpoint on the current step
     // causes getCurrentBreakpoint to return true and the sequence stays Idle.
     val seq = SequenceState.init(
-      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
+      obsId,
+      simpleStep(stepId(1)),
+      SequenceType.Science,
+      Breakpoints(Set(stepId(1)))
     )
 
     assert(seq.status === SequenceStatus.Idle)
@@ -79,7 +83,10 @@ class SequenceSuite extends munit.CatsEffectSuite {
   test("resume execution to completion after a breakpoint") {
     // Verify breakpoint is initially set
     val seqWithBp = SequenceState.init(
-      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
+      obsId,
+      simpleStep(stepId(1)),
+      SequenceType.Science,
+      Breakpoints(Set(stepId(1)))
     )
     assert(seqWithBp.getCurrentBreakpoint)
 
@@ -89,13 +96,13 @@ class SequenceSuite extends munit.CatsEffectSuite {
     assert(!cleared.getCurrentBreakpoint)
 
     val qs0: EngineState[IO] =
-      TestUtil.initStateWithSequence(seqId, cleared)
+      TestUtil.initStateWithSequence(obsId, cleared)
 
     val qs1 = runToCompletion(qs0)
 
     (for {
       s <- OptionT(qs1)
-      t <- OptionT.pure(s.sequences(seqId))
+      t <- OptionT.pure(s.sequences(obsId))
     } yield t.seq.status === SequenceStatus.Completed && t.seq.currentStep.isEmpty).value
       .map(_.getOrElse(fail("Sequence not found")))
       .assert
@@ -110,7 +117,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     pending: List[ParallelActions[IO]],
     focus:   Execution[IO],
     done:    List[NonEmptyList[Result]]
-  ): EngineStep.Zipper[IO] = {
+  ): EngineStep.ExecutionZipper[IO] = {
     val rollback: (Execution[IO], List[ParallelActions[IO]]) = {
       val doneParallelActions: List[ParallelActions[IO]]  = done.map(_.map(const(action)))
       val focusParallelActions: List[ParallelActions[IO]] = focus.toParallelActionsList
@@ -120,7 +127,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
       }
     }
 
-    EngineStep.Zipper(
+    EngineStep.ExecutionZipper(
       id = stepId(1),
       pending = pending,
       focus = focus,
@@ -133,12 +140,15 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   }
   // Step zipper with done.nonEmpty (step has progressed past initial execution)
-  val stepzr0: EngineStep.Zipper[IO] =
+  val stepzr0: EngineStep.ExecutionZipper[IO] =
     simpleStep2(Nil, Execution.empty, List(NonEmptyList.one(result)))
 
   test("startSingle should mark a single Action as started") {
     val seq = SequenceState.init(
-      Sequence(seqId, simpleStep(stepId(1)), Breakpoints(Set(stepId(1))))
+      obsId,
+      simpleStep(stepId(1)),
+      SequenceType.Science,
+      Breakpoints(Set(stepId(1)))
     )
 
     val c = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(1))
@@ -153,9 +163,10 @@ class SequenceSuite extends munit.CatsEffectSuite {
   test("startSingle should not start single Action from completed Step") {
     // A step that has progressed past initial execution (done.nonEmpty)
     val seq1 = SequenceState[IO](
-      obsId = seqId,
+      obsId = obsId,
       status = SequenceStatus.Idle,
       currentStep = Some(stepzr0),
+      currentSequenceType = SequenceType.Science,
       breakpoints = Breakpoints.empty,
       singleRuns = Map.empty
     )
@@ -168,7 +179,10 @@ class SequenceSuite extends munit.CatsEffectSuite {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
     val seq = SequenceState
       .init(
-        Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
+        obsId,
+        simpleStep(stepId(1)),
+        SequenceType.Science,
+        Breakpoints.empty
       )
       .startSingle(c)
     val c2  = ActionCoordsInSeq(stepId(1), ExecutionIndex(1), ActionIndex(0))
@@ -181,7 +195,10 @@ class SequenceSuite extends munit.CatsEffectSuite {
     val c   = ActionCoordsInSeq(stepId(1), ExecutionIndex(0), ActionIndex(0))
     val seq = SequenceState
       .init(
-        Sequence(seqId, simpleStep(stepId(1)), Breakpoints.empty)
+        obsId,
+        simpleStep(stepId(1)),
+        SequenceType.Science,
+        Breakpoints.empty
       )
       .startSingle(c)
 

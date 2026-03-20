@@ -72,13 +72,13 @@ class SeqTranslateSuite extends TestCommon {
   // Function to advance the execution of a step up to certain Execution
   @tailrec
   private def advanceStepUntil[F[_]](
-    st:   EngineStep.Zipper[F],
-    cond: EngineStep.Zipper[F] => Boolean
-  ): EngineStep.Zipper[F] =
+    st:   EngineStep.ExecutionZipper[F],
+    cond: EngineStep.ExecutionZipper[F] => Boolean
+  ): EngineStep.ExecutionZipper[F] =
     if (cond(st)) st
     else
       st match {
-        case EngineStep.Zipper(_, p :: ps, f, d, _) =>
+        case EngineStep.ExecutionZipper(_, p :: ps, f, d, _) =>
           advanceStepUntil(
             st.copy(
               pending = ps,
@@ -116,7 +116,7 @@ class SeqTranslateSuite extends TestCommon {
             ),
             cond
           )
-        case _                                      => st
+        case _                                               => st
       }
 
   val baseState: EngineState[IO] =

@@ -11,6 +11,7 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
 import fs2.Stream
 import lucuma.core.enums.Instrument.GmosSouth
+import lucuma.core.enums.SequenceType
 import lucuma.core.model.OrcidId
 import lucuma.core.model.OrcidProfile
 import lucuma.core.model.StandardRole
@@ -92,17 +93,16 @@ class PackageSuite extends munit.CatsEffectSuite {
     TestUtil.initStateWithSequence(
       seqId,
       SequenceState.init(
-        Sequence(
-          obsId = observationId(2),
-          loadedStep = EngineStep(
-            id = stepId(1),
-            executions = List(
-              NonEmptyList.of(configureTcs, configureInst), // Execution
-              NonEmptyList.one(observe) // Execution
-            )
-          ),
-          breakpoints = Breakpoints.empty
-        )
+        obsId = observationId(2),
+        loadedStep = EngineStep(
+          id = stepId(1),
+          executions = List(
+            NonEmptyList.of(configureTcs, configureInst), // Execution
+            NonEmptyList.one(observe) // Execution
+          )
+        ),
+        SequenceType.Science,
+        breakpoints = Breakpoints.empty
       )
     )
 
@@ -165,18 +165,17 @@ class PackageSuite extends munit.CatsEffectSuite {
       TestUtil.initStateWithSequence(
         seqId,
         SequenceState.init(
-          Sequence(
-            obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
-            loadedStep = EngineStep(
-              id = stepId(1),
-              executions = List(
-                NonEmptyList.one(
-                  fromF[IO](ActionType.Undefined, IO(Result.Paused(new Result.PauseContext {})))
-                )
+          obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.one(
+                fromF[IO](ActionType.Undefined, IO(Result.Paused(new Result.PauseContext {})))
               )
-            ),
-            breakpoints = Breakpoints.empty
-          )
+            )
+          ),
+          SequenceType.Science,
+          breakpoints = Breakpoints.empty
         )
       )
 
@@ -199,7 +198,7 @@ class PackageSuite extends munit.CatsEffectSuite {
 
   test("engine should change action state to Paused if output is Paused") {
     val r = actionPause
-    r.map(_.exists(_.sequences(seqId).seq.current.execution.forall(Action.paused))).assert
+    r.map(_.exists(_.sequences(seqId).seq.currentExecution.execution.forall(Action.paused))).assert
   }
 
   test("run sequence to completion after resuming a paused action") {
@@ -226,7 +225,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     result.value
       .map(
         _.forall(x =>
-          x.sequences(seqId).seq.current.actions.isEmpty && (x
+          x.sequences(seqId).seq.currentExecution.actions.isEmpty && (x
             .sequences(seqId)
             .seq
             .status === SequenceStatus.Completed)
@@ -247,22 +246,21 @@ class PackageSuite extends munit.CatsEffectSuite {
         val qs = TestUtil.initStateWithSequence(
           seqId,
           SequenceState.init(
-            Sequence(
-              obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(2)),
-              loadedStep = EngineStep(
-                id = stepId(1),
-                executions = List(
-                  NonEmptyList.one(
-                    fromF[IO](
-                      ActionType.Configure(TCS),
-                      startedFlag.release *> finishFlag.acquire *>
-                        IO.pure(Result.OK(DummyResult))
-                    )
+            obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(2)),
+            loadedStep = EngineStep(
+              id = stepId(1),
+              executions = List(
+                NonEmptyList.one(
+                  fromF[IO](
+                    ActionType.Configure(TCS),
+                    startedFlag.release *> finishFlag.acquire *>
+                      IO.pure(Result.OK(DummyResult))
                   )
                 )
-              ),
-              breakpoints = Breakpoints.empty
-            )
+              )
+            ),
+            SequenceType.Science,
+            breakpoints = Breakpoints.empty
           )
         )
 
@@ -293,21 +291,20 @@ class PackageSuite extends munit.CatsEffectSuite {
       TestUtil.initStateWithSequence(
         seqId,
         SequenceState.init(
-          Sequence(
-            obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(4)),
-            loadedStep = EngineStep(
-              id = stepId(1),
-              executions = List(
-                NonEmptyList.one(
-                  fromF[IO](
-                    ActionType.Undefined,
-                    IO.raiseError(e)
-                  )
+          obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(4)),
+          loadedStep = EngineStep(
+            id = stepId(1),
+            executions = List(
+              NonEmptyList.one(
+                fromF[IO](
+                  ActionType.Undefined,
+                  IO.raiseError(e)
                 )
               )
-            ),
-            breakpoints = Breakpoints.empty
-          )
+            )
+          ),
+          SequenceType.Science,
+          breakpoints = Breakpoints.empty
         )
       )
 
@@ -325,24 +322,23 @@ class PackageSuite extends munit.CatsEffectSuite {
       TestUtil.initStateWithSequence(
         seqId,
         SequenceState.init(
-          Sequence(
-            obsId = seqId,
-            loadedStep = EngineStep(
-              id = sId,
-              executions = List(
-                NonEmptyList.one(
-                  fromF[IO](
-                    ActionType.Configure(Resource.TCS),
-                    IO {
-                      dummy.set(markVal)
-                      Result.OK(DummyResult)
-                    }
-                  )
+          obsId = seqId,
+          loadedStep = EngineStep(
+            id = sId,
+            executions = List(
+              NonEmptyList.one(
+                fromF[IO](
+                  ActionType.Configure(Resource.TCS),
+                  IO {
+                    dummy.set(markVal)
+                    Result.OK(DummyResult)
+                  }
                 )
               )
-            ),
-            breakpoints = Breakpoints.empty
-          )
+            )
+          ),
+          SequenceType.Science,
+          breakpoints = Breakpoints.empty
         )
       )
 
@@ -381,22 +377,21 @@ class PackageSuite extends munit.CatsEffectSuite {
     TestUtil.initStateWithSequence(
       seqId,
       SequenceState.init(
-        Sequence(
-          obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
-          loadedStep = EngineStep(
-            id = stepId(1),
-            executions = List(
-              NonEmptyList.one(
-                Action[IO](
-                  ActionType.Undefined,
-                  Stream(Result.OK(DummyResult)).covary[IO],
-                  Action.State(Action.ActionState.Completed(DummyResult), List.empty)
-                )
+        obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
+        loadedStep = EngineStep(
+          id = stepId(1),
+          executions = List(
+            NonEmptyList.one(
+              Action[IO](
+                ActionType.Undefined,
+                Stream(Result.OK(DummyResult)).covary[IO],
+                Action.State(Action.ActionState.Completed(DummyResult), List.empty)
               )
             )
-          ),
-          breakpoints = Breakpoints.empty
-        )
+          )
+        ),
+        SequenceType.Science,
+        breakpoints = Breakpoints.empty
       )
     )
 }

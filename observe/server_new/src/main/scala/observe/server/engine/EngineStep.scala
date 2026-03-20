@@ -47,7 +47,7 @@ object EngineStep {
   /**
    * Step Zipper. This structure is optimized for the actual `Step` execution.
    */
-  case class Zipper[F[_]](
+  case class ExecutionZipper[F[_]](
     id:         Step.Id,
     pending:    List[ParallelActions[F]],
     focus:      Execution[F],
@@ -62,7 +62,7 @@ object EngineStep {
      * If there are still `Action`s that have not finished in `Current` or if there are no more
      * pending `Execution`s it returns `None`.
      */
-    val next: Option[Zipper[F]] =
+    val withNextExecution: Option[ExecutionZipper[F]] =
       pending match {
         case Nil           => None
         case exep :: exeps =>
@@ -71,7 +71,7 @@ object EngineStep {
           )
       }
 
-    def rollback: Zipper[F] =
+    def rollback: ExecutionZipper[F] =
       self.copy(pending = rolledback._2, focus = rolledback._1, done = Nil)
 
     /**
@@ -87,14 +87,14 @@ object EngineStep {
      * Unzip a `Zipper`. This creates a single `Step` with either completed `Exection`s or pending
      * `Execution`s.
      */
-    val toStep: EngineStep[F] =
+    val toEngineStep: EngineStep[F] =
       EngineStep(
         id = id,
         executions = done ++ focus.toParallelActionsList ++ pending
       )
 
-    def update(executions: List[ParallelActions[F]]): Zipper[F] =
-      Zipper
+    def update(executions: List[ParallelActions[F]]): ExecutionZipper[F] =
+      ExecutionZipper
         .calcRolledback(executions)
         .map { case r @ (_, exes) =>
           // Changing `pending` allows to propagate changes to non executed `executions`, even if the step is running
@@ -108,7 +108,7 @@ object EngineStep {
 
   }
 
-  object Zipper {
+  object ExecutionZipper {
 
     private def calcRolledback[F[_]](
       executions: List[ParallelActions[F]]
@@ -122,9 +122,9 @@ object EngineStep {
      * Make a `Zipper` from a `Step` only if all the `Execution`s in the `Step` are pending. This is
      * a special way of *zipping* a `Step`.
      */
-    def currentify[F[_]](step: EngineStep[F]): Option[Zipper[F]] =
+    def currentify[F[_]](step: EngineStep[F]): Option[ExecutionZipper[F]] =
       calcRolledback(step.executions).map { case (x, exes) =>
-        Zipper(
+        ExecutionZipper(
           step.id,
           exes,
           x,
@@ -133,8 +133,8 @@ object EngineStep {
         )
       }
 
-    def current[F[_]]: Lens[Zipper[F], Execution[F]] =
-      GenLens[Zipper[F]](_.focus)
+    def current[F[_]]: Lens[ExecutionZipper[F], Execution[F]] =
+      GenLens[ExecutionZipper[F]](_.focus)
 
   }
 

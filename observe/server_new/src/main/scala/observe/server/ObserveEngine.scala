@@ -448,9 +448,15 @@ object ObserveEngine {
                 HeaderExtraData(st.conditions, st.operator, seqData.observer)
               )._1
 
+          val newSeqType: SequenceType =
+            stepGen.map(_.sequenceType).getOrElse(seqData.seq.currentSequenceType)
+
           val newSeqState: SequenceState[F] =
             SequenceState.init(
-              Sequence(obsId, newStep, seqData.seq.breakpoints)
+              obsId,
+              newStep,
+              newSeqType,
+              seqData.seq.breakpoints
             )
 
           // Revive sequence if it was completed - or complete if no more steps

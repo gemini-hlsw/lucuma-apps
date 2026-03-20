@@ -294,7 +294,7 @@ object SeqTranslate {
 
       for {
         obsSeq <- st.sequences.get(seqId)
-        if obsSeq.seq.current.execution
+        if obsSeq.seq.currentExecution.execution
           .exists(isObserving)
         curStp <- obsSeq.currentStep
         obsCtr  = curStp.obsControl
@@ -351,8 +351,9 @@ object SeqTranslate {
         st.sequences
           .get(seqId)
           .flatMap(
-            _.seq.current.execution.zipWithIndex.find(_._1.kind === ActionType.Observe).flatMap {
-              case (a, i) =>
+            _.seq.currentExecution.execution.zipWithIndex
+              .find(_._1.kind === ActionType.Observe)
+              .flatMap { case (a, i) =>
                 a.state.runState match {
                   case ActionState.Paused(c: ObserveContext[F] @unchecked) =>
                     (c,
@@ -363,7 +364,7 @@ object SeqTranslate {
                     ).some
                   case _                                                   => none
                 }
-            }
+              }
           )
 
       observeIndex.map { case (obCtx, t, i) =>
@@ -386,8 +387,9 @@ object SeqTranslate {
       st.sequences
         .get(seqId)
         .flatMap(
-          _.seq.current.execution.zipWithIndex.find(_._1.kind === ActionType.Observe).flatMap {
-            case (a, i) =>
+          _.seq.currentExecution.execution.zipWithIndex
+            .find(_._1.kind === ActionType.Observe)
+            .flatMap { case (a, i) =>
               a.state.runState match {
                 case ActionState.Paused(c: ObserveContext[F] @unchecked) =>
                   Stream
@@ -405,7 +407,7 @@ object SeqTranslate {
                     .some
                 case _                                                   => none
               }
-          }
+            }
         )
         .orEmpty
 
