@@ -20,6 +20,9 @@ import lucuma.core.model.Semester
 import lucuma.core.util.DateInterval
 import lucuma.core.util.Enumerated
 import lucuma.core.util.Timestamp
+
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import lucuma.odb.json.limits.decoder.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
@@ -45,6 +48,9 @@ case class CallForProposal(
   active:             DateInterval
 ) derives Eq,
       Decoder:
+
+  def middleDate: LocalDate =
+    active.start.plusDays(ChronoUnit.DAYS.between(active.start, active.end) / 2)
 
   def deadline(piPartner: Option[PartnerLink]): Either[String, Timestamp] =
     // piPartner is only None if there is no pi, which should never happen

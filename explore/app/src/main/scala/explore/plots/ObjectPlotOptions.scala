@@ -33,7 +33,7 @@ case class ObjectPlotOptions(
   visiblePlots:   List[SeriesType] = SeriesType.values.toList
 ) derives Eq:
   def withDateAndSemesterOf(observationTime: Instant): ObjectPlotOptions =
-    val (date, semester) = ObjectPlotOptions.dateAndSemesterOf(observationTime.some, site)
+    val (date, semester) = ObjectPlotOptions.dateAndSemesterOf(observationTime.some, none, site)
     copy(date = date, semester = semester)
 
   def minInstant: Instant =
@@ -81,12 +81,14 @@ object ObjectPlotOptions:
 
   private def dateAndSemesterOf(
     observationTime: Option[Instant],
+    refDate:         Option[LocalDate],
     site:            Site
   ): (LocalDate, Semester) =
     val date: LocalDate =
-      ObservingNight
-        .fromSiteAndInstant(site, observationTime.getOrElse(Instant.now))
-        .toLocalDate
+      observationTime
+        .map(ObservingNight.fromSiteAndInstant(site, _).toLocalDate)
+        .orElse(refDate)
+        .getOrElse(ObservingNight.fromSiteAndInstant(site, Instant.now).toLocalDate)
     // if `fromLocalDate` returns None, date is out of range, so clamp
     // semester to the Min and Max semesters
     val semester        = Semester.fromLocalDate(date).getOrElse {
@@ -97,10 +99,11 @@ object ObjectPlotOptions:
 
   def default(
     predefinedSite:  Option[Site],
-    observationTime: Option[Instant]
+    observationTime: Option[Instant],
+    refDate:         Option[LocalDate] = None
   ) =
     val site: Site       = predefinedSite.getOrElse(Site.GN)
-    val (date, semester) = dateAndSemesterOf(observationTime, site)
+    val (date, semester) = dateAndSemesterOf(observationTime, refDate, site)
 
     ObjectPlotOptions(
       site,
