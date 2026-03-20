@@ -133,9 +133,3 @@ private trait SequenceTable[S, D](
       .orElse(scienceRows.headOption)
       .flatMap(_.id.toOption)
     // currentAtomPendingSteps.headOption.map(_.id)
-
-  println(pprint(executionState))
-
-  // println(
-  //   s"Acquisition rows: ${acquisitionRows.map(_.id)}, Science rows: ${scienceRows.map(_.id)}, Running step id: $runningStepId, Next step id: $nextStepId"
-  // )
