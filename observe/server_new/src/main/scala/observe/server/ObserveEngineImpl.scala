@@ -650,24 +650,24 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       .map(res => SingleActionEvent(c.obsId, c.actCoords.stepId, res, clientAction, errorMsg))
 
   private def viewSequence(obsSeq: SequenceData[F]): SequenceView = {
-    val st         = obsSeq.seq
-    val seq        = st.toSequence
-    val instrument = obsSeq.instrument
-    val seqType    = obsSeq.currentStep.map(_.sequenceType)
+    val sequenceState: SequenceState[F] = obsSeq.seq
+    // val seq: Sequence[F]                = sequenceState.toSequence
+    val instrument: Instrument          = obsSeq.instrument
+    val seqType: SequenceType           = sequenceState.currentSequenceType
 
-    def engineRunningStep(seq: Sequence[F]): Option[ObserveStep] =
-      (obsSeq.currentStep, seq.loadedStep).mapN { (sg, es) =>
+    def engineRunningStep(seqState: SequenceState[F]): Option[ObserveStep] =
+      (obsSeq.currentStep, seqState.currentStep).mapN { (sg, es) =>
         val stepResources =
           sg.resources.toList.mapFilter(x =>
             obsSeq
               .configActionCoord(sg.id, x)
-              .map(i => (x, obsSeq.seq.getSingleState(i).actionStatus))
+              .map(i => (x, seqState.getSingleState(i).actionStatus))
           )
         StepsView
           .stepsView(instrument)
           .stepView(
             sg,
-            es,
+            es.toEngineStep,
             stepResources,
             obsSeq.pendingObsCmd
           )
@@ -689,7 +689,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       //   case x    => x
       // }
 
-    val engStep: Option[ObserveStep]                            = engineRunningStep(seq)
+    val engStep: Option[ObserveStep]                            = engineRunningStep(sequenceState)
     val stepResources: Map[Resource | Instrument, ActionStatus] =
       engStep.foldMap {
         case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
@@ -700,15 +700,15 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
 
     // TODO: Implement willStopIn
     SequenceView(
-      seq.obsId,
+      sequenceState.obsId,
       SequenceMetadata(instrument, obsSeq.observer, obsSeq.obsData.title),
-      st.status,
+      sequenceState.status,
       obsSeq.overrides,
-      seqType.getOrElse(SequenceType.Science),
+      seqType,
       engStep,
       None,
       stepResources,
-      st.breakpoints.value
+      sequenceState.breakpoints.value
     )
   }
 

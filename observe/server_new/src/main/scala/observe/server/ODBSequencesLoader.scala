@@ -5,13 +5,14 @@ package observe.server
 
 import cats.Endo
 import cats.syntax.all.*
+import lucuma.core.enums.SequenceType
+import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import monocle.Lens
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.server.engine.Breakpoints
 import observe.server.engine.Engine
-import observe.server.engine.Sequence
 import observe.server.engine.SequenceState
 import observe.server.odb.OdbObservationData
 
@@ -33,6 +34,9 @@ object ODBSequencesLoader {
   //     )
   //   (engineStep, breakpoints)
 
+  private def initialSequenceType[S, D](ec: ExecutionConfig[S, D]): SequenceType =
+    ec.acquisition.fold(SequenceType.Science)(_ => SequenceType.Acquisition)
+
   /**
    * Create a new SequenceData for a freshly loaded observation. Constructs the appropriate
    * instrument-specific subclass based on the execution config.
@@ -43,17 +47,24 @@ object ODBSequencesLoader {
     instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]],
     cleanup:                F[Unit]
   ): Endo[EngineState[F]] = st =>
-    val initialBreakpoints: Breakpoints =
+    val (initialBreakpoints, seqType): (Breakpoints, SequenceType) =
       odbData.executionConfig match
-        case InstrumentExecutionConfig.GmosNorth(ec)  => Breakpoints.fromExecutionConfig(ec)
-        case InstrumentExecutionConfig.GmosSouth(ec)  => Breakpoints.fromExecutionConfig(ec)
-        case InstrumentExecutionConfig.Flamingos2(ec) => Breakpoints.fromExecutionConfig(ec)
+        case InstrumentExecutionConfig.GmosNorth(ec)  =>
+          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
+        case InstrumentExecutionConfig.GmosSouth(ec)  =>
+          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
+        case InstrumentExecutionConfig.Flamingos2(ec) =>
+          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Igrins2(_)     =>
           sys.error("Igrins2 is not supported")
 
     val seqState: SequenceState[F] =
-      Engine.initialSequenceState:
-        Sequence(odbData.observation.id, none, initialBreakpoints)
+      SequenceState.init(
+        odbData.observation.id,
+        none,
+        seqType,
+        initialBreakpoints
+      )
 
     val seqData: SequenceData[F] = odbData.executionConfig match
       case InstrumentExecutionConfig.GmosNorth(ec)  =>

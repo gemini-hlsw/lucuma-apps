@@ -144,7 +144,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           .map { seq =>
             seq.status match {
               case SequenceStatus.Running(userStop, internalStop, _, _, _) =>
-                seq.next match {
+                seq.withNextExecution match {
                   // Empty state
                   case None                               =>
                     send(Event.finished(obsId))
@@ -169,7 +169,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                   case Some(qs)                           =>
                     EngineHandle.replaceSequenceState(obsId)(qs) *>
                       (if (
-                         qs.getCurrentBreakpoint && !qs.current.execution
+                         qs.getCurrentBreakpoint && !qs.currentExecution.execution
                            .exists(_.uninterruptible)
                        ) {
                          switch(obsId)(SequenceStatus.Idle) *> send(Event.breakpointReached(obsId))
@@ -259,13 +259,13 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
             case Some(z) =>
               val stepId                         = z.id
               val u: List[Stream[F, Event[F]]]   =
-                seq.current.actions
+                seq.currentExecution.actions
                   .map(_.gen)
                   .zipWithIndex
                   .map(act(obsId, stepId, _))
               val v: Stream[F, Event[F]]         = Stream.emits(u).parJoin(u.length)
               val w: List[EngineHandle[F, Unit]] =
-                seq.current.actions.indices
+                seq.currentExecution.actions.indices
                   .map(i => EngineHandle.modifySequenceState[F](obsId)(_.start(i)))
                   .toList
               w.sequence *> Handle.fromEventStream(v)
@@ -303,7 +303,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         .getSequenceState(obsId)
         .flatMap(
           _.flatMap(
-            _.current.execution
+            _.currentExecution.execution
               .forall(Action.completed)
               .option(EngineHandle.fromSingleEvent(Event.executed(obsId)))
           ).getOrElse(EngineHandle.unit)
@@ -319,7 +319,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         .getSequenceState(obsId)
         .flatMap(
           _.flatMap(
-            _.current.execution
+            _.currentExecution.execution
               .forall(Action.completed)
               .option(Handle.fromSingleEvent(Event.executed(obsId)))
           ).getOrElse(EngineHandle.unit)
@@ -356,7 +356,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
         case s
             if s.currentStep.exists(z =>
               SequenceState
-                .isRunning(s) && s.current.execution.lift(i).exists(Action.paused)
+                .isRunning(s) && s.currentExecution.execution.lift(i).exists(Action.paused)
             ) =>
           EngineHandle.modifySequenceState[F](obsId)(_.start(i)) *>
             EngineHandle.fromEventStream(act(obsId, s.currentStep.get.id, (cont, i)))
@@ -567,9 +567,6 @@ object Engine {
     type StateType = S
     type EventData = E
   }
-
-  def initialSequenceState[F[_]](seq: Sequence[F]): SequenceState[F] =
-    SequenceState.init(seq)
 
   /**
    * Redefines an existing sequence. Changes the step actions, removes steps, adds new steps.
