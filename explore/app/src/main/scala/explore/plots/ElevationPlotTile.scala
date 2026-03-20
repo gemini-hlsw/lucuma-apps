@@ -53,9 +53,10 @@ final case class ElevationPlotTile(
   obsTime:           Option[Instant],
   obsDuration:       Option[Duration],
   hideLabels:        Boolean,
-  timingWindows:     List[TimingWindow] = List.empty,
+  timingWindows:     List[TimingWindow],
   globalPreferences: GlobalPreferences,
-  emptyMessage:      String
+  emptyMessage:      String,
+  refDate:           Option[LocalDate]
 ) extends Tile[ElevationPlotTile](tileId,
                                   "Elevation Plot",
                                   bodyClass = ExploreStyles.ElevationPlotTileBody
@@ -68,7 +69,7 @@ object ElevationPlotTile
         // Plot options, will be read from the user preferences
         options <- useStateView:
                      ObjectPlotOptions
-                       .default(props.site, props.obsTime)
+                       .default(props.site, props.obsTime, props.refDate)
                        .copy(
                          range = props.globalPreferences.elevationPlotRange,
                          timeDisplay = props.globalPreferences.elevationPlotTime,

@@ -28,6 +28,8 @@ import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
+
+import java.time.LocalDate
 import lucuma.schemas.enums.ProposalStatus
 import lucuma.schemas.model.TargetWithId
 import monocle.Focus
@@ -56,6 +58,12 @@ case class ProgramSummaries(
 
   lazy val proposalId: Option[ProposalReference] =
     optProgramDetails.flatMap(_.proposal.flatMap(_.reference))
+
+  lazy val cfpDate: Option[LocalDate] =
+    optProgramDetails
+      .flatMap(_.proposal)
+      .flatMap(_.call)
+      .map(_.middleDate)
 
   lazy val asterismGroups: AsterismGroupList =
     SortedMap.from:

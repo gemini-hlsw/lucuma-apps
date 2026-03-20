@@ -570,7 +570,8 @@ object TargetTabContents extends TwoPanels:
                 plotData.value.size === 1,
                 Nil,
                 props.globalPreferences.get,
-                Constants.NoTargetSelected
+                Constants.NoTargetSelected,
+                props.programSummaries.get.cfpDate
               )
 
             List(asterismEditorTile, skyPlotTile.some).flattenOption
@@ -626,7 +627,8 @@ object TargetTabContents extends TwoPanels:
               plotData.value.size === 1,
               Nil,
               props.globalPreferences.get,
-              Constants.NoTargetSelected
+              Constants.NoTargetSelected,
+              props.programSummaries.get.cfpDate
             )
 
           val rightSide = { (resize: UseResizeDetectorReturn) =>
