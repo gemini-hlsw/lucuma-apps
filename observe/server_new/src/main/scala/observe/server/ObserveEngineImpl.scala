@@ -54,6 +54,7 @@ import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
+import observe.model.SequenceStatus.*
 
 import java.util.concurrent.TimeUnit
 import scala.annotation.unused
@@ -250,7 +251,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): EngineHandle[F, SeqEvent] =
     startAction.reversedStreamFlatMap: _ =>
       sequenceStart(id).map:
-        _.map { case (sid, stepId) => SequenceStart(sid, stepId) }.getOrElse(NullSeqEvent)
+        _.map: (sid, stepId) =>
+          SequenceStart(sid, stepId)
+        .getOrElse(NullSeqEvent)
 
   private def startChecks(
     startAction:    EngineHandle[F, Unit],
@@ -263,8 +266,20 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       EngineState
         .atSequence(obsId)
         .getOption(st)
+        .filter(seqData => seqData.seq.status.isIdle || seqData.seq.status.isError)
         .map { seq =>
           for {
+            // TODO Careful with state later in case of load error!
+            _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
+                                SequenceState.status.replace(
+                                  SequenceStatus.Running(
+                                    userStop = HasUserStop.No,
+                                    internalStop = HasInternalStop.No,
+                                    waitingUserPrompt = IsWaitingUserPrompt.No,
+                                    waitingNextStep = IsWaitingNextStep.Yes,
+                                    starting = IsStarting.Yes
+                                  )
+                                )(seq.rollback)
             startingStep   <-
               ObserveEngine.reloadStep(systems.odb, translator, seq.obsId, seq.currentSequenceType)
             checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
@@ -315,7 +330,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       Event.modifyState[F](
         setObserver(obsId, observer) *>
           clearObsCmd(obsId) *>
-          startChecks(executeEngine.start(obsId), obsId, clientId, none, runOverride)
+          // startChecks(executeEngine.start(obsId), obsId, clientId, none, runOverride)
+          startChecks(executeEngine.startNewStep(obsId), obsId, clientId, none, runOverride)
       )
 
   override def loadNextStep(

@@ -534,10 +534,13 @@ object ObserveEngine {
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
     seqType:    SequenceType
-  ): EngineHandle[F, Option[StepGen[F]]] =
+  ): EngineHandle[F, Option[StepGen[F]]] = // TODO only if seq isIdle or isError???
     for
       _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
       odbData <- EngineHandle.liftF(odb.read(obsId))
+      // TODO HANDLE ERRORS!!!! (see below for an example)
+      // But take into account that we are in state RUNNING here
+      // Or handle in caller!
       stepGen <-
         EngineHandle.modifyState: (oldState: EngineState[F]) =>
           // TODO Do something with warnings? (_1)

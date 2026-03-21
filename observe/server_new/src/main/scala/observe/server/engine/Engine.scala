@@ -55,9 +55,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                 waitingNextStep = IsWaitingNextStep.Yes,
                 starting = IsStarting.Yes
               )
-            )(
-              seq.rollback
-            )
+            )(seq.rollback)
           ) *> send(Event.modifyState(stepReload(this, obsId, ReloadReason.SequenceFlow)))
         }.whenA(seq.status.isIdle || seq.status.isError)
       case None      => Handle.unit
@@ -188,33 +186,37 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       .flatMap(seqState =>
         seqState
           .map { seq =>
-            seq.status match {
-              case SequenceStatus
-                    .Running(userStop, internalStop, _, IsWaitingNextStep.Yes, isStarting) =>
-                if (!isStarting && (userStop || internalStop)) {
-                  if (seq.currentStep.isEmpty)
-                    send(Event.finished(obsId))
-                  else
-                    switch(obsId)(SequenceStatus.Idle)
-                } else {
-                  if (seq.currentStep.isEmpty)
-                    send(Event.finished(obsId))
-                  else if (!isStarting && seq.getCurrentBreakpoint)
-                    switch(obsId)(SequenceStatus.Idle) *> send(Event.breakpointReached(obsId))
-                  else
-                    switch(obsId)(
-                      SequenceStatus.Running(
-                        userStop,
-                        internalStop,
-                        IsWaitingUserPrompt.No,
-                        IsWaitingNextStep.No,
-                        IsStarting.No
-                      )
-                    ) *>
-                      send(Event.executing(obsId))
+            EngineHandle.debug(s"In startnewStep with seq: $seq") >>
+              {
+                seq.status match {
+                  case SequenceStatus
+                        .Running(userStop, internalStop, _, IsWaitingNextStep.Yes, isStarting) =>
+                    // TODO Review if all of these conditions are possible now.
+                    if (!isStarting && (userStop || internalStop)) {
+                      if (seq.currentStep.isEmpty)
+                        send(Event.finished(obsId))
+                      else
+                        switch(obsId)(SequenceStatus.Idle)
+                    } else {
+                      if (seq.currentStep.isEmpty)
+                        send(Event.finished(obsId))
+                      else if (!isStarting && seq.getCurrentBreakpoint)
+                        switch(obsId)(SequenceStatus.Idle) *> send(Event.breakpointReached(obsId))
+                      else
+                        switch(obsId)(
+                          SequenceStatus.Running(
+                            userStop,
+                            internalStop,
+                            IsWaitingUserPrompt.No,
+                            IsWaitingNextStep.No,
+                            IsStarting.No
+                          )
+                        ) *>
+                          send(Event.executing(obsId))
+                    }
+                  case _ => EngineHandle.unit
                 }
-              case _ => EngineHandle.unit
-            }
+              }
           }
           .getOrElse(EngineHandle.unit)
       )
