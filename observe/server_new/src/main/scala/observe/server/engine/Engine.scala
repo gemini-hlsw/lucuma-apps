@@ -46,6 +46,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       case Some(seq) =>
         {
           EngineHandle.replaceSequenceState(obsId)(
+            // TODO This should be before, in startChecks... and we don't need to reload afterwards
             SequenceState.status.replace(
               SequenceStatus.Running(
                 userStop = HasUserStop.No,

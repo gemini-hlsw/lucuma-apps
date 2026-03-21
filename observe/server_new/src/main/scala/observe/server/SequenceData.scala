@@ -5,6 +5,9 @@ package observe.server
 
 import cats.syntax.eq.*
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
+import lucuma.core.model.ConstraintSet
+import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -20,6 +23,8 @@ import observe.model.enums.Resource
 import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.SequenceState
 
+import OdbObservation.TargetEnvironment
+
 sealed trait SequenceData[F[_]]:
   type S
   type D
@@ -27,34 +32,42 @@ sealed trait SequenceData[F[_]]:
 
   def observer: Option[Observer]
   def overrides: SystemOverrides
-  def obsData: OdbObservation
+  def targetEnvironment: TargetEnvironment
+  def constraintSet: ConstraintSet
   def staticCfg: S
-  def currentStep: Option[StepGen.Aux[F, D]]
+  // TODO Is it worth it now saving the StepGen in state or can we convert on the fly to EngineStep
+  // and just store it in SequenceState?
+  def loadedStep: Option[StepGen.Aux[F, D]]
   def seq: SequenceState[F]
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
   def cleanup: F[Unit]
 
+  lazy val obsId: Observation.Id             = seq.obsId
+  lazy val currentSequenceType: SequenceType = seq.currentSequenceType
+
   def withCompleteVisitStart: SequenceData[F] = SequenceData.visitStartDone.replace(true)(this)
 
   val resources: Set[Resource | Instrument] =
-    currentStep.map(_.resources).getOrElse(Set.empty)
+    loadedStep.map(_.resources).getOrElse(Set.empty)
 
   def configActionCoord(
     stepId: Step.Id,
     r:      Resource | Instrument
   ): Option[ActionCoordsInSeq] =
-    currentStep
+    loadedStep
       .filter(_.id === stepId)
       .flatMap(_.generator.configActionCoord(r))
       .map { case (ex, ac) => ActionCoordsInSeq(stepId, ex, ac) }
 
   def resourceAtCoords(c: ActionCoordsInSeq): Option[Resource | Instrument] =
-    currentStep
+    loadedStep
       .filter(_.id === c.stepId)
       .flatMap(_.generator.resourceAtCoords(c.execIdx, c.actIdx))
 
 object SequenceData:
+  type Aux[F[_], S0, D0] = SequenceData[F] { type S = S0; type D = D0 }
+
   def gmosNorth[F[_]]: Prism[SequenceData[F], SequenceData.GmosNorth[F]]   =
     GenPrism[SequenceData[F], SequenceData.GmosNorth[F]]
   def gmosSouth[F[_]]: Prism[SequenceData[F], SequenceData.GmosSouth[F]]   =
@@ -67,6 +80,7 @@ object SequenceData:
       case gmosNorth(s)  => s.copy(seq = seq)
       case gmosSouth(s)  => s.copy(seq = seq)
       case flamingos2(s) => s.copy(seq = seq)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
   def overrides[F[_]]: Lens[SequenceData[F], SystemOverrides] =
@@ -74,6 +88,7 @@ object SequenceData:
       case gmosNorth(s)  => s.copy(overrides = overrides)
       case gmosSouth(s)  => s.copy(overrides = overrides)
       case flamingos2(s) => s.copy(overrides = overrides)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
   def pendingObsCmd[F[_]]: Lens[SequenceData[F], Option[PendingObserveCmd]] =
@@ -81,6 +96,7 @@ object SequenceData:
       case gmosNorth(s)  => s.copy(pendingObsCmd = pendingObsCmd)
       case gmosSouth(s)  => s.copy(pendingObsCmd = pendingObsCmd)
       case flamingos2(s) => s.copy(pendingObsCmd = pendingObsCmd)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
   def observer[F[_]]: Lens[SequenceData[F], Option[Observer]] =
@@ -88,6 +104,7 @@ object SequenceData:
       case gmosNorth(s)  => s.copy(observer = observer)
       case gmosSouth(s)  => s.copy(observer = observer)
       case flamingos2(s) => s.copy(observer = observer)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
   def visitStartDone[F[_]]: Lens[SequenceData[F], Boolean] =
@@ -95,48 +112,60 @@ object SequenceData:
       case gmosNorth(s)  => s.copy(visitStartDone = visitStartDone)
       case gmosSouth(s)  => s.copy(visitStartDone = visitStartDone)
       case flamingos2(s) => s.copy(visitStartDone = visitStartDone)
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
+  def stepGen[F[_]]: Lens[SequenceData[F], Option[StepGen[F]]] =
+    Lens[SequenceData[F], Option[StepGen[F]]](_.loadedStep)(stepGen =>
+      case gmosNorth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosNorth.getOption))
+      case gmosSouth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosSouth.getOption))
+      case flamingos2(s) => s.copy(loadedStep = stepGen.flatMap(StepGen.flamingos2.getOption))
+      case other         => other // should not happen, but needed to satisfy exhaustivity check
+    )
+
   case class GmosNorth[F[_]](
-    observer:       Option[Observer],
-    overrides:      SystemOverrides,
-    obsData:        OdbObservation,
-    staticCfg:      gmos.StaticConfig.GmosNorth,
-    currentStep:    Option[StepGen.Aux[F, gmos.DynamicConfig.GmosNorth]],
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean,
-    cleanup:        F[Unit]
+    observer:          Option[Observer],
+    overrides:         SystemOverrides,
+    targetEnvironment: TargetEnvironment,
+    constraintSet:     ConstraintSet,
+    staticCfg:         gmos.StaticConfig.GmosNorth,
+    loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosNorth]],
+    seq:               SequenceState[F],
+    pendingObsCmd:     Option[PendingObserveCmd],
+    visitStartDone:    Boolean,
+    cleanup:           F[Unit]
   ) extends SequenceData[F]:
     type S = gmos.StaticConfig.GmosNorth
     type D = gmos.DynamicConfig.GmosNorth
     val instrument: Instrument = Instrument.GmosNorth
 
   case class GmosSouth[F[_]](
-    observer:       Option[Observer],
-    overrides:      SystemOverrides,
-    obsData:        OdbObservation,
-    staticCfg:      gmos.StaticConfig.GmosSouth,
-    currentStep:    Option[StepGen.Aux[F, gmos.DynamicConfig.GmosSouth]],
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean,
-    cleanup:        F[Unit]
+    observer:          Option[Observer],
+    overrides:         SystemOverrides,
+    targetEnvironment: TargetEnvironment,
+    constraintSet:     ConstraintSet,
+    staticCfg:         gmos.StaticConfig.GmosSouth,
+    loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosSouth]],
+    seq:               SequenceState[F],
+    pendingObsCmd:     Option[PendingObserveCmd],
+    visitStartDone:    Boolean,
+    cleanup:           F[Unit]
   ) extends SequenceData[F]:
     type S = gmos.StaticConfig.GmosSouth
     type D = gmos.DynamicConfig.GmosSouth
     val instrument: Instrument = Instrument.GmosSouth
 
   case class Flamingos2[F[_]](
-    observer:       Option[Observer],
-    overrides:      SystemOverrides,
-    obsData:        OdbObservation,
-    staticCfg:      Flamingos2StaticConfig,
-    currentStep:    Option[StepGen.Aux[F, Flamingos2DynamicConfig]],
-    seq:            SequenceState[F],
-    pendingObsCmd:  Option[PendingObserveCmd],
-    visitStartDone: Boolean,
-    cleanup:        F[Unit]
+    observer:          Option[Observer],
+    overrides:         SystemOverrides,
+    targetEnvironment: TargetEnvironment,
+    constraintSet:     ConstraintSet,
+    staticCfg:         Flamingos2StaticConfig,
+    loadedStep:        Option[StepGen.Aux[F, Flamingos2DynamicConfig]],
+    seq:               SequenceState[F],
+    pendingObsCmd:     Option[PendingObserveCmd],
+    visitStartDone:    Boolean,
+    cleanup:           F[Unit]
   ) extends SequenceData[F]:
     type S = Flamingos2StaticConfig
     type D = Flamingos2DynamicConfig

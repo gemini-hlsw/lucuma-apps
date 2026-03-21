@@ -85,7 +85,6 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = gmos.DynamicConfig.GmosNorth
-  // Aux[F, gmos.DynamicConfig.GmosNorth]
 
   case class GmosSouth[F[_]](
     atomId:          Atom.Id,
@@ -102,7 +101,6 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = gmos.DynamicConfig.GmosSouth
-  // Aux[F, gmos.DynamicConfig.GmosSouth]
 
   case class Flamingos2[F[_]](
     atomId:          Atom.Id,
@@ -119,4 +117,3 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Flamingos2DynamicConfig
-  // Aux[F, Flamingos2DynamicConfig]

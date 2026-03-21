@@ -18,6 +18,7 @@ object TestUtil {
     obsId: Observation.Id,
     seq:   SequenceState[IO]
   ): EngineState[IO] =
+    val odbObs = odbObservation(obsId)
     EngineState[IO](
       queues = Map.empty,
       selected = Selected(
@@ -25,9 +26,10 @@ object TestUtil {
           .GmosNorth[IO](
             observer = none,
             overrides = SystemOverrides.AllEnabled,
-            obsData = odbObservation(obsId),
+            targetEnvironment = odbObs.targetEnvironment,
+            constraintSet = odbObs.constraintSet,
             staticCfg = staticCfg1,
-            currentStep = none,
+            loadedStep = none,
             seq = seq,
             pendingObsCmd = none,
             visitStartDone = false,

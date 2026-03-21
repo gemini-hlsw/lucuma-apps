@@ -140,6 +140,6 @@ object EngineHandle {
     obsId: Observation.Id
   ): EngineHandle[F, Unit] =
     inspectSequenceState(obsId): (qs: SequenceState[F]) =>
-      StateT.liftF(Logger[F].debug(s"$qs"))
+      StateT.liftF(Logger[F].debug(pprint(qs).toString))
     .void
 }

@@ -60,11 +60,11 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
       ssoClient.require(req): user =>
         oe.requestCancelPause(obsId, obs, user) *> NoContent()
 
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "loadNextStep" /
-        ObserverVar(obs) / SequenceTypeVar(seqType) =>
-      ssoClient.require(req): user =>
-        oe.loadNextStep(obsId, user, obs, seqType) *>
-          NoContent()
+    // case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "loadNextStep" /
+    //     ObserverVar(obs) / SequenceTypeVar(seqType) =>
+    //   ssoClient.require(req): user =>
+    //     oe.loadNextStep(obsId, user, obs, seqType) *>
+    //       NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
         "breakpoint" / ObserverVar(obs) / BreakpointVar(bp) =>

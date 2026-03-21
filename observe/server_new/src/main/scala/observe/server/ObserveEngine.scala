@@ -61,7 +61,7 @@ trait ObserveEngine[F[_]] {
     obsId:    Observation.Id,
     user:     User,
     observer: Observer,
-    atomType: SequenceType
+    seqType:  SequenceType
   ): F[Unit]
 
   def requestPause(
@@ -404,7 +404,7 @@ object ObserveEngine {
       .getState[F, EngineState[F], Event[F]]
       .map(EngineState.atSequence[F](obsId).getOption)
       .flatMap {
-        _.flatMap(_.currentStep)
+        _.flatMap(_.loadedStep)
           .map { completedStep =>
             completedStep.sequenceType match {
               case SequenceType.Acquisition =>
@@ -465,8 +465,8 @@ object ObserveEngine {
             else if stepGen.isEmpty then SequenceStatus.Completed
             else seqData.seq.status
 
-          SequenceData.seq
-            .replace(SequenceState.status.replace(newStatus)(newSeqState))(seqData)
+          (SequenceData.stepGen.replace(stepGen) >>>
+            SequenceData.seq.replace(SequenceState.status.replace(newStatus)(newSeqState)))(seqData)
         }(st)
 
   def tryNewStep[F[_]: MonadCancelThrow](
@@ -474,14 +474,14 @@ object ObserveEngine {
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
     obsId:         Observation.Id,
-    atomType:      SequenceType
+    seqType:       SequenceType
   ): EngineHandle[F, Unit] =
     EngineHandle.fromSingleEventF:
       odb
         .read(obsId)
         .map: odbObsData =>
           translator
-            .nextStep(odbObsData, atomType)
+            .nextStep(odbObsData, seqType)
             ._2
             .map: stepGen =>
               Event.modifyState[F]:
@@ -512,7 +512,7 @@ object ObserveEngine {
     EngineHandle.getState
       .map(EngineState.atSequence[F](obsId).getOption)
       .flatMap {
-        _.flatMap(_.currentStep)
+        _.flatMap(_.loadedStep)
           .map { step =>
             tryStepReload[F](
               odb,
@@ -529,12 +529,29 @@ object ObserveEngine {
           )
       }
 
+  def reloadStep[F[_]: {MonadCancelThrow, Logger}](
+    odb:        OdbProxy[F],
+    translator: SeqTranslate[F],
+    obsId:      Observation.Id,
+    seqType:    SequenceType
+  ): EngineHandle[F, Option[StepGen[F]]] =
+    for
+      _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
+      odbData <- EngineHandle.liftF(odb.read(obsId))
+      stepGen <-
+        EngineHandle.modifyState: (oldState: EngineState[F]) =>
+          // TODO Do something with warnings? (_1)
+          val stepGen: Option[StepGen[F]] = translator.nextStep(odbData, seqType)._2
+          val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
+          (newState, stepGen)
+    yield stepGen
+
   private def tryStepReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
     obsId:         Observation.Id,
-    atomType:      SequenceType,
+    seqType:       SequenceType,
     reloadReason:  ReloadReason
   ): EngineHandle[F, Unit] =
     EngineHandle
@@ -549,14 +566,7 @@ object ObserveEngine {
           EngineHandle.fromSingleEvent:
             Event.modifyState[F]:
               (for
-                _        <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
-                odbData  <- EngineHandle.liftF(odb.read(obsId))
-                stepGen  <-
-                  EngineHandle.modifyState: (oldState: EngineState[F]) =>
-                    val stepGen: Option[StepGen[F]] =
-                      translator.nextStep(odbData, atomType)._2
-                    val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
-                    (newState, stepGen)
+                stepGen  <- reloadStep(odb, translator, obsId, seqType)
                 continue <-
                   stepGen.fold(
                     EngineHandle.fromSingleEvent(Event.finished(obsId)).as(SeqEvent.NullSeqEvent)

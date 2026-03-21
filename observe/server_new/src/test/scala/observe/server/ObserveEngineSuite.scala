@@ -903,12 +903,12 @@ class ObserveEngineSuite extends TestCommon {
     } yield {
       r.sequences
         .get(seqObsId1)
-        .flatMap(_.currentStep)
+        .flatMap(_.loadedStep)
         .map(z => assertEquals(z.id, acquisitionSteps.get(1).get.id))
         .getOrElse(fail("Bad step id found"))
       s.sequences
         .get(seqObsId1)
-        .flatMap(_.currentStep)
+        .flatMap(_.loadedStep)
         .map(z => assertEquals(z.id, scienceSteps.get(1).get.id))
         .getOrElse(fail("Bad step id found"))
     }
@@ -978,7 +978,7 @@ class ObserveEngineSuite extends TestCommon {
         )
     } yield r.sequences
       .get(seqObsId1)
-      .flatMap(_.currentStep)
+      .flatMap(_.loadedStep)
       .map(z => assertEquals(z.id, stepId(2 + stepCount)))
       .getOrElse(fail("Bad step id found"))
 
@@ -1258,7 +1258,7 @@ class ObserveEngineSuite extends TestCommon {
           { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
         )
       _              = // Check step loaded
-        assert(s1.sequences.get(seqObsId1).get(0).get.currentStep.isDefined)
+        assert(s1.sequences.get(seqObsId1).get(0).get.loadedStep.isDefined)
       _              = // Check no steps were executed
         assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
       r             <-
@@ -1276,7 +1276,7 @@ class ObserveEngineSuite extends TestCommon {
     yield
       // Check all steps loaded
       // Check step loaded
-      assert(s1.sequences.get(seqObsId1).get(0).get.currentStep.isDefined)
+      assert(s1.sequences.get(seqObsId1).get(0).get.loadedStep.isDefined)
       // Check no steps were executed
       assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
   }

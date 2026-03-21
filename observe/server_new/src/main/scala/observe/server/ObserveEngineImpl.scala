@@ -94,21 +94,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       )
   }
 
-  // Starting step is either the one given, or the first one not run
-  private def findStartingStep(
-    obs:    SequenceData[F],
-    stepId: Option[Step.Id]
-  ): Option[StepGen[F]] = for {
-    stp    <- stepId.orElse(obs.seq.currentStep.map(_.id))
-    stpGen <- obs.currentStep.filter(_.id === stp)
-  } yield stpGen
-
-  private def findFirstCheckRequiredStep(
-    obs:    SequenceData[F],
-    stepId: Step.Id
-  ): Option[StepGen[F]] =
-    obs.currentStep.filter(s => s.id === stepId && stepRequiresChecks(s.config))
-
   /**
    * Check if the target on the TCS matches the Observe target
    * @return
@@ -117,7 +102,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   private def sequenceTcsTargetMatch(
     seqData: SequenceData[F]
   ): F[Option[TargetCheckOverride]] =
-    seqData.obsData.targetEnvironment.firstScienceTarget
+    seqData.targetEnvironment.firstScienceTarget
       .map(_.targetName.toString)
       .map { seqTarget =>
         systems.tcsKeywordReader.sourceATarget.objectName.map { tcsTarget =>
@@ -268,36 +253,36 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         _.map { case (sid, stepId) => SequenceStart(sid, stepId) }.getOrElse(NullSeqEvent)
 
   private def startChecks(
-    startAction: EngineHandle[F, Unit],
-    obsId:       Observation.Id,
-    clientId:    ClientId,
-    stepId:      Option[Step.Id],
-    runOverride: RunOverride
+    startAction:    EngineHandle[F, Unit],
+    obsId:          Observation.Id,
+    clientId:       ClientId,
+    @unused stepId: Option[Step.Id],
+    runOverride:    RunOverride
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st =>
       EngineState
         .atSequence(obsId)
         .getOption(st)
         .map { seq =>
-          EngineHandle
-            .liftF {
-              (for {
-                ststp <- findStartingStep(seq, stepId)
-                sp    <- findFirstCheckRequiredStep(seq, ststp.id)
-              } yield sequenceTcsTargetMatch(seq).map { tchk =>
-                (ststp.some,
-                 List(
-                   tchk,
-                   observingConditionsMatch(st.conditions, seq.obsData.constraintSet)
-                 )
-                   .collect { case Some(x) => x }
-                   .widen[SeqCheck]
-                )
-              })
-                .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
-            }
-            .flatMap { case (stpg, checks) =>
-              (checkResources(obsId)(st), stpg, checks, runOverride) match {
+          for {
+            startingStep   <-
+              ObserveEngine.reloadStep(systems.odb, translator, seq.obsId, seq.currentSequenceType)
+            checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
+            (stpg, checks) <- EngineHandle.liftF:
+                                checkedStepOpt
+                                  .map: checkedStep =>
+                                    sequenceTcsTargetMatch(seq).map: tchk =>
+                                      (checkedStep.some,
+                                       List(
+                                         tchk,
+                                         observingConditionsMatch(st.conditions, seq.constraintSet)
+                                       )
+                                         .collect { case Some(x) => x }
+                                         .widen[SeqCheck]
+                                      )
+                                  .getOrElse((none[StepGen[F]], List.empty[SeqCheck]).pure[F])
+            resultEvent    <-
+              (checkResources(obsId)(st), stpg, checks, runOverride) match
                 // Resource check fails
                 case (false, _, _, _)                             =>
                   EngineHandle.unit.as[SeqEvent](Busy(obsId, clientId))
@@ -310,13 +295,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                     )
                   )
                 // Allowed to run
-                case _                                            => startAfterCheck(startAction, obsId)
-              }
-            }
+                case _                                            =>
+                  startAfterCheck(startAction, obsId)
+          } yield resultEvent
         }
-        .getOrElse(
+        .getOrElse: // Trying to run a sequence that does not exist. This should never happen.
           EngineHandle.unit.as[SeqEvent](NullSeqEvent)
-        ) // Trying to run a sequence that does not exist. This should never happen.
     }
 
   // Stars a sequence from the first non executed step. The method checks for resources conflict.
@@ -656,7 +640,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     val seqType: SequenceType           = sequenceState.currentSequenceType
 
     def engineRunningStep(seqState: SequenceState[F]): Option[ObserveStep] =
-      (obsSeq.currentStep, seqState.currentStep).mapN { (sg, es) =>
+      (obsSeq.loadedStep, seqState.currentStep).mapN { (sg, es) =>
         val stepResources =
           sg.resources.toList.mapFilter(x =>
             obsSeq
@@ -701,7 +685,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     // TODO: Implement willStopIn
     SequenceView(
       sequenceState.obsId,
-      SequenceMetadata(instrument, obsSeq.observer, obsSeq.obsData.title),
+      SequenceMetadata(instrument, obsSeq.observer), // , obsSeq.obsData.title),
       sequenceState.status,
       obsSeq.overrides,
       seqType,
@@ -780,9 +764,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     def svs: SequencesQueue[SequenceView] =
       SequencesQueue(
         List(
-          qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.obsData.id),
-          qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.obsData.id),
-          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsData.id)
+          qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.obsId),
+          qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.obsId),
+          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsId)
         ).flattenOption.toMap,
         qState.conditions,
         qState.operator,
@@ -1384,7 +1368,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): Endo[SequenceData[F]] =
     (sd: SequenceData[F]) =>
       val newStep: Option[EngineStep[F]] =
-        sd.currentStep.map: sg =>
+        sd.loadedStep.map: sg =>
           generateStep(
             sg,
             sd.overrides,

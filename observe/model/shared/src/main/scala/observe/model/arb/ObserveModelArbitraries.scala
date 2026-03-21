@@ -6,7 +6,6 @@ package observe.model.arb
 import cats.syntax.all.*
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
-import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.SkyBackground
@@ -77,8 +76,8 @@ trait ObserveModelArbitraries {
     for {
       i <- arbitrary[Instrument]
       o <- arbitrary[Option[Observer]]
-      n <- Gen.alphaStr.suchThat(_.nonEmpty).map(NonEmptyString.unsafeFrom)
-    } yield SequenceMetadata(i, o, n)
+      // n <- Gen.alphaStr.suchThat(_.nonEmpty).map(NonEmptyString.unsafeFrom)
+    } yield SequenceMetadata(i, o) // , n)
   }
 
   import SequenceStatus.*
@@ -133,8 +132,9 @@ trait ObserveModelArbitraries {
     Cogen[String].contramap(_.productPrefix)
 
   given Cogen[SequenceMetadata] =
-    Cogen[(Instrument, Option[Observer], String)].contramap(s =>
-      (s.instrument, s.observer, s.name.value)
+    // Cogen[(Instrument, Option[Observer], String)].contramap(s =>
+    Cogen[(Instrument, Option[Observer])].contramap(s =>
+      (s.instrument, s.observer) // , s.name.value)
     )
 
   given Cogen[SystemOverrides] =

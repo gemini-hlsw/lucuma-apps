@@ -253,6 +253,7 @@ object SeqTranslate {
       nextAtom
         .map: atom =>
           // Take the first step from the atom (ODB returns only pending steps)
+          // TODO There's always a head here since steps is a NEL
           atom.steps.toList.headOption match
             case None       => (List.empty, none)
             case Some(step) =>
@@ -296,7 +297,7 @@ object SeqTranslate {
         obsSeq <- st.sequences.get(seqId)
         if obsSeq.seq.currentExecution.execution
           .exists(isObserving)
-        curStp <- obsSeq.currentStep
+        curStp <- obsSeq.loadedStep
         obsCtr  = curStp.obsControl
       } yield Stream.eval(
         f(obsCtr(obsSeq.overrides)).attempt
@@ -760,10 +761,7 @@ object SeqTranslate {
     ): (List[Throwable], Option[StepGen[F]]) =
       odbObsData.executionConfig match {
         case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
-          buildNextStep[
-            gmos.StaticConfig.GmosNorth,
-            gmos.DynamicConfig.GmosNorth
-          ](
+          buildNextStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
             odbObsData.observation,
             executionConfig,
             atomType,
@@ -788,10 +786,7 @@ object SeqTranslate {
             StepGen.GmosNorth[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
         case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
-          buildNextStep[
-            gmos.StaticConfig.GmosSouth,
-            gmos.DynamicConfig.GmosSouth
-          ](
+          buildNextStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
             odbObsData.observation,
             executionConfig,
             atomType,
@@ -816,10 +811,7 @@ object SeqTranslate {
             StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
         case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
-          buildNextStep[
-            Flamingos2StaticConfig,
-            Flamingos2DynamicConfig
-          ](
+          buildNextStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
             odbObsData.observation,
             executionConfig,
             atomType,

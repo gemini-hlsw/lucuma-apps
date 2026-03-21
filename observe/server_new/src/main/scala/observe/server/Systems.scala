@@ -35,6 +35,7 @@ import observe.server.gmos.*
 import observe.server.gsaoi.*
 import observe.server.gws.*
 import observe.server.igrins2.Igrins2Controller
+import observe.server.igrins2.Igrins2ControllerDisabled
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
@@ -52,7 +53,6 @@ import org.typelevel.log4cats.Logger
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import observe.server.igrins2.Igrins2ControllerDisabled
 
 case class Systems[F[_]] private[server] (
   odb:                 OdbProxy[F],
