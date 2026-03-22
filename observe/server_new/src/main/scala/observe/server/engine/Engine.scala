@@ -163,6 +163,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                              starting = IsStarting.No
                            )
                          ) *> send(Event.stepComplete(obsId))
+                         // TODO We should clear the loaded step!
                            *> send(Event.modifyState(stepLoad(this, obsId))))
                   // Execution group completed. Check requested stop and breakpoint.
                   case Some(qs)                           =>

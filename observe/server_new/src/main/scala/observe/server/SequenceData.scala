@@ -115,7 +115,7 @@ object SequenceData:
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
-  def stepGen[F[_]]: Lens[SequenceData[F], Option[StepGen[F]]] =
+  def loadedStep[F[_]]: Lens[SequenceData[F], Option[StepGen[F]]] =
     Lens[SequenceData[F], Option[StepGen[F]]](_.loadedStep)(stepGen =>
       case gmosNorth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosNorth.getOption))
       case gmosSouth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosSouth.getOption))

@@ -393,7 +393,17 @@ object ObserveEngine {
   ): Set[Observation.Id] =
     findRunnableObservations(qid)(st).intersect(sids)
 
-  private def onStepComplete[F[_]: MonadCancelThrow](
+  private def cleanLoadedStepMod[F[_]](
+    obsId: Observation.Id
+  ): Endo[EngineState[F]] =
+    EngineState.atSequence[F](obsId).modify(SequenceData.loadedStep.replace(none))
+
+  private def cleanLoadedStep[F[_]: MonadCancelThrow](
+    obsId: Observation.Id
+  ): EngineHandle[F, Unit] =
+    EngineHandle.modifyState_(cleanLoadedStepMod(obsId))
+
+  private def onStepComplete[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F]
   )(
@@ -406,26 +416,68 @@ object ObserveEngine {
       .flatMap {
         _.flatMap(_.loadedStep)
           .map { completedStep =>
-            completedStep.sequenceType match {
-              case SequenceType.Acquisition =>
-                // For acquisition, signal completion and wait for user prompt.
-                Handle.pure[F, EngineState[F], Event[F], SeqEvent](
-                  SeqEvent.AtomCompleted(
-                    obsId,
-                    SequenceType.Acquisition,
-                    completedStep.atomId
-                  )
-                )
-              case SequenceType.Science     =>
-                tryNewStep[F](odb, translator, executeEngine, obsId, SequenceType.Science)
-                  .as(
-                    SeqEvent.AtomCompleted(
-                      obsId,
-                      SequenceType.Science,
-                      completedStep.atomId
-                    )
-                  )
-            }
+            // 0) Handle breakpoints and stopping conditions (move from wherever it is now)??? (seems to work now though)
+            // 1) Load next step
+            // 2) If we are in acquisition and atom changed (or no more atoms),
+            // pause and emit AcquisitionCompleted (remove AtomCompleted)
+            // 3) Otherwise, continue as normal (like the tryNewStep below but without reloading)
+            // 4) If sequence is paused for any reason, clear out loaded step.
+
+            fetchNextStep[F](odb, translator, obsId, completedStep.sequenceType)
+              .filterIn: newStepGen => // If acquisition atom completed, pause for prompt
+                completedStep.sequenceType === SequenceType.Science || newStepGen.atomId === completedStep.atomId
+              .flatMap:
+                case None             => // Acquisition Complete or Sequence Complete
+                  completedStep.sequenceType match
+                    case SequenceType.Acquisition => // For acquisition, signal completion and wait for user prompt.
+                      EngineHandle.pure[F, SeqEvent](SeqEvent.AcquisitionCompleted(obsId))
+                      cleanLoadedStep(obsId).as(SeqEvent.AcquisitionCompleted(obsId))
+                    case SequenceType.Science     => // Sequence complete, is this correct?
+                      executeEngine.startNewStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
+                case Some(newStepGen) =>
+                  executeEngine
+                    .startNewStep(obsId)
+                    .as:
+                      SeqEvent.NewStepLoaded(
+                        obsId,
+                        newStepGen.sequenceType,
+                        newStepGen.atomId,
+                        newStepGen.id
+                      )
+
+            //   case Some(stepGen) =>
+            //     EngineHandle.pure[F, SeqEvent](
+            //       SeqEvent.NewStepLoaded(
+            //         obsId,
+            //         stepGen.sequenceType,
+            //         stepGen.atomId,
+            //         stepGen.id
+            //       )
+            //     )
+            //   case None          =>
+            //     // No more steps. If we were in acquisition, pause and emit AcquisitionCompleted
+            //     // Otherwise, just emit AtomCompleted and let the normal flow decide what to do
+
+            // completedStep.sequenceType match {
+            //   case SequenceType.Acquisition =>
+            //     // For acquisition, signal completion and wait for user prompt.
+            //     Handle.pure[F, EngineState[F], Event[F], SeqEvent](
+            //       SeqEvent.AtomCompleted(
+            //         obsId,
+            //         SequenceType.Acquisition,
+            //         completedStep.atomId
+            //       )
+            //     )
+            //   case SequenceType.Science     =>
+            //     tryNewStep[F](odb, translator, executeEngine, obsId, SequenceType.Science)
+            //       .as(
+            //         SeqEvent.AtomCompleted(
+            //           obsId,
+            //           SequenceType.Science,
+            //           completedStep.atomId
+            //         )
+            //       )
+            // }
           }
           .getOrElse(
             EngineHandle.pure[F, SeqEvent](NullSeqEvent)
@@ -465,7 +517,7 @@ object ObserveEngine {
             else if stepGen.isEmpty then SequenceStatus.Completed
             else seqData.seq.status
 
-          (SequenceData.stepGen.replace(stepGen) >>>
+          (SequenceData.loadedStep.replace(stepGen) >>>
             SequenceData.seq.replace(SequenceState.status.replace(newStatus)(newSeqState)))(seqData)
         }(st)
 
@@ -512,24 +564,22 @@ object ObserveEngine {
     EngineHandle.getState
       .map(EngineState.atSequence[F](obsId).getOption)
       .flatMap {
-        _.flatMap(_.loadedStep)
-          .map { step =>
-            tryStepReload[F](
-              odb,
-              translator,
-              executeEngine,
-              obsId,
-              step.sequenceType,
-              reloadReason
-            )
-              .as(SeqEvent.NullSeqEvent)
-          }
-          .getOrElse(
-            EngineHandle.pure[F, SeqEvent](NullSeqEvent)
-          )
+        // _.flatMap(_.loadedStep)
+        _.map { seqData =>
+          tryStepReload[F](
+            odb,
+            translator,
+            executeEngine,
+            obsId,
+            seqData.currentSequenceType,
+            reloadReason
+          ).as(SeqEvent.NullSeqEvent)
+        }.getOrElse(
+          EngineHandle.pure[F, SeqEvent](NullSeqEvent)
+        )
       }
 
-  def reloadStep[F[_]: {MonadCancelThrow, Logger}](
+  def fetchNextStep[F[_]: {MonadCancelThrow, Logger}](
     odb:        OdbProxy[F],
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
@@ -569,7 +619,7 @@ object ObserveEngine {
           EngineHandle.fromSingleEvent:
             Event.modifyState[F]:
               (for
-                stepGen  <- reloadStep(odb, translator, obsId, seqType)
+                stepGen  <- fetchNextStep(odb, translator, obsId, seqType)
                 continue <-
                   stepGen.fold(
                     EngineHandle.fromSingleEvent(Event.finished(obsId)).as(SeqEvent.NullSeqEvent)

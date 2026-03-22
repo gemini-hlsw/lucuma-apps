@@ -33,6 +33,7 @@ import monocle.function.Index.mapIndex
 import mouse.all.*
 import observe.cats.given
 import observe.model.*
+import observe.model.SequenceStatus.*
 import observe.model.UserPrompt.Discrepancy
 import observe.model.UserPrompt.ObsConditionsCheckOverride
 import observe.model.UserPrompt.SeqCheck
@@ -54,7 +55,6 @@ import observe.server.engine.{EngineStep as _, *}
 import observe.server.events.*
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
-import observe.model.SequenceStatus.*
 
 import java.util.concurrent.TimeUnit
 import scala.annotation.unused
@@ -281,7 +281,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                                   )
                                 )(seq.rollback)
             startingStep   <-
-              ObserveEngine.reloadStep(systems.odb, translator, seq.obsId, seq.currentSequenceType)
+              ObserveEngine.fetchNextStep(
+                systems.odb,
+                translator,
+                seq.obsId,
+                seq.currentSequenceType
+              )
             checkedStepOpt  = startingStep.filter(step => stepRequiresChecks(step.config))
             (stpg, checks) <- EngineHandle.liftF:
                                 checkedStepOpt
@@ -733,19 +738,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     odbProxy: OdbProxy[F]
   ): Stream[F, TargetedClientEvent] =
     v match
-      case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId)              =>
+      case RequestConfirmation(c @ UserPrompt.ChecksOverride(_, _, _), clientId) =>
         Stream.emit(ClientEvent.ChecksOverrideEvent(c).forClient(clientId))
       // case RequestConfirmation(m, clientId)        => Stream.emit(UserPromptNotification(m, clientId))
-      case StartSysConfig(oid, stepId, res)                                                   =>
+      case StartSysConfig(oid, stepId, res)                                      =>
         Stream.emit[F, TargetedClientEvent](
           SingleActionEvent(oid, stepId, res, ClientEvent.SingleActionState.Started, none)
         ) ++ buildObserveStateStream(svs, odbProxy)
-      case Busy(obsId, clientId)                                                              =>
+      case Busy(obsId, clientId)                                                 =>
         Stream.emit:
           ClientEvent
             .UserNotification(Notification.ResourceConflict(obsId))
             .forClient(clientId)
-      case LoadSequence(obsId, clientId)                                                      =>
+      case LoadSequence(obsId, clientId)                                         =>
         buildObserveStateStream(svs, odbProxy) ++
           svs.loaded
             .collectFirst:
@@ -753,19 +758,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             .foldMap: instrument =>
               Stream.emit:
                 ClientEvent.ObsLoaded(instrument).forClient(clientId)
-      case ResourceBusy(obsId, stepId, resource, clientId)                                    =>
+      case ResourceBusy(obsId, stepId, resource, clientId)                       =>
         Stream.emit:
           UserNotification(Notification.SubsystemBusy(obsId, stepId, resource)).forClient(clientId)
-      case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                 =>
+      case NewStepLoaded(obsId, sequenceType, atomId, stepId)                    =>
         Stream.emit[F, TargetedClientEvent](
           ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)
         ) ++
           buildObserveStateStream(svs, odbProxy)
-      case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
+      case AcquisitionCompleted(obsId)                                           =>
         Stream.emit[F, TargetedClientEvent](ClientEvent.AcquisitionPromptReached(obsId))
-      case e if e.isModelUpdate                                                               =>
+      case e if e.isModelUpdate                                                  =>
         buildObserveStateStream(svs, odbProxy)
-      case _                                                                                  => Stream.empty
+      case _                                                                     => Stream.empty
 
   private def toClientEvent(
     ev:       EventResult,
@@ -1340,43 +1345,44 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   def notifyODB(
     i: (EventResult, EngineState[F])
   ): F[(EventResult, EngineState[F])] =
-    (i match {
-      case (SystemUpdate(SystemEvent.Failed(obsId, stepId, _, e), _), _)         =>
-        Logger[F].error(s"Error executing $obsId due to $e") <*
-          systems.odb
-            .stepAbort(obsId, stepId)
-            .ensure(
-              ObserveFailure
-                .Unexpected("Unable to send ObservationAborted message to ODB.")
-            )(identity)
-      case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)               =>
-        notifyOdbSequencePaused(obsId)
-      case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _)            =>
-        notifyOdbSequencePaused(obsId)
-      case (SystemUpdate(SystemEvent.LoadFailed(obsId, _, e), _), _)             =>
-        Logger[F].error(s"Error loading $obsId due to $e") <*
-          systems.odb
-            .obsStop(obsId)
-            .ensure(
-              ObserveFailure
-                .Unexpected("Unable to send ObservationLoadFailed message to ODB.")
-            )(identity)
-      case (UserCommandResponse(UserEvent.ModifyState(_), _, Some(seqEvent)), _) =>
-        seqEvent match
-          case AtomCompleted(obsId, sequenceType, _) if sequenceType === SequenceType.Acquisition =>
-            notifyOdbSequencePaused(obsId)
-          case NewStepLoaded(obsId, sequenceType, atomId, stepId)                                 =>
+    println(s"Notify ODB with event result: ${i._1}").pure[F] >>
+      (i match {
+        case (SystemUpdate(SystemEvent.Failed(obsId, stepId, _, e), _), _)         =>
+          Logger[F].error(s"Error executing $obsId due to $e") <*
             systems.odb
-              .obsContinue(obsId)
+              .stepAbort(obsId, stepId)
               .ensure(
                 ObserveFailure
-                  .Unexpected("Unable to send ObservationContinued message to ODB.")
+                  .Unexpected("Unable to send ObservationAborted message to ODB.")
               )(identity)
-              .void
-          case _                                                                                  =>
-            Applicative[F].unit
-      case _                                                                     => Applicative[F].unit
-    }).as(i)
+        case (SystemUpdate(SystemEvent.SequencePaused(obsId), _), _)               =>
+          notifyOdbSequencePaused(obsId)
+        case (SystemUpdate(SystemEvent.BreakpointReached(obsId), _), _)            =>
+          notifyOdbSequencePaused(obsId)
+        case (SystemUpdate(SystemEvent.LoadFailed(obsId, _, e), _), _)             =>
+          Logger[F].error(s"Error loading $obsId due to $e") <*
+            systems.odb
+              .obsStop(obsId)
+              .ensure(
+                ObserveFailure
+                  .Unexpected("Unable to send ObservationLoadFailed message to ODB.")
+              )(identity)
+        case (UserCommandResponse(UserEvent.ModifyState(_), _, Some(seqEvent)), _) =>
+          seqEvent match
+            case AcquisitionCompleted(obsId)                        =>
+              notifyOdbSequencePaused(obsId)
+            case NewStepLoaded(obsId, sequenceType, atomId, stepId) =>
+              systems.odb
+                .obsContinue(obsId)
+                .ensure(
+                  ObserveFailure
+                    .Unexpected("Unable to send ObservationContinued message to ODB.")
+                )(identity)
+                .void
+            case _                                                  =>
+              Applicative[F].unit
+        case _                                                                     => Applicative[F].unit
+      }).as(i)
 
   private def updateSequenceEndo(
     conditions: Conditions,
