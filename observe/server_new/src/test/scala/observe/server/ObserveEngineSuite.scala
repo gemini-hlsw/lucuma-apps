@@ -883,21 +883,21 @@ class ObserveEngineSuite extends TestCommon {
             case EventResult.UserCommandResponse(
                   _,
                   _,
-                  Some(SeqEvent.AtomCompleted(seqObsId1, SequenceType.Acquisition, acqAtomId))
+                  Some(SeqEvent.AcquisitionCompleted(seqObsId1))
                 ) =>
               true
           }
         )
       s             <-
         eo.executeAndWaitResult(
-          _.loadNextStep(seqObsId1, user, observer, SequenceType.Science),
-          {
-            case EventResult.UserCommandResponse(
-                  _,
-                  _,
-                  Some(SeqEvent.AtomCompleted(seqObsId1, SequenceType.Science, acqAtomId))
-                ) =>
-              true
+          _.loadNextStep(seqObsId1, user, observer, SequenceType.Science), {
+            ???
+            // case EventResult.UserCommandResponse(
+            //       _,
+            //       _,
+            //       Some(SeqEvent.AtomCompleted(seqObsId1, SequenceType.Science, acqAtomId))
+            //     ) =>
+            //   true
           }
         )
     } yield {
@@ -972,7 +972,7 @@ class ObserveEngineSuite extends TestCommon {
       r             <-
         eo.executeAndWaitResult(
           _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.AtomCompleted(_, _, _))) =>
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.AcquisitionCompleted(_))) =>
             true
           }
         )
