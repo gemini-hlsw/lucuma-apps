@@ -7,7 +7,6 @@ import path from 'path';
 import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, PluginOption, UserConfig } from 'vite';
-import env from 'vite-plugin-env-compatible';
 import mkcert from 'vite-plugin-mkcert';
 import { VitePWA } from 'vite-plugin-pwa';
 import type { RuntimeCaching } from 'workbox-build';
@@ -260,10 +259,6 @@ export default defineConfig(async ({ mode }) => {
       dedupe: ['react-is'],
       alias: [
         {
-          find: 'process',
-          replacement: 'process/browser',
-        },
-        {
           find: '@sjs',
           replacement: sjs,
         },
@@ -341,7 +336,6 @@ export default defineConfig(async ({ mode }) => {
       format: 'es', // We need this for workers to be able to do dynamic imports.
     },
     plugins: [
-      env(),
       enumMetadataPlugin(publicDirDev),
       reloadEnvPlugin(publicDirProd, publicDirDev),
       mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),

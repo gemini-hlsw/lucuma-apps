@@ -3,10 +3,6 @@ import './styles.scss';
 import '@lucuma-css/lucuma-ui-sequence.scss';
 import '@lucuma-css/lucuma-ui-prime.scss';
 
-if (import.meta.env.DEV) {
-  process.env = { CATS_EFFECT_TRACING_MODE: 'none' };
-}
-
 import { Demo } from "@sjs/main.js";
 Demo.runIOApp()
 
