@@ -12,6 +12,7 @@ import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.util.TimeSpan
 import navigate.epics.VerifiedEpics.VerifiedEpics
+import navigate.epics.given
 import navigate.model.WfsConfiguration
 import navigate.server.ApplyCommandResult
 import navigate.server.ConnectionTimeout
@@ -86,7 +87,7 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
       case _                                                       => WfsConfiguration.default.pure[F]
     }
 
-  override def oiwfsConfigStream: F[fs2.Stream[F, WfsConfiguration]] = {
+  override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] = {
     val startVal: VerifiedEpics[F, F, CombinedOiwfsStatus] = for {
       oiName  <- sys.ags.status.oiwfsName
       exp     <- sys.oiwfs.getIntegrationTime
@@ -121,29 +122,31 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
 
     (
       for {
-        v0  <- startVal
-        ssr <- streams
-      } yield ssr.use(ss =>
-        v0.map(
-          ss.scan(_) { (current, update) =>
-            update match {
-              case OiExposureTime(t) => current.copy(expTime = t.some)
-              case OiName(ins)       => current.copy(oiSel = ins.some)
-              case GmoiSaving(en)    => current.copy(gmoiSaving = en.some)
-              case F2oiSaving(en)    => current.copy(f2oiSaving = en.some)
-            }
-          }.map { x =>
-            for {
-              t   <- x.expTime
-              sav <- x.oiSel.flatten.flatMap {
-                       case Instrument.GmosSouth | Instrument.GmosNorth => x.gmoiSaving
-                       case Instrument.Flamingos2                       => x.f2oiSaving
-                       case _                                           => none
-                     }
-            } yield WfsConfiguration(t, sav)
-          }.flattenOption
-        )
-      )
+        v0F  <- startVal.liftK[Resource[F, *]]
+        ssrF <- streams
+      } yield for {
+        v0  <- v0F
+        ssr <- ssrF
+      } yield ssr
+        .scan(v0) { (current, update) =>
+          update match {
+            case OiExposureTime(t) => current.copy(expTime = t.some)
+            case OiName(ins)       => current.copy(oiSel = ins.some)
+            case GmoiSaving(en)    => current.copy(gmoiSaving = en.some)
+            case F2oiSaving(en)    => current.copy(f2oiSaving = en.some)
+          }
+        }
+        .map { x =>
+          for {
+            t   <- x.expTime
+            sav <- x.oiSel.flatten.flatMap {
+                     case Instrument.GmosSouth | Instrument.GmosNorth => x.gmoiSaving
+                     case Instrument.Flamingos2                       => x.f2oiSaving
+                     case _                                           => none
+                   }
+          } yield WfsConfiguration(t, sav)
+        }
+        .flattenOption
     ).verifiedRun(ConnectionTimeout)
   }
 }

@@ -4,25 +4,13 @@
 package navigate.web.server.http4s
 
 import cats.effect.Async
-import cats.effect.kernel.Ref
 import cats.syntax.all.*
-import ch.qos.logback.classic.spi.ILoggingEvent
 import fs2.compression.Compression
-import fs2.concurrent.Topic
 import lucuma.graphql.routes.GraphQLService
 import lucuma.graphql.routes.Routes
 import natchez.Trace
-import navigate.model.AcMechsState
-import navigate.model.AcquisitionAdjustment
-import navigate.model.FocalPlaneOffset
-import navigate.model.PointingCorrections
-import navigate.model.PwfsMechsState
 import navigate.model.config.NavigateConfiguration
 import navigate.server.NavigateEngine
-import navigate.server.tcs.GuideState
-import navigate.server.tcs.GuidersQualityValues
-import navigate.server.tcs.TargetOffsets
-import navigate.server.tcs.TelescopeState
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.middleware.GZip
@@ -31,20 +19,9 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 class GraphQlRoutes[F[_]: {Async, Trace, Compression}](
-  config:                     NavigateConfiguration,
-  eng:                        NavigateEngine[F],
-  logTopic:                   Topic[F, ILoggingEvent],
-  guideStateTopic:            Topic[F, GuideState],
-  guidersQualityTopic:        Topic[F, GuidersQualityValues],
-  telescopeStateTopic:        Topic[F, TelescopeState],
-  acquisitionAdjustmentTopic: Topic[F, AcquisitionAdjustment],
-  targetAdjustmentTopic:      Topic[F, TargetOffsets],
-  originAdjustmentTopic:      Topic[F, FocalPlaneOffset],
-  pointingAdjustmentTopic:    Topic[F, PointingCorrections],
-  acMechsTopic:               Topic[F, AcMechsState],
-  pwfs1MechsTopic:            Topic[F, PwfsMechsState],
-  pwfs2MechsTopic:            Topic[F, PwfsMechsState],
-  logBuffer:                  Ref[F, Seq[ILoggingEvent]]
+  config: NavigateConfiguration,
+  eng:    NavigateEngine[F],
+  topics: TopicManager[F]
 ) extends Http4sDsl[F] {
 
   private given Logger[F] =
@@ -56,18 +33,7 @@ class GraphQlRoutes[F[_]: {Async, Trace, Compression}](
         NavigateMappings(
           config,
           eng,
-          logTopic,
-          guideStateTopic,
-          guidersQualityTopic,
-          telescopeStateTopic,
-          acquisitionAdjustmentTopic,
-          targetAdjustmentTopic,
-          originAdjustmentTopic,
-          pointingAdjustmentTopic,
-          acMechsTopic,
-          pwfs1MechsTopic,
-          pwfs2MechsTopic,
-          logBuffer
+          topics
         )
           .map(
             GraphQLService[F](_).some

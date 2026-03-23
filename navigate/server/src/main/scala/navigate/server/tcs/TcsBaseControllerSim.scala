@@ -6,6 +6,7 @@ package navigate.server.tcs
 import cats.Applicative
 import cats.Eq
 import cats.effect.Ref
+import cats.effect.Resource
 import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.syntax.all.*
@@ -461,13 +462,13 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def getOiwfsConfig: F[WfsConfiguration] = pwfs2ConfigsRef.get
 
-  override def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]] =
-    pwfs1ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
+  override def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
+    Resource.pure(pwfs1ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
-  override def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]] =
-    pwfs2ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
+  override def pwfs2ConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
+    Resource.pure(pwfs2ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
-  override def oiwfsConfigStream: F[Stream[F, WfsConfiguration]] =
-    oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)).pure[F]
+  override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
+    Resource.pure(oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
 
 }

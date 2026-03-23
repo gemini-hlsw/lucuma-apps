@@ -6,6 +6,7 @@ package navigate.web.server.http4s
 import cats.*
 import cats.effect.IO
 import cats.effect.Ref
+import cats.effect.Resource
 import cats.syntax.all.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
@@ -924,7 +925,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 .compile
                 .toList
                 .timeout(Duration.fromNanos(10e9))
-                .both(putLogs(mp.logTopic).delayBy(Duration.fromNanos(1e9)))
+                .both(putLogs(mp.topics.loggingEvents).delayBy(Duration.fromNanos(1e9)))
                 .map(_._1.collect { case Right(a) => a })
     } yield {
       assert(logs.exists(_.message === infoMsg))
@@ -950,7 +951,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
 
     for {
       mp   <- buildMapping()
-      _    <- mp.logBuffer.set(Seq(bufferedMessage))
+      _    <- mp.topics.logBuffer.set(Seq(bufferedMessage))
       logs <- mp.compileAndRunSubscription(
                 """
           | subscription {
@@ -967,7 +968,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
                 .compile
                 .toList
                 .timeout(Duration.fromNanos(10e9))
-                .both(putLogs(mp.logTopic).delayBy(Duration.fromNanos(1e9)))
+                .both(putLogs(mp.topics.loggingEvents).delayBy(Duration.fromNanos(1e9)))
                 .map(_._1.collect { case Right(a) => a })
     } yield assertEquals(logs, bufferedMessage +: logEvents)
   }
@@ -1045,7 +1046,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .compile
               .toList
               .timeout(Duration.fromNanos(10e9))
-              .both(putGuideUpdates(mp.guideStateTopic).delayBy(Duration.fromNanos(1e9)))
+              .both(putGuideUpdates(mp.topics.guideState).delayBy(Duration.fromNanos(1e9)))
               .map(_._1)
     } yield up
 
@@ -1237,7 +1238,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .compile
               .toList
               .timeout(Duration.fromNanos(10e9))
-              .both(putTelescopeUpdates(mp.telescopeStateTopic).delayBy(Duration.fromNanos(1e9)))
+              .both(putTelescopeUpdates(mp.topics.telescopeState).delayBy(Duration.fromNanos(1e9)))
               .map(_._1)
     } yield up
 
@@ -1312,7 +1313,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               .toList
               .timeout(Duration.fromNanos(10e9))
               .both(
-                putAcquisitionAdjustmentUpdates(mp.acquisitionAdjustmentTopic)
+                putAcquisitionAdjustmentUpdates(mp.topics.acquisitionAdjustment)
                   .delayBy(Duration.fromNanos(1e9))
               )
               .map(_._1)
@@ -2858,18 +2859,18 @@ object NavigateMappingsTest {
 
     override def getPwfs1Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
 
-    override def getPwfs1ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
-      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+    override def getPwfs1ConfigurationStream: Resource[IO, Stream[IO, WfsConfiguration]] =
+      Resource.pure(Stream.emit(WfsConfiguration.default) ++ Stream.never[IO])
 
     override def getPwfs2Configuration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
 
-    override def getPwfs2ConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
-      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+    override def getPwfs2ConfigurationStream: Resource[IO, Stream[IO, WfsConfiguration]] =
+      Resource.pure(Stream.emit(WfsConfiguration.default) ++ Stream.never[IO])
 
     override def getOiwfsConfiguration: IO[WfsConfiguration] = WfsConfiguration.default.pure[IO]
 
-    override def getOiwfsConfigurationStream: IO[Stream[IO, WfsConfiguration]] =
-      (Stream.emit(WfsConfiguration.default) ++ Stream.never[IO]).pure[IO]
+    override def getOiwfsConfigurationStream: Resource[IO, Stream[IO, WfsConfiguration]] =
+      Resource.pure(Stream.emit(WfsConfiguration.default) ++ Stream.never[IO])
 
     override def refreshEphemerides(date: Option[LocalDate]): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
@@ -2946,6 +2947,7 @@ object NavigateMappingsTest {
     engIO:  IO[NavigateEngine[IO]] = buildServer
   ): IO[NavigateMappings[IO]] = for {
     eng <- engIO
+    nv  <- Topic[IO, NavigateEvent]
     log <- Topic[IO, ILoggingEvent]
     gd  <- Topic[IO, GuideState]
     gq  <- Topic[IO, GuidersQualityValues]
@@ -2958,7 +2960,14 @@ object NavigateMappingsTest {
     ac  <- Topic[IO, AcMechsState]
     p1  <- Topic[IO, PwfsMechsState]
     p2  <- Topic[IO, PwfsMechsState]
-    mp  <- NavigateMappings[IO](config, eng, log, gd, gq, ts, aa, tot, ot, pt, ac, p1, p2, lb)
+    p1w <- Topic[IO, WfsConfiguration]
+    p2w <- Topic[IO, WfsConfiguration]
+    oiw <- Topic[IO, WfsConfiguration]
+    mp  <- NavigateMappings[IO](
+             config,
+             eng,
+             TopicManager(nv, log, gd, gq, ts, aa, tot, ot, pt, ac, p1, p2, p1w, p2w, oiw, lb)
+           )
   } yield mp
 
   given Decoder[OperationOutcome] = Decoder.instance(h =>

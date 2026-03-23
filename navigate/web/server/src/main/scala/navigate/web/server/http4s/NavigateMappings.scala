@@ -5,13 +5,10 @@ package navigate.web.server.http4s
 
 import cats.data.Validated
 import cats.effect.Sync
-import cats.effect.kernel.Ref
 import cats.syntax.all.*
-import ch.qos.logback.classic.spi.ILoggingEvent
 import edu.gemini.schema.util.SchemaStitcher
 import edu.gemini.schema.util.SourceResolver
 import fs2.Stream
-import fs2.concurrent.Topic
 import grackle.Env
 import grackle.Query.Binding
 import grackle.QueryCompiler.Elab
@@ -102,6 +99,7 @@ import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.TargetOffsets
 import navigate.server.tcs.TelescopeState
 import navigate.web.server.OcsBuildInfo
+import org.typelevel.log4cats.Logger
 
 import java.nio.file.Path as JPath
 import java.time.LocalDate
@@ -110,22 +108,11 @@ import scala.reflect.classTag
 import encoder.given
 
 class NavigateMappings[F[_]: Sync](
-  config:                         NavigateConfiguration,
-  val server:                     NavigateEngine[F],
-  val logTopic:                   Topic[F, ILoggingEvent],
-  val guideStateTopic:            Topic[F, GuideState],
-  val guidersQualityTopic:        Topic[F, GuidersQualityValues],
-  val telescopeStateTopic:        Topic[F, TelescopeState],
-  val acquisitionAdjustmentTopic: Topic[F, AcquisitionAdjustment],
-  val targetAdjustmentTopic:      Topic[F, TargetOffsets],
-  val originAdjustmentTopic:      Topic[F, FocalPlaneOffset],
-  val pointingAdjustmentTopic:    Topic[F, PointingCorrections],
-  val acMechsTopic:               Topic[F, AcMechsState],
-  val pwfs1MechsTopic:            Topic[F, PwfsMechsState],
-  val pwfs2MechsTopic:            Topic[F, PwfsMechsState],
-  val logBuffer:                  Ref[F, Seq[ILoggingEvent]]
+  config:              NavigateConfiguration,
+  val server:          NavigateEngine[F],
+  val topics:          TopicManager[F]
 )(
-  override val schema:            Schema
+  override val schema: Schema
 ) extends CirceMapping[F] {
   import NavigateMappings._
 
@@ -435,7 +422,7 @@ class NavigateMappings[F[_]: Sync](
       .get[AcquisitionAdjustment]("adjustment")
       .map { adj =>
         // First publish the adjustment. if the action fails other clients will be informed anyway
-        acquisitionAdjustmentTopic.publish1(adj) *>
+        topics.acquisitionAdjustment.publish1(adj) *>
           // Run the adjustment if the user confirms, preserve the upstream error
           (adj.command === AcquisitionAdjustmentCommand.UserConfirms)
             .valueOrPure[F, Result[OperationOutcome]](
@@ -1170,28 +1157,28 @@ class NavigateMappings[F[_]: Sync](
         tpe = SubscriptionType,
         List(
           RootStream.computeCursor("logMessage") { (p, env) =>
-            (Stream.evalSeq(logBuffer.get) ++
-              logTopic.subscribe(1024))
+            (Stream.evalSeq(topics.logBuffer.get) ++
+              topics.loggingEvents.subscribe(1024))
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("guideState") { (p, env) =>
-            guideStateTopic
+            topics.guideState
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("guidersQualityValues") { (p, env) =>
-            guidersQualityTopic
+            topics.guidersQuality
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("telescopeState") { (p, env) =>
-            telescopeStateTopic
+            topics.telescopeState
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
@@ -1204,74 +1191,71 @@ class NavigateMappings[F[_]: Sync](
               .map(Result.success)
           },
           RootStream.computeCursor("acquisitionAdjustmentState") { (p, env) =>
-            acquisitionAdjustmentTopic
+            topics.acquisitionAdjustment
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("targetAdjustmentOffsets") { (p, env) =>
-            targetAdjustmentTopic
+            topics.targetAdjustment
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("originAdjustmentOffset") { (p, env) =>
-            originAdjustmentTopic
+            topics.originAdjustment
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("pointingAdjustmentOffset") { (p, env) =>
-            pointingAdjustmentTopic
+            topics.pointingAdjustment
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("acMechsState") { (p, env) =>
-            acMechsTopic
+            topics.acMechsState
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("pwfs1MechsState") { (p, env) =>
-            pwfs1MechsTopic
+            topics.pwfs1MechsTopic
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("pwfs2MechsState") { (p, env) =>
-            pwfs2MechsTopic
+            topics.pwfs2MechsTopic
               .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("pwfs1ConfigState") { (p, env) =>
-            Stream
-              .eval(server.getPwfs1ConfigurationStream)
-              .flatten
+            topics.pwfs1WfsTopic
+              .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("pwfs2ConfigState") { (p, env) =>
-            Stream
-              .eval(server.getPwfs2ConfigurationStream)
-              .flatten
+            topics.pwfs2WfsTopic
+              .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
           },
           RootStream.computeCursor("oiwfsConfigState") { (p, env) =>
-            Stream
-              .eval(server.getOiwfsConfigurationStream)
-              .flatten
+            topics.oiwfsWfsTopic
+              .subscribe(1024)
               .map(_.asJson)
               .map(circeCursor(p, env, _))
               .map(Result.success)
@@ -1288,70 +1272,35 @@ object NavigateMappings extends GrackleParsers {
     .apply[F](JPath.of("navigate.graphql"), SourceResolver.fromResource(getClass.getClassLoader))
     .build
 
-  def apply[F[_]: Sync](
-    config:                     NavigateConfiguration,
-    server:                     NavigateEngine[F],
-    logTopic:                   Topic[F, ILoggingEvent],
-    guideStateTopic:            Topic[F, GuideState],
-    guidersQualityTopic:        Topic[F, GuidersQualityValues],
-    telescopeStateTopic:        Topic[F, TelescopeState],
-    acquisitionAdjustmentTopic: Topic[F, AcquisitionAdjustment],
-    targetAdjustmentTopic:      Topic[F, TargetOffsets],
-    originAdjustmentTopic:      Topic[F, FocalPlaneOffset],
-    pointingAdjustmentTopic:    Topic[F, PointingCorrections],
-    acMechsTopic:               Topic[F, AcMechsState],
-    pwfs1MechsTopic:            Topic[F, PwfsMechsState],
-    pwfs2MechsTopic:            Topic[F, PwfsMechsState],
-    logBuffer:                  Ref[F, Seq[ILoggingEvent]]
-  ): F[NavigateMappings[F]] = loadSchema.flatMap {
-    case Result.Success(schema)           =>
-      new NavigateMappings[F](
-        config,
-        server,
-        logTopic,
-        guideStateTopic,
-        guidersQualityTopic,
-        telescopeStateTopic,
-        acquisitionAdjustmentTopic,
-        targetAdjustmentTopic,
-        originAdjustmentTopic,
-        pointingAdjustmentTopic,
-        acMechsTopic,
-        pwfs1MechsTopic,
-        pwfs2MechsTopic,
-        logBuffer
-      )(schema)
-        .pure[F]
-    case Result.Warning(problems, schema) =>
-      new NavigateMappings[F](
-        config,
-        server,
-        logTopic,
-        guideStateTopic,
-        guidersQualityTopic,
-        telescopeStateTopic,
-        acquisitionAdjustmentTopic,
-        targetAdjustmentTopic,
-        originAdjustmentTopic,
-        pointingAdjustmentTopic,
-        acMechsTopic,
-        pwfs1MechsTopic,
-        pwfs2MechsTopic,
-        logBuffer
-      )(schema)
-        .pure[F]
-    case Result.Failure(problems)         =>
-      Sync[F].raiseError[NavigateMappings[F]](
-        new Throwable(
-          s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+  def apply[F[_]: {Sync, Logger}](
+    config: NavigateConfiguration,
+    server: NavigateEngine[F],
+    topics: TopicManager[F]
+  ): F[NavigateMappings[F]] = loadSchema
+    .flatMap {
+      case Result.Success(schema)           => schema.pure[F]
+      case Result.Warning(problems, schema) =>
+        Logger[F]
+          .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
+          .as(schema)
+      case Result.Failure(problems)         =>
+        Sync[F].raiseError[Schema](
+          new Throwable(
+            s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+          )
         )
-      )
-    case Result.InternalError(error)      =>
-      Sync[F].raiseError[NavigateMappings[F]](
-        new Throwable(s"Unable to load schema because: ${error.getMessage}")
-      )
-
-  }
+      case Result.InternalError(error)      =>
+        Sync[F].raiseError[Schema](
+          new Throwable(s"Unable to load schema because: ${error.getMessage}")
+        )
+    }
+    .map(
+      new NavigateMappings[F](
+        config,
+        server,
+        topics
+      )(_)
+    )
 
   def parseObservationIdInput(oi: String): Option[Observation.Id] =
     parseGid[Observation.Id](oi, "Observation Id").toOption

@@ -3,6 +3,7 @@
 
 package navigate.server.tcs
 
+import cats.effect.Resource
 import fs2.Stream
 import lucuma.core.enums.LightSinkName
 import lucuma.core.math.Angle
@@ -145,9 +146,9 @@ trait TcsBaseController[F[_]] {
   def getPwfs1Config: F[WfsConfiguration]
   def getPwfs2Config: F[WfsConfiguration]
   def getOiwfsConfig: F[WfsConfiguration]
-  def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]]
-  def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]]
-  def oiwfsConfigStream: F[Stream[F, WfsConfiguration]]
+  def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]]
+  def pwfs2ConfigStream: Resource[F, Stream[F, WfsConfiguration]]
+  def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]]
 }
 
 object TcsBaseController {

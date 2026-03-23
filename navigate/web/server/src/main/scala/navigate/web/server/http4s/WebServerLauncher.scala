@@ -94,18 +94,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       "/navigate"         -> new GraphQlRoutes(
         conf,
         se,
-        topics.loggingEvents,
-        topics.guideState,
-        topics.guidersQuality,
-        topics.telescopeState,
-        topics.acquisitionAdjustment,
-        topics.targetAdjustment,
-        topics.originAdjustment,
-        topics.pointingAdjustment,
-        topics.acMechsState,
-        topics.pwfs1MechsTopic,
-        topics.pwfs2MechsTopic,
-        topics.logBuffer
+        topics
       )
         .service(wsBuilder),
       ProxyRoute.toString -> proxyService
@@ -227,7 +216,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
         _      <- Resource.eval(publishStats(cs).compile.drain.start)
         engine <- engineIO(conf, cli)
         _      <- webServer[IO](conf, topics, engine)
-        f      <- Resource.eval(topics.startAll(engine))
+        f      <- topics.startAll(engine)
         _      <- Resource.eval(f.join)        // We need to join to catch uncaught errors
       } yield ExitCode.Success
 
