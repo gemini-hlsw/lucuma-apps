@@ -36,7 +36,7 @@ sbt explore_app/fastLinkJS
 ```
 
 To launch explore you can use vite development server going to the `explore` dir and
-calling the command `pnpm vite`. Or, from the root directory, `pnpm explore exec vite`.
+calling the command `pnpm dev`. Or, from the root directory, `pnpm explore dev`.
 
 You may need to update your node modules via `pnpm install`
 
@@ -56,7 +56,7 @@ sbt explore_app/fullLinkJS
 - Build it with vite and launch (from the project root)
 
 ```
-pnpm explore exec vite build && pnpm explore exec vite preview
+pnpm explore build && pnpm explore serve
 ```
 
 As before you can now see the app locally but in a different port

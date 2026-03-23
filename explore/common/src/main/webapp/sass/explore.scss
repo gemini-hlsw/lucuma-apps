@@ -525,7 +525,7 @@ thead tr th.sticky-header {
   container-type: size;
 }
 
-@container tile (min-width > #{exploreCommon.$tile-xtra-small-cutoff}) {
+@container tile (min-width: #{exploreCommon.$tile-xtra-small-cutoff}) {
   // For very small tiles make the undo buttons remove the text
   .explore-buttons-undo .p-button-label {
     display: none;

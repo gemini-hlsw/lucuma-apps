@@ -14,16 +14,12 @@ $mobile-responsive-cutoff: 670px;
 }
 
 #non-prod-banner {
-  $spacing: 20;
-
   z-index: 2000;
   position: absolute;
   top: 0;
   left: 50%;
   transform: translate(-50%, 0);
   text-transform: uppercase;
-  text-indent: $spacing;
-  letter-spacing: $spacing;
   padding: 0.5em 1em;
   font-weight: 900;
   background-color: var(--explore-accent-color);
