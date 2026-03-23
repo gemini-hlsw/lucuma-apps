@@ -30,6 +30,7 @@ import observe.server.engine.SequenceState
 
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
+import observe.server.SequenceData.loadedStep
 
 class SeqTranslateSuite extends TestCommon {
 
@@ -43,7 +44,6 @@ class SeqTranslateSuite extends TestCommon {
       )
     )
 
-  // Build a StepGen with a custom observe (post) action
   private val testStepGen: StepGen.GmosNorth[IO] =
     StepGen.GmosNorth[IO](
       atomId = atomId1,
@@ -126,6 +126,12 @@ class SeqTranslateSuite extends TestCommon {
         gmosNorthOdbData(seqObsId1),
         EngineState.instrumentLoaded(Instrument.GmosNorth)
       ) >>>
+      EngineState
+        .instrumentLoaded(Instrument.GmosNorth)
+        .some
+        .andThen(SequenceData.loadedStep)
+        .replace(testStepGen.some) >>>
+      // TODO Turn loaded step into current step???!!!
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .modify { st =>

@@ -24,12 +24,6 @@ sealed trait UserEvent[F[_]] extends Product with Serializable {
 }
 
 object UserEvent {
-
-  case class Start[F[_]](
-    id:       Observation.Id,
-    user:     Option[User],
-    clientId: ClientId
-  ) extends UserEvent[F]
   case class Pause[F[_]](id: Observation.Id, user: Option[User])       extends UserEvent[F]
   case class CancelPause[F[_]](id: Observation.Id, user: Option[User]) extends UserEvent[F]
   case class Breakpoints[F[_]](

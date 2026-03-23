@@ -32,9 +32,9 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   // All tests check the output of running a sequence against the expected sequence of updates.
 
-  private val executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+  private val executionEngine = Engine.build[IO]((eng, obsId) =>
+    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   def simpleStep(id: Step.Id): EngineStep[IO] =
@@ -57,7 +57,8 @@ class SequenceSuite extends munit.CatsEffectSuite {
     for {
       eng <- executionEngine
       _   <-
-        eng.offer(Event.start[IO](obsId, user, ClientId(UUID.randomUUID)))
+        // eng.offer(Event.start[IO](obsId, user, ClientId(UUID.randomUUID)))
+        eng.offer(???)
       v   <- eng
                .process(PartialFunction.empty)(s0)
                .drop(1)

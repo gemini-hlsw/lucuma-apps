@@ -106,9 +106,9 @@ class PackageSuite extends munit.CatsEffectSuite {
       )
     )
 
-  private def executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+  private def executionEngine = Engine.build[IO]((eng, obsId) =>
+    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   def isFinished(status: SequenceStatus): Boolean = status match {
@@ -121,7 +121,8 @@ class PackageSuite extends munit.CatsEffectSuite {
   def runToCompletion(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
     for {
       eng <- executionEngine
-      _   <- eng.offer(Event.start(seqId, user, clientId))
+      // _   <- eng.offer(Event.start(seqId, user, clientId))
+      _   <- eng.offer(???)
       v   <- eng
                .process(PartialFunction.empty)(s0)
                .drop(1)
@@ -134,7 +135,8 @@ class PackageSuite extends munit.CatsEffectSuite {
     val qs =
       for {
         eng <- executionEngine
-        _   <- eng.offer(Event.start(seqId, user, clientId))
+        // _   <- eng.offer(Event.start(seqId, user, clientId))
+        _   <- eng.offer(???)
         v   <- eng
                  .process(PartialFunction.empty)(qs1)
                  .take(1)
@@ -182,7 +184,8 @@ class PackageSuite extends munit.CatsEffectSuite {
     // take(4): Start, ModifyState, Executing, Paused
     for {
       eng <- executionEngine
-      _   <- eng.offer(Event.start[IO](seqId, user, clientId))
+      // _   <- eng.offer(Event.start[IO](seqId, user, clientId))
+      _   <- eng.offer(???)
       v   <- eng
                .process(PartialFunction.empty)(s0)
                .take(4)
@@ -266,7 +269,8 @@ class PackageSuite extends munit.CatsEffectSuite {
 
         List(
           List[IO[Unit]](
-            eng.offer(Event.start[IO](seqId, user, clientId)),
+            // eng.offer(Event.start[IO](seqId, user, clientId)),
+            eng.offer(???),
             startedFlag.acquire,
             eng.offer(Event.nullEvent),
             eng.offer(Event.getState[IO] { _ =>

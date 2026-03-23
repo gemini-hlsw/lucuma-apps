@@ -124,10 +124,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                     alertPosition,
                     AcquisitionPrompt(
                       sequenceApi
-                        .loadNextAtom(props.obsId, SequenceType.Science)
+                        .proceedAfterPrompt(props.obsId, SequenceType.Science)
                         .runAsync,
                       sequenceApi
-                        .loadNextAtom(props.obsId, SequenceType.Acquisition)
+                        .proceedAfterPrompt(props.obsId, SequenceType.Acquisition)
                         .runAsync,
                       acquisitionPromptRequest,
                       acquisitionPromptClicked

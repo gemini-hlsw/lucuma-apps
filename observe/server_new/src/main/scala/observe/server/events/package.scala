@@ -41,7 +41,6 @@ extension [F[_]](e: UserEvent[F])
   def isModelUpdate: Boolean =
     import UserEvent.*
     e match
-      case UserEvent.Start(id, _, _)         => true
       case UserEvent.Pause(_, _)             => true
       case UserEvent.CancelPause(id, _)      => true
       case UserEvent.Breakpoints(_, _, _, _) => true

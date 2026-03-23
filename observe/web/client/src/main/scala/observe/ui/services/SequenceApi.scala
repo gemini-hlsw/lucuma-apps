@@ -85,7 +85,10 @@ trait SequenceApi[F[_]: MonadThrow]:
     NotAuthorized
 
   /** Loads next atom of specified sequence type and resumes execution */
-  def loadNextAtom(@unused obsId: Observation.Id, @unused sequenceType: SequenceType): F[Unit] =
+  def proceedAfterPrompt(
+    @unused obsId:        Observation.Id,
+    @unused sequenceType: SequenceType
+  ): F[Unit] =
     NotAuthorized
 
 object SequenceApi:

@@ -14,10 +14,11 @@
   "postman.settings.dotenv-detection-notification-visibility": false,
   "claudeCode.enableNewConversationShortcut": false,
   "metals.serverProperties": [
-    "-Xmx8G",
+    "-Xmx16G",
     "-XX:+UseZGC",
     "-XX:ZUncommitDelay=30",
     "-XX:ZCollectionInterval=5",
-    "-XX:+IgnoreUnrecognizedVMOptions"
+    "-XX:+IgnoreUnrecognizedVMOptions",
+    "-Xss4m"
   ]
 }

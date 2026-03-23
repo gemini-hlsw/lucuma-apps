@@ -36,9 +36,9 @@ class StepSuite extends CatsEffectSuite {
 
   private val seqId = observationId(1)
 
-  private val executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+  private val executionEngine = Engine.build[IO]((eng, obsId) =>
+    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   private object DummyResult extends Result.RetVal with Serializable
@@ -98,7 +98,8 @@ class StepSuite extends CatsEffectSuite {
     Execution(List(actionCompleted, actionCompleted)),
     List(NonEmptyList.one(result))
   )
-  private val startEvent                       = Event.start[IO](seqId, user, clientId)
+  private val startEvent                       = ???
+  // Event.start[IO](seqId, user, clientId)
 
   /**
    * Emulates TCS configuration in the real world.
@@ -176,7 +177,8 @@ class StepSuite extends CatsEffectSuite {
   def triggerStart(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
     for {
-      _ <- eng.offer(Event.start(seqId, user, clientId))
+      // _ <- eng.offer(Event.start(seqId, user, clientId))
+      _ <- eng.offer(???)
       // Same case that the pause action
     } yield Result.OK(DummyResult)
   )
@@ -192,7 +194,8 @@ class StepSuite extends CatsEffectSuite {
   private def runToCompletioIO(s0: EngineState[IO]) =
     for {
       eng <- executionEngine
-      _   <- eng.offer(Event.start[IO](seqId, user, clientId))
+      // _   <- eng.offer(Event.start[IO](seqId, user, clientId))
+      _   <- eng.offer(???)
     } yield eng
       .process(PartialFunction.empty)(s0)
       .drop(1)
@@ -425,7 +428,8 @@ class StepSuite extends CatsEffectSuite {
 
     val qss = for {
       eng <- executionEngine
-      _   <- eng.offer(Event.start(seqId, user, clientId))
+      // _   <- eng.offer(Event.start(seqId, user, clientId))
+      _   <- eng.offer(???)
       v   <- eng
                .process(PartialFunction.empty)(qs0(eng))
                .drop(1)

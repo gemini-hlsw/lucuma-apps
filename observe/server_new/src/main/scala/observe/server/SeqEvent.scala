@@ -84,7 +84,6 @@ object SeqEvent:
     clientID: ClientId
   ) extends SeqEvent
   case object NullSeqEvent                                                       extends NoUserSeqEvent
-  case class NoMoreAtoms(obsId: Observation.Id)                                  extends SeqEvent
   case class NewStepLoaded(
     obsId:        Observation.Id,
     sequenceType: SequenceType,
@@ -92,3 +91,4 @@ object SeqEvent:
     stepId:       Step.Id
   ) extends SeqEvent
   case class AcquisitionCompleted(obsId: Observation.Id)                         extends SeqEvent
+  case class SequenceComplete(obsId: Observation.Id)                             extends SeqEvent

@@ -163,26 +163,19 @@ object SequenceState:
     obsId:        Observation.Id,
     loadedStep:   Option[EngineStep[F]],
     sequenceType: SequenceType,
-    breakpoints:  Breakpoints
+    breakpoints:  Breakpoints,
+    status:       SequenceStatus = SequenceStatus.Idle
   ): SequenceState[F] =
     val loadedStepExecutions: Option[EngineStep.ExecutionZipper[F]] =
       loadedStep.flatMap(EngineStep.ExecutionZipper.currentify)
     SequenceState(
       obsId,
-      SequenceStatus.Idle,
+      status,
       loadedStepExecutions,
       sequenceType,
       breakpoints,
       Map.empty
     )
-
-  def init[F[_]](
-    obsId:        Observation.Id,
-    loadedStep:   EngineStep[F],
-    sequenceType: SequenceType,
-    breakpoints:  Breakpoints
-  ): SequenceState[F] =
-    init(obsId, loadedStep.some, sequenceType, breakpoints)
 
   /**
    * Create an empty/idle state with no step loaded.
