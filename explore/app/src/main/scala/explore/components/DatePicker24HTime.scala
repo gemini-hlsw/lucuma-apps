@@ -31,7 +31,8 @@ case class DatePicker24HTime(
   isReadonly:    Boolean,
   withNowButton: Option[DatePicker24HTime.OnNow] = None,
   minDate:       Option[Instant] = None,
-  maxDate:       Option[Instant] = None
+  maxDate:       Option[Instant] = None,
+  dateFormat:    String = "yyyy-MM-dd HH:mm"
 ) extends ReactFnProps(DatePicker24HTime)
 
 object DatePicker24HTime
@@ -48,7 +49,7 @@ object DatePicker24HTime
           selected = props.obsTimeView.get.toDatePickerJsDate.some,
           minDate = minDate.orUndefined,
           maxDate = maxDate.orUndefined,
-          dateFormat = "yyyy-MM-dd HH:mm",
+          dateFormat = props.dateFormat,
           readonly = props.isReadonly,
           calendarClassName = ExploreStyles.DatePicker,
           showTimeInput = true,

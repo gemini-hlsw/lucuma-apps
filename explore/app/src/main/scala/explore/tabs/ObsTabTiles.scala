@@ -402,7 +402,8 @@ object ObsTabTiles:
 
           val notesTile = NotesTile(notesView, hidden = hideTiles)
 
-          val isEditable = !props.observation.get.observingMode.exists(_.instrument === Instrument.Igrins2)
+          val isEditable =
+            !props.observation.get.observingMode.exists(_.instrument === Instrument.Igrins2)
 
           val sequenceTile =
             SequenceTile(
@@ -493,7 +494,8 @@ object ObsTabTiles:
                 true,
                 props.observation.get.timingWindows,
                 globalPreferences.get,
-                Constants.NoTargetSelected
+                Constants.NoTargetSelected,
+                props.programSummaries.cfpDate
               )
 
           def getObsInfo(obsId: Observation.Id)(targetId: Target.Id): TargetEditObsInfo =

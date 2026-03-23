@@ -284,7 +284,8 @@ object ObsTabContents extends TwoPanels:
             props.observations.get.size === 1,
             List.empty,
             props.globalPreferences.get,
-            "No observation selected"
+            "No observation selected",
+            props.programSummaries.get.cfpDate
           )
 
         val summaryTiles: VdomNode =

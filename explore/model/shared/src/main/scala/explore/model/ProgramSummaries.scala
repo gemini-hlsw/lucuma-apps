@@ -34,6 +34,7 @@ import monocle.Focus
 import monocle.Lens
 import monocle.Optional
 
+import java.time.LocalDate
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 
@@ -56,6 +57,12 @@ case class ProgramSummaries(
 
   lazy val proposalId: Option[ProposalReference] =
     optProgramDetails.flatMap(_.proposal.flatMap(_.reference))
+
+  lazy val cfpDate: Option[LocalDate] =
+    optProgramDetails
+      .flatMap(_.proposal)
+      .flatMap(_.call)
+      .map(_.middleDate)
 
   lazy val asterismGroups: AsterismGroupList =
     SortedMap.from:

@@ -25,12 +25,12 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.TimingWindowInclusion
 import lucuma.core.math.BoundedInterval
+import lucuma.core.model.ObservingNight
 import lucuma.core.model.Semester
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.User
 import lucuma.core.syntax.display.*
 import lucuma.react.common.Css
-import lucuma.react.datepicker.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.ToggleButton
 import lucuma.refined.*
@@ -53,9 +53,10 @@ final case class ElevationPlotTile(
   obsTime:           Option[Instant],
   obsDuration:       Option[Duration],
   hideLabels:        Boolean,
-  timingWindows:     List[TimingWindow] = List.empty,
+  timingWindows:     List[TimingWindow],
   globalPreferences: GlobalPreferences,
-  emptyMessage:      String
+  emptyMessage:      String,
+  refDate:           Option[LocalDate]
 ) extends Tile[ElevationPlotTile](tileId,
                                   "Elevation Plot",
                                   bodyClass = ExploreStyles.ElevationPlotTileBody
@@ -68,7 +69,7 @@ object ElevationPlotTile
         // Plot options, will be read from the user preferences
         options <- useStateView:
                      ObjectPlotOptions
-                       .default(props.site, props.obsTime)
+                       .default(props.site, props.obsTime, props.refDate)
                        .copy(
                          range = props.globalPreferences.elevationPlotRange,
                          timeDisplay = props.globalPreferences.elevationPlotTime,
@@ -199,10 +200,13 @@ object ElevationPlotTile
                     ).tiny.compact,
                     opt.range match
                       case PlotRange.Night | PlotRange.FullDay =>
-                        Datepicker(
-                          onChange = _.map(_.fromJsDate).foldMap(dateView.set),
-                          selected = opt.date.toJsDate.some,
-                          dateFormat = "yyyy-MM-dd",
+                        val today =
+                          ObservingNight
+                            .fromSiteAndInstant(opt.site, Instant.now)
+                            .toLocalDate
+                        DatePickerLocalDate(
+                          dateView,
+                          withTodayButton = dateView.set(today).some,
                           className = ExploreStyles.ElevationPlotDateInput
                         )
                       case PlotRange.Semester                  =>

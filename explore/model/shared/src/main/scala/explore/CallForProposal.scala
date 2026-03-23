@@ -26,6 +26,9 @@ import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
 
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+
 case class CallPartner(
   partner:            Partner,
   submissionDeadline: Option[Timestamp]
@@ -45,6 +48,9 @@ case class CallForProposal(
   active:             DateInterval
 ) derives Eq,
       Decoder:
+
+  def middleDate: LocalDate =
+    active.start.plusDays(ChronoUnit.DAYS.between(active.start, active.end) / 2)
 
   def deadline(piPartner: Option[PartnerLink]): Either[String, Timestamp] =
     // piPartner is only None if there is no pi, which should never happen
