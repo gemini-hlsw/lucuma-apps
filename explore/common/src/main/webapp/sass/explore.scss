@@ -1509,6 +1509,7 @@ svg.fa-check.explore-success-icon {
       color: var(--obs-badge-color);
       display: flex;
       justify-content: space-between;
+      align-items: start;
       font-size: var(--pl-large-font-size);
       font-weight: 400;
       word-break: break-all;
@@ -1520,15 +1521,20 @@ svg.fa-check.explore-success-icon {
       margin: 0;
       padding: 0;
     }
+
+    .p-component.p-button.obs-science-band-button {
+      font-size: 1.02 rem;
+    }
   }
 
   .obs-badge-id {
     justify-self: end;
     display: flex;
-    align-items: start;
+    align-items: center;
     font-weight: normal;
     font-size: small;
     opacity: 0.5;
+    margin-bottom: 0.2em;
     word-break: normal;
   }
 
