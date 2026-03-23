@@ -25,10 +25,6 @@ import { Explore, ExplorePWA } from '@sjs/explore.js';
 
 import { registerSW } from 'virtual:pwa-register';
 
-if (import.meta.env.DEV) {
-  process.env = { CATS_EFFECT_TRACING_MODE: 'none' };
-}
-
 // Get dynamic enums static data from ODB rest point and into a global variable.
 // ODB rest URL is resolved from environments.conf.json.
 fetch('/environments.conf.json').then((response) => {

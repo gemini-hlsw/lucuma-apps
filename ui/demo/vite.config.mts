@@ -1,7 +1,6 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig, type UserConfig } from 'vite';
-import env from 'vite-plugin-env-compatible';
 
 const scalaVersion = '3.8.2';
 
@@ -15,10 +14,6 @@ export default defineConfig(({ mode }) => {
     root: 'src/main/webapp',
     resolve: {
       alias: [
-        {
-          find: 'process',
-          replacement: 'process/browser',
-        },
         {
           find: '@sjs',
           replacement: sjs,
@@ -47,6 +42,6 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: path.resolve(__dirname, '../docs'),
     },
-    plugins: [env(), react()],
+    plugins: [react()],
   } satisfies UserConfig;
 });

@@ -162,9 +162,6 @@ importers:
       vite:
         specifier: 8.0.1
         version: 8.0.1(@types/node@25.1.0)(esbuild@0.27.2)(sass@1.98.0)(terser@5.46.0)
-      vite-plugin-env-compatible:
-        specifier: 2.0.1
-        version: 2.0.1
       vite-plugin-mkcert:
         specifier: 1.17.10
         version: 1.17.10(vite@8.0.1(@types/node@25.1.0)(esbuild@0.27.2)(sass@1.98.0)(terser@5.46.0))
@@ -244,9 +241,6 @@ importers:
       postcss:
         specifier: 8.5.8
         version: 8.5.8
-      process:
-        specifier: 0.11.10
-        version: 0.11.10
       sass:
         specifier: 1.98.0
         version: 1.98.0
@@ -332,9 +326,6 @@ importers:
       vite:
         specifier: 8.0.1
         version: 8.0.1(@types/node@25.1.0)(esbuild@0.27.2)(sass@1.98.0)(terser@5.46.0)
-      vite-plugin-env-compatible:
-        specifier: 2.0.1
-        version: 2.0.1
 
 packages:
 
@@ -2201,13 +2192,6 @@ packages:
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
 
-  dotenv-expand@5.1.0:
-    resolution: {integrity: sha512-YXQl1DSa4/PQyRfgrv6aoNjhasp/p4qs9FjJ4q4cQk+8m4r6k4ZSiEyytKG8f8W9gi8WsQtIObNmKd+tMzNTmA==}
-
-  dotenv@8.2.0:
-    resolution: {integrity: sha512-8sJ78ElpbDJBHNeBzUbUVLsqKdccaa/BXF1uPTw3GrvQTBgrQrtObr2mUrE38vzYd8cEv+m/JBfDLioYcfXoaw==}
-    engines: {node: '>=8'}
-
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
@@ -3236,10 +3220,6 @@ packages:
       '@types/react':
         optional: true
 
-  process@0.11.10:
-    resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
-    engines: {node: '>= 0.6.0'}
-
   prop-types@15.8.1:
     resolution: {integrity: sha512-oj87CgZICdulUohogVAR7AjlC0327U4el4L6eAvOqCeudMDVU0NThNaV+b9Df4dXgSP1gXMTnPdhfe/2qDH5cg==}
 
@@ -3851,9 +3831,6 @@ packages:
 
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
-
-  vite-plugin-env-compatible@2.0.1:
-    resolution: {integrity: sha512-DRrOZTg/W44ojVQQfGSMPEgYQGzp5TeIpt9cpaK35hTOC/b2D7Ffl8/RIgK8vQ0mlnDIUgETcA173bnMEkyzdw==}
 
   vite-plugin-mkcert@1.17.10:
     resolution: {integrity: sha512-703hecAoGZYgNrkY76OIbo0M9j0tfGIIM6n7c0sYvhaczQMPwD0nFi+bS44d8kwdbCtV7885FYBWnTzhsaC7QQ==}
@@ -6035,10 +6012,6 @@ snapshots:
       '@babel/runtime': 7.28.6
       csstype: 3.2.3
 
-  dotenv-expand@5.1.0: {}
-
-  dotenv@8.2.0: {}
-
   dunder-proto@1.0.1:
     dependencies:
       call-bind-apply-helpers: 1.0.2
@@ -7310,8 +7283,6 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.2.10
 
-  process@0.11.10: {}
-
   prop-types@15.8.1:
     dependencies:
       loose-envify: 1.4.0
@@ -8134,11 +8105,6 @@ snapshots:
     dependencies:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
-
-  vite-plugin-env-compatible@2.0.1:
-    dependencies:
-      dotenv: 8.2.0
-      dotenv-expand: 5.1.0
 
   vite-plugin-mkcert@1.17.10(vite@8.0.1(@types/node@25.1.0)(esbuild@0.27.2)(sass@1.98.0)(terser@5.46.0)):
     dependencies:
