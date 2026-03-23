@@ -4,9 +4,7 @@
 package navigate.epics
 
 import cats.Eq
-import cats.effect.Async
-import cats.effect.Concurrent
-import cats.effect.Resource
+import cats.effect.{Async, Concurrent, Resource, Sync}
 import cats.effect.implicits.*
 import cats.effect.std.Dispatcher
 import cats.effect.std.Queue
@@ -95,30 +93,30 @@ object Channel {
 
     override def valueStream(using dispatcher: Dispatcher[F]): Resource[F, Stream[F, T]] = for {
       q <- Resource.eval(Queue.unbounded[F, T])
-      _ <- Resource.fromAutoCloseable {
-             Async[F].delay(
+      _ <- Resource.make {
+        Sync[F].delay(Console.out.println(s"Registering channel monitor for ${caChannel.getName}")) *>
+             Sync[F].delay(
                caChannel.addValueMonitor { (v: J) =>
+                 Console.out.println(s"Received value $v for ${caChannel.getName}")
                  cv.fromJava(v).foreach(x => dispatcher.unsafeRunAndForget(q.offer(x)))
-                 ()
                }
              )
-           }
-      s <- Resource.pure(Stream.fromQueueUnterminated(q))
-    } yield s
+           } { m => Sync[F].delay(Console.out.println(s"Closing channel monitor for ${caChannel.getName}")) *>
+        Sync[F].delay(m.close()) }
+    } yield Stream.fromQueueUnterminated(q)
 
     override def connectionStream(using
       dispatcher: Dispatcher[F]
     ): Resource[F, Stream[F, Boolean]] = for {
       q <- Resource.eval(Queue.unbounded[F, Boolean])
       _ <- Resource.fromAutoCloseable {
-             Async[F].delay(
+        Sync[F].delay(
                caChannel.addConnectionListener((_: CaChannel[J], c: JBoolean) =>
                  dispatcher.unsafeRunAndForget(q.offer(c))
                )
              )
            }
-      s <- Resource.pure(Stream.fromQueueUnterminated(q))
-    } yield s
+    } yield Stream.fromQueueUnterminated(q)
 
     override def eventStream(using
       dispatcher: Dispatcher[F],

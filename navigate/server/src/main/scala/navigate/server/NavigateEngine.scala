@@ -4,9 +4,7 @@
 package navigate.server
 
 import cats.Applicative
-import cats.effect.Async
-import cats.effect.Ref
-import cats.effect.Temporal
+import cats.effect.{Async, Ref, Resource, Temporal}
 import cats.effect.kernel.Sync
 import cats.syntax.all.*
 import fs2.Pipe
@@ -84,10 +82,9 @@ import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import java.time.LocalDate
-import java.util.concurrent.TimeoutException
+import java.util.concurrent.{TimeUnit, TimeoutException}
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
-
 import NavigateEvent.NullEvent
 
 trait NavigateEngine[F[_]] {
@@ -134,17 +131,17 @@ trait NavigateEngine[F[_]] {
   def pwfs1StopObserve: F[CommandResult]
   def pwfs1CircularBuffer(enable:                    Boolean): F[CommandResult]
   def getPwfs1Configuration: F[WfsConfiguration]
-  def getPwfs1ConfigurationStream: F[Stream[F, WfsConfiguration]]
+  def getPwfs1ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def pwfs2Observe(period:                           TimeSpan): F[CommandResult]
   def pwfs2StopObserve: F[CommandResult]
   def pwfs2CircularBuffer(enable:                    Boolean): F[CommandResult]
   def getPwfs2Configuration: F[WfsConfiguration]
-  def getPwfs2ConfigurationStream: F[Stream[F, WfsConfiguration]]
+  def getPwfs2ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def oiwfsObserve(period:                           TimeSpan): F[CommandResult]
   def oiwfsStopObserve: F[CommandResult]
   def oiwfsCircularBuffer(enable:                    Boolean): F[CommandResult]
   def getOiwfsConfiguration: F[WfsConfiguration]
-  def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]]
+  def getOiwfsConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def acObserve(period:                              TimeSpan): F[CommandResult]
   def acStopObserve: F[CommandResult]
   def swapTarget(swapConfig:                         SwapConfig): F[CommandResult]
@@ -824,17 +821,17 @@ object NavigateEngine {
 
     override def getPwfs1Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs1Config
 
-    override def getPwfs1ConfigurationStream: F[Stream[F, WfsConfiguration]] =
+    override def getPwfs1ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
       systems.tcsCommon.pwfs1ConfigStream
 
     override def getPwfs2Configuration: F[WfsConfiguration] = systems.tcsCommon.getPwfs2Config
 
-    override def getPwfs2ConfigurationStream: F[Stream[F, WfsConfiguration]] =
+    override def getPwfs2ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
       systems.tcsCommon.pwfs2ConfigStream
 
     override def getOiwfsConfiguration: F[WfsConfiguration] = systems.tcsCommon.getOiwfsConfig
 
-    override def getOiwfsConfigurationStream: F[Stream[F, WfsConfiguration]] =
+    override def getOiwfsConfigurationStream: Resource[F, Stream[F, WfsConfiguration]] =
       systems.tcsCommon.oiwfsConfigStream
 
     override def refreshEphemerides(date: Option[LocalDate]): F[CommandResult] = for {
@@ -865,6 +862,19 @@ object NavigateEngine {
                  }
       _     <- logEvent(x)
     } yield x.result
+  }
+
+  val BaseReconnectTime: FiniteDuration = FiniteDuration(1, TimeUnit.SECONDS)
+  val MaxWaitFactor = 32
+
+  private def calcReconnectionTime(n: Int): (Int, FiniteDuration) = (Math.min(n*2, MaxWaitFactor), BaseReconnectTime * n)
+
+  def retryStream[F[_]: {Temporal, Logger}, A](r: Resource[F, A], n: Int): Resource[F, A] = {
+    val (itr, delay) = calcReconnectionTime(n)
+    r.attempt.flatMap {
+      case Left(err) => ???
+      case Right(value) => retryStream(itr)
+    }
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

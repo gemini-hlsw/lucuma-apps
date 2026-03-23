@@ -116,6 +116,7 @@ import navigate.server.tcs.TcsEpicsSystem.TcsCommands
 import navigate.server.tcs.TcsEpicsSystem.WavelengthCommand
 import navigate.server.tcs.TcsEpicsSystem.WfsCommands
 import org.typelevel.log4cats.Logger
+import navigate.epics.given 
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
@@ -2346,51 +2347,38 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   protected def wfsConfigStream(
     wfsSys: WfsEpicsSystem[F],
     cbSys:  CircularBufferControl[F]
-  ): F[Stream[F, WfsConfiguration]] = {
-    val startVal: VerifiedEpics[F, F, (Option[TimeSpan], Option[Boolean])] = for {
-      exp <- wfsSys.getIntegrationTime
-      sav <- cbSys.circularBufferStatus.map(_.map(_.imageEnabled))
-    } yield (exp.attempt.map(_.toOption), sav.attempt.map(_.toOption)).mapN((_, _))
+  ): Resource[F, Stream[F, WfsConfiguration]] = {
+    val startVal: VerifiedEpics[F, F, WfsConfiguration] = for {
+      expF <- wfsSys.getIntegrationTime
+      savF <- cbSys.circularBufferStatus.map(_.map(_.imageEnabled))
+    } yield for {
+      exp <- expF.attempt.map(_.getOrElse(TimeSpan.Zero))
+      sav <- savF.attempt.map(_.getOrElse(false))
+    } yield WfsConfiguration(exp, sav)
 
-    val streamsRes: VerifiedEpics[F, Resource[F, *], (Stream[F, TimeSpan], Stream[F, Boolean])] =
+    val streams: VerifiedEpics[F, Resource[F, *], Stream[F, Either[TimeSpan, Boolean]]] =
       for {
         expS <- wfsSys.integrationTimeStream
         savS <- cbSys.imgCircularBufferStrean
-      } yield (expS, savS).mapN((_, _))
+      } yield (expS, savS).mapN(_.either(_))
 
-    val streams: VerifiedEpics[F, Resource[F, *], Stream[F, (Option[TimeSpan], Option[Boolean])]] =
-      streamsRes.map(_.map { (a, b) =>
-        Stream(a.map(x => (x.some, none[Boolean])),
-               b.map(x => (none[TimeSpan], x.some))
-        ).parJoinUnbounded
-      })
-
-    (
-      for {
-        v0  <- startVal
-        ssr <- streams
-      } yield ssr.use(ss =>
-        v0.map(
-          ss.scan(_) { (current, update) =>
-            update match {
-              case (Some(a), None) => (Some(a), update._2)
-              case (None, Some(b)) => (current._1, Some(b))
-              case _               => current // Should not happen with this mapping
-            }
-          }.map {
-            _.mapN(WfsConfiguration(_, _))
-          }.flattenOption
-        )
-      )
-    ).verifiedRun(ConnectionTimeout)
+    (for {
+      v0F  <- startVal.liftK[Resource[F, *]]
+      ssrF <- streams
+    } yield for {
+      v0 <- v0F
+      ssr <- ssrF
+    } yield ssr.scan(v0) { (current, update) =>
+          update.fold(t => current.copy(exposureTime = t), s => current.copy(saving = s))
+    }).verifiedRun(ConnectionTimeout)
   }
 
-  def pwfs1ConfigStream: F[Stream[F, WfsConfiguration]] = wfsConfigStream(
+  def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]] = wfsConfigStream(
     sys.pwfs1,
     sys.pwfs1
   )
 
-  def pwfs2ConfigStream: F[Stream[F, WfsConfiguration]] = wfsConfigStream(
+  def pwfs2ConfigStream: Resource[F, Stream[F, WfsConfiguration]] = wfsConfigStream(
     sys.pwfs2,
     sys.pwfs2
   )

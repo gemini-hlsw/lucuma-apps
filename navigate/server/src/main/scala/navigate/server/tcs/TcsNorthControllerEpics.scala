@@ -4,16 +4,16 @@
 package navigate.server.tcs
 
 import cats.Parallel
-import cats.effect.Async
-import cats.effect.Ref
+import cats.effect.{Async, Ref, Resource}
 import cats.syntax.all.*
+import fs2.Stream
+import navigate.epics.given 
 import navigate.model.WfsConfiguration
 import navigate.server.ApplyCommandResult
 import navigate.server.ConnectionTimeout
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.FiniteDuration
-
 import EpicsSystems.*
 
 class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
@@ -58,7 +58,7 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def getOiwfsConfig: F[WfsConfiguration] = getWfsConfig(sys.oiwfs, sys.oiwfs)
 
-  override def oiwfsConfigStream: F[fs2.Stream[F, WfsConfiguration]] =
+  override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
     wfsConfigStream(sys.oiwfs, sys.oiwfs)
 }
 

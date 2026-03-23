@@ -3,6 +3,8 @@
 
 package navigate
 
+import cats.arrow.FunctionK
+import cats.effect.Resource
 import cats.syntax.foldable.*
 import cats.syntax.option.*
 import lucuma.core.util.Enumerated
@@ -94,5 +96,11 @@ package object epics {
       override def fromJava(x: JInteger): Option[T] = Enumerated[T].all.get(x.toLong)
     }
   }
+
+  given [F[_]]: FunctionK[F, F] = new FunctionK[F, F] {
+    override def apply[A](fa: F[A]): F[A] = fa
+  }
+  
+  given [F[_]]: FunctionK[F, Resource[F, *]] = Resource.liftK[F]
 
 }

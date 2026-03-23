@@ -7,6 +7,7 @@ import cats.Applicative
 import cats.FlatMap
 import cats.Monad
 import cats.Parallel
+import cats.arrow.FunctionK
 import cats.effect.Async
 import cats.effect.Concurrent
 import cats.effect.Resource
@@ -161,14 +162,15 @@ object VerifiedEpics {
 
   }
 
-  extension [F[_]: {Async, Parallel}, A](v: VerifiedEpics[F, F, A]) {
-    def verifiedRun(connectionTimeout: FiniteDuration): F[A] =
-      v.systems
-        .map { case (k, v) => EpicsSystem(k, v) }
-        .map(x => x.connectionsCheck(connectionTimeout).map((x, _)))
-        .toList
-        .parSequence
-        .flatMap { y =>
+  extension [F[_]: {Async, Parallel}, G[_]: Async, A](v: VerifiedEpics[F, G, A])(using fK: FunctionK[F, G]) {
+    def verifiedRun(connectionTimeout: FiniteDuration): G[A] = {
+      fK.apply(
+        v.systems
+          .map { case (k, v) => EpicsSystem(k, v) }
+          .map(x => x.connectionsCheck(connectionTimeout).map((x, _)))
+          .toList
+          .parSequence
+      ).flatMap { y =>
           val bads =
             y.collect { case (s, (false, l)) => (s, l.collect { case (c, false) => c }) }.map {
               case (r, m) =>
@@ -177,10 +179,19 @@ object VerifiedEpics {
             }
           bads.isEmpty.fold(
             v.run,
-            Async[F]
+            Async[G]
               .raiseError(new Throwable(s"Cannot connect to remote systems ${bads.mkString(", ")}"))
           )
         }
+    }
+    
+  }
+  
+  extension [F[_], G[_], A](v: VerifiedEpics[F, G, A]) {
+    def liftK[K[_]](using fK: FunctionK[G, K]): VerifiedEpics[F, K, A] = new VerifiedEpics[F, K, A] {
+      override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
+      override val run: K[A] = fK.apply(v.run)
+    }
   }
 
 }
