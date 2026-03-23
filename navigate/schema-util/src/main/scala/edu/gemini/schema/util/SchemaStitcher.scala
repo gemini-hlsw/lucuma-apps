@@ -51,7 +51,7 @@ object SchemaStitcher {
           new Exception(s"Found circular reference when resolving schema $schemaName")
         )
       } else {
-        resolver.resolve(schemaName).map(_.getLines.toList).use { ll =>
+        resolver.resolve(schemaName).map(_.getLines().toList).use { ll =>
           ll.map(importLineParser.parse)
             .collect { case Right((_, (els, path))) =>
               dependenciesTree(pathToRoot :+ schemaName, path).map((els, _))

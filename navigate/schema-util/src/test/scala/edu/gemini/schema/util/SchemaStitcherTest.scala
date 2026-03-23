@@ -16,7 +16,7 @@ class SchemaStitcherTest extends CatsEffectSuite {
 
   test("SchemaStitcher should parse import statements") {
     schemaResolver.resolve(Path.of("baseSchema.graphql")).map { x =>
-      val a = x.getLines.toList.map(SchemaStitcher.importLineParser.parse).collect {
+      val a = x.getLines().toList.map(SchemaStitcher.importLineParser.parse).collect {
         case Right((_, (els, path))) => (els, path)
       }
 
