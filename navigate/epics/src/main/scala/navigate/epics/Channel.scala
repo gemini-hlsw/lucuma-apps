@@ -93,16 +93,13 @@ object Channel {
 
     override def valueStream(using dispatcher: Dispatcher[F]): Resource[F, Stream[F, T]] = for {
       q <- Resource.eval(Queue.unbounded[F, T])
-      _ <- Resource.make {
-        Sync[F].delay(Console.out.println(s"Registering channel monitor for ${caChannel.getName}")) *>
+      _ <- Resource.fromAutoCloseable {        
              Sync[F].delay(
                caChannel.addValueMonitor { (v: J) =>
-                 Console.out.println(s"Received value $v for ${caChannel.getName}")
                  cv.fromJava(v).foreach(x => dispatcher.unsafeRunAndForget(q.offer(x)))
                }
              )
-           } { m => Sync[F].delay(Console.out.println(s"Closing channel monitor for ${caChannel.getName}")) *>
-        Sync[F].delay(m.close()) }
+           }
     } yield Stream.fromQueueUnterminated(q)
 
     override def connectionStream(using

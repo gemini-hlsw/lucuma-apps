@@ -42,6 +42,7 @@ import monocle.Lens
 import mouse.all.*
 import navigate.epics.VerifiedEpics
 import navigate.epics.VerifiedEpics.*
+import navigate.epics.given
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.AutoparkAowfs
@@ -116,7 +117,6 @@ import navigate.server.tcs.TcsEpicsSystem.TcsCommands
 import navigate.server.tcs.TcsEpicsSystem.WavelengthCommand
 import navigate.server.tcs.TcsEpicsSystem.WfsCommands
 import org.typelevel.log4cats.Logger
-import navigate.epics.given 
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
@@ -2366,10 +2366,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       v0F  <- startVal.liftK[Resource[F, *]]
       ssrF <- streams
     } yield for {
-      v0 <- v0F
+      v0  <- v0F
       ssr <- ssrF
     } yield ssr.scan(v0) { (current, update) =>
-          update.fold(t => current.copy(exposureTime = t), s => current.copy(saving = s))
+      update.fold(t => current.copy(exposureTime = t), s => current.copy(saving = s))
     }).verifiedRun(ConnectionTimeout)
   }
 

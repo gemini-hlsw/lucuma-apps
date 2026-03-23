@@ -5,7 +5,9 @@ package navigate.server.tcs
 
 import cats.Applicative
 import cats.Eq
-import cats.effect.{Ref, Resource, Temporal}
+import cats.effect.Ref
+import cats.effect.Resource
+import cats.effect.Temporal
 import cats.effect.kernel.Async
 import cats.syntax.all.*
 import fs2.Stream

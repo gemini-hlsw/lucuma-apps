@@ -19,8 +19,8 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 class GraphQlRoutes[F[_]: {Async, Trace, Compression}](
-  config:                     NavigateConfiguration,
-  eng:                        NavigateEngine[F],
+  config: NavigateConfiguration,
+  eng:    NavigateEngine[F],
   topics: TopicManager[F]
 ) extends Http4sDsl[F] {
 

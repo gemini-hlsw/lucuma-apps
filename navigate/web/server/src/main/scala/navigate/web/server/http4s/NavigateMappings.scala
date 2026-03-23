@@ -99,19 +99,20 @@ import navigate.server.tcs.GuidersQualityValues
 import navigate.server.tcs.TargetOffsets
 import navigate.server.tcs.TelescopeState
 import navigate.web.server.OcsBuildInfo
+import org.typelevel.log4cats.Logger
 
 import java.nio.file.Path as JPath
 import java.time.LocalDate
 import scala.reflect.classTag
+
 import encoder.given
-import org.typelevel.log4cats.Logger
 
 class NavigateMappings[F[_]: Sync](
-  config:                         NavigateConfiguration,
-  val server:                     NavigateEngine[F],
-  val topics: TopicManager[F]
+  config:              NavigateConfiguration,
+  val server:          NavigateEngine[F],
+  val topics:          TopicManager[F]
 )(
-  override val schema:            Schema
+  override val schema: Schema
 ) extends CirceMapping[F] {
   import NavigateMappings._
 
@@ -1272,29 +1273,34 @@ object NavigateMappings extends GrackleParsers {
     .build
 
   def apply[F[_]: {Sync, Logger}](
-    config:                     NavigateConfiguration,
-    server:                     NavigateEngine[F],
+    config: NavigateConfiguration,
+    server: NavigateEngine[F],
     topics: TopicManager[F]
-  ): F[NavigateMappings[F]] = loadSchema.flatMap {
-    case Result.Success(schema)           => schema.pure[F]
-    case Result.Warning(problems, schema) => Logger[F].warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}").as(schema)
-    case Result.Failure(problems)         =>
-      Sync[F].raiseError[Schema](
-        new Throwable(
-          s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+  ): F[NavigateMappings[F]] = loadSchema
+    .flatMap {
+      case Result.Success(schema)           => schema.pure[F]
+      case Result.Warning(problems, schema) =>
+        Logger[F]
+          .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
+          .as(schema)
+      case Result.Failure(problems)         =>
+        Sync[F].raiseError[Schema](
+          new Throwable(
+            s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+          )
         )
-      )
-    case Result.InternalError(error)      =>
-      Sync[F].raiseError[Schema](
-        new Throwable(s"Unable to load schema because: ${error.getMessage}")
-      )
-  }.map(
-    new NavigateMappings[F](
-      config,
-      server,
-      topics
-    )(_)
-  )
+      case Result.InternalError(error)      =>
+        Sync[F].raiseError[Schema](
+          new Throwable(s"Unable to load schema because: ${error.getMessage}")
+        )
+    }
+    .map(
+      new NavigateMappings[F](
+        config,
+        server,
+        topics
+      )(_)
+    )
 
   def parseObservationIdInput(oi: String): Option[Observation.Id] =
     parseGid[Observation.Id](oi, "Observation Id").toOption

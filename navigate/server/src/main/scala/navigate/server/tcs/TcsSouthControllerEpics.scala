@@ -125,25 +125,28 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
         v0F  <- startVal.liftK[Resource[F, *]]
         ssrF <- streams
       } yield for {
-        v0 <- v0F
+        v0  <- v0F
         ssr <- ssrF
-      } yield ssr.scan(v0) { (current, update) =>
-            update match {
-              case OiExposureTime(t) => current.copy(expTime = t.some)
-              case OiName(ins)       => current.copy(oiSel = ins.some)
-              case GmoiSaving(en)    => current.copy(gmoiSaving = en.some)
-              case F2oiSaving(en)    => current.copy(f2oiSaving = en.some)
-            }
-          }.map { x =>
-            for {
-              t   <- x.expTime
-              sav <- x.oiSel.flatten.flatMap {
-                       case Instrument.GmosSouth | Instrument.GmosNorth => x.gmoiSaving
-                       case Instrument.Flamingos2                       => x.f2oiSaving
-                       case _                                           => none
-                     }
-            } yield WfsConfiguration(t, sav)
-          }.flattenOption
+      } yield ssr
+        .scan(v0) { (current, update) =>
+          update match {
+            case OiExposureTime(t) => current.copy(expTime = t.some)
+            case OiName(ins)       => current.copy(oiSel = ins.some)
+            case GmoiSaving(en)    => current.copy(gmoiSaving = en.some)
+            case F2oiSaving(en)    => current.copy(f2oiSaving = en.some)
+          }
+        }
+        .map { x =>
+          for {
+            t   <- x.expTime
+            sav <- x.oiSel.flatten.flatMap {
+                     case Instrument.GmosSouth | Instrument.GmosNorth => x.gmoiSaving
+                     case Instrument.Flamingos2                       => x.f2oiSaving
+                     case _                                           => none
+                   }
+          } yield WfsConfiguration(t, sav)
+        }
+        .flattenOption
     ).verifiedRun(ConnectionTimeout)
   }
 }

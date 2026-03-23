@@ -13,7 +13,13 @@ import ch.qos.logback.core.Appender
 import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Topic
-import navigate.model.{AcMechsState, AcquisitionAdjustment, FocalPlaneOffset, NavigateEvent, PointingCorrections, PwfsMechsState, WfsConfiguration}
+import navigate.model.AcMechsState
+import navigate.model.AcquisitionAdjustment
+import navigate.model.FocalPlaneOffset
+import navigate.model.NavigateEvent
+import navigate.model.PointingCorrections
+import navigate.model.PwfsMechsState
+import navigate.model.WfsConfiguration
 import navigate.server.NavigateEngine
 import navigate.server.NavigateFailure
 import navigate.server.tcs.GuideState
@@ -27,23 +33,23 @@ import org.typelevel.log4cats.Logger
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
 
-case class TopicManager[F[_]] (
-                                   navigateEvents:        Topic[F, NavigateEvent],
-                                   loggingEvents:         Topic[F, ILoggingEvent],
-                                   guideState:            Topic[F, GuideState],
-                                   guidersQuality:        Topic[F, GuidersQualityValues],
-                                   telescopeState:        Topic[F, TelescopeState],
-                                   acquisitionAdjustment: Topic[F, AcquisitionAdjustment],
-                                   targetAdjustment:      Topic[F, TargetOffsets],
-                                   originAdjustment:      Topic[F, FocalPlaneOffset],
-                                   pointingAdjustment:    Topic[F, PointingCorrections],
-                                   acMechsState:          Topic[F, AcMechsState],
-                                   pwfs1MechsTopic:       Topic[F, PwfsMechsState],
-                                   pwfs2MechsTopic:       Topic[F, PwfsMechsState],
-                                   pwfs1WfsTopic:         Topic[F, WfsConfiguration],
-                                   pwfs2WfsTopic:         Topic[F, WfsConfiguration],
-                                   oiwfsWfsTopic:         Topic[F, WfsConfiguration],
-                                   logBuffer:             Ref[F, Seq[ILoggingEvent]]
+case class TopicManager[F[_]](
+  navigateEvents:        Topic[F, NavigateEvent],
+  loggingEvents:         Topic[F, ILoggingEvent],
+  guideState:            Topic[F, GuideState],
+  guidersQuality:        Topic[F, GuidersQualityValues],
+  telescopeState:        Topic[F, TelescopeState],
+  acquisitionAdjustment: Topic[F, AcquisitionAdjustment],
+  targetAdjustment:      Topic[F, TargetOffsets],
+  originAdjustment:      Topic[F, FocalPlaneOffset],
+  pointingAdjustment:    Topic[F, PointingCorrections],
+  acMechsState:          Topic[F, AcMechsState],
+  pwfs1MechsTopic:       Topic[F, PwfsMechsState],
+  pwfs2MechsTopic:       Topic[F, PwfsMechsState],
+  pwfs1WfsTopic:         Topic[F, WfsConfiguration],
+  pwfs2WfsTopic:         Topic[F, WfsConfiguration],
+  oiwfsWfsTopic:         Topic[F, WfsConfiguration],
+  logBuffer:             Ref[F, Seq[ILoggingEvent]]
 ) {
 
   val ReconnectCycles = 30
@@ -134,6 +140,27 @@ case class TopicManager[F[_]] (
   )(using Temporal[F], Logger[F]): Pipe[F, Unit, Unit] =
     genericPoll(eng.getPwfs2MechsState, topic, start, name = "Pwfs2MechsState")
 
+  private def pwfs1WfsConfigPoll(
+    eng:   NavigateEngine[F],
+    topic: Topic[F, WfsConfiguration],
+    start: Int
+  )(using Temporal[F], Logger[F]): Pipe[F, Unit, Unit] =
+    genericPoll(eng.getPwfs1Configuration, topic, start, name = "Pwfs1WfsConf")
+
+  private def pwfs2WfsConfigPoll(
+    eng:   NavigateEngine[F],
+    topic: Topic[F, WfsConfiguration],
+    start: Int
+  )(using Temporal[F], Logger[F]): Pipe[F, Unit, Unit] =
+    genericPoll(eng.getPwfs2Configuration, topic, start, name = "Pwfs2WfsConf")
+
+  private def oiwfsWfsConfigPoll(
+    eng:   NavigateEngine[F],
+    topic: Topic[F, WfsConfiguration],
+    start: Int
+  )(using Temporal[F], Logger[F]): Pipe[F, Unit, Unit] =
+    genericPoll(eng.getOiwfsConfiguration, topic, start, name = "OiwfsWfsConf")
+
   private def targetAdjStatePoll(
     eng:   NavigateEngine[F],
     topic: Topic[F, TargetOffsets],
@@ -167,45 +194,37 @@ case class TopicManager[F[_]] (
    */
   def startAll(
     engine: NavigateEngine[F]
-  )(using Temporal[F], Logger[F]): Resource[F, Fiber[F, Throwable, Unit]] = for {
-    p1Stream <- engine.getPwfs1ConfigurationStream
-    p2Stream <- engine.getPwfs2ConfigurationStream
-    oiStream <- engine.getOiwfsConfigurationStream
-    ret <- Resource.eval(
-      Stream
-        .emits(
-          List(
-            navigateEvents.subscribers
-              .evalMap(l => Logger[F].debug(s"Subscribers amount: $l").whenA(l > 1)),
-            Stream
-              .fixedDelay[F](FiniteDuration(1, TimeUnit.SECONDS))
-              .broadcastThrough(
-                guideStatePoll(engine, guideState, 1),
-                guiderQualityPoll(engine, guidersQuality, 2),
-                telescopeStatePoll(engine, telescopeState, 3),
-                targetAdjStatePoll(engine, targetAdjustment, 4),
-                originAdjStatePoll(engine, originAdjustment, 5),
-                pointingAdjStatePoll(engine, pointingAdjustment, 6),
-                acMechsStatePoll(engine, acMechsState, 7),
-                pwfs1MechsStatePoll(engine, pwfs1MechsTopic, 8),
-                pwfs2MechsStatePoll(engine, pwfs2MechsTopic, 9)
-              ),
-            engine.eventStream.through(navigateEvents.publish),
-            p1Stream.through(pwfs1WfsTopic.publish),
-            p2Stream.through(pwfs2WfsTopic.publish),
-            oiStream.through(oiwfsWfsTopic.publish)
-          )
+  )(using Temporal[F], Logger[F]): Resource[F, Fiber[F, Throwable, Unit]] = Resource.eval(
+    Stream
+      .emits(
+        List(
+          navigateEvents.subscribers
+            .evalMap(l => Logger[F].debug(s"Subscribers amount: $l").whenA(l > 1)),
+          Stream
+            .fixedDelay[F](FiniteDuration(1, TimeUnit.SECONDS))
+            .broadcastThrough(
+              guideStatePoll(engine, guideState, 1),
+              guiderQualityPoll(engine, guidersQuality, 2),
+              telescopeStatePoll(engine, telescopeState, 3),
+              targetAdjStatePoll(engine, targetAdjustment, 4),
+              originAdjStatePoll(engine, originAdjustment, 5),
+              pointingAdjStatePoll(engine, pointingAdjustment, 6),
+              acMechsStatePoll(engine, acMechsState, 7),
+              pwfs1MechsStatePoll(engine, pwfs1MechsTopic, 8),
+              pwfs2MechsStatePoll(engine, pwfs2MechsTopic, 9),
+              pwfs1WfsConfigPoll(engine, pwfs1WfsTopic, 10),
+              pwfs2WfsConfigPoll(engine, pwfs2WfsTopic, 11),
+              oiwfsWfsConfigPoll(engine, oiwfsWfsTopic, 12)
+            ),
+          engine.eventStream.through(navigateEvents.publish)
         )
-        .parJoinUnbounded
-        .compile
-        .drain
-        .onError(logError)
-        .start
-    )
-  } yield ret
-//      .background
-//    .void
-
+      )
+      .parJoinUnbounded
+      .compile
+      .drain
+      .onError(logError)
+      .start
+  )
 }
 
 object TopicManager {

@@ -4,7 +4,10 @@
 package navigate.server
 
 import cats.Applicative
-import cats.effect.{Async, Ref, Resource, Temporal}
+import cats.effect.Async
+import cats.effect.Ref
+import cats.effect.Resource
+import cats.effect.Temporal
 import cats.effect.kernel.Sync
 import cats.syntax.all.*
 import fs2.Pipe
@@ -82,9 +85,10 @@ import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import java.time.LocalDate
-import java.util.concurrent.{TimeUnit, TimeoutException}
+import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
+
 import NavigateEvent.NullEvent
 
 trait NavigateEngine[F[_]] {
@@ -862,19 +866,6 @@ object NavigateEngine {
                  }
       _     <- logEvent(x)
     } yield x.result
-  }
-
-  val BaseReconnectTime: FiniteDuration = FiniteDuration(1, TimeUnit.SECONDS)
-  val MaxWaitFactor = 32
-
-  private def calcReconnectionTime(n: Int): (Int, FiniteDuration) = (Math.min(n*2, MaxWaitFactor), BaseReconnectTime * n)
-
-  def retryStream[F[_]: {Temporal, Logger}, A](r: Resource[F, A], n: Int): Resource[F, A] = {
-    val (itr, delay) = calcReconnectionTime(n)
-    r.attempt.flatMap {
-      case Left(err) => ???
-      case Right(value) => retryStream(itr)
-    }
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

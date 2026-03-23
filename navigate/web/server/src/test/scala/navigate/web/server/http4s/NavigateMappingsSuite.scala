@@ -4,7 +4,9 @@
 package navigate.web.server.http4s
 
 import cats.*
-import cats.effect.{IO, Ref, Resource}
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.Resource
 import cats.syntax.all.*
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
@@ -2961,7 +2963,11 @@ object NavigateMappingsTest {
     p1w <- Topic[IO, WfsConfiguration]
     p2w <- Topic[IO, WfsConfiguration]
     oiw <- Topic[IO, WfsConfiguration]
-    mp  <- NavigateMappings[IO](config, eng, TopicManager(nv, log, gd, gq, ts, aa, tot, ot, pt, ac, p1, p2, p1w, p2w, oiw, lb))
+    mp  <- NavigateMappings[IO](
+             config,
+             eng,
+             TopicManager(nv, log, gd, gq, ts, aa, tot, ot, pt, ac, p1, p2, p1w, p2w, oiw, lb)
+           )
   } yield mp
 
   given Decoder[OperationOutcome] = Decoder.instance(h =>
