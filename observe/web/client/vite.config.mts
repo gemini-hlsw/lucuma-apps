@@ -1,23 +1,8 @@
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, UserConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
-
-const fixCssRoot: PluginCreator<void> = () => {
-  return {
-    postcssPlugin: 'postcss-fix-nested-root',
-    Once(root) {
-      root.walkRules((rule) => {
-        if (rule.selector.includes(' :root')) {
-          rule.selector = rule.selector.replace(' :root', '');
-        }
-      });
-    },
-  };
-};
-fixCssRoot.postcss = true;
 
 const fontImport = Unfonts({
   fontsource: {
@@ -68,13 +53,23 @@ export default defineConfig(async ({ mode }) => {
       ],
     },
     css: {
+      transformer: 'lightningcss',
       preprocessorOptions: {
         scss: {
           charset: false,
         },
       },
-      postcss: {
-        plugins: [fixCssRoot],
+      lightningcss: {
+        visitor: {
+          Selector(selector) {
+            // Filter out :root selectors that are not the first rule
+            if (selector.find((v, i) => v.type === 'pseudo-class' && v.kind === 'root' && i > 0)) {
+              return selector.filter(
+                (v, i) => i < 1 || !(v.type === 'pseudo-class' && v.kind === 'root'),
+              );
+            }
+          },
+        },
       },
     },
     server: {
