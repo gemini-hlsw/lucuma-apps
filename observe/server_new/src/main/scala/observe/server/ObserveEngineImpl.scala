@@ -5,11 +5,9 @@ package observe.server
 
 import cats.Applicative
 import cats.Endo
-import cats.Monoid
 import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.effect.Ref
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import coulomb.integrations.cats.all.given
 import fs2.Stream
@@ -33,7 +31,6 @@ import monocle.function.Index.mapIndex
 import mouse.all.*
 import observe.cats.given
 import observe.model.*
-import observe.model.SequenceStatus.*
 import observe.model.UserPrompt.Discrepancy
 import observe.model.UserPrompt.ObsConditionsCheckOverride
 import observe.model.UserPrompt.SeqCheck
@@ -70,8 +67,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   @unused settings:      ObserveEngineConfiguration,
   translator:            SeqTranslate[F],
   @unused conditionsRef: Ref[F, Conditions]
-)(using Monoid[F[Unit]])
-    extends ObserveEngine[F] {
+) extends ObserveEngine[F] {
 
   /**
    * Check if the resources to run a sequence are available
@@ -271,17 +267,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           for {
             // TODO Careful with state later in case of load error!
             _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
-                                SequenceState.status.replace(
-                                  SequenceStatus.Running(
-                                    userStop = HasUserStop.No,
-                                    internalStop = HasInternalStop.No,
-                                    waitingUserPrompt = IsWaitingUserPrompt.No,
-                                    waitingNextStep = IsWaitingNextStep.Yes,
-                                    starting = IsStarting.Yes
-                                  )
-                                )(seq.rollback)
+                                SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
+            // TODO Is starting removed somewhere??
             startingStep   <-
-              ObserveEngine.fetchNextStep(
+              ObserveEngine.loadNextStep(
                 systems.odb,
                 translator,
                 seq.obsId,
@@ -336,32 +325,33 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         setObserver(obsId, observer) *>
           clearObsCmd(obsId) *>
           // startChecks(executeEngine.start(obsId), obsId, clientId, none, runOverride)
-          startChecks(executeEngine.startNewStep(obsId), obsId, clientId, none, runOverride)
+          startChecks(executeEngine.executeLoadedStep(obsId), obsId, clientId, none, runOverride)
       )
 
-  override def loadNextStep(
+  override def proceedAfterPrompt(
     id:       Observation.Id,
     user:     User,
     observer: Observer,
-    atomType: SequenceType
+    seqType:  SequenceType
   ): F[Unit] =
     setObserver(id, user, observer) *>
       executeEngine.offer:
         Event.modifyState[F]:
           clearObsCmd(id) *>
-            userNextStep(id, atomType).as(SeqEvent.NullSeqEvent)
+            userNextStep(id, seqType).as(SeqEvent.NullSeqEvent)
 
   def userNextStep(
-    id:       Observation.Id,
-    atomType: SequenceType
+    id:      Observation.Id,
+    seqType: SequenceType
   ): EngineHandle[F, Unit] =
     EngineHandle.getState.flatMap: st =>
       EngineState
         .atSequence(id)
         .getOption(st)
         .flatMap: seq =>
+          // set waiting user prompt to false
           seq.seq.pending.isEmpty.option:
-            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, id, atomType)
+            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, id, seqType)
         .getOrElse(EngineHandle.unit)
 
   override def requestPause(
@@ -500,36 +490,29 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                   )
                   .as(
                     Event.modifyState {
-                      EngineHandle.modifyStateF { (st: EngineState[F]) =>
+                      EngineHandle.modifyState { (st: EngineState[F]) =>
                         val instrumentSequenceLens = EngineState.instrumentLoaded[F](i)
                         if (
                           instrumentSequenceLens.get(st).forall(s => executeEngine.canUnload(s.seq))
                         ) {
-                          st.sequencesByInstrument
-                            .get(i)
-                            .foldMap(_.cleanup) >> // End background obsEdit subscription
-                            // Start new obsEdit subscription
-                            mountOdbObsSubscription(obsId).map { cleanup =>
-                              (st.sequences
-                                 .get(obsId)
-                                 .fold(
-                                   ODBSequencesLoader
-                                     .loadSequenceMod(
-                                       observer.some,
-                                       odbData,
-                                       //  stepGen,
-                                       instrumentSequenceLens,
-                                       cleanup
-                                     )
-                                 )(_ =>
-                                   ODBSequencesLoader.reloadSequenceMod(
-                                     stepGen,
-                                     instrumentSequenceLens
-                                   )
-                                 )(st),
-                               LoadSequence(obsId, clientId)
-                              )
-                            }
+                          // Start new obsEdit subscription
+                          (st.sequences
+                             .get(obsId)
+                             .fold(
+                               ODBSequencesLoader
+                                 .loadSequenceMod(
+                                   observer.some,
+                                   odbData,
+                                   instrumentSequenceLens
+                                 )
+                             )(_ =>
+                               ODBSequencesLoader.reloadSequenceMod(
+                                 stepGen,
+                                 instrumentSequenceLens
+                               )
+                             )(st),
+                           LoadSequence(obsId, clientId)
+                          )
                         } else {
                           (
                             st,
@@ -544,7 +527,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                                 ),
                                 clientId
                               ): SeqEvent
-                          ).pure[F]
+                          )
                         }
                       }
                     }
@@ -767,7 +750,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         ) ++
           buildObserveStateStream(svs, odbProxy)
       case AcquisitionCompleted(obsId)                                           =>
-        Stream.emit[F, TargetedClientEvent](ClientEvent.AcquisitionPromptReached(obsId))
+        Stream.emit[F, TargetedClientEvent](ClientEvent.AcquisitionPromptReached(obsId)) ++
+          buildObserveStateStream(svs, odbProxy)
       case e if e.isModelUpdate                                                  =>
         buildObserveStateStream(svs, odbProxy)
       case _                                                                     => Stream.empty
@@ -1500,33 +1484,5 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       enabled,
       clientId: ClientId
     )
-
-  // Reloads the current atom if the observation is edited in ODB, only if the sequence is not running.
-  // We want this to reload regenerated steps if the QA of their recent execution does not pass.
-  // If the sequence is running, this signal is ignored and the atom will be reloaded at the end of current step anyway.
-  private def processObsEditOdbSignal(obsId: Observation.Id): F[Unit] =
-    Logger[F].debug(s"Observation [$obsId] was edited in ODB") >>
-      executeEngine
-        .offer:
-          Event.modifyState:
-            ObserveEngine.onStepReload[F](systems.odb, translator)(
-              executeEngine,
-              obsId,
-              ReloadReason.EditEvent
-            )
-
-  // Subscribes to obsEdit changes in the ODB.
-  private def mountOdbObsSubscription(obsId: Observation.Id): F[F[Unit]] =
-    systems.odb
-      .obsEditSubscription(obsId)
-      .flatMap: obsEditSignal =>
-        obsEditSignal // TODO Debounce???
-          .evalMap(_ => processObsEditOdbSignal(obsId))
-          .compile
-          .drain
-          .background
-          .void
-      .allocated
-      .map(_._2)
 
 }

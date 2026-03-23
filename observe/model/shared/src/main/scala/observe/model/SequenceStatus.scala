@@ -74,6 +74,24 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
   def isIdle: Boolean =
     this === SequenceStatus.Idle || this === SequenceStatus.Aborted
 
+  def withWaitingUserPrompt(value: Boolean): SequenceStatus =
+    this match
+      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+        r.copy(waitingUserPrompt = SequenceStatus.IsWaitingUserPrompt(value))
+      case other                                     => other
+
+  def withWaitingNextStep(value: Boolean): SequenceStatus =
+    this match
+      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+        r.copy(waitingNextStep = SequenceStatus.IsWaitingNextStep(value))
+      case other                                     => other
+
+  def withStarting(value: Boolean): SequenceStatus =
+    this match
+      case r @ SequenceStatus.Running(_, _, _, _, _) =>
+        r.copy(starting = SequenceStatus.IsStarting(value))
+      case other                                     => other
+
 object SequenceStatus:
   given Display[SequenceStatus] = Display.byShortName(_.name)
 
@@ -104,6 +122,8 @@ object SequenceStatus:
         waitingNextStep = IsWaitingNextStep.No,
         starting = IsStarting.No
       )
+
+    val Starting: SequenceStatus = Init.withStarting(true)
 
     val userStop: Lens[SequenceStatus.Running, HasUserStop] =
       Focus[SequenceStatus.Running](_.userStop)

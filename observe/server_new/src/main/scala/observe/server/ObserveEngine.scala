@@ -4,12 +4,12 @@
 package observe.server
 
 import cats.Endo
-import cats.Monoid
 import cats.effect.Async
 import cats.effect.MonadCancelThrow
 import cats.effect.Ref
 import cats.effect.Sync
 import cats.effect.Temporal
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import fs2.Pipe
 import fs2.Stream
@@ -44,6 +44,7 @@ import scala.annotation.unused
 import scala.concurrent.duration.*
 
 import SeqEvent.*
+import cats.Monad
 
 trait ObserveEngine[F[_]] {
 
@@ -57,7 +58,7 @@ trait ObserveEngine[F[_]] {
     runOverride: RunOverride
   ): F[Unit]
 
-  def loadNextStep(
+  def proceedAfterPrompt(
     obsId:    Observation.Id,
     user:     User,
     observer: Observer,
@@ -217,10 +218,9 @@ trait ObserveEngine[F[_]] {
   private[server] def loadSequenceMod(
     observer:               Option[Observer],
     odbData:                OdbObservationData,
-    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]],
-    cleanup:                F[Unit]
+    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] =
-    ODBSequencesLoader.loadSequenceMod(observer, odbData, instrumentSequenceLens, cleanup)
+    ODBSequencesLoader.loadSequenceMod(observer, odbData, instrumentSequenceLens)
 }
 
 object ObserveEngine {
@@ -398,10 +398,16 @@ object ObserveEngine {
   ): Endo[EngineState[F]] =
     EngineState.atSequence[F](obsId).modify(SequenceData.loadedStep.replace(none))
 
-  private def cleanLoadedStep[F[_]: MonadCancelThrow](
+  private def cleanLoadedStep[F[_]: Monad](
     obsId: Observation.Id
   ): EngineHandle[F, Unit] =
     EngineHandle.modifyState_(cleanLoadedStepMod(obsId))
+
+  private def modifySequenceStatus[F[_]: Monad](
+    obsId: Observation.Id
+  )(f: SequenceStatus => SequenceStatus): EngineHandle[F, Unit] =
+    EngineHandle.modifySequenceState(obsId):
+      SequenceState.status.modify(f)
 
   private def onStepComplete[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
@@ -423,20 +429,25 @@ object ObserveEngine {
             // 3) Otherwise, continue as normal (like the tryNewStep below but without reloading)
             // 4) If sequence is paused for any reason, clear out loaded step.
 
-            fetchNextStep[F](odb, translator, obsId, completedStep.sequenceType)
+            loadNextStep[F](odb, translator, obsId, completedStep.sequenceType)
               .filterIn: newStepGen => // If acquisition atom completed, pause for prompt
                 completedStep.sequenceType === SequenceType.Science || newStepGen.atomId === completedStep.atomId
               .flatMap:
                 case None             => // Acquisition Complete or Sequence Complete
                   completedStep.sequenceType match
                     case SequenceType.Acquisition => // For acquisition, signal completion and wait for user prompt.
-                      EngineHandle.pure[F, SeqEvent](SeqEvent.AcquisitionCompleted(obsId))
-                      cleanLoadedStep(obsId).as(SeqEvent.AcquisitionCompleted(obsId))
+                      EngineHandle.debug(
+                        s"Acquisition completed for observation [$obsId], waiting for user prompt"
+                      ) >>
+                        modifySequenceStatus(obsId)(
+                          _.withWaitingUserPrompt(SequenceStatus.IsWaitingUserPrompt.Yes)
+                        ) >>
+                        cleanLoadedStep(obsId).as(SeqEvent.AcquisitionCompleted(obsId))
                     case SequenceType.Science     => // Sequence complete, is this correct?
-                      executeEngine.startNewStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
+                      executeEngine.executeLoadedStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
                 case Some(newStepGen) =>
                   executeEngine
-                    .startNewStep(obsId)
+                    .executeLoadedStep(obsId)
                     .as:
                       SeqEvent.NewStepLoaded(
                         obsId,
@@ -521,37 +532,25 @@ object ObserveEngine {
             SequenceData.seq.replace(SequenceState.status.replace(newStatus)(newSeqState)))(seqData)
         }(st)
 
-  def tryNewStep[F[_]: MonadCancelThrow](
+  def tryNewStep[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
     translator:    SeqTranslate[F],
     executeEngine: Engine[F],
     obsId:         Observation.Id,
     seqType:       SequenceType
   ): EngineHandle[F, Unit] =
-    EngineHandle.fromSingleEventF:
-      odb
-        .read(obsId)
-        .map: odbObsData =>
-          translator
-            .nextStep(odbObsData, seqType)
-            ._2
-            .map: stepGen =>
-              Event.modifyState[F]:
-                EngineHandle
-                  .modifyState_ : (st: EngineState[F]) =>
-                    updateStep(obsId, stepGen.some)(st)
-                  .flatMap: _ =>
-                    executeEngine.startNewStep(obsId) *>
-                      EngineHandle.pure:
-                        SeqEvent.NewStepLoaded(
-                          obsId,
-                          stepGen.sequenceType,
-                          stepGen.atomId,
-                          stepGen.id
-                        )
-            .getOrElse:
-              Event.modifyState[F]:
-                executeEngine.startNewStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
+    loadNextStep[F](odb, translator, obsId, seqType)
+      .flatMap: stepGenOpt =>
+        EngineHandle.fromSingleEvent:
+          Event.modifyState[F]:
+            stepGenOpt
+              .map: stepGen =>
+                executeEngine
+                  .executeLoadedStep(obsId)
+                  .as:
+                    SeqEvent.NewStepLoaded(obsId, stepGen.sequenceType, stepGen.atomId, stepGen.id)
+              .getOrElse:
+                executeEngine.executeLoadedStep(obsId).as(SeqEvent.NoMoreAtoms(obsId))
 
   def onStepReload[F[_]: {MonadCancelThrow, Logger}](
     odb:           OdbProxy[F],
@@ -579,7 +578,7 @@ object ObserveEngine {
         )
       }
 
-  def fetchNextStep[F[_]: {MonadCancelThrow, Logger}](
+  def loadNextStep[F[_]: {MonadCancelThrow, Logger}](
     odb:        OdbProxy[F],
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
@@ -587,7 +586,10 @@ object ObserveEngine {
   ): EngineHandle[F, Option[StepGen[F]]] = // TODO only if seq isIdle or isError???
     for
       _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
-      odbData <- EngineHandle.liftF(odb.read(obsId))
+      _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true))
+      odbData <- EngineHandle
+                   .liftF(odb.read(obsId))
+                   .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
       // TODO HANDLE ERRORS!!!! (see below for an example)
       // But take into account that we are in state RUNNING here
       // Or handle in caller!
@@ -619,13 +621,13 @@ object ObserveEngine {
           EngineHandle.fromSingleEvent:
             Event.modifyState[F]:
               (for
-                stepGen  <- fetchNextStep(odb, translator, obsId, seqType)
+                stepGen  <- loadNextStep(odb, translator, obsId, seqType)
                 continue <-
                   stepGen.fold(
                     EngineHandle.fromSingleEvent(Event.finished(obsId)).as(SeqEvent.NullSeqEvent)
                   ): sg =>
                     if reloadReason == ReloadReason.SequenceFlow then
-                      executeEngine.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
+                      executeEngine.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
                     else
                       Handle.pure:
                         SeqEvent.NewStepLoaded(obsId, sg.sequenceType, sg.atomId, sg.id)
@@ -655,7 +657,7 @@ object ObserveEngine {
     systems:     Systems[F],
     conf:        ObserveEngineConfiguration,
     environment: ExecutionEnvironment
-  )(using Monoid[F[Unit]]): F[ObserveEngine[F]] = for {
+  ): F[ObserveEngine[F]] = for {
     rc  <- Ref.of[F, Conditions](Conditions.Default)
     tr  <- createTranslator(site, systems, rc, environment)
     eng <- Engine.build[F](

@@ -107,8 +107,8 @@ class PackageSuite extends munit.CatsEffectSuite {
     )
 
   private def executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
+    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
+    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   def isFinished(status: SequenceStatus): Boolean = status match {

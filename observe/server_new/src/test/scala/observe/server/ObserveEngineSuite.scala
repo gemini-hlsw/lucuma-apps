@@ -436,8 +436,7 @@ class ObserveEngineSuite extends TestCommon {
       .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
@@ -468,8 +467,7 @@ class ObserveEngineSuite extends TestCommon {
       .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
@@ -500,8 +498,7 @@ class ObserveEngineSuite extends TestCommon {
       .loadSequenceMod[IO](
         None,
         gmosNorthOdbDataWith(obs),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
@@ -648,8 +645,7 @@ class ObserveEngineSuite extends TestCommon {
     val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -688,8 +684,7 @@ class ObserveEngineSuite extends TestCommon {
     val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -741,8 +736,7 @@ class ObserveEngineSuite extends TestCommon {
     val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbDataWith(obs),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -854,8 +848,7 @@ class ObserveEngineSuite extends TestCommon {
                          .loadSequenceMod[IO](
                            None,
                            oseq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       s1             =
@@ -878,7 +871,7 @@ class ObserveEngineSuite extends TestCommon {
       eo             = EngineObserver(observeEngine, s1)
       r             <-
         eo.executeAndWaitResult(
-          _.loadNextStep(seqObsId1, user, observer, SequenceType.Acquisition),
+          _.proceedAfterPrompt(seqObsId1, user, observer, SequenceType.Acquisition),
           {
             case EventResult.UserCommandResponse(
                   _,
@@ -890,7 +883,7 @@ class ObserveEngineSuite extends TestCommon {
         )
       s             <-
         eo.executeAndWaitResult(
-          _.loadNextStep(seqObsId1, user, observer, SequenceType.Science), {
+          _.proceedAfterPrompt(seqObsId1, user, observer, SequenceType.Science), {
             ???
             // case EventResult.UserCommandResponse(
             //       _,
@@ -962,8 +955,7 @@ class ObserveEngineSuite extends TestCommon {
                          .loadSequenceMod[IO](
                            None,
                            oseq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
@@ -1098,8 +1090,7 @@ class ObserveEngineSuite extends TestCommon {
                          .loadSequenceMod[IO](
                            None,
                            oseq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
@@ -1189,8 +1180,7 @@ class ObserveEngineSuite extends TestCommon {
                          .loadSequenceMod[IO](
                            None,
                            oseq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-

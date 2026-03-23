@@ -124,8 +124,7 @@ class SeqTranslateSuite extends TestCommon {
       .loadSequenceMod[IO](
         None,
         gmosNorthOdbData(seqObsId1),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)

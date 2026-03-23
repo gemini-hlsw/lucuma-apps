@@ -32,8 +32,7 @@ object TestUtil {
             loadedStep = none,
             seq = seq,
             pendingObsCmd = none,
-            visitStartDone = false,
-            cleanup = IO.unit
+            visitStartDone = false
           )
           .some,
         gmosSouth = none,

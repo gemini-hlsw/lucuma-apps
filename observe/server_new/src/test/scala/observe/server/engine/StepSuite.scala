@@ -37,8 +37,8 @@ class StepSuite extends CatsEffectSuite {
   private val seqId = observationId(1)
 
   private val executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
+    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
+    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   private object DummyResult extends Result.RetVal with Serializable

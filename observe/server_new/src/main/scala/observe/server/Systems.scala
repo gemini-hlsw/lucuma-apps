@@ -41,7 +41,6 @@ import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
 import observe.server.odb.OdbCommandsImpl
 import observe.server.odb.OdbProxy
-import observe.server.odb.OdbSubscriber
 import observe.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
@@ -136,8 +135,7 @@ object Systems {
               .map(OdbCommandsImpl[F](_)(using fetchClient))
           else
             DummyOdbCommands[F].pure[F]
-        odbSubscriber                   = OdbSubscriber[F]()(using streamingClient)
-      yield OdbProxy[F](odbCommands, odbSubscriber)(using streamingClient)
+      yield OdbProxy[F](odbCommands)(using streamingClient)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)

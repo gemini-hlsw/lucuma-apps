@@ -423,16 +423,14 @@ object TestCommon {
    * old pattern: `ODBSequencesLoader.loadSequenceEndo(None, sequenceGen, lens, cleanup)`
    */
   def loadSequence(
-    id:      Observation.Id,
-    sg:      Option[StepGen.GmosNorth[IO]],
-    lens:    monocle.Lens[EngineState[IO], Option[SequenceData[IO]]],
-    cleanup: IO[Unit] = IO.unit
+    id:   Observation.Id,
+    sg:   Option[StepGen.GmosNorth[IO]],
+    lens: monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
     ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbData(id),
-      lens,
-      cleanup
+      lens
     )
 
   /**
@@ -456,8 +454,7 @@ object TestCommon {
     ODBSequencesLoader.loadSequenceMod[IO](
       None,
       gmosNorthOdbData(id),
-      lens,
-      IO.unit
+      lens
     )
 
 }

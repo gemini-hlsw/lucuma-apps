@@ -33,8 +33,8 @@ class SequenceSuite extends munit.CatsEffectSuite {
   // All tests check the output of running a sequence against the expected sequence of updates.
 
   private val executionEngine = Engine.build[IO](
-    (eng, obsId) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent),
-    (eng, obsId, _) => eng.startNewStep(obsId).as(SeqEvent.NullSeqEvent)
+    (eng, obsId) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent),
+    (eng, obsId, _) => eng.executeLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
 
   def simpleStep(id: Step.Id): EngineStep[IO] =

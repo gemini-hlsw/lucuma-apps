@@ -42,24 +42,25 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
     EngineHandle.modifySequenceState(obsId)(SequenceState.status.replace(st))
 
   def start(obsId: Observation.Id): EngineHandle[F, Unit] =
-    EngineHandle.getSequenceState(obsId).flatMap {
-      case Some(seq) =>
-        {
-          EngineHandle.replaceSequenceState(obsId)(
-            // TODO This should be before, in startChecks... and we don't need to reload afterwards
-            SequenceState.status.replace(
-              SequenceStatus.Running(
-                userStop = HasUserStop.No,
-                internalStop = HasInternalStop.No,
-                waitingUserPrompt = IsWaitingUserPrompt.No,
-                waitingNextStep = IsWaitingNextStep.Yes,
-                starting = IsStarting.Yes
-              )
-            )(seq.rollback)
-          ) *> send(Event.modifyState(stepReload(this, obsId, ReloadReason.SequenceFlow)))
-        }.whenA(seq.status.isIdle || seq.status.isError)
-      case None      => Handle.unit
-    }
+    EngineHandle.debug("WHAT ARE YOU DOING HERE?????????")
+  // EngineHandle.getSequenceState(obsId).flatMap {
+  //   case Some(seq) =>
+  //     {
+  //       EngineHandle.replaceSequenceState(obsId)(
+  //         // TODO This should be before, in startChecks... and we don't need to reload afterwards
+  //         SequenceState.status.replace(
+  //           SequenceStatus.Running(
+  //             userStop = HasUserStop.No,
+  //             internalStop = HasInternalStop.No,
+  //             waitingUserPrompt = IsWaitingUserPrompt.No,
+  //             waitingNextStep = IsWaitingNextStep.Yes,
+  //             starting = IsStarting.Yes
+  //           )
+  //         )(seq.rollback)
+  //       ) *> send(Event.modifyState(stepReload(this, obsId, ReloadReason.SequenceFlow)))
+  //     }.whenA(seq.status.isIdle || seq.status.isError)
+  //   case None      => Handle.unit
+  // }
 
   def pause(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.Yes))
@@ -135,7 +136,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
    *
    * If there are no more pending `Execution`s, it emits the `Finished` event.
    */
-  private def next(obsId: Observation.Id): EngineHandle[F, Unit] =
+  private def nextExecution(obsId: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(obsId)
       .flatMap(seqState =>
@@ -181,17 +182,17 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           .getOrElse(EngineHandle.unit)
       )
 
-  def startNewStep(obsId: Observation.Id): EngineHandle[F, Unit] =
+  def executeLoadedStep(obsId: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(obsId)
       .flatMap(seqState =>
         seqState
           .map { seq =>
-            EngineHandle.debug(s"In startnewStep with seq: $seq") >>
+            EngineHandle.debug(s"In executeLoadedStep with seq: $seq") >>
               {
                 seq.status match {
                   case SequenceStatus
-                        .Running(userStop, internalStop, _, IsWaitingNextStep.Yes, isStarting) =>
+                        .Running(userStop, internalStop, _, _, isStarting) =>
                     // TODO Review if all of these conditions are possible now.
                     if (!isStarting && (userStop || internalStop)) {
                       if (seq.currentStep.isEmpty)
@@ -482,7 +483,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case Executed(obsId)               =>
         debug(s"Engine: Execution $obsId completed") *>
-          next(obsId) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
+          nextExecution(obsId) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case Executing(obsId)              =>
         debug("Engine: Executing") *>
           execute(obsId) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))

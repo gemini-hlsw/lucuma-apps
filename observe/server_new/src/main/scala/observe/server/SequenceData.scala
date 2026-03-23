@@ -41,7 +41,6 @@ sealed trait SequenceData[F[_]]:
   def seq: SequenceState[F]
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
-  def cleanup: F[Unit]
 
   lazy val obsId: Observation.Id             = seq.obsId
   lazy val currentSequenceType: SequenceType = seq.currentSequenceType
@@ -132,8 +131,7 @@ object SequenceData:
     loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosNorth]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
-    visitStartDone:    Boolean,
-    cleanup:           F[Unit]
+    visitStartDone:    Boolean
   ) extends SequenceData[F]:
     type S = gmos.StaticConfig.GmosNorth
     type D = gmos.DynamicConfig.GmosNorth
@@ -148,8 +146,7 @@ object SequenceData:
     loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosSouth]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
-    visitStartDone:    Boolean,
-    cleanup:           F[Unit]
+    visitStartDone:    Boolean
   ) extends SequenceData[F]:
     type S = gmos.StaticConfig.GmosSouth
     type D = gmos.DynamicConfig.GmosSouth
@@ -164,8 +161,7 @@ object SequenceData:
     loadedStep:        Option[StepGen.Aux[F, Flamingos2DynamicConfig]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
-    visitStartDone:    Boolean,
-    cleanup:           F[Unit]
+    visitStartDone:    Boolean
   ) extends SequenceData[F]:
     type S = Flamingos2StaticConfig
     type D = Flamingos2DynamicConfig

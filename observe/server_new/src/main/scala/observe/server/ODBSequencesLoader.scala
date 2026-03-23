@@ -44,8 +44,7 @@ object ODBSequencesLoader {
   private[server] def loadSequenceMod[F[_]](
     observer:               Option[Observer],
     odbData:                OdbObservationData,
-    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]],
-    cleanup:                F[Unit]
+    instrumentSequenceLens: Lens[EngineState[F], Option[SequenceData[F]]]
   ): Endo[EngineState[F]] = st =>
     val (initialBreakpoints, seqType): (Breakpoints, SequenceType) =
       odbData.executionConfig match
@@ -77,8 +76,7 @@ object ODBSequencesLoader {
           loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false,
-          cleanup = cleanup
+          visitStartDone = false
         )
       case InstrumentExecutionConfig.GmosSouth(ec)  =>
         SequenceData.GmosSouth(
@@ -90,8 +88,7 @@ object ODBSequencesLoader {
           loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false,
-          cleanup = cleanup
+          visitStartDone = false
         )
       case InstrumentExecutionConfig.Flamingos2(ec) =>
         SequenceData.Flamingos2(
@@ -103,8 +100,7 @@ object ODBSequencesLoader {
           loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
-          visitStartDone = false,
-          cleanup = cleanup
+          visitStartDone = false
         )
       case InstrumentExecutionConfig.Igrins2(_)     =>
         sys.error("Igrins2 is not supported")
