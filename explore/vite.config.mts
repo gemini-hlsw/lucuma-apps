@@ -4,7 +4,6 @@ import fs from 'fs/promises';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import path from 'path';
-import type { PluginCreator } from 'postcss';
 import Unfonts from 'unplugin-fonts/vite';
 import { defineConfig, PluginOption, UserConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
@@ -12,20 +11,6 @@ import { VitePWA } from 'vite-plugin-pwa';
 import type { RuntimeCaching } from 'workbox-build';
 
 const scalaVersion = '3.8.3-RC3';
-
-const fixCssRoot: PluginCreator<void> = () => {
-  return {
-    postcssPlugin: 'postcss-fix-nested-root',
-    Once(root) {
-      root.walkRules((rule) => {
-        if (rule.selector.includes(' :root')) {
-          rule.selector = rule.selector.replace(' :root', '');
-        }
-      });
-    },
-  };
-};
-fixCssRoot.postcss = true;
 
 const fontImport = Unfonts({
   fontsource: {
@@ -281,13 +266,23 @@ export default defineConfig(async ({ mode }) => {
       ],
     },
     css: {
+      transformer: 'lightningcss',
       preprocessorOptions: {
         scss: {
           charset: false,
         },
       },
-      postcss: {
-        plugins: [fixCssRoot],
+      lightningcss: {
+        visitor: {
+          Selector(selector) {
+            // Filter out :root selectors that are not the first rule
+            if (selector.find((v, i) => v.type === 'pseudo-class' && v.kind === 'root' && i > 0)) {
+              return selector.filter(
+                (v, i) => i < 1 || !(v.type === 'pseudo-class' && v.kind === 'root'),
+              );
+            }
+          },
+        },
       },
     },
     server: {
