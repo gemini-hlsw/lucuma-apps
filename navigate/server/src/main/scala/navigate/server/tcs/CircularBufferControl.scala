@@ -24,6 +24,7 @@ import navigate.server.acm.ParameterList.*
 import navigate.server.acm.writeCadParam
 import navigate.server.tcs.OiwfsEpicsSystem.commandWaitTime
 
+import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 trait CircularBufferControl[F[_]] {
@@ -49,9 +50,9 @@ object CircularBufferControl {
   )
 
   class WfsCircularBufferCommandImpl[F[_]: {Temporal, Parallel}](
-    chs:     CircularBufferChannels[F],
-    timeout: FiniteDuration,
-    params:  ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
+    chs:             CircularBufferChannels[F],
+    @unused timeout: FiniteDuration,
+    params:          ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
   ) extends WfsCircularBufferCommand[F] {
 
     private def addParams(l: List[VerifiedEpics[F, F, Unit]]): WfsCircularBufferCommand[F] =

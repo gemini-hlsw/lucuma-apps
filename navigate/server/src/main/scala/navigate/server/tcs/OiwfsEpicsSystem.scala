@@ -19,6 +19,7 @@ import navigate.server.acm.*
 import navigate.server.acm.ParameterList.*
 
 import java.util.concurrent.TimeUnit
+import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 trait OiwfsEpicsSystem[F[_]] extends WfsEpicsSystem[F] {
@@ -47,10 +48,10 @@ object OiwfsEpicsSystem {
   val commandWaitTime: FiniteDuration = FiniteDuration(500, TimeUnit.MILLISECONDS)
 
   private class DarkCommandImpl[F[_]: {Temporal, Parallel}](
-    telltale: TelltaleChannel[F],
-    channels: OiwfsChannels[F],
-    timeout:  FiniteDuration,
-    params:   ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
+    telltale:        TelltaleChannel[F],
+    channels:        OiwfsChannels[F],
+    @unused timeout: FiniteDuration,
+    params:          ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
   ) extends DarkCommand[F] {
     private def addParam(p: VerifiedEpics[F, F, Unit]): DarkCommand[F] =
       DarkCommandImpl(telltale, channels, timeout, params :+ p)
@@ -67,10 +68,10 @@ object OiwfsEpicsSystem {
   }
 
   private class ClosedLoopCommandImpl[F[_]: {Temporal, Parallel}](
-    telltale: TelltaleChannel[F],
-    channels: OiwfsChannels[F],
-    timeout:  FiniteDuration,
-    params:   ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
+    telltale:        TelltaleChannel[F],
+    channels:        OiwfsChannels[F],
+    @unused timeout: FiniteDuration,
+    params:          ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
   ) extends ClosedLoopCommand[F] {
     private def addParam(p: VerifiedEpics[F, F, Unit]): ClosedLoopCommand[F] =
       ClosedLoopCommandImpl(telltale, channels, timeout, params :+ p)
@@ -87,10 +88,10 @@ object OiwfsEpicsSystem {
   }
 
   private class SignalProcCommandImpl[F[_]: {Temporal, Parallel}](
-    telltale: TelltaleChannel[F],
-    channels: OiwfsChannels[F],
-    timeout:  FiniteDuration,
-    params:   ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
+    telltale:        TelltaleChannel[F],
+    channels:        OiwfsChannels[F],
+    @unused timeout: FiniteDuration,
+    params:          ParameterList[F] = List.empty[VerifiedEpics[F, F, Unit]]
   ) extends SignalProcCommand[F] {
     private def addParam(p: VerifiedEpics[F, F, Unit]): SignalProcCommand[F] =
       SignalProcCommandImpl(telltale, channels, timeout, params :+ p)
