@@ -27,6 +27,7 @@ object CalculatedDigestSubquery
           full $TimeSpanSubquery
           reacquisition $TimeSpanSubquery
         }
+        setupCount
         acquisition $SequenceDigestSubquery
         science $SequenceDigestSubquery
       }
