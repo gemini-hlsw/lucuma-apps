@@ -63,7 +63,7 @@ final case class ObsBadge(
   val nonEmptyAllocatedBands                           = NonEmptySet.fromSet(allocatedScienceBands)
   val scienceBandIsInvalid                             = obs.scienceBand.exists(b => !allocatedScienceBands.contains(b))
   val showScienceBand: Boolean                         =
-    obs.calibrationRole.isEmpty && (allocatedScienceBands.size > 1 || scienceBandIsInvalid)
+    obs.calibrationRole.isEmpty && allocatedScienceBands.nonEmpty
 
 object ObsBadge:
   private type Props = ObsBadge
