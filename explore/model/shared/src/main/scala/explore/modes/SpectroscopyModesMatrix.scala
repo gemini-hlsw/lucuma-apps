@@ -130,7 +130,7 @@ case class SpectroscopyModeRow(
             // In case we have no particular overrides, set ccd with binning calculated
             // from the target
             instrument match
-              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, None) =>
+              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, None) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -141,7 +141,7 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, None) =>
+              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _, None) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -152,9 +152,9 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _)              =>
+              case i @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _)              =>
                 i.some
-              case i                                                                    =>
+              case i                                                                       =>
                 i.some
           case _                                                                   => none
 
@@ -196,27 +196,29 @@ object SpectroscopyModeRow {
   val resolution: Getter[SpectroscopyModeRow, PosInt] =
     Getter(_.resolution)
 
+  private val placeholderEtm = ItcInstrumentConfig.PlaceholderEtm
+
   // decoders for instruments are used locally as they are not lawful
   private given Decoder[ItcInstrumentConfig.GmosNorthSpectroscopy] = c =>
     for {
       grating <- c.downField("grating").as[GmosNorthGrating]
       fpu     <- c.downField("fpu").as[GmosNorthFpu]
       filter  <- c.downField("filter").as[Option[GmosNorthFilter]]
-    } yield ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, none)
+    } yield ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
 
   private given Decoder[ItcInstrumentConfig.GmosSouthSpectroscopy] = c =>
     for {
       grating <- c.downField("grating").as[GmosSouthGrating]
       fpu     <- c.downField("fpu").as[GmosSouthFpu]
       filter  <- c.downField("filter").as[Option[GmosSouthFilter]]
-    } yield ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, none)
+    } yield ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
 
   private given Decoder[ItcInstrumentConfig.Flamingos2Spectroscopy] = c =>
     for {
       disperser <- c.downField("disperser").as[Flamingos2Disperser]
       filter    <- c.downField("filter").as[Flamingos2Filter]
       fpu       <- c.downField("fpu").as[Flamingos2Fpu]
-    } yield ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu)
+    } yield ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, placeholderEtm)
 
   given Decoder[SpectroscopyModeRow] = c =>
     for {
@@ -243,7 +245,7 @@ object SpectroscopyModeRow {
       .orElse(flamingos2)
       .orElse(
         Option.when(instrument === Instrument.Igrins2)(
-          ItcInstrumentConfig.Igrins2Spectroscopy()
+          ItcInstrumentConfig.Igrins2Spectroscopy(placeholderEtm)
         )
       )
       .map { i =>

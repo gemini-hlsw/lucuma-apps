@@ -30,35 +30,49 @@ trait syntax:
   extension (row: ItcInstrumentConfig)
     def toItcClientMode: Option[InstrumentMode] =
       row match
-        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, modeOverrides) =>
+        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
               InstrumentMode
-                .GmosNorthSpectroscopy(cw, grating, filter, GmosFpu.North(fpu.asRight), ccd, roi)
+                .GmosNorthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.North(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
                 .some
-        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, modeOverrides) =>
+        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
               InstrumentMode
-                .GmosSouthSpectroscopy(cw, grating, filter, GmosFpu.South(fpu.asRight), ccd, roi)
+                .GmosSouthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.South(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
                 .some
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu)             =>
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, etm)             =>
           InstrumentMode
-            .Flamingos2Spectroscopy(disperser, filter, fpu)
+            .Flamingos2Spectroscopy(etm, disperser, filter, fpu)
             .some
-        case ItcInstrumentConfig.GmosNorthImaging(filter, modeOverrides)                    =>
-          InstrumentMode.GmosNorthImaging(filter, none).some
-        case ItcInstrumentConfig.GmosSouthImaging(filter, modeOverrides)                    =>
-          InstrumentMode.GmosSouthImaging(filter, none).some
-        case ItcInstrumentConfig.Igrins2Spectroscopy()                                      =>
-          InstrumentMode.Igrins2Spectroscopy().some
-        case _                                                                              => None
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosNorthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosSouthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
+          InstrumentMode.Igrins2Spectroscopy(etm).some
+        case _                                                                                   => None
 
   // We may consider adjusting this to consider small variations of RV identical for the
   // purpose of doing ITC calculations

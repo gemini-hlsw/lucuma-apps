@@ -152,6 +152,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             _,
             _,
             _,
+            _,
             Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
@@ -160,18 +161,19 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             _,
             _,
             _,
+            _,
             Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
         fmtGmos(px, ccd.xBin)
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _) =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _) =>
         val px = flamingos2SlitWidthPixels(slitWidth.value)
         f"$px%2.1f px"
-      case ItcInstrumentConfig.Igrins2Spectroscopy()           =>
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_)             =>
         val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
         val px              = widthArcSeconds / Igrins2PixelScale
         f"$px%2.1f px"
-      case _                                                   => ""
+      case _                                                      => ""
     }
 
     <.span(formatSlitWidth(slitWidth))
@@ -297,19 +299,31 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           .flattenOption
 
       fixedModeRows.map: row =>
+        // TODO: We need to be able to validate if the etm is valid for the mode - maybe as part of the result?
+        // But, then we need to not run the itc on that row...
+        // This carries over to the itc panels, too.
+        // We may be able to get rid of other calls to setSingleExposureMode if we set it here - again, the validation bit...
+        // Or, maybe easier - allow the GHOST ItcInstrumentConfig to have SN, but validate them before the itc call.
+        // This would also make it easier to change once GHOST support SN.
+        // But, for ghost, also need to validate the number of targets for the resolutions....
+        // Again, maybe in the ITC server (in explore, not the server in the sky....)
+        val rowWithEtm: SpectroscopyModeRow =
+          etm.fold(row)(etm =>
+            SpectroscopyModeRow.instrumentConfig.modify(_.setSingleExposureTimeMode(etm))(row)
+          )
+
         val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          (s.wavelength, etm).mapN: (_, exposureMode) =>
+          (s.wavelength, etm).mapN: (_, _) =>
             targets.flatMap: asterism =>
               itcResults.get.forRow(
-                exposureMode,
                 constraints,
                 asterism.some,
                 customSedTimestamps,
-                row
+                rowWithEtm
               )
 
         SpectroscopyModeRowWithResult(
-          row,
+          rowWithEtm,
           Pot.fromOption(result),
           s.wavelength.flatMap: w =>
             row.wavelengthInterval(w)

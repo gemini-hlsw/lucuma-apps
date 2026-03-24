@@ -10,7 +10,9 @@ import eu.timepit.refined.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.*
 import lucuma.core.enums.*
+import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
@@ -42,6 +44,10 @@ sealed trait ItcInstrumentConfig derives Eq:
   type Override
   def modeOverrides: Option[Override] = None
 
+  // Used by the modes tables to replace the exposure time mode in the ITC config when the user changes it in the UI.
+  // GHOST NOTE: For GHOST, this will set both ETMs (one for each arm) to the same value.
+  def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig
+
 object ItcInstrumentConfig:
   // GMOS suporta a total wavelength range of 360-1030 nm
   // https://www.gemini.edu/instrumentation/gmos
@@ -49,10 +55,15 @@ object ItcInstrumentConfig:
   val GmosFallbackCW: CentralWavelength =
     CentralWavelength(Wavelength.fromIntNanometers(695).get)
 
+  // Used when decoding the spectroscopy and imaging modes tables since there is not yet an ETM
+  val PlaceholderEtm: ExposureTimeMode =
+    ExposureTimeMode.SignalToNoiseMode(SignalToNoise.Max, Wavelength.Min)
+
   case class GmosNorthSpectroscopy(
     grating:                    GmosNorthGrating,
     fpu:                        GmosNorthFpu,
     filter:                     Option[GmosNorthFilter],
+    exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosNorthGrating
@@ -66,12 +77,16 @@ object ItcInstrumentConfig:
     val site                             = Site.GN
     val hasFilter                        = filter.isDefined
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   case class GmosSouthSpectroscopy(
     grating:                    GmosSouthGrating,
     fpu:                        GmosSouthFpu,
     filter:                     Option[GmosSouthFilter],
+    exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosSouthGrating
@@ -84,10 +99,14 @@ object ItcInstrumentConfig:
     val site                             = Site.GS
     val hasFilter                        = filter.isDefined
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   case class GmosNorthImaging(
     filter:                     GmosNorthFilter,
+    exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosImaging]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
@@ -103,10 +122,14 @@ object ItcInstrumentConfig:
     val mode                             = ScienceMode.Imaging
     val grating: Grating                 = ()
     val fpu: FPU                         = ()
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   case class GmosSouthImaging(
     filter:                     GmosSouthFilter,
+    exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosImaging]
   ) extends ItcInstrumentConfig derives Eq {
 
@@ -123,12 +146,15 @@ object ItcInstrumentConfig:
     val grating: Grating                 = ()
     val fpu: FPU                         = ()
 
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   case class Flamingos2Spectroscopy(
-    grating: Flamingos2Disperser,
-    filter:  Flamingos2Filter,
-    fpu:     Flamingos2Fpu
+    grating:          Flamingos2Disperser,
+    filter:           Flamingos2Filter,
+    fpu:              Flamingos2Fpu,
+    exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Flamingos2Disperser
     type Filter   = Flamingos2Filter
@@ -141,10 +167,13 @@ object ItcInstrumentConfig:
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
 
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   // Igrins2 is a static instrument with no configurable grating, filter, or FPU.
-  case class Igrins2Spectroscopy() extends ItcInstrumentConfig derives Eq {
+  case class Igrins2Spectroscopy(exposureTimeMode: ExposureTimeMode) extends ItcInstrumentConfig
+      derives Eq {
     type Grating  = NonEmptyString
     type Filter   = Option[NonEmptyString]
     type FPU      = NonEmptyString
@@ -158,10 +187,16 @@ object ItcInstrumentConfig:
     val site                             = Site.GN
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
-  case class GpiSpectroscopy(grating: GpiDisperser, filter: GpiFilter) extends ItcInstrumentConfig
-      derives Eq {
+  case class GpiSpectroscopy(
+    grating:          GpiDisperser,
+    filter:           GpiFilter,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GpiDisperser
     type Filter   = GpiFilter
     type FPU      = Unit
@@ -173,10 +208,16 @@ object ItcInstrumentConfig:
     val site                             = Site.GN
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
-  case class GnirsSpectroscopy(grating: GnirsDisperser, filter: GnirsFilter)
-      extends ItcInstrumentConfig derives Eq {
+  case class GnirsSpectroscopy(
+    grating:          GnirsDisperser,
+    filter:           GnirsFilter,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GnirsDisperser
     type Filter   = GnirsFilter
     type FPU      = Unit
@@ -188,11 +229,18 @@ object ItcInstrumentConfig:
     val site                             = Site.GN
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   // Used for Instruments not fully defined
-  case class GenericSpectroscopy(i: Instrument, grating: String, filter: NonEmptyString)
-      extends ItcInstrumentConfig derives Eq {
+  case class GenericSpectroscopy(
+    i:                Instrument,
+    grating:          String,
+    filter:           NonEmptyString,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
     type Grating  = String
     type Filter   = NonEmptyString
     type FPU      = Unit
@@ -204,6 +252,9 @@ object ItcInstrumentConfig:
     val site                             = Site.GN
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
   }
 
   val instrument: Getter[ItcInstrumentConfig, Instrument] =
