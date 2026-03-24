@@ -39,7 +39,7 @@ case class HeaderExtraData(
 )
 
 object HeaderExtraData:
-  val default: HeaderExtraData = HeaderExtraData(Conditions.Default, None, None)
+  val Default: HeaderExtraData = HeaderExtraData(Conditions.Default, None, None)
 
 case class ObserveContext[F[_]](
   resumePaused: TimeSpan => Stream[F, Result],

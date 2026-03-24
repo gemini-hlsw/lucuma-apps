@@ -224,7 +224,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             } else
               EngineHandle.pure(SeqEvent.NullSeqEvent)
 
-          seq.seq.currentStep.map { curStep =>
+          seq.seq.loadedStep.map { curStep =>
             (
               startVisit *>
                 Handle
@@ -468,7 +468,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                         if (
                           instrumentSequenceLens.get(st).forall(s => executeEngine.canUnload(s.seq))
                         ) {
-                          // Start new obsEdit subscription
                           (st.sequences
                              .get(obsId)
                              .fold(
@@ -615,25 +614,24 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     val instrument: Instrument          = obsSeq.instrument
     val seqType: SequenceType           = sequenceState.currentSequenceType
 
-    def engineRunningStep(seqState: SequenceState[F]): Option[ObserveStep] =
-      (obsSeq.loadedStep, seqState.currentStep).mapN { (sg, es) =>
+    val engineRunningStep: Option[ObserveStep] =
+      sequenceState.loadedStep.map: ls =>
         val stepResources =
-          sg.resources.toList.mapFilter(x =>
+          ls.resources.toList.mapFilter: x =>
             obsSeq
-              .configActionCoord(sg.id, x)
-              .map(i => (x, seqState.getSingleState(i).actionStatus))
-          )
+              .configActionCoord(ls.id, x)
+              .map(i => (x, sequenceState.getSingleState(i).actionStatus))
+
         StepsView
           .stepsView(instrument)
           .stepView(
-            sg,
-            es.toEngineStep,
+            ls.stepGen,
+            ls.executionZipper.toEngineStep,
             stepResources,
             obsSeq.pendingObsCmd
           )
-      }
 
-    val engStep: Option[ObserveStep]                            = engineRunningStep(sequenceState)
+    val engStep: Option[ObserveStep]                            = engineRunningStep
     val stepResources: Map[Resource | Instrument, ActionStatus] =
       engStep.foldMap {
         case ObserveStep.Standard(id, _, _, _, _, _, _, configStatus, _)         =>
@@ -839,7 +837,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             .atSequence(obsId)
             .andThen(SequenceData.seq)
             .getOption(engineState)
-            .flatMap(_.currentStep)
+            .flatMap(_.loadedStep)
             .foldMap(step => Stream.eval(systems.odb.stepStop(obsId, step.id)))
             .as(Event.nullEvent)
       ) *>
@@ -1042,9 +1040,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): Endo[SequenceData[F]] =
     (sd: SequenceData[F]) =>
       val newStep: Option[EngineStep[F]] =
-        sd.loadedStep.map: sg =>
+        sd.loadedStep.map: ls =>
           generateStep(
-            sg,
+            ls.stepGen,
             sd.overrides,
             HeaderExtraData(conditions, operator, sd.observer)
           )._1

@@ -21,6 +21,7 @@ import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd
 import observe.model.enums.Resource
 import observe.server.engine.ActionCoordsInSeq
+import observe.server.engine.LoadedStep
 import observe.server.engine.SequenceState
 
 import OdbObservation.TargetEnvironment
@@ -35,19 +36,17 @@ sealed trait SequenceData[F[_]]:
   def targetEnvironment: TargetEnvironment
   def constraintSet: ConstraintSet
   def staticCfg: S
-  // TODO Is it worth it now saving the StepGen in state or can we convert on the fly to EngineStep
-  // and just store it in SequenceState?
-  def loadedStep: Option[StepGen.Aux[F, D]]
   def seq: SequenceState[F]
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
 
   lazy val obsId: Observation.Id             = seq.obsId
   lazy val currentSequenceType: SequenceType = seq.currentSequenceType
+  lazy val loadedStep: Option[LoadedStep[F]] = seq.loadedStep
 
   def withCompleteVisitStart: SequenceData[F] = SequenceData.visitStartDone.replace(true)(this)
 
-  val resources: Set[Resource | Instrument] =
+  lazy val resources: Set[Resource | Instrument] =
     loadedStep.map(_.resources).getOrElse(Set.empty)
 
   def configActionCoord(
@@ -114,21 +113,12 @@ object SequenceData:
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
 
-  def loadedStep[F[_]]: Lens[SequenceData[F], Option[StepGen[F]]] =
-    Lens[SequenceData[F], Option[StepGen[F]]](_.loadedStep)(stepGen =>
-      case gmosNorth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosNorth.getOption))
-      case gmosSouth(s)  => s.copy(loadedStep = stepGen.flatMap(StepGen.gmosSouth.getOption))
-      case flamingos2(s) => s.copy(loadedStep = stepGen.flatMap(StepGen.flamingos2.getOption))
-      case other         => other // should not happen, but needed to satisfy exhaustivity check
-    )
-
   case class GmosNorth[F[_]](
     observer:          Option[Observer],
     overrides:         SystemOverrides,
     targetEnvironment: TargetEnvironment,
     constraintSet:     ConstraintSet,
     staticCfg:         gmos.StaticConfig.GmosNorth,
-    loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosNorth]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
@@ -143,7 +133,6 @@ object SequenceData:
     targetEnvironment: TargetEnvironment,
     constraintSet:     ConstraintSet,
     staticCfg:         gmos.StaticConfig.GmosSouth,
-    loadedStep:        Option[StepGen.Aux[F, gmos.DynamicConfig.GmosSouth]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
@@ -158,7 +147,6 @@ object SequenceData:
     targetEnvironment: TargetEnvironment,
     constraintSet:     ConstraintSet,
     staticCfg:         Flamingos2StaticConfig,
-    loadedStep:        Option[StepGen.Aux[F, Flamingos2DynamicConfig]],
     seq:               SequenceState[F],
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean

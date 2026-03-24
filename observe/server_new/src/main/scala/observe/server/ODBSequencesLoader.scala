@@ -12,28 +12,10 @@ import monocle.Lens
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.server.engine.Breakpoints
-import observe.server.engine.Engine
 import observe.server.engine.SequenceState
 import observe.server.odb.OdbObservationData
 
 object ODBSequencesLoader {
-
-  /**
-   * Build the engine step from a StepGen, generating the breakpoint delta.
-   */
-  // private def buildEngineStep[F[_]](
-  //   stepGen:              StepGen[F],
-  //   overrides:            SystemOverrides,
-  //   headerExtra:          HeaderExtraData,
-  //   preservedBreakpoints: Breakpoints
-  // ): (engine.EngineStep[F], Breakpoints) =
-  //   val (engineStep, breakpoint) = generateStep(stepGen, overrides, headerExtra)
-  //   val breakpoints              =
-  //     preservedBreakpoints.merge(
-  //       BreakpointsDelta.fromStepsWithBreakpoints(List((engineStep, breakpoint)))
-  //     )
-  //   (engineStep, breakpoints)
-
   private def initialSequenceType[S, D](ec: ExecutionConfig[S, D]): SequenceType =
     ec.acquisition.fold(SequenceType.Science)(_ => SequenceType.Acquisition)
 
@@ -58,12 +40,7 @@ object ODBSequencesLoader {
           sys.error("Igrins2 is not supported")
 
     val seqState: SequenceState[F] =
-      SequenceState.init(
-        odbData.observation.id,
-        none,
-        seqType,
-        initialBreakpoints
-      )
+      SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
 
     val seqData: SequenceData[F] = odbData.executionConfig match
       case InstrumentExecutionConfig.GmosNorth(ec)  =>
@@ -73,7 +50,6 @@ object ODBSequencesLoader {
           targetEnvironment = odbData.observation.targetEnvironment,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
-          loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false
@@ -85,7 +61,6 @@ object ODBSequencesLoader {
           targetEnvironment = odbData.observation.targetEnvironment,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
-          loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false
@@ -97,7 +72,6 @@ object ODBSequencesLoader {
           targetEnvironment = odbData.observation.targetEnvironment,
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
-          loadedStep = none,
           seq = seqState,
           pendingObsCmd = none,
           visitStartDone = false
@@ -117,9 +91,7 @@ object ODBSequencesLoader {
     l.some
       .modify { sd =>
         val headerExtra = HeaderExtraData(st.conditions, st.operator, sd.observer)
-        val engineStep  = stepGen.map: sg =>
-          generateStep(sg, sd.overrides, headerExtra)._1
-        val newSeqState = Engine.reload(sd.seq, engineStep)
+        val newSeqState = SequenceState.reload(stepGen, sd.overrides, headerExtra, sd.seq)
         SequenceData.seq.replace(newSeqState)(sd)
       }(st)
 

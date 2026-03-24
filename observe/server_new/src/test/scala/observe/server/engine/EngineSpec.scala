@@ -27,7 +27,7 @@ final class EngineSpec extends munit.DisciplineSuite {
 
   // obsId:               Observation.Id,
   // status:              SequenceStatus,
-  // currentStep:         Option[EngineStep.ExecutionZipper[F]], // None = idle/done, Some = executing
+  // currentStep:         Option[EngineStepExecutionZipper[F]], // None = idle/done, Some = executing
   // currentSequenceType: SequenceType,                          // TODO Update this somewhere!
   // breakpoints:         Breakpoints,
   // singleRuns:          Map[ActionCoordsInSeq, ActionState]
@@ -36,14 +36,14 @@ final class EngineSpec extends munit.DisciplineSuite {
     for {
       obsId   <- arbitrary[Observation.Id]
       st      <- arbitrary[SequenceStatus]
-      // currentStep <- arbitrary[Option[EngineStep.ExecutionZipper[IO]]]
+      // currentStep <- arbitrary[Option[EngineStepExecutionZipper[IO]]]
       seqType <- arbitrary[SequenceType]
       // breakpoints <- arbitrary[Breakpoints]
       // singleRuns <- arbitrary[Map[ActionCoordsInSeq, ActionState]]
     } yield SequenceState[IO](
       obsId = obsId,
       status = st,
-      currentStep = None,
+      loadedStep = None,
       currentSequenceType = seqType,
       breakpoints = Breakpoints.empty,
       singleRuns = Map.empty

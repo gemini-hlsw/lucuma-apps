@@ -49,6 +49,8 @@ object Breakpoints:
 object BreakpointsDelta:
   def apply(breakpointsDelta: Set[(Step.Id, Breakpoint)]): BreakpointsDelta =
     breakpointsDelta
+  def one(stepId: Step.Id, breakpoint: Breakpoint): BreakpointsDelta        =
+    Set((stepId, breakpoint))
   def fromStepsWithBreakpoints[F[_]](
     stepsWithBreakpoints: List[(EngineStep[F], Breakpoint)]
   ): BreakpointsDelta =

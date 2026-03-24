@@ -29,7 +29,6 @@ object TestUtil {
             targetEnvironment = odbObs.targetEnvironment,
             constraintSet = odbObs.constraintSet,
             staticCfg = staticCfg1,
-            loadedStep = none,
             seq = seq,
             pendingObsCmd = none,
             visitStartDone = false

@@ -15,6 +15,7 @@ type ActionIndex = ActionIndex.Type
 object ExecutionIndex extends NewType[Long]
 type ExecutionIndex = ExecutionIndex.Type
 
+// TODO Review relevance of storing stepId here.
 case class ActionCoordsInSeq(stepId: Step.Id, execIdx: ExecutionIndex, actIdx: ActionIndex)
     derives Eq
 

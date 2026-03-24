@@ -674,7 +674,7 @@ class ObserveEngineSuite extends TestCommon {
                        )
     } yield sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)).map { s =>
       assert(s.exists(_.status.isRunning))
-      assert(s.flatMap(_.currentStep).exists(_.id === stepId(1)))
+      assert(s.flatMap(_.loadedStep).exists(_.id === stepId(1)))
     }
   }
 
@@ -767,7 +767,7 @@ class ObserveEngineSuite extends TestCommon {
       )
       assert(
         sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
-          .flatMap(_.currentStep)
+          .flatMap(_.loadedStep)
           .exists(_.id === stepId(1))
       )
     }
@@ -856,7 +856,7 @@ class ObserveEngineSuite extends TestCommon {
           .sequenceStateAt[IO](seqObsId1)
           .modify(x =>
             x.copy(
-              currentStep = None,
+              loadedStep = None,
               status = Running(
                 HasUserStop.No,
                 HasInternalStop.No,
@@ -1250,14 +1250,14 @@ class ObserveEngineSuite extends TestCommon {
       _              = // Check step loaded
         assert(s1.sequences.get(seqObsId1).get(0).get.loadedStep.isDefined)
       _              = // Check no steps were executed
-        assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
+        assert(s1.sequences.get(seqObsId1).get(0).get.seq.done.isEmpty)
       r             <-
         eo.executeAndWaitResult(
           _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
           { case EventResult.SystemUpdate(SystemEvent.BreakpointReached(_), _) => true }
         )
       _              = // Check one step was executed
-        assertEquals(r.sequences.get(seqObsId1).get(0).get.seq.done.length, 1)
+        assert(r.sequences.get(seqObsId1).get(0).get.seq.done.nonEmpty)
       s1            <-
         eo.executeAndWaitResult(
           _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
@@ -1268,6 +1268,6 @@ class ObserveEngineSuite extends TestCommon {
       // Check step loaded
       assert(s1.sequences.get(seqObsId1).get(0).get.loadedStep.isDefined)
       // Check no steps were executed
-      assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
+      assert(s1.sequences.get(seqObsId1).get(0).get.seq.done.isEmpty)
   }
 }

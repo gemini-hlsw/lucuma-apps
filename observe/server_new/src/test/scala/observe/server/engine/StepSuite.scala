@@ -36,7 +36,7 @@ class StepSuite extends CatsEffectSuite {
 
   private val seqId = observationId(1)
 
-  private val executionEngine = Engine.build[IO]((eng, obsId) =>
+  private val executionEngine = Engine.build[IO]((eng, obsId, _, _) =>
     eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
     // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
   )
@@ -55,7 +55,7 @@ class StepSuite extends CatsEffectSuite {
     pending: List[ParallelActions[IO]],
     focus:   Execution[IO],
     done:    List[NonEmptyList[Result]]
-  ): EngineStep.ExecutionZipper[IO] = {
+  ): ExecutionZipper[IO] = {
     val rollback: (Execution[IO], List[ParallelActions[IO]]) = {
       val doneParallelActions: List[ParallelActions[IO]]  = done.map(_.map(const(action)))
       val focusParallelActions: List[ParallelActions[IO]] = focus.toParallelActionsList
@@ -65,7 +65,7 @@ class StepSuite extends CatsEffectSuite {
       }
     }
 
-    EngineStep.ExecutionZipper(
+    ExecutionZipper(
       id = stepId(1),
       pending = pending,
       focus = focus,
@@ -77,28 +77,28 @@ class StepSuite extends CatsEffectSuite {
     )
   }
 
-  val stepz0: EngineStep.ExecutionZipper[IO]   = simpleStep(Nil, Execution.empty, Nil)
-  val stepza0: EngineStep.ExecutionZipper[IO]  =
+  val stepz0: ExecutionZipper[IO]   = simpleStep(Nil, Execution.empty, Nil)
+  val stepza0: ExecutionZipper[IO]  =
     simpleStep(List(NonEmptyList.one(action)), Execution.empty, Nil)
-  val stepza1: EngineStep.ExecutionZipper[IO]  =
+  val stepza1: ExecutionZipper[IO]  =
     simpleStep(List(NonEmptyList.one(action)), Execution(List(actionCompleted)), Nil)
-  val stepzr0: EngineStep.ExecutionZipper[IO]  =
+  val stepzr0: ExecutionZipper[IO]  =
     simpleStep(Nil, Execution.empty, List(NonEmptyList.one(result)))
-  val stepzr1: EngineStep.ExecutionZipper[IO]  =
+  val stepzr1: ExecutionZipper[IO]  =
     simpleStep(Nil, Execution(List(actionCompleted, actionCompleted)), Nil)
-  val stepzr2: EngineStep.ExecutionZipper[IO]  = simpleStep(
+  val stepzr2: ExecutionZipper[IO]  = simpleStep(
     Nil,
     Execution(List(actionCompleted, actionCompleted)),
     List(NonEmptyList.one(result))
   )
-  val stepzar0: EngineStep.ExecutionZipper[IO] =
+  val stepzar0: ExecutionZipper[IO] =
     simpleStep(Nil, Execution(List(actionCompleted, action)), Nil)
-  val stepzar1: EngineStep.ExecutionZipper[IO] = simpleStep(
+  val stepzar1: ExecutionZipper[IO] = simpleStep(
     List(NonEmptyList.one(action)),
     Execution(List(actionCompleted, actionCompleted)),
     List(NonEmptyList.one(result))
   )
-  private val startEvent                       = ???
+  private val startEvent            = ???
   // Event.start[IO](seqId, user, clientId)
 
   /**
@@ -221,7 +221,7 @@ class StepSuite extends CatsEffectSuite {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -253,7 +253,7 @@ class StepSuite extends CatsEffectSuite {
       l.map(_.seq).exists { s =>
         // After pause, the step should still be in progress (observe execution pending)
         // and sequence status should be Idle (paused)
-        s.currentStep.isDefined && s.status === SequenceStatus.Idle
+        s.loadedStep.isDefined && s.status === SequenceStatus.Idle
       }
     }.assert
 
@@ -269,14 +269,17 @@ class StepSuite extends CatsEffectSuite {
         SequenceState[IO](
           obsId = observationId(1),
           status = SequenceStatus.Idle,
-          currentStep = Some(
-            EngineStep.ExecutionZipper(
-              id = stepId(2),
-              pending = Nil,
-              focus = Execution(List(observe)),
-              done = List(NonEmptyList.of(actionCompleted, actionCompleted)),
-              rolledback =
-                (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe)))
+          loadedStep = Some(
+            LoadedStep(
+              null,
+              ExecutionZipper(
+                id = stepId(2),
+                pending = Nil,
+                focus = Execution(List(observe)),
+                done = List(NonEmptyList.of(actionCompleted, actionCompleted)),
+                rolledback =
+                  (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe)))
+              )
             )
           ),
           currentSequenceType = SequenceType.Science,
@@ -298,8 +301,8 @@ class StepSuite extends CatsEffectSuite {
 
     qs1.map {
       _.map(_.seq).exists { s =>
-        s.currentStep.exists { z =>
-          z.toEngineStep match {
+        s.loadedStep.exists { z =>
+          z.executionZipper.toEngineStep match {
             case EngineStep(_, List(ex1, ex2)) =>
               Execution(ex1.toList).actions.length == 2 && Execution(
                 ex2.toList
@@ -325,14 +328,17 @@ class StepSuite extends CatsEffectSuite {
             IsWaitingNextStep.No,
             IsStarting.No
           ),
-          currentStep = Some(
-            EngineStep.ExecutionZipper(
-              id = stepId(2),
-              pending = Nil,
-              focus = Execution(List(observe)),
-              done = List(NonEmptyList.of(actionCompleted, actionCompleted)),
-              rolledback =
-                (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe)))
+          loadedStep = Some(
+            LoadedStep(
+              null,
+              ExecutionZipper(
+                id = stepId(2),
+                pending = Nil,
+                focus = Execution(List(observe)),
+                done = List(NonEmptyList.of(actionCompleted, actionCompleted)),
+                rolledback =
+                  (Execution(List(configureTcs, configureInst)), List(NonEmptyList.one(observe)))
+              )
             )
           ),
           currentSequenceType = SequenceType.Science,
@@ -366,7 +372,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -393,8 +399,8 @@ class StepSuite extends CatsEffectSuite {
 
     qss.map { x =>
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
-        s.currentStep.exists { z =>
-          z.toEngineStep match {
+        s.loadedStep.exists { z =>
+          z.executionZipper.toEngineStep match {
             case EngineStep(_, List(ex1, ex2)) =>
               Execution(ex1.toList).actions.length == 2 && Execution(
                 ex2.toList
@@ -411,7 +417,7 @@ class StepSuite extends CatsEffectSuite {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -453,7 +459,7 @@ class StepSuite extends CatsEffectSuite {
         .flatMap(_._2.sequences.get(seqId))
         .map(_.seq)
         .exists { s =>
-          s.currentStep.isEmpty && s.status === SequenceStatus.Completed
+          s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
         }
     }.assert
   }
@@ -464,7 +470,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -483,8 +489,8 @@ class StepSuite extends CatsEffectSuite {
 
     qs1.map { x =>
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
-        s.currentStep.exists { z =>
-          z.toEngineStep match {
+        s.loadedStep.exists { z =>
+          z.executionZipper.toEngineStep match {
             // Check that the sequence stopped midway
             case EngineStep(_, List(ex1, ex2, ex3)) =>
               Execution(ex1.toList).results.length == 2 && Execution(
@@ -505,7 +511,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -522,7 +528,7 @@ class StepSuite extends CatsEffectSuite {
 
     qs1.map { x =>
       x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
-        s.currentStep.isEmpty && s.status === SequenceStatus.Completed
+        s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
       }
     }.assert *>
       ref.get.map(_ === 1).assert
@@ -533,7 +539,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -561,7 +567,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -590,7 +596,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -616,7 +622,7 @@ class StepSuite extends CatsEffectSuite {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
         seqId,
-        SequenceState.init(
+        initSeqState(
           obsId = seqId,
           loadedStep = EngineStep(
             id = stepId(1),
@@ -648,7 +654,7 @@ class StepSuite extends CatsEffectSuite {
       val a1 = x.drop(2)
       val a  = a1.headOption.flatMap(y => y.sequences.get(seqId)).map(_.seq) match {
         case Some(s) =>
-          s.currentStep.exists { z =>
+          s.loadedStep.exists { z =>
             z.focus.execution.headOption match {
               case Some(
                     Action(_, _, Action.State(Action.ActionState.Started, v :: _), _)
@@ -661,7 +667,7 @@ class StepSuite extends CatsEffectSuite {
       }
       val b  = x.lastOption.flatMap(_.sequences.get(seqId)).map(_.seq) match {
         case Some(s) =>
-          s.currentStep.isEmpty && s.status === SequenceStatus.Completed
+          s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
         case _       => false
       }
       a && b
@@ -698,13 +704,13 @@ class StepSuite extends CatsEffectSuite {
 
   test("currentify should be None only when a EngineStep is empty of executions") {
     assert(
-      EngineStep.ExecutionZipper
+      ExecutionZipper
         .currentify(EngineStep(stepId(1), Nil))
         .isEmpty
     )
-    assert(EngineStep.ExecutionZipper.currentify(step0).isEmpty)
-    assert(EngineStep.ExecutionZipper.currentify(step1).nonEmpty)
-    assert(EngineStep.ExecutionZipper.currentify(step2).nonEmpty)
+    assert(ExecutionZipper.currentify(step0).isEmpty)
+    assert(ExecutionZipper.currentify(step1).nonEmpty)
+    assert(ExecutionZipper.currentify(step2).nonEmpty)
   }
 
   test("status should be completed when it doesn't have any executions") {
@@ -713,61 +719,49 @@ class StepSuite extends CatsEffectSuite {
 
   test("status should be Error when at least one Action failed") {
     assert(
-      EngineStep
-        .ExecutionZipper(
-          id = stepId(1),
-          pending = Nil,
-          focus = Execution(List(action, actionFailed, actionCompleted)),
-          done = Nil,
-          rolledback = (Execution(List(action, action, action)), Nil)
-        )
-        .toEngineStep
-        .status === StepState.Failed("Dummy error")
+      ExecutionZipper(
+        id = stepId(1),
+        pending = Nil,
+        focus = Execution(List(action, actionFailed, actionCompleted)),
+        done = Nil,
+        rolledback = (Execution(List(action, action, action)), Nil)
+      ).toEngineStep.status === StepState.Failed("Dummy error")
     )
   }
 
   test("status should be Completed when all actions succeeded") {
     assert(
-      EngineStep
-        .ExecutionZipper(
-          id = stepId(1),
-          pending = Nil,
-          focus = Execution(List(actionCompleted, actionCompleted, actionCompleted)),
-          done = Nil,
-          rolledback = (Execution(List(action, action, action)), Nil)
-        )
-        .toEngineStep
-        .status === StepState.Completed
+      ExecutionZipper(
+        id = stepId(1),
+        pending = Nil,
+        focus = Execution(List(actionCompleted, actionCompleted, actionCompleted)),
+        done = Nil,
+        rolledback = (Execution(List(action, action, action)), Nil)
+      ).toEngineStep.status === StepState.Completed
     )
   }
 
   test("status should be Running when there are both actions and results") {
     assert(
-      EngineStep
-        .ExecutionZipper(
-          id = stepId(1),
-          pending = Nil,
-          focus = Execution(List(actionCompleted, action, actionCompleted)),
-          done = Nil,
-          rolledback = (Execution(List(action, action, action)), Nil)
-        )
-        .toEngineStep
-        .status === StepState.Running
+      ExecutionZipper(
+        id = stepId(1),
+        pending = Nil,
+        focus = Execution(List(actionCompleted, action, actionCompleted)),
+        done = Nil,
+        rolledback = (Execution(List(action, action, action)), Nil)
+      ).toEngineStep.status === StepState.Running
     )
   }
 
   test("status should be Pending when there are only pending actions") {
     assert(
-      EngineStep
-        .ExecutionZipper(
-          id = stepId(1),
-          pending = Nil,
-          focus = Execution(List(action, action, action)),
-          done = Nil,
-          rolledback = (Execution(List(action, action, action)), Nil)
-        )
-        .toEngineStep
-        .status === StepState.Pending
+      ExecutionZipper(
+        id = stepId(1),
+        pending = Nil,
+        focus = Execution(List(action, action, action)),
+        done = Nil,
+        rolledback = (Execution(List(action, action, action)), Nil)
+      ).toEngineStep.status === StepState.Pending
     )
   }
 

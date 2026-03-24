@@ -12,37 +12,40 @@ import monocle.Lens
 import observe.model.SequenceStatus
 import observe.model.SequenceStatus.HasInternalStop
 import observe.model.SequenceStatus.HasUserStop
+import observe.model.SystemOverrides
+import observe.server.HeaderExtraData
+import observe.server.StepGen
 import observe.server.engine.Action.ActionState
 import observe.server.engine.Result.RetVal
+import observe.server.generateStep
 
-case class SequenceState[F[_]](
+final case class SequenceState[F[_]](
   obsId:               Observation.Id,
   status:              SequenceStatus,
-  currentStep:         Option[EngineStep.ExecutionZipper[F]], // None = idle/done, Some = executing
-  currentSequenceType: SequenceType,                          // TODO Update this somewhere!
+  loadedStep:          Option[LoadedStep[F]], // None = idle/done, Some = executing
+  currentSequenceType: SequenceType,          // TODO Update this somewhere!
   breakpoints:         Breakpoints,
   singleRuns:          Map[ActionCoordsInSeq, ActionState]
 ):
-
   /**
    * Advances execution within the current step's execution groups. Returns `None` if the step is
    * completed (no more execution groups).
    */
-  val withNextExecution: Option[SequenceState[F]] =
-    currentStep match
-      case None    => None
-      case Some(z) =>
-        val newBreakpoints: Breakpoints = breakpoints - z.id
-        z.withNextExecution match
-          case None      => // Step completed - all execution groups done
-            Some(copy(currentStep = None, breakpoints = newBreakpoints))
-          case Some(stz) => // More execution groups to run
-            Some(copy(currentStep = Some(stz), breakpoints = newBreakpoints))
+  lazy val withNextExecution: Option[SequenceState[F]] =
+    loadedStep match
+      case None     => None
+      case Some(ls) =>
+        val newBreakpoints: Breakpoints = breakpoints - ls.id
+        ls.withNextExecution match
+          case None        => // Step completed - all execution groups done
+            Some(copy(loadedStep = None, breakpoints = newBreakpoints))
+          case Some(newLs) => // More execution groups to run
+            Some(copy(loadedStep = Some(newLs), breakpoints = newBreakpoints))
 
   // TODO REMOVE
   val pending: List[EngineStep[F]] = Nil // No pending steps with single-step execution
 
-  def rollback: SequenceState[F] = copy(currentStep = currentStep.map(_.rollback))
+  def rollback: SequenceState[F] = copy(loadedStep = loadedStep.map(_.rollback))
 
   def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): SequenceState[F] =
     copy(
@@ -52,42 +55,32 @@ case class SequenceState[F[_]](
     )
 
   def getCurrentBreakpoint: Boolean =
-    currentStep.exists(z => breakpoints.contains(z.id) && z.done.isEmpty)
+    loadedStep.exists(z => breakpoints.contains(z.id) && z.done.isEmpty)
 
-  /**
-   * Current Execution
-   */
-  val currentExecution: Execution[F] =
-    currentStep.map(_.focus).getOrElse(Execution.empty)
+  lazy val currentExecution: Execution[F] =
+    loadedStep.map(_.focus).getOrElse(Execution.empty)
 
-  val currentEngineStep: Option[EngineStep[F]] = currentStep.map(_.toEngineStep)
-
-  // TODO This needs revising
-  val done: List[EngineStep[F]] =
-    currentStep.flatMap(_.uncurrentify).toList
+  val done: Option[EngineStep[F]] =
+    loadedStep.flatMap(_.executionZipper.uncurrentify)
 
   def mark(i: Int)(r: Result): SequenceState[F] =
-    currentStep match
-      case None    => this
-      case Some(z) =>
-        val updated = EngineStep.ExecutionZipper.current[F].modify(_.mark(i)(r))(z)
-        copy(currentStep = Some(updated))
+    loadedStep match
+      case None     => this
+      case Some(ls) => copy(loadedStep = Some(ls.mark(i)(r)))
 
   def start(i: Int): SequenceState[F] =
-    currentStep match
-      case None    => this
-      case Some(z) =>
-        val updated = EngineStep.ExecutionZipper.current[F].modify(_.start(i))(z)
-        copy(currentStep = Some(updated), singleRuns = Map.empty)
+    loadedStep match
+      case None     => this
+      case Some(ls) => copy(loadedStep = Some(ls.start(i)), singleRuns = Map.empty)
 
   def update(stepDef: Option[List[ParallelActions[F]]]): SequenceState[F] =
-    (currentStep, stepDef) match
-      case (Some(z), Some(t)) => copy(currentStep = Some(z.update(t)))
+    (loadedStep, stepDef) match
+      case (Some(z), Some(t)) => copy(loadedStep = Some(z.update(t)))
       case _                  => this
 
   // Functions to handle single run of Actions
   def startSingle(c: ActionCoordsInSeq): SequenceState[F] =
-    currentStep match
+    loadedStep match
       case Some(z) if z.done.nonEmpty => this // already past initial execution
       case _                          =>
         copy(singleRuns = singleRuns + (c -> ActionState.Started))
@@ -107,14 +100,31 @@ case class SequenceState[F[_]](
 
   def getSingleAction(c: ActionCoordsInSeq): Option[Action[F]] =
     for
-      step <- currentStep.filter(_.id === c.stepId)
-      exec <- step.toEngineStep.executions.get(c.execIdx.value)
+      step <- loadedStep.filter(_.id === c.stepId)
+      exec <- step.executionZipper.toEngineStep.executions.get(c.execIdx.value)
       act  <- exec.get(c.actIdx.value)
     yield act
 
   val getSingleActionStates: Map[ActionCoordsInSeq, ActionState] = singleRuns
 
   def clearSingles: SequenceState[F] = copy(singleRuns = Map.empty)
+
+  def withLoadedStepGen(
+    stepGenOpt:  Option[StepGen[F]],
+    overrides:   SystemOverrides,
+    headerExtra: HeaderExtraData
+  ): SequenceState[F] =
+    stepGenOpt.fold(copy(loadedStep = none)): stepGen =>
+      val (engineStep, breakpoint) = generateStep(stepGen, overrides, headerExtra)
+      ExecutionZipper.currentify(engineStep) match
+        case None     => this
+        case Some(es) =>
+          copy(
+            loadedStep = Some(LoadedStep(stepGen = stepGen, executionZipper = es)),
+            breakpoints = this.breakpoints.merge(BreakpointsDelta.one(stepGen.id, breakpoint))
+          )
+
+  def withNoLoadedStep: SequenceState[F] = copy(loadedStep = none)
 
 object SequenceState:
 
@@ -161,21 +171,11 @@ object SequenceState:
    */
   def init[F[_]](
     obsId:        Observation.Id,
-    loadedStep:   Option[EngineStep[F]],
     sequenceType: SequenceType,
     breakpoints:  Breakpoints,
     status:       SequenceStatus = SequenceStatus.Idle
   ): SequenceState[F] =
-    val loadedStepExecutions: Option[EngineStep.ExecutionZipper[F]] =
-      loadedStep.flatMap(EngineStep.ExecutionZipper.currentify)
-    SequenceState(
-      obsId,
-      status,
-      loadedStepExecutions,
-      sequenceType,
-      breakpoints,
-      Map.empty
-    )
+    SequenceState(obsId, status, none, sequenceType, breakpoints, Map.empty)
 
   /**
    * Create an empty/idle state with no step loaded.
@@ -188,9 +188,11 @@ object SequenceState:
    * Rebuilds the state of a sequence with a new steps definition. The sequence must not be running.
    */
   def reload[F[_]](
-    step:     Option[EngineStep[F]],
-    oldState: SequenceState[F]
+    stepGenOpt:  Option[StepGen[F]],
+    overrides:   SystemOverrides,
+    headerExtra: HeaderExtraData,
+    oldState:    SequenceState[F]
   ): SequenceState[F] =
     if oldState.status.isRunning
     then oldState
-    else oldState.copy(currentStep = step.flatMap(EngineStep.ExecutionZipper.currentify))
+    else oldState.withLoadedStepGen(stepGenOpt, overrides, headerExtra)

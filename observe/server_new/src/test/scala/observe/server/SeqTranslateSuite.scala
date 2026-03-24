@@ -18,11 +18,12 @@ import observe.common.test.*
 import observe.model.ActionType
 import observe.model.Conditions
 import observe.model.SequenceStatus
+import observe.model.SystemOverrides
 import observe.model.dhs.*
 import observe.server.TestCommon.*
 import observe.server.engine.Action
-import observe.server.engine.EngineStep
 import observe.server.engine.Execution
+import observe.server.engine.ExecutionZipper
 import observe.server.engine.Response
 import observe.server.engine.Response.Observed
 import observe.server.engine.Result
@@ -30,10 +31,8 @@ import observe.server.engine.SequenceState
 
 import java.time.temporal.ChronoUnit
 import scala.annotation.tailrec
-import observe.server.SequenceData.loadedStep
 
 class SeqTranslateSuite extends TestCommon {
-
   private val fileId = "DummyFileId"
 
   private def observeActions(state: Action.ActionState): NonEmptyList[Action[IO]] =
@@ -72,13 +71,13 @@ class SeqTranslateSuite extends TestCommon {
   // Function to advance the execution of a step up to certain Execution
   @tailrec
   private def advanceStepUntil[F[_]](
-    st:   EngineStep.ExecutionZipper[F],
-    cond: EngineStep.ExecutionZipper[F] => Boolean
-  ): EngineStep.ExecutionZipper[F] =
+    st:   ExecutionZipper[F],
+    cond: ExecutionZipper[F] => Boolean
+  ): ExecutionZipper[F] =
     if (cond(st)) st
     else
       st match {
-        case EngineStep.ExecutionZipper(_, p :: ps, f, d, _) =>
+        case ExecutionZipper(_, p :: ps, f, d, _) =>
           advanceStepUntil(
             st.copy(
               pending = ps,
@@ -116,7 +115,7 @@ class SeqTranslateSuite extends TestCommon {
             ),
             cond
           )
-        case _                                               => st
+        case _                                    => st
       }
 
   val baseState: EngineState[IO] =
@@ -129,23 +128,26 @@ class SeqTranslateSuite extends TestCommon {
       EngineState
         .instrumentLoaded(Instrument.GmosNorth)
         .some
-        .andThen(SequenceData.loadedStep)
-        .replace(testStepGen.some) >>>
-      // TODO Turn loaded step into current step???!!!
+        .andThen(SequenceData.seq)
+        .modify(
+          _.withLoadedStepGen(testStepGen.some, SystemOverrides.AllEnabled, HeaderExtraData.Default)
+        ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
         .modify { st =>
-          st.currentStep match
-            case Some(z) =>
+          st.loadedStep match
+            case Some(ls) =>
               st.copy(
-                currentStep = Some(
-                  advanceStepUntil(
-                    z,
-                    _.focus.execution.exists(_.kind === ActionType.Observe)
+                loadedStep = Some(
+                  ls.copy(executionZipper =
+                    advanceStepUntil(
+                      ls.executionZipper,
+                      _.focus.execution.exists(_.kind === ActionType.Observe)
+                    )
                   )
                 )
               )
-            case None    => st
+            case None     => st
         } >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
