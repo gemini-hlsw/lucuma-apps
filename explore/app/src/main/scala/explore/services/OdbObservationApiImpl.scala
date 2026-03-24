@@ -218,7 +218,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   def cloneObservation(
     obsId:      Observation.Id,
     newGroupId: Option[Group.Id]
-  ): F[Observation] =
+  ): F[Observation.Id] =
     CloneObservationMutation[F]
       .execute:
         CloneObservationInput(
@@ -226,14 +226,14 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           SET = ObservationPropertiesInput(groupId = newGroupId.orUnassign).assign
         )
       .processNoDataErrors
-      .map(_.cloneObservation.newObservation)
+      .map(_.cloneObservation.newObservation.id)
 
   def applyObservation(
     obsId:           Observation.Id,
     onTargets:       Option[List[Target.Id]] = none,
     onConstraintSet: Option[ConstraintSet] = none,
     onTimingWindows: Option[List[TimingWindow]] = none
-  ): F[Observation] =
+  ): F[Observation.Id] =
     CloneObservationMutation[F]
       .execute:
         CloneObservationInput(
@@ -247,7 +247,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ).assign
         )
       .processErrors
-      .map(_.cloneObservation.newObservation)
+      .map(_.cloneObservation.newObservation.id)
 
   def deleteObservation(obsId: Observation.Id): F[Unit] =
     deleteObservations(List(obsId))

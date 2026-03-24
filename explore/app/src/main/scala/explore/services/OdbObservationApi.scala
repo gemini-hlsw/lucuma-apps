@@ -54,13 +54,13 @@ trait OdbObservationApi[F[_]]:
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]
   def createObservationWithTargets(programId: Program.Id, targetIds:       Set[Target.Id]): F[Observation]
-  def cloneObservation(obsId:                 Observation.Id, newGroupId:  Option[Group.Id]): F[Observation]
+  def cloneObservation(obsId:                 Observation.Id, newGroupId:  Option[Group.Id]): F[Observation.Id]
   def applyObservation(
     obsId:           Observation.Id,
     onTargets:       Option[List[Target.Id]] = none,
     onConstraintSet: Option[ConstraintSet] = none,
     onTimingWindows: Option[List[TimingWindow]] = none
-  ): F[Observation]
+  ): F[Observation.Id]
   def deleteObservation(obsId:                Observation.Id): F[Unit]
   def undeleteObservation(obsId:              Observation.Id): F[Unit]
   def deleteObservations(obsIds:              List[Observation.Id]): F[Unit]

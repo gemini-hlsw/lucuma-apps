@@ -80,7 +80,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation ($$input: CloneObservationInput!){
         cloneObservation(input: $$input) {
-          newObservation $ObservationSubquery
+          newObservation { id }
         }
       }
     """
