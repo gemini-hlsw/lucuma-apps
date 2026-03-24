@@ -25,9 +25,9 @@ case class ImagingModeRow(
   val enabled                        = SupportedInstruments.contains_(instrument.instrument)
   val filterType: Option[FilterType] =
     instrument match
-      case ItcInstrumentConfig.GmosNorthImaging(filter, _) => filter.filterType.some
-      case ItcInstrumentConfig.GmosSouthImaging(filter, _) => filter.filterType.some
-      case _                                               => none
+      case ItcInstrumentConfig.GmosNorthImaging(filter, _, _) => filter.filterType.some
+      case ItcInstrumentConfig.GmosSouthImaging(filter, _, _) => filter.filterType.some
+      case _                                                  => none
 
 object ImagingModeRow {
 
@@ -50,12 +50,16 @@ object ImagingModeRow {
   private given Decoder[ItcInstrumentConfig.GmosNorthImaging] =
     _.downField("filter")
       .as[GmosNorthFilter]
-      .map(filter => ItcInstrumentConfig.GmosNorthImaging(filter, none))
+      .map(filter =>
+        ItcInstrumentConfig.GmosNorthImaging(filter, ItcInstrumentConfig.PlaceholderEtm, none)
+      )
 
   private given Decoder[ItcInstrumentConfig.GmosSouthImaging] =
     _.downField("filter")
       .as[GmosSouthFilter]
-      .map(filter => ItcInstrumentConfig.GmosSouthImaging(filter, none))
+      .map(filter =>
+        ItcInstrumentConfig.GmosSouthImaging(filter, ItcInstrumentConfig.PlaceholderEtm, none)
+      )
 
   given Decoder[ImagingModeRow] = c =>
     for {

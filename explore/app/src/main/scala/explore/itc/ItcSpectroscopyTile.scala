@@ -4,6 +4,7 @@
 package explore.itc
 
 import cats.data.EitherNec
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*
@@ -11,6 +12,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
+import eu.timepit.refined.types.numeric.NonNegInt
 import explore.common.UserPreferencesQueries.*
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -23,6 +25,7 @@ import explore.model.TargetList
 import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ItcInstrumentConfig
+import explore.modes.ItcInstrumentConfig.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Band
@@ -144,9 +147,9 @@ object ItcSpectroscopyTile
             )
 
         def buildBody(
-          userId:          User.Id,
-          signalToNoiseAt: Wavelength,
-          graphResult:     ItcGraphResult
+          userId:           User.Id,
+          graphResult:      ItcGraphResult,
+          instrumentConfig: ItcInstrumentConfig
         ): VdomNode =
           val globalPreferences: View[GlobalPreferences] =
             props.globalPreferences.withOnMod: prefs =>
@@ -196,12 +199,37 @@ object ItcSpectroscopyTile
             graphResult.integrationTime.bandOrLine
               .fold(bandValues(sourceProfile), emissionLineValues(sourceProfile))
 
-          // ig2 will have multiple ccd labels
-          val ccdLabels = props.selectedConfig.orEmpty
+          // IGRINS2 has multiple ccd labels
+          // GHOST NOTE: GHOST will return Blue first, then Red. We need to label the CCDs,
+          // but it may also have different signalToNoiseAt for each arm, which we might need to label, too.
+          val ccdLabels: Map[NonNegInt, String] = props.selectedConfig.orEmpty
             .collectFirst:
-              case ItcInstrumentConfig.Igrins2Spectroscopy() =>
+              case ItcInstrumentConfig.Igrins2Spectroscopy(_) =>
                 Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
             .orEmpty
+
+          // If there are multiple values, they need to match the order of CCD labels.
+          // These should be distinct values. If there is only one, it won't be labeled.
+          // GHOST NOTE: Blue then Red, distinct
+          val signalToNoiseAt: NonEmptyList[Wavelength] = instrumentConfig match
+            case GmosNorthSpectroscopy(exposureTimeMode = etm)  =>
+              NonEmptyList.one(etm.at)
+            case GmosSouthSpectroscopy(exposureTimeMode = etm)  =>
+              NonEmptyList.one(etm.at)
+            case GmosNorthImaging(exposureTimeMode = etm)       =>
+              NonEmptyList.one(etm.at)
+            case GmosSouthImaging(exposureTimeMode = etm)       =>
+              NonEmptyList.one(etm.at)
+            case Flamingos2Spectroscopy(exposureTimeMode = etm) =>
+              NonEmptyList.one(etm.at)
+            case Igrins2Spectroscopy(exposureTimeMode = etm)    =>
+              NonEmptyList.one(etm.at)
+            case GpiSpectroscopy(exposureTimeMode = etm)        =>
+              NonEmptyList.one(etm.at)
+            case GnirsSpectroscopy(exposureTimeMode = etm)      =>
+              NonEmptyList.one(etm.at)
+            case GenericSpectroscopy(exposureTimeMode = etm)    =>
+              NonEmptyList.one(etm.at)
 
           <.div(
             ExploreStyles.ItcPlotSection,
@@ -226,13 +254,13 @@ object ItcSpectroscopyTile
             ItcPlotControl(graphTypeView, detailsView)
           )
 
-        val resultPot: Pot[EitherNec[ItcTargetProblem, (Wavelength, ItcGraphResult)]] =
+        val resultPot: Pot[EitherNec[ItcTargetProblem, (ItcGraphResult, ItcInstrumentConfig)]] =
           tileState.get.asterismResults.map:
             _.flatMap(agr =>
               tileState.get.selectedTarget
                 .toRightNec(ItcQueryProblem.GenericError(Constants.NoTargets).toTargetProblem)
                 .flatMap(_.asTargetProblem)
-                .map(gr => (agr.signalToNoiseAt, gr))
+                .map(gr => (gr, agr._2))
             )
 
         val body: VdomNode =
@@ -245,7 +273,8 @@ object ItcSpectroscopyTile
                       text = es.format("Could not generate a graph:"),
                       severity = Message.Severity.Warning
                     ),
-                  (signalToNoiseAt, graphResult) => buildBody(userId, signalToNoiseAt, graphResult)
+                  (graphResult, instrumentConfig) =>
+                    buildBody(userId, graphResult, instrumentConfig)
                 )
               )
 

@@ -31,7 +31,6 @@ import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
@@ -194,37 +193,34 @@ final case class Observation(
         InstrumentOverrides.Igrins2Spectroscopy().some
 
   // Imaging modes can return multiple configs due to multiple filters.
-  def toInstrumentConfig(targets: TargetList): List[(ItcInstrumentConfig, ExposureTimeMode)] =
+  def toInstrumentConfig(targets: TargetList): List[ItcInstrumentConfig] =
     import ObservingMode.*
     (toModeOverride(targets), observingMode)
       .mapN:
         case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), n: GmosNorthLongSlit) =>
           List(
-            (ItcInstrumentConfig.GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, o.some),
-             n.exposureTimeMode
-            )
+            ItcInstrumentConfig
+              .GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, n.exposureTimeMode, o.some)
           )
         case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), s: GmosSouthLongSlit) =>
           List(
-            (ItcInstrumentConfig.GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, o.some),
-             s.exposureTimeMode
-            )
+            ItcInstrumentConfig
+              .GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, s.exposureTimeMode, o.some)
           )
         case (o @ InstrumentOverrides.GmosImaging(), n: GmosNorthImaging)              =>
           n.filters.toList
-            .map(f => (ItcInstrumentConfig.GmosNorthImaging(f.filter, o.some), f.exposureTimeMode))
+            .map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode, o.some))
         case (o @ InstrumentOverrides.GmosImaging(), n: GmosSouthImaging)              =>
           n.filters.toList
-            .map(f => (ItcInstrumentConfig.GmosSouthImaging(f.filter, o.some), f.exposureTimeMode))
+            .map(f => ItcInstrumentConfig.GmosSouthImaging(f.filter, f.exposureTimeMode, o.some))
         case (_, f: ObservingMode.Flamingos2LongSlit)                                  =>
           List(
-            (ItcInstrumentConfig.Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu),
-             f.exposureTimeMode
-            )
+            ItcInstrumentConfig
+              .Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
           )
         case (_, i: ObservingMode.Igrins2LongSlit)                                     =>
           List(
-            (ItcInstrumentConfig.Igrins2Spectroscopy(), i.exposureTimeMode)
+            ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
         case _                                                                         =>
           List.empty

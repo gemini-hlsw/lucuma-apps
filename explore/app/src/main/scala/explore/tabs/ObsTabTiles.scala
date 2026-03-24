@@ -308,7 +308,7 @@ object ObsTabTiles:
             props.observation.get.observingMode.map(_.toBasicConfiguration)
 
           val itcOdbConfiguration: List[ItcInstrumentConfig] =
-            props.observation.get.toInstrumentConfig(props.obsTargets).map(_._1)
+            props.observation.get.toInstrumentConfig(props.obsTargets)
 
           val obsTimeView: View[Option[Instant]] =
             props.observation.model.zoom(Observation.observationTime)

@@ -14,7 +14,6 @@ import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
 import org.http4s.Uri
 import workers.WorkerRequest
@@ -34,12 +33,11 @@ object ItcMessage extends ItcPicklers:
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
-    modes:               List[(ItcInstrumentConfig, ExposureTimeMode)]
+    modes:               List[ItcInstrumentConfig]
   ) extends Request:
     type ResponseType = (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
 
   case class GraphQuery(
-    exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],

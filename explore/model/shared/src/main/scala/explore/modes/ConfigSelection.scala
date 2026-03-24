@@ -70,33 +70,33 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
   def toBasicConfiguration(withFallbackWavelength: Boolean = false): Option[BasicConfiguration] =
     configs.headOption.flatMap(_.instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, None)
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosNorthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, None)
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu)              =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _)              =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-      case ItcInstrumentConfig.GmosNorthImaging(_, _)                                      =>
+      case ItcInstrumentConfig.GmosNorthImaging(_, _, _)                                      =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosNorthImaging.apply)
-      case ItcInstrumentConfig.GmosSouthImaging(_, _)                                      =>
+      case ItcInstrumentConfig.GmosSouthImaging(_, _, _)                                      =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
-      case ItcInstrumentConfig.Igrins2Spectroscopy()                                       =>
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
-      case _                                                                               => none)
+      case _                                                                                  => none)
 
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)

@@ -15,7 +15,6 @@ import explore.model.itc.*
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.enums.ScienceMode
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
 import lucuma.itc.Error
 import lucuma.itc.client.ClientCalculationResult
@@ -51,7 +50,7 @@ object ITCRequests:
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
-    modes:               List[(ItcInstrumentConfig, ExposureTimeMode)],
+    modes:               List[ItcInstrumentConfig],
     cache:               Cache[F],
     callback:            ((ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])) => F[Unit]
   )(using Monoid[F[Unit]], ItcClient[F]): F[Unit] = {
@@ -76,7 +75,7 @@ object ITCRequests:
       params: ItcRequestParams
     ): F[Option[(ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]] =
       Logger[F].debug(
-        s"ITC: Request for mode: ${params.mode}, exposureTimeMode: ${params.exposureTimeMode} and target count: ${params.asterism.length}"
+        s"ITC: Request for mode: ${params.mode} and target count: ${params.asterism.length}"
       ) *>
         params.mode.toItcClientMode
           .traverse: mode =>
@@ -86,7 +85,6 @@ object ITCRequests:
                   .imaging(
                     ImagingInput(
                       ImagingParameters(
-                        exposureTimeMode = params.exposureTimeMode,
                         constraints = ItcConstraintsInput.fromConstraintSet(params.constraints),
                         mode = mode
                       ),
@@ -99,7 +97,6 @@ object ITCRequests:
                   .spectroscopy(
                     SpectroscopyInput(
                       SpectroscopyParameters(
-                        exposureTimeMode = params.exposureTimeMode,
                         constraints = ItcConstraintsInput.fromConstraintSet(params.constraints),
                         mode = mode
                       ),
@@ -126,18 +123,18 @@ object ITCRequests:
       modes
         // Only handle known modes
         .collect:
-          case (m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _), exposureTimeMode) =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _), exposureTimeMode) =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _), exposureTimeMode)   =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.GmosNorthImaging(_, _), exposureTimeMode)            =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.GmosSouthImaging(_, _), exposureTimeMode)            =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
-          case (m @ ItcInstrumentConfig.Igrins2Spectroscopy(), exposureTimeMode)             =>
-            ItcRequestParams(exposureTimeMode, constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _, _) =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _, _) =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _)   =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _, _)            =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _, _)            =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)               =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode
     // you can't use `requestSingle`. You need to use `request` and handle the stream.
