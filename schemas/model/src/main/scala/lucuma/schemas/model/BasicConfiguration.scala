@@ -18,7 +18,12 @@ import monocle.Prism
 import monocle.macros.GenPrism
 
 // For when we don't need the whole observing mode, such as in the ObsSummary.
+// For example, for the ags and visualization.
 // This is also used to create the configuration.
+// It can be created from either a ConfigSelection or an ObservingMode.
+// We could almost just use an ItcInstrumentConfig directly instead, except that
+// to create the configuration we need to allow muiltiple filters for imaging,
+// but the ItcInstrumentConfig only allows one.
 sealed abstract class BasicConfiguration(val instrument: Instrument)
     extends Product
     with Serializable derives Eq:

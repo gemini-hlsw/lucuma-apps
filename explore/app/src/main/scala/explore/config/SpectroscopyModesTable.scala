@@ -299,14 +299,9 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           .flattenOption
 
       fixedModeRows.map: row =>
-        // TODO: We need to be able to validate if the etm is valid for the mode - maybe as part of the result?
-        // But, then we need to not run the itc on that row...
-        // This carries over to the itc panels, too.
-        // We may be able to get rid of other calls to setSingleExposureMode if we set it here - again, the validation bit...
-        // Or, maybe easier - allow the GHOST ItcInstrumentConfig to have SN, but validate them before the itc call.
-        // This would also make it easier to change once GHOST support SN.
-        // But, for ghost, also need to validate the number of targets for the resolutions....
-        // Again, maybe in the ITC server (in explore, not the server in the sky....)
+        // We update the etm here so that we don't have to do it multiple times in
+        // multiple places, but we will still need to validate that the etm in set in
+        // the requirements before calling the itc.
         val rowWithEtm: SpectroscopyModeRow =
           etm.fold(row)(etm =>
             SpectroscopyModeRow.instrumentConfig.modify(_.setSingleExposureTimeMode(etm))(row)

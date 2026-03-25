@@ -51,7 +51,8 @@ case class ItcImagingQuerier(
     )
 
   private def requirementsConfigs: EitherNec[ItcQueryProblem, NonEmptyList[ItcInstrumentConfig]] =
-    // If the user has set an exposure time mode, it will be part of the config
+    // If the user has set an exposure time mode, it will be part of the config,
+    // but we still need to makes sure it is set in the requirements or it is not valid.
     requirementsExposureTimeMode.flatMap: _ =>
       NonEmptyList
         .fromList(selectedConfigs)
