@@ -59,7 +59,7 @@ object ObservationPasteIntoAsterismAction:
       asyncGet = ids
         .traverse: (obsId, targetIds) =>
           odbApi.applyObservation(obsId, onTargets = targetIds.some)
-        .map(obsList => (obsList.map(_.id), obsList.some)),
+        .map(obsIds => (obsIds, ObservationCloneNotifier.tryGetAll(obsIds))),
       getter = obsListGetter,
       setter = obsListSetter,
       onSet = newObsIds =>

@@ -14,6 +14,7 @@ import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.optics.all.*
+import explore.actions.ObservationCloneNotifier
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import explore.undo.Action
@@ -182,7 +183,9 @@ object ObsActions:
     AsyncAction(
       asyncGet = idsToClone
         .traverse(odbApi.cloneObservation(_, newGroupId))
-        .map(obsList => (obsList.map(_.id), obsList.map(_.some))),
+        .map: obsIds =>
+          val obs = ObservationCloneNotifier.tryGetAll(obsIds)
+          (obsIds, obs.fold(obsIds.map(_ => none[Observation]))(_.map(_.some))),
       getter = obsListGetter,
       setter = obsListSetter,
       onSet = obsIds =>

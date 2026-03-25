@@ -5,6 +5,7 @@ package explore.cache
 
 import cats.Order.given
 import cats.syntax.all.*
+import explore.actions.ObservationCloneNotifier
 import explore.givens.given
 import explore.model.Attachment
 import explore.model.GroupList
@@ -56,6 +57,7 @@ trait CacheModifierUpdaters {
 
         val obsUpdate: ProgramSummaries => ProgramSummaries = ps =>
           if (isPresentInServer)
+            ObservationCloneNotifier.notify(obsId, value)
             ps.upsertObs(value)
           else
             ps.removeObs(obsId)

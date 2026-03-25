@@ -58,7 +58,7 @@ object ObservationPasteIntoSchedulingGroupAction:
       asyncGet = ids
         .traverse: (obsId, timingWindows) =>
           odbApi.applyObservation(obsId, onTimingWindows = timingWindows.some)
-        .map(obsList => (obsList.map(_.id), obsList.some)),
+        .map(obsIds => (obsIds, ObservationCloneNotifier.tryGetAll(obsIds))),
       getter = obsListGetter,
       setter = obsListSetter,
       onSet = newObsIds =>

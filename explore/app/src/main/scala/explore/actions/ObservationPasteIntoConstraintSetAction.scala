@@ -58,7 +58,7 @@ object ObservationPasteIntoConstraintSetAction:
       asyncGet = ids
         .traverse: (obsId, constraintSet) =>
           odbApi.applyObservation(obsId, onConstraintSet = constraintSet.some)
-        .map(obsList => (obsList.map(_.id), obsList.some)),
+        .map(obsIds => (obsIds, ObservationCloneNotifier.tryGetAll(obsIds))),
       getter = obsListGetter,
       setter = obsListSetter,
       onSet = newObsIds =>

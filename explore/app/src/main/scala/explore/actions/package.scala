@@ -7,6 +7,8 @@ import cats.syntax.all.*
 import explore.model.Observation
 import explore.model.ProgramSummaries
 
+import scala.collection.mutable
+
 private def obsListGetter(
   obsList: List[Observation.Id]
 ): ProgramSummaries => Option[List[Observation]] =
@@ -17,9 +19,21 @@ private def obsListSetter(obsList: List[Observation.Id])(
 ): ProgramSummaries => ProgramSummaries =
   programSummaries =>
     otwol.fold {
-      // the Option[List]] is empty, so we're deleting.
       obsList.foldLeft(programSummaries) { case (ps, obsId) => ps.removeObs(obsId) }
     } {
-      // we insert the ones we received back into the programSummaries
       _.foldLeft(programSummaries)((ps, obsSumm) => ps.upsertObs(obsSumm))
     }
+
+object ObservationCloneNotifier:
+  private val arrived = mutable.Map.empty[Observation.Id, Observation]
+
+  def tryGetAll(ids: List[Observation.Id]): Option[List[Observation]] =
+    val found = ids.flatMap(id => arrived.get(id).map(id -> _))
+    if found.length == ids.length then
+      ids.foreach(arrived.remove)
+      found.map(_._2).some
+    else
+      none
+
+  def notify(id: Observation.Id, obs: Observation): Unit =
+    arrived(id) = obs
