@@ -28,6 +28,12 @@ import scala.collection.immutable.SortedSet
 trait syntax:
 
   extension (row: ItcInstrumentConfig)
+    // GHOST NOTE: This will need to return anEitherNec[ItcQueryProblem, ItcAsterismGraphResults]]
+    // and take the list of targets or their number as a parameter to validate the GHOST mode.
+    // (Standard resolution can have one or 2 targets, high resolution can only have one.)
+    // Actually, we may need to validate the targets earlier, because the GHOST ItcInstrumentConfig
+    // will need to assign targets to CCDs.
+    // It will also need to validate that the ETM is Time and Count.
     def toItcClientMode: Option[InstrumentMode] =
       row match
         case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>

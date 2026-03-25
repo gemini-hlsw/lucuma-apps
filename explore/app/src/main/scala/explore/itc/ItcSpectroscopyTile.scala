@@ -49,7 +49,7 @@ extension (tuple: (ItcTarget, Either[ItcQueryProblem, ItcGraphResult]))
 final case class ItcSpectroscopyTile(
   userIdOpt:           Option[User.Id],
   observation:         Observation,
-  selectedConfig:      Option[List[ItcInstrumentConfig]],
+  selectedConfig:      Option[ItcInstrumentConfig],
   obsTargets:          TargetList,
   customSedTimestamps: List[Timestamp],
   globalPreferences:   View[GlobalPreferences]
@@ -69,7 +69,7 @@ object ItcSpectroscopyTile
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
-            props.selectedConfig.orEmpty,
+            props.selectedConfig,
             props.obsTargets,
             props.customSedTimestamps
           )
@@ -202,11 +202,10 @@ object ItcSpectroscopyTile
           // IGRINS2 has multiple ccd labels
           // GHOST NOTE: GHOST will return Blue first, then Red. We need to label the CCDs,
           // but it may also have different signalToNoiseAt for each arm, which we might need to label, too.
-          val ccdLabels: Map[NonNegInt, String] = props.selectedConfig.orEmpty
-            .collectFirst:
-              case ItcInstrumentConfig.Igrins2Spectroscopy(_) =>
-                Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
-            .orEmpty
+          val ccdLabels: Map[NonNegInt, String] = instrumentConfig match
+            case ItcInstrumentConfig.Igrins2Spectroscopy(_) =>
+              Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
+            case _                                          => Map.empty
 
           // If there are multiple values, they need to match the order of CCD labels.
           // These should be distinct values. If there is only one, it won't be labeled.

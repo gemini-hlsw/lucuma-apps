@@ -30,7 +30,7 @@ import workers.WorkerClient
 
 case class ItcGraphQuerier(
   observation:         Observation,
-  configs:             List[ItcInstrumentConfig], // configs for imaging or single config for spectroscopy
+  configs:             Option[ItcInstrumentConfig], // configs for imaging or single config for spectroscopy
   allTargets:          TargetList,
   customSedTimestamps: List[Timestamp]
 ) derives Eq:
@@ -52,9 +52,10 @@ case class ItcGraphQuerier(
     )
 
   private def requirementsConfig: EitherNec[ItcQueryProblem, ItcInstrumentConfig] =
-    // If the user has set an exposure time mode, it will be part of the config
+    // If the user has set an exposure time mode, it will be part of the config,
+    // but we still need to makes sure it is set in the requirements or it is not valid.
     requirementsExposureTimeMode.flatMap: _ =>
-      configs.headOption
+      configs
         .map(_.rightNec)
         .getOrElse(
           ItcQueryProblem.GenericError(Constants.MissingMode).leftNec

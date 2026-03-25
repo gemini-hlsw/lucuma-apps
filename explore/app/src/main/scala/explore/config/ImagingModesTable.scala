@@ -240,6 +240,9 @@ object ImagingModesTable extends ModesTableCommon:
                               matrix
                                 .filtered(minimumFov, fts)
                                 .map: row =>
+                                  // We update the etm here so that we don't have to do it multiple times in
+                                  // multiple places, but we will still need to validate that the etm in set in
+                                  // the requirements before calling the itc.
                                   val rowWithEtm: ImagingModeRow =
                                     etm.fold(row)(etm =>
                                       ImagingModeRow.instrumentConfig
