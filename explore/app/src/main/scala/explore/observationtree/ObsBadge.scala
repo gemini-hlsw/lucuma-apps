@@ -233,7 +233,8 @@ object ObsBadge:
                       size = PlSize.Mini,
                       clazz = ExploreStyles.ObsStateSelect,
                       panelClass = ExploreStyles.ObsStateSelectPanel,
-                      disabled = props.isDisabled || obs.workflow.isStale,
+                      disabled =
+                        props.readonly || obs.workflow.isStale, // calibration workflows can be edited
                       exclude = obs.disabledStates
                     )
                   )(
