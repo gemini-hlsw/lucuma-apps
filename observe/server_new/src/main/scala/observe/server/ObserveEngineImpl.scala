@@ -268,7 +268,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             // TODO Careful with state later in case of load error!
             _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
                                 SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
-            // TODO Is starting removed somewhere??
             startingStep   <-
               ObserveEngine.loadNextStep(
                 systems.odb,

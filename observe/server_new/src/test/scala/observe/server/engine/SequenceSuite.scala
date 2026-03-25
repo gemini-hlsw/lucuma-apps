@@ -14,14 +14,12 @@ import lucuma.core.model.Observation as LObservation
 import lucuma.core.model.sequence.Step
 import observe.common.test.*
 import observe.model.ActionType
-import observe.model.ClientId
 import observe.model.SequenceStatus
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.util.UUID
 import scala.Function.const
 
 class SequenceSuite extends munit.CatsEffectSuite {
@@ -32,9 +30,11 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   // All tests check the output of running a sequence against the expected sequence of updates.
 
-  private val executionEngine = Engine.build[IO]((eng, obsId, _, _) =>
-    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
-    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+  private val executionEngine = Engine.build[IO]((_, obsId, _, _) =>
+    // Assuming a 1-step sequence.
+    EngineHandle
+      .fromSingleEvent[IO](Event.sequenceComplete(obsId))
+      .as(SeqEvent.SequenceComplete(obsId))
   )
 
   def simpleStep(id: Step.Id): EngineStep[IO] =
@@ -56,9 +56,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
   def runToCompletion(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
     for {
       eng <- executionEngine
-      _   <-
-        // eng.offer(Event.start[IO](obsId, user, ClientId(UUID.randomUUID)))
-        eng.offer(???)
+      _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
       v   <- eng
                .process(PartialFunction.empty)(s0)
                .drop(1)
@@ -83,23 +81,24 @@ class SequenceSuite extends munit.CatsEffectSuite {
 
   test("resume execution to completion after a breakpoint") {
     // Verify breakpoint is initially set
-    val seqWithBp = initSeqState(
+    val seqWithBp: SequenceState[IO] = initSeqState(
       obsId,
       simpleStep(stepId(1)),
       SequenceType.Science,
-      Breakpoints(Set(stepId(1)))
+      Breakpoints(Set(stepId(1))),
+      SequenceStatus.Running.Init
     )
     assert(seqWithBp.getCurrentBreakpoint)
 
     // Clear breakpoint and run to completion
-    val cleared =
+    val cleared: SequenceState[IO] =
       seqWithBp.setBreakpoints(Set((stepId(1), Breakpoint.Disabled)))
     assert(!cleared.getCurrentBreakpoint)
 
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(obsId, cleared)
 
-    val qs1 = runToCompletion(qs0)
+    val qs1: IO[Option[EngineState[IO]]] = runToCompletion(qs0)
 
     (for {
       s <- OptionT(qs1)
@@ -165,8 +164,8 @@ class SequenceSuite extends munit.CatsEffectSuite {
     // A step that has progressed past initial execution (done.nonEmpty)
     val seq1 = SequenceState[IO](
       obsId = obsId,
-      status = SequenceStatus.Idle,
-      loadedStep = Some(LoadedStep(null, stepzr0)),
+      status = SequenceStatus.Running.Init,
+      loadedStep = Some(LoadedStep(DummyStepGen, stepzr0)),
       currentSequenceType = SequenceType.Science,
       breakpoints = Breakpoints.empty,
       singleRuns = Map.empty

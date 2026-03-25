@@ -36,9 +36,6 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
 ) {
   val L: Logger[F] = Logger[F]
 
-  /**
-   * Changes the `Status` and returns the new `Queue.State`.
-   */
   private def setObsStatus(obsId: Observation.Id)(st: SequenceStatus): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(obsId)(SequenceState.status.replace(st))
 
@@ -127,11 +124,11 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                 seq.withNextExecution match {
                   // TODO In all stops and breakpoints etc, we should clear out the loaded step.
                   // Empty state, should never happen
-                  case None                              =>
+                  case None                                            =>
                     send(Event.sequenceComplete(obsId))
                   // Step completed (no more execution groups - currentStep is cleared by `withNextExecution`)
-                  case Some(qs) if qs.loadedStep.isEmpty =>
-                    EngineHandle.replaceSequenceState(obsId)(qs) *>
+                  case Some(nextState) if nextState.loadedStep.isEmpty =>
+                    EngineHandle.replaceSequenceState(obsId)(nextState) *>
                       (if (userStop || internalStop)
                          setObsStatus(obsId)(SequenceStatus.Idle) *>
                            send(Event.sequencePaused(obsId))
@@ -148,11 +145,11 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                              )
                            ))
                   // Execution group completed. Check requested stop and breakpoint.
-                  case Some(qs)                          =>
-                    EngineHandle.replaceSequenceState(obsId)(qs) *>
+                  case Some(nextState)                                 =>
+                    EngineHandle.replaceSequenceState(obsId)(nextState) *>
                       (if (
-                         qs.getCurrentBreakpoint && !qs.currentExecution.execution
-                           .exists(_.uninterruptible)
+                         nextState.getCurrentBreakpoint &&
+                         !nextState.currentExecution.execution.exists(_.uninterruptible)
                        ) {
                          setObsStatus(obsId)(SequenceStatus.Idle) *> send(
                            Event.breakpointReached(obsId)
@@ -170,42 +167,36 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       .flatMap(seqState =>
         seqState
           .map { seq =>
-            EngineHandle
-              .debug(
-                s"In startLoadedStep with seq: $seq - currentStep: ${seq.loadedStep} - status: ${seq.status}"
-              ) >>
-              {
-                seq.status match {
-                  case SequenceStatus
-                        .Running(userStop, internalStop, _, _, isStarting) =>
-                    // TODO Review if all of these conditions are possible now.
-                    if (!isStarting && (userStop || internalStop)) {
-                      if (seq.loadedStep.isEmpty)
-                        send(Event.sequenceComplete(obsId))
-                      else
-                        setObsStatus(obsId)(SequenceStatus.Idle)
-                    } else {
-                      if (seq.loadedStep.isEmpty)
-                        send(Event.sequenceComplete(obsId))
-                      else if (!isStarting && seq.getCurrentBreakpoint)
-                        setObsStatus(obsId)(SequenceStatus.Idle) *> send(
-                          Event.breakpointReached(obsId)
-                        )
-                      else
-                        setObsStatus(obsId)(
-                          SequenceStatus.Running(
-                            userStop,
-                            internalStop,
-                            IsWaitingUserPrompt.No,
-                            IsWaitingNextStep.No,
-                            IsStarting.No
-                          )
-                        ) *>
-                          send(Event.executing(obsId))
-                    }
-                  case _ => EngineHandle.unit
+            seq.status match {
+              case SequenceStatus
+                    .Running(userStop, internalStop, _, _, isStarting) =>
+                // TODO Review if all of these conditions are possible now.
+                if (!isStarting && (userStop || internalStop)) {
+                  if (seq.loadedStep.isEmpty)
+                    send(Event.sequenceComplete(obsId))
+                  else
+                    setObsStatus(obsId)(SequenceStatus.Idle)
+                } else {
+                  if (seq.loadedStep.isEmpty)
+                    send(Event.sequenceComplete(obsId))
+                  else if (!isStarting && seq.getCurrentBreakpoint)
+                    setObsStatus(obsId)(SequenceStatus.Idle) *> send(
+                      Event.breakpointReached(obsId)
+                    )
+                  else
+                    setObsStatus(obsId)(
+                      SequenceStatus.Running(
+                        userStop,
+                        internalStop,
+                        IsWaitingUserPrompt.No,
+                        IsWaitingNextStep.No,
+                        IsStarting.No
+                      )
+                    ) *>
+                      send(Event.executing(obsId))
                 }
-              }
+              case _ => EngineHandle.unit
+            }
           }
           .getOrElse(EngineHandle.unit)
       )
@@ -536,7 +527,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
 
   // Only used for testing.
   def process(
-    onSystemEvent: PartialFunction[SystemEvent, Handle[F, EngineState[F], Event[F], Unit]]
+    onSystemEvent: PartialFunction[SystemEvent, EngineHandle[F, Unit]]
   )(s0: EngineState[F])(using
     ev:            Concurrent[F]
   ): Stream[F, (EventResult, EngineState[F])] =
@@ -545,7 +536,6 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   def offer(in: Event[F]): F[Unit] = inputQueue.offer(in)
 
   def inject(f: F[Event[F]]): F[Unit] = streamQueue.offer(Stream.eval(f))
-
 }
 
 object Engine {

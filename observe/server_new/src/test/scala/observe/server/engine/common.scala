@@ -6,7 +6,28 @@ package observe.server.engine
 import cats.effect.IO
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.Atom
 import observe.model.SequenceStatus
+import observe.model.dhs.DataId
+import observe.server.StepGen
+
+import java.util.UUID
+
+// The only thing accessed during execution in tests is atomId compare it with previous one.
+val DummyStepGen = StepGen.GmosNorth[IO](
+  atomId = Atom.Id.fromUuid(UUID.randomUUID()),
+  sequenceType = null,
+  id = null,
+  dataId = DataId(""),
+  resources = null,
+  obsControl = null,
+  generator = null,
+  instConfig = null,
+  config = null,
+  telescopeConfig = null,
+  signalToNoise = null,
+  breakpoint = null
+)
 
 def initSeqState(
   obsId:        Observation.Id,
@@ -18,7 +39,7 @@ def initSeqState(
   SequenceState[IO](
     obsId,
     status,
-    ExecutionZipper.currentify(loadedStep).map(LoadedStep(null, _)),
+    ExecutionZipper.currentify(loadedStep).map(LoadedStep(DummyStepGen, _)),
     sequenceType,
     breakpoints,
     Map.empty

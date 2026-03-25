@@ -13,7 +13,6 @@ import lucuma.core.enums.SequenceType
 import munit.CatsEffectSuite
 import observe.common.test.*
 import observe.model.ActionType
-import observe.model.ClientId
 import observe.model.SequenceStatus
 import observe.model.SequenceStatus.*
 import observe.model.SequenceStatus.HasUserStop
@@ -21,12 +20,9 @@ import observe.model.StepState
 import observe.model.enums.Resource
 import observe.server.EngineState
 import observe.server.SeqEvent
-import observe.server.engine.EventResult.*
-import observe.server.engine.SystemEvent.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.util.UUID
 import scala.Function.const
 import scala.concurrent.duration.*
 
@@ -34,12 +30,10 @@ class StepSuite extends CatsEffectSuite {
 
   private given L: Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe")
 
-  private val seqId = observationId(1)
+  private val obsId = observationId(1)
 
-  private val executionEngine = Engine.build[IO]((eng, obsId, _, _) =>
-    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
-    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
-  )
+  private val executionEngine =
+    Engine.build[IO]((eng, obsId, _, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent))
 
   private object DummyResult extends Result.RetVal with Serializable
   private val result                      = Result.OK(DummyResult)
@@ -49,7 +43,6 @@ class StepSuite extends CatsEffectSuite {
   private val action: Action[IO]          = fromF[IO](ActionType.Undefined, IO(result))
   private val actionCompleted: Action[IO] =
     action.copy(state = Action.State(Action.ActionState.Completed(DummyResult), Nil))
-  private val clientId: ClientId          = ClientId(UUID.randomUUID)
 
   def simpleStep(
     pending: List[ParallelActions[IO]],
@@ -77,29 +70,29 @@ class StepSuite extends CatsEffectSuite {
     )
   }
 
-  val stepz0: ExecutionZipper[IO]   = simpleStep(Nil, Execution.empty, Nil)
-  val stepza0: ExecutionZipper[IO]  =
+  val stepz0: ExecutionZipper[IO]         = simpleStep(Nil, Execution.empty, Nil)
+  val stepza0: ExecutionZipper[IO]        =
     simpleStep(List(NonEmptyList.one(action)), Execution.empty, Nil)
-  val stepza1: ExecutionZipper[IO]  =
+  val stepza1: ExecutionZipper[IO]        =
     simpleStep(List(NonEmptyList.one(action)), Execution(List(actionCompleted)), Nil)
-  val stepzr0: ExecutionZipper[IO]  =
+  val stepzr0: ExecutionZipper[IO]        =
     simpleStep(Nil, Execution.empty, List(NonEmptyList.one(result)))
-  val stepzr1: ExecutionZipper[IO]  =
+  val stepzr1: ExecutionZipper[IO]        =
     simpleStep(Nil, Execution(List(actionCompleted, actionCompleted)), Nil)
-  val stepzr2: ExecutionZipper[IO]  = simpleStep(
+  val stepzr2: ExecutionZipper[IO]        = simpleStep(
     Nil,
     Execution(List(actionCompleted, actionCompleted)),
     List(NonEmptyList.one(result))
   )
-  val stepzar0: ExecutionZipper[IO] =
+  val stepzar0: ExecutionZipper[IO]       =
     simpleStep(Nil, Execution(List(actionCompleted, action)), Nil)
-  val stepzar1: ExecutionZipper[IO] = simpleStep(
+  val stepzar1: ExecutionZipper[IO]       = simpleStep(
     List(NonEmptyList.one(action)),
     Execution(List(actionCompleted, actionCompleted)),
     List(NonEmptyList.one(result))
   )
-  private val startEvent            = ???
-  // Event.start[IO](seqId, user, clientId)
+  private def startEvent(eng: Engine[IO]) =
+    Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent))
 
   /**
    * Emulates TCS configuration in the real world.
@@ -167,7 +160,7 @@ class StepSuite extends CatsEffectSuite {
   def triggerPause(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
     for {
-      _ <- eng.offer(Event.pause(seqId, user))
+      _ <- eng.offer(Event.pause(obsId, user))
       // There is not a distinct result for Pause because the Pause action is a
       // trick for testing but we don't need to support it in real life, the pause
       // input event is enough.
@@ -177,8 +170,7 @@ class StepSuite extends CatsEffectSuite {
   def triggerStart(eng: Engine[IO]): Action[IO] = fromF[IO](
     ActionType.Undefined,
     for {
-      // _ <- eng.offer(Event.start(seqId, user, clientId))
-      _ <- eng.offer(???)
+      _ <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
       // Same case that the pause action
     } yield Result.OK(DummyResult)
   )
@@ -191,23 +183,22 @@ class StepSuite extends CatsEffectSuite {
     case _                        => false
   }
 
-  private def runToCompletioIO(s0: EngineState[IO]) =
+  private def runToCompletionIO(s0: EngineState[IO]) =
     for {
       eng <- executionEngine
-      // _   <- eng.offer(Event.start[IO](seqId, user, clientId))
-      _   <- eng.offer(???)
+      _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
     } yield eng
       .process(PartialFunction.empty)(s0)
       .drop(1)
-      .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
+      .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
       .map(_._2)
       .compile
 
   def runToCompletionLastIO(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
-    runToCompletioIO(s0).flatMap(_.last)
+    runToCompletionIO(s0).flatMap(_.last)
 
   def runToCompletionAllIO(s0: EngineState[IO]): IO[List[EngineState[IO]]] =
-    runToCompletioIO(s0).flatMap(_.toList)
+    runToCompletionIO(s0).flatMap(_.toList)
 
   // This test must have a simple step definition and the known sequence of updates that running that step creates.
   // The test will just run step and compare the output with the predefined sequence of updates.
@@ -220,9 +211,9 @@ class StepSuite extends CatsEffectSuite {
   ) {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -231,23 +222,24 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
     def notFinished(v: (EventResult, EngineState[IO])): Boolean =
-      !isFinished(v._2.sequences(seqId).seq.status)
+      !isFinished(v._2.sequences(obsId).seq.status)
 
     val m =
       for {
         eng <- Stream.eval(executionEngine)
-        _   <- Stream.eval(eng.offer(startEvent))
+        _   <- Stream.eval(eng.offer(startEvent(eng)))
         u   <- eng
                  .process(PartialFunction.empty)(qs0(eng))
                  .drop(1)
                  .takeThrough(notFinished)
                  .map(_._2)
-      } yield u.sequences(seqId)
+      } yield u.sequences(obsId)
 
     m.compile.last.map { l =>
       l.map(_.seq).exists { s =>
@@ -265,13 +257,13 @@ class StepSuite extends CatsEffectSuite {
     // Engine state with one idle sequence partially executed. Step partially done.
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         SequenceState[IO](
           obsId = observationId(1),
-          status = SequenceStatus.Idle,
+          status = SequenceStatus.Running.Init,
           loadedStep = Some(
             LoadedStep(
-              null,
+              DummyStepGen,
               ExecutionZipper(
                 id = stepId(2),
                 pending = Nil,
@@ -288,25 +280,34 @@ class StepSuite extends CatsEffectSuite {
         )
       )
 
+    // This is done by ObserveEngineImpl
+    // TODO: Move this whole test to ObserveEngineImplSuite?
+    val initStartEvent =
+      Event.modifyState[IO]:
+        EngineHandle
+          .modifySequenceState[IO](obsId): seq =>
+            SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
+          .as(SeqEvent.NullSeqEvent)
+
     val qs1 =
       for {
         eng <- executionEngine
-        _   <- eng.offer(startEvent)
+        _   <- eng.offer(initStartEvent)
+        _   <- eng.offer(startEvent(eng))
         u   <- eng
                  .process(PartialFunction.empty)(qs0)
                  .take(1)
                  .compile
                  .last
-      } yield u.flatMap(_._2.sequences.get(seqId))
+      } yield u.flatMap(_._2.sequences.get(obsId))
 
     qs1.map {
       _.map(_.seq).exists { s =>
         s.loadedStep.exists { z =>
           z.executionZipper.toEngineStep match {
             case EngineStep(_, List(ex1, ex2)) =>
-              Execution(ex1.toList).actions.length == 2 && Execution(
-                ex2.toList
-              ).actions.length == 1
+              Execution(ex1.toList).actions.length == 2 &&
+              Execution(ex2.toList).actions.length == 1
             case _                             => false
           }
         } && s.status.isRunning
@@ -318,7 +319,7 @@ class StepSuite extends CatsEffectSuite {
   test("cancel a pause request in response to a cancel pause command.") {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         SequenceState[IO](
           obsId = observationId(1),
           status = SequenceStatus.Running(
@@ -330,7 +331,7 @@ class StepSuite extends CatsEffectSuite {
           ),
           loadedStep = Some(
             LoadedStep(
-              null,
+              DummyStepGen,
               ExecutionZipper(
                 id = stepId(2),
                 pending = Nil,
@@ -349,7 +350,7 @@ class StepSuite extends CatsEffectSuite {
 
     val qs1 = for {
       eng <- executionEngine
-      _   <- eng.offer(Event.cancelPause[IO](seqId, user))
+      _   <- eng.offer(Event.cancelPause[IO](obsId, user))
       v   <- eng
                .process(PartialFunction.empty)(qs0)
                .take(1)
@@ -360,7 +361,7 @@ class StepSuite extends CatsEffectSuite {
 
     qs1
       .map(x =>
-        x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+        x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
           s.status.isRunning
         }
       )
@@ -371,9 +372,9 @@ class StepSuite extends CatsEffectSuite {
   test("engine should test pause command if step is not being executed.") {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -388,7 +389,7 @@ class StepSuite extends CatsEffectSuite {
 
     val qss = for {
       eng <- executionEngine
-      _   <- eng.offer(Event.pause[IO](seqId, user))
+      _   <- eng.offer(Event.pause[IO](obsId, user))
       v   <- eng
                .process(PartialFunction.empty)(qs0)
                .take(1)
@@ -398,13 +399,12 @@ class StepSuite extends CatsEffectSuite {
     } yield v
 
     qss.map { x =>
-      x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+      x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
         s.loadedStep.exists { z =>
           z.executionZipper.toEngineStep match {
             case EngineStep(_, List(ex1, ex2)) =>
-              Execution(ex1.toList).actions.length == 2 && Execution(
-                ex2.toList
-              ).actions.length == 1
+              Execution(ex1.toList).actions.length == 2 &&
+              Execution(ex2.toList).actions.length == 1
             case _                             => false
           }
         } && (s.status === SequenceStatus.Idle)
@@ -412,66 +412,67 @@ class StepSuite extends CatsEffectSuite {
     }.assert
   }
 
+  // TODO: Move this test to ObserveEngineImplSuite, since this is handled there now.
   // Be careful that start command doesn't run an already running sequence.
-  test("engine test start command if step is already running.") {
-    def qs0(eng: Engine[IO]): EngineState[IO] =
-      TestUtil.initStateWithSequence(
-        seqId,
-        initSeqState(
-          obsId = seqId,
-          loadedStep = EngineStep(
-            id = stepId(1),
-            executions = List(
-              NonEmptyList.of(configureTcs, configureInst), // Execution
-              NonEmptyList.one(triggerStart(eng)),          // Execution
-              NonEmptyList.one(observe) // Execution
-            )
-          ),
-          sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
-        )
-      )
+  // test("engine test start command if step is already running.") {
+  //   def qs0(eng: Engine[IO]): EngineState[IO] =
+  //     TestUtil.initStateWithSequence(
+  //       obsId,
+  //       initSeqState(
+  //         obsId = obsId,
+  //         loadedStep = EngineStep(
+  //           id = stepId(1),
+  //           executions = List(
+  //             NonEmptyList.of(configureTcs, configureInst), // Execution
+  //             NonEmptyList.one(triggerStart(eng)),          // Execution
+  //             NonEmptyList.one(observe) // Execution
+  //           )
+  //         ),
+  //         sequenceType = SequenceType.Science,
+  //         breakpoints = Breakpoints.empty,
+  //         SequenceStatus.Running.Init
+  //       )
+  //     )
 
-    val qss = for {
-      eng <- executionEngine
-      // _   <- eng.offer(Event.start(seqId, user, clientId))
-      _   <- eng.offer(???)
-      v   <- eng
-               .process(PartialFunction.empty)(qs0(eng))
-               .drop(1)
-               .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
-               .compile
-               .toVector
-    } yield v
+  //   val qss = for {
+  //     eng <- executionEngine
+  //     _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
+  //     v   <- eng
+  //              .process(PartialFunction.empty)(qs0(eng))
+  //              .drop(1)
+  //              .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
+  //              .compile
+  //              .toVector
+  //   } yield v
 
-    qss.map { x =>
-      val actionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Completed[?], _) => x }
-      assertEquals(actionsCompleted.length, 4)
+  //   qss.map { x =>
+  //     val actionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Completed[?], _) => x }
+  //     assertEquals(actionsCompleted.length, 4)
 
-      val executionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Executed, _) => x }
-      assertEquals(executionsCompleted.length, 3)
+  //     val executionsCompleted = x.map(_._1).collect { case SystemUpdate(x: Executed, _) => x }
+  //     assertEquals(executionsCompleted.length, 3)
 
-      val sequencesCompleted =
-        x.map(_._1).collect { case SystemUpdate(x: SequenceComplete, _) => x }
-      assertEquals(sequencesCompleted.length, 1)
+  //     val sequencesCompleted =
+  //       x.map(_._1).collect { case SystemUpdate(x: SequenceComplete, _) => x }
+  //     assertEquals(sequencesCompleted.length, 1)
 
-      x.lastOption
-        .flatMap(_._2.sequences.get(seqId))
-        .map(_.seq)
-        .exists { s =>
-          s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
-        }
-    }.assert
-  }
+  //     x.lastOption
+  //       .flatMap(_._2.sequences.get(obsId))
+  //       .map(_.seq)
+  //       .exists { s =>
+  //         s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
+  //       }
+  //   }.assert
+  // }
 
   // For this test, one of the actions in the step must produce an error as result.
   test("engine should stop execution and propagate error when an Action ends in error.") {
     val errMsg               = "Dummy error"
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -481,14 +482,15 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
     val qs1 = runToCompletionLastIO(qs0)
 
     qs1.map { x =>
-      x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+      x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
         s.loadedStep.exists { z =>
           z.executionZipper.toEngineStep match {
             // Check that the sequence stopped midway
@@ -510,9 +512,9 @@ class StepSuite extends CatsEffectSuite {
     val (ref, action)        = errorSet1(errMsg)
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -520,14 +522,15 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
     val qs1 = runToCompletionLastIO(qs0)
 
     qs1.map { x =>
-      x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+      x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
         s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
       }
     }.assert *>
@@ -538,9 +541,9 @@ class StepSuite extends CatsEffectSuite {
   test("engine should mark a step as aborted if the action ends as aborted") {
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -548,14 +551,15 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
     val qs1 = runToCompletionLastIO(qs0)
 
     qs1.map { x =>
-      x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+      x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
         // And that it ended in aborted
         s.status === SequenceStatus.Aborted
       }
@@ -566,9 +570,9 @@ class StepSuite extends CatsEffectSuite {
     val errMsg               = "Dummy error"
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -576,14 +580,15 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
     val qs1 = runToCompletionLastIO(qs0)
 
     qs1.map { x =>
-      x.flatMap(_.sequences.get(seqId)).map(_.seq).exists { s =>
+      x.flatMap(_.sequences.get(obsId)).map(_.seq).exists { s =>
         // Without the error we should have a value 2
         // And that it ended in error
         s.status === SequenceStatus.Failed(errMsg)
@@ -595,9 +600,9 @@ class StepSuite extends CatsEffectSuite {
     val errMsg               = "Dummy error"
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -605,7 +610,8 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
@@ -621,9 +627,9 @@ class StepSuite extends CatsEffectSuite {
 
     val qs0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = stepId(1),
             executions = List(
@@ -644,32 +650,35 @@ class StepSuite extends CatsEffectSuite {
             )
           ),
           sequenceType = SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
-    val qss = runToCompletionAllIO(qs0)
+    val qss: IO[List[EngineState[IO]]] = runToCompletionAllIO(qs0)
 
     qss.map { x =>
-      val a1 = x.drop(2)
-      val a  = a1.headOption.flatMap(y => y.sequences.get(seqId)).map(_.seq) match {
-        case Some(s) =>
-          s.loadedStep.exists { z =>
-            z.focus.execution.headOption match {
-              case Some(
-                    Action(_, _, Action.State(Action.ActionState.Started, v :: _), _)
-                  ) =>
-                v == PartialValDouble(0.5)
-              case _ => false
-            }
-          } && s.status.isRunning
-        case _       => false
-      }
-      val b  = x.lastOption.flatMap(_.sequences.get(seqId)).map(_.seq) match {
-        case Some(s) =>
-          s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
-        case _       => false
-      }
+      val a1: List[EngineState[IO]] = x.drop(1)
+      val a: Boolean                =
+        a1.headOption.flatMap(y => y.sequences.get(obsId)).map(_.seq) match
+          case Some(s) =>
+            s.loadedStep.exists { z =>
+              z.focus.execution.headOption match {
+                case Some(
+                      Action(_, _, Action.State(Action.ActionState.Started, v :: _), _)
+                    ) =>
+                  v == PartialValDouble(0.5)
+                case _ => false
+              }
+            } && s.status.isRunning
+          case _       => false
+      val b: Boolean                =
+        x.lastOption.flatMap(_.sequences.get(obsId)).map(_.seq) match {
+          case Some(s) =>
+            s.loadedStep.isEmpty && s.status === SequenceStatus.Completed
+          case _       => false
+        }
+
       a && b
     }.assert
 

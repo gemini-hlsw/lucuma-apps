@@ -22,7 +22,6 @@ import lucuma.core.refined.auto.*
 import observe.common.test.observationId
 import observe.common.test.stepId
 import observe.model.ActionType
-import observe.model.ClientId
 import observe.model.Observation
 import observe.model.SequenceStatus
 import observe.model.enums.Resource
@@ -32,7 +31,6 @@ import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.*
 
@@ -83,17 +81,15 @@ class PackageSuite extends munit.CatsEffectSuite {
     } yield Result.OK(DummyResult)
   )
 
-  private val clientId: ClientId = ClientId(UUID.randomUUID)
-
   val executions: List[ParallelActions[IO]] =
     List(NonEmptyList.of(configureTcs, configureInst), NonEmptyList.one(observe))
 
-  val seqId: Observation.Id = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1))
+  val obsId: Observation.Id = observationId(1)
   val qs1: EngineState[IO]  =
     TestUtil.initStateWithSequence(
-      seqId,
+      obsId,
       initSeqState(
-        obsId = observationId(2),
+        obsId = obsId,
         loadedStep = EngineStep(
           id = stepId(1),
           executions = List(
@@ -102,13 +98,16 @@ class PackageSuite extends munit.CatsEffectSuite {
           )
         ),
         SequenceType.Science,
-        breakpoints = Breakpoints.empty
+        breakpoints = Breakpoints.empty,
+        SequenceStatus.Running.Init
       )
     )
 
-  private def executionEngine = Engine.build[IO]((eng, obsId, _, _) =>
-    eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
-    // (eng, obsId, _) => eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)
+  private val executionEngine = Engine.build[IO]((_, obsId, _, _) =>
+    // Assuming a 1-step sequence.
+    EngineHandle
+      .fromSingleEvent[IO](Event.sequenceComplete(obsId))
+      .as(SeqEvent.SequenceComplete(obsId))
   )
 
   def isFinished(status: SequenceStatus): Boolean = status match {
@@ -121,12 +120,11 @@ class PackageSuite extends munit.CatsEffectSuite {
   def runToCompletion(s0: EngineState[IO]): IO[Option[EngineState[IO]]] =
     for {
       eng <- executionEngine
-      // _   <- eng.offer(Event.start(seqId, user, clientId))
-      _   <- eng.offer(???)
+      _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
       v   <- eng
                .process(PartialFunction.empty)(s0)
-               .drop(1)
-               .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
+               //  .drop(1)
+               .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
                .compile
                .last
     } yield v.map(_._2)
@@ -135,8 +133,7 @@ class PackageSuite extends munit.CatsEffectSuite {
     val qs =
       for {
         eng <- executionEngine
-        // _   <- eng.offer(Event.start(seqId, user, clientId))
-        _   <- eng.offer(???)
+        _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
         v   <- eng
                  .process(PartialFunction.empty)(qs1)
                  .take(1)
@@ -144,20 +141,20 @@ class PackageSuite extends munit.CatsEffectSuite {
                  .last
       } yield v.map(_._2)
 
-    qs.map(_.exists(s => SequenceState.isRunning(s.sequences(seqId).seq))).assert
+    qs.map(_.exists(s => SequenceState.isRunning(s.sequences(obsId).seq))).assert
   }
 
   test("there should be 0 pending executions after execution") {
     val qs = runToCompletion(qs1)
-    qs.map(_.exists(_.sequences(seqId).seq.pending.isEmpty)).assert
+    qs.map(_.exists(_.sequences(obsId).seq.pending.isEmpty)).assert
   }
 
   test("sequence should be completed after execution") {
     val qs = runToCompletion(qs1)
     qs.map(
       _.exists(s =>
-        s.sequences(seqId).seq.status === SequenceStatus.Completed &&
-          s.sequences(seqId).seq.loadedStep.isEmpty
+        s.sequences(obsId).seq.status === SequenceStatus.Completed &&
+          s.sequences(obsId).seq.loadedStep.isEmpty
       )
     ).assert
   }
@@ -165,7 +162,7 @@ class PackageSuite extends munit.CatsEffectSuite {
   private def actionPause: IO[Option[EngineState[IO]]] = {
     val s0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
           obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
           loadedStep = EngineStep(
@@ -177,18 +174,18 @@ class PackageSuite extends munit.CatsEffectSuite {
             )
           ),
           SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
-    // take(4): Start, ModifyState, Executing, Paused
+    // take(3): ModifyState, Executing, Paused
     for {
       eng <- executionEngine
-      // _   <- eng.offer(Event.start[IO](seqId, user, clientId))
-      _   <- eng.offer(???)
+      _   <- eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent)))
       v   <- eng
                .process(PartialFunction.empty)(s0)
-               .take(4)
+               .take(3)
                .compile
                .last
     } yield v.map(_._2)
@@ -196,12 +193,12 @@ class PackageSuite extends munit.CatsEffectSuite {
   }
 
   test("sequencestate should stay as running when action pauses itself") {
-    actionPause.map(_.exists(s => SequenceState.isRunning(s.sequences(seqId).seq))).assert
+    actionPause.map(_.exists(s => SequenceState.isRunning(s.sequences(obsId).seq))).assert
   }
 
   test("engine should change action state to Paused if output is Paused") {
     val r = actionPause
-    r.map(_.exists(_.sequences(seqId).seq.currentExecution.execution.forall(Action.paused))).assert
+    r.map(_.exists(_.sequences(obsId).seq.currentExecution.execution.forall(Action.paused))).assert
   }
 
   test("run sequence to completion after resuming a paused action") {
@@ -211,14 +208,14 @@ class PackageSuite extends munit.CatsEffectSuite {
         eng <- OptionT.liftF(executionEngine)
         _   <- OptionT.liftF(
                  eng.offer(
-                   Event.actionResume[IO](seqId, 0, Stream.eval(IO(Result.OK(DummyResult))))
+                   Event.actionResume[IO](obsId, 0, Stream.eval(IO(Result.OK(DummyResult))))
                  )
                )
         r   <- OptionT.liftF(
                  eng
                    .process(PartialFunction.empty)(s)
                    .drop(1)
-                   .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
+                   .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
                    .compile
                    .last
                )
@@ -228,8 +225,8 @@ class PackageSuite extends munit.CatsEffectSuite {
     result.value
       .map(
         _.forall(x =>
-          x.sequences(seqId).seq.currentExecution.actions.isEmpty && (x
-            .sequences(seqId)
+          x.sequences(obsId).seq.currentExecution.actions.isEmpty && (x
+            .sequences(obsId)
             .seq
             .status === SequenceStatus.Completed)
         )
@@ -247,9 +244,9 @@ class PackageSuite extends munit.CatsEffectSuite {
       eng         <- executionEngine
       r           <- {
         val qs = TestUtil.initStateWithSequence(
-          seqId,
+          obsId,
           initSeqState(
-            obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(2)),
+            obsId = obsId,
             loadedStep = EngineStep(
               id = stepId(1),
               executions = List(
@@ -263,14 +260,14 @@ class PackageSuite extends munit.CatsEffectSuite {
               )
             ),
             SequenceType.Science,
-            breakpoints = Breakpoints.empty
+            breakpoints = Breakpoints.empty,
+            SequenceStatus.Running.Init
           )
         )
 
         List(
           List[IO[Unit]](
-            // eng.offer(Event.start[IO](seqId, user, clientId)),
-            eng.offer(???),
+            eng.offer(Event.modifyState(eng.startLoadedStep(obsId).as(SeqEvent.NullSeqEvent))),
             startedFlag.acquire,
             eng.offer(Event.nullEvent),
             eng.offer(Event.getState[IO] { _ =>
@@ -279,8 +276,7 @@ class PackageSuite extends munit.CatsEffectSuite {
           ).sequence,
           eng
             .process(PartialFunction.empty)(qs)
-            .drop(1)
-            .takeThrough(a => !isFinished(a._2.sequences(seqId).seq.status))
+            .takeThrough(a => !isFinished(a._2.sequences(obsId).seq.status))
             .compile
             .drain
         ).parSequence
@@ -293,7 +289,7 @@ class PackageSuite extends munit.CatsEffectSuite {
   test("engine should not capture runtime exceptions.") {
     def s0(e: Throwable): EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
           obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(4)),
           loadedStep = EngineStep(
@@ -308,7 +304,8 @@ class PackageSuite extends munit.CatsEffectSuite {
             )
           ),
           SequenceType.Science,
-          breakpoints = Breakpoints.empty
+          breakpoints = Breakpoints.empty,
+          SequenceStatus.Running.Init
         )
       )
 
@@ -324,9 +321,9 @@ class PackageSuite extends munit.CatsEffectSuite {
     val sId                 = stepId(1)
     val s0: EngineState[IO] =
       TestUtil.initStateWithSequence(
-        seqId,
+        obsId,
         initSeqState(
-          obsId = seqId,
+          obsId = obsId,
           loadedStep = EngineStep(
             id = sId,
             executions = List(
@@ -348,7 +345,7 @@ class PackageSuite extends munit.CatsEffectSuite {
 
     val c                      = ActionCoordsInSeq(sId, ExecutionIndex(0), ActionIndex(0))
     def event(eng: Engine[IO]) = Event.modifyState[IO](
-      eng.startSingle(ActionCoords(seqId, c)).as(SeqEvent.NullSeqEvent)
+      eng.startSingle(ActionCoords(obsId, c)).as(SeqEvent.NullSeqEvent)
     )
 
     val sfs =
@@ -365,12 +362,12 @@ class PackageSuite extends munit.CatsEffectSuite {
 
     /**
      * First state update must have the action started. Second state update must have the action
-     * finished. The value in `dummy` must change. That is prove that the `Action` run.
+     * finished. The value in `dummy` must change. That is proof that the `Action` run.
      */
     sfs.map {
       case a :: b :: _ =>
-        EngineState.sequenceStateAt(seqId).getOption(a).exists(_.getSingleState(c).started) &&
-        EngineState.sequenceStateAt(seqId).getOption(b).exists(_.getSingleState(c).completed) &&
+        EngineState.sequenceStateAt(obsId).getOption(a).exists(_.getSingleState(c).started) &&
+        EngineState.sequenceStateAt(obsId).getOption(b).exists(_.getSingleState(c).completed) &&
         dummy.get === markVal
       case _           =>
         false
@@ -379,7 +376,7 @@ class PackageSuite extends munit.CatsEffectSuite {
 
   val qs2: EngineState[IO] =
     TestUtil.initStateWithSequence(
-      seqId,
+      obsId,
       initSeqState(
         obsId = lucuma.core.model.Observation.Id(PosLong.unsafeFrom(1)),
         loadedStep = EngineStep(
@@ -395,7 +392,8 @@ class PackageSuite extends munit.CatsEffectSuite {
           )
         ),
         SequenceType.Science,
-        breakpoints = Breakpoints.empty
+        breakpoints = Breakpoints.empty,
+        SequenceStatus.Running.Init
       )
     )
 }
