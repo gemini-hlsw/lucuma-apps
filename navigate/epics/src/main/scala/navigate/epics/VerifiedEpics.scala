@@ -3,10 +3,7 @@
 
 package navigate.epics
 
-import cats.Applicative
-import cats.FlatMap
-import cats.Monad
-import cats.Parallel
+import cats.{Applicative, ApplicativeError, ApplicativeThrow, FlatMap, Monad, Parallel}
 import cats.arrow.FunctionK
 import cats.effect.Async
 import cats.effect.Concurrent
@@ -192,6 +189,12 @@ object VerifiedEpics {
       override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
       override val run: K[A] = fK.apply(v.run)
     }
+
+    def attempt(using apThrow: ApplicativeThrow[G]): VerifiedEpics[F, G, Either[Throwable, A]] = new VerifiedEpics[F, G, Either[Throwable, A]] {
+      override val systems: Map[TelltaleChannel[F], Set[RemoteChannel[F]]] = v.systems
+      override val run: G[Either[Throwable, A]] = apThrow.attempt(v.run)
+    }
   }
+
 
 }
