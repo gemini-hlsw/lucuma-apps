@@ -49,9 +49,9 @@ object TestWfsEpicsSystem {
     TestChannel.State.default,
     TestChannel.State.default,
     TestChannel.State.default,
-    TestChannel.State.default,
-    TestChannel.State.default,
-    TestChannel.State.default
+    TestChannel.State.of("FALSE"),
+    TestChannel.State.of("FALSE"),
+    TestChannel.State.of("FALSE")
   )
 
   def buildWfsChannels[F[_]: Temporal](

@@ -1144,13 +1144,21 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     }
 
   private val WfsStopObserveTimeout = FiniteDuration(15, SECONDS)
+  private val WfsCBSaveTimeout      = FiniteDuration(15, SECONDS)
 
-  override def pwfs1StopObserve: F[ApplyCommandResult] = sys.tcsEpics
-    .startPwfs1Command(WfsStopObserveTimeout)
-    .stop
-    .mark
-    .post(ObserveCommand.CommandType.PermanentOff)
-    .verifiedRun(ConnectionTimeout) <*
+  override def pwfs1StopObserve: F[ApplyCommandResult] = sys.pwfs1.circularBufferStatus
+    .verifiedRun(ConnectionTimeout)
+    .flatMap(s =>
+      sys.tcsEpics
+        .startPwfs1Command(
+          WfsStopObserveTimeout + (s.aoEnabled || s.fgEnabled || s.imageEnabled)
+            .fold(WfsCBSaveTimeout, Duration.Zero)
+        )
+        .stop
+        .mark
+        .post(ObserveCommand.CommandType.PermanentOff)
+        .verifiedRun(ConnectionTimeout)
+    ) <*
     stateRef.update(
       _.focus(_.pwfs1.period)
         .replace(None)
@@ -1158,12 +1166,19 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .replace(None)
     )
 
-  override def pwfs2StopObserve: F[ApplyCommandResult] = sys.tcsEpics
-    .startPwfs2Command(WfsStopObserveTimeout)
-    .stop
-    .mark
-    .post(ObserveCommand.CommandType.PermanentOff)
-    .verifiedRun(ConnectionTimeout) <*
+  override def pwfs2StopObserve: F[ApplyCommandResult] = sys.pwfs2.circularBufferStatus
+    .verifiedRun(ConnectionTimeout)
+    .flatMap(s =>
+      sys.tcsEpics
+        .startPwfs2Command(
+          WfsStopObserveTimeout + (s.aoEnabled || s.fgEnabled || s.imageEnabled)
+            .fold(WfsCBSaveTimeout, Duration.Zero)
+        )
+        .stop
+        .mark
+        .post(ObserveCommand.CommandType.PermanentOff)
+        .verifiedRun(ConnectionTimeout)
+    ) <*
     stateRef.update(
       _.focus(_.pwfs2.period)
         .replace(None)
@@ -1171,12 +1186,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         .replace(None)
     )
 
-  override def oiwfsStopObserve: F[ApplyCommandResult] = sys.tcsEpics
-    .startOiwfsCommand(WfsStopObserveTimeout)
-    .stop
-    .mark
-    .post(ObserveCommand.CommandType.PermanentOff)
-    .verifiedRun(ConnectionTimeout) <*
+  override def oiwfsStopObserve: F[ApplyCommandResult] = getOiwfsConfig.flatMap(s =>
+    sys.tcsEpics
+      .startOiwfsCommand(WfsStopObserveTimeout + s.saving.fold(WfsCBSaveTimeout, Duration.Zero))
+      .stop
+      .mark
+      .post(ObserveCommand.CommandType.PermanentOff)
+      .verifiedRun(ConnectionTimeout)
+  ) <*
     stateRef.update(
       _.focus(_.oiwfs.period)
         .replace(None)
