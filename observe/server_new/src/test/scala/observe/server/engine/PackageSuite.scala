@@ -357,7 +357,7 @@ class PackageSuite extends munit.CatsEffectSuite {
 
     /**
      * First state update must have the action started. Second state update must have the action
-     * finished. The value in `dummy` must change. That is proof that the `Action` run.
+     * finished. The value in `dummy` must change. That is proof that the `Action` ran.
      */
     sfs.map {
       case a :: b :: _ =>
