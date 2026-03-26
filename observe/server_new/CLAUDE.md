@@ -22,10 +22,10 @@ sbt -J-Xmx6g "observe_server_new/testOnly *ObserveEngineSuite* -- *testname*"
 
 ### Core Primitives (`engine/` package)
 
-- **`Handle[F, S, E, O]`** (`Handle.scala`) — Opaque type for `StateT[F, S, (O, Stream[F, E])]`. A state transition that produces both a result and a stream of output events. Implements `MonadCancelThrow`.
-- **`Engine[F]`** (`Engine.scala`) — Main event loop. Processes `Event[F]` via `handleUserEvent`/`handleSystemEvent`, using `Handle` to transition `EngineState[F]` and emit event streams.
-- **`Event[F]`** (`Event.scala`) — Sealed trait: `EventUser` (Start, Pause, Breakpoints, Poll, etc.) and `EventSystem` (Completed, Failed, Paused, StepComplete, etc.).
-- **`EngineHandle[F, A]`** — Type alias: `Handle[F, EngineState[F], Event[F], A]`.
+- **`Handle[F, S, E, O]`** (`Handle.scala`) — Opaque type for `StateT[F, S, (O, Stream[F, E])]`. A state transition that produces both a result and a stream of output events.
+- **`Engine[F]`** (`Engine.scala`) — Main event loop. Processes `Event[F]` via `handleUserEvent`/`handleSystemEvent`, using `Handle` to transition `EngineState[F]` and emit event streams. Built via `Engine.build[F](loadNextStep)`.
+- **`Event[F]`** (`Event.scala`) — Sealed trait: `EventUser` (Pause, CancelPause, Breakpoints, Poll, GetState, ModifyState, ActionStop, ActionResume, Log\*, Pure) and `EventSystem` (Completed, Failed, Paused, StepComplete, SequenceComplete, Executing, Executed, etc.).
+- **`EngineHandle[F, A]`** — Type alias: `Handle[F, EngineState[F], Event[F], A]`. `EngineHandle` companion object provides convenience constructors and sequence state accessors (`getSequenceState`, `modifySequenceState`, `replaceSequenceState`).
 
 The event loop runs as an `fs2.Stream` pipeline: events arrive via input/stream queues, each processed by `run`, state threaded via `evalMapAccumulate`, output events fed back into the stream queue.
 
@@ -40,43 +40,63 @@ conditions: Conditions               — Observing conditions
 operator:   Option[Operator]
 ```
 
-**`SequenceData[F]`** wraps a `SequenceGen[F]` (ODB-derived definition) and a `Sequence.State[F]` (runtime execution state).
+**`Selected[F]`** holds one `Option[SequenceData[F]]` per active instrument (gmosNorth, gmosSouth, flamingos2).
 
-State is navigated via Monocle optics: `EngineState.atSequence(obsId)`, `EngineState.instrumentLoaded(instrument)`, etc.
+**`SequenceData[F]`** is a sealed trait with instrument-specific subclasses (`GmosNorth`, `GmosSouth`, `Flamingos2`). Each holds observer, overrides, target environment, constraint set, static config, `SequenceState[F]`, and pending observe command.
 
-## Execution Model (Zipper-based)
+State is navigated via Monocle optics: `EngineState.atSequence(obsId)`, `EngineState.sequenceStateAt(obsId)`, `EngineState.instrumentLoaded(instrument)`, etc.
 
-Nested state tracked with focus/pending/done zippers:
+## Step-Based Execution Model
+
+The engine uses a **single-step-at-a-time** execution model. Only one step is loaded into memory at any time — there is no full-sequence zipper.
+
+### State Hierarchy
 
 ```
-Sequence[F]           — observation id + list of steps + breakpoints
-  └─ EngineStep[F]    — step id + list of parallel action groups
-      └─ Execution[F] — currently executing parallel actions
-          └─ Action[F] — effectful computation (gen: Stream[F, Result]) + state + kind
+EngineState[F]
+  └─ SequenceData[F]              — per-instrument observation data + static config
+      └─ SequenceState[F]         — runtime execution state for one observation
+          ├─ status: SequenceStatus
+          ├─ currentSequenceType: SequenceType
+          ├─ breakpoints: Breakpoints
+          ├─ singleRuns: Map[ActionCoordsInSeq, ActionState]
+          └─ loadedStep: Option[LoadedStep[F]]   ← None = idle/done, Some = executing
+              ├─ stepGen: StepGen[F]             — ODB-derived step definition
+              └─ executionZipper: ExecutionZipper[F]   — runtime progress within the step
+                  ├─ pending: List[ParallelActions[F]]
+                  ├─ focus: Execution[F]         — currently executing parallel actions
+                  ├─ done: List[ParallelActions[F]]
+                  └─ rolledback: (Execution[F], List[ParallelActions[F]])
 ```
 
-`Sequence.Zipper[F]` and `EngineStep.Zipper[F]` track progress. `Sequence.State[F]` is either `Zipper` (active) or `Final` (complete).
+**`LoadedStep[F]`** (`LoadedStep.scala`) bundles a `StepGen[F]` (the ODB step definition) with an `ExecutionZipper[F]` (runtime progress tracking). It exports fields from both: `id`, `atomId`, `generator`, `obsControl`, `resources`, `done`, `focus`, `pending`.
 
-`Result` is a sealed trait: `OK`, `OKStopped`, `OKAborted`, `Partial`, `Paused`, `Error`.
+**`ExecutionZipper[F]`** (`ExecutionZipper.scala`) is a zipper over execution groups within a single step. It tracks `pending`, `focus` (current), `done`, and `rolledback` (for restart). `withNextExecution` advances to the next execution group; returns `None` when the step is complete.
 
-### Atom-Based Flow
+**`Execution[F]`** (`Execution.scala`) — a list of `Action[F]` executing in parallel.
 
-1. An atom is loaded from ODB (via `onAtomComplete` or `onAtomReload`)
-2. Steps within the atom execute sequentially
-3. After the last step, the engine requests the next atom from ODB
-4. ODB edit subscriptions can trigger mid-sequence atom reloads
+**`Action[F]`** (`Action.scala`) — individual effectful computation with `gen: Stream[F, Result]`, `kind: ActionType`, and `state: Action.State`.
 
-## Step Generation Pipeline
+**`Result`** is a sealed trait: `OK`, `OKStopped`, `OKAborted`, `Partial`, `Paused`, `Error`.
 
-**`SeqTranslate[F]`** translates ODB observation data into `SequenceGen[F]` instances with concrete actions.
+### Execution Flow
+
+1. A step is loaded into `SequenceState.loadedStep` via `withLoadedStepGen`
+2. `Engine.executeLoadedStep` runs all actions in the current execution group in parallel via `parJoin`
+3. Action results map to `SystemEvent`s (Completed, Failed, Paused, etc.)
+4. When all actions in an execution group complete, `nextExecution` advances the `ExecutionZipper`
+5. When the zipper is exhausted (step complete), the engine calls `loadNextStep` to fetch the next step from ODB
+6. If no more steps, `SequenceComplete` is emitted
+
+### Step Definition
+
+**`StepGen[F]`** (`StepGen.scala`) — sealed trait with instrument-specific subclasses (`GmosNorth`, `GmosSouth`, `Flamingos2`). Contains atom ID, step ID, data ID, resources, instrument config, telescope config, breakpoint, and a `StepActionsGen[F]` for generating the action pipeline.
 
 **`StepActionsGen[F]`** defines the action pipeline for each step:
 
 ```
 preStep → preConfig → [parallel config actions] → postConfig → preObserve → [observe actions] → postObserve → postStep
 ```
-
-**`SequenceGen[F]`** has instrument-specific subclasses: `GmosNorth`, `GmosSouth`, `Flamingos2`. Each contains `AtomGen[F]` with `StepGen[F, D]` instances.
 
 ## Controller Pattern
 
@@ -120,6 +140,13 @@ GraphQL definitions live in `src/clue/scala/observe/common/` — uses `@GraphQL`
 ## Test Infrastructure
 
 - **Framework**: MUnit (`CatsEffectSuite`, `DisciplineSuite`) + ScalaCheck
-- **`TestCommon`** — simulated `Systems.dummy[IO]`, engine builders, `advanceN(n)` helper for stepping through events, fixtures for `SequenceGen`/`SequenceData`
+- **`TestCommon`** — simulated `Systems.dummy[IO]`, engine builders, `advanceN(n)` helper for stepping through events, fixtures for `SequenceData`
 - **Mocks**: `TestOdbProxy`, `TestTcsEpics`, `TestEpicsCommand`
-- **Coverage**: engine core, sequence translation, TCS config encoding, GMOS, GCAL, keywords, execution queues, settle time calculations
+- **Key test suites**:
+  - `EngineSpec` — core engine event processing
+  - `StepSuite` — `ExecutionZipper` advancement and step completion
+  - `SequenceSuite` — `SequenceState` transitions
+  - `PackageSuite`, `ExecutionSpec`, `HandleSpec` — primitives
+  - `ObserveEngineSuite` — end-to-end sequence execution
+  - `SeqTranslateSuite`, `GmosSpec`, `GcalSuite` — translation and instruments
+  - `TcsControllerSuite`, `TcsNorth/SouthSuite` — telescope control
