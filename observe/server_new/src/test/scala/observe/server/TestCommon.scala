@@ -24,6 +24,8 @@ import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.enums.GmosNorthStageMode
 import lucuma.core.enums.GmosRoi
+import lucuma.core.enums.GmosSouthDetector
+import lucuma.core.enums.GmosSouthStageMode
 import lucuma.core.enums.GmosXBinning
 import lucuma.core.enums.GmosYBinning
 import lucuma.core.enums.Instrument
@@ -69,6 +71,7 @@ import observe.model.dhs.*
 import observe.model.enums.Resource
 import observe.server.ODBSequencesLoader
 import observe.server.engine.Action
+import observe.server.engine.Engine
 import observe.server.engine.Response
 import observe.server.engine.Result
 import observe.server.engine.Result.PartialVal
@@ -90,9 +93,16 @@ trait TestCommon extends munit.CatsEffectSuite {
   val defaultSystems: IO[Systems[IO]] = Systems.dummy[IO]
 
   val observeEngine: IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap(
+    defaultSystems.flatMap:
       ObserveEngine.build(Site.GS, _, defaultSettings, ExecutionEnvironment.Development)
-    )
+
+  def bothEngines(systems: IO[Systems[IO]] = defaultSystems): IO[(Engine[IO], ObserveEngine[IO])] =
+    for
+      systems <- systems
+      rc      <- Ref.of[IO, Conditions](Conditions.Default)
+      tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
+      eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
+    yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
   def observeEngineWithODB(odb: OdbProxy[IO]): IO[ObserveEngine[IO]] =
     defaultSystems.flatMap(sys =>
@@ -119,6 +129,8 @@ trait TestCommon extends munit.CatsEffectSuite {
   ): IO[Option[EngineState[IO]]] =
     (put *> oe
       .eventResultStream(s0)
+      // .evalTap: (r, s) =>
+      //   IO.println(s"******** Event result: ${pprint(r)}, new state: ${pprint(s)}")
       .take(n)
       .compile
       .last)
@@ -272,6 +284,12 @@ object TestCommon {
     MosPreImaging.IsNotMosPreImaging,
     None
   )
+  val staticCfg2: StaticConfig.GmosSouth   = StaticConfig.GmosSouth(
+    GmosSouthStageMode.FollowXyz,
+    GmosSouthDetector.Hamamatsu,
+    MosPreImaging.IsNotMosPreImaging,
+    None
+  )
   val dynamicCfg1: DynamicConfig.GmosNorth = DynamicConfig.GmosNorth(
     TimeSpan.unsafeFromMicroseconds(5000000000L),
     GmosCcdMode(
@@ -344,20 +362,14 @@ object TestCommon {
       odbObservation(id),
       InstrumentExecutionConfig.GmosSouth(
         ExecutionConfig(
-          StaticConfig.GmosSouth(
-            lucuma.core.enums.GmosSouthStageMode.FollowXyz,
-            lucuma.core.enums.GmosSouthDetector.Hamamatsu,
-            MosPreImaging.IsNotMosPreImaging,
-            None
-          ),
+          staticCfg2,
           none,
           none
         )
       )
     )
 
-  /** Builds a single StepGen.GmosNorth for testing. */
-  def stepGen(id: Observation.Id): StepGen.GmosNorth[IO] =
+  val stepGen: StepGen.GmosNorth[IO] =
     StepGen.GmosNorth[IO](
       atomId = atomId1,
       sequenceType = SequenceType.Science,
@@ -418,10 +430,6 @@ object TestCommon {
     st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
   } yield st.nextStep(odbObsData, SequenceType.Acquisition)._2
 
-  /**
-   * Convenience: load a sequence into engine state from OdbObservationData + StepGen. Replaces the
-   * old pattern: `ODBSequencesLoader.loadSequenceEndo(None, sequenceGen, lens, cleanup)`
-   */
   def loadSequence(
     id:   Observation.Id,
     sg:   Option[StepGen.GmosNorth[IO]],
@@ -431,6 +439,11 @@ object TestCommon {
       None,
       gmosNorthOdbData(id),
       lens
+    ) >>> (
+      lens.some
+        .andThen(SequenceData.seq)
+        .modify:
+          _.withLoadedStepGen(sg, SystemOverrides.AllEnabled, HeaderExtraData.Default)
     )
 
   /**
@@ -440,21 +453,15 @@ object TestCommon {
   def loadDefaultSequence(
     id: Observation.Id
   ): cats.Endo[EngineState[IO]] =
-    loadSequence(id, stepGen(id).some, EngineState.instrumentLoaded(Instrument.GmosNorth))
+    loadSequence(id, stepGen.some, EngineState.instrumentLoaded(Instrument.GmosNorth))
 
   /**
-   * Convenience: build a GmosNorth sequence with a single step and configurable resources. For
-   * GmosSouth instruments, uses the GmosSouth ODB data and lens.
+   * Convenience: build a GmosNorth sequence with a single step and configurable resources.
    */
   def loadSequenceWithResources(
     id:        Observation.Id,
-    resources: Set[observe.model.enums.Resource | Instrument],
+    resources: Set[Resource | Instrument],
     lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
-    ODBSequencesLoader.loadSequenceMod[IO](
-      None,
-      gmosNorthOdbData(id),
-      lens
-    )
-
+    loadSequence(id, stepGenWithResources(1, resources).some, lens)
 }

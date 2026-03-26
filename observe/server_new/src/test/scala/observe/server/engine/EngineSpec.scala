@@ -19,19 +19,6 @@ final class EngineSpec extends munit.DisciplineSuite {
 
   given Eq[SequenceState[IO]] = Eq.fromUniversalEquals
 
-  // given Arbitrary[Sequence[IO]] = Arbitrary {
-  //   for {
-  //     id <- arbitrary[Observation.Id]
-  //   } yield Sequence(id, None, Breakpoints.empty)
-  // }
-
-  // obsId:               Observation.Id,
-  // status:              SequenceStatus,
-  // currentStep:         Option[EngineStepExecutionZipper[F]], // None = idle/done, Some = executing
-  // currentSequenceType: SequenceType,                          // TODO Update this somewhere!
-  // breakpoints:         Breakpoints,
-  // singleRuns:          Map[ActionCoordsInSeq, ActionState]
-
   given Arbitrary[SequenceState[IO]] = Arbitrary {
     for {
       obsId   <- arbitrary[Observation.Id]

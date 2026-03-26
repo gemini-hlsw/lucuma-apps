@@ -207,7 +207,7 @@ class StepSuite extends CatsEffectSuite {
   // TODO: With single-step execution, the step may complete before the pause event is processed.
   // This test needs adaptation to the new timing characteristics.
   test(
-    "pause should stop execution in response to a pause command, after current step completes".ignore
+    "pause should stop execution in response to a pause command, after current step completes"
   ) {
     def qs0(eng: Engine[IO]): EngineState[IO] =
       TestUtil.initStateWithSequence(

@@ -45,7 +45,7 @@ import org.typelevel.log4cats.Logger
 import scala.annotation.unused
 import scala.concurrent.duration.*
 
-import SeqEvent.*
+// import SeqEvent.*
 
 trait ObserveEngine[F[_]] {
 
@@ -123,7 +123,7 @@ trait ObserveEngine[F[_]] {
     clientId: ClientId
   ): F[Unit]
 
-  def selectSequence(
+  def loadSequence(
     i:        Instrument,
     obsId:    Observation.Id,
     observer: Observer,
@@ -253,9 +253,16 @@ object ObserveEngine {
    * Resource in use = Resources used by running sequences, plus the systems that are being
    * configured because a user commanded a manual configuration apply.
    */
-  def resourcesInUse[F[_]](st: EngineState[F]): Set[Resource | Instrument] =
+  def resourcesInUse[F[_]](
+    st:         EngineState[F],
+    excludeObs: Option[Observation.Id] = none
+  ): Set[Resource | Instrument] =
     observations(st)
-      .mapFilter(s => s.seq.status.isRunning.option(s.resources))
+      .mapFilter(s =>
+        s.resources.some
+          .filterNot(_ => excludeObs.contains_(s.obsId))
+          .filter(_ => s.seq.status.isRunning)
+      )
       .foldK ++
       systemsBeingConfigured(st)
 
@@ -410,7 +417,7 @@ object ObserveEngine {
     EngineHandle.modifySequenceState(obsId):
       SequenceState.status.modify(f)
 
-  private def onStepComplete[F[_]: {MonadCancelThrow, Logger}](
+  def onStepComplete[F[_]: {MonadCancelThrow, Logger}](
     odb:                 OdbProxy[F],
     translator:          SeqTranslate[F]
   )(
@@ -441,7 +448,7 @@ object ObserveEngine {
             case SequenceType.Science     => // Sequence complete
               EngineHandle
                 .fromSingleEvent(Event.sequenceComplete(obsId))
-                .as(SeqEvent.SequenceComplete(obsId))
+                .as(SeqEvent.SequenceCompleted(obsId))
         case Some(newStepGen) =>
           executeEngine
             .startLoadedStep(obsId)
@@ -473,7 +480,7 @@ object ObserveEngine {
               .getOrElse:
                 EngineHandle
                   .fromSingleEvent(Event.sequenceComplete(obsId))
-                  .as(SeqEvent.SequenceComplete(obsId))
+                  .as(SeqEvent.SequenceCompleted(obsId))
 
   private def updateStep[F[_]](
     obsId:   Observation.Id,
@@ -509,7 +516,9 @@ object ObserveEngine {
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
     seqType:    SequenceType
-  ): EngineHandle[F, Option[StepGen[F]]] = // TODO only if seq isIdle or isError???
+  ): EngineHandle[F,
+                  Option[StepGen[F]]
+  ] = // TODO only if seq isIdle or isError??? OR check in callers?
     for
       _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
       _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true))

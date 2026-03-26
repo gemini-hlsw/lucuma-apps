@@ -3,13 +3,19 @@
 
 package observe.server.engine
 
+import cats.data.NonEmptyList
 import cats.effect.IO
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
+import observe.common.test.stepId
+import observe.model.ActionType
 import observe.model.SequenceStatus
 import observe.model.dhs.DataId
+import observe.model.enums.Resource
 import observe.server.StepGen
+import observe.server.engine.Action.ActionState
 
 import java.util.UUID
 
@@ -19,7 +25,7 @@ val DummyStepGen = StepGen.GmosNorth[IO](
   sequenceType = null,
   id = null,
   dataId = DataId(""),
-  resources = null,
+  resources = Set(Resource.TCS, Resource.Gcal, Instrument.GmosNorth),
   obsControl = null,
   generator = null,
   instConfig = null,
@@ -28,6 +34,19 @@ val DummyStepGen = StepGen.GmosNorth[IO](
   signalToNoise = null,
   breakpoint = null
 )
+
+val DummyExecutionZipper =
+  ExecutionZipper
+    .currentify[IO](
+      EngineStep[IO](
+        stepId(1),
+        List(
+          NonEmptyList.one:
+            Action(ActionType.Undefined, fs2.Stream.empty, Action.State(ActionState.Idle, Nil))
+        )
+      )
+    )
+    .get
 
 def initSeqState(
   obsId:        Observation.Id,

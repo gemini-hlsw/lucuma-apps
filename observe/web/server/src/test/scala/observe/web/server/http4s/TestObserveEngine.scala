@@ -96,7 +96,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
-  override def selectSequence(
+  override def loadSequence(
     i:        Instrument,
     sid:      Id,
     observer: Observer,

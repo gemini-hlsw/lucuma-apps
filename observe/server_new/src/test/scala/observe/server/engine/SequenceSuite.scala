@@ -34,7 +34,7 @@ class SequenceSuite extends munit.CatsEffectSuite {
     // Assuming a 1-step sequence.
     EngineHandle
       .fromSingleEvent[IO](Event.sequenceComplete(obsId))
-      .as(SeqEvent.SequenceComplete(obsId))
+      .as(SeqEvent.SequenceCompleted(obsId))
   )
 
   def simpleStep(id: Step.Id): EngineStep[IO] =

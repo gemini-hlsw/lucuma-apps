@@ -3,6 +3,8 @@
 
 package observe.server.engine
 
+import monocle.Focus
+import monocle.Lens
 import observe.server.StepGen
 
 final case class LoadedStep[F[_]](
@@ -25,3 +27,8 @@ final case class LoadedStep[F[_]](
 
   def update(stepDef: List[ParallelActions[F]]): LoadedStep[F] =
     copy(executionZipper = executionZipper.update(stepDef))
+
+object LoadedStep:
+  def stepGen[F[_]]: Lens[LoadedStep[F], StepGen[F]]                 = Focus[LoadedStep[F]](_.stepGen)
+  def executionZipper[F[_]]: Lens[LoadedStep[F], ExecutionZipper[F]] =
+    Focus[LoadedStep[F]](_.executionZipper)

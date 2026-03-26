@@ -91,4 +91,4 @@ object SeqEvent:
     stepId:       Step.Id
   ) extends SeqEvent
   case class AcquisitionCompleted(obsId: Observation.Id)                         extends SeqEvent
-  case class SequenceComplete(obsId: Observation.Id)                             extends SeqEvent
+  case class SequenceCompleted(obsId: Observation.Id)                            extends SeqEvent

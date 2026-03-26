@@ -8,6 +8,7 @@ import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
+import monocle.Focus
 import monocle.Lens
 import observe.model.SequenceStatus
 import observe.model.SequenceStatus.HasInternalStop
@@ -23,7 +24,7 @@ final case class SequenceState[F[_]](
   obsId:               Observation.Id,
   status:              SequenceStatus,
   loadedStep:          Option[LoadedStep[F]], // None = idle/done, Some = executing
-  currentSequenceType: SequenceType,          // TODO Update this somewhere!
+  currentSequenceType: SequenceType,
   breakpoints:         Breakpoints,
   singleRuns:          Map[ActionCoordsInSeq, ActionState]
 ):
@@ -126,10 +127,15 @@ final case class SequenceState[F[_]](
 
   def withNoLoadedStep: SequenceState[F] = copy(loadedStep = none)
 
+  def withIdleStatus: SequenceState[F] = copy(status = SequenceStatus.Idle)
+
 object SequenceState:
 
   def status[F[_]]: Lens[SequenceState[F], SequenceStatus] =
-    Lens[SequenceState[F], SequenceStatus](_.status)(s => st => st.copy(status = s))
+    Focus[SequenceState[F]](_.status)
+
+  def loadedStep[F[_]]: Lens[SequenceState[F], Option[LoadedStep[F]]] =
+    Focus[SequenceState[F]](_.loadedStep)
 
   def isRunning[F[_]](st: SequenceState[F]): Boolean = st.status.isRunning
 
