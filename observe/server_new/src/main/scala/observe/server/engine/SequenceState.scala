@@ -43,9 +43,6 @@ final case class SequenceState[F[_]](
           case Some(newLs) => // More execution groups to run
             Some(copy(loadedStep = Some(newLs), breakpoints = newBreakpoints))
 
-  // TODO REMOVE
-  val pending: List[EngineStep[F]] = Nil // No pending steps with single-step execution
-
   def rollback: SequenceState[F] = copy(loadedStep = loadedStep.map(_.rollback))
 
   def setBreakpoints(breakpointsDelta: Set[(Step.Id, Breakpoint)]): SequenceState[F] =
@@ -129,6 +126,9 @@ final case class SequenceState[F[_]](
 
   def withIdleStatus: SequenceState[F] = copy(status = SequenceStatus.Idle)
 
+  def withFailedStatus(err: String): SequenceState[F] =
+    copy(status = SequenceStatus.Failed(err))
+
 object SequenceState:
 
   def status[F[_]]: Lens[SequenceState[F], SequenceStatus] =
@@ -182,13 +182,6 @@ object SequenceState:
     status:       SequenceStatus = SequenceStatus.Idle
   ): SequenceState[F] =
     SequenceState(obsId, status, none, sequenceType, breakpoints, Map.empty)
-
-  /**
-   * Create an empty/idle state with no step loaded.
-   */
-  // TODO Remove this if unused
-  // def idle[F[_]](obsId: Observation.Id): SequenceState[F] =
-  //   SequenceState(obsId, SequenceStatus.Idle, None, Breakpoints.empty, Map.empty)
 
   /**
    * Rebuilds the state of a sequence with a new steps definition. The sequence must not be running.

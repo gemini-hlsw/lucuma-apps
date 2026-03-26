@@ -144,11 +144,6 @@ class PackageSuite extends munit.CatsEffectSuite {
     qs.map(_.exists(s => SequenceState.isRunning(s.sequences(obsId).seq))).assert
   }
 
-  test("there should be 0 pending executions after execution") {
-    val qs = runToCompletion(qs1)
-    qs.map(_.exists(_.sequences(obsId).seq.pending.isEmpty)).assert
-  }
-
   test("sequence should be completed after execution") {
     val qs = runToCompletion(qs1)
     qs.map(

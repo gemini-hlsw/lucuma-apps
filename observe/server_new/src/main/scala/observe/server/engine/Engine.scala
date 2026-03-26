@@ -39,6 +39,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   private def setObsStatus(obsId: Observation.Id)(st: SequenceStatus): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(obsId)(SequenceState.status.replace(st))
 
+  private def cleanLoadedStep(obsId: Observation.Id): EngineHandle[F, Unit] =
+    EngineHandle.modifySequenceState(obsId)(_.withNoLoadedStep)
+
   def pause(id: Observation.Id): EngineHandle[F, Unit] =
     EngineHandle.modifySequenceState(id)(SequenceState.userStopSet(HasUserStop.Yes))
 
@@ -122,7 +125,6 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
             (seq.status, seq.loadedStep) match {
               case (SequenceStatus.Running(userStop, internalStop, _, _, _), Some(completedStep)) =>
                 seq.withNextExecution match {
-                  // TODO In all stops and breakpoints etc, we should clear out the loaded step.
                   // Empty state, should never happen
                   case None                                            =>
                     send(Event.sequenceComplete(obsId))
@@ -151,9 +153,9 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                          nextState.getCurrentBreakpoint &&
                          !nextState.currentExecution.execution.exists(_.uninterruptible)
                        ) {
-                         setObsStatus(obsId)(SequenceStatus.Idle) *> send(
-                           Event.breakpointReached(obsId)
-                         )
+                         setObsStatus(obsId)(SequenceStatus.Idle) *>
+                           cleanLoadedStep(obsId) *>
+                           send(Event.breakpointReached(obsId))
                        } else send(Event.executing(obsId)))
                 }
               case _                                                                              => EngineHandle.unit
@@ -170,7 +172,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
             seq.status match {
               case SequenceStatus
                     .Running(userStop, internalStop, _, _, isStarting) =>
-                // TODO Review if all of these conditions are possible now.
+                // TODO Review if all of these conditions are possible with new sequence flow.
                 if (!isStarting && (userStop || internalStop)) {
                   if (seq.loadedStep.isEmpty)
                     send(Event.sequenceComplete(obsId))
@@ -335,15 +337,15 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   ): EngineHandle[F, Unit] =
     EngineHandle
       .getSequenceState(obsId)
-      .flatMap(_.collect {
-        case s
-            if s.loadedStep.exists(z =>
-              SequenceState
-                .isRunning(s) && s.currentExecution.execution.lift(i).exists(Action.paused)
-            ) =>
-          EngineHandle.modifySequenceState[F](obsId)(_.start(i)) *>
-            EngineHandle.fromEventStream(act(obsId, s.loadedStep.get.id, (cont, i)))
-      }.getOrElse(EngineHandle.unit))
+      .flatMap(seqStateOpt =>
+        (for
+          seqState   <- seqStateOpt if SequenceState.isRunning(seqState) &&
+            seqState.currentExecution.execution.lift(i).exists(Action.paused)
+          loadedStep <- seqState.loadedStep
+        yield EngineHandle.modifySequenceState[F](obsId)(_.start(i)) >>
+          EngineHandle.fromEventStream(act(obsId, loadedStep.id, (cont, i))))
+          .getOrElse(EngineHandle.unit)
+      )
 
   /**
    * For now it only changes the `Status` to `Paused` and returns the new `State`. In the future

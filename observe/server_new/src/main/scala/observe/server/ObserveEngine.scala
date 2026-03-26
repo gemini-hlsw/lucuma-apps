@@ -496,7 +496,8 @@ object ObserveEngine {
           // Revive sequence if it was completed - or complete if no more steps
           val newStatus: SequenceStatus =
             if seqData.seq.status.isCompleted && stepGen.nonEmpty then SequenceStatus.Idle
-            else if stepGen.isEmpty then SequenceStatus.Completed // TODO Maybe not in acquisition?
+            else if stepGen.isEmpty && seqData.seq.currentSequenceType === SequenceType.Science then
+              SequenceStatus.Completed
             else seqData.seq.status
 
           val newSeqState: SequenceState[F] =
@@ -516,39 +517,33 @@ object ObserveEngine {
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
     seqType:    SequenceType
-  ): EngineHandle[F,
-                  Option[StepGen[F]]
-  ] = // TODO only if seq isIdle or isError??? OR check in callers?
-    for
+  ): EngineHandle[F, Option[StepGen[F]]] =
+    (for
       _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
-      _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true))
+      _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
       odbData <- EngineHandle
                    .liftF(odb.read(obsId))
                    .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
-      // TODO HANDLE ERRORS!!!! (see below for an example)
-      // But take into account that we are in state RUNNING here
-      // Or handle in caller!
       stepGen <-
         EngineHandle.modifyState: (oldState: EngineState[F]) =>
           // TODO Do something with warnings? (_1)
           val stepGen: Option[StepGen[F]] = translator.nextStep(odbData, seqType)._2
           val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
           (newState, stepGen)
-
-    // .handleErrorWith: e =>
-    //         EngineHandle.logError(e)(s"Error reloading step for observation [$obsId]") >>
-    //           EngineHandle
-    //             .fromSingleEvent(
-    //               Event.loadFailed(
-    //                 obsId,
-    //                 0,
-    //                 Result.Error(
-    //                   s"Error updating sequence, cannot continue: ${e.getMessage}"
-    //                 )
-    //               )
-    //             )
-    //             .as(SeqEvent.NullSeqEvent)
-    yield stepGen
+    yield stepGen)
+      .handleErrorWith: e =>
+        EngineHandle.logError(e)(s"Error reloading step for observation [$obsId]") >>
+          EngineHandle
+            .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage)) >>
+          EngineHandle
+            .fromSingleEvent(
+              Event.loadFailed(
+                obsId,
+                0,
+                Result.Error(s"Error updating sequence, cannot continue: ${e.getMessage}")
+              )
+            )
+            .as(none)
 
   /**
    * Build Observe and setup epics

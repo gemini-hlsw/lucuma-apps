@@ -253,36 +253,33 @@ object SeqTranslate {
       nextAtom
         .map: atom =>
           // Take the first step from the atom (ODB returns only pending steps)
-          // TODO There's always a head here since steps is a NEL
-          atom.steps.toList.headOption match
-            case None       => (List.empty, none)
-            case Some(step) =>
-              insSpec
-                .calcStepType(
-                  step.stepConfig,
-                  executionConfig.static,
-                  step.instrumentConfig,
-                  step.observeClass
-                )
-                .map: stepType =>
-                  translateStep(
-                    observation,
-                    atom.id,
-                    sequenceType,
-                    step,
-                    signalToNoise(step.instrumentConfig),
-                    startIdx,
-                    stepType,
-                    insSpec,
-                    (ov: SystemOverrides) =>
-                      instf(ov, step.stepConfig.stepType, stepType, step.instrumentConfig),
-                    instHeader(step.instrumentConfig),
-                    mkStepGen
-                  )
-                .fold(
-                  err => (List(err), none),
-                  cs => (List.empty, cs.some)
-                )
+          val step: OdbStep[D] = atom.steps.head
+          insSpec
+            .calcStepType(
+              step.stepConfig,
+              executionConfig.static,
+              step.instrumentConfig,
+              step.observeClass
+            )
+            .map: stepType =>
+              translateStep(
+                observation,
+                atom.id,
+                sequenceType,
+                step,
+                signalToNoise(step.instrumentConfig),
+                startIdx,
+                stepType,
+                insSpec,
+                (ov: SystemOverrides) =>
+                  instf(ov, step.stepConfig.stepType, stepType, step.instrumentConfig),
+                instHeader(step.instrumentConfig),
+                mkStepGen
+              )
+            .fold(
+              err => (List(err), none),
+              cs => (List.empty, cs.some)
+            )
         .getOrElse((List.empty, none))
     }
 

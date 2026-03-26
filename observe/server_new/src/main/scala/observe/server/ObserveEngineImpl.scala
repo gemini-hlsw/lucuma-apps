@@ -261,8 +261,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         .getOption(st)
         .filter(seqData => seqData.seq.status.isIdle || seqData.seq.status.isError)
         .map: seq =>
-          for {
-            // TODO Careful with state later in case of load error!
+          (for {
             _              <- EngineHandle.modifySequenceState[F](obsId): seq =>
                                 SequenceState.status.replace(SequenceStatus.Running.Starting)(seq.rollback)
             startingStep   <-
@@ -308,7 +307,19 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                     // Allowed to run
                     case _                                            =>
                       startAfterCheck(startAction, obsId)
-          } yield resultEvent
+          } yield resultEvent).handleErrorWith(e =>
+            EngineHandle
+              .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage))
+              .as[SeqEvent](
+                SeqEvent.NotifyUser(
+                  Notification.LoadingFailed(
+                    obsId,
+                    List(s"Error loading sequence for observation $obsId", e.getMessage)
+                  ),
+                  clientId
+                )
+              )
+          )
         .getOrElse: // Trying to run a sequence that does not exist. This should never happen.
           EngineHandle.unit.as[SeqEvent](NullSeqEvent)
     }
@@ -338,20 +349,18 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState[F]:
           clearObsCmd(id) *>
-            // TODO set waiting user prompt to false??
             userNextStep(id, seqType).as(SeqEvent.NullSeqEvent)
 
   def userNextStep(
-    id:      Observation.Id,
+    obsId:   Observation.Id,
     seqType: SequenceType
   ): EngineHandle[F, Unit] =
     EngineHandle.getState.flatMap: st =>
       EngineState
-        .atSequence(id)
+        .atSequence(obsId)
         .getOption(st)
-        .flatMap: seq =>
-          seq.seq.pending.isEmpty.option:
-            ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, id, seqType)
+        .map: _ => // Sequence exists in memory, proceed
+          ObserveEngine.tryNewStep(systems.odb, translator, executeEngine, obsId, seqType)
         .getOrElse(EngineHandle.unit)
 
   override def requestPause(
@@ -429,7 +438,6 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     val author = s", by '${user.displayName}' on client ${clientId.value}."
     executeEngine.inject(
       // We want the acquisition sequence to reset whenever we load the observation.
-      // TODO The next 2 could be done in parallel.
       systems.odb.resetAcquisition(obsId) >>
         systems.odb
           .read(obsId)

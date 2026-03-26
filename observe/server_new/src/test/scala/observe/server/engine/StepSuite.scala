@@ -20,6 +20,7 @@ import observe.model.StepState
 import observe.model.enums.Resource
 import observe.server.EngineState
 import observe.server.SeqEvent
+import observe.server.SequenceData
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -204,8 +205,6 @@ class StepSuite extends CatsEffectSuite {
   // The test will just run step and compare the output with the predefined sequence of updates.
 
   // The difficult part is to set the pause command to interrupts the step execution in the middle.
-  // TODO: With single-step execution, the step may complete before the pause event is processed.
-  // This test needs adaptation to the new timing characteristics.
   test(
     "pause should stop execution in response to a pause command, after current step completes"
   ) {
@@ -230,7 +229,7 @@ class StepSuite extends CatsEffectSuite {
     def notFinished(v: (EventResult, EngineState[IO])): Boolean =
       !isFinished(v._2.sequences(obsId).seq.status)
 
-    val m =
+    val m: fs2.Stream[IO, SequenceData[IO]] =
       for {
         eng <- Stream.eval(executionEngine)
         _   <- Stream.eval(eng.offer(startEvent(eng)))
@@ -241,13 +240,13 @@ class StepSuite extends CatsEffectSuite {
                  .map(_._2)
       } yield u.sequences(obsId)
 
-    m.compile.last.map { l =>
-      l.map(_.seq).exists { s =>
-        // After pause, the step should still be in progress (observe execution pending)
-        // and sequence status should be Idle (paused)
-        s.loadedStep.isDefined && s.status === SequenceStatus.Idle
-      }
-    }.assert
+    m.compile.last
+      .map: l =>
+        l.map(_.seq)
+          .exists: s =>
+            // After pause, the step is unloaded and sequence status should be Idle (paused)
+            s.loadedStep.isEmpty && s.status === SequenceStatus.Idle
+      .assert
 
   }
 

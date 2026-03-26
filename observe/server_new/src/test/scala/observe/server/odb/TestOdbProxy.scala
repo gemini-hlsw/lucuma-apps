@@ -90,11 +90,6 @@ object TestOdbProxy {
     def updateObs(obsId: Observation.Id)(f: SequenceState => SequenceState): State =
       copy(sequences = sequences.updateObs(obsId)(f))
 
-  // object State:
-  //   val sciences: Lens[State, List[Atom[DynamicConfig.GmosNorth]]] = Focus[State](_.sciences)
-
-  // TODO Compatible builder with same parameters as before?
-
   private def buildInstrumentExecutionSequence(
     i:              Instrument,
     nextAtom:       Atom[?],
