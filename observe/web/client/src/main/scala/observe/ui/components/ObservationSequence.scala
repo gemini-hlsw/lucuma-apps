@@ -165,5 +165,25 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
+          case SequenceData(
+                InstrumentExecutionConfig.Igrins2(config),
+                ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN)
+              ) =>
+            Igrins2SequenceTable(
+              props.clientMode,
+              props.obsId,
+              config,
+              acquisitionSN,
+              scienceSN,
+              props.visits,
+              props.executionState.get,
+              props.currentRecordedVisit,
+              props.progress,
+              props.selectedRowId,
+              props.setSelectedRowId,
+              props.requests,
+              isPreview = false,
+              onBreakpointFlip
+            )
           case _                                                                        => mismatchError
     )

@@ -734,7 +734,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         List(
           qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.obsId),
           qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.obsId),
-          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsId)
+          qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsId),
+          qState.selected.igrins2.map(x => Instrument.Igrins2 -> x.obsId)
         ).flattenOption.toMap,
         qState.conditions,
         qState.operator,
@@ -1067,7 +1068,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       List(
         EngineState.gmosNorthSequence[F],
         EngineState.gmosSouthSequence[F],
-        EngineState.flamingos2Sequence[F]
+        EngineState.flamingos2Sequence[F],
+        EngineState.igrins2Sequence[F]
       ).map(_.modify(updateSequenceEndo(st.conditions, st.operator))).combineAll
     f(st)
 

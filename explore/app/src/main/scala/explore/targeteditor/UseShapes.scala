@@ -190,6 +190,8 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
           case ObservingModeType.Igrins2LongSlit                                         =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+          case other                                                                     =>
+            sys.error(s"Unsupported observing mode type for AGS visualization: $other")
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -291,4 +293,6 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
+        case other                                                                     =>
+          sys.error(s"Unsupported observing mode type for AGS visualization: $other")
   }.map(_.value)

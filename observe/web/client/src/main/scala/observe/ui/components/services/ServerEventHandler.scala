@@ -97,6 +97,11 @@ trait ServerEventHandler:
     InstrumentExecutionConfig.gmosSouth
       .andThen(InstrumentExecutionConfig.GmosSouth.executionConfig)
 
+  private val igrins2ExecutionOptional
+    : Optional[InstrumentExecutionConfig, ExecutionConfig.Igrins2] =
+    InstrumentExecutionConfig.igrins2
+      .andThen(InstrumentExecutionConfig.Igrins2.executionConfig)
+
   private def sequenceTypeOptic[S, D](
     sequenceType: SequenceType
   ): Lens[ExecutionConfig[S, D], Option[ExecutionSequence[D]]] =
@@ -127,6 +132,12 @@ trait ServerEventHandler:
           case Instrument.GmosSouth  =>
             removeFutureAtomFromLoadedObservation(
               gmosSouthExecutionOptional,
+              sequenceTypeOptic(sequenceType),
+              atomId
+            )(loadedObservation)
+          case Instrument.Igrins2    =>
+            removeFutureAtomFromLoadedObservation(
+              igrins2ExecutionOptional,
               sequenceTypeOptic(sequenceType),
               atomId
             )(loadedObservation)

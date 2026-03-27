@@ -36,8 +36,8 @@ object ODBSequencesLoader {
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Flamingos2(ec) =>
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Igrins2(_)     =>
-          sys.error("Igrins2 is not supported")
+        case InstrumentExecutionConfig.Igrins2(ec)    =>
+          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
 
     val seqState: SequenceState[F] =
       SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
@@ -76,8 +76,17 @@ object ODBSequencesLoader {
           pendingObsCmd = none,
           visitStartDone = false
         )
-      case InstrumentExecutionConfig.Igrins2(_)     =>
-        sys.error("Igrins2 is not supported")
+      case InstrumentExecutionConfig.Igrins2(ec)    =>
+        SequenceData.Igrins2(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          targetEnvironment = odbData.observation.targetEnvironment,
+          constraintSet = odbData.observation.constraintSet,
+          staticCfg = ec.static,
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false
+        )
 
     instrumentSequenceLens.replace(seqData.some)(st)
 

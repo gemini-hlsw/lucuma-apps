@@ -65,6 +65,9 @@ import observe.server.gmos.GmosSouth.given
 import observe.server.gmos.GmosSouthController
 import observe.server.gmos.NSObserveCommand
 import observe.server.gws.GwsHeader
+import observe.server.igrins2.Igrins2
+import observe.server.igrins2.Igrins2Controller
+import observe.server.igrins2.Igrins2ControllerDisabled
 import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
@@ -832,8 +835,16 @@ object SeqTranslate {
                 ),
             StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
-        case InstrumentExecutionConfig.Igrins2(_)                  =>
-          (Nil, None)
+        case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
+          buildNextStep(
+            odbObsData.observation,
+            executionConfig,
+            atomType,
+            Igrins2.specifics,
+            (_, _, _, _) => ???,      // Igrins2.build[F](), // TODO
+            _ => _ => dummyHeader[F], // TODO
+            StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
+          )
       }
   }
 
@@ -866,6 +877,7 @@ object SeqTranslate {
     private val dhsDisabled: DhsClientProvider[F]           = (_: String) => new DhsClientDisabled[F]
     private val gcalDisabled: GcalController[F]             = new GcalControllerDisabled[F]
     private val flamingos2Disabled: Flamingos2Controller[F] = new Flamingos2ControllerDisabled[F]
+    private val igrins2Disabled: Igrins2Controller[F]       = new Igrins2ControllerDisabled[F]
     private val gmosSouthDisabled: GmosSouthController[F]   =
       new GmosControllerDisabled[F, GmosSite.South.type]("GMOS-S")
     private val gmosNorthDisabled: GmosNorthController[F]   =
@@ -912,6 +924,10 @@ object SeqTranslate {
     def gmosSouth(overrides: SystemOverrides): GmosSouthController[F] =
       if (overrides.isInstrumentEnabled.value) systems.gmosSouth
       else gmosSouthDisabled
+
+    def igrins2(overrides: SystemOverrides): Igrins2Controller[F] =
+      if (overrides.isInstrumentEnabled.value) systems.igrins2
+      else igrins2Disabled
 
 //    def gsaoi(overrides: SystemOverrides): GsaoiController[F] =
 //      if (overrides.isInstrumentEnabled) systems.gsaoi

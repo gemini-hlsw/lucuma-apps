@@ -235,7 +235,12 @@ object ObserveEngine {
     SeqTranslate(site, systems, conditionsRef, environment)
 
   private def observations[F[_]](st: EngineState[F]): List[SequenceData[F]] =
-    List(st.selected.gmosSouth, st.selected.gmosNorth, st.selected.flamingos2).flattenOption
+    List(
+      st.selected.gmosSouth,
+      st.selected.gmosNorth,
+      st.selected.flamingos2,
+      st.selected.igrins2
+    ).flattenOption
 
   private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Resource | Instrument] =
     observations(st)

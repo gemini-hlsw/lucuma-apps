@@ -11,6 +11,7 @@ import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.odb.Flamingos2DynamicConfigSubquery
 import lucuma.schemas.odb.GmosSouthDynamicConfigSubquery
 import lucuma.schemas.odb.GmosNorthDynamicConfigSubquery
+import lucuma.schemas.odb.Igrins2DynamicConfigSubquery
 import lucuma.schemas.odb.ModeSignalToNoiseSubquery
 import lucuma.schemas.odb.ConstraintSetSubquery
 import lucuma.schemas.odb.TimingWindowSubquery
@@ -22,7 +23,7 @@ import lucuma.schemas.odb.TimingWindowSubquery
 object ObsQueriesGQL:
 
   @GraphQL
-  trait ObsQuery                 extends GraphQLOperation[ObservationDB]:
+  trait ObsQuery extends GraphQLOperation[ObservationDB]:
     val document = s"""
       query($$obsId: ObservationId!) {
         observation(observationId: $$obsId) {
@@ -76,7 +77,14 @@ object ObsQueriesGQL:
             }
             acquisition { ...flamingos2SequenceFields }
             science { ...flamingos2SequenceFields }
-          }      
+          }
+          igrins2 {
+            static {
+              saveSVCImages
+              offsetMode
+            }
+            science { ...igrins2SequenceFields }
+          }
         }
       }
 
@@ -192,7 +200,30 @@ object ObsQueriesGQL:
         nextAtom { ...flamingos2AtomFields }
         possibleFuture { ...flamingos2AtomFields }
         hasMore
-      }      
+      }
+
+      fragment igrins2AtomFields on Igrins2Atom {
+        id
+        description
+        steps {
+          id
+          instrumentConfig $Igrins2DynamicConfigSubquery
+          stepConfig { ...stepConfigFields }
+          telescopeConfig {
+            offset { ...offsetFields }
+            guiding
+          }
+          estimate { ...stepEstimateFields }
+          observeClass
+          breakpoint
+        }
+      }
+
+      fragment igrins2SequenceFields on Igrins2ExecutionSequence {
+        nextAtom { ...igrins2AtomFields }
+        possibleFuture { ...igrins2AtomFields }
+        hasMore
+      }
 
       fragment offsetFields on Offset {
         p { microarcseconds }
@@ -205,6 +236,7 @@ object ObsQueriesGQL:
         type ConstraintSet = model.ConstraintSet
         type TimingWindows = model.TimingWindow
       type ExecutionConfig = InstrumentExecutionConfig
+
   @GraphQL
   trait ResetAcquisitionMutation extends GraphQLOperation[ObservationDB]:
     val document = """

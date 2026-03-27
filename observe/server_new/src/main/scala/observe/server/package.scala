@@ -26,11 +26,12 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 case class Selected[F[_]](
   gmosSouth:  Option[SequenceData[F]],
   gmosNorth:  Option[SequenceData[F]],
-  flamingos2: Option[SequenceData[F]]
+  flamingos2: Option[SequenceData[F]],
+  igrins2:    Option[SequenceData[F]]
 )
 
 object Selected:
-  def none[F[_]]: Selected[F] = Selected(None, None, None)
+  def none[F[_]]: Selected[F] = Selected(None, None, None, None)
 
 case class HeaderExtraData(
   conditions: Conditions,
