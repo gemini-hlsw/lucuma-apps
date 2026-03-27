@@ -32,7 +32,7 @@ trait CircularBufferControl[F[_]] {
     timeout: FiniteDuration
   ): CircularBufferControl.WfsCircularBufferCommand[F]
   def circularBufferStatus: VerifiedEpics[F, F, CircularBufferControl.CircularBufferStatus]
-  def imgCircularBufferStrean: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]]
+  def imgCircularBufferStream: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]]
 
 }
 
@@ -93,7 +93,7 @@ object CircularBufferControl {
       fg <- fgF
     } yield CircularBufferStatus(im, ao, fg)
 
-    override def imgCircularBufferStrean: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]] =
+    override def imgCircularBufferStream: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]] =
       VerifiedEpics
         .eventStream(chs.telltale, chs.imEnabled)
         .map(

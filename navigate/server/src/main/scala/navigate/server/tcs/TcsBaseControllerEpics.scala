@@ -2376,7 +2376,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     val streams: VerifiedEpics[F, Resource[F, *], Stream[F, Either[TimeSpan, Boolean]]] =
       for {
         expS <- wfsSys.integrationTimeStream
-        savS <- cbSys.imgCircularBufferStrean
+        savS <- cbSys.imgCircularBufferStream
       } yield (expS, savS).mapN(_.either(_))
 
     (for {
