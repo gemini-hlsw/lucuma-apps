@@ -4,7 +4,10 @@
 package navigate.epics
 
 import cats.Eq
-import cats.effect.{Async, Concurrent, Resource, Sync}
+import cats.effect.Async
+import cats.effect.Concurrent
+import cats.effect.Resource
+import cats.effect.Sync
 import cats.effect.implicits.*
 import cats.effect.std.Dispatcher
 import cats.effect.std.Queue

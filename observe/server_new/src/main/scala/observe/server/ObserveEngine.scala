@@ -401,16 +401,6 @@ object ObserveEngine {
   ): Set[Observation.Id] =
     findRunnableObservations(qid)(st).intersect(sids)
 
-  private def cleanLoadedStepMod[F[_]](
-    obsId: Observation.Id
-  ): Endo[EngineState[F]] =
-    EngineState.atSequence[F](obsId).modify(SequenceData.seq.modify(_.withNoLoadedStep))
-
-  private def cleanLoadedStep[F[_]: Monad](
-    obsId: Observation.Id
-  ): EngineHandle[F, Unit] =
-    EngineHandle.modifyState_(cleanLoadedStepMod(obsId))
-
   private def modifySequenceStatus[F[_]: Monad](
     obsId: Observation.Id
   )(f: SequenceStatus => SequenceStatus): EngineHandle[F, Unit] =
@@ -433,18 +423,13 @@ object ObserveEngine {
     loadNextStep[F](odb, translator, obsId, currentSeqType)
       .filterIn: newStepGen => // If acquisition atom completed, pause for prompt
         currentSeqType === SequenceType.Science || newStepGen.atomId === completedStepAtomId
-      .flatTap: stepGen =>
-        EngineHandle.debug(
-          s"Next step for observation [$obsId]: ${stepGen.map(_.id.show).getOrElse("None")}, sequence type: $currentSeqType"
-        )
       .flatMap:
         case None             => // Acquisition Complete or Sequence Complete
           currentSeqType match
             case SequenceType.Acquisition => // For acquisition, signal completion and wait for user prompt.
               modifySequenceStatus(obsId)(
                 _.withWaitingUserPrompt(SequenceStatus.IsWaitingUserPrompt.Yes)
-              ) >>
-                cleanLoadedStep(obsId).as(SeqEvent.AcquisitionCompleted(obsId))
+              ).as(SeqEvent.AcquisitionCompleted(obsId))
             case SequenceType.Science     => // Sequence complete
               EngineHandle
                 .fromSingleEvent(Event.sequenceComplete(obsId))

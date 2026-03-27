@@ -70,22 +70,18 @@ extension [D](row: SequenceRow[D])
       case _                                                   => none
       // TODO ExecutionStepType.AlignAndCalib in GPI
 
+  // TODO Rethink this. There's no Present steps anymore.
   def stepTime: StepTime =
     if (row.isFinished) StepTime.Past
-    else
-      row match
-        case CurrentAtomStepRow(_, _, _, _) => StepTime.Present
-        case _                              => StepTime.Future
+    else StepTime.Future
 
   def isFirstInAtom: Boolean =
     row match
-      case currentStep @ CurrentAtomStepRow(_, _, _, _)       => currentStep.isFirstOfAtom
       case futureStep @ SequenceRow.FutureStep(_, _, _, _, _) => futureStep.firstOf.isDefined
       case _                                                  => false
 
   def stepState: StepState =
     row match
-      case CurrentAtomStepRow(step, _, _, _)                   => step.status
       case SequenceRow.FutureStep(_, _, _, _, _)               => StepState.Pending
       case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
         stepRecord.executionState match
@@ -99,7 +95,6 @@ extension [D](row: SequenceRow[D])
 
   def fileIds: Option[NonEmptyChain[ImageFileId]] =
     row match
-      case CurrentAtomStepRow(step, _, _, _)                   => step.fileId.map(NonEmptyChain.one(_))
       case SequenceRow.Executed.ExecutedStep(_, stepRecord, _) =>
         NonEmptyChain
           .fromSeq(stepRecord.datasets)

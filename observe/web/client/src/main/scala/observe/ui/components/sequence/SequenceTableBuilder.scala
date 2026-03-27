@@ -81,7 +81,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             columnDefs(_, _, _, _)
         visitsData               <-
           useMemo((props.instrumentVisits, props.currentRecordedStepId)):
-            visitsSequences
+            visitsSequences(_, _)
         visits                    = visitsData.map(_._1)
         nextScienceIndex          = visitsData.map(_._2)
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
@@ -324,8 +324,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
-            case Some(Right(SequenceIndexedRow(CurrentAtomStepRow(_, _, _, _), _)))             =>
-              SequenceRowHeight.WithExtra
             case Some(Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _), _))) =>
               SequenceRowHeight.WithExtra
             case _                                                                              =>

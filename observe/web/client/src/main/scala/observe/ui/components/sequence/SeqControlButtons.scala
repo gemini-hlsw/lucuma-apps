@@ -34,7 +34,7 @@ case class SeqControlButtons(
   val isCancelPauseInFlight: Boolean = requests.cancelPause === OperationRequest.InFlight
   val isRunning: Boolean             = sequenceStatus.isRunning
   val isWaitingUserPrompt: Boolean   = sequenceStatus.isWaitingUserPrompt
-  val isRefreshing: Boolean          = props.refreshing.exists(_.get)
+  val isRefreshing: Boolean          = refreshing.exists(_.get)
   val isCompleted: Boolean           = sequenceStatus.isCompleted
 
 object SeqControlButtons
@@ -61,10 +61,12 @@ object SeqControlButtons
           // ).when(!selectedObsIsLoaded),
           Button(
             clazz = ObserveStyles.PlayButton |+| ObserveStyles.ObsSummaryButton,
+            loading = props.isRefreshing,
             icon = Icons.Play.withFixedWidth().withSize(IconSize.LG),
             tooltip = "Start/Resume sequence",
             tooltipOptions = tooltipOptions,
-            onClick = sequenceApi.start(props.obsId, RunOverride.Override).runAsync,
+            onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
+              sequenceApi.start(props.obsId, RunOverride.Override).runAsync,
             disabled = props.isRefreshing || props.isCompleted
           ).when(!props.isRunning),
           Button(

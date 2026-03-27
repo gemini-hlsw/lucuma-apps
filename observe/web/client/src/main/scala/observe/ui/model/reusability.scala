@@ -18,7 +18,6 @@ import observe.model.NodAndShuffleStatus
 import observe.model.RunningStepProgress
 import observe.model.SequenceStatus
 import observe.model.StepProgress
-import observe.ui.components.sequence.steps.CurrentAtomStepRow
 import observe.ui.model.enums.ClientMode
 import observe.ui.model.enums.ObsClass
 import observe.ui.model.enums.OffsetsDisplay
@@ -41,12 +40,11 @@ object reusability:
   given Reusability[OperationRequest]                      = Reusability.byEq
   given Reusability[Map[Observation.Id, SequenceStatus]]   = Reusability.map
   given Reusability[RootModelData]                         = Reusability.byEq
-  // Since we extend the hierarchy here, we need to provide this instance manually
+  // TODO We don't extend the hierarchy anymore. We can use a sealed type, put reusability in ui
   given [D: Eq]: Reusability[SequenceRow[D]]               = Reusability:
     case (a: SequenceRow.FutureStep[D], b: SequenceRow.FutureStep[D])                         => a === b
     case (a: SequenceRow.Executed.ExecutedStep[D], b: SequenceRow.Executed.ExecutedStep[D])   =>
       a === b
     case (a: SequenceRow.Executed.ExecutedVisit[D], b: SequenceRow.Executed.ExecutedVisit[D]) =>
       a === b
-    case (a: CurrentAtomStepRow[D], b: CurrentAtomStepRow[D])                                 => a === b
     case (_, _)                                                                               => false

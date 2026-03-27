@@ -309,7 +309,7 @@ object SeqTranslate {
       case _                       => Event.nullEvent[F].pure[F].widen[Event[F]]
     }
 
-    override def stopObserve(seqId: Observation.Id, graceful: Boolean)(using
+    override def stopObserve(obsId: Observation.Id, graceful: Boolean)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = st => {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {
@@ -317,10 +317,10 @@ object SeqTranslate {
         case UnpausableControl(StopObserveCmd(stop), _)           => stop(graceful)
         case _                                                    => Applicative[F].unit
       }
-      deliverObserveCmd(seqId, f)(st).getOrElse(stopPaused(seqId).apply(st))
+      deliverObserveCmd(obsId, f)(st).getOrElse(stopPaused(obsId).apply(st))
     }
 
-    override def abortObserve(seqId: Observation.Id)(using
+    override def abortObserve(obsId: Observation.Id)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = st => {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {
@@ -329,25 +329,25 @@ object SeqTranslate {
         case _                                                      => Applicative[F].unit
       }
 
-      deliverObserveCmd(seqId, f)(st).getOrElse(abortPaused(seqId).apply(st))
+      deliverObserveCmd(obsId, f)(st).getOrElse(abortPaused(obsId).apply(st))
     }
 
-    override def pauseObserve(seqId: Observation.Id, graceful: Boolean)(using
+    override def pauseObserve(obsId: Observation.Id, graceful: Boolean)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = {
       def f(oc: ObserveControl[F]): F[Unit] = oc match {
         case CompleteControl(_, _, PauseObserveCmd(pause), _, _, _) => pause(graceful)
         case _                                                      => Applicative[F].unit
       }
-      deliverObserveCmd(seqId, f).map(_.orEmpty)
+      deliverObserveCmd(obsId, f).map(_.orEmpty)
     }
 
-    override def resumePaused(seqId: Observation.Id)(using
+    override def resumePaused(obsId: Observation.Id)(using
       tio: Temporal[F]
     ): EngineState[F] => Stream[F, Event[F]] = (st: EngineState[F]) => {
       val observeIndex: Option[(ObserveContext[F], Option[TimeSpan], Int)] =
         st.sequences
-          .get(seqId)
+          .get(obsId)
           .flatMap(
             _.seq.currentExecution.execution.zipWithIndex
               .find(_._1.kind === ActionType.Observe)
@@ -368,7 +368,7 @@ object SeqTranslate {
       observeIndex.map { case (obCtx, t, i) =>
         Stream.emit[F, Event[F]](
           Event.actionResume[F](
-            seqId,
+            obsId,
             i,
             obCtx
               .progress(ElapsedTime(t.getOrElse(TimeSpan.Zero)))
@@ -379,11 +379,11 @@ object SeqTranslate {
       }.orEmpty
     }
 
-    private def endPaused(seqId: Observation.Id, l: ObserveContext[F] => Stream[F, Result])(
+    private def endPaused(obsId: Observation.Id, l: ObserveContext[F] => Stream[F, Result])(
       st: EngineState[F]
     ): Stream[F, Event[F]] =
       st.sequences
-        .get(seqId)
+        .get(obsId)
         .flatMap(
           _.seq.currentExecution.execution.zipWithIndex
             .find(_._1.kind === ActionType.Observe)
@@ -393,12 +393,12 @@ object SeqTranslate {
                   Stream
                     .eval(
                       Event
-                        .actionResume(seqId,
-                                      i,
-                                      c
-                                        .progress(ElapsedTime(c.expTime))
-                                        .mergeHaltR(l(c))
-                                        .handleErrorWith(catchObsErrors[F])
+                        .actionResume(
+                          obsId,
+                          i,
+                          c.progress(ElapsedTime(c.expTime))
+                            .mergeHaltR(l(c))
+                            .handleErrorWith(catchObsErrors[F])
                         )
                         .pure[F]
                     )
@@ -410,14 +410,14 @@ object SeqTranslate {
         .orEmpty
 
     private def stopPaused(
-      seqId: Observation.Id
+      obsId: Observation.Id
     ): EngineState[F] => Stream[F, Event[F]] =
-      endPaused(seqId, _.stopPaused)
+      endPaused(obsId, _.stopPaused)
 
     private def abortPaused(
-      seqId: Observation.Id
+      obsId: Observation.Id
     ): EngineState[F] => Stream[F, Event[F]] =
-      endPaused(seqId, _.abortPaused)
+      endPaused(obsId, _.abortPaused)
 
     import TcsController.Subsystem.*
 
