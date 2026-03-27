@@ -91,15 +91,18 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     val startVal: VerifiedEpics[F, F, CombinedOiwfsStatus] = for {
       oiName  <- sys.ags.status.oiwfsName
       exp     <- sys.oiwfs.getIntegrationTime
-      gmosSav <- sys.gmosOiwfs.circularBufferStatus.map(_.map(_.imageEnabled))
-      f2Sav   <- sys.f2Oiwfs.circularBufferStatus.map(_.map(_.imageEnabled))
+      gmosSav <-
+        sys.gmosOiwfs.circularBufferStatus.map(_.map(_.imageEnabled)).attempt(ConnectionTimeout)
+      f2Sav   <-
+        sys.f2Oiwfs.circularBufferStatus.map(_.map(_.imageEnabled)).attempt(ConnectionTimeout)
     } yield for {
       t  <- exp.attempt.map(_.toOption)
       oi <- oiName.attempt.map(_.toOption)
-      gm <- gmosSav.attempt.map(_.toOption)
-      f2 <- f2Sav.attempt.map(_.toOption)
+      gm <- gmosSav.map(_.toOption)
+      f2 <- f2Sav.map(_.toOption)
     } yield CombinedOiwfsStatus(t, oi, gm, f2)
 
+    // TODO: Implement stream reconnection instead of discarding the stream forever if cannot create it
     val streamsRes: VerifiedEpics[
       F,
       Resource[F, *],
@@ -107,9 +110,13 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     ] = for {
       expS    <- sys.oiwfs.integrationTimeStream
       oiNameS <- sys.ags.status.oiwfsNameStream
-      gmSaveS <- sys.gmosOiwfs.imgCircularBufferStrean
-      f2SaveS <- sys.f2Oiwfs.imgCircularBufferStrean
-    } yield (expS, oiNameS, gmSaveS, f2SaveS).mapN((_, _, _, _))
+      gmSaveS <- sys.gmosOiwfs.imgCircularBufferStream.attempt(ConnectionTimeout)
+      f2SaveS <- sys.f2Oiwfs.imgCircularBufferStream.attempt(ConnectionTimeout)
+    } yield (expS,
+             oiNameS,
+             gmSaveS.map(_.getOrElse(Stream.never)),
+             f2SaveS.map(_.getOrElse(Stream.never))
+    ).mapN((_, _, _, _))
 
     val streams: VerifiedEpics[F, Resource[F, *], Stream[F, OiStatusEvent]] =
       streamsRes.map(_.map { (a, b, c, d) =>
