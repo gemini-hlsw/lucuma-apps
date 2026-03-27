@@ -3,7 +3,6 @@
 
 package observe.server
 
-import cats.Monoid
 import cats.data.NonEmptyList
 import cats.effect.Async
 import cats.effect.IO
@@ -21,6 +20,9 @@ import lucuma.core.model.ImageQuality
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.ExecutionConfig
+import lucuma.core.model.sequence.ExecutionSequence
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.StepEstimate
@@ -38,24 +40,24 @@ import observe.model.ClientId
 import observe.model.Conditions
 import observe.model.Observer
 import observe.model.Operator
-import observe.model.SequenceState
-import observe.model.SequenceState.*
-import observe.model.SystemOverrides
+import observe.model.SequenceStatus
 import observe.model.UserPrompt
-import observe.model.dhs.DataId
-import observe.model.enums.Resource
 import observe.model.enums.Resource.Gcal
 import observe.model.enums.Resource.TCS
 import observe.model.enums.RunOverride
 import observe.server.SeqEvent.RequestConfirmation
-import observe.server.SequenceGen.StepStatusGen
-import observe.server.engine.Breakpoints
+import observe.server.engine.DummyExecutionZipper
+import observe.server.engine.DummyStepGen
+import observe.server.engine.EngineHandle
+import observe.server.engine.Event
 import observe.server.engine.EventResult
 import observe.server.engine.EventResult.Outcome
 import observe.server.engine.EventResult.SystemUpdate
-import observe.server.engine.Sequence
+import observe.server.engine.LoadedStep
+import observe.server.engine.SequenceState
 import observe.server.engine.SystemEvent
 import observe.server.engine.user
+import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
 import observe.server.odb.TestOdbProxy.StepStartStep
 import observe.server.tcs.DummyTargetKeywordsReader
@@ -75,18 +77,20 @@ class ObserveEngineSuite extends TestCommon {
   private case class EngineObserver[F[_]: Async](
     oe:           ObserveEngine[F],
     initialState: EngineState[F] = EngineState.default[F]
-  ):
+  ) {
     private val state: Ref[F, EngineState[F]] = Ref.unsafe(initialState)
 
     def executeAndWait(
       f:     ObserveEngine[F] => F[Unit],
-      until: PartialFunction[(EventResult, EngineState[F]), Boolean]
+      until: PartialFunction[(EventResult, EngineState[F]), Boolean],
+      tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
     ): F[EngineState[F]] =
       for
         _ <- f(oe)
         s <- state.get
         r <- oe.eventResultStream(s)
                //  .evalTap(r => cats.effect.Sync[F].delay(println(s"**** ${r._1}"))) // Uncomment for debugging
+               .evalTap((r, s) => tap.lift((r, s)).getOrElse(Async[F].unit))
                .takeThrough(r => !until.lift(r).getOrElse(false))
                .compile
                .last
@@ -96,15 +100,18 @@ class ObserveEngineSuite extends TestCommon {
 
     def executeAndWaitResult(
       f:     ObserveEngine[F] => F[Unit],
-      until: PartialFunction[EventResult, Boolean]
+      until: PartialFunction[EventResult, Boolean],
+      tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
     ): F[EngineState[F]] =
-      executeAndWait(f, r => until.lift(r._1).getOrElse(false))
+      executeAndWait(f, r => until.lift(r._1).getOrElse(false), tap)
 
     def executeAndWaitState(
       f:     ObserveEngine[F] => F[Unit],
-      until: PartialFunction[EngineState[F], Boolean]
+      until: PartialFunction[EngineState[F], Boolean],
+      tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
     ): F[EngineState[F]] =
-      executeAndWait(f, r => until.lift(r._2).getOrElse(false))
+      executeAndWait(f, r => until.lift(r._2).getOrElse(false), tap)
+  }
 
   test("ObserveEngine setOperator should set operator's name") {
     val s0 = EngineState.default[IO]
@@ -163,13 +170,7 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine setObserver should set observer's name") {
-    val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
-        None,
-        sequence(seqObsId1),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
-      )
+    val s0 = loadDefaultSequence(seqObsId1)
       .apply(EngineState.default[IO])
     (for {
       oe <- observeEngine
@@ -184,84 +185,182 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine should not run 2nd sequence because it's using the same resource") {
-    val s0 = (
-      ODBSequencesLoader.loadSequenceEndo[IO](
-        None,
-        sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
-      ) >>>
-        ODBSequencesLoader.loadSequenceEndo[IO](
-          None,
-          sequenceWithResources(seqObsId2, Set(Instrument.GmosSouth, TCS)),
-          EngineState.instrumentLoaded(Instrument.GmosSouth),
-          IO.unit
-        ) >>>
-        EngineState
-          .sequenceStateAt[IO](seqObsId1)
-          .andThen(Sequence.State.status[IO])
-          .replace(SequenceState.Running.Init)
-    ).apply(EngineState.default[IO])
-
-    (for {
-      oe <- observeEngine
-      sf <- advanceOne(
-              oe,
-              s0,
-              oe.start(seqObsId2, user, observer, clientId, RunOverride.Default)
+    for {
+      odb                  <-
+        TestOdbProxy.build[IO](
+          Map(
+            Instrument.GmosSouth -> TestOdbProxy.InstrumentState(
+              seqObsId2,
+              staticCfg2,
+              TestOdbProxy.SequenceState(none, List.empty)
+            ),
+            Instrument.GmosNorth -> TestOdbProxy.InstrumentState(
+              seqObsId1,
+              staticCfg1,
+              TestOdbProxy.SequenceState(
+                Atom( // We need a step for checks to run
+                  atomId1,
+                  none,
+                  NonEmptyList.one:
+                    Step[DynamicConfig.GmosNorth](
+                      stepId(1),
+                      dynamicCfg1,
+                      stepCfg1,
+                      telescopeCfg1,
+                      StepEstimate.Zero,
+                      ObserveClass.Science,
+                      Breakpoint.Disabled
+                    )
+                ).some,
+                List.empty
+              )
             )
-    } yield sf
-      .flatMap(EngineState.sequenceStateAt[IO](seqObsId2).getOption)
-      .exists(_.status.isIdle)).assert
+          )
+        )
+      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      eo                    = EngineObserver(observeEngine)
+      _                    <-
+        eo.executeAndWaitResult(
+          _.loadSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId1, clientId))
+                ) =>
+              true
+          }
+        )
+      _                    <-
+        eo.executeAndWaitResult(
+          _.loadSequence(Instrument.GmosSouth, seqObsId2, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId2, clientId))
+                ) =>
+              true
+          }
+        )
+      _                    <-
+        eng.offer:
+          Event.modifyState[IO]:
+            EngineHandle
+              .modifySequenceState[IO](seqObsId2):
+                SequenceState.status.replace(SequenceStatus.Running.Init) >>>
+                  SequenceState.loadedStep.replace:
+                    LoadedStep(DummyStepGen, DummyExecutionZipper).some
+              .as(SeqEvent.NullSeqEvent)
+      _                    <-
+        eo.executeAndWait(
+          _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
+          {
+            case (EventResult.UserCommandResponse(
+                    _,
+                    Outcome.Ok,
+                    Some(SeqEvent.Busy(seqObsId1, clientId))
+                  ),
+                  state
+                ) => // Loaded step should have been cleared
+              state.selected.gmosNorth.exists(_.loadedStep.isEmpty)
+          }
+        )
+    } yield () // If the test completes, it's correct.
   }
 
   test("ObserveEngine should run 2nd sequence when there are no shared resources") {
-    val s0 = (
-      ODBSequencesLoader.loadSequenceEndo[IO](
-        None,
-        sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
-      ) >>>
-        ODBSequencesLoader.loadSequenceEndo[IO](
-          None,
-          sequenceWithResources(seqObsId2, Set(Instrument.GmosSouth)),
-          EngineState.instrumentLoaded(Instrument.GmosSouth),
-          IO.unit
-        ) >>>
-        EngineState
-          .sequenceStateAt[IO](seqObsId1)
-          .andThen(Sequence.State.status[IO])
-          .replace(SequenceState.Running.Init)
-    ).apply(EngineState.default[IO])
-
-    (for {
-      oe <- observeEngine
-      sf <- advanceN(
-              oe,
-              s0,
-              oe.start(
-                seqObsId2,
-                user,
-                observer,
-                clientId,
-                RunOverride.Default
-              ),
-              2
+    for {
+      odb                  <-
+        TestOdbProxy.build[IO](
+          Map(
+            Instrument.GmosSouth -> TestOdbProxy.InstrumentState(
+              seqObsId2,
+              staticCfg2,
+              TestOdbProxy.SequenceState(none, List.empty)
+            ),
+            Instrument.GmosNorth -> TestOdbProxy.InstrumentState(
+              seqObsId1,
+              staticCfg1,
+              TestOdbProxy.SequenceState(
+                Atom( // We need a step for checks to run
+                  atomId1,
+                  none,
+                  NonEmptyList.one:
+                    Step[DynamicConfig.GmosNorth](
+                      stepId(1),
+                      dynamicCfg1,
+                      stepCfg1,
+                      telescopeCfg1,
+                      StepEstimate.Zero,
+                      ObserveClass.Science,
+                      Breakpoint.Disabled
+                    )
+                ).some,
+                List.empty
+              )
             )
-    } yield sf
-      .flatMap(EngineState.sequenceStateAt[IO](seqObsId2).getOption)
-      .exists(_.status.isRunning)).assert
+          )
+        )
+      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      eo                    = EngineObserver(observeEngine)
+      _                    <-
+        eo.executeAndWaitResult(
+          _.loadSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId1, clientId))
+                ) =>
+              true
+          }
+        )
+      _                    <-
+        eo.executeAndWaitResult(
+          _.loadSequence(Instrument.GmosSouth, seqObsId2, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId2, clientId))
+                ) =>
+              true
+          }
+        )
+      _                    <-
+        eng.offer:
+          Event.modifyState[IO]:
+            EngineHandle
+              .modifySequenceState[IO](seqObsId2):
+                SequenceState.status.replace(SequenceStatus.Running.Init) >>>
+                  SequenceState.loadedStep.replace:
+                    LoadedStep(
+                      DummyStepGen.copy(resources = Set(Instrument.GmosSouth)),
+                      DummyExecutionZipper
+                    ).some
+              .as(SeqEvent.NullSeqEvent)
+      _                    <-
+        eo.executeAndWaitResult(
+          _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
+          {
+            case (EventResult.UserCommandResponse(
+                  _,
+                  Outcome.Ok,
+                  Some(SeqEvent.AcquisitionCompleted(seqObsId1))
+                )) =>
+              true
+          }
+        )
+    } yield () // If the test completes, it's correct.
   }
 
   test("ObserveEngine configSystem should run a system configuration") {
-    val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
-        None,
-        sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
-      )
+    val s0 = loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
+    )
       .apply(EngineState.default[IO])
 
     (for {
@@ -280,24 +379,21 @@ class ObserveEngineSuite extends TestCommon {
               3
             )
     } yield sf
-      .flatMap(
-        EngineState.atSequence(seqObsId1).getOption
-      )
-      .flatMap(s => s.seqGen.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(EngineState.atSequence(seqObsId1).getOption)
+      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
       .exists(_.started)).assert
   }
 
   test("ObserveEngine should not run a system configuration if sequence is running") {
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
-      None,
-      sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+    val s0 = (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .andThen(SequenceState.status[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine
@@ -314,30 +410,26 @@ class ObserveEngineSuite extends TestCommon {
               )
             )
     } yield sf
-      .flatMap(
-        EngineState.atSequence(seqObsId1).getOption
-      )
-      .flatMap(s => s.seqGen.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(EngineState.atSequence(seqObsId1).getOption)
+      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
       .exists(_.isIdle)).assert
   }
 
   test("ObserveEngine should not run a system configuration if system is in use") {
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
-      None,
-      sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+    val s0 = (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
-      ODBSequencesLoader.loadSequenceEndo[IO](
-        None,
-        sequenceWithResources(seqObsId2, Set(Instrument.GmosSouth, TCS)),
-        EngineState.instrumentLoaded(Instrument.GmosSouth),
-        IO.unit
+      loadSequenceWithResources(
+        seqObsId2,
+        Set(Instrument.GmosSouth, TCS),
+        EngineState.instrumentLoaded(Instrument.GmosSouth)
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .andThen(SequenceState.status[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine
@@ -353,54 +445,45 @@ class ObserveEngineSuite extends TestCommon {
           .atSequence(seqObsId2)
           .getOption
       )
-      .flatMap(s => s.seqGen.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
+      .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
       .exists(_.isIdle)).assert
   }
 
   test(
     "ObserveEngine should run a system configuration when other sequence is running with other systems"
   ) {
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
-      None,
-      sequenceWithResources(seqObsId1, Set(Instrument.GmosNorth, TCS)),
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+    val s0 = (loadSequenceWithResources(
+      seqObsId1,
+      Set(Instrument.GmosNorth, TCS),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
-      ODBSequencesLoader.loadSequenceEndo[IO](
-        None,
-        sequenceWithResources(seqObsId2, Set(Instrument.GmosNorth, Gcal)),
-        EngineState.instrumentLoaded(Instrument.GmosSouth),
-        IO.unit
+      loadSequenceWithResources(
+        seqObsId2,
+        Set(Instrument.GmosNorth, Gcal),
+        EngineState.instrumentLoaded(Instrument.GmosSouth)
       ) >>>
       EngineState
         .sequenceStateAt[IO](seqObsId1)
-        .andThen(Sequence.State.status[IO])
-        .replace(SequenceState.Running.Init)).apply(EngineState.default[IO])
+        .andThen(SequenceState.status[IO])
+        .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
     (for {
       oe <- observeEngine
       sf <- advanceN(
               oe,
               s0,
-              oe
-                .configSystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
+              oe.configSystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
               3
             )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId2).getOption)
-      .flatMap(s => s.seqGen.configActionCoord(stepId(1), Gcal).map(s.seq.getSingleState))
+      .flatMap(s => s.configActionCoord(stepId(1), Gcal).map(s.seq.getSingleState))
       .exists(_.started)).assert
   }
 
-  private def testTargetSequence(targetName: NonEmptyString): SequenceGen[IO] = {
-    val resources: Set[Resource | Instrument] = Set(Instrument.GmosNorth, TCS)
-
-    val obsTypes: NonEmptyList[(ObserveClass, StepConfig)] = NonEmptyList(
-      (ObserveClass.NightCal, StepConfig.Dark),
-      List((ObserveClass.Science, StepConfig.Science))
-    )
-
-    val startStepIdx  = 1
+  private def testTargetSequenceData(
+    targetName: NonEmptyString
+  ): (ODBObservation, NonEmptyList[Step[DynamicConfig.GmosNorth]]) = {
     val reqConditions = ConstraintSet(
       ImageQuality.Preset.PointTwo,
       CloudExtinction.Preset.PointFive,
@@ -409,67 +492,36 @@ class ObserveEngineSuite extends TestCommon {
       ElevationRange.ByHourAngle.Default
     )
 
-    val stepList: NonEmptyList[Step[DynamicConfig.GmosNorth]] = obsTypes.zipWithIndex.map {
-      case ((cl, st), idx) =>
+    val stepList: NonEmptyList[Step[DynamicConfig.GmosNorth]] =
+      NonEmptyList.one:
         Step[DynamicConfig.GmosNorth](
-          stepId(idx + startStepIdx),
+          stepId1,
           dynamicCfg1,
-          st,
+          StepConfig.Science,
           telescopeCfg1,
           StepEstimate.Zero,
-          cl,
+          ObserveClass.Science,
           Breakpoint.Disabled
         )
-    }
 
-    SequenceGen.GmosNorth[IO](
-      ODBObservation(
-        id = seqObsId1,
-        title = "Test Observation".refined,
-        ODBObservation.Program(
-          Program.Id(PosLong.unsafeFrom(123)),
-          None,
-          ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-        ),
-        TargetEnvironment(
-          Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName)),
-          GuideEnvironment(List.empty)
-        ),
-        reqConditions,
-        List.empty,
-        ModeSignalToNoise.Spectroscopy(none, none)
+    val obs = ODBObservation(
+      id = seqObsId1,
+      title = "Test Observation".refined,
+      ODBObservation.Program(
+        Program.Id(PosLong.unsafeFrom(123)),
+        None,
+        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      staticCfg1,
-      SequenceGen.AtomGen.GmosNorth(
-        atomId1,
-        SequenceType.Science,
-        steps = stepList.map { step =>
-          SequenceGen.PendingStepGen(
-            step.id,
-            Monoid.empty[DataId],
-            resources = resources,
-            _ => InstrumentSystem.Uncontrollable,
-            generator = SequenceGen.StepActionsGen(
-              odbAction[IO],
-              odbAction[IO],
-              configs =
-                resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
-              odbAction[IO],
-              odbAction[IO],
-              post = (_, _) => Nil,
-              odbAction[IO],
-              odbAction[IO]
-            ),
-            StepStatusGen.Null,
-            step.instrumentConfig,
-            step.stepConfig,
-            step.telescopeConfig,
-            signalToNoise = none,
-            breakpoint = Breakpoint.Disabled
-          )
-        }.toList
-      )
+      TargetEnvironment(
+        Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName)),
+        GuideEnvironment(List.empty)
+      ),
+      reqConditions,
+      List.empty,
+      ModeSignalToNoise.Spectroscopy(none, none)
     )
+
+    (obs, stepList)
   }
 
   private def systemsWithTargetName(name: String): IO[Systems[IO]] =
@@ -482,30 +534,34 @@ class ObserveEngineSuite extends TestCommon {
       })
 
   test("ObserveEngine start should start the sequence if it passes the target check") {
-    val seq = testTargetSequence("proof".refined)
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
-        None,
-        seq,
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+      .loadSequenceMod[IO](
+        none,
+        OdbObservationData(
+          obs,
+          InstrumentExecutionConfig.GmosNorth(
+            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+          )
+        ),
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
     (for {
-      systems <- systemsWithTargetName("proof")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
-      sf      <- advanceOne(oe,
-                            s0,
-                            oe.start(
-                              seqObsId1,
-                              user,
-                              observer,
-                              clientId,
-                              RunOverride.Default
-                            )
-                 )
+      acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
+      systems   <- systemsWithTargetName("proof")
+      odb       <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe        <- ObserveEngine.build(
+                     Site.GN,
+                     systems.copy(odb = odb),
+                     defaultSettings,
+                     ExecutionEnvironment.Development
+                   )
+      sf        <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isRunning)).assert
@@ -514,143 +570,76 @@ class ObserveEngineSuite extends TestCommon {
   test(
     "ObserveEngine start should not start the sequence if it fails the target check for science observations"
   ) {
-    val seq = testTargetSequence("proof".refined)
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
-        None,
-        seq,
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+      .loadSequenceMod[IO](
+        none,
+        OdbObservationData(
+          obs,
+          InstrumentExecutionConfig.GmosNorth(
+            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+          )
+        ),
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
     (for {
       systems <- systemsWithTargetName("proof1")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
-      sf      <- advanceOne(oe,
-                            s0,
-                            oe.start(
-                              seqObsId1,
-                              user,
-                              observer,
-                              clientId,
-                              RunOverride.Default
-                            )
+      odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe      <- ObserveEngine.build(
+                   Site.GN,
+                   systems.copy(odb = odb),
+                   defaultSettings,
+                   ExecutionEnvironment.Development
                  )
+      sf      <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isIdle)).assert
   }
 
   test(
-    "ObserveEngine start should start the sequence that fails the target check for if forced"
+    "ObserveEngine start should start the sequence that fails the target check if forced"
   ) {
-    val seq = testTargetSequence("proof".refined)
+    val (obs, steps) = testTargetSequenceData("proof".refined)
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
 
     val s0 = ODBSequencesLoader
-      .loadSequenceEndo[IO](
-        None,
-        seq,
-        EngineState.instrumentLoaded(Instrument.GmosNorth),
-        IO.unit
+      .loadSequenceMod[IO](
+        none,
+        OdbObservationData(
+          obs,
+          InstrumentExecutionConfig.GmosNorth(
+            ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+          )
+        ),
+        EngineState.instrumentLoaded(Instrument.GmosNorth)
       )
       .apply(EngineState.default[IO])
 
     (for {
       systems <- systemsWithTargetName("proof1")
-      oe      <- ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
-      sf      <- advanceOne(oe,
-                            s0,
-                            oe.start(
-                              seqObsId1,
-                              user,
-                              observer,
-                              clientId,
-                              RunOverride.Override
-                            )
+      odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe      <- ObserveEngine.build(
+                   Site.GN,
+                   systems.copy(odb = odb),
+                   defaultSettings,
+                   ExecutionEnvironment.Development
                  )
+      sf      <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Override))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isRunning)).assert
   }
 
-  // test(
-//   it should "not check target for calibrations" in {
-//     val systems = systemsWithTargetName("other")
-//
-//     val seq = simpleSequenceWithTargetName("proof")
-//
-//     val s0 = ODBSequencesLoader
-//       .loadSequenceEndo[IO](seqObsId1, seq, executeEngine)
-//       .apply(EngineState.default[IO])
-//
-//     (for {
-//       sm            <- ObserveMetrics.build[IO](Site.GS, new CollectorRegistry())
-//       observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings, sm)
-//       q             <- Queue.bounded[IO, executeEngine.EventType](10)
-//       sf            <- advanceOne(
-//                          q,
-//                          s0,
-//                          observeEngine.start(q,
-//                                              seqObsId1,
-//                                              user,
-//                                              Observer(""),
-//                                              clientId,
-//                                              RunOverride.Override
-//                          )
-//                        )
-//     } yield inside(
-//       sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption).map(_.status)
-//     ) { case Some(status) =>
-//       assert(status.isRunning)
-//     }).unsafeRunSync()
-//   }
-//
-//   "ObserveEngine startFrom" should "not check target for calibrations" in {
-//     val systems = systemsWithTargetName("other")
-//
-//     val seq = testTargetSequence("proof",
-//                                  1,
-//                                  List(ObsClass.DAY_CAL, ObsClass.DAY_CAL),
-//                                  List(ARC_OBSERVE_TYPE, DARK_OBSERVE_TYPE)
-//     )
-//
-//     val s0 = ODBSequencesLoader
-//       .loadSequenceEndo[IO](seqObsId1, seq, executeEngine)
-//       .apply(EngineState.default[IO])
-//
-//     (for {
-//       sm            <- ObserveMetrics.build[IO](Site.GS, new CollectorRegistry())
-//       observeEngine <- ObserveEngine.build(Site.GS, systems, defaultSettings, sm)
-//       q             <- Queue.bounded[IO, executeEngine.EventType](10)
-//       sf            <-
-//         advanceOne(q,
-//                    s0,
-//                    observeEngine.startFrom(q,
-//                                            seqObsId1,
-//                                            Observer(""),
-//                                            stepId(2),
-//                                            clientId,
-//                                            RunOverride.Default
-//                    )
-//         )
-//     } yield inside(
-//       sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption).map(_.status)
-//     ) { case Some(status) =>
-//       assert(status.isRunning)
-//     }).unsafeRunSync()
-//   }
+  private val testConditionsSequenceData
+    : (ODBObservation, NonEmptyList[Step[DynamicConfig.GmosNorth]]) = {
 
-  private val testConditionsSequence: SequenceGen[IO] = {
-    val resources: Set[Resource | Instrument] = Set(Instrument.GmosNorth, TCS)
-
-    val obsTypes: NonEmptyList[(ObserveClass, StepConfig)] = NonEmptyList(
-      (ObserveClass.NightCal, StepConfig.Dark),
-      List((ObserveClass.Science, StepConfig.Science))
-    )
-
-    val startStepIdx  = 1
     val reqConditions = ConstraintSet(
       ImageQuality.Preset.PointTwo,
       CloudExtinction.Preset.PointFive,
@@ -659,74 +648,49 @@ class ObserveEngineSuite extends TestCommon {
       ElevationRange.ByHourAngle.Default
     )
 
-    val stepList: NonEmptyList[Step[DynamicConfig.GmosNorth]] = obsTypes.zipWithIndex.map {
-      case ((cl, st), idx) =>
+    val stepList: NonEmptyList[Step[DynamicConfig.GmosNorth]] =
+      NonEmptyList.one:
         Step[DynamicConfig.GmosNorth](
-          stepId(idx + startStepIdx),
+          stepId1,
           dynamicCfg1,
-          st,
+          StepConfig.Science,
           telescopeCfg1,
           StepEstimate.Zero,
-          cl,
+          ObserveClass.Science,
           Breakpoint.Disabled
         )
-    }
 
-    SequenceGen.GmosNorth[IO](
-      ODBObservation(
-        id = seqObsId1,
-        title = "Test Observation".refined,
-        ODBObservation.Program(
-          Program.Id(PosLong.unsafeFrom(123)),
-          None,
-          ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-        ),
-        TargetEnvironment(None, GuideEnvironment(List.empty)),
-        reqConditions,
-        List.empty,
-        ModeSignalToNoise.Spectroscopy(none, none)
+    val obs = ODBObservation(
+      id = seqObsId1,
+      title = "Test Observation".refined,
+      ODBObservation.Program(
+        Program.Id(PosLong.unsafeFrom(123)),
+        None,
+        ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      staticCfg1,
-      SequenceGen.AtomGen.GmosNorth(
-        atomId1,
-        SequenceType.Science,
-        steps = stepList.map { step =>
-          SequenceGen.PendingStepGen(
-            step.id,
-            Monoid.empty[DataId],
-            resources = resources,
-            _ => InstrumentSystem.Uncontrollable,
-            generator = SequenceGen.StepActionsGen(
-              odbAction[IO],
-              odbAction[IO],
-              configs =
-                resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
-              odbAction[IO],
-              odbAction[IO],
-              post = (_, _) => Nil,
-              odbAction[IO],
-              odbAction[IO]
-            ),
-            StepStatusGen.Null,
-            step.instrumentConfig,
-            step.stepConfig,
-            step.telescopeConfig,
-            signalToNoise = none,
-            breakpoint = Breakpoint.Disabled
-          )
-        }.toList
-      )
+      TargetEnvironment(None, GuideEnvironment(List.empty)),
+      reqConditions,
+      List.empty,
+      ModeSignalToNoise.Spectroscopy(none, none)
     )
+
+    (obs, stepList)
   }
 
   test("ObserveEngine start should start the sequence if it passes the conditions check") {
-    val seq = testConditionsSequence
+    val (obs, steps) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
+
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
-      seq,
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      OdbObservationData(
+        obs,
+        InstrumentExecutionConfig.GmosNorth(
+          ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+        )
+      ),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -740,8 +704,13 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       systems       <- defaultSystems
-      observeEngine <-
-        ObserveEngine.build[IO](Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
+      odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      observeEngine <- ObserveEngine.build(
+                         Site.GN,
+                         systems.copy(odb = odb),
+                         defaultSettings,
+                         ExecutionEnvironment.Development
+                       )
       sf            <- advanceOne(
                          observeEngine,
                          s0,
@@ -755,18 +724,24 @@ class ObserveEngineSuite extends TestCommon {
                        )
     } yield sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)).map { s =>
       assert(s.exists(_.status.isRunning))
-      assert(s.flatMap(_.currentStep).exists(_.id === stepId(1)))
+      assert(s.flatMap(_.loadedStep).exists(_.id === stepId1))
     }
   }
 
   test("ObserveEngine start should not start the sequence if it fails the conditions check") {
-    val seq = testConditionsSequence
+    val (obs, steps) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
+
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
-      seq,
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      OdbObservationData(
+        obs,
+        InstrumentExecutionConfig.GmosNorth(
+          ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+        )
+      ),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -780,8 +755,13 @@ class ObserveEngineSuite extends TestCommon {
 
     for {
       systems       <- defaultSystems
-      observeEngine <-
-        ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
+      odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      observeEngine <- ObserveEngine.build(
+                         Site.GN,
+                         systems.copy(odb = odb),
+                         defaultSettings,
+                         ExecutionEnvironment.Development
+                       )
       result        <-
         observeEngine.start(
           seqObsId1,
@@ -798,14 +778,9 @@ class ObserveEngineSuite extends TestCommon {
           case EventResult.UserCommandResponse(
                 _,
                 Outcome.Ok,
-                Some(
-                  RequestConfirmation(
-                    UserPrompt.ChecksOverride(_, stpid, _),
-                    _
-                  )
-                )
+                Some(RequestConfirmation(UserPrompt.ChecksOverride(_, stpid, _), _))
               ) =>
-            stpid === stepId(1)
+            stpid === stepId1
           case _ => false
         })
       }
@@ -813,13 +788,19 @@ class ObserveEngineSuite extends TestCommon {
   }
 
   test("ObserveEngine start should start the sequence that fails conditions check if forced") {
-    val seq = testConditionsSequence
+    val (obs, steps) = testConditionsSequenceData
 
-    val s0 = (ODBSequencesLoader.loadSequenceEndo[IO](
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, steps)
+
+    val s0 = (ODBSequencesLoader.loadSequenceMod[IO](
       None,
-      seq,
-      EngineState.instrumentLoaded(Instrument.GmosNorth),
-      IO.unit
+      OdbObservationData(
+        obs,
+        InstrumentExecutionConfig.GmosNorth(
+          ExecutionConfig(staticCfg1, ExecutionSequence(acqAtom, List.empty, false).some, none)
+        )
+      ),
+      EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
         .andThen(Conditions.iq)
@@ -833,8 +814,13 @@ class ObserveEngineSuite extends TestCommon {
 
     for {
       systems       <- defaultSystems
-      observeEngine <-
-        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
+      odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      observeEngine <- ObserveEngine.build(
+                         Site.GN,
+                         systems.copy(odb = odb),
+                         defaultSettings,
+                         ExecutionEnvironment.Development
+                       )
       sf            <-
         advanceN(
           observeEngine,
@@ -850,13 +836,13 @@ class ObserveEngineSuite extends TestCommon {
       )
       assert(
         sf.flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
-          .flatMap(_.currentStep)
-          .exists(_.id === stepId(1))
+          .flatMap(_.loadedStep)
+          .exists(_.id === stepId1)
       )
     }
   }
 
-  test("ObserveEngine loadNextAtom should load the next atom and restart the execution") {
+  test("ObserveEngine proceedAfterPrompt should load the next step and restart the execution") {
     val acquisitionStepCount = 2
     val scienceAtomCount     = 2
     val scienceStepCount     = 2
@@ -912,67 +898,58 @@ class ObserveEngineSuite extends TestCommon {
     )
 
     for {
-      acqAtomId     <- IO.delay(java.util.UUID.randomUUID()).map(Atom.Id.fromUuid)
-      atomIds       <- List
-                         .fill(scienceAtomCount)(IO.delay(java.util.UUID.randomUUID()))
-                         .parSequence
-                         .map(_.map(Atom.Id.fromUuid))
-      odb           <- TestOdbProxy.build[IO](
-                         staticCfg1,
-                         Atom[DynamicConfig.GmosNorth](acqAtomId, none, acquisitionSteps).some,
-                         atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, scienceSteps))
-                       )
-      systems       <- defaultSystems.map(_.copy(odb = odb))
-      oseq          <- odb.read(seqObsId1)
-      seqo          <- generateSequence(oseq, systems)
-      seq           <- seqo.map(_.pure[IO]).getOrElse(IO.delay(fail("Unable to create sequence")))
-      s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
-                           None,
-                           seq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
-                         )
-                         .apply(EngineState.default[IO])
-      s1             =
-        EngineState
-          .sequenceStateAt[IO](seqObsId1)
-          .modify(x =>
-            Sequence.State.Final(
-              x.toSequence,
-              Running(
-                HasUserStop.No,
-                HasInternalStop.No,
-                IsWaitingUserPrompt.No,
-                IsWaitingNextAtom.Yes,
-                IsStarting.No
-              ),
-              Breakpoints.empty
-            )
-          )(s0)
-      observeEngine <-
-        ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
-      eo             = EngineObserver(observeEngine, s1)
-      r             <-
+      acqAtomId            <- IO.randomUUID.map(Atom.Id.fromUuid)
+      atomIds              <- List
+                                .fill(scienceAtomCount)(IO.randomUUID)
+                                .parSequence
+                                .map(_.map(Atom.Id.fromUuid))
+      odb                  <- TestOdbProxy.buildGmosNorth[IO](
+                                seqObsId1,
+                                staticCfg1,
+                                Atom[DynamicConfig.GmosNorth](acqAtomId, none, acquisitionSteps).some,
+                                atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, scienceSteps))
+                              )
+      (eng, observeEngine) <- bothEngines(defaultSystems.map(_.copy(odb = odb)))
+      eo                    = EngineObserver(observeEngine)
+      _                    <-
         eo.executeAndWaitResult(
-          _.loadNextAtom(seqObsId1, user, observer, SequenceType.Acquisition),
+          _.loadSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
           {
             case EventResult.UserCommandResponse(
                   _,
                   _,
-                  Some(SeqEvent.AtomCompleted(seqObsId1, SequenceType.Acquisition, acqAtomId))
+                  Some(SeqEvent.LoadSequence(seqObsId1, clientId))
                 ) =>
               true
           }
         )
-      s             <-
+      _                    <- eng.offer:
+                                Event.modifyState[IO]:
+                                  EngineHandle
+                                    .modifySequenceState[IO](seqObsId1):
+                                      SequenceState.status.replace:
+                                        SequenceStatus.Running.Init.withWaitingUserPrompt(true)
+                                    .as(SeqEvent.NullSeqEvent)
+      r                    <-
         eo.executeAndWaitResult(
-          _.loadNextAtom(seqObsId1, user, observer, SequenceType.Science),
+          _.proceedAfterPrompt(seqObsId1, user, observer, SequenceType.Acquisition),
           {
             case EventResult.UserCommandResponse(
                   _,
                   _,
-                  Some(SeqEvent.AtomCompleted(seqObsId1, SequenceType.Science, acqAtomId))
+                  Some(SeqEvent.AcquisitionCompleted(seqObsId1))
+                ) =>
+              true
+          }
+        )
+      s                    <-
+        eo.executeAndWaitResult(
+          _.proceedAfterPrompt(seqObsId1, user, observer, SequenceType.Science),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.SequenceCompleted(seqObsId1))
                 ) =>
               true
           }
@@ -980,20 +957,20 @@ class ObserveEngineSuite extends TestCommon {
     } yield {
       r.sequences
         .get(seqObsId1)
-        .flatMap(_.seqGen.nextAtom.steps.headOption)
-        .map(z => assertEquals(z.id, acquisitionSteps.get(1).get.id))
-        .getOrElse(fail("Bad step id found"))
+        .map(_.seq.status)
+        .map(s => assertEquals(s, SequenceStatus.Running.Init.withWaitingUserPrompt(true)))
+        .getOrElse(fail("Sequence id not loaded"))
       s.sequences
         .get(seqObsId1)
-        .flatMap(_.seqGen.nextAtom.steps.headOption)
-        .map(z => assertEquals(z.id, scienceSteps.get(1).get.id))
-        .getOrElse(fail("Bad step id found"))
+        .map(_.seq.status)
+        .map(s => assertEquals(s, SequenceStatus.Completed))
+        .getOrElse(fail("Sequence id not loaded"))
     }
   }
 
-  test("ObserveEngine should automatically load new science atoms") {
+  test("ObserveEngine should automatically load new science steps and atoms") {
     val atomCount = 2
-    val stepCount = 2
+    val stepCount = 3
 
     val steps = NonEmptyList(
       Step[DynamicConfig.GmosNorth](
@@ -1021,43 +998,47 @@ class ObserveEngineSuite extends TestCommon {
     )
 
     for {
-      atomIds       <- List
-                         .fill(atomCount)(IO.randomUUID)
-                         .parSequence
-                         .map(_.map(Atom.Id.fromUuid))
-      odb           <- TestOdbProxy.build[IO](
-                         staticCfg1,
-                         none,
-                         atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, steps))
-                       )
-      systems       <- defaultSystems.map(_.copy(odb = odb))
-      oseq          <- odb.read(seqObsId1)
-      seqo          <- generateSequence(oseq, systems)
-      seq           <- seqo.map(_.pure[IO]).getOrElse(IO.delay(fail("Unable to create sequence")))
-      s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
-                           None,
-                           seq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
-                         )
-                         .apply(EngineState.default[IO])
-      observeEngine <-
+      atomIds        <- List
+                          .fill(atomCount)(IO.randomUUID)
+                          .parSequence
+                          .map(_.map(Atom.Id.fromUuid))
+      odb            <- TestOdbProxy.buildGmosNorth[IO](
+                          seqObsId1,
+                          staticCfg1,
+                          none,
+                          atomIds.map(i => Atom[DynamicConfig.GmosNorth](i, none, steps))
+                        )
+      systems        <- defaultSystems.map(_.copy(odb = odb))
+      observeEngine  <-
         ObserveEngine.build(Site.GS, systems, defaultSettings, ExecutionEnvironment.Development)
-      eo             = EngineObserver(observeEngine, s0)
-      r             <-
+      eo              = EngineObserver(observeEngine)
+      _              <-
         eo.executeAndWaitResult(
-          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.AtomCompleted(_, _, _))) =>
-            true
+          _.loadSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
+          {
+            case EventResult.UserCommandResponse(
+                  _,
+                  _,
+                  Some(SeqEvent.LoadSequence(seqObsId1, clientId))
+                ) =>
+              true
           }
         )
-    } yield r.sequences
-      .get(seqObsId1)
-      .flatMap(_.seqGen.nextAtom.steps.headOption)
-      .map(z => assertEquals(z.id, stepId(2 + stepCount)))
-      .getOrElse(fail("Bad step id found"))
-
+      executedSteps  <- IO.ref(0)
+      r              <-
+        eo.executeAndWaitResult(
+          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
+          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.SequenceCompleted(_))) =>
+            true
+          },
+          tap = {
+            case (EventResult.SystemUpdate(SystemEvent.StepComplete(obsId), Outcome.Ok), _)
+                if obsId == seqObsId1 =>
+              executedSteps.update(_ + 1).void
+          }
+        )
+      completedSteps <- executedSteps.get
+    } yield assertEquals(completedSteps, stepCount)
   }
 
   def assertStep(l: List[TestOdbProxy.OdbEvent]): List[TestOdbProxy.OdbEvent] = {
@@ -1162,21 +1143,20 @@ class ObserveEngineSuite extends TestCommon {
                          .parSequence
                          .map(_.map(Atom.Id.fromUuid))
       odb           <-
-        TestOdbProxy.build[IO](
+        TestOdbProxy.buildGmosNorth[IO](
+          seqObsId1,
           staticCfg1,
           none,
           atomIds.zipWithIndex.map((i, k) => Atom[DynamicConfig.GmosNorth](i, none, steps(2 * k)))
         )
       systems       <- defaultSystems.map(_.copy(odb = odb))
       oseq          <- odb.read(seqObsId1)
-      seqo          <- generateSequence(oseq, systems)
-      seq           <- seqo.map(_.pure[IO]).getOrElse(IO.delay(fail("Unable to create sequence")))
+      seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
-                           seq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           oseq,
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
@@ -1242,7 +1222,8 @@ class ObserveEngineSuite extends TestCommon {
                          .parSequence
                          .map(_.map(Atom.Id.fromUuid))
       odb           <-
-        TestOdbProxy.build[IO](
+        TestOdbProxy.buildGmosNorth[IO](
+          seqObsId1,
           staticCfg1,
           none,
           atomIds.zipWithIndex.map((i, k) => Atom[DynamicConfig.GmosNorth](i, none, steps(2 * k))),
@@ -1250,8 +1231,8 @@ class ObserveEngineSuite extends TestCommon {
             if (addStep) {
               // Only once we add an extra setp at the beggining of the atom
               addStep = false
-              s.copy(sciences =
-                s.sciences.map(s =>
+              s.copy(science =
+                s.science.map(s =>
                   if (atomIds.headOption.exists(_ === s.id))
                     s.copy(steps = steps(5).head :: s.steps)
                   else s
@@ -1261,14 +1242,12 @@ class ObserveEngineSuite extends TestCommon {
         )
       systems       <- defaultSystems.map(_.copy(odb = odb))
       oseq          <- odb.read(seqObsId1)
-      seqo          <- generateSequence(oseq, systems)
-      seq           <- seqo.map(_.pure[IO]).getOrElse(IO.delay(fail("Unable to create sequence")))
+      seqo          <- generateStepGen(oseq, systems)
       s0             = ODBSequencesLoader
-                         .loadSequenceEndo[IO](
+                         .loadSequenceMod[IO](
                            None,
-                           seq,
-                           EngineState.instrumentLoaded(Instrument.GmosNorth),
-                           IO.unit
+                           oseq,
+                           EngineState.instrumentLoaded(Instrument.GmosNorth)
                          )
                          .apply(EngineState.default[IO])
       observeEngine <-
@@ -1288,72 +1267,5 @@ class ObserveEngineSuite extends TestCommon {
       }
       assertEquals(rest.length, 0)
     }
-  }
-
-  test("ObserveEngine should reset acquisition sequence if reloaded") {
-    val stepCount = 2
-
-    val steps = NonEmptyList(
-      Step[DynamicConfig.GmosNorth](
-        stepId(1 + stepCount),
-        dynamicCfg1,
-        stepCfg1,
-        telescopeCfg1,
-        StepEstimate.Zero,
-        ObserveClass.Science,
-        Breakpoint.Disabled
-      ),
-      List
-        .range(2, stepCount + 1)
-        .map(i =>
-          Step[DynamicConfig.GmosNorth](
-            stepId(i + stepCount),
-            dynamicCfg1,
-            stepCfg1,
-            telescopeCfg1,
-            StepEstimate.Zero,
-            ObserveClass.Science,
-            Breakpoint.Enabled
-          )
-        )
-    )
-
-    for
-      atomId        <- IO.randomUUID.map(Atom.Id.fromUuid)
-      odb           <- TestOdbProxy.build[IO](
-                         staticCfg1,
-                         Atom[DynamicConfig.GmosNorth](atomId, none, steps).some,
-                         List.empty
-                       )
-      systems       <- defaultSystems.map(_.copy(odb = odb))
-      observeEngine <-
-        ObserveEngine.build(Site.GN, systems, defaultSettings, ExecutionEnvironment.Development)
-      eo             = EngineObserver(observeEngine)
-      s1            <-
-        eo.executeAndWaitResult(
-          _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
-        )
-      _              = // Check all steps loaded
-        assertEquals(s1.sequences.get(seqObsId1).get(0).get.seqGen.nextAtom.steps.length, stepCount)
-      _              = // Check no steps were executed
-        assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
-      r             <-
-        eo.executeAndWaitResult(
-          _.start(seqObsId1, user, observer, clientId, RunOverride.Override),
-          { case EventResult.SystemUpdate(SystemEvent.BreakpointReached(_), _) => true }
-        )
-      _              = // Check one step was executed
-        assertEquals(r.sequences.get(seqObsId1).get(0).get.seq.done.length, 1)
-      s1            <-
-        eo.executeAndWaitResult(
-          _.selectSequence(Instrument.GmosNorth, seqObsId1, observer, user, clientId),
-          { case EventResult.UserCommandResponse(_, _, Some(SeqEvent.LoadSequence(_, _))) => true }
-        )
-    yield
-      // Check all steps loaded
-      assertEquals(s1.sequences.get(seqObsId1).get(0).get.seqGen.nextAtom.steps.length, stepCount)
-      // Check no steps were executed
-      assertEquals(s1.sequences.get(seqObsId1).get(0).get.seq.done.length, 0)
   }
 }

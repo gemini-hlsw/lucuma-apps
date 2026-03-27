@@ -6,7 +6,6 @@ package observe.model.arb
 import cats.syntax.all.*
 import eu.timepit.refined.scalacheck.numeric.given
 import eu.timepit.refined.scalacheck.string.given
-import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.SkyBackground
@@ -77,27 +76,27 @@ trait ObserveModelArbitraries {
     for {
       i <- arbitrary[Instrument]
       o <- arbitrary[Option[Observer]]
-      n <- Gen.alphaStr.suchThat(_.nonEmpty).map(NonEmptyString.unsafeFrom)
-    } yield SequenceMetadata(i, o, n)
+      // n <- Gen.alphaStr.suchThat(_.nonEmpty).map(NonEmptyString.unsafeFrom)
+    } yield SequenceMetadata(i, o) // , n)
   }
 
-  import SequenceState.*
+  import SequenceStatus.*
 
-  given Arbitrary[SequenceState.Running] = Arbitrary[SequenceState.Running] {
+  given Arbitrary[SequenceStatus.Running] = Arbitrary[SequenceStatus.Running] {
     for {
       u <- arbitrary[HasUserStop]
       i <- arbitrary[HasInternalStop]
       w <- arbitrary[IsWaitingUserPrompt]
-      a <- arbitrary[IsWaitingNextAtom]
+      a <- arbitrary[IsWaitingNextStep]
       s <- arbitrary[IsStarting]
-    } yield SequenceState.Running(u, i, w, a, s)
+    } yield SequenceStatus.Running(u, i, w, a, s)
   }
 
-  given Arbitrary[SequenceState] = Arbitrary[SequenceState] {
+  given Arbitrary[SequenceStatus] = Arbitrary[SequenceStatus] {
     for {
-      f <- Gen.oneOf(SequenceState.Completed, SequenceState.Idle)
-      r <- arbitrary[SequenceState.Running]
-      a <- arbitrary[String].map(SequenceState.Failed.apply)
+      f <- Gen.oneOf(SequenceStatus.Completed, SequenceStatus.Idle)
+      r <- arbitrary[SequenceStatus.Running]
+      a <- arbitrary[String].map(SequenceStatus.Failed.apply)
       s <- Gen.oneOf(f, r, a)
     } yield s
   }
@@ -115,12 +114,12 @@ trait ObserveModelArbitraries {
     for {
       id <- arbitrary[Observation.Id]
       m  <- arbitrary[SequenceMetadata]
-      s  <- arbitrary[SequenceState]
+      s  <- arbitrary[SequenceStatus]
       o  <- arbitrary[SystemOverrides]
       st <- arbitrary[SequenceType]
-      t  <- arbitrary[List[ObserveStep]]
+      t  <- arbitrary[Option[ObserveStep]]
       i  <- arbitrary[Option[Int]]
-      a  <- arbitrary[Map[Step.Id, Map[Resource | Instrument, ActionStatus]]]
+      a  <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       b  <- arbitrary[Set[Step.Id]]
     } yield SequenceView(id, m, s, o, st, t, i, a, b)
   }
@@ -129,12 +128,13 @@ trait ObserveModelArbitraries {
   given Cogen[ActionType] =
     Cogen[String].contramap(_.productPrefix)
 
-  given Cogen[SequenceState] =
+  given Cogen[SequenceStatus] =
     Cogen[String].contramap(_.productPrefix)
 
   given Cogen[SequenceMetadata] =
-    Cogen[(Instrument, Option[Observer], String)].contramap(s =>
-      (s.instrument, s.observer, s.name.value)
+    // Cogen[(Instrument, Option[Observer], String)].contramap(s =>
+    Cogen[(Instrument, Option[Observer])].contramap(s =>
+      (s.instrument, s.observer) // , s.name.value)
     )
 
   given Cogen[SystemOverrides] =
@@ -147,10 +147,10 @@ trait ObserveModelArbitraries {
       (
         Observation.Id,
         SequenceMetadata,
-        SequenceState,
+        SequenceStatus,
         SystemOverrides,
         SequenceType,
-        List[ObserveStep],
+        Option[ObserveStep],
         Option[Int],
         List[Step.Id]
       )
@@ -161,7 +161,7 @@ trait ObserveModelArbitraries {
          s.status,
          s.systemOverrides,
          s.sequenceType,
-         s.steps,
+         s.runningStep,
          s.willStopIn,
          s.breakpoints.toList
         )

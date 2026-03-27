@@ -35,12 +35,12 @@ import observe.server.gmos.*
 import observe.server.gsaoi.*
 import observe.server.gws.*
 import observe.server.igrins2.Igrins2Controller
+import observe.server.igrins2.Igrins2ControllerDisabled
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
 import observe.server.odb.OdbCommandsImpl
 import observe.server.odb.OdbProxy
-import observe.server.odb.OdbSubscriber
 import observe.server.tcs.*
 import org.http4s.AuthScheme
 import org.http4s.Credentials
@@ -52,7 +52,6 @@ import org.typelevel.log4cats.Logger
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
-import observe.server.igrins2.Igrins2ControllerDisabled
 
 case class Systems[F[_]] private[server] (
   odb:                 OdbProxy[F],
@@ -136,8 +135,7 @@ object Systems {
               .map(OdbCommandsImpl[F](_)(using fetchClient))
           else
             DummyOdbCommands[F].pure[F]
-        odbSubscriber                   = OdbSubscriber[F]()(using streamingClient)
-      yield OdbProxy[F](odbCommands, odbSubscriber)(using streamingClient)
+      yield OdbProxy[F](odbCommands)(using streamingClient)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)

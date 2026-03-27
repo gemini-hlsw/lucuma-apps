@@ -60,10 +60,10 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
       ssoClient.require(req): user =>
         oe.requestCancelPause(obsId, obs, user) *> NoContent()
 
-    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "loadNextAtom" /
+    case req @ POST -> Root / ObsIdVar(obsId) / ClientIDVar(clientId) / "proceedAfterPrompt" /
         ObserverVar(obs) / SequenceTypeVar(seqType) =>
       ssoClient.require(req): user =>
-        oe.loadNextAtom(obsId, user, obs, seqType) *>
+        oe.proceedAfterPrompt(obsId, user, obs, seqType) *>
           NoContent()
 
     case req @ POST -> Root / ObsIdVar(obsId) / StepIdVar(stepId) / ClientIDVar(clientId) /
@@ -155,7 +155,7 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
     case req @ POST -> Root / "load" / InstrumentVar(i) / ObsIdVar(obsId) /
         ClientIDVar(clientId) / ObserverVar(observer) =>
       ssoClient.require(req): user =>
-        oe.selectSequence(i, obsId, observer, user, clientId) *> NoContent()
+        oe.loadSequence(i, obsId, observer, user, clientId) *> NoContent()
 
     // case POST -> Root / "unload" / "all" as user         =>
     //   oe.clearLoadedSequences(inputQueue, user) *> Ok(s"Queue cleared")

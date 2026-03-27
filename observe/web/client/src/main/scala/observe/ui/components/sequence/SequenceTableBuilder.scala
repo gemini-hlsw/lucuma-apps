@@ -26,7 +26,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.StepState
 import observe.ui.Icons
 import observe.ui.ObserveStyles
@@ -81,7 +81,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
             columnDefs(_, _, _, _)
         visitsData               <-
           useMemo((props.instrumentVisits, props.currentRecordedStepId)):
-            visitsSequences
+            visitsSequences(_, _)
         visits                    = visitsData.map(_._1)
         nextScienceIndex          = visitsData.map(_._2)
         acquisitionPromptClicked <- useStateViewWithReuse(none[SequenceType])
@@ -124,10 +124,10 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                     alertPosition,
                     AcquisitionPrompt(
                       sequenceApi
-                        .loadNextAtom(props.obsId, SequenceType.Science)
+                        .proceedAfterPrompt(props.obsId, SequenceType.Science)
                         .runAsync,
                       sequenceApi
-                        .loadNextAtom(props.obsId, SequenceType.Acquisition)
+                        .proceedAfterPrompt(props.obsId, SequenceType.Acquisition)
                         .runAsync,
                       acquisitionPromptRequest,
                       acquisitionPromptClicked
@@ -191,8 +191,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
         _                        <-
           // When sequence changes state or step, auto scroll to running step.
           useEffectWithDeps(
-            (props.executionState.sequenceState.isRunning,
-             props.executionState.sequenceState.isWaitingUserPrompt,
+            (props.executionState.sequenceStatus.isRunning,
+             props.executionState.sequenceStatus.isWaitingUserPrompt,
              props.runningStepId
             )
           ): (_, _, runningStepId) =>
@@ -201,12 +201,12 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
             scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
         _                        <- // If sequence completes, expand last visit.
-          useEffectWithDeps(props.executionState.sequenceState):
-            case SequenceState.Completed =>
+          useEffectWithDeps(props.executionState.sequenceStatus):
+            case SequenceStatus.Completed =>
               table.modExpanded:
                 case Expanded.AllRows    => Expanded.AllRows
                 case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
-            case _                       => Callback.empty
+            case _                        => Callback.empty
       yield
         extension (step: SequenceRow[D])
           def isSelected: Boolean =
@@ -253,7 +253,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 ObserveStyles.RowIdle.unless_(step.isSelected),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
-                ObserveStyles.StepRowPossibleFuture.when_(step.stepTime === StepTime.Future),
                 step.stepState match
                   case s if s.hasError                      => ObserveStyles.StepRowError
                   case StepState.Paused                     => ObserveStyles.StepRowWarning
@@ -325,8 +324,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
         def estimateRowHeight(index: Int): SizePx =
           table.getRowModel().rows.get(index).map(_.original.value) match
-            case Some(Right(SequenceIndexedRow(CurrentAtomStepRow(_, _, _, _), _)))             =>
-              SequenceRowHeight.WithExtra
             case Some(Right(SequenceIndexedRow(SequenceRow.Executed.ExecutedStep(_, _, _), _))) =>
               SequenceRowHeight.WithExtra
             case _                                                                              =>

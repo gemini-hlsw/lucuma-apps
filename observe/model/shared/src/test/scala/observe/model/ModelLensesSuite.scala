@@ -3,12 +3,9 @@
 
 package observe.model
 
-import eu.timepit.refined.cats.given
-import eu.timepit.refined.scalacheck.string.given
 import lucuma.core.math.Axis
 import lucuma.core.math.arb.ArbAngle.given
 import lucuma.core.math.arb.ArbOffset.given
-import lucuma.core.math.arb.ArbRefined.given
 import lucuma.core.optics.laws.discipline.FormatTests
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbUid.given
@@ -23,9 +20,9 @@ import org.scalacheck.Test as ScalaCheckTest
 class ModelLensesSuite extends munit.DisciplineSuite with ModelLenses {
   override def scalaCheckTestParameters = ScalaCheckTest.Parameters.default.withMaxSize(10)
 
-  checkAll("event observer name lens", LensTests(obsNameL))
+  // checkAll("event observer name lens", LensTests(obsNameL))
   checkAll("each step traversal", TraversalTests(eachStepT))
-  checkAll("observation steps lens", LensTests(obsStepsL))
+  checkAll("observation steps lens", LensTests(obsRunningStepL))
   checkAll("each view traversal", TraversalTests(eachViewT))
   checkAll("sequence queue lens", LensTests(sessionQueueL))
 

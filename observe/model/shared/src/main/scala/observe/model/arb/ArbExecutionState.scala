@@ -15,7 +15,7 @@ import observe.model.ExecutionState
 import observe.model.NsRunningState
 import observe.model.ObserveStep
 import observe.model.Observer
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.arb.ArbNsRunningState.given
 import observe.model.arb.ObserveModelArbitraries.given
@@ -30,21 +30,19 @@ import ArbObserveStep.given
 trait ArbExecutionState:
   given Arbitrary[ExecutionState] = Arbitrary:
     for
-      sequenceState   <- arbitrary[SequenceState]
+      sequenceStatus  <- arbitrary[SequenceStatus]
       observer        <- arbitrary[Option[Observer]]
       sequenceType    <- arbitrary[SequenceType]
-      steps           <- arbitrary[List[ObserveStep]]
-      runningStepId   <- arbitrary[Option[Step.Id]]
+      step            <- arbitrary[Option[ObserveStep]]
       nsState         <- arbitrary[Option[NsRunningState]]
-      stepResources   <- arbitrary[Map[Step.Id, Map[Resource | Instrument, ActionStatus]]]
+      stepResources   <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       systemOverrides <- arbitrary[SystemOverrides]
       breakpoints     <- arbitrary[Set[Step.Id]]
     yield ExecutionState(
-      sequenceState,
+      sequenceStatus,
       observer,
       sequenceType,
-      steps,
-      runningStepId,
+      step,
       nsState,
       stepResources,
       systemOverrides,
@@ -54,22 +52,22 @@ trait ArbExecutionState:
   given Cogen[ExecutionState] =
     Cogen[
       (
-        SequenceState,
+        SequenceStatus,
         Option[Observer],
         SequenceType,
-        Option[Step.Id],
+        Option[ObserveStep],
         Option[NsRunningState],
-        List[(Step.Id, List[(Resource | Instrument, ActionStatus)])],
+        List[(Resource | Instrument, ActionStatus)],
         SystemOverrides,
         List[Step.Id]
       )
     ].contramap: x =>
-      (x.sequenceState,
+      (x.sequenceStatus,
        x.observer,
        x.sequenceType,
-       x.runningStepId,
+       x.runningStep,
        x.nsState,
-       x.stepResources.view.mapValues(_.toList).toList,
+       x.stepResources.toList,
        x.systemOverrides,
        x.breakpoints.toList
       )

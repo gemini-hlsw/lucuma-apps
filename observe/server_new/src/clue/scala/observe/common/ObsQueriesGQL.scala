@@ -214,13 +214,3 @@ object ObsQueriesGQL:
         }
       }
       """
-
-  @GraphQL
-  trait ObsEditSubscription extends GraphQLOperation[ObservationDB]:
-    val document = """
-      subscription($input: ObservationEditInput!) {
-        observationEdit(input: $input) {
-          observationId
-        }
-      }
-    """

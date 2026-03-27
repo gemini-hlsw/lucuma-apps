@@ -5,7 +5,6 @@ package observe.server.odb
 
 import cats.Applicative
 import cats.MonadThrow
-import cats.effect.Resource
 import cats.effect.Sync
 import cats.syntax.all.*
 import lucuma.core.model.Observation
@@ -24,13 +23,6 @@ class DummyOdbProxy[F[_]: Sync] extends OdbProxy[F] {
   override def resetAcquisition(obsId: Observation.Id): F[Unit] =
     MonadThrow[F]
       .raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
-
-  override def obsEditSubscription(obsId: Observation.Id): Resource[F, fs2.Stream[F, Unit]] =
-    Resource.eval(
-      MonadThrow[F].raiseError(
-        ObserveFailure.Unexpected("TestOdbProxy.obsEditSubscription: Not implemented")
-      )
-    )
 
   export evCmds.{
     datasetEndExposure,

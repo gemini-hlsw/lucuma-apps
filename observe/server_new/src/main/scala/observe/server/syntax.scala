@@ -26,7 +26,7 @@ extension [F[_], A, B](fa: EitherT[F, A, B])
 
 extension [F[_]](q: ExecutionQueue)
   def status: BatchExecState = {
-    val statuses: Seq[SequenceState] = q.queue.map(_.state)
+    val statuses: Seq[SequenceStatus] = q.queue.map(_.state)
 
     q.cmdState match {
       case BatchCommandState.Idle         => BatchExecState.Idle

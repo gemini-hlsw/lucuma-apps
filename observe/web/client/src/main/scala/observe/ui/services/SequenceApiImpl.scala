@@ -150,7 +150,7 @@ case class SequenceApiImpl(
         Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "execute" /
           Enumerated[Resource | Instrument].tag(subsystem) / observer.toString
 
-  override def loadNextAtom(obsId: Observation.Id, sequenceType: SequenceType): IO[Unit] =
+  override def proceedAfterPrompt(obsId: Observation.Id, sequenceType: SequenceType): IO[Unit] =
     setInFlight(obsId, ObservationRequests.acquisitionPrompt) >>
       client.postNoData:
-        Uri.Path.empty / obsId.toString / client.clientId.value / "loadNextAtom" / observer.toString / sequenceType.tag
+        Uri.Path.empty / obsId.toString / client.clientId.value / "proceedAfterPrompt" / observer.toString / sequenceType.tag

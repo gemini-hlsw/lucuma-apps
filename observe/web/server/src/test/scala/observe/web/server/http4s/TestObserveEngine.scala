@@ -96,7 +96,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     clientId: ClientId
   ): F[Unit] = Applicative[F].unit
 
-  override def selectSequence(
+  override def loadSequence(
     i:        Instrument,
     sid:      Id,
     observer: Observer,
@@ -195,7 +195,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     s0: EngineState[F]
   ): fs2.Stream[F, (EventResult, EngineState[F])] = Stream.empty
 
-  override def loadNextAtom(
+  override def proceedAfterPrompt(
     id:       Observation.Id,
     user:     User,
     observer: Observer,

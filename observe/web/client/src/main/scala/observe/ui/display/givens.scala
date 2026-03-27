@@ -7,7 +7,7 @@ package observe.ui.display
 import lucuma.core.enums.Instrument
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
-import observe.model.RunningStep
+import observe.model.RunningStepProgress
 import observe.model.enums.*
 
 // private def conditionIntToString(v: Int): String = if (v === 100) "Any" else v.toString
@@ -33,4 +33,4 @@ given Display[Resource | Instrument] = Display.by(
   }
 )
 
-given Display[RunningStep] = Display.byShortName(u => s"${u.last + 1}/${u.total}")
+given Display[RunningStepProgress] = Display.byShortName(u => s"${u.last + 1}/${u.total}")

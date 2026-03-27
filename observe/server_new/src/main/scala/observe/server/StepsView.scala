@@ -29,7 +29,7 @@ trait StepsView[F[_]] {
    * be specialized e.g. for N&S
    */
   def stepView(
-    stepg:         SequenceGen.InstrumentStepGen[F],
+    stepg:         StepGen[F],
     step:          engine.EngineStep[F],
     altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
     pendingObsCmd: Option[PendingObserveCmd]
@@ -134,7 +134,7 @@ object StepsView {
 
   def defaultStepsView[F[_]]: StepsView[F] = new StepsView[F] {
     def stepView(
-      stepg:         SequenceGen.InstrumentStepGen[F],
+      stepg:         StepGen[F],
       step:          engine.EngineStep[F],
       altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
       pendingObsCmd: Option[PendingObserveCmd]
@@ -156,9 +156,7 @@ object StepsView {
         status = status,
         configStatus = configStatus,
         observeStatus = observeStatus(step.executions),
-        fileId = fileId(step.executions).orElse(stepg.some.collect {
-          case SequenceGen.CompletedStepGen(_, _, fileId, _, _, _, _) => fileId
-        }.flatten)
+        fileId = fileId(step.executions)
       )
     }
 

@@ -3,7 +3,6 @@
 
 package observe.server.odb
 
-import cats.effect.Resource
 import cats.effect.Sync
 import cats.syntax.all.*
 import clue.FetchClient
@@ -17,14 +16,11 @@ import observe.server.ObserveFailure
 trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
   def read(oid:               Observation.Id): F[OdbObservationData]
   def resetAcquisition(obsId: Observation.Id): F[Unit]
-
-  def obsEditSubscription(obsId: Observation.Id): Resource[F, fs2.Stream[F, Unit]]
 }
 
 object OdbProxy {
   def apply[F[_]](
-    evCmds:     OdbCommands[F],
-    subscriber: OdbSubscriber[F]
+    evCmds: OdbCommands[F]
   )(using FetchClient[F, ObservationDB])(using F: Sync[F]): OdbProxy[F] =
     new OdbProxy[F] {
       def read(oid: Observation.Id): F[OdbObservationData] =
@@ -42,7 +38,6 @@ object OdbProxy {
         ResetAcquisitionMutation[F].execute(obsId = obsId).void
 
       export evCmds.*
-      export subscriber.obsEditSubscription
     }
 
 }

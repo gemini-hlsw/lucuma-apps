@@ -5,11 +5,11 @@ package observe.server.engine
 
 import cats.Eq
 import cats.effect.IO
-import lucuma.core.model.sequence.Atom
+import lucuma.core.enums.SequenceType
+import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
-import lucuma.core.util.arb.ArbUid.given
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.arb.ObserveModelArbitraries.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
@@ -17,23 +17,29 @@ import org.scalacheck.Cogen
 
 final class EngineSpec extends munit.DisciplineSuite {
 
-  given Eq[Sequence.State[IO]] = Eq.fromUniversalEquals
+  given Eq[SequenceState[IO]] = Eq.fromUniversalEquals
 
-  given Arbitrary[Sequence[IO]] = Arbitrary {
+  given Arbitrary[SequenceState[IO]] = Arbitrary {
     for {
-      id  <- arbitrary[Observation.Id]
-      aid <- arbitrary[Atom.Id]
-    } yield Sequence.sequence(id, aid, List(), Breakpoints.empty)
+      obsId   <- arbitrary[Observation.Id]
+      st      <- arbitrary[SequenceStatus]
+      // currentStep <- arbitrary[Option[EngineStepExecutionZipper[IO]]]
+      seqType <- arbitrary[SequenceType]
+      // breakpoints <- arbitrary[Breakpoints]
+      // singleRuns <- arbitrary[Map[ActionCoordsInSeq, ActionState]]
+    } yield SequenceState[IO](
+      obsId = obsId,
+      status = st,
+      loadedStep = None,
+      currentSequenceType = seqType,
+      breakpoints = Breakpoints.empty,
+      singleRuns = Map.empty
+    )
   }
 
-  given Arbitrary[Sequence.State[IO]] = Arbitrary {
-    for {
-      seq <- arbitrary[Sequence[IO]]
-      st  <- arbitrary[SequenceState]
-    } yield Sequence.State.Final(seq, st, Breakpoints.empty)
-  }
-
-  given Cogen[Sequence.State[IO]] =
-    Cogen[Observation.Id].contramap(_.toSequence.id)
+  given Cogen[SequenceState[IO]] =
+    Cogen[(Observation.Id, SequenceStatus, SequenceType)].contramap(sd =>
+      (sd.obsId, sd.status, sd.currentSequenceType)
+    )
 
 }

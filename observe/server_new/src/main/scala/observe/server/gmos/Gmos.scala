@@ -270,7 +270,7 @@ object Gmos {
 
   }
 
-  final case class GmosStatusGen(ns: NsConfig) extends SequenceGen.StepStatusGen
+  final case class GmosStatusGen(ns: NsConfig) extends StepStatusGen
 
   def isNodAndShuffle[S <: StaticConfig](
     staticConfig: S,

@@ -18,15 +18,12 @@ import observe.model.Conditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
-import observe.model.NsRunningState
 import observe.model.ObservationProgress
 import observe.model.Operator
-import observe.model.SequenceState
 import observe.model.SequenceView
 import observe.model.SequencesQueue
 import observe.model.UserPrompt.ChecksOverride
 import observe.model.arb.ObserveModelArbitraries.given
-import observe.model.enums.ActionStatus
 import observe.model.enums.Resource
 import observe.model.events.*
 import observe.model.events.ClientEvent.SingleActionState
@@ -39,30 +36,13 @@ import org.scalacheck.Gen
 import ArbClientConfig.given
 import ArbLogMessage.given
 import ArbNotification.given
-import ArbNsRunningState.given
 import ArbObsRecordedIds.given
 import ArbObservationProgress.given
 import ArbSystem.given
 import ArbUserPrompt.given
+import ArbExecutionState.given
 
 trait ArbClientEvent:
-  given Cogen[ExecutionState] =
-    Cogen[
-      (SequenceState,
-       Option[Step.Id],
-       Option[NsRunningState],
-       List[(Step.Id, List[(Resource | Instrument, ActionStatus)])],
-       List[Step.Id]
-      )
-    ].contramap(x =>
-      (x.sequenceState,
-       x.runningStepId,
-       x.nsState,
-       x.stepResources.view.mapValues(_.toList).toList,
-       x.breakpoints.toList
-      )
-    )
-
   given Arbitrary[ClientEvent.ObserveState] = Arbitrary:
     for
       s    <- arbitrary[SequencesQueue[SequenceView]]
@@ -137,16 +117,17 @@ trait ArbClientEvent:
   given Cogen[ClientEvent.ProgressEvent] =
     Cogen[ObservationProgress].contramap(_.progress)
 
-  given Arbitrary[ClientEvent.AtomLoaded] = Arbitrary:
+  given Arbitrary[ClientEvent.StepLoaded] = Arbitrary:
     for
       obsId        <- arbitrary[Observation.Id]
       sequenceType <- arbitrary[SequenceType]
       atomId       <- arbitrary[Atom.Id]
-    yield ClientEvent.AtomLoaded(obsId, sequenceType, atomId)
+      stepId       <- arbitrary[Step.Id]
+    yield ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)
 
-  given Cogen[ClientEvent.AtomLoaded] =
-    Cogen[(Observation.Id, SequenceType, Atom.Id)].contramap: x =>
-      (x.obsId, x.sequenceType, x.atomId)
+  given Cogen[ClientEvent.StepLoaded] =
+    Cogen[(Observation.Id, SequenceType, Atom.Id, Step.Id)].contramap: x =>
+      (x.obsId, x.sequenceType, x.atomId, x.stepId)
 
   given Arbitrary[ClientEvent.UserNotification] = Arbitrary:
     arbitrary[Notification].map(ClientEvent.UserNotification(_))
@@ -183,7 +164,7 @@ trait ArbClientEvent:
       arbitrary[ClientEvent.SingleActionEvent],
       arbitrary[ClientEvent.ChecksOverrideEvent],
       arbitrary[ClientEvent.ProgressEvent],
-      arbitrary[ClientEvent.AtomLoaded],
+      arbitrary[ClientEvent.StepLoaded],
       arbitrary[ClientEvent.UserNotification],
       arbitrary[ClientEvent.LogEvent],
       arbitrary[ClientEvent.SequenceComplete],
@@ -214,7 +195,7 @@ trait ArbClientEvent:
                         Either[
                           ClientEvent.ProgressEvent,
                           Either[
-                            ClientEvent.AtomLoaded,
+                            ClientEvent.StepLoaded,
                             Either[
                               ClientEvent.UserNotification,
                               Either[
@@ -252,7 +233,7 @@ trait ArbClientEvent:
         Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e))))))))))
       case e @ ClientEvent.ProgressEvent(_)                 =>
         Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e)))))))))))
-      case e @ ClientEvent.AtomLoaded(_, _, _)              =>
+      case e @ ClientEvent.StepLoaded(_, _, _, _)           =>
         Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e))))))))))))
       case e @ ClientEvent.UserNotification(_)              =>
         Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e)))))))))))))

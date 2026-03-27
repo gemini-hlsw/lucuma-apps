@@ -6,12 +6,11 @@ package observe.model
 import cats.Eq
 import cats.derived.*
 import eu.timepit.refined.cats.given
-import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
 
 /** Metadata about the sequence required on the exit point */
 case class SequenceMetadata(
   instrument: Instrument,
-  observer:   Option[Observer],
-  name:       NonEmptyString
+  observer:   Option[Observer]
+  // name:       NonEmptyString
 ) derives Eq

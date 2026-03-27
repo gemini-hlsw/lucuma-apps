@@ -14,7 +14,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.TooltipOptions
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.enums.RunOverride
 import observe.ui.Icons
 import observe.ui.ObserveStyles
@@ -24,18 +24,18 @@ import observe.ui.model.enums.OperationRequest
 import observe.ui.services.SequenceApi
 
 case class SeqControlButtons(
-  obsId:         Observation.Id,
-  refreshing:    Pot[View[Boolean]],
-  sequenceState: SequenceState,
-  requests:      ObservationRequests
+  obsId:          Observation.Id,
+  refreshing:     Pot[View[Boolean]],
+  sequenceStatus: SequenceStatus,
+  requests:       ObservationRequests
 ) extends ReactFnProps(SeqControlButtons):
-  val isUserStopRequested: Boolean   = sequenceState.isUserStopRequested
+  val isUserStopRequested: Boolean   = sequenceStatus.isUserStopRequested
   val isPauseInFlight: Boolean       = requests.pause === OperationRequest.InFlight
   val isCancelPauseInFlight: Boolean = requests.cancelPause === OperationRequest.InFlight
-  val isRunning: Boolean             = sequenceState.isRunning
-  val isWaitingUserPrompt: Boolean   = sequenceState.isWaitingUserPrompt
-  val isRefreshing: Boolean          = props.refreshing.exists(_.get)
-  val isCompleted: Boolean           = sequenceState.isCompleted
+  val isRunning: Boolean             = sequenceStatus.isRunning
+  val isWaitingUserPrompt: Boolean   = sequenceStatus.isWaitingUserPrompt
+  val isRefreshing: Boolean          = refreshing.exists(_.get)
+  val isCompleted: Boolean           = sequenceStatus.isCompleted
 
 object SeqControlButtons
     extends ReactFnComponent[SeqControlButtons](props =>
@@ -61,10 +61,12 @@ object SeqControlButtons
           // ).when(!selectedObsIsLoaded),
           Button(
             clazz = ObserveStyles.PlayButton |+| ObserveStyles.ObsSummaryButton,
+            loading = props.isRefreshing,
             icon = Icons.Play.withFixedWidth().withSize(IconSize.LG),
             tooltip = "Start/Resume sequence",
             tooltipOptions = tooltipOptions,
-            onClick = sequenceApi.start(props.obsId, RunOverride.Override).runAsync,
+            onClick = props.refreshing.toOption.foldMap(_.set(true)) >>
+              sequenceApi.start(props.obsId, RunOverride.Override).runAsync,
             disabled = props.isRefreshing || props.isCompleted
           ).when(!props.isRunning),
           Button(

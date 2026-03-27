@@ -16,7 +16,7 @@ import observe.model.Conditions
 import observe.model.Observation
 import observe.model.Operator
 import observe.server.engine.Engine
-import observe.server.engine.Sequence
+import observe.server.engine.SequenceState
 
 case class EngineState[F[_]](
   queues:     ExecutionQueues,
@@ -26,12 +26,12 @@ case class EngineState[F[_]](
 ) {
   lazy val sequences: Map[Observation.Id, SequenceData[F]] =
     List(selected.gmosNorth, selected.gmosSouth, selected.flamingos2).flattenOption
-      .map(x => x.seqGen.obsData.id -> x)
+      .map(x => x.obsId -> x)
       .toMap
 
   lazy val sequencesByInstrument: Map[Instrument, SequenceData[F]] =
     List(selected.gmosNorth, selected.gmosSouth, selected.flamingos2).flattenOption
-      .map(x => x.seqGen.instrument -> x)
+      .map(x => x.instrument -> x)
       .toMap
 }
 
@@ -67,15 +67,15 @@ object EngineState {
       .andThen(
         Optional[Selected[F], SequenceData[F]] { s =>
           s.gmosNorth
-            .find(_.seqGen.obsData.id === sid)
-            .orElse(s.gmosSouth.find(_.seqGen.obsData.id === sid))
-            .orElse(s.flamingos2.find(_.seqGen.obsData.id === sid))
+            .find(_.obsId === sid)
+            .orElse(s.gmosSouth.find(_.obsId === sid))
+            .orElse(s.flamingos2.find(_.obsId === sid))
         } { d => s =>
-          if (s.gmosNorth.exists(_.seqGen.obsData.id === sid))
+          if (s.gmosNorth.exists(_.obsId === sid))
             s.focus(_.gmosNorth).replace(d.some)
-          else if (s.gmosSouth.exists(_.seqGen.obsData.id === sid))
+          else if (s.gmosSouth.exists(_.obsId === sid))
             s.focus(_.gmosSouth).replace(d.some)
-          else if (s.flamingos2.exists(_.seqGen.obsData.id === sid))
+          else if (s.flamingos2.exists(_.obsId === sid))
             s.focus(_.flamingos2).replace(d.some)
           else s
         }
@@ -105,21 +105,23 @@ object EngineState {
   def sequenceDataAt[F[_]](obsId: Observation.Id): Optional[EngineState[F], SequenceData[F]] =
     Optional[EngineState[F], SequenceData[F]](s =>
       s.selected.gmosSouth
-        .filter(_.seqGen.obsData.id === obsId)
-        .orElse(s.selected.gmosNorth.filter(_.seqGen.obsData.id === obsId))
-        .orElse(s.selected.flamingos2.filter(_.seqGen.obsData.id === obsId))
+        .filter(_.obsId === obsId)
+        .orElse(s.selected.gmosNorth.filter(_.obsId === obsId))
+        .orElse(s.selected.flamingos2.filter(_.obsId === obsId))
     )(sd =>
       es =>
-        if (es.selected.gmosSouth.exists(_.seqGen.obsData.id === obsId))
+        if (es.selected.gmosSouth.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(gmosSouth = sd.some))
-        else if (es.selected.gmosNorth.exists(_.seqGen.obsData.id === obsId))
+        else if (es.selected.gmosNorth.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(gmosNorth = sd.some))
-        else if (es.selected.flamingos2.exists(_.seqGen.obsData.id === obsId))
+        else if (es.selected.flamingos2.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(flamingos2 = sd.some))
         else es
     )
 
-  def sequenceStateAt[F[_]](obsId: Observation.Id): Optional[EngineState[F], Sequence.State[F]] =
+  def sequenceStateAt[F[_]](
+    obsId: Observation.Id
+  ): Optional[EngineState[F], SequenceState[F]] =
     sequenceDataAt(obsId).andThen(SequenceData.seq)
 
   def engineState[F[_]]: Engine.State[F, EngineState[F]] =

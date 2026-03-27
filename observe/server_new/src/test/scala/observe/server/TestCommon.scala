@@ -24,6 +24,8 @@ import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.enums.GmosNorthStageMode
 import lucuma.core.enums.GmosRoi
+import lucuma.core.enums.GmosSouthDetector
+import lucuma.core.enums.GmosSouthStageMode
 import lucuma.core.enums.GmosXBinning
 import lucuma.core.enums.GmosYBinning
 import lucuma.core.enums.Instrument
@@ -41,6 +43,8 @@ import lucuma.core.model.ElevationRange
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.ExecutionConfig
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
@@ -60,13 +64,14 @@ import observe.model.ActionType
 import observe.model.ClientId
 import observe.model.Conditions
 import observe.model.Observation
-import observe.model.SequenceState
+import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.config.*
 import observe.model.dhs.*
 import observe.model.enums.Resource
-import observe.server.SequenceGen.StepStatusGen
+import observe.server.ODBSequencesLoader
 import observe.server.engine.Action
+import observe.server.engine.Engine
 import observe.server.engine.Response
 import observe.server.engine.Result
 import observe.server.engine.Result.PartialVal
@@ -88,9 +93,16 @@ trait TestCommon extends munit.CatsEffectSuite {
   val defaultSystems: IO[Systems[IO]] = Systems.dummy[IO]
 
   val observeEngine: IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap(
+    defaultSystems.flatMap:
       ObserveEngine.build(Site.GS, _, defaultSettings, ExecutionEnvironment.Development)
-    )
+
+  def bothEngines(systems: IO[Systems[IO]] = defaultSystems): IO[(Engine[IO], ObserveEngine[IO])] =
+    for
+      systems <- systems
+      rc      <- Ref.of[IO, Conditions](Conditions.Default)
+      tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
+      eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
+    yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
   def observeEngineWithODB(odb: OdbProxy[IO]): IO[ObserveEngine[IO]] =
     defaultSystems.flatMap(sys =>
@@ -117,16 +129,18 @@ trait TestCommon extends munit.CatsEffectSuite {
   ): IO[Option[EngineState[IO]]] =
     (put *> oe
       .eventResultStream(s0)
+      // .evalTap: (r, s) =>
+      //   IO.println(s"******** Event result: ${pprint(r)}, new state: ${pprint(s)}")
       .take(n)
       .compile
       .last)
       .map(_.map(_._2))
 
-  def isFinished(status: SequenceState): Boolean = status match {
-    case SequenceState.Idle      => true
-    case SequenceState.Completed => true
-    case SequenceState.Failed(_) => true
-    case _                       => false
+  def isFinished(status: SequenceStatus): Boolean = status match {
+    case SequenceStatus.Idle      => true
+    case SequenceStatus.Completed => true
+    case SequenceStatus.Failed(_) => true
+    case _                        => false
   }
 
 }
@@ -253,29 +267,6 @@ object TestCommon {
         Action.State(Action.ActionState.Paused(new PauseContext {}), List(FileIdAllocated(fileId)))
       )(observing)
 
-//   def testCompleted(oid: Observation.Id)(st: EngineState[IO]): Boolean =
-//     st.sequences
-//       .get(oid)
-//       .exists(_.seq.status.isCompleted)
-//
-  // private val gpiSim: IO[GpiController[IO]] = GpiClient
-  //   .simulatedGpiClient[IO]
-  //   .use(x =>
-  //     IO(
-  //       GpiController(x, GdsClient(GdsClient.alwaysOkClient[IO], uri"http://localhost:8888/xmlrpc"))
-  //     )
-  //   )
-  //
-  // private val ghostSim: IO[GhostController[IO]] = GhostClient
-  //   .simulatedGhostClient[IO]
-  //   .use(x =>
-  //     IO(
-  //       GhostController(x,
-  //                       GdsClient(GdsClient.alwaysOkClient[IO], uri"http://localhost:8888/xmlrpc")
-  //       )
-  //     )
-  //   )
-  //
   val seqName1: Observation.Name           = "GS-2018B-Q-0-1"
   val seqObsId1: Observation.Id            = observationId(1)
   val seqName2: Observation.Name           = "GS-2018B-Q-0-2"
@@ -283,11 +274,19 @@ object TestCommon {
   val seqName3: Observation.Name           = "GS-2018B-Q-0-3"
   val seqObsId3: Observation.Id            = observationId(3)
   val clientId: ClientId                   = ClientId(UUID.randomUUID)
-  val atomId1: Atom.Id                     = Atom.Id(UUID.fromString("5fbe2ac4-5ba7-11ee-8c99-0242ac120002"))
-  val stepId1: Step.Id                     = Step.Id(UUID.fromString("91806878-5173-4da9-ae2b-d7bf32407871"))
+  val atomId1: Atom.Id                     =
+    Atom.Id(UUID.fromString("5fbe2ac4-5ba7-11ee-8c99-0242ac120002"))
+  val stepId1: Step.Id                     =
+    Step.Id(UUID.fromString("91806878-5173-4da9-ae2b-d7bf32407871"))
   val staticCfg1: StaticConfig.GmosNorth   = StaticConfig.GmosNorth(
     GmosNorthStageMode.FollowXy,
     GmosNorthDetector.Hamamatsu,
+    MosPreImaging.IsNotMosPreImaging,
+    None
+  )
+  val staticCfg2: StaticConfig.GmosSouth   = StaticConfig.GmosSouth(
+    GmosSouthStageMode.FollowXyz,
+    GmosSouthDetector.Hamamatsu,
     MosPreImaging.IsNotMosPreImaging,
     None
   )
@@ -315,7 +314,8 @@ object TestCommon {
 
   val stepCfg1: StepConfig = StepConfig.Science
 
-  val telescopeCfg1: CoreTelescopeConfig = CoreTelescopeConfig(Offset.Zero, StepGuideState.Enabled)
+  val telescopeCfg1: CoreTelescopeConfig =
+    CoreTelescopeConfig(Offset.Zero, StepGuideState.Enabled)
 
   def odbObservation(id: Observation.Id): ODBObservation =
     ODBObservation(
@@ -338,162 +338,130 @@ object TestCommon {
       ModeSignalToNoise.Spectroscopy(none, none)
     )
 
-  def sequence(id: Observation.Id): SequenceGen.GmosNorth[IO] =
-    SequenceGen.GmosNorth[IO](
+  /** Builds an OdbObservationData for testing with GmosNorth execution config. */
+  def gmosNorthOdbData(id: Observation.Id): OdbObservationData =
+    OdbObservationData(
       odbObservation(id),
-      staticCfg1,
-      SequenceGen.AtomGen.GmosNorth(
-        atomId1,
-        SequenceType.Science,
-        steps = List(
-          SequenceGen.PendingStepGen(
-            id = stepId(1),
-            Monoid.empty[DataId],
-            resources = Set(Instrument.GmosNorth, Resource.TCS),
-            _ => InstrumentSystem.Uncontrollable,
-            generator = SequenceGen.StepActionsGen(
-              odbAction[IO],
-              odbAction[IO],
-              configs = Map(),
-              odbAction[IO],
-              odbAction[IO],
-              post = (_, _) => List(NonEmptyList.one(pendingAction[IO](Instrument.GmosNorth))),
-              odbAction[IO],
-              odbAction[IO]
-            ),
-            StepStatusGen.Null,
-            dynamicCfg1,
-            stepCfg1,
-            telescopeCfg1,
-            signalToNoise = none,
-            breakpoint = Breakpoint.Disabled
-          )
+      InstrumentExecutionConfig.GmosNorth(
+        ExecutionConfig(staticCfg1, none, none)
+      )
+    )
+
+  /** Builds an OdbObservationData with a custom ODBObservation. */
+  def gmosNorthOdbDataWith(obs: ODBObservation): OdbObservationData =
+    OdbObservationData(
+      obs,
+      InstrumentExecutionConfig.GmosNorth(
+        ExecutionConfig(staticCfg1, none, none)
+      )
+    )
+
+  /** Builds a GmosSouth OdbObservationData for testing. */
+  def gmosSouthOdbData(id: Observation.Id): OdbObservationData =
+    OdbObservationData(
+      odbObservation(id),
+      InstrumentExecutionConfig.GmosSouth(
+        ExecutionConfig(
+          staticCfg2,
+          none,
+          none
         )
       )
     )
 
-  def sequenceNSteps(id: Observation.Id, n: Int): SequenceGen[IO] =
-    SequenceGen.GmosNorth[IO](
-      odbObservation(id),
-      staticCfg1,
-      SequenceGen.AtomGen.GmosNorth(
-        atomId1,
-        SequenceType.Science,
-        steps = List
-          .range(1, n + 1)
-          .map(i =>
-            SequenceGen.PendingStepGen(
-              id = stepId(i),
-              Monoid.empty[DataId],
-              resources = Set(Instrument.GmosNorth, Resource.TCS),
-              _ => InstrumentSystem.Uncontrollable,
-              generator = SequenceGen.StepActionsGen(
-                odbAction[IO],
-                odbAction[IO],
-                configs = Map(),
-                odbAction[IO],
-                odbAction[IO],
-                post = (_, _) => List(NonEmptyList.one(pendingAction[IO](Instrument.GmosNorth))),
-                odbAction[IO],
-                odbAction[IO]
-              ),
-              StepStatusGen.Null,
-              dynamicCfg1,
-              stepCfg1,
-              telescopeCfg1,
-              signalToNoise = none,
-              breakpoint = Breakpoint.Disabled
-            )
-          )
-      )
+  val stepGen: StepGen.GmosNorth[IO] =
+    StepGen.GmosNorth[IO](
+      atomId = atomId1,
+      sequenceType = SequenceType.Science,
+      id = stepId(1),
+      dataId = Monoid.empty[DataId],
+      resources = Set(Instrument.GmosNorth, Resource.TCS),
+      obsControl = _ => InstrumentSystem.Uncontrollable,
+      generator = StepActionsGen(
+        odbAction[IO],
+        odbAction[IO],
+        configs = Map(),
+        odbAction[IO],
+        odbAction[IO],
+        post = (_, _) => List(NonEmptyList.one(pendingAction[IO](Instrument.GmosNorth))),
+        odbAction[IO],
+        odbAction[IO]
+      ),
+      instConfig = dynamicCfg1,
+      config = stepCfg1,
+      telescopeConfig = telescopeCfg1,
+      signalToNoise = none,
+      breakpoint = Breakpoint.Disabled
     )
 
-  def generateSequence[F[_]: {Async, Logger}](
+  def stepGenWithResources(
+    stepIdx:   Int,
+    resources: Set[Resource | Instrument]
+  ): StepGen.GmosNorth[IO] =
+    StepGen.GmosNorth[IO](
+      atomId = atomId1,
+      sequenceType = SequenceType.Science,
+      id = stepId(stepIdx),
+      dataId = Monoid.empty[DataId],
+      resources = resources,
+      obsControl = _ => InstrumentSystem.Uncontrollable,
+      generator = StepActionsGen(
+        odbAction[IO],
+        odbAction[IO],
+        configs = resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
+        odbAction[IO],
+        odbAction[IO],
+        post = (_, _) => Nil,
+        odbAction[IO],
+        odbAction[IO]
+      ),
+      instConfig = dynamicCfg1,
+      config = stepCfg1,
+      telescopeConfig = telescopeCfg1,
+      signalToNoise = none,
+      breakpoint = Breakpoint.Disabled
+    )
+
+  def generateStepGen[F[_]: {Async, Logger}](
     odbObsData: OdbObservationData,
     systems:    Systems[F]
-  ): F[Option[SequenceGen[F]]] = for {
+  ): F[Option[StepGen[F]]] = for {
     c  <- Ref.of[F, Conditions](Conditions.Default)
     st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
-    sg <- st.translateSequence(odbObsData)
-  } yield sg._2
+  } yield st.nextStep(odbObsData, SequenceType.Acquisition)._2
 
-  def sequenceWithResources(
-    id:        Observation.Id,
-    resources: Set[Resource | Instrument]
-  ): SequenceGen[IO] =
-    SequenceGen.GmosNorth[IO](
-      ODBObservation(
-        id = id,
-        title = "Test Observation".refined,
-        ODBObservation.Program(
-          Program.Id(PosLong.unsafeFrom(123)),
-          None,
-          ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-        ),
-        TargetEnvironment(None, GuideEnvironment(List.empty)),
-        ConstraintSet(
-          ImageQuality.Preset.PointOne,
-          CloudExtinction.Preset.PointOne,
-          SkyBackground.Dark,
-          WaterVapor.Median,
-          ElevationRange.ByAirMass.Default
-        ),
-        List.empty,
-        ModeSignalToNoise.Spectroscopy(none, none)
-      ),
-      staticCfg1,
-      SequenceGen.AtomGen.GmosNorth(
-        atomId1,
-        SequenceType.Science,
-        steps = List(
-          SequenceGen.PendingStepGen(
-            id = stepId(1),
-            Monoid.empty[DataId],
-            resources = resources,
-            _ => InstrumentSystem.Uncontrollable,
-            generator = SequenceGen.StepActionsGen(
-              odbAction[IO],
-              odbAction[IO],
-              configs =
-                resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
-              odbAction[IO],
-              odbAction[IO],
-              post = (_, _) => Nil,
-              odbAction[IO],
-              odbAction[IO]
-            ),
-            StepStatusGen.Null,
-            dynamicCfg1,
-            stepCfg1,
-            telescopeCfg1,
-            signalToNoise = none,
-            breakpoint = Breakpoint.Disabled
-          ),
-          SequenceGen.PendingStepGen(
-            id = stepId(2),
-            Monoid.empty[DataId],
-            resources = resources,
-            _ => InstrumentSystem.Uncontrollable,
-            generator = SequenceGen.StepActionsGen(
-              odbAction[IO],
-              odbAction[IO],
-              configs =
-                resources.map(r => r -> { (_: SystemOverrides) => pendingAction[IO](r) }).toMap,
-              odbAction[IO],
-              odbAction[IO],
-              post = (_, _) => Nil,
-              odbAction[IO],
-              odbAction[IO]
-            ),
-            StepStatusGen.Null,
-            dynamicCfg1,
-            stepCfg1,
-            telescopeCfg1,
-            signalToNoise = none,
-            breakpoint = Breakpoint.Disabled
-          )
-        )
-      )
+  def loadSequence(
+    id:   Observation.Id,
+    sg:   Option[StepGen.GmosNorth[IO]],
+    lens: monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
+  ): cats.Endo[EngineState[IO]] =
+    ODBSequencesLoader.loadSequenceMod[IO](
+      None,
+      gmosNorthOdbData(id),
+      lens
+    ) >>> (
+      lens.some
+        .andThen(SequenceData.seq)
+        .modify:
+          _.withLoadedStepGen(sg, SystemOverrides.AllEnabled, HeaderExtraData.Default)
     )
 
+  /**
+   * Convenience: build a GmosNorth sequence with a single step and default resources. Replaces the
+   * old `sequence(obsId)` helper.
+   */
+  def loadDefaultSequence(
+    id: Observation.Id
+  ): cats.Endo[EngineState[IO]] =
+    loadSequence(id, stepGen.some, EngineState.instrumentLoaded(Instrument.GmosNorth))
+
+  /**
+   * Convenience: build a GmosNorth sequence with a single step and configurable resources.
+   */
+  def loadSequenceWithResources(
+    id:        Observation.Id,
+    resources: Set[Resource | Instrument],
+    lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
+  ): cats.Endo[EngineState[IO]] =
+    loadSequence(id, stepGenWithResources(1, resources).some, lens)
 }
