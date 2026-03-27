@@ -13,8 +13,7 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
-import monocle.Prism
-import monocle.macros.GenPrism
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import observe.model.SystemOverrides
 import observe.model.dhs.DataId
 import observe.model.enums.Resource
@@ -53,15 +52,6 @@ object StepGen:
     signalToNoise: Option[SignalToNoise],
     breakpoint: Breakpoint
   ) => Aux[F, D]
-
-  def gmosNorth[F[_]]: Prism[StepGen[F], StepGen.GmosNorth[F]] =
-    GenPrism[StepGen[F], StepGen.GmosNorth[F]]
-
-  def gmosSouth[F[_]]: Prism[StepGen[F], StepGen.GmosSouth[F]] =
-    GenPrism[StepGen[F], StepGen.GmosSouth[F]]
-
-  def flamingos2[F[_]]: Prism[StepGen[F], StepGen.Flamingos2[F]] =
-    GenPrism[StepGen[F], StepGen.Flamingos2[F]]
 
   def generate[F[_]](
     step:            StepGen[F],
@@ -117,3 +107,19 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Flamingos2DynamicConfig
+
+  case class Igrins2[F[_]](
+    atomId:          Atom.Id,
+    sequenceType:    SequenceType,
+    id:              Step.Id,
+    dataId:          DataId,
+    resources:       Set[Resource | Instrument],
+    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    generator:       StepActionsGen[F],
+    instConfig:      Igrins2DynamicConfig,
+    config:          StepConfig,
+    telescopeConfig: CoreTelescopeConfig,
+    signalToNoise:   Option[SignalToNoise],
+    breakpoint:      Breakpoint
+  ) extends StepGen[F]:
+    type D = Igrins2DynamicConfig

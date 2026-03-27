@@ -17,8 +17,10 @@ opaque type Breakpoints = Set[Step.Id]
 opaque type BreakpointsDelta = Set[(Step.Id, Breakpoint)]
 
 object Breakpoints:
-  val empty: Breakpoints                                                             = HashSet.empty
-  def apply(steps: Set[Step.Id]): Breakpoints                                        = steps
+  val empty: Breakpoints = HashSet.empty
+
+  def apply(steps: Set[Step.Id]): Breakpoints = steps
+
   def fromStepsWithBreakpoints[F[_]](
     stepsWithBreakpoints: List[(EngineStep[F], Breakpoint)]
   ): Breakpoints =
@@ -26,13 +28,16 @@ object Breakpoints:
       .collect:
         case (s, b) if b === Breakpoint.Enabled => s.id
       .toSet
-  private def fromAtom[D](atom: Atom[D]): Breakpoints                                =
+
+  private def fromAtom[D](atom: Atom[D]): Breakpoints =
     atom.steps
       .collect:
         case s if s.breakpoint === Breakpoint.Enabled => s.id
       .toSet
-  private def fromExecutionSequence[D](seq: ExecutionSequence[D]): Breakpoints       =
+
+  private def fromExecutionSequence[D](seq: ExecutionSequence[D]): Breakpoints =
     fromAtom(seq.nextAtom) ++ seq.possibleFuture.toSet.flatMap(atom => fromAtom(atom))
+
   def fromExecutionConfig[S, D](executionConfig: ExecutionConfig[S, D]): Breakpoints =
     executionConfig.acquisition.foldMap(fromExecutionSequence) ++
       executionConfig.science.foldMap(fromExecutionSequence)

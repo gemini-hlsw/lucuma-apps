@@ -26,6 +26,8 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.schemas.model.ModeSignalToNoise
 import monocle.Lens
@@ -115,6 +117,12 @@ object TestOdbProxy {
           possibleFuture.asInstanceOf[List[Atom[Flamingos2DynamicConfig]]],
           hasMore
         )
+      case Instrument.Igrins2    =>
+        ExecutionSequence[Igrins2DynamicConfig](
+          nextAtom.asInstanceOf[Atom[Igrins2DynamicConfig]],
+          possibleFuture.asInstanceOf[List[Atom[Igrins2DynamicConfig]]],
+          hasMore
+        )
       case i                     => sys.error(s"Unexpected instrument $i")
 
   def buildExecutionConfig(
@@ -146,6 +154,14 @@ object TestOdbProxy {
             static.asInstanceOf[Flamingos2StaticConfig],
             acquisition.asInstanceOf[Option[ExecutionSequence[Flamingos2DynamicConfig]]],
             science.asInstanceOf[Option[ExecutionSequence[Flamingos2DynamicConfig]]]
+          )
+        )
+      case Instrument.Igrins2    =>
+        InstrumentExecutionConfig.Igrins2(
+          ExecutionConfig(
+            static.asInstanceOf[Igrins2StaticConfig],
+            acquisition.asInstanceOf[Option[ExecutionSequence[Igrins2DynamicConfig]]],
+            science.asInstanceOf[Option[ExecutionSequence[Igrins2DynamicConfig]]]
           )
         )
       case i                     => sys.error(s"Unexpected instrument $i")

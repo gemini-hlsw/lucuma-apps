@@ -81,6 +81,16 @@ object operations:
         case Observation => List(Operations.StopObservation, Operations.AbortObservation)
         case _           => Nil
 
+  private object Igrins2SupportedOperations extends SupportedOperations:
+    def apply(
+      level:           OperationLevel,
+      isObservePaused: Boolean,
+      isMultiLevel:    Boolean
+    ): List[Operations] =
+      level match
+        case Observation => List(Operations.AbortObservation)
+        case _           => Nil
+
   private object NiriSupportedOperations extends SupportedOperations:
     def apply(
       level:           OperationLevel,
@@ -114,6 +124,7 @@ object operations:
     Instrument.GmosSouth  -> GmosSupportedOperations,
     Instrument.GmosNorth  -> GmosSupportedOperations,
     Instrument.Gnirs      -> GnirsSupportedOperations,
+    Instrument.Igrins2    -> Igrins2SupportedOperations,
     Instrument.Niri       -> NiriSupportedOperations,
     Instrument.Gsaoi      -> GsaoiSupportedOperations
   )
