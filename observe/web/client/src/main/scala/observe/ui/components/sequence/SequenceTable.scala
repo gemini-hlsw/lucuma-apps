@@ -69,10 +69,10 @@ private trait SequenceTable[S, D](
   // 1st in the future sequence, we remove the 1st future step.
   private def shouldHideFirstFutureStep(secondStepId: Option[Step.Id]): Boolean =
     (runningStepId, secondStepId, executionState.sequenceStatus) match
-      case (Some(runStepId), Some(secStepId), _) => runStepId === secStepId
-      case (None, None, _)                       => true
-      case (None, _, SequenceStatus.Aborted)     => true // Avoid glitch just after aborting.
-      case _                                     => false
+      case (Some(runStepId), Some(secStepId), _)               => runStepId === secStepId
+      case (None, None, _)                                     => true
+      case (None, _, status) if status =!= SequenceStatus.Idle => true // Avoid glitch
+      case _                                                   => false
 
   private def futureSteps(
     atoms:   List[Atom[D]],

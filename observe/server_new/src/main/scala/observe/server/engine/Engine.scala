@@ -130,23 +130,22 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
                     send(Event.sequenceComplete(obsId))
                   // Step completed (no more execution groups - loadedStep is cleared by `withNextExecution`)
                   case Some(nextState) if nextState.loadedStep.isEmpty =>
-                    if (userStop || internalStop)
-                      EngineHandle.replaceSequenceState(obsId)(nextState) *>
-                        setObsStatus(obsId)(SequenceStatus.Idle) *>
-                        send(Event.sequencePaused(obsId))
-                    else
-                      // If we are between steps, there's no need to update the state with no loaded step. This avoids glitches in the UI.
-                      send(Event.stepComplete(obsId)) >>
-                        send(
-                          Event.modifyState(
-                            loadNextStep(
-                              this,
-                              obsId,
-                              seq.currentSequenceType,
-                              completedStep.atomId
-                            )
-                          )
-                        )
+                    EngineHandle.replaceSequenceState(obsId)(nextState) *>
+                      (if (userStop || internalStop)
+                         setObsStatus(obsId)(SequenceStatus.Idle) *>
+                           send(Event.sequencePaused(obsId))
+                       else
+                         send(Event.stepComplete(obsId)) >>
+                           send(
+                             Event.modifyState(
+                               loadNextStep(
+                                 this,
+                                 obsId,
+                                 seq.currentSequenceType,
+                                 completedStep.atomId
+                               )
+                             )
+                           ))
                   // Execution group completed. Check requested stop and breakpoint.
                   case Some(nextState)                                 =>
                     EngineHandle.replaceSequenceState(obsId)(nextState) *>
@@ -474,9 +473,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
           EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case SequenceComplete(obsId)       =>
         debug("Engine: Finished") *>
-          setObsStatus(obsId)(SequenceStatus.Completed) *> EngineHandle.pure(
-            SystemUpdate(se, Outcome.Ok)
-          )
+          setObsStatus(obsId)(SequenceStatus.Completed) >>
+          EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
       case SingleRunCompleted(c, r)      =>
         debug(s"Engine: single action $c completed with result $r") *>
           completeSingleRun(c, r.response) *> EngineHandle.pure(SystemUpdate(se, Outcome.Ok))
