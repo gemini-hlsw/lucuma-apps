@@ -24,25 +24,9 @@ case class SequenceView(
   stepResources:   Map[Resource | Instrument, ActionStatus],
   breakpoints:     Set[Step.Id]
 ) derives Eq:
-
-  // def progress: Option[RunningStepProgress] =
-  //   steps.zipWithIndex
-  //     .find(!_._1.isFinished)
-  //     .flatMap: x =>
-  //       RunningStep.fromInt(x._1.id.some, x._2, steps.length)
-
-  // // Returns where on the sequence the execution is at
-  // def runningStepProgress: Option[RunningStepProgress] =
-  //   status match
-  //     case SequenceStatus.Running(_, _, _, _, _) => progress
-  //     case SequenceStatus.Failed(_)              => progress
-  //     case SequenceStatus.Aborted                => progress
-  //     case _                                    => none
-
   def pausedStep: Option[PausedStep] =
     runningStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))
 
 object SequenceView:
-
   val runningStep: Optional[SequenceView, ObserveStep] =
     Focus[SequenceView](_.runningStep).some
