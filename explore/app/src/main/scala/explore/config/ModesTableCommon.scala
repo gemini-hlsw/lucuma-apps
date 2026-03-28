@@ -295,7 +295,6 @@ trait ModesTableCommon:
   given Reusability[ItcResultsCache] = Reusability.by(_.cache.size)
 
   def requestItcQuery[F[_]](
-    expTimeMode:         ExposureTimeMode,
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
@@ -308,7 +307,7 @@ trait ModesTableCommon:
         constraints,
         asterism,
         customSedTimestamps,
-        configs.map((_, expTimeMode))
+        configs
       )
     )
 
@@ -344,8 +343,10 @@ trait ModesTableCommon:
         ): (expTimeMode, constraints, asterism, customSedTimestamps, _) =>
           import ctx.given
 
+          // We need to check exposure time mode because it must be set for the ITC request,
+          // but if the user HAS set it, it will already be included in the row's config
           (expTimeMode, asterism)
-            .mapN { (expTimeMode, asterism) =>
+            .mapN { (_, asterism) =>
               val modes: List[Row] =
                 sortedRows
                   .filterNot: row => // Discard modes already in the cache
@@ -357,7 +358,6 @@ trait ModesTableCommon:
                       case i if SupportedInstruments.contains(i) =>
                         cache.contains:
                           ItcRequestParams(
-                            expTimeMode,
                             constraints,
                             asterism,
                             customSedTimestamps,
@@ -372,7 +372,6 @@ trait ModesTableCommon:
                     _       <- Resource.eval(itcProgress.set(progressZero).to[IO])
                     request <-
                       requestItcQuery(
-                        expTimeMode,
                         constraints,
                         asterism,
                         customSedTimestamps,

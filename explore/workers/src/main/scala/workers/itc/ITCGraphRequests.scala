@@ -12,7 +12,6 @@ import explore.model.boopickle.ItcPicklers.given
 import explore.model.itc.*
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.model.ConstraintSet
-import lucuma.core.model.ExposureTimeMode
 import lucuma.core.util.Timestamp
 import lucuma.itc.Error
 import lucuma.itc.client.ItcClient
@@ -34,7 +33,6 @@ object ITCGraphRequests:
 
   // Wrapper method to match the call in ItcServer.scala
   def queryItc[F[_]: {Concurrent, Logger, ItcClient}](
-    exposureTimeMode:    ExposureTimeMode,
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
@@ -44,39 +42,35 @@ object ITCGraphRequests:
   ): F[Unit] =
 
     val itcRowsParams = mode match // Only handle known modes
-      case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _) =>
+      case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _, _) =>
         ItcGraphRequestParams(
-          exposureTimeMode,
           constraints,
           targets,
           customSedTimestamps,
           m
         ).some
-      case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _) =>
+      case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _, _) =>
         ItcGraphRequestParams(
-          exposureTimeMode,
           constraints,
           targets,
           customSedTimestamps,
           m
         ).some
-      case m: ItcInstrumentConfig.Flamingos2Spectroscopy             =>
+      case m: ItcInstrumentConfig.Flamingos2Spectroscopy                =>
         ItcGraphRequestParams(
-          exposureTimeMode,
           constraints,
           targets,
           customSedTimestamps,
           m
         ).some
-      case m: ItcInstrumentConfig.Igrins2Spectroscopy                =>
+      case m: ItcInstrumentConfig.Igrins2Spectroscopy                   =>
         ItcGraphRequestParams(
-          exposureTimeMode,
           constraints,
           targets,
           customSedTimestamps,
           m
         ).some
-      case _                                                         =>
+      case _                                                            =>
         none
 
     def doRequest(
@@ -88,7 +82,6 @@ object ITCGraphRequests:
             .spectroscopyIntegrationTimeAndGraphs(
               SpectroscopyIntegrationTimeAndGraphsInput(
                 SpectroscopyIntegrationTimeAndGraphsParameters(
-                  exposureTimeMode = request.exposureTimeMode,
                   constraints = ItcConstraintsInput.fromConstraintSet(request.constraints),
                   mode = mode,
                   significantFigures = significantFigures.some
@@ -133,8 +126,7 @@ object ITCGraphRequests:
 
               ItcAsterismGraphResults(
                 asterismGraphs,
-                graphsResult.brightestIndex.flatMap(request.asterism.get),
-                ExposureTimeMode.at.get(request.exposureTimeMode)
+                graphsResult.brightestIndex.flatMap(request.asterism.get)
               ).rightNec
             .handleError {
               case JavaScriptException(a) if a.toString.startsWith("TypeError") =>

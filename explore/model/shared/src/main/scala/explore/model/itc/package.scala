@@ -14,7 +14,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.data.Zipper
 import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
-import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
 import lucuma.itc.IntegrationTime
 import lucuma.itc.ItcAxis
@@ -160,8 +159,7 @@ case class ItcGraphResult(target: ItcTarget, timeAndGraphs: TargetTimeAndGraphsR
 
 case class ItcAsterismGraphResults(
   asterismGraphs:  Map[ItcTarget, Either[ItcQueryProblem, ItcGraphResult]],
-  brightestTarget: Option[ItcTarget],
-  signalToNoiseAt: Wavelength
+  brightestTarget: Option[ItcTarget]
 )
 
 type ImagingResults = Map[ItcTarget, Map[ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]]]

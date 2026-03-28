@@ -90,7 +90,6 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
           )
 
         case ItcMessage.GraphQuery(
-              exposureTimeMode,
               constraint,
               targets,
               customSedTimestamps,
@@ -100,7 +99,6 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
             itcClient.get >>= (implicit client =>
             ITCGraphRequests
               .queryItc[IO](
-                exposureTimeMode,
                 constraint,
                 targets,
                 customSedTimestamps,

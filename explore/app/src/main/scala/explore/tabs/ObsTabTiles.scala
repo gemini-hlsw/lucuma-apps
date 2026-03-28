@@ -308,7 +308,7 @@ object ObsTabTiles:
             props.observation.get.observingMode.map(_.toBasicConfiguration)
 
           val itcOdbConfiguration: List[ItcInstrumentConfig] =
-            props.observation.get.toInstrumentConfig(props.obsTargets).map(_._1)
+            props.observation.get.toInstrumentConfig(props.obsTargets)
 
           val obsTimeView: View[Option[Instant]] =
             props.observation.model.zoom(Observation.observationTime)
@@ -418,13 +418,6 @@ object ObsTabTiles:
               isEditable
             )
 
-          val selectedItcConfig: Option[List[ItcInstrumentConfig]] =
-            Option.unless(props.observation.get.observingMode.isDefined):
-              selectedConfig.get.configs.map(_.instrumentConfig)
-
-          val itcConfigs: Option[List[ItcInstrumentConfig]] =
-            if (itcOdbConfiguration.isEmpty) selectedItcConfig else itcOdbConfiguration.some
-
           val odbOrSelectedConfig: Option[BasicConfiguration] =
             basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
 
@@ -447,7 +440,7 @@ object ObsTabTiles:
                 ItcSpectroscopyTile(
                   props.vault.userId,
                   props.observation.get,
-                  itcConfigs,
+                  selectedConfig.get.configs.headOption.map(_.instrumentConfig),
                   props.obsTargets,
                   customSedTimestamps,
                   globalPreferences

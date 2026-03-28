@@ -285,11 +285,11 @@ trait DisplayImplicits:
   given Display[ObservationWorkflowState]   = Display.byShortName(_.tag.capitalize)
 
   given Display[ItcInstrumentConfig] = Display.byShortName:
-    case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _) =>
+    case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, _) =>
       s"GMOS-N ${grating.shortName} ${fpu.shortName}"
-    case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _) =>
+    case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _, _) =>
       s"GMOS-S ${grating.shortName} ${fpu.shortName}"
-    case _                                                             =>
+    case _                                                                =>
       s"Unsupported configuration"
 
   given Display[BasicConfiguration] = Display.byShortName:

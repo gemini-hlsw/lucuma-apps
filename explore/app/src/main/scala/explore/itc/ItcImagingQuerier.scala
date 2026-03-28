@@ -42,7 +42,7 @@ case class ItcImagingQuerier(
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
     asterismIds.toItcTargets(allTargets)
 
-  private val obsModeConfigs: Option[NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
+  private val obsModeConfigs: Option[NonEmptyList[ItcInstrumentConfig]] =
     NonEmptyList.fromList(observation.toInstrumentConfig(allTargets))
 
   private def requirementsExposureTimeMode: EitherNec[ItcQueryProblem, ExposureTimeMode] =
@@ -50,17 +50,15 @@ case class ItcImagingQuerier(
       ItcQueryProblem.MissingExposureTimeMode
     )
 
-  private def requirementsConfigs
-    : EitherNec[ItcQueryProblem, NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
-    requirementsExposureTimeMode.flatMap: etm =>
+  private def requirementsConfigs: EitherNec[ItcQueryProblem, NonEmptyList[ItcInstrumentConfig]] =
+    // If the user has set an exposure time mode, it will be part of the config,
+    // but we still need to makes sure it is set in the requirements or it is not valid.
+    requirementsExposureTimeMode.flatMap: _ =>
       NonEmptyList
-        .fromList(
-          selectedConfigs.map((_, etm))
-        )
+        .fromList(selectedConfigs)
         .toRightNec(ItcQueryProblem.GenericError(Constants.MissingMode))
 
-  private val finalConfigs
-    : EitherNec[ItcQueryProblem, NonEmptyList[(ItcInstrumentConfig, ExposureTimeMode)]] =
+  private val finalConfigs: EitherNec[ItcQueryProblem, NonEmptyList[ItcInstrumentConfig]] =
     obsModeConfigs
       .map(_.rightNec)
       .getOrElse(requirementsConfigs)
@@ -135,7 +133,7 @@ object ItcImagingQuerier:
   private case class QueryProps(
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
-    instrumentConfigs:   List[(ItcInstrumentConfig, ExposureTimeMode)],
+    instrumentConfigs:   List[ItcInstrumentConfig],
     customSedTimestamps: List[Timestamp]
   ) derives Eq
 

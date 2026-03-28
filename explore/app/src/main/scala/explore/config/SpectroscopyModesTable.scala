@@ -152,6 +152,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             _,
             _,
             _,
+            _,
             Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
@@ -160,18 +161,19 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             _,
             _,
             _,
+            _,
             Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
         fmtGmos(px, ccd.xBin)
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _) =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _) =>
         val px = flamingos2SlitWidthPixels(slitWidth.value)
         f"$px%2.1f px"
-      case ItcInstrumentConfig.Igrins2Spectroscopy()           =>
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_)             =>
         val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
         val px              = widthArcSeconds / Igrins2PixelScale
         f"$px%2.1f px"
-      case _                                                   => ""
+      case _                                                      => ""
     }
 
     <.span(formatSlitWidth(slitWidth))
@@ -297,19 +299,26 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           .flattenOption
 
       fixedModeRows.map: row =>
+        // We update the etm here so that we don't have to do it multiple times in
+        // multiple places, but we will still need to validate that the etm in set in
+        // the requirements before calling the itc.
+        val rowWithEtm: SpectroscopyModeRow =
+          etm.fold(row)(etm =>
+            SpectroscopyModeRow.instrumentConfig.modify(_.setSingleExposureTimeMode(etm))(row)
+          )
+
         val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          (s.wavelength, etm).mapN: (_, exposureMode) =>
+          (s.wavelength, etm).mapN: (_, _) =>
             targets.flatMap: asterism =>
               itcResults.get.forRow(
-                exposureMode,
                 constraints,
                 asterism.some,
                 customSedTimestamps,
-                row
+                rowWithEtm
               )
 
         SpectroscopyModeRowWithResult(
-          row,
+          rowWithEtm,
           Pot.fromOption(result),
           s.wavelength.flatMap: w =>
             row.wavelengthInterval(w)

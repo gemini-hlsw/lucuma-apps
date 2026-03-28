@@ -23,13 +23,13 @@ case class InstrumentConfigAndItcResult(
 
   def toBasicConfiguration: Option[BasicConfiguration] =
     instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu)              =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _)              =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-      case _                                                                               => none
+      case _                                                                                  => none
 
 object InstrumentConfigAndItcResult:
   val configuration: Lens[InstrumentConfigAndItcResult, ItcInstrumentConfig] =
