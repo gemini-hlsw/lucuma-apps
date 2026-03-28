@@ -37,10 +37,20 @@ import org.typelevel.log4cats.Logger
 import scala.collection.immutable.HashSet
 
 import scalajs.js
+import observe.model.enums.Resource
 
 // Offload SequenceTable definitions to improve legibility.
 trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected def instrument: Instrument
+
+  private val isGmos: Boolean =
+    List(Instrument.GmosNorth, Instrument.GmosSouth).contains_(instrument)
+
+  private val stepResources: StepConfig => Set[Resource] =
+    case StepConfig.Bias | StepConfig.Dark => if isGmos then Set(Resource.Gcal) else Set.empty
+    case StepConfig.Gcal(_, _, _, _)       => Set(Resource.TCS, Resource.Gcal)
+    case StepConfig.Science                => Set(Resource.TCS, Resource.Gcal)
+    case StepConfig.SmartGcal(_)           => throw new RuntimeException("Smart GCAL is not supported")
 
   protected case class TableMeta(
     requests:           ObservationRequests,
