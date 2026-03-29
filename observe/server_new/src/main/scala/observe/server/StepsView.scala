@@ -154,7 +154,7 @@ object StepsView {
         telescopeConfig = stepg.telescopeConfig,
         signalToNoise = stepg.signalToNoise,
         status = status,
-        configStatus = configStatus,
+        configStatus = configStatus.toMap,
         observeStatus = observeStatus(step.executions),
         fileId = fileId(step.executions)
       )

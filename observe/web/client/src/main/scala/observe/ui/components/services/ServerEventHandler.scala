@@ -32,6 +32,7 @@ import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
 import observe.model.ObservationProgress
+import observe.model.ObserveStep
 import observe.model.enums.ActionStatus
 import observe.model.enums.ObserveLogLevel
 import observe.model.events.ClientEvent
@@ -184,7 +185,10 @@ trait ServerEventHandler:
           (RootModelData.executionState
             .at(obsId)
             .some
-            .andThen(ExecutionState.stepResources.at(subsystem))
+            .andThen(ExecutionState.runningStep)
+            .some
+            .filter(_.id === stepId)
+            .andThen(ObserveStep.configStatus.at(subsystem))
             .replace:
               event match
                 case SingleActionState.Started   => ActionStatus.Running.some

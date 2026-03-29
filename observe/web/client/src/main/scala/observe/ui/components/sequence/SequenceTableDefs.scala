@@ -27,6 +27,8 @@ import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
 import observe.model.ExecutionState
 import observe.model.StepProgress
+import observe.model.enums.ActionStatus
+import observe.model.enums.Resource
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.components.sequence.steps.*
@@ -37,16 +39,15 @@ import org.typelevel.log4cats.Logger
 import scala.collection.immutable.HashSet
 
 import scalajs.js
-import observe.model.enums.Resource
 
 // Offload SequenceTable definitions to improve legibility.
 trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected def instrument: Instrument
 
-  private val isGmos: Boolean =
+  private lazy val isGmos: Boolean =
     List(Instrument.GmosNorth, Instrument.GmosSouth).contains_(instrument)
 
-  private val stepResources: StepConfig => Set[Resource] =
+  private lazy val stepResources: StepConfig => Set[Resource | Instrument] =
     case StepConfig.Bias | StepConfig.Dark => if isGmos then Set(Resource.Gcal) else Set.empty
     case StepConfig.Gcal(_, _, _, _)       => Set(Resource.TCS, Resource.Gcal)
     case StepConfig.Science                => Set(Resource.TCS, Resource.Gcal)
@@ -174,7 +175,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                   )
               ).when(
                 cell.row.index.toInt > 0 &&
-                  List(StepTime.Present, StepTime.Future).contains_(step.stepTime) &&
+                  step.stepTime === StepTime.Future &&
                   meta.executionState.runningStep.map(_.id) =!= stepId
               )
             )
@@ -200,12 +201,17 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                     datasetIdsInFlight = meta.datasetIdsInFlight
                   )
                 case step                                              =>
-                  (step.selectableRowId, step.stepTypeDisplay, step.exposureTime).mapN:
-                    (selectableRowId, stepType, exposureTime) =>
+                  (step.selectableRowId, step.stepTypeDisplay, step.exposureTime, step.stepConfig)
+                    .mapN: (selectableRowId, stepType, exposureTime, stepConfig) =>
                       meta.selectedRowId
                         .filter(_ == selectableRowId)
                         .map: selectedRowId =>
                           val stepId: Step.Id = selectedRowId.stepId
+
+                          def inactiveStepResourceMap: Map[Resource | Instrument, ActionStatus] =
+                            (stepResources(stepConfig) + instrument)
+                              .map(_ -> ActionStatus.Pending)
+                              .toMap
 
                           StepProgressCell(
                             clientMode = clientMode,
@@ -220,7 +226,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             sequenceStatus = meta.executionState.sequenceStatus,
                             isPausedInStep =
                               meta.executionState.pausedStep.exists(_.value === stepId),
-                            subsystemStatus = meta.executionState.stepResources,
+                            subsystemStatus =
+                              meta.executionState.stepResources.getOrElse(inactiveStepResourceMap),
                             systemOverrides = meta.executionState.systemOverrides,
                             exposureTime = exposureTime,
                             progress = meta.progress,

@@ -243,8 +243,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                           executionState.fold("")(es => s" ($es)")
                       } else TagMod.empty,
                       (^.onClick --> props.setSelectedRowId(selectableRowId))
-                        .when:
-                          step.stepTime === StepTime.Present
                         .unless:
                           props.executionState.isLocked
                     )
