@@ -363,21 +363,35 @@ class ObserveEngineSuite extends TestCommon {
     )
       .apply(EngineState.default[IO])
 
+    val acquisitionStep = NonEmptyList.one:
+      Step[DynamicConfig.GmosNorth](
+        stepId(1),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Disabled
+      )
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
+
     (for {
-      oe <- observeEngine
-      sf <- advanceN(
-              oe,
-              s0,
-              oe.configSystem(
-                seqObsId1,
-                observer,
-                user,
-                stepId(1),
-                TCS,
-                clientId
-              ),
-              3
-            )
+      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe  <- observeEngineWithODB(odb)
+      sf  <- advanceN(
+               oe,
+               s0,
+               oe.configSystem(
+                 seqObsId1,
+                 observer,
+                 user,
+                 stepId(1),
+                 TCS,
+                 clientId
+               ),
+               3
+             )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
       .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
@@ -395,20 +409,34 @@ class ObserveEngineSuite extends TestCommon {
         .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
+    val acquisitionStep = NonEmptyList.one:
+      Step[DynamicConfig.GmosNorth](
+        stepId(1),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Disabled
+      )
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
+
     (for {
-      oe <- observeEngine
-      sf <- advanceOne(
-              oe,
-              s0,
-              oe.configSystem(
-                seqObsId1,
-                observer,
-                user,
-                stepId(1),
-                TCS,
-                clientId
-              )
-            )
+      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe  <- observeEngineWithODB(odb)
+      sf  <- advanceOne(
+               oe,
+               s0,
+               oe.configSystem(
+                 seqObsId1,
+                 observer,
+                 user,
+                 stepId(1),
+                 TCS,
+                 clientId
+               )
+             )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId1).getOption)
       .flatMap(s => s.configActionCoord(stepId(1), TCS).map(s.seq.getSingleState))
@@ -434,10 +462,11 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <-
-        advanceOne(
+        advanceN(
           oe,
           s0,
-          oe.configSystem(seqObsId2, observer, user, stepId(1), TCS, clientId)
+          oe.configSystem(seqObsId2, observer, user, stepId(1), TCS, clientId),
+          3
         )
     } yield sf
       .flatMap(
@@ -467,14 +496,28 @@ class ObserveEngineSuite extends TestCommon {
         .andThen(SequenceState.status[IO])
         .replace(SequenceStatus.Running.Init)).apply(EngineState.default[IO])
 
+    val acquisitionStep = NonEmptyList.one:
+      Step[DynamicConfig.GmosNorth](
+        stepId(1),
+        dynamicCfg1,
+        stepCfg1,
+        telescopeCfg1,
+        StepEstimate.Zero,
+        ObserveClass.Science,
+        Breakpoint.Disabled
+      )
+
+    val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
+
     (for {
-      oe <- observeEngine
-      sf <- advanceN(
-              oe,
-              s0,
-              oe.configSystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
-              3
-            )
+      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId2, staticCfg1, acqAtom.some, List.empty)
+      oe  <- observeEngineWithODB(odb)
+      sf  <- advanceN(
+               oe,
+               s0,
+               oe.configSystem(seqObsId2, observer, user, stepId(1), Gcal, clientId),
+               3
+             )
     } yield sf
       .flatMap(EngineState.atSequence(seqObsId2).getOption)
       .flatMap(s => s.configActionCoord(stepId(1), Gcal).map(s.seq.getSingleState))
@@ -553,14 +596,8 @@ class ObserveEngineSuite extends TestCommon {
 
     (for {
       acqAtomId <- IO.randomUUID.map(Atom.Id.fromUuid)
-      systems   <- systemsWithTargetName("proof")
       odb       <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe        <- ObserveEngine.build(
-                     Site.GN,
-                     systems.copy(odb = odb),
-                     defaultSettings,
-                     ExecutionEnvironment.Development
-                   )
+      oe        <- observeEngineWithODB(odb, systemsWithTargetName("proof"))
       sf        <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
@@ -588,15 +625,9 @@ class ObserveEngineSuite extends TestCommon {
       .apply(EngineState.default[IO])
 
     (for {
-      systems <- systemsWithTargetName("proof1")
-      odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe      <- ObserveEngine.build(
-                   Site.GN,
-                   systems.copy(odb = odb),
-                   defaultSettings,
-                   ExecutionEnvironment.Development
-                 )
-      sf      <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
+      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      oe  <- observeEngineWithODB(odb, systemsWithTargetName("proof1"))
+      sf  <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Default))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
       .exists(_.status.isIdle)).assert
@@ -625,12 +656,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       systems <- systemsWithTargetName("proof1")
       odb     <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      oe      <- ObserveEngine.build(
-                   Site.GN,
-                   systems.copy(odb = odb),
-                   defaultSettings,
-                   ExecutionEnvironment.Development
-                 )
+      oe      <- observeEngineWithODB(odb)
       sf      <- advanceOne(oe, s0, oe.start(seqObsId1, user, observer, clientId, RunOverride.Override))
     } yield sf
       .flatMap(EngineState.sequenceStateAt[IO](seqObsId1).getOption)
@@ -703,14 +729,8 @@ class ObserveEngineSuite extends TestCommon {
       .apply(EngineState.default[IO])
 
     (for {
-      systems       <- defaultSystems
       odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      observeEngine <- ObserveEngine.build(
-                         Site.GN,
-                         systems.copy(odb = odb),
-                         defaultSettings,
-                         ExecutionEnvironment.Development
-                       )
+      observeEngine <- observeEngineWithODB(odb)
       sf            <- advanceOne(
                          observeEngine,
                          s0,
@@ -754,14 +774,8 @@ class ObserveEngineSuite extends TestCommon {
       .apply(EngineState.default[IO])
 
     for {
-      systems       <- defaultSystems
       odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      observeEngine <- ObserveEngine.build(
-                         Site.GN,
-                         systems.copy(odb = odb),
-                         defaultSettings,
-                         ExecutionEnvironment.Development
-                       )
+      observeEngine <- observeEngineWithODB(odb)
       result        <-
         observeEngine.start(
           seqObsId1,
@@ -813,14 +827,8 @@ class ObserveEngineSuite extends TestCommon {
       .apply(EngineState.default[IO])
 
     for {
-      systems       <- defaultSystems
       odb           <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
-      observeEngine <- ObserveEngine.build(
-                         Site.GN,
-                         systems.copy(odb = odb),
-                         defaultSettings,
-                         ExecutionEnvironment.Development
-                       )
+      observeEngine <- observeEngineWithODB(odb)
       sf            <-
         advanceN(
           observeEngine,

@@ -225,11 +225,11 @@ object WebServerLauncher extends IOApp with LogInitialization {
       .default[F]
       .withHost(conf.host)
       .withPort(conf.insecurePort)
-      .withHttpApp(
+      .withHttpApp:
         Http4sLogger
           .httpRoutes(logHeaders = false, logBody = false)(router)
           .orNotFound
-      )
+      .withShutdownTimeout(2.seconds)
       .build
   }
 
@@ -316,7 +316,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
   /** Reads the configuration and launches the observe engine and web server */
   def observe: IO[ExitCode] = {
 
-    val observe: Resource[IO, ExitCode] =
+    val observe: Resource[IO, Unit] =
       for // Initialize log before the engine is setup
         given Logger[IO] <- Resource.eval(setupLogger[IO])
         conf             <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
@@ -331,18 +331,15 @@ object WebServerLauncher extends IOApp with LogInitialization {
         _                <- redirectWebServer(conf.webServer, engine.systems.guideDb)
         sso              <- ssoClient(cli, conf.lucumaSSO)
         _                <- webServer(conf, cs, sso, engine)
-      yield ExitCode.Success
+      yield ()
 
-    observe.useForever
-
+    observe.useForever.as(ExitCode.Success)
   }
 
   /** Reads the configuration and launches the observe */
   override def run(args: List[String]): IO[ExitCode] =
-    observe.guaranteeCase {
-      case Outcome.Errored(e) =>
-        IO.println(s"Observe exited with error $e")
+    observe.guaranteeCase:
+      case Outcome.Errored(e) => IO.println(s"Observe exited with error $e")
       case _                  => IO.unit
-    }
 
 }

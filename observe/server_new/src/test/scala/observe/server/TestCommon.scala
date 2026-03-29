@@ -104,10 +104,13 @@ trait TestCommon extends munit.CatsEffectSuite {
       eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
     yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
-  def observeEngineWithODB(odb: OdbProxy[IO]): IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap(sys =>
+  def observeEngineWithODB(
+    odb:     OdbProxy[IO],
+    systems: IO[Systems[IO]] = defaultSystems
+  ): IO[ObserveEngine[IO]] =
+    systems.flatMap(sys =>
       ObserveEngine.build(
-        Site.GS,
+        Site.GN,
         sys.copy(odb = odb),
         defaultSettings,
         ExecutionEnvironment.Development
@@ -435,16 +438,11 @@ object TestCommon {
     sg:   Option[StepGen.GmosNorth[IO]],
     lens: monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
-    ODBSequencesLoader.loadSequenceMod[IO](
-      None,
-      gmosNorthOdbData(id),
-      lens
-    ) >>> (
+    ODBSequencesLoader.loadSequenceMod[IO](None, gmosNorthOdbData(id), lens) >>>
       lens.some
         .andThen(SequenceData.seq)
         .modify:
           _.withLoadedStepGen(sg, SystemOverrides.AllEnabled, HeaderExtraData.Default)
-    )
 
   /**
    * Convenience: build a GmosNorth sequence with a single step and default resources. Replaces the
