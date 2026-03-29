@@ -1348,6 +1348,22 @@ enum GcalShutter {
   CLOSED
 }
 
+enum GhostResolutionMode {
+  STANDARD
+  HIGH
+}
+
+enum GhostBinning {
+  ONE_BY_ONE
+  ONE_BY_TWO
+  ONE_BY_FOUR
+  ONE_BY_EIGHT
+  TWO_BY_TWO
+  TWO_BY_FOUR
+  TWO_BY_EIGHT
+  FOUR_BY_FOUR
+}
+
 """GMOS amp count"""
 enum GmosAmpCount {
   """GmosAmpCount Three"""
@@ -1835,7 +1851,10 @@ type GmosNorthStatic {
   """Is MOS Pre-Imaging Observation"""
   mosPreImaging: MosPreImaging!
 
-  """Nod-and-shuffle configuration"""
+  """
+  Nod-and-shuffle configuration.  This is currently not used and will always
+  return null.
+  """
   nodAndShuffle: GmosNodAndShuffle
 }
 
@@ -1852,7 +1871,9 @@ input GmosNorthStaticInput {
   """
   mosPreImaging: MosPreImaging
 
-  """GMOS Nod And Shuffle configuration"""
+  """
+  GMOS Nod And Shuffle configuration.  Warning: Currently not used or stored.
+  """
   nodAndShuffle: GmosNodAndShuffleInput
 }
 
@@ -2198,7 +2219,11 @@ type GmosSouthStatic {
   """Is MOS Pre-Imaging Observation"""
   mosPreImaging: MosPreImaging!
 
-  """Nod-and-shuffle configuration"""
+  """
+  #Nod-and-shuffle configuration
+  Nod-and-shuffle configuration.  This is currently not used and will always
+  return null.
+  """
   nodAndShuffle: GmosNodAndShuffle
 }
 
@@ -2215,7 +2240,9 @@ input GmosSouthStaticInput {
   """
   mosPreImaging: MosPreImaging
 
-  """GMOS Nod And Shuffle configuration"""
+  """
+  GMOS Nod And Shuffle configuration.  Warning: currently not used or stored.
+  """
   nodAndShuffle: GmosNodAndShuffleInput
 }
 
@@ -5933,23 +5960,6 @@ type Execution {
   """
   digest: CalculatedExecutionDigest
 
-  """
-  Full execution config, including acquisition and science sequences.  If a
-  sequence cannot be generated for this observation, `null` is returned along
-  with warning messages.
-  """
-  config(
-    """
-    The maximum size (number of atoms) of the `possibleFuture` in the sequences.
-    If the projected future is longer, the size will be capped at this value.
-    Use 0 if only interested in the `nextAtom`.  The maximum is 100.  Each
-    sequence has a `hasMore` field that can be used to determine whether there
-    additional atoms beyond those returned in `possibleFuture`.  The total
-    projected atom count is available in the execution digest.
-    """
-    futureLimit: NonNegInt = 25
-  ): ExecutionConfig @deprecated(reason: "moved to Query -> executionConfig")
-
   """Determines the execution state as a whole of this observation."""
   executionState: ExecutionState!
 
@@ -8454,6 +8464,15 @@ Timestamp of time in ISO-8601 representation in format '2011-12-03T10:15:30Z'
 """
 scalar Timestamp
 
+"""PortDisposition"""
+enum PortDisposition {
+  """Side looking port"""
+  SIDE
+
+  """Up (bottom) looking port"""
+  BOTTOM
+}
+
 """Instrument"""
 enum Instrument {
   """Instrument AcqCam"""
@@ -8521,6 +8540,17 @@ type SpectroscopyConfigOption {
   site: Site!
 
   """
+  For Flamingos2 options, the Flamingos 2configuration.  Null for other
+  instruments.
+  """
+  flamingos2: SpectroscopyConfigOptionFlamingos2
+
+  """
+  For GHOST options, the GHOST configuration.  Null for other instruments.
+  """
+  ghost: SpectroscopyConfigOptionGhost
+
+  """
   For GMOS North options, the GMOS North configuration.  Null for other
   instruments.
   """
@@ -8531,12 +8561,17 @@ type SpectroscopyConfigOption {
   instruments.
   """
   gmosSouth: SpectroscopyConfigOptionGmosSouth
+}
 
-  """
-  For Flamingos2 options, the Flamingos 2configuration.  Null for other
-  instruments.
-  """
-  flamingos2: SpectroscopyConfigOptionFlamingos2
+type SpectroscopyConfigOptionFlamingos2 {
+  fpu: Flamingos2Fpu!
+  disperser: Flamingos2Disperser!
+  filter: Flamingos2Filter!
+}
+
+type SpectroscopyConfigOptionGhost {
+  resolutionMode: GhostResolutionMode!
+  binning: GhostBinning!
 }
 
 type SpectroscopyConfigOptionGmosNorth {
@@ -8549,12 +8584,6 @@ type SpectroscopyConfigOptionGmosSouth {
   fpu: GmosSouthBuiltinFpu!
   grating: GmosSouthGrating!
   filter: GmosSouthFilter
-}
-
-type SpectroscopyConfigOptionFlamingos2 {
-  fpu: Flamingos2Fpu!
-  disperser: Flamingos2Disperser!
-  filter: Flamingos2Filter!
 }
 
 """Edit or create imaging science requirements"""
