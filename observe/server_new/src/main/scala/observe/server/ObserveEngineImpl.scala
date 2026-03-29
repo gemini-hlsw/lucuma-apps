@@ -442,7 +442,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
           .read(obsId)
           .map: odbData =>
             val (errs, stepGen): (List[Throwable], Option[StepGen[F]]) =
-              translator.nextStep(odbData, SequenceType.Acquisition)
+              translator.nextStep(odbData, SequenceType.Acquisition.asLeft)
             (errs, odbData, stepGen)
           .attempt
           .flatMap(
@@ -952,7 +952,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     clientId: ClientId
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st =>
-      if (configSystemCheck(sys, st)) {
+      if (configSystemCheck(sys, st))
+        // ObserveEngine.loadNextStep(
+        //   systems.odb,
+        //   translator,
+        //   obsId,
+        //   seq.currentSequenceType
+        // ) >>
         st.sequences
           .get(obsId)
           .flatMap(_.configActionCoord(stepId, sys))
@@ -963,9 +969,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                 case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
                 case _                      => NullSeqEvent
           .getOrElse(EngineHandle.pure(NullSeqEvent))
-      } else {
+      else
         EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
-      }
+
     }
 
   /**

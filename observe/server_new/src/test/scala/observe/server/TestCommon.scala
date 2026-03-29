@@ -428,7 +428,7 @@ object TestCommon {
   ): F[Option[StepGen[F]]] = for {
     c  <- Ref.of[F, Conditions](Conditions.Default)
     st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
-  } yield st.nextStep(odbObsData, SequenceType.Acquisition)._2
+  } yield st.nextStep(odbObsData, SequenceType.Acquisition.asLeft)._2
 
   def loadSequence(
     id:   Observation.Id,

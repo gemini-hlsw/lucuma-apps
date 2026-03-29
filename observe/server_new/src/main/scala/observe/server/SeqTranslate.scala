@@ -23,6 +23,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
+import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step as OdbStep
 import lucuma.core.model.sequence.StepConfig
@@ -78,7 +79,7 @@ import org.typelevel.log4cats.Logger
 trait SeqTranslate[F[_]] {
   def nextStep(
     odbObsData: OdbObservationData,
-    atomType:   SequenceType
+    stepIdFrom: Either[SequenceType, OdbStep.Id]
   ): (List[Throwable], Option[StepGen[F]])
 
   def stopObserve(seqId: Observation.Id, graceful: Boolean)(using
@@ -215,48 +216,87 @@ object SeqTranslate {
       )
     }
 
-    private def buildNextStep[S, D](
+    private def findStepInAtom[D](
+      atom:   Atom[D],
+      stepId: OdbStep.Id
+    ): Option[(OdbStep[D], Atom.Id)] =
+      atom.steps.find(_.id === stepId).map(s => (s, atom.id))
+
+    private def findStepInSequence[D](
+      seq:     ExecutionSequence[D],
+      seqType: SequenceType,
+      stepId:  OdbStep.Id
+    ): Option[(OdbStep[D], Atom.Id, SequenceType)] =
+      (seq.nextAtom +: seq.possibleFuture).collectFirstSome: atom =>
+        findStepInAtom(atom, stepId).map((s, a) => (s, a, seqType))
+
+    private def findStepInExecutionConfig[S, D](
+      execConfig: ExecutionConfig[S, D],
+      stepId:     OdbStep.Id
+    ): Option[(OdbStep[D], Atom.Id, SequenceType)] =
+      execConfig.acquisition
+        .flatMap(findStepInSequence(_, SequenceType.Acquisition, stepId))
+        .orElse(execConfig.science.flatMap(findStepInSequence(_, SequenceType.Science, stepId)))
+
+    private def nextStepFromExecutionSequence[D](
+      execSequence: Option[ExecutionSequence[D]],
+      seqType:      SequenceType
+    ): Option[(OdbStep[D], Atom.Id, SequenceType)] =
+      execSequence.map(seq => (seq.nextAtom.steps.head, seq.nextAtom.id, seqType))
+
+    private def nextStepFromSequenceType[S, D](
+      execConfig: ExecutionConfig[S, D],
+      seqType:    SequenceType
+    ): Option[(OdbStep[D], Atom.Id, SequenceType)] =
+      seqType match
+        case SequenceType.Acquisition =>
+          nextStepFromExecutionSequence(execConfig.acquisition, SequenceType.Acquisition)
+            .orElse(nextStepFromExecutionSequence(execConfig.science, SequenceType.Science))
+        case SequenceType.Science     =>
+          nextStepFromExecutionSequence(execConfig.science, SequenceType.Science)
+
+    def stepSignalToNoise[D](
+      modeSignalToNoise: ModeSignalToNoise,
+      instrumentConfig:  D,
+      sequenceType:      SequenceType
+    ): Option[SignalToNoise] =
+      (modeSignalToNoise, instrumentConfig) match
+        case (ModeSignalToNoise.Spectroscopy(acquisition, science),
+              _: gmos.DynamicConfig | Flamingos2DynamicConfig
+            ) =>
+          sequenceType match
+            case SequenceType.Acquisition => acquisition.map(_.single.value)
+            case SequenceType.Science     => science.map(_.single.value)
+        case (ModeSignalToNoise.GmosNorthImaging(snByFilter),
+              gnConfig: gmos.DynamicConfig.GmosNorth
+            ) =>
+          gnConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
+        case (ModeSignalToNoise.GmosSouthImaging(snByFilter),
+              gsConfig: gmos.DynamicConfig.GmosSouth
+            ) =>
+          gsConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
+        // Step/SN mismatch or unsupported instrument
+        case _ => none
+
+    private def buildStep[S, D](
       observation:     OdbObservation,
       executionConfig: ExecutionConfig[S, D],
-      seqType:         SequenceType,
+      // Either a Step.Id is specified, or a sequence type to pick the next step from.
+      stepIdFrom:      Either[SequenceType, OdbStep.Id],
       insSpec:         InstrumentSpecifics[S, D],
       instf:           (SystemOverrides, CoreStepType, StepType, D) => InstrumentSystem[F],
       instHeader:      D => KeywordsClient[F] => Header[F],
       mkStepGen:       StepGen.Factory[F, D],
       startIdx:        PosInt = PosInt.unsafeFrom(1)
     ): (List[Throwable], Option[StepGen[F]]) = {
-      val (nextAtom, sequenceType): (Option[Atom[D]], SequenceType) =
-        seqType match
-          case SequenceType.Acquisition =>
-            executionConfig.acquisition
-              .map(x => (x.nextAtom.some, SequenceType.Acquisition))
-              .getOrElse((executionConfig.science.map(_.nextAtom), SequenceType.Science))
-          case SequenceType.Science     =>
-            (executionConfig.science.map(_.nextAtom), SequenceType.Science)
+      val stepInfo: Option[(OdbStep[D], Atom.Id, SequenceType)] =
+        stepIdFrom.fold(
+          nextStepFromSequenceType(executionConfig, _),
+          findStepInExecutionConfig(executionConfig, _)
+        )
 
-      def signalToNoise(instrumentConfig: D): Option[SignalToNoise] =
-        (observation.signalToNoise, instrumentConfig) match
-          case (ModeSignalToNoise.Spectroscopy(acquisition, science),
-                _: gmos.DynamicConfig | Flamingos2DynamicConfig
-              ) =>
-            sequenceType match
-              case SequenceType.Acquisition => acquisition.map(_.single.value)
-              case SequenceType.Science     => science.map(_.single.value)
-          case (ModeSignalToNoise.GmosNorthImaging(snByFilter),
-                gnConfig: gmos.DynamicConfig.GmosNorth
-              ) =>
-            gnConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
-          case (ModeSignalToNoise.GmosSouthImaging(snByFilter),
-                gsConfig: gmos.DynamicConfig.GmosSouth
-              ) =>
-            gsConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
-          // Step/SN mismatch or unsupported instrument
-          case _ => none
-
-      nextAtom
-        .map: atom =>
-          // Take the first step from the atom (ODB returns only pending steps)
-          val step: OdbStep[D] = atom.steps.head
+      stepInfo
+        .map: (step, atomId, seqType) =>
           insSpec
             .calcStepType(
               step.stepConfig,
@@ -267,10 +307,10 @@ object SeqTranslate {
             .map: stepType =>
               translateStep(
                 observation,
-                atom.id,
-                sequenceType,
+                atomId,
+                seqType,
                 step,
-                signalToNoise(step.instrumentConfig),
+                stepSignalToNoise(observation.signalToNoise, step.instrumentConfig, seqType),
                 startIdx,
                 stepType,
                 insSpec,
@@ -757,14 +797,14 @@ object SeqTranslate {
 
     override def nextStep(
       odbObsData: OdbObservationData,
-      atomType:   SequenceType
+      stepIdFrom: Either[SequenceType, OdbStep.Id]
     ): (List[Throwable], Option[StepGen[F]]) =
       odbObsData.executionConfig match {
         case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
-          buildNextStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+          buildStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
             odbObsData.observation,
             executionConfig,
-            atomType,
+            stepIdFrom,
             GmosNorth.specifics,
             (systemOverrides, _, stepType, dynamicConfig) =>
               GmosNorth.build(
@@ -786,10 +826,10 @@ object SeqTranslate {
             StepGen.GmosNorth[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
         case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
-          buildNextStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+          buildStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
             odbObsData.observation,
             executionConfig,
-            atomType,
+            stepIdFrom,
             GmosSouth.specifics,
             (systemOverrides, _, stepType, dynamicConfig) =>
               GmosSouth.build(
@@ -811,10 +851,10 @@ object SeqTranslate {
             StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
         case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
-          buildNextStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
+          buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
             odbObsData.observation,
             executionConfig,
-            atomType,
+            stepIdFrom,
             Flamingos2.specifics,
             (systemOverrides, coreStepType, _, dynamicConfig) =>
               Flamingos2.build(
@@ -836,10 +876,10 @@ object SeqTranslate {
             StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
         case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
-          buildNextStep(
+          buildStep(
             odbObsData.observation,
             executionConfig,
-            atomType,
+            stepIdFrom,
             Igrins2.specifics,
             (_, _, _, _) => ???,      // Igrins2.build[F](), // TODO
             _ => _ => dummyHeader[F], // TODO

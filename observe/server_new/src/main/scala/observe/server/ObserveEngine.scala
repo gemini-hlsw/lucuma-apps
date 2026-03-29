@@ -509,7 +509,7 @@ object ObserveEngine {
     seqType:    SequenceType
   ): EngineHandle[F, Option[StepGen[F]]] =
     (for
-      _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
+      _       <- EngineHandle.debug(s"Loading next step for observation [$obsId]")
       _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
       odbData <- EngineHandle
                    .liftF(odb.read(obsId))
@@ -517,12 +517,12 @@ object ObserveEngine {
       stepGen <-
         EngineHandle.modifyState: (oldState: EngineState[F]) =>
           // TODO Do something with warnings? (_1)
-          val stepGen: Option[StepGen[F]] = translator.nextStep(odbData, seqType)._2
+          val stepGen: Option[StepGen[F]] = translator.nextStep(odbData, seqType.asLeft)._2
           val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
           (newState, stepGen)
     yield stepGen)
       .handleErrorWith: e =>
-        EngineHandle.logError(e)(s"Error reloading step for observation [$obsId]") >>
+        EngineHandle.logError(e)(s"Error loading step for observation [$obsId]") >>
           EngineHandle
             .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage)) >>
           EngineHandle
