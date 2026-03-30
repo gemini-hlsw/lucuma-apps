@@ -51,8 +51,8 @@ class TcsNorthControllerSim[F[_]: Async](
       gnirsPort = 3,
       gpiPort = 0,
       gsaoiPort = 0,
-      igrins2Port = 0,
-      nifsPort = 1,
+      igrins2Port = 1,
+      nifsPort = 0,
       niriPort = 0
     ).pure[F]
 
