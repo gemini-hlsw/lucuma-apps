@@ -286,7 +286,14 @@ object SeqTranslate {
       // Either a Step.Id is specified, or a sequence type to pick the next step from.
       stepIdFrom:      Either[SequenceType, OdbStep.Id],
       insSpec:         InstrumentSpecifics[S, D],
-      instf:           (SystemOverrides, CoreStepType, StepType, D, TelescopeConfig) => InstrumentSystem[
+      instf:           (
+        SystemOverrides,
+        CoreStepType,
+        StepType,
+        D,
+        TelescopeConfig,
+        ObserveClass
+      ) => InstrumentSystem[
         F
       ],
       instHeader:      D => KeywordsClient[F] => Header[F],
@@ -323,7 +330,8 @@ object SeqTranslate {
                         step.stepConfig.stepType,
                         stepType,
                         step.instrumentConfig,
-                        step.telescopeConfig
+                        step.telescopeConfig,
+                        step.observeClass
                   ),
                 instHeader(step.instrumentConfig),
                 mkStepGen
@@ -805,7 +813,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosNorth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig, _) =>
+            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
               GmosNorth.build(
                 overriddenSystems.gmosNorth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -830,7 +838,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosSouth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig, _) =>
+            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
               GmosSouth.build(
                 overriddenSystems.gmosSouth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -855,7 +863,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Flamingos2.specifics,
-            (systemOverrides, coreStepType, _, dynamicConfig, _) =>
+            (systemOverrides, coreStepType, _, dynamicConfig, _, _) =>
               Flamingos2.build(
                 overriddenSystems.flamingos2(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -880,11 +888,12 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Igrins2.specifics,
-            (systemOverrides, _, _, dynamicConfig, telescopeConfig) =>
+            (systemOverrides, _, _, dynamicConfig, telescopeConfig, observeClass) =>
               Igrins2.build(
                 overriddenSystems.igrins2(systemOverrides),
                 dynamicConfig,
-                telescopeConfig
+                telescopeConfig,
+                observeClass
               ),
             (_: Igrins2DynamicConfig) =>
               (kwClient: KeywordsClient[F]) =>

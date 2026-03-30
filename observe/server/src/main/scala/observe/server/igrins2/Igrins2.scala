@@ -10,6 +10,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
+import lucuma.core.enums.ObserveClass
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
@@ -118,6 +119,7 @@ object Igrins2:
   def build[F[_]: {MonadThrow, Temporal, Logger}](
     controller:      Igrins2Controller[F],
     dynamicConfig:   Igrins2DynamicConfig,
-    telescopeConfig: TelescopeConfig
+    telescopeConfig: TelescopeConfig,
+    observeClass:    ObserveClass
   ): Igrins2[F] =
-    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig))
+    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig, observeClass))
