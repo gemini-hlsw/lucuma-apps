@@ -17,7 +17,7 @@ import org.typelevel.log4cats.Logger
 object Igrins2Header:
 
   def header[F[_]: MonadThrow: Logger](
-    gdsClient:         GdsClient[F],
+    kwClient:          KeywordsClient[F],
     tcsKeywordsReader: TcsKeywordsReader[F]
   ): Header[F] =
     new Header[F]:
@@ -26,22 +26,23 @@ object Igrins2Header:
         id:          ImageFileId,
         dataset:     Option[Dataset.Reference],
         environment: ExecutionEnvironment
-      ) = {
-        val ks = GdsInstrument.bundleKeywords[F] {
+      ) =
+        sendKeywords(
+          id,
+          kwClient,
           List(
             buildInt32(tcsKeywordsReader.igrins2InstPort, KeywordName.INPORT),
             buildString(tcsKeywordsReader.dateUT, KeywordName.DATE_OBS),
             buildString(s"$id.fits".pure[F], KeywordName.ORIGNAME)
           )
-        }
-        ks.flatMap(gdsClient.setKeywords(id, _))
-      }
+        )
 
       override def sendAfter(id: ImageFileId): F[Unit] =
-        sendGdsKeywords(id,
-                        gdsClient,
-                        List(
-                          buildString(tcsKeywordsReader.hourAngle, KeywordName.HAEND),
-                          buildString(tcsKeywordsReader.date, KeywordName.DATEEND)
-                        )
+        sendKeywords(
+          id,
+          kwClient,
+          List(
+            buildString(tcsKeywordsReader.hourAngle, KeywordName.HAEND),
+            buildString(tcsKeywordsReader.date, KeywordName.DATEEND)
+          )
         )

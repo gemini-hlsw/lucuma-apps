@@ -164,7 +164,7 @@ object StepsView {
 
   def stepsView[F[_]](instrument: Instrument): StepsView[F] = instrument match {
     case GmosNorth | GmosSouth => GmosStepsView.stepsView[F]
-    case Flamingos2            => defaultStepsView[F]
+    case Flamingos2 | Igrins2  => defaultStepsView[F]
     case i                     => sys.error(s"StepsView not implemented for $i")
   }
 }

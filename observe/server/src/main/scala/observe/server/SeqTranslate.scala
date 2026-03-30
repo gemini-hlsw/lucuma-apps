@@ -75,6 +75,8 @@ import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
+import observe.server.igrins2.Igrins2Header
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 
 trait SeqTranslate[F[_]] {
   def nextStep(
@@ -471,6 +473,7 @@ object SeqTranslate {
       case gn: gmos.DynamicConfig.GmosNorth => gn.centralWavelength
       case gs: gmos.DynamicConfig.GmosSouth => gs.centralWavelength
       case f2: Flamingos2DynamicConfig      => f2.centralWavelength.some
+      case i2: Igrins2DynamicConfig         => none
     }
 
     private def getTcs[S, D](
@@ -713,17 +716,6 @@ object SeqTranslate {
 //        dummyHeader[F]
 //      }
 //
-//    private def gemsHeaders(
-//      kwClient:   KeywordsClient[F],
-//      obsKReader: ObsKeywordsReader[F],
-//      tcsKReader: TcsKeywordsReader[F]
-//    ): Header[F] = GemsHeader.header[F](
-//      kwClient,
-//      systemss.gemsKeywordsReader,
-//      obsKReader,
-//      tcsKReader
-//    )
-//
     private def calcHeaders[D](
       obsCfg:     OdbObservation,
       stepCfg:    OdbStep[D],
@@ -881,8 +873,17 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Igrins2.specifics,
-            (_, _, _, _) => ???,      // Igrins2.build[F](), // TODO
-            _ => _ => dummyHeader[F], // TODO
+            (systemOverrides, _, _, dynamicConfig) =>
+              Igrins2.build(
+                overriddenSystems.igrins2(systemOverrides),
+                dynamicConfig
+              ),
+            (_: Igrins2DynamicConfig) =>
+              (kwClient: KeywordsClient[F]) =>
+                Igrins2Header.header(
+                  kwClient,
+                  systemss.tcsKeywordReader
+                ),
             StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
       }

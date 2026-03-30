@@ -112,3 +112,9 @@ object Igrins2:
 
     override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName =
       LightSinkName.Igrins2
+
+  def build[F[_]: {MonadThrow, Temporal, Logger}](
+    controller:    Igrins2Controller[F],
+    dynamicConfig: Igrins2DynamicConfig
+  ): Igrins2[F] =
+    Igrins2(controller, Igrins2Config(dynamicConfig))
