@@ -41,6 +41,8 @@ import lucuma.schemas.model.TelescopeConfigGenerator
 
 import scala.annotation.targetName
 import scala.collection.immutable.SortedMap
+import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
+import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 
 extension (id: Observation.Id)
   def toWhereObservation: WhereObservation         =
@@ -820,6 +822,12 @@ extension (flamingos2Static: Flamingos2StaticConfig)
   def toInput: Flamingos2StaticInput = Flamingos2StaticInput(
     flamingos2Static.mosPreImaging.assign,
     flamingos2Static.useElectronicOffsetting.assign
+  )
+
+extension (igrins2Static: Igrins2StaticConfig)
+  def toInput: Igrins2StaticInput = Igrins2StaticInput(
+    igrins2Static.saveSVCImages.value.assign,
+    igrins2Static.offsetMode.assign
   )
 
 extension (gmosSDynamic: gmos.DynamicConfig.GmosSouth)
