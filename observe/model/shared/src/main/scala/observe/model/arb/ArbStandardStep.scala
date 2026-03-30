@@ -36,7 +36,7 @@ trait ArbStandardStep {
       tc <- arbitrary[TelescopeConfig]
       sn <- arbitrary[Option[SignalToNoise]]
       f  <- arbitrary[Option[dhs.ImageFileId]]
-      cs <- arbitrary[List[(Resource, ActionStatus)]]
+      cs <- arbitrary[Map[(Resource | Instrument), ActionStatus]]
       os <- arbitrary[ActionStatus]
     } yield ObserveStep.Standard(
       id = id,
@@ -72,7 +72,7 @@ trait ArbStandardStep {
        s.signalToNoise,
        s.status,
        s.fileId,
-       s.configStatus,
+       s.configStatus.toList,
        s.observeStatus
       )
     )

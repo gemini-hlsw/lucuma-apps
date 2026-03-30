@@ -6,5 +6,6 @@ package observe.ui.components.sequence.steps
 import cats.Eq
 import cats.derived.*
 
+// TODO Consider if this is still necessary
 enum StepTime derives Eq:
-  case Past, Present, Future
+  case Past, Future

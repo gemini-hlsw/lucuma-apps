@@ -20,10 +20,11 @@ class GmosStepsView[F[_]] extends StepsView[F] {
     altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
     pendingObsCmd: Option[PendingObserveCmd]
   ): ObserveStep = {
-    val nodAndShuffle: Option[GmosController.Config.NsConfig.NodAndShuffle] = stepg.statusGen match {
-      case Gmos.GmosStatusGen(ns: NsConfig.NodAndShuffle) => ns.some
-      case _                                              => none
-    }
+    val nodAndShuffle: Option[GmosController.Config.NsConfig.NodAndShuffle] =
+      stepg.statusGen match {
+        case Gmos.GmosStatusGen(ns: NsConfig.NodAndShuffle) => ns.some
+        case _                                              => none
+      }
 
     nodAndShuffle
       .map { e =>
@@ -56,7 +57,7 @@ class GmosStepsView[F[_]] extends StepsView[F] {
           telescopeConfig = stepg.telescopeConfig,
           signalToNoise = stepg.signalToNoise,
           status = status,
-          configStatus = configStatus,
+          configStatus = configStatus.toMap,
           nsStatus = NodAndShuffleStatus(
             observeStatus(step.executions),
             e.totalExposureTime,

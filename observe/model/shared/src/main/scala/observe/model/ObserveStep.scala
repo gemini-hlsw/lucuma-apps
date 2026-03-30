@@ -32,7 +32,7 @@ enum ObserveStep(
   val signalToNoise:   Option[SignalToNoise],
   val status:          StepState,
   val fileId:          Option[ImageFileId],
-  val configStatus:    List[(Resource | Instrument, ActionStatus)]
+  val configStatus:    Map[(Resource | Instrument), ActionStatus]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:
@@ -44,7 +44,7 @@ enum ObserveStep(
     override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
-    override val configStatus:    List[(Resource | Instrument, ActionStatus)],
+    override val configStatus:    Map[(Resource | Instrument), ActionStatus],
     val observeStatus:            ActionStatus
   ) extends ObserveStep(
         id,
@@ -65,7 +65,7 @@ enum ObserveStep(
     override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
-    override val configStatus:    List[(Resource | Instrument, ActionStatus)],
+    override val configStatus:    Map[(Resource | Instrument), ActionStatus],
     val nsStatus:                 NodAndShuffleStatus,
     val pendingObserveCmd:        Option[PendingObserveCmd]
   ) extends ObserveStep(
@@ -170,8 +170,8 @@ object ObserveStep:
       }
     }
 
-  def configStatus: Lens[ObserveStep, List[(Resource | Instrument, ActionStatus)]] =
-    Lens[ObserveStep, List[(Resource | Instrument, ActionStatus)]] {
+  def configStatus: Lens[ObserveStep, Map[(Resource | Instrument), ActionStatus]] =
+    Lens[ObserveStep, Map[(Resource | Instrument), ActionStatus]] {
       case s: Standard      => s.configStatus
       case s: NodAndShuffle => s.configStatus
     } { n =>

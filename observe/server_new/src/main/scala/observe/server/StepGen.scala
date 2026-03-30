@@ -3,6 +3,7 @@
 
 package observe.server
 
+import cats.syntax.eq.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
@@ -34,6 +35,21 @@ sealed trait StepGen[F[_]]:
   def signalToNoise: Option[SignalToNoise]
   def breakpoint: Breakpoint
   def statusGen: StepStatusGen = StepStatusGen.Null
+
+  def isSameAs(other: StepGen[F]): Boolean =
+    atomId === other.atomId && sequenceType === other.sequenceType && id === other.id && dataId === other.dataId && resources === other.resources &&
+      config === other.config && telescopeConfig === other.telescopeConfig && signalToNoise === other.signalToNoise &&
+      ((this, other) match
+        case (a: StepGen.GmosNorth[F], b: StepGen.GmosNorth[F])   =>
+          a.instConfig === b.instConfig
+        case (a: StepGen.GmosSouth[F], b: StepGen.GmosSouth[F])   =>
+          a.instConfig === b.instConfig
+        case (a: StepGen.Flamingos2[F], b: StepGen.Flamingos2[F]) =>
+          a.instConfig === b.instConfig
+        case (a: StepGen.Igrins2[F], b: StepGen.Igrins2[F])       =>
+          a.instConfig === b.instConfig
+        case _                                                    =>
+          false)
 
 object StepGen:
   type Aux[F[_], D0] = StepGen[F] { type D = D0 }

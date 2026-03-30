@@ -48,8 +48,8 @@ case class StepProgressCell(
 
   // We can have a runningStepId but the state as Idle if last step was aborted.
   private val isRunning: Boolean =
-    requests
-      .subsystemInFlight(stepId) || (runningStepId.contains_(stepId) && !sequenceStatus.isIdle)
+    (sequenceStatus.isRunning && requests.subsystemInFlight(stepId)) ||
+      (runningStepId.contains_(stepId) && !sequenceStatus.isIdle)
 
   val anyError: Boolean =
     subsystemStatus.exists(_._2 === ActionStatus.Failed)

@@ -425,7 +425,7 @@ object ObserveEngine {
     // 2) If we are in acquisition and atom changed (or no more atoms), emit AcquisitionCompleted.
     // 3) If we are in science and no more steps, emit SequenceCompleted.
     // 4) Otherwise, continue as normal (like the tryNewStep below but without reloading)
-    loadNextStep[F](odb, translator, obsId, currentSeqType)
+    retrieveStep[F](odb, translator, obsId, currentSeqType.asLeft)
       .filterIn: newStepGen => // If acquisition atom completed, pause for prompt
         currentSeqType === SequenceType.Science || newStepGen.atomId === completedStepAtomId
       .flatMap:
@@ -457,7 +457,7 @@ object ObserveEngine {
     obsId:         Observation.Id,
     seqType:       SequenceType
   ): EngineHandle[F, Unit] =
-    loadNextStep[F](odb, translator, obsId, seqType)
+    retrieveStep[F](odb, translator, obsId, seqType.asLeft)
       .flatMap: stepGenOpt =>
         EngineHandle.fromSingleEvent:
           Event.modifyState[F]:
@@ -502,38 +502,51 @@ object ObserveEngine {
           SequenceData.seq.replace(newSeqState)(seqData)
         }(st)
 
-  def loadNextStep[F[_]: {MonadCancelThrow, Logger}](
+  private def loadStep[F[_]: {MonadCancelThrow, Logger}](
     odb:        OdbProxy[F],
     translator: SeqTranslate[F],
     obsId:      Observation.Id,
-    seqType:    SequenceType
+    stepIdFrom: Either[SequenceType, Step.Id]
   ): EngineHandle[F, Option[StepGen[F]]] =
     (for
-      _       <- EngineHandle.debug(s"Reloading step for observation [$obsId]")
-      _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
-      odbData <- EngineHandle
-                   .liftF(odb.read(obsId))
-                   .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
-      stepGen <-
-        EngineHandle.modifyState: (oldState: EngineState[F]) =>
-          // TODO Do something with warnings? (_1)
-          val stepGen: Option[StepGen[F]] = translator.nextStep(odbData, seqType)._2
-          val newState: EngineState[F]    = updateStep(obsId, stepGen)(oldState)
-          (newState, stepGen)
-    yield stepGen)
-      .handleErrorWith: e =>
-        EngineHandle.logError(e)(s"Error reloading step for observation [$obsId]") >>
-          EngineHandle
-            .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage)) >>
-          EngineHandle
-            .fromSingleEvent(
-              Event.loadFailed(
-                obsId,
-                0,
-                Result.Error(s"Error updating sequence, cannot continue: ${e.getMessage}")
-              )
+        _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
+        odbData <- EngineHandle
+                     .liftF(odb.read(obsId))
+                     .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
+      yield translator.nextStep(odbData, stepIdFrom)._2 // TODO Do something with warnings? (_1)
+    ).handleErrorWith: e =>
+      EngineHandle.logError(e)(
+        s"Error loading step for observation [$obsId] from [$stepIdFrom]"
+      ) >>
+        EngineHandle
+          .modifySequenceState[F](obsId)(_.withNoLoadedStep.withFailedStatus(e.getMessage)) >>
+        EngineHandle
+          .fromSingleEvent:
+            Event.loadFailed(
+              obsId,
+              0,
+              Result.Error(s"Error updating sequence, cannot continue: ${e.getMessage}")
             )
-            .as(none)
+          .as(none)
+
+  def retrieveStep[F[_]: {MonadCancelThrow, Logger}](
+    odb:        OdbProxy[F],
+    translator: SeqTranslate[F],
+    obsId:      Observation.Id,
+    stepIdFrom: Either[SequenceType, Step.Id]
+  ): EngineHandle[F, Option[StepGen[F]]] =
+    for
+      _            <- EngineHandle.debug(s"Loading step for observation [$obsId] from [$stepIdFrom]")
+      existingStep <- EngineHandle
+                        .getSequenceState(obsId)
+                        .map(_.flatMap(_.loadedStep).map(_.stepGen))
+      stepGen      <- loadStep(odb, translator, obsId, stepIdFrom)
+      _            <-
+        if ((existingStep, stepGen).tupled.exists(_.isSameAs(_)))
+          EngineHandle.debug:
+            s"Step for observation [$obsId] is the same as the currently loaded one, not updating state"
+        else EngineHandle.modifyState_(updateStep(obsId, stepGen))
+    yield stepGen
 
   /**
    * Build Observe and setup epics
@@ -543,9 +556,10 @@ object ObserveEngine {
     systems:     Systems[F],
     conf:        ObserveEngineConfiguration,
     environment: ExecutionEnvironment
-  ): F[ObserveEngine[F]] = for {
-    rc  <- Ref.of[F, Conditions](Conditions.Default)
-    tr  <- createTranslator(site, systems, rc, environment)
-    eng <- Engine.build[F](onStepComplete[F](systems.odb, tr))
-  } yield new ObserveEngineImpl[F](eng, systems, conf, tr, rc)
+  ): F[ObserveEngine[F]] =
+    for
+      rc  <- Ref.of[F, Conditions](Conditions.Default)
+      tr  <- createTranslator(site, systems, rc, environment)
+      eng <- Engine.build[F](onStepComplete[F](systems.odb, tr))
+    yield new ObserveEngineImpl[F](eng, systems, conf, tr, rc)
 }

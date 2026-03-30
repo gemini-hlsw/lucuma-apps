@@ -104,10 +104,13 @@ trait TestCommon extends munit.CatsEffectSuite {
       eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
     yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
 
-  def observeEngineWithODB(odb: OdbProxy[IO]): IO[ObserveEngine[IO]] =
-    defaultSystems.flatMap(sys =>
+  def observeEngineWithODB(
+    odb:     OdbProxy[IO],
+    systems: IO[Systems[IO]] = defaultSystems
+  ): IO[ObserveEngine[IO]] =
+    systems.flatMap(sys =>
       ObserveEngine.build(
-        Site.GS,
+        Site.GN,
         sys.copy(odb = odb),
         defaultSettings,
         ExecutionEnvironment.Development
@@ -428,23 +431,18 @@ object TestCommon {
   ): F[Option[StepGen[F]]] = for {
     c  <- Ref.of[F, Conditions](Conditions.Default)
     st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
-  } yield st.nextStep(odbObsData, SequenceType.Acquisition)._2
+  } yield st.nextStep(odbObsData, SequenceType.Acquisition.asLeft)._2
 
   def loadSequence(
     id:   Observation.Id,
     sg:   Option[StepGen.GmosNorth[IO]],
     lens: monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
-    ODBSequencesLoader.loadSequenceMod[IO](
-      None,
-      gmosNorthOdbData(id),
-      lens
-    ) >>> (
+    ODBSequencesLoader.loadSequenceMod[IO](None, gmosNorthOdbData(id), lens) >>>
       lens.some
         .andThen(SequenceData.seq)
         .modify:
           _.withLoadedStepGen(sg, SystemOverrides.AllEnabled, HeaderExtraData.Default)
-    )
 
   /**
    * Convenience: build a GmosNorth sequence with a single step and default resources. Replaces the

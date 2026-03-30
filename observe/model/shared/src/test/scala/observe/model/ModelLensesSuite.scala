@@ -3,6 +3,7 @@
 
 package observe.model
 
+import cats.Order.given
 import lucuma.core.math.Axis
 import lucuma.core.math.arb.ArbAngle.given
 import lucuma.core.math.arb.ArbOffset.given

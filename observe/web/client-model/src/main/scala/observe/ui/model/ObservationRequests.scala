@@ -10,6 +10,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
+import observe.model.SequenceStatus
 import observe.model.enums.Resource
 import observe.ui.model.enums.OperationRequest
 
@@ -35,6 +36,17 @@ case class ObservationRequests(
     // Indicate if any resource is being executed
   def subsystemInFlight(stepId: Step.Id): Boolean =
     subsystemRun.get(stepId).exists(_.exists(_._2 === OperationRequest.InFlight))
+
+  def withSequenceStatus(status: SequenceStatus): ObservationRequests =
+    this.copy(
+      run = if (status.isRunning) OperationRequest.Idle else run,
+      stop = if (status.isRunning) stop else OperationRequest.Idle,
+      abort = if (status.isAborted) OperationRequest.Idle else abort,
+      pause = if (status.isUserStopRequested) OperationRequest.Idle else pause,
+      cancelPause = if (status.isUserStopRequested) OperationRequest.Idle else cancelPause,
+      resume = if (status.isRunning) OperationRequest.Idle else resume,
+      startFrom = if (status.isRunning) OperationRequest.Idle else startFrom
+    )
 
 object ObservationRequests:
   val Idle: ObservationRequests = ObservationRequests(

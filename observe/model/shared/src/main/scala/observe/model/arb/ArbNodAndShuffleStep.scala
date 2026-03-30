@@ -66,7 +66,7 @@ trait ArbNodAndShuffleStep {
         sn <- arbitrary[Option[SignalToNoise]]
         s  <- arbitrary[StepState]
         f  <- arbitrary[Option[dhs.ImageFileId]]
-        cs <- arbitrary[List[(Resource, ActionStatus)]]
+        cs <- arbitrary[Map[(Resource | Instrument), ActionStatus]]
         os <- arbitrary[NodAndShuffleStatus]
         oc <- arbitrary[Option[PendingObserveCmd]]
       } yield ObserveStep.NodAndShuffle(
@@ -104,7 +104,7 @@ trait ArbNodAndShuffleStep {
        s.signalToNoise,
        s.status,
        s.fileId,
-       s.configStatus,
+       s.configStatus.toList,
        s.nsStatus
       )
     )

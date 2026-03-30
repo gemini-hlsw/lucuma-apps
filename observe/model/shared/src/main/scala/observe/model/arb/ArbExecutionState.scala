@@ -4,7 +4,6 @@
 package observe.model.arb
 
 import eu.timepit.refined.scalacheck.string.given
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.arb.ArbRefined.given
 import lucuma.core.model.sequence.Step
@@ -19,8 +18,6 @@ import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.arb.ArbNsRunningState.given
 import observe.model.arb.ObserveModelArbitraries.given
-import observe.model.enums.ActionStatus
-import observe.model.enums.Resource
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
@@ -35,7 +32,6 @@ trait ArbExecutionState:
       sequenceType    <- arbitrary[SequenceType]
       step            <- arbitrary[Option[ObserveStep]]
       nsState         <- arbitrary[Option[NsRunningState]]
-      stepResources   <- arbitrary[Map[Resource | Instrument, ActionStatus]]
       systemOverrides <- arbitrary[SystemOverrides]
       breakpoints     <- arbitrary[Set[Step.Id]]
     yield ExecutionState(
@@ -44,7 +40,6 @@ trait ArbExecutionState:
       sequenceType,
       step,
       nsState,
-      stepResources,
       systemOverrides,
       breakpoints
     )
@@ -57,7 +52,6 @@ trait ArbExecutionState:
         SequenceType,
         Option[ObserveStep],
         Option[NsRunningState],
-        List[(Resource | Instrument, ActionStatus)],
         SystemOverrides,
         List[Step.Id]
       )
@@ -67,7 +61,6 @@ trait ArbExecutionState:
        x.sequenceType,
        x.runningStep,
        x.nsState,
-       x.stepResources.toList,
        x.systemOverrides,
        x.breakpoints.toList
       )
