@@ -74,6 +74,9 @@ enum SequenceStatus(val name: String) derives Eq, Encoder, Decoder:
   def isIdle: Boolean =
     this === SequenceStatus.Idle || this === SequenceStatus.Aborted
 
+  def isAborted: Boolean =
+    this === SequenceStatus.Aborted
+
   def withWaitingUserPrompt(value: Boolean): SequenceStatus =
     this match
       case r @ SequenceStatus.Running(_, _, _, _, _) =>

@@ -210,10 +210,14 @@ trait ServerEventHandler:
             RootModelData.conditions.replace(conditions) >>>
             RootModelData.executionState.replace(sequenceExecution) >>>
             RootModelData.recordedIds.replace(recordedIds) >>>
-            // All requests are reset on every state update from the server.
-            // Or should we only reset the observations that change? In that case, we need to do a thorough comparison.
-            // TODO: Maybe just reset in the ApiImpl when we get the response from the server.
-            RootModelData.obsRequests.replace(Map.empty) >>>
+            RootModelData.obsRequests.modify(
+              _.map: (obsId, obsRequests) =>
+                obsId -> sequenceExecution
+                  .get(obsId)
+                  .map(_.sequenceStatus)
+                  .map(obsRequests.withSequenceStatus(_))
+                  .getOrElse(obsRequests)
+            ) >>>
             RootModelData.loadedObservations
               .andThen(LoadedObservations.Value)
               .each

@@ -943,26 +943,21 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
       if (configSystemCheck(sys, st0))
-        // val stepIsLoaded: Boolean =
-        //   st0.sequences.get(obsId).flatMap(_.loadedStep).exists(_.id === stepId)
-        val stHandle: EngineHandle[F, EngineState[F]] =
-          // if stepIsLoaded then EngineHandle.pure(st0)
-          // else
-          ObserveEngine // Load new step and reload state
-            .retrieveStep(systems.odb, translator, obsId, stepId.asRight)
-            .flatMap(_ => EngineHandle.getState)
-        stHandle.flatMap: st =>
-          st.sequences
-            .get(obsId)
-            .flatMap(_.configActionCoord(stepId, sys))
-            .map: c =>
-              executeEngine
-                .startSingle(ActionCoords(obsId, c))
-                .map[SeqEvent]:
-                  case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
-                  case _                      => NullSeqEvent
-            .getOrElse:
-              EngineHandle.pure(NullSeqEvent)
+        ObserveEngine // Load new step and reload state
+          .retrieveStep(systems.odb, translator, obsId, stepId.asRight)
+          .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state
+          .flatMap: st =>
+            st.sequences
+              .get(obsId)
+              .flatMap(_.configActionCoord(stepId, sys))
+              .map: c =>
+                executeEngine
+                  .startSingle(ActionCoords(obsId, c))
+                  .map[SeqEvent]:
+                    case EventResult.Outcome.Ok => StartSysConfig(obsId, stepId, sys)
+                    case _                      => NullSeqEvent
+              .getOrElse:
+                EngineHandle.pure(NullSeqEvent)
       else EngineHandle.pure(ResourceBusy(obsId, stepId, sys, clientId))
     }
 

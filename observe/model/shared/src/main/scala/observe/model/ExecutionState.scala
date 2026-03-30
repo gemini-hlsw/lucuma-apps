@@ -35,7 +35,7 @@ case class ExecutionState(
       Encoder.AsObject,
       Decoder:
   lazy val stepResources: Option[Map[Resource | Instrument, ActionStatus]] =
-    runningStep.map(_.configStatus.toMap)
+    runningStep.map(_.configStatus)
 
   // If there's a running step or resource, the step is considered locked.
   lazy val isLocked: Boolean =
