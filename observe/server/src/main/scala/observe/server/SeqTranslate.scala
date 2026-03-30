@@ -488,7 +488,7 @@ object SeqTranslate {
       case gn: gmos.DynamicConfig.GmosNorth => gn.centralWavelength
       case gs: gmos.DynamicConfig.GmosSouth => gs.centralWavelength
       case f2: Flamingos2DynamicConfig      => f2.centralWavelength.some
-      case i2: Igrins2DynamicConfig         => none
+      case i2: Igrins2DynamicConfig         => Igrins2.CentralWavelength
     }
 
     private def getTcs[S, D](

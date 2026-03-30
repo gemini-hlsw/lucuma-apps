@@ -26,6 +26,7 @@ import observe.server.keywords.GdsInstrument
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import lucuma.core.math.Wavelength
 
 final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
@@ -115,6 +116,9 @@ object Igrins2:
 
     override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName =
       LightSinkName.Igrins2
+
+  // TODO this colud be part of the static config in core
+  val CentralWavelength: Option[Wavelength] = Wavelength.fromIntNanometers(1975)
 
   def build[F[_]: {MonadThrow, Temporal, Logger}](
     controller:      Igrins2Controller[F],
