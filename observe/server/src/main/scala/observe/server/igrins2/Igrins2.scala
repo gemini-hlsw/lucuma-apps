@@ -10,6 +10,7 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
@@ -60,9 +61,10 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
         .as(ObserveCommandResult.Success: ObserveCommandResult)
 
   override def configure: F[ConfigResult[F]] =
-    controller
-      .applyConfig(config)
-      .as(ConfigResult[F](this))
+    trace"Apply config ${config.configuration.toGiapi}" *>
+      controller
+        .applyConfig(config)
+        .as(ConfigResult[F](this))
 
   override def notifyObserveEnd: F[Unit] =
     controller.endObserve
@@ -114,7 +116,8 @@ object Igrins2:
       LightSinkName.Igrins2
 
   def build[F[_]: {MonadThrow, Temporal, Logger}](
-    controller:    Igrins2Controller[F],
-    dynamicConfig: Igrins2DynamicConfig
+    controller:      Igrins2Controller[F],
+    dynamicConfig:   Igrins2DynamicConfig,
+    telescopeConfig: TelescopeConfig
   ): Igrins2[F] =
-    Igrins2(controller, Igrins2Config(dynamicConfig))
+    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig))

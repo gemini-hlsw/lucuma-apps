@@ -9,6 +9,8 @@ import fs2.Stream
 import giapi.client.GiapiClient
 import giapi.client.commands.Configuration
 import giapi.client.igrins2.Igrins2Client
+import lucuma.core.math.Angle
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -23,14 +25,16 @@ sealed trait Igrins2Config:
   val readoutTime: TimeSpan
 
 object Igrins2Config:
-  def apply(d: Igrins2DynamicConfig): Igrins2Config =
+  def apply(d: Igrins2DynamicConfig, tc: TelescopeConfig): Igrins2Config =
     val expTSecs = d.exposure.toSeconds.toDouble
-    // TODO pass along p/q and state (save svc)
-    // ig2:seq:p
-    // ig2:seq:q
-    // ig2:seq:state
-    val config   = Configuration.single("ig2:dcs:expTime", expTSecs) |+|
-      Configuration.single("ig2:seq:state", "sci")
+    // Always pass the offset
+    val pArcsec  = tc.offset.p.toSignedDecimalArcseconds.toDouble
+    val qArcsec  = tc.offset.q.toSignedDecimalArcseconds.toDouble
+    val config   =
+      Configuration.single("ig2:dcs:expTime", expTSecs) |+|
+        Configuration.single("ig2:seq:state", "sci") |+|
+        Configuration.single("ig2:seq:p", pArcsec) |+|
+        Configuration.single("ig2:seq:q", qArcsec)
 
     new Igrins2Config:
       override def configuration: Configuration = config

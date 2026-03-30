@@ -27,7 +27,7 @@ import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step as OdbStep
 import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
@@ -286,7 +286,9 @@ object SeqTranslate {
       // Either a Step.Id is specified, or a sequence type to pick the next step from.
       stepIdFrom:      Either[SequenceType, OdbStep.Id],
       insSpec:         InstrumentSpecifics[S, D],
-      instf:           (SystemOverrides, CoreStepType, StepType, D) => InstrumentSystem[F],
+      instf:           (SystemOverrides, CoreStepType, StepType, D, TelescopeConfig) => InstrumentSystem[
+        F
+      ],
       instHeader:      D => KeywordsClient[F] => Header[F],
       mkStepGen:       StepGen.Factory[F, D],
       startIdx:        PosInt = PosInt.unsafeFrom(1)
@@ -317,7 +319,12 @@ object SeqTranslate {
                 stepType,
                 insSpec,
                 (ov: SystemOverrides) =>
-                  instf(ov, step.stepConfig.stepType, stepType, step.instrumentConfig),
+                  instf(ov,
+                        step.stepConfig.stepType,
+                        stepType,
+                        step.instrumentConfig,
+                        step.telescopeConfig
+                  ),
                 instHeader(step.instrumentConfig),
                 mkStepGen
               )
@@ -482,7 +489,7 @@ object SeqTranslate {
       inst:            InstrumentSpecifics[S, D],
       lsource:         LightSource,
       observation:     OdbObservation,
-      telescopeConfig: CoreTelescopeConfig,
+      telescopeConfig: TelescopeConfig,
       dynamicConfig:   D
     ): SystemOverrides => System[F] = site match {
       case Site.GS =>
@@ -536,16 +543,16 @@ object SeqTranslate {
 
     private def calcSystems[S, D](
       observation:     OdbObservation,
-      telescopeConfig: CoreTelescopeConfig,
+      telescopeConfig: TelescopeConfig,
       dynamicConfig:   D,
       stepType:        StepType,
       instSpec:        InstrumentSpecifics[S, D]
     ): Map[Resource, SystemOverrides => System[F]] = {
 
-      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] = b(
-        overriddenSystems.gcal(ov)
-      )
-      def defaultGcal: SystemOverrides => Gcal[F]                                  = adaptGcal(Gcal.defaultGcal)
+      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] =
+        b(overriddenSystems.gcal(ov))
+
+      def defaultGcal: SystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
 
       stepType match {
         case StepType.CelestialObject(inst) =>
@@ -798,7 +805,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosNorth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig) =>
+            (systemOverrides, _, stepType, dynamicConfig, _) =>
               GmosNorth.build(
                 overriddenSystems.gmosNorth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -823,7 +830,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosSouth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig) =>
+            (systemOverrides, _, stepType, dynamicConfig, _) =>
               GmosSouth.build(
                 overriddenSystems.gmosSouth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -848,7 +855,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Flamingos2.specifics,
-            (systemOverrides, coreStepType, _, dynamicConfig) =>
+            (systemOverrides, coreStepType, _, dynamicConfig, _) =>
               Flamingos2.build(
                 overriddenSystems.flamingos2(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -873,10 +880,11 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Igrins2.specifics,
-            (systemOverrides, _, _, dynamicConfig) =>
+            (systemOverrides, _, _, dynamicConfig, telescopeConfig) =>
               Igrins2.build(
                 overriddenSystems.igrins2(systemOverrides),
-                dynamicConfig
+                dynamicConfig,
+                telescopeConfig
               ),
             (_: Igrins2DynamicConfig) =>
               (kwClient: KeywordsClient[F]) =>
