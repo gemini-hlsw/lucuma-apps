@@ -28,37 +28,57 @@ import scala.collection.immutable.SortedSet
 trait syntax:
 
   extension (row: ItcInstrumentConfig)
+    // GHOST NOTE: This will need to return anEitherNec[ItcQueryProblem, ItcAsterismGraphResults]]
+    // and take the list of targets or their number as a parameter to validate the GHOST mode.
+    // (Standard resolution can have one or 2 targets, high resolution can only have one.)
+    // Actually, we may need to validate the targets earlier, because the GHOST ItcInstrumentConfig
+    // will need to assign targets to CCDs.
+    // It will also need to validate that the ETM is Time and Count.
     def toItcClientMode: Option[InstrumentMode] =
       row match
-        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, modeOverrides) =>
+        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
               InstrumentMode
-                .GmosNorthSpectroscopy(cw, grating, filter, GmosFpu.North(fpu.asRight), ccd, roi)
+                .GmosNorthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.North(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
                 .some
-        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, modeOverrides) =>
+        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
               InstrumentMode
-                .GmosSouthSpectroscopy(cw, grating, filter, GmosFpu.South(fpu.asRight), ccd, roi)
+                .GmosSouthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.South(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
                 .some
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu)             =>
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, etm)             =>
           InstrumentMode
-            .Flamingos2Spectroscopy(disperser, filter, fpu)
+            .Flamingos2Spectroscopy(etm, disperser, filter, fpu)
             .some
-        case ItcInstrumentConfig.GmosNorthImaging(filter, modeOverrides)                    =>
-          InstrumentMode.GmosNorthImaging(filter, none).some
-        case ItcInstrumentConfig.GmosSouthImaging(filter, modeOverrides)                    =>
-          InstrumentMode.GmosSouthImaging(filter, none).some
-        case ItcInstrumentConfig.Igrins2Spectroscopy()                                      =>
-          InstrumentMode.Igrins2Spectroscopy().some
-        case _                                                                              => None
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosNorthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosSouthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
+          InstrumentMode.Igrins2Spectroscopy(etm).some
+        case _                                                                                   => None
 
   // We may consider adjusting this to consider small variations of RV identical for the
   // purpose of doing ITC calculations

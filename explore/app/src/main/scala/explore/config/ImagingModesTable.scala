@@ -240,8 +240,18 @@ object ImagingModesTable extends ModesTableCommon:
                               matrix
                                 .filtered(minimumFov, fts)
                                 .map: row =>
+                                  // We update the etm here so that we don't have to do it multiple times in
+                                  // multiple places, but we will still need to validate that the etm in set in
+                                  // the requirements before calling the itc.
+                                  val rowWithEtm: ImagingModeRow =
+                                    etm.fold(row)(etm =>
+                                      ImagingModeRow.instrumentConfig
+                                        .modify(_.setSingleExposureTimeMode(etm))(row)
+                                    )
+
                                   val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-                                    etm.map: exposureMode =>
+                                    // the etm is in the row, but we only want to request results when an etm is set in the UI
+                                    etm.map: _ =>
                                       targets.flatMap: asterism =>
                                         // Use selected target if specified, otherwise use full asterism
                                         val calcAstersim = selectedTarget match
@@ -251,14 +261,13 @@ object ImagingModesTable extends ModesTableCommon:
                                             asterism
 
                                         itcResults.get.forRow(
-                                          exposureMode,
                                           constraints,
                                           calcAstersim.some,
                                           customSedTimestamps,
-                                          row
+                                          rowWithEtm
                                         )
                                   ImagingModeRowWithResult(
-                                    row,
+                                    rowWithEtm,
                                     Pot.fromOption(result)
                                   )
       cols             <- useMemo((props.exposureTimeMode.map(_.modeType), props.units)): (m, u) =>

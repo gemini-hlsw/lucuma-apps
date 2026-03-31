@@ -12,6 +12,7 @@ import cats.syntax.all.*
 import crystal.*
 import explore.model.itc.*
 import monocle.Focus
+import explore.modes.ItcInstrumentConfig
 
 case class TargetAndResults(
   target: ItcTarget,
@@ -22,11 +23,12 @@ case class TargetAndResults(
 
 // we need to share this across all the ITC tiles
 case class ItcTileState(
-  asterismResults:    Pot[EitherNec[ItcTargetProblem, ItcAsterismGraphResults]],
+  asterismResults:    Pot[EitherNec[ItcTargetProblem, (ItcAsterismGraphResults, ItcInstrumentConfig)]],
   calculationResults: Pot[EitherNec[ItcQueryProblem, ImagingResults]],
   selectedTarget:     Option[TargetAndResults]
 ):
-  def graphResults: Option[ItcAsterismGraphResults] = asterismResults.toOption.flatMap(_.toOption)
+  def graphResults: Option[ItcAsterismGraphResults] =
+    asterismResults.toOption.flatMap(_.toOption.map(_._1))
 
   def asterismGraphs: Map[ItcTarget, Either[ItcQueryProblem, ItcGraphResult]] =
     graphResults.map(_.asterismGraphs).getOrElse(Map.empty)
