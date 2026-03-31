@@ -166,7 +166,7 @@ object Flamingos2LongslitConfigPanel
         val defaultAcquisitionFilter =
           props.observingMode.get.acquisition.defaultFilter
 
-        val excludedAcquistionFilters = 
+        val excludedAcquistionFilters =
           Enumerated[Flamingos2Filter].all.toSet -- Flamingos2Filter.acquisition.toList.toSet
 
         val excludedSpectroscopyFilters =

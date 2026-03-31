@@ -30,6 +30,8 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
+import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
+import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.*
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
@@ -41,8 +43,6 @@ import lucuma.schemas.model.TelescopeConfigGenerator
 
 import scala.annotation.targetName
 import scala.collection.immutable.SortedMap
-import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
-import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 
 extension (id: Observation.Id)
   def toWhereObservation: WhereObservation         =

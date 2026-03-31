@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
@@ -69,14 +70,13 @@ import observe.server.gws.GwsHeader
 import observe.server.igrins2.Igrins2
 import observe.server.igrins2.Igrins2Controller
 import observe.server.igrins2.Igrins2ControllerDisabled
+import observe.server.igrins2.Igrins2Header
 import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource
 import org.typelevel.log4cats.Logger
-import observe.server.igrins2.Igrins2Header
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 
 trait SeqTranslate[F[_]] {
   def nextStep(

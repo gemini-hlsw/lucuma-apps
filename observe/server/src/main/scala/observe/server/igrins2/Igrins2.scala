@@ -11,6 +11,7 @@ import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.ObserveClass
+import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
@@ -26,7 +27,6 @@ import observe.server.keywords.GdsInstrument
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
-import lucuma.core.math.Wavelength
 
 final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
