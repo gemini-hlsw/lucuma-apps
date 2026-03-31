@@ -297,7 +297,7 @@ object SequenceTile
 
                 <.span(ExploreStyles.SequenceTileTitle)(
                   <.span(ExploreStyles.SequenceTileTitleSide, ExploreStyles.SequenceTileTitleUndo)(
-                    UndoButtons(undoCtx, size = PlSize.Mini).when(props.isEditing.get)
+                    UndoButtons(undoCtx, size = PlSize.Mini).when(props.isEditing.get).unless(isEditInFlight.get)
                   ),
                   <.span(ExploreStyles.SequenceTileTitleSummary)(
                     HelpIcon("target/main/sequence-times.md".refined),
@@ -328,7 +328,8 @@ object SequenceTile
                           icon = Icons.Close,
                           tooltip = "Cancel sequence editing",
                           tooltipOptions = TooltipOptions.Top,
-                          severity = Button.Severity.Danger
+                          severity = Button.Severity.Danger,
+                          loading = isEditInFlight.get
                         ).mini.compact,
                         Button(
                           onClick =
@@ -337,7 +338,8 @@ object SequenceTile
                           icon = Icons.Checkmark,
                           tooltip = "Accept sequence modifications",
                           tooltipOptions = TooltipOptions.Top,
-                          severity = Button.Severity.Success
+                          severity = Button.Severity.Success,
+                          loading = isEditInFlight.get
                         ).mini.compact
                       )
                       .when(props.isEditing.get)
