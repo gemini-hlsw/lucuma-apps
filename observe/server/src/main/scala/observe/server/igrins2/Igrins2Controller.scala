@@ -58,7 +58,7 @@ trait Igrins2Controller[F[_]] extends GiapiInstrumentController[F, Igrins2Config
 
   def sequenceComplete: F[Unit]
 
-  def requestedTime: F[Option[Float]]
+  def requestedTime: F[Option[BigDecimal]]
 
   def currentStatus: F[Igrins2ControllerState]
 
@@ -95,7 +95,7 @@ object Igrins2Controller:
       override def sequenceComplete: F[Unit] =
         client.sequenceComplete
 
-      def requestedTime: F[Option[Float]] = client.requestedTime
+      def requestedTime: F[Option[BigDecimal]] = client.requestedTime.map(_.map(BigDecimal(_)))
 
       def currentStatus: F[Igrins2ControllerState] =
         client.currentStatus

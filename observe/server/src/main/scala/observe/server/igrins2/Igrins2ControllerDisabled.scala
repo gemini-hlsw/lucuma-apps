@@ -20,8 +20,8 @@ class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Contro
   override def exposureProgress: F[Stream[F, Int]] =
     Stream.emit[F, Int](0).pure[F]
 
-  def requestedTime: F[Option[Float]] =
-    none[Float].pure[F]
+  def requestedTime: F[Option[BigDecimal]] =
+    none[BigDecimal].pure[F]
 
   def sequenceComplete: F[Unit] = Applicative[F].unit
 

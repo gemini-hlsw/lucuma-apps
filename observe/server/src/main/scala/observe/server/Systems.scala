@@ -36,6 +36,7 @@ import observe.server.gsaoi.*
 import observe.server.gws.*
 import observe.server.igrins2.Igrins2Controller
 import observe.server.igrins2.Igrins2ControllerDisabled
+import observe.server.igrins2.Igrins2ControllerSim
 import observe.server.keywords.*
 import observe.server.odb.DummyOdbCommands
 import observe.server.odb.DummyOdbProxy
@@ -415,25 +416,24 @@ object Systems {
     def igrins2[F[_]: Async: Logger](
       httpClient:   Client[F],
       instanceName: String
-    ): Resource[F, Igrins2Controller[F]] = {
-      def igrins2Client: Resource[F, Igrins2Client[F]] =
-        if (settings.systemControl.igrins2.command)
-          Igrins2Client
-            .igrins2Client[F](s"igrins2-observe-$instanceName",
-                              settings.igrins2Url.value.renderString
-            )
-        else Igrins2Client.simulatedIgrins2Client
-
-      def igrins2GDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
-        Resource.pure[F, GdsClient[F]](
-          GdsClient(if (settings.systemControl.igrins2Gds.command) httpClient
-                    else GdsClient.alwaysOkClient[F],
-                    settings.igrins2Gds.value
+    ): Resource[F, Igrins2Controller[F]] =
+      if (settings.systemControl.igrins2.command) {
+        def igrins2Client: Resource[F, Igrins2Client[F]] =
+          Igrins2Client.igrins2Client[F](s"igrins2-observe-$instanceName",
+                                         settings.igrins2Url.value.renderString
           )
-        )
 
-      (igrins2Client, igrins2GDS(httpClient)).mapN(Igrins2Controller(_, _))
-    }
+        def igrins2GDS: Resource[F, GdsClient[F]] =
+          Resource.pure[F, GdsClient[F]](
+            GdsClient(if (settings.systemControl.igrins2Gds.command) httpClient
+                      else GdsClient.alwaysOkClient[F],
+                      settings.igrins2Gds.value
+            )
+          )
+
+        (igrins2Client, igrins2GDS).mapN(Igrins2Controller(_, _))
+      } else
+        Resource.eval(Igrins2ControllerSim[F])
 
     def gws: IO[GwsKeywordReader[IO]] =
       if (settings.systemControl.gws.realKeywords)
