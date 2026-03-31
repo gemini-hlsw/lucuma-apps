@@ -33,9 +33,9 @@ import lucuma.schemas.model.ModeSignalToNoise
 import monocle.Lens
 import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
-import observe.common.ObsQueriesGQL.ObsQuery.Data
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as ODBObservation
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
+import observe.common.ObsQueriesGql.ObsQuery.Data
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
 

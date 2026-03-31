@@ -4,7 +4,7 @@
 package observe.server.odb
 
 import lucuma.core.model.sequence.InstrumentExecutionConfig
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 
 final case class OdbObservationData(
   observation:     OdbObservation,

@@ -8,19 +8,12 @@ import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 import lucuma.core.model
 import lucuma.core.model.sequence.InstrumentExecutionConfig
-import lucuma.schemas.odb.Flamingos2DynamicConfigSubquery
-import lucuma.schemas.odb.GmosSouthDynamicConfigSubquery
-import lucuma.schemas.odb.GmosNorthDynamicConfigSubquery
-import lucuma.schemas.odb.Igrins2DynamicConfigSubquery
-import lucuma.schemas.odb.ModeSignalToNoiseSubquery
-import lucuma.schemas.odb.ConstraintSetSubquery
-import lucuma.schemas.odb.TimingWindowSubquery
-
+import lucuma.schemas.odb.*
 // gql: import io.circe.refined.*
 // gql: import lucuma.schemas.decoders.given
 // gql: import lucuma.odb.json.all.query.given
 
-object ObsQueriesGQL:
+object ObsQueriesGql:
 
   @GraphQL
   trait ObsQuery extends GraphQLOperation[ObservationDB]:
@@ -89,145 +82,35 @@ object ObsQueriesGQL:
       }
 
       fragment nodAndShuffleFields on GmosNodAndShuffle {
-        posA { ...offsetFields }
-        posB { ...offsetFields }
+        posA $OffsetSubquery
+        posB $OffsetSubquery
         eOffset
         shuffleOffset
         shuffleCycles
       }
 
-      fragment stepConfigFields on StepConfig {
-        stepType
-        ... on Gcal {
-          continuum
-          arcs
-          filter
-          diffuser
-          shutter
-        }
-        ... on SmartGcal {
-          smartGcalType
-        }
-      }
-
-      fragment telescopeConfigFields on TelescopeConfig {
-        offset { ...offsetFields }
-        guiding
-      }
-
-      fragment stepEstimateFields on StepEstimate {
-        configChange {
-          all {
-            name
-            description
-            estimate { microseconds }
-          }
-          index
-        }
-        detector {
-          all {
-            name
-            description
-            dataset {
-              exposure { microseconds }
-              readout { microseconds }
-              write { microseconds }
-            }
-            count
-          }
-          index
-        }
-      }
-
-      fragment gmosNorthAtomFields on GmosNorthAtom {
-        id
-        description
-        steps {
-          id
-          instrumentConfig $GmosNorthDynamicConfigSubquery
-          stepConfig { ...stepConfigFields }
-          telescopeConfig { ...telescopeConfigFields }
-          estimate { ...stepEstimateFields }
-          observeClass
-          breakpoint
-        }
-      }
-
       fragment gmosNorthSequenceFields on GmosNorthExecutionSequence {
-        nextAtom { ...gmosNorthAtomFields }
-        possibleFuture { ...gmosNorthAtomFields }
+        nextAtom $GmosNorthAtomSubquery
+        possibleFuture $GmosNorthAtomSubquery
         hasMore
-      }
-
-      fragment gmosSouthAtomFields on GmosSouthAtom {
-        id
-        description
-        steps {
-          id
-          instrumentConfig $GmosSouthDynamicConfigSubquery
-          stepConfig { ...stepConfigFields }
-          telescopeConfig { ...telescopeConfigFields }
-          estimate { ...stepEstimateFields }
-          observeClass
-          breakpoint
-        }
       }
 
       fragment gmosSouthSequenceFields on GmosSouthExecutionSequence {
-        nextAtom { ...gmosSouthAtomFields }
-        possibleFuture { ...gmosSouthAtomFields }
+        nextAtom $GmosSouthAtomSubquery
+        possibleFuture $GmosSouthAtomSubquery
         hasMore
-      }
-
-      fragment flamingos2AtomFields on Flamingos2Atom {
-        id
-        description
-        steps {
-          id
-          instrumentConfig $Flamingos2DynamicConfigSubquery
-          stepConfig { ...stepConfigFields }
-          telescopeConfig {
-            offset { ...offsetFields }
-            guiding
-          }
-          estimate { ...stepEstimateFields }
-          observeClass
-          breakpoint
-        }
       }
 
       fragment flamingos2SequenceFields on Flamingos2ExecutionSequence {
-        nextAtom { ...flamingos2AtomFields }
-        possibleFuture { ...flamingos2AtomFields }
+        nextAtom $Flamingos2AtomSubquery
+        possibleFuture $Flamingos2AtomSubquery
         hasMore
-      }
-
-      fragment igrins2AtomFields on Igrins2Atom {
-        id
-        description
-        steps {
-          id
-          instrumentConfig $Igrins2DynamicConfigSubquery
-          stepConfig { ...stepConfigFields }
-          telescopeConfig {
-            offset { ...offsetFields }
-            guiding
-          }
-          estimate { ...stepEstimateFields }
-          observeClass
-          breakpoint
-        }
       }
 
       fragment igrins2SequenceFields on Igrins2ExecutionSequence {
-        nextAtom { ...igrins2AtomFields }
-        possibleFuture { ...igrins2AtomFields }
+        nextAtom $Igrins2AtomSubquery
+        possibleFuture $Igrins2AtomSubquery
         hasMore
-      }
-
-      fragment offsetFields on Offset {
-        p { microarcseconds }
-        q { microarcseconds }
       }
     """
 

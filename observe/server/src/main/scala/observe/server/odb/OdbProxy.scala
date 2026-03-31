@@ -9,7 +9,7 @@ import clue.FetchClient
 import clue.syntax.*
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
-import observe.common.ObsQueriesGQL.*
+import observe.common.ObsQueriesGql.*
 import observe.model.dhs.*
 import observe.server.ObserveFailure
 

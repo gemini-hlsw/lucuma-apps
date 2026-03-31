@@ -19,7 +19,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.GuideConfig
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import mouse.all.*
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.Resource
 import observe.server.ConfigResult

@@ -6,6 +6,9 @@ package lucuma.schemas.odb
 import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
+// gql: import lucuma.odb.json.sequence.given
+// gql: import lucuma.odb.json.gmos.given
+// gql: import lucuma.odb.json.flamingos2.given
 
 object SequenceEditQueriesGql:
   @GraphQL
@@ -13,7 +16,7 @@ object SequenceEditQueriesGql:
     val document = s"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GmosNorthAtomInput!]!) {
         replaceGmosNorthSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
-          sequence { id }
+          sequence $GmosNorthAtomSubquery
         }
       }
     """
@@ -23,7 +26,7 @@ object SequenceEditQueriesGql:
     val document = s"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GmosSouthAtomInput!]!) {
         replaceGmosSouthSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
-          sequence { id }
+          sequence $GmosSouthAtomSubquery
         }
       }
     """
@@ -33,7 +36,7 @@ object SequenceEditQueriesGql:
     val document = s"""
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [Flamingos2AtomInput!]!) {
         replaceFlamingos2Sequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
-          sequence { id }
+          sequence $Flamingos2AtomSubquery
         }
       }
     """

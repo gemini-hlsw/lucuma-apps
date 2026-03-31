@@ -9,7 +9,7 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.schemas.model.ModeSignalToNoise
-import lucuma.schemas.odb.SequenceQueriesGQL.SequenceQuery
+import lucuma.schemas.odb.SequenceQueriesGql.SequenceQuery
 import monocle.Focus
 import monocle.Lens
 
