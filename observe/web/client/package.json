@@ -1,5 +1,5 @@
 {
-  "name": "observe",
+  "name": "@gemini-hlsw/observe",
   "private": true,
   "dependencies": {
     "@floating-ui/react": "0.27.19",

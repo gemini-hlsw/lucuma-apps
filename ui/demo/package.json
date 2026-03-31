@@ -1,5 +1,5 @@
 {
-  "name": "lucuma-ui-demo",
+  "name": "@gemini-hlsw/lucuma-ui-demo",
   "private": true,
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "1.7.9",

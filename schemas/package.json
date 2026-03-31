@@ -1,5 +1,5 @@
 {
-  "name": "lucuma-schemas",
+  "name": "@gemini-hlsw/lucuma-schemas",
   "private": true,
   "version": "0.150.0",
   "description": "Schemas for the astronomical observation database",

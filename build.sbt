@@ -176,7 +176,7 @@ lazy val schemas_lib =
         IO.write(
           npmDir / "package.json",
           s"""|{
-             |  "name": "lucuma-schemas",
+             |  "name": "@gemini-hlsw/lucuma-schemas",
              |  "version": "$semVerWithPrerelease",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
@@ -282,7 +282,7 @@ lazy val ui_css = project
       IO.write(
         cssDir / "package.json",
         s"""|{
-          |  "name": "lucuma-ui-css",
+          |  "name": "@gemini-hlsw/lucuma-ui-css",
           |  "version": "${gitDescribedVersion.value.getOrElse("0.0.0")}",
           |  "license": "${licenses.value.head._1}",
           |  "repository": {
