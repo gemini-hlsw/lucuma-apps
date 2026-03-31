@@ -1,4 +1,4 @@
-# CLAUDE.md — observe/server_new
+# CLAUDE.md — observe/server
 
 This module is the **observation execution engine** for the Gemini Observatory. It is a library (no main entry point) consumed by `observe/web/server`, which provides HTTP routes and application bootstrap.
 
@@ -6,16 +6,16 @@ This module is the **observation execution engine** for the Gemini Observatory. 
 
 ```bash
 # Compile
-sbt -J-Xmx6g observe_server_new/compile
+sbt -J-Xmx6g observe_server/compile
 
 # Run all tests
-sbt -J-Xmx6g observe_server_new/test
+sbt -J-Xmx6g observe_server/test
 
 # Run a specific test suite
-sbt -J-Xmx6g "observe_server_new/testOnly *ObserveEngineSuite*"
+sbt -J-Xmx6g "observe_server/testOnly *ObserveEngineSuite*"
 
 # Run a single test
-sbt -J-Xmx6g "observe_server_new/testOnly *ObserveEngineSuite* -- *testname*"
+sbt -J-Xmx6g "observe_server/testOnly *ObserveEngineSuite* -- *testname*"
 ```
 
 ## Engine Architecture

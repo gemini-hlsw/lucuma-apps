@@ -5,7 +5,7 @@
 /schemas/
 !/schemas/*/
 /observe/model/
-/observe/server_new/
+/observe/server/
 /project/
 /schemas/lib/
 /schemas/model/
