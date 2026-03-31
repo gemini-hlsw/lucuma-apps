@@ -49,7 +49,6 @@ object SequenceTileHelper:
   ): HookResult[LiveSequence] =
     for
       ctx                                     <- useContext(AppContext.ctx)
-      _                                       <- useEffectOnMount(Callback.log("MONTED!!!!!"))
       given StreamingClient[IO, ObservationDB] = ctx.clients.odb
       visits                                  <- useEffectKeepResultOnMount(ctx.odbApi.observationVisits(obsId))
       sequenceData                            <-
