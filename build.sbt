@@ -593,7 +593,7 @@ lazy val observe_web_client = project
   )
 
 lazy val observe_server = project
-  .in(file("observe/server_new"))
+  .in(file("observe/server"))
   .dependsOn(schemas_lib.jvm)
   .dependsOn(observe_model.jvm % "compile->compile;test->test")
   .enablePlugins(BuildInfoPlugin, CluePlugin)
@@ -623,7 +623,7 @@ lazy val observe_server = project
             Log4CatsNoop.value
         ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
-      "observe/server_new"
+      "observe/server"
     ) / "src/main/scala/pureconfig/module/http4s/package.scala").getName
   )
   .settings(
