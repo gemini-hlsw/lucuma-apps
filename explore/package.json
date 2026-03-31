@@ -1,5 +1,5 @@
 {
-  "name": "explore",
+  "name": "@gemini-hlsw/explore",
   "private": true,
   "dependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "1.7.9",
