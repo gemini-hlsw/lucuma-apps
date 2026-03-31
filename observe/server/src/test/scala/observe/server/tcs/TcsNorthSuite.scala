@@ -12,9 +12,9 @@ import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.TelescopeConfig
-import observe.common.ObsQueriesGQL.ObsQuery.Data
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment.GuideTargets
+import observe.common.ObsQueriesGql.ObsQuery.Data
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment.GuideTargets
 import observe.server.InstrumentGuide
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource

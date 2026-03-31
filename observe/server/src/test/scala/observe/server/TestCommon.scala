@@ -56,9 +56,9 @@ import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ModeSignalToNoise
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as ODBObservation
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.ClientId

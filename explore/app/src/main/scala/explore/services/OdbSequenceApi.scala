@@ -17,16 +17,16 @@ trait OdbSequenceApi[F[_]]:
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[gmos.DynamicConfig.GmosNorth]]
-  ): F[Unit]
+  ): F[List[Atom[gmos.DynamicConfig.GmosNorth]]]
 
   def replaceGmosSouthSequence(
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[gmos.DynamicConfig.GmosSouth]]
-  ): F[Unit]
+  ): F[List[Atom[gmos.DynamicConfig.GmosSouth]]]
 
   def replaceFlamingos2Sequence(
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[Flamingos2DynamicConfig]]
-  ): F[Unit]
+  ): F[List[Atom[Flamingos2DynamicConfig]]]

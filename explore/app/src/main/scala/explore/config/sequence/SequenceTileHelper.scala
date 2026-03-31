@@ -8,10 +8,12 @@ import cats.syntax.all.*
 import clue.StreamingClient
 import crystal.Pot
 import crystal.react.*
+import crystal.react.given
 import crystal.react.hooks.*
 import explore.*
 import explore.model.AppContext
 import explore.model.Observation
+import explore.model.reusability.given
 import explore.model.syntax.all.needsITC
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CalibrationRole
@@ -28,15 +30,16 @@ import scala.concurrent.duration.*
 object SequenceTileHelper:
 
   protected[sequence] case class LiveSequence(
-    visits:   Reusable[Pot[View[Option[ExecutionVisits]]]],
-    sequence: Reusable[Pot[View[Option[SequenceData]]]]
+    visits:   Pot[View[Option[ExecutionVisits]]],
+    sequence: Pot[View[Option[SequenceData]]]
   ):
     val isReady: Boolean                       = visits.isReady && sequence.isReady
     val sequenceInstrument: Option[Instrument] =
-      sequence.value.toOption.flatMap(_.get).map(_.config.instrument)
+      sequence.toOption.flatMap(_.get).map(_.config.instrument)
 
   protected object LiveSequence:
-    given Reusability[LiveSequence] = Reusability.by(x => (x.visits, x.sequence))
+    given Reusability[LiveSequence] =
+      Reusability.by(x => (x.visits.map(_.get), x.sequence.map(_.get)))
 
   protected[sequence] def useLiveSequence(
     obsId:               Observation.Id,
@@ -46,6 +49,7 @@ object SequenceTileHelper:
   ): HookResult[LiveSequence] =
     for
       ctx                                     <- useContext(AppContext.ctx)
+      _                                       <- useEffectOnMount(Callback.log("MONTED!!!!!"))
       given StreamingClient[IO, ObservationDB] = ctx.clients.odb
       visits                                  <- useEffectKeepResultOnMount(ctx.odbApi.observationVisits(obsId))
       sequenceData                            <-

@@ -9,7 +9,7 @@ import clue.data.syntax.*
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.schemas.model.Visit
-import lucuma.schemas.odb.SequenceQueriesGQL
+import lucuma.schemas.odb.SequenceQueriesGql
 import lucuma.schemas.odb.VisitQueriesGQL
 import lucuma.ui.sequence.SequenceData
 import observe.model.Observation
@@ -26,7 +26,7 @@ case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB]) extends ODBQu
       .map(_.observation.flatMap(_.execution))
 
   override def querySequence(obsId: Observation.Id): IO[SequenceData] =
-    SequenceQueriesGQL
+    SequenceQueriesGql
       .SequenceQuery[IO]
       .query(obsId)
       .raiseGraphQLErrors

@@ -34,7 +34,7 @@ import lucuma.core.model.sequence.gmos
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
 import observe.model.dhs.*
 import observe.model.enums.Resource

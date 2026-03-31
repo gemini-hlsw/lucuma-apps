@@ -16,7 +16,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.SequenceEditQueriesGql.*
-import lucuma.schemas.odb.SequenceQueriesGQL.*
+import lucuma.schemas.odb.SequenceQueriesGql.*
 import lucuma.schemas.odb.input.*
 import lucuma.ui.sequence.SequenceData
 
@@ -32,28 +32,28 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[gmos.DynamicConfig.GmosNorth]]
-  ): F[Unit] =
+  ): F[List[Atom[gmos.DynamicConfig.GmosNorth]]] =
     ReplaceGmosNorthSequence[F]
       .execute(obsId, sequenceType, atoms.map(_.toInput))
       .raiseGraphQLErrors
-      .void
+      .map(_.replaceGmosNorthSequence.sequence)
 
   def replaceGmosSouthSequence(
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[gmos.DynamicConfig.GmosSouth]]
-  ): F[Unit] =
+  ): F[List[Atom[gmos.DynamicConfig.GmosSouth]]] =
     ReplaceGmosSouthSequence[F]
       .execute(obsId, sequenceType, atoms.map(_.toInput))
       .raiseGraphQLErrors
-      .void
+      .map(_.replaceGmosSouthSequence.sequence)
 
   def replaceFlamingos2Sequence(
     obsId:        Observation.Id,
     sequenceType: SequenceType,
     atoms:        List[Atom[Flamingos2DynamicConfig]]
-  ): F[Unit] =
+  ): F[List[Atom[Flamingos2DynamicConfig]]] =
     ReplaceFlamingos2Sequence[F]
       .execute(obsId, sequenceType, atoms.map(_.toInput))
       .raiseGraphQLErrors
-      .void
+      .map(_.replaceFlamingos2Sequence.sequence)

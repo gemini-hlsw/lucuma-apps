@@ -15,7 +15,6 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.components.undo.UndoButtons
 import explore.config.sequence.byInstrument.*
-import explore.givens.given
 import explore.model.AppContext
 import explore.model.Execution
 import explore.model.ObsTabTileIds
@@ -84,10 +83,13 @@ object SequenceTile
         resetEditableSequenceFrom = // LiveSequence => Callback
           (newLiveSequence: LiveSequence) =>
             editableSequence.set(EditableSequence.fromLiveSequence(newLiveSequence))
+        isEditInFlight           <- useStateView(false)
+        // Acquisition and Science are committed separately. We want to ignore the acquisition updated
+        // event while processing the science update.
         _                        <-
           useEffectWithDeps(liveSequence): newLiveSequence =>
-            props.sequenceChanged.set: // Notify caller of change
-              (newLiveSequence.visits.value, newLiveSequence.sequence.value.map(_.get)).tupled.void
+            (props.sequenceChanged.set: // Notify caller of change
+              (newLiveSequence.visits, newLiveSequence.sequence.map(_.get)).tupled.void
             >> ( // Invalidate edit sequence if we were editing.
               ctx.toastCtx
                 .showToast(
@@ -98,7 +100,7 @@ object SequenceTile
                 .runAsyncAndForget >> props.isEditing.set(IsEditing.False)
             ).when_(props.isEditing.get) >>
               // Keep editable sequence in sync with live sequence
-              resetEditableSequenceFrom(newLiveSequence)
+              resetEditableSequenceFrom(newLiveSequence)).unless_(isEditInFlight.get)
         undoStacks               <- useStateView(UndoStacks.empty[IO, Option[EditableSequence]])
         _                        <- useEffectWithDeps(props.isEditing.get.value): _ =>
                                       undoStacks.set(UndoStacks.empty[IO, Option[EditableSequence]])
@@ -114,48 +116,44 @@ object SequenceTile
         val undoCtx: UndoContext[Option[EditableSequence]] =
           UndoContext(undoStacks, editableSequence)
 
-        def replaceAcquisition[S, D](
-          editableOptional:        Optional[EditableSequence, Option[Atom[D]]],
+        def replaceLocalAcquisitionAtomMod[S, D](
+          atom:                    Option[Atom[D]],
           executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
         ): Endo[InstrumentExecutionConfig] =
-          editableSequence.get
-            .flatMap(editableOptional.getOption)
-            .foldMap:
-              case Some(newAcq) => // TODO Should we also erase possibleFuture?
-                executionConfigOptional
-                  .andThen(ExecutionConfig.acquisition.some)
-                  .andThen(ExecutionSequence.nextAtom)
-                  .replace(newAcq)
-              case None         =>
-                executionConfigOptional
-                  .andThen(ExecutionConfig.acquisition)
-                  .replace(none)
+          atom match
+            case Some(newAcq) => // TODO Should we also erase possibleFuture?
+              executionConfigOptional
+                .andThen(ExecutionConfig.acquisition.some)
+                .andThen(ExecutionSequence.nextAtom)
+                .replace(newAcq)
+            case None         =>
+              executionConfigOptional
+                .andThen(ExecutionConfig.acquisition)
+                .replace(none)
 
-        def replaceScience[S, D](
-          editableOptional:        Optional[EditableSequence, List[Atom[D]]],
+        def replaceLocalScienceAtomsMod[S, D](
+          atoms:                   List[Atom[D]],
           executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
         ): Endo[InstrumentExecutionConfig] =
-          editableSequence.get
-            .flatMap(editableOptional.getOption)
-            .foldMap:
-              case head :: tail =>
+          atoms match
+            case head :: tail =>
+              executionConfigOptional
+                .andThen(ExecutionConfig.science.some)
+                .andThen(ExecutionSequence.nextAtom)
+                .replace(head) >>>
                 executionConfigOptional
                   .andThen(ExecutionConfig.science.some)
-                  .andThen(ExecutionSequence.nextAtom)
-                  .replace(head) >>>
-                  executionConfigOptional
-                    .andThen(ExecutionConfig.science.some)
-                    .andThen(ExecutionSequence.possibleFuture)
-                    .replace(tail)
-              case Nil          =>
-                executionConfigOptional
-                  .andThen(ExecutionConfig.science)
-                  .replace(none)
+                  .andThen(ExecutionSequence.possibleFuture)
+                  .replace(tail)
+            case Nil          =>
+              executionConfigOptional
+                .andThen(ExecutionConfig.science)
+                .replace(none)
 
         def replaceRemoteAcquisition[D](
           editableOptional: Optional[EditableSequence, Option[Atom[D]]],
-          modifyRemote:     List[Atom[D]] => IO[Unit]
-        ): IO[Unit] =
+          modifyRemote:     List[Atom[D]] => IO[List[Atom[D]]]
+        ): IO[List[Atom[D]]] =
           editableSequence.get
             .flatMap(editableOptional.getOption)
             .flatten
@@ -164,52 +162,67 @@ object SequenceTile
 
         def replaceRemoteScience[D](
           editableOptional: Optional[EditableSequence, List[Atom[D]]],
-          modifyRemote:     List[Atom[D]] => IO[Unit]
-        ): IO[Unit] =
+          modifyRemote:     List[Atom[D]] => IO[List[Atom[D]]]
+        ): IO[List[Atom[D]]] =
           editableSequence.get
             .flatMap(editableOptional.getOption)
             .foldMap: atoms =>
               modifyRemote(atoms)
 
-        def replaceRemoteSequence[D](
-          acquisitionOptional: Optional[EditableSequence, Option[Atom[D]]],
-          scienceOptional:     Optional[EditableSequence, List[Atom[D]]],
-          modifyRemote:        SequenceType => List[Atom[D]] => IO[Unit]
+        def replaceAcquisitionSequence[S, D](
+          editableAcquisitionOptional:  Optional[EditableSequence, Option[Atom[D]]],
+          localExecutionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]],
+          modifyRemote:                 SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
         ): IO[Unit] =
-          (replaceRemoteAcquisition(acquisitionOptional, modifyRemote(SequenceType.Acquisition)),
-           replaceRemoteScience(scienceOptional, modifyRemote(SequenceType.Science))
-          ).parTupled.void
+          replaceRemoteAcquisition(
+            editableAcquisitionOptional,
+            modifyRemote(SequenceType.Acquisition)
+          ) >>= (newAcq =>
+            liveSequence.sequence.toOption
+              .flatMap(_.toOptionView)
+              .foldMap:
+                _.zoom(SequenceData.config).async.mod:
+                  replaceLocalAcquisitionAtomMod(newAcq.headOption, localExecutionConfigOptional)
+          )
 
-        def replaceLocalSequence[S, D](
-          acquisitionOptional:     Optional[EditableSequence, Option[Atom[D]]],
-          scienceOptional:         Optional[EditableSequence, List[Atom[D]]],
-          executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]]
-        ): Callback =
-          liveSequence.sequence.toOption
-            .flatMap(_.toOptionView)
-            .foldMap:
-              _.zoom(SequenceData.config).mod:
-                replaceAcquisition(acquisitionOptional, executionConfigOptional) >>>
-                  replaceScience(scienceOptional, executionConfigOptional)
-
-        def replaceSequence[S, D](
-          acquisitionOptional:     Optional[EditableSequence, Option[Atom[D]]],
-          scienceOptional:         Optional[EditableSequence, List[Atom[D]]],
-          executionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]],
-          modifyRemote:            SequenceType => List[Atom[D]] => IO[Unit]
+        def replaceScienceSequence[S, D](
+          editableScienceOptional:      Optional[EditableSequence, List[Atom[D]]],
+          localExecutionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]],
+          modifyRemote:                 SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
         ): IO[Unit] =
-          replaceRemoteSequence(acquisitionOptional, scienceOptional, modifyRemote) >>
-            replaceLocalSequence(
-              acquisitionOptional,
-              scienceOptional,
-              executionConfigOptional
-            ).toAsync
+          replaceRemoteScience(
+            editableScienceOptional,
+            modifyRemote(SequenceType.Science)
+          ) >>= (newScience =>
+            liveSequence.sequence.toOption
+              .flatMap(_.toOptionView)
+              .foldMap:
+                _.zoom(SequenceData.config).async.mod:
+                  replaceLocalScienceAtomsMod(newScience, localExecutionConfigOptional)
+          )
+
+        def replaceSequences[S, D](
+          editableAcquisitionOptional:  Optional[EditableSequence, Option[Atom[D]]],
+          editableScienceOptional:      Optional[EditableSequence, List[Atom[D]]],
+          localExecutionConfigOptional: Optional[InstrumentExecutionConfig, ExecutionConfig[S, D]],
+          modifyRemote:                 SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
+        ): IO[Unit] =
+          replaceAcquisitionSequence(
+            editableAcquisitionOptional,
+            localExecutionConfigOptional,
+            modifyRemote
+          ) >>
+            replaceScienceSequence(
+              editableScienceOptional,
+              localExecutionConfigOptional,
+              modifyRemote
+            ) // TODO HOW TO HANDLE IF ACQ SUCEEDS BUT SCIENCE FAILS?
 
         val commitEdits: IO[Unit] =
-          liveSequence.sequenceInstrument
+          (liveSequence.sequenceInstrument
             .foldMap:
               case Instrument.GmosNorth  =>
-                replaceSequence(
+                replaceSequences(
                   EditableSequence.gmosNorthAcquisition,
                   EditableSequence.gmosNorthScience,
                   InstrumentExecutionConfig.gmosNorth
@@ -218,7 +231,7 @@ object SequenceTile
                     atoms => ctx.odbApi.replaceGmosNorthSequence(props.obsId, seqType, atoms)
                 )
               case Instrument.GmosSouth  =>
-                replaceSequence(
+                replaceSequences(
                   EditableSequence.gmosSouthAcquisition,
                   EditableSequence.gmosSouthScience,
                   InstrumentExecutionConfig.gmosSouth
@@ -227,7 +240,7 @@ object SequenceTile
                     atoms => ctx.odbApi.replaceGmosSouthSequence(props.obsId, seqType, atoms)
                 )
               case Instrument.Flamingos2 =>
-                replaceSequence(
+                replaceSequences(
                   EditableSequence.flamingos2Acquisition,
                   EditableSequence.flamingos2Science,
                   InstrumentExecutionConfig.flamingos2
@@ -243,7 +256,7 @@ object SequenceTile
                   s"Failed to update sequence: ${e.getMessage}",
                   Message.Severity.Error,
                   sticky = true
-                )
+                )).switching(isEditInFlight.async)
 
         def resolveAcquisition[S, D](
           config:           ExecutionConfig[S, D],
@@ -341,7 +354,7 @@ object SequenceTile
         val body =
           props.sequenceChanged.get
             .flatMap: _ =>
-              (liveSequence.visits.value, liveSequence.sequence.value.map(_.get)).tupled
+              (liveSequence.visits, liveSequence.sequence.map(_.get)).tupled
             .renderPot(
               (visitsViewOpt, sequenceDataOpt) =>
                 // TODO Show visits even if sequence data is not available

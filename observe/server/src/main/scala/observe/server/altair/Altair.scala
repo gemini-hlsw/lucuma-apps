@@ -11,7 +11,7 @@ import lucuma.core.model.AltairConfig
 import lucuma.core.model.AltairConfig.*
 import lucuma.core.model.GemsConfig
 import lucuma.core.util.TimeSpan
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation
 import observe.model.enums.Resource
 import observe.server.altair.AltairController.*
 import observe.server.tcs.Gaos

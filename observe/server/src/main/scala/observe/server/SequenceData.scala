@@ -17,7 +17,7 @@ import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation as OdbObservation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.Observer
 import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd

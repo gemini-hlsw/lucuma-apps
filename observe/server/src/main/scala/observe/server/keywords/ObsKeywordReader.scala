@@ -19,7 +19,7 @@ import lucuma.core.model.sequence.Step as OcsStep
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.util.TimeSpan
 import mouse.all.*
-import observe.common.ObsQueriesGQL.ObsQuery.Data.Observation
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation
 import observe.server.Systems
 
 import java.time.LocalDate
