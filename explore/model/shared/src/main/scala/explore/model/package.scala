@@ -116,4 +116,9 @@ object PosAngleConstraintAndObsMode:
     Focus[PosAngleConstraintAndObsMode](_._2)
 
 val SupportedInstruments =
-  List(Instrument.GmosNorth, Instrument.GmosSouth, Instrument.Flamingos2, Instrument.Igrins2)
+  List(Instrument.GmosNorth,
+       Instrument.GmosSouth,
+       Instrument.Flamingos2,
+       Instrument.Igrins2,
+       Instrument.Ghost
+  )

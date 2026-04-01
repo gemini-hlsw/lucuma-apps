@@ -89,9 +89,14 @@ case class SpectroscopyModeRow(
   slitWidth:  SlitWidth
 ) extends ModeCommonWavelengths
     with ModeRow derives Eq {
+  val instrumentLabel: String =
+    instrument.instrumentLabel
+
   inline def hasFilter: Boolean = instrument.hasFilter
-  val enabled                   =
-    focalPlane === FocalPlane.SingleSlit &&
+
+  val enabled =
+    (focalPlane === FocalPlane.SingleSlit ||
+      (focalPlane === FocalPlane.IFU && instrument.instrument === Instrument.Ghost)) &&
       SupportedInstruments.contains_(instrument.instrument)
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
@@ -220,6 +225,12 @@ object SpectroscopyModeRow {
       fpu       <- c.downField("fpu").as[Flamingos2Fpu]
     } yield ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, placeholderEtm)
 
+  private given Decoder[ItcInstrumentConfig.GhostIfu] = c =>
+    for {
+      resolutionMode <- c.downField("resolutionMode").as[GhostResolutionMode]
+      binning        <- c.downField("binning").as[GhostBinning]
+    } yield ItcInstrumentConfig.GhostIfu(resolutionMode, binning, placeholderEtm)
+
   given Decoder[SpectroscopyModeRow] = c =>
     for {
       name           <- c.downField("name").as[NonEmptyString]
@@ -240,9 +251,11 @@ object SpectroscopyModeRow {
       gmosNorth      <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthSpectroscopy]]
       gmosSouth      <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthSpectroscopy]]
       flamingos2     <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Spectroscopy]]
+      ghost          <- c.downField("ghost").as[Option[ItcInstrumentConfig.GhostIfu]]
     } yield gmosNorth
       .orElse(gmosSouth)
       .orElse(flamingos2)
+      .orElse(ghost)
       .orElse(
         Option.when(instrument === Instrument.Igrins2)(
           ItcInstrumentConfig.Igrins2Spectroscopy(placeholderEtm)

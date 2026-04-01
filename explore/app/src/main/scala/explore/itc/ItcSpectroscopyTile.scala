@@ -223,6 +223,8 @@ object ItcSpectroscopyTile
               NonEmptyList.one(etm.at)
             case Igrins2Spectroscopy(exposureTimeMode = etm)    =>
               NonEmptyList.one(etm.at)
+            case GhostIfu(exposureTimeMode = etm)               =>
+              NonEmptyList.one(etm.at)
             case GpiSpectroscopy(exposureTimeMode = etm)        =>
               NonEmptyList.one(etm.at)
             case GnirsSpectroscopy(exposureTimeMode = etm)      =>

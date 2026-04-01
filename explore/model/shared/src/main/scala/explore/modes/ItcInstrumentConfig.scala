@@ -23,6 +23,8 @@ import monocle.Getter
 sealed trait ItcInstrumentConfig derives Eq:
   def instrument: Instrument
 
+  def instrumentLabel: String = instrument.longName
+
   type Grating
   val grating: Grating
   def gratingDisplay: Display[Grating]
@@ -165,6 +167,45 @@ object ItcInstrumentConfig:
     val instrument                       = Instrument.Flamingos2
     val site                             = Site.GS
     val hasFilter                        = true
+    val mode                             = ScienceMode.Spectroscopy
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
+  }
+
+  case class GhostIfu(
+    resolutionMode:   GhostResolutionMode,
+    binning:          GhostBinning,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = Unit
+    type Filter   = Unit
+    type FPU      = Unit
+    type Override = Unit
+
+    val binningStr = binning match
+      case GhostBinning.OneByOne   => "1x1"
+      case GhostBinning.OneByTwo   => "1x2"
+      case GhostBinning.OneByFour  => "1x4"
+      case GhostBinning.OneByEight => "1x8"
+      case GhostBinning.TwoByTwo   => "2x2"
+      case GhostBinning.TwoByFour  => "2x4"
+      case GhostBinning.TwoByEight => "2x8"
+      case GhostBinning.FourByFour => "4x4"
+
+    val modeStr = resolutionMode match
+      case GhostResolutionMode.High     => "HR"
+      case GhostResolutionMode.Standard => "SR"
+
+    val grating                          = ()
+    val filter                           = ()
+    val fpu: Unit                        = ()
+    val gratingDisplay: Display[Grating] = Display.byShortName(_ => "Echelle")
+    val filterStr: String                = "none"
+    val instrument                       = Instrument.Ghost
+    override def instrumentLabel: String = s"${instrument.longName} $modeStr $binningStr"
+    val site                             = Site.GS
+    val hasFilter                        = false
     val mode                             = ScienceMode.Spectroscopy
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
