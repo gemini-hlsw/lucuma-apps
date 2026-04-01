@@ -30,6 +30,8 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
+import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
+import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.*
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
@@ -820,6 +822,12 @@ extension (flamingos2Static: Flamingos2StaticConfig)
   def toInput: Flamingos2StaticInput = Flamingos2StaticInput(
     flamingos2Static.mosPreImaging.assign,
     flamingos2Static.useElectronicOffsetting.assign
+  )
+
+extension (igrins2Static: Igrins2StaticConfig)
+  def toInput: Igrins2StaticInput = Igrins2StaticInput(
+    igrins2Static.saveSVCImages.value.assign,
+    igrins2Static.offsetMode.assign
   )
 
 extension (gmosSDynamic: gmos.DynamicConfig.GmosSouth)

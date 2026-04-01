@@ -87,3 +87,14 @@ object EventsGQL:
         }
       }
       """
+
+  @GraphQL
+  trait RecordIgrins2VisitMutation extends GraphQLOperation[ObservationDB]:
+    val document =
+      """
+      mutation($obsId: ObservationId!, $staticCfg: Igrins2StaticInput!, $idempotencyKey: IdempotencyKey!) {
+        recordIgrins2Visit(input: { observationId: $obsId, igrins2: $staticCfg, idempotencyKey: $idempotencyKey } ) {
+          visit { id }
+        }
+      }
+      """

@@ -60,14 +60,15 @@ object ExecutionVisitsSubquery
                   }
                   gmosNorth $GmosNorthDynamicConfigSubquery
                   gmosSouth $GmosSouthDynamicConfigSubquery
-                  flamingos2 $Flamingos2DynamicConfigSubquery           
+                  flamingos2 $Flamingos2DynamicConfigSubquery
+                  igrins2 $Igrins2DynamicConfigSubquery
                 }
               }
             }
           }
         }
       }
-    }  
+    }
   """
 
   // At some point we hope to support properly having fragments in subQueries, but currently these

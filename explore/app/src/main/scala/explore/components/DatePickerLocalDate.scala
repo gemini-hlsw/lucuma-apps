@@ -36,7 +36,7 @@ object DatePickerLocalDate
         )(
           props.withTodayButton.map: cb =>
             Button(
-              onClick = cb >> datepickerRef.setOpen(false),
+              onClick = cb >> datepickerRef.setOpen(false)
             )("Today")
         ).withRef(datepickerRef.ref)
     )

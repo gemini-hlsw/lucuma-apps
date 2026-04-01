@@ -75,7 +75,7 @@ There are a bunch of shell scripts in `deploy/scripts` that should be copied on 
 - `stop.sh`
 - `restart.sh`
 
-A Dockerhub access token has to be configued in `config.sh` too. Ideally, a read-only token should be used.
+A Dockerhub access token has to be configured in `config.sh` too. Ideally, a read-only token should be used.
 
 # Configuration
 
@@ -85,7 +85,7 @@ Each server has a `site.conf` providing overrides. The `site.conf` for each serv
 
 The only things not included in `site.conf` are the secrets. Namely: the SSO service token, and the passphrases needed for TLS in Staging and Production. These should be placed in `~/observe/conf/secrets.conf` at the staging and production servers. For Heroku, the SSO service token needs to be provided as an environment variable.
 
-For Starging and Production, the SSO service token and TLS passphrases need to be provided in a local file `~/observe/conf/secrets.conf`. The whole `~/observe/conf` directory is [bind mounted](https://docs.docker.com/storage/bind-mounts/) into the container by `start.sh`.
+For Staging and Production, the SSO service token and TLS passphrases need to be provided in a local file `~/observe/conf/secrets.conf`. The whole `~/observe/conf` directory is [bind mounted](https://docs.docker.com/storage/bind-mounts/) into the container by `start.sh`.
 
 A typical `secrets.conf` will look like this:
 

@@ -112,3 +112,5 @@ object InstrumentDynamicConfig:
         InstrumentDynamicConfig.GmosSouth(c)
       case c @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) =>
         InstrumentDynamicConfig.Flamingos2(c)
+      case c @ Igrins2DynamicConfig(_)                            =>
+        InstrumentDynamicConfig.Igrins2(c)

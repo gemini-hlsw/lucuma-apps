@@ -41,7 +41,7 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     GenPrism[EditableSequence, EditableSequence.GmosSouth]
   val flamingos2: Prism[EditableSequence, EditableSequence.Flamingos2] =
     GenPrism[EditableSequence, EditableSequence.Flamingos2]
-  val igrins2: Prism[EditableSequence, EditableSequence.Igrins2]     =
+  val igrins2: Prism[EditableSequence, EditableSequence.Igrins2]       =
     GenPrism[EditableSequence, EditableSequence.Igrins2]
 
   object GmosNorth:
@@ -80,7 +80,7 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
     flamingos2.andThen(Flamingos2.acquisition)
   val flamingos2Science: Optional[EditableSequence, List[Atom[Flamingos2DynamicConfig]]]           =
     flamingos2.andThen(Flamingos2.science).some
-  val igrins2Science: Optional[EditableSequence, List[Atom[Igrins2DynamicConfig]]]               =
+  val igrins2Science: Optional[EditableSequence, List[Atom[Igrins2DynamicConfig]]]                 =
     igrins2.andThen(Igrins2.science).some
 
   def fromLiveSequence(live: LiveSequence): Option[EditableSequence] =
@@ -102,7 +102,7 @@ object EditableSequence: // TODO Types?? Hide behind "InstrumentEditableSequence
             acquisition = execution.acquisition.map(a => a.nextAtom),
             science = execution.science.map(a => a.nextAtom +: a.possibleFuture)
           )
-        case InstrumentExecutionConfig.Igrins2(execution)   =>
+        case InstrumentExecutionConfig.Igrins2(execution)    =>
           EditableSequence.Igrins2(
             science = execution.science.map(a => a.nextAtom +: a.possibleFuture)
           )
