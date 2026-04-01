@@ -141,11 +141,6 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 nextScienceIndex,
                 acquisitionSteps,
                 scienceSteps,
-                ???,
-                ???,
-                ???,
-                ???,
-                ???,
                 acquisitionPrompt
               )
         datasetIdsInFlight       <- useStateView(HashSet.empty[Dataset.Id])

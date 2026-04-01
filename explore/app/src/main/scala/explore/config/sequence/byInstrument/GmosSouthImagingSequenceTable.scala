@@ -14,24 +14,18 @@ import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Enums.GmosSouthFilter
 import lucuma.schemas.model.ExecutionVisits
-import lucuma.ui.sequence.EditingSequenceTypes
+import lucuma.ui.sequence.SequenceEditContext
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
-import cats.effect.IO
-
 final case class GmosSouthImagingSequenceTable(
-  visits:               View[Option[ExecutionVisits]],
-  staticConfig:         gmos.StaticConfig.GmosSouth,
-  acquisition:          Option[Atom[gmos.DynamicConfig.GmosSouth]],
-  science:              Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  snPerFilter:          Map[GmosSouthFilter, SignalToNoiseAt],
-  editingSequenceTypes: View[EditingSequenceTypes],
-  modAcquisition:       Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
-  modScience:           Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
-  isUserStaffOrAdmin:   Boolean,
-  isEditable:           Boolean,
-  isEditInFlight:       Boolean,
-  onEditAccept:         IO[Unit],
-  onEditCancel:         Callback
+  visits:             View[Option[ExecutionVisits]],
+  staticConfig:       gmos.StaticConfig.GmosSouth,
+  acquisition:        Option[Atom[gmos.DynamicConfig.GmosSouth]],
+  science:            Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
+  snPerFilter:        Map[GmosSouthFilter, SignalToNoiseAt],
+  editContext:        SequenceEditContext,
+  modAcquisition:     Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  modScience:         Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  isUserStaffOrAdmin: Boolean
 ) extends ReactFnProps(GmosSouthImagingSequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
     with ImagingSequenceTable[gmos.DynamicConfig.GmosSouth, GmosSouthFilter]:

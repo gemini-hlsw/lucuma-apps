@@ -15,25 +15,20 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
+import lucuma.ui.sequence.SequenceEditContext
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
-import lucuma.ui.sequence.EditingSequenceTypes
-import cats.effect.IO
 
 final case class Flamingos2SequenceTable(
-  visits:               View[Option[ExecutionVisits]],
-  staticConfig:         Flamingos2StaticConfig,
-  acquisition:          Option[Atom[Flamingos2DynamicConfig]],
-  science:              Option[List[Atom[Flamingos2DynamicConfig]]],
-  acquisitonSN:         Option[SignalToNoiseAt],
-  scienceSN:            Option[SignalToNoiseAt],
-  editingSequenceTypes: View[EditingSequenceTypes],
-  modAcquisition:       Endo[Option[Atom[Flamingos2DynamicConfig]]] => Callback,
-  modScience:           Endo[List[Atom[Flamingos2DynamicConfig]]] => Callback,
-  isUserStaffOrAdmin:   Boolean,
-  isEditable:           Boolean,
-  isEditInFlight:       Boolean,
-  onEditAccept:         IO[Unit],
-  onEditCancel:         Callback
+  visits:             View[Option[ExecutionVisits]],
+  staticConfig:       Flamingos2StaticConfig,
+  acquisition:        Option[Atom[Flamingos2DynamicConfig]],
+  science:            Option[List[Atom[Flamingos2DynamicConfig]]],
+  acquisitonSN:       Option[SignalToNoiseAt],
+  scienceSN:          Option[SignalToNoiseAt],
+  editContext:        SequenceEditContext,
+  modAcquisition:     Endo[Option[Atom[Flamingos2DynamicConfig]]] => Callback,
+  modScience:         Endo[List[Atom[Flamingos2DynamicConfig]]] => Callback,
+  isUserStaffOrAdmin: Boolean
 ) extends ReactFnProps(Flamingos2SequenceTable.component)
     with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig]
     with SpectroscopySequenceTable[Flamingos2DynamicConfig]:

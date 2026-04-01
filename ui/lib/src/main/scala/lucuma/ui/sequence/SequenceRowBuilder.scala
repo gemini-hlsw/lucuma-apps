@@ -18,6 +18,8 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.syntax.all.*
 import lucuma.core.util.Timestamp
 import lucuma.core.util.time.format.UtcFormatter
+import lucuma.react.primereact.Button
+import lucuma.react.primereact.TooltipOptions
 import lucuma.react.table.Expandable
 import lucuma.react.table.Expanded
 import lucuma.react.table.RowId
@@ -37,12 +39,11 @@ import lucuma.ui.table.*
 import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.HashSet
-import lucuma.react.primereact.TooltipOptions
-import lucuma.react.primereact.Button
 
 // Methods for building visits rows on the sequence table
 trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
-  protected type SequenceTableRowType = Expandable[HeaderOrRow[SequenceIndexedRow[D]]]
+  protected type SequenceTableRowType =
+    Expandable[HeaderOrRow[SequenceEditContext, SequenceIndexedRow[D]]]
 
   protected def getRowId(row: SequenceTableRowType): RowId =
     row.value match
@@ -85,56 +86,54 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     )
 
   protected def renderCurrentHeader(
-    sequenceType:         SequenceType,
-    isEditable:           Boolean,
-    editingSequenceTypes: View[EditingSequenceTypes],
-    isEditInFlight:       Boolean,
-    onAccept:             IO[Unit],
-    onCancel:             Callback
-  )(using Logger[IO]): VdomNode =
-    <.span(
-      SequenceStyles.CurrentHeader,
-      sequenceType.toString,
+    sequenceType: SequenceType
+  )(using Logger[IO]): SequenceEditContext => VdomNode =
+    ctx =>
       <.span(
-        // ExploreStyles.SequenceTileTitleSide,
-        // ExploreStyles.SequenceTileTitleEdit
-      )(
-        Button(
-          onClickE = _.stopPropagationCB >> editingSequenceTypes.mod(_.add(sequenceType)),
-          label = "Edit",
-          // icon = Icons.Pencil,
-          tooltip = "Enter sequence editing mode",
-          tooltipOptions = TooltipOptions.Top
-        ).mini.compact
-          .when:
-            isEditable && !editingSequenceTypes.get.isEditing(sequenceType)
-        ,
-        React
-          .Fragment(
-            Button(
-              onClickE = _.stopPropagationCB >>
-                editingSequenceTypes.mod(_.remove(sequenceType)) >> onCancel,
-              label = "Cancel",
-              // icon = Icons.Close,
-              tooltip = "Cancel sequence editing",
-              tooltipOptions = TooltipOptions.Top,
-              severity = Button.Severity.Danger,
-              loading = isEditInFlight
-            ).mini.compact,
-            Button( // commit
-              onClickE = _.stopPropagationCB >>
-                (onAccept >> editingSequenceTypes.async.mod(_.remove(sequenceType))).runAsync,
-              label = "Accept",
-              // icon = Icons.Checkmark,
-              tooltip = "Accept sequence modifications",
-              tooltipOptions = TooltipOptions.Top,
-              severity = Button.Severity.Success,
-              loading = isEditInFlight
-            ).mini.compact
-          )
-          .when(editingSequenceTypes.get.isEditing(sequenceType))
+        SequenceStyles.CurrentHeader,
+        sequenceType.toString,
+        <.span(
+          // ExploreStyles.SequenceTileTitleSide,
+          // ExploreStyles.SequenceTileTitleEdit
+        )(
+          Button(
+            onClickE = _.stopPropagationCB >> ctx.editingSequenceTypes.mod(_.add(sequenceType)),
+            label = "Edit",
+            // icon = Icons.Pencil,
+            tooltip = "Enter sequence editing mode",
+            tooltipOptions = TooltipOptions.Top
+          ).mini.compact
+            .when:
+              ctx.isEditable && !ctx.editingSequenceTypes.get.isEditing(sequenceType)
+          ,
+          React
+            .Fragment(
+              Button(
+                onClickE = _.stopPropagationCB >>
+                  ctx.editingSequenceTypes.mod(_.remove(sequenceType)) >> ctx.onCancel,
+                label = "Cancel",
+                // icon = Icons.Close,
+                tooltip = "Cancel sequence editing",
+                tooltipOptions = TooltipOptions.Top,
+                severity = Button.Severity.Danger,
+                loading = ctx.isEditInFlight
+              ).mini.compact,
+              Button( // commit
+                onClickE = _.stopPropagationCB >>
+                  (ctx.onAccept >> ctx.editingSequenceTypes.async.mod(
+                    _.remove(sequenceType)
+                  )).runAsync,
+                label = "Accept",
+                // icon = Icons.Checkmark,
+                tooltip = "Accept sequence modifications",
+                tooltipOptions = TooltipOptions.Top,
+                severity = Button.Severity.Success,
+                loading = ctx.isEditInFlight
+              ).mini.compact
+            )
+            .when(ctx.editingSequenceTypes.get.isEditing(sequenceType))
+        )
       )
-    )
 
   // private val ArchiveBaseUrl = "https://archive.gemini.edu/preview" // In case they want the image instead
   private val ArchiveBaseUrl = "https://archive.gemini.edu/fullheader"
@@ -271,17 +270,12 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected case class AlertRow(sequenceType: SequenceType, position: NonNegInt, content: VdomNode)
 
   def stitchSequence(
-    visits:               List[VisitData],
-    currentVisitId:       Option[Visit.Id],     // Used to move current visit steps to current sequences
-    nextScienceIndex:     StepIndex,            // Used to continue numbering from visits
-    acquisitionRows:      List[SequenceRow[D]], // Should have completed steps already removed
-    scienceRows:          List[SequenceRow[D]], // Should have completed steps already removed
-    isEditable:           Boolean,
-    editingSequenceTypes: View[EditingSequenceTypes],
-    isEditInFlight:       Boolean,
-    onEditAccept:         IO[Unit],
-    onEditCancel:         Callback,
-    alertRow:             Option[AlertRow] = none
+    visits:           List[VisitData],
+    currentVisitId:   Option[Visit.Id],     // Used to move current visit steps to current sequences
+    nextScienceIndex: StepIndex,            // Used to continue numbering from visits
+    acquisitionRows:  List[SequenceRow[D]], // Should have completed steps already removed
+    scienceRows:      List[SequenceRow[D]], // Should have completed steps already removed
+    alertRow:         Option[AlertRow] = none
   )(using Logger[IO]): List[SequenceTableRowType] = {
     val (pastVisits, currentVisits): (List[VisitData], List[VisitData]) =
       visits.partition: visitData =>
@@ -325,16 +319,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       Option
         .when(currentVisitRows.nonEmpty || steps.nonEmpty):
           Expandable(
-            HeaderRow(
+            HeaderRow[SequenceEditContext](
               RowId(sequenceType.toString),
-              renderCurrentHeader(
-                sequenceType,
-                isEditable,
-                editingSequenceTypes,
-                isEditInFlight,
-                onEditAccept,
-                onEditCancel
-              )
+              renderCurrentHeader(sequenceType)
             ).toHeaderOrRow,
             currentVisitRows ++
               insertAlertRow(

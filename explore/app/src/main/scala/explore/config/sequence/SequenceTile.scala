@@ -37,7 +37,9 @@ import lucuma.core.util.Timestamp
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.model.ModeSignalToNoise
+import lucuma.ui.sequence.EditingSequenceTypes
 import lucuma.ui.sequence.SequenceData
+import lucuma.ui.sequence.SequenceEditContext
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoButtons
@@ -48,7 +50,6 @@ import monocle.Optional
 import org.scalajs.dom.HTMLElement
 
 import scala.collection.immutable.SortedSet
-import lucuma.ui.sequence.EditingSequenceTypes
 
 final case class SequenceTile(
   obsId:               Observation.Id,
@@ -100,6 +101,7 @@ object SequenceTile
         undoStacks               <- useStateView(UndoStacks.empty[IO, Option[EditableSequence]])
         _                        <- useEffectWithDeps(props.editingSequenceTypes.get.value): _ =>
                                       undoStacks.set(UndoStacks.empty[IO, Option[EditableSequence]])
+        // TODO Have a hook that manages undoctx and remote modification detection for each sequence type.
       yield
         import ctx.given
 
@@ -313,6 +315,15 @@ object SequenceTile
           severity = Message.Severity.Error
         )
 
+        val editContext: SequenceEditContext = 
+          SequenceEditContext(
+            isEditable,
+            props.editingSequenceTypes,
+            isEditInFlight.get,
+            onAccept = commitEdits,
+            onCancel =resetEditableSequenceFrom(liveSequence)
+          )
+
         val body =
           props.sequenceChanged.get
             .flatMap: _ =>
@@ -337,14 +348,10 @@ object SequenceTile
                             resolveScience(config, EditableSequence.gmosNorthScience),
                             acquisitionSn,
                             scienceSn,
-                            props.editingSequenceTypes,
+                            editContext,
                             modSequence(EditableSequence.gmosNorthAcquisition),
                             modSequence(EditableSequence.gmosNorthScience),
                             props.isUserStaffOrAdmin,
-                            isEditable,
-                            isEditInFlight.get,
-                            commitEdits,
-                            resetEditableSequenceFrom(liveSequence)
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(
@@ -353,14 +360,10 @@ object SequenceTile
                             resolveAcquisition(config, EditableSequence.gmosNorthAcquisition),
                             resolveScience(config, EditableSequence.gmosNorthScience),
                             snPerFilter,
-                            props.editingSequenceTypes,
+                            editContext,
                             modSequence(EditableSequence.gmosNorthAcquisition),
                             modSequence(EditableSequence.gmosNorthScience),
                             props.isUserStaffOrAdmin,
-                            isEditable,
-                            isEditInFlight.get,
-                            commitEdits,
-                            resetEditableSequenceFrom(liveSequence)
                           )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
@@ -373,14 +376,10 @@ object SequenceTile
                             resolveScience(config, EditableSequence.gmosSouthScience),
                             acquisitionSn,
                             scienceSn,
-                            props.editingSequenceTypes,
+                            editContext,
                             modSequence(EditableSequence.gmosSouthAcquisition),
                             modSequence(EditableSequence.gmosSouthScience),
                             props.isUserStaffOrAdmin,
-                            isEditable,
-                            isEditInFlight.get,
-                            commitEdits,
-                            resetEditableSequenceFrom(liveSequence)
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(
@@ -389,14 +388,10 @@ object SequenceTile
                             resolveAcquisition(config, EditableSequence.gmosSouthAcquisition),
                             resolveScience(config, EditableSequence.gmosSouthScience),
                             snPerFilter,
-                            props.editingSequenceTypes,
+                            editContext,
                             modSequence(EditableSequence.gmosSouthAcquisition),
                             modSequence(EditableSequence.gmosSouthScience),
                             props.isUserStaffOrAdmin,
-                            isEditable,
-                            isEditInFlight.get,
-                            commitEdits,
-                            resetEditableSequenceFrom(liveSequence)
                           )
                         case _                                                        => mismatchError
                     case SequenceData(
@@ -410,14 +405,10 @@ object SequenceTile
                         resolveScience(config, EditableSequence.flamingos2Science),
                         acquisitionSn,
                         scienceSn,
-                        props.editingSequenceTypes,
+                        editContext,
                         modSequence(EditableSequence.flamingos2Acquisition),
                         modSequence(EditableSequence.flamingos2Science),
                         props.isUserStaffOrAdmin,
-                        isEditable,
-                        isEditInFlight.get,
-                        commitEdits,
-                        resetEditableSequenceFrom(liveSequence)
                       )
                     case SequenceData(
                           InstrumentExecutionConfig.Igrins2(config),
@@ -428,12 +419,8 @@ object SequenceTile
                         config.static,
                         config.science.map(a => a.nextAtom +: a.possibleFuture),
                         scienceSn,
-                        props.editingSequenceTypes,
+                        editContext,
                         props.isUserStaffOrAdmin,
-                        isEditable,
-                        isEditInFlight.get,
-                        commitEdits,
-                        resetEditableSequenceFrom(liveSequence)
                       )
                     case _                                                                        => mismatchError
                   },

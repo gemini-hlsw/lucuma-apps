@@ -73,6 +73,7 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
+import lucuma.ui.sequence.EditingSequenceTypes
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -82,7 +83,6 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
-import lucuma.ui.sequence.EditingSequenceTypes
 
 case class ObsTabTiles(
   vault:            Option[UserVault],

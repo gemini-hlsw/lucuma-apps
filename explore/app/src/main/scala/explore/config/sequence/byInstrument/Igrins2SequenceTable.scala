@@ -14,21 +14,15 @@ import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
-import lucuma.ui.sequence.EditingSequenceTypes
+import lucuma.ui.sequence.SequenceEditContext
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
-import cats.effect.IO
-
 final case class Igrins2SequenceTable(
-  visits:               View[Option[ExecutionVisits]],
-  staticConfig:         Igrins2StaticConfig,
-  science:              Option[List[Atom[Igrins2DynamicConfig]]],
-  scienceSN:            Option[SignalToNoiseAt],
-  editingSequenceTypes: View[EditingSequenceTypes],
-  isUserStaffOrAdmin:   Boolean,
-  isEditable:           Boolean,
-  isEditInFlight:       Boolean,
-  onEditAccept:         IO[Unit],
-  onEditCancel:         Callback
+  visits:             View[Option[ExecutionVisits]],
+  staticConfig:       Igrins2StaticConfig,
+  science:            Option[List[Atom[Igrins2DynamicConfig]]],
+  scienceSN:          Option[SignalToNoiseAt],
+  editContext:        SequenceEditContext,
+  isUserStaffOrAdmin: Boolean
 ) extends ReactFnProps(Igrins2SequenceTable.component)
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig]
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:

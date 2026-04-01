@@ -8,6 +8,7 @@ import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
@@ -28,7 +29,6 @@ import monocle.Focus
 import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
-import lucuma.core.enums.ObserveClass
 
 /**
  * A row of a sequence table. It can be one of:

@@ -54,16 +54,16 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     case StepConfig.SmartGcal(_)           => throw new RuntimeException("Smart GCAL is not supported")
 
   protected case class TableMeta(
-    requests:             ObservationRequests,
-    executionState:       ExecutionState,
-    progress:             Option[StepProgress],
-    selectedRowId:        Option[SelectedRowId],
-    allVisits:            View[Option[ExecutionVisits]],
-    datasetIdsInFlight:   View[HashSet[Dataset.Id]],
-    onBreakpointFlip:     (Observation.Id, Step.Id) => Callback,
-    editingSequenceTypes: EditingSequenceTypes = EditingSequenceTypes.NotEditing,
-    modAcquisition:       Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
-    modScience:           Endo[List[Atom[D]]] => Callback = _ => Callback.empty
+    requests:           ObservationRequests,
+    executionState:     ExecutionState,
+    progress:           Option[StepProgress],
+    selectedRowId:      Option[SelectedRowId],
+    allVisits:          View[Option[ExecutionVisits]],
+    datasetIdsInFlight: View[HashSet[Dataset.Id]],
+    onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
+    editContext:        SequenceEditContext = ???,
+    modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
+    modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
   ) extends SequenceTableMeta[D]
 
   protected val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]

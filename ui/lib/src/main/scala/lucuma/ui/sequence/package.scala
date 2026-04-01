@@ -10,6 +10,7 @@ import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.ObserveClass
+import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
@@ -29,7 +30,6 @@ import lucuma.ui.LucumaIcons
 import lucuma.ui.LucumaStyles
 import lucuma.ui.utils.Render
 import lucuma.ui.utils.zipWithMappedIndex
-import lucuma.core.enums.SequenceType
 
 final case class SelectedRowId(visitId: Option[Visit.Id], stepId: Step.Id) derives Eq
 

@@ -7,9 +7,13 @@ import cats.syntax.all.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.table.RowId
 
-type HeaderOrRow[+R] = Either[HeaderRow, R]
+case class HeaderRow[A](rowId: RowId, content: A => VdomNode):
+  def toHeaderOrRow[R]: HeaderOrRow[A, R] = this.asLeft
 
-case class HeaderRow(rowId: RowId, content: VdomNode):
-  def toHeaderOrRow[R]: HeaderOrRow[R] = this.asLeft
+object HeaderRow:
+  def apply[A](row: RowId, content: VdomNode): HeaderRow[A] =
+    HeaderRow(row, _ => content)
 
-extension [R](row: R) def toHeaderOrRow: HeaderOrRow[R] = row.asRight
+type HeaderOrRow[A, +R] = Either[HeaderRow[A], R]
+
+extension [R](row: R) def toHeaderOrRow[A]: HeaderOrRow[A, R] = row.asRight
