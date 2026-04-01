@@ -17,7 +17,6 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
-import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
 import lucuma.react.SizePx
 import lucuma.react.common.*
@@ -30,6 +29,7 @@ import lucuma.ui.LucumaIcons
 import lucuma.ui.LucumaStyles
 import lucuma.ui.utils.Render
 import lucuma.ui.utils.zipWithMappedIndex
+import lucuma.core.enums.SequenceType
 
 final case class SelectedRowId(visitId: Option[Visit.Id], stepId: Step.Id) derives Eq
 
@@ -41,8 +41,22 @@ object StepIndex extends NewType[PosInt]:
   val One: StepIndex = StepIndex(PosInt.unsafeFrom(1))
 type StepIndex = StepIndex.Type
 
-object IsEditing extends NewBoolean
-type IsEditing = IsEditing.Type
+object EditingSequenceTypes extends NewType[Set[SequenceType]]:
+  val NotEditing: EditingSequenceTypes = EditingSequenceTypes(Set.empty)
+
+  extension (v: EditingSequenceTypes)
+    def isEditing: Boolean =
+      v.value.nonEmpty
+
+    def isEditing(seqType: SequenceType): Boolean =
+      v.value.contains(seqType)
+
+    def add(seqType: SequenceType): EditingSequenceTypes =
+      EditingSequenceTypes(v.value + seqType)
+
+    def remove(seqType: SequenceType): EditingSequenceTypes =
+      EditingSequenceTypes(v.value - seqType)
+type EditingSequenceTypes = EditingSequenceTypes.Type
 
 private def renderStepType(icon: VdomNode, tooltip: String): VdomNode =
   <.span(icon).withTooltip(content = tooltip, showDelay = 100, position = Tooltip.Position.Bottom)

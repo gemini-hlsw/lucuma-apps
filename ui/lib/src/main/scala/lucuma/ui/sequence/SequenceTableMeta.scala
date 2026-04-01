@@ -9,7 +9,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Atom
 
 trait SequenceTableMeta[D]:
-  def isEditing: IsEditing
+  def editingSequenceTypes: EditingSequenceTypes
   def modAcquisition: Endo[Option[Atom[D]]] => Callback
   def modScience: Endo[List[Atom[D]]] => Callback
 

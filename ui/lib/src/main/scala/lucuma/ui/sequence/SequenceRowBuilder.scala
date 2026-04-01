@@ -8,6 +8,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
 import crystal.react.View
+import crystal.react.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
@@ -29,13 +30,15 @@ import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.LucumaIcons
 import lucuma.ui.display.given
 import lucuma.ui.format.DurationFormatter
-import lucuma.ui.primereact.ToastCtx
+import lucuma.ui.primereact.*
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
 import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.HashSet
+import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.Button
 
 // Methods for building visits rows on the sequence table
 trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
@@ -62,10 +65,10 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     val rowId: RowId = RowId(s"$visitId-$sequenceType")
 
   protected def renderVisitHeader(visit: VisitData): VdomNode =
-    <.div(SequenceStyles.VisitHeader)( // Steps is non-empty => head is safe
+    <.div(SequenceStyles.VisitHeader)(
       <.span(
         s"${visit.sequenceType.shortName} Visit on ${UtcFormatter.format(visit.created.toInstant)}"
-      ),
+      ), // Steps is non-empty => head and last are safe
       <.span(s"Steps: ${visit.stepRows.head.index} - ${visit.stepRows.last.index}"),
       <.span(
         "Files: " + visit.datasetRange
@@ -81,8 +84,57 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       )
     )
 
-  protected def renderCurrentHeader(sequenceType: SequenceType): VdomNode =
-    <.span(SequenceStyles.CurrentHeader, sequenceType.toString)
+  protected def renderCurrentHeader(
+    sequenceType:         SequenceType,
+    isEditable:           Boolean,
+    editingSequenceTypes: View[EditingSequenceTypes],
+    isEditInFlight:       Boolean,
+    onAccept:             IO[Unit],
+    onCancel:             Callback
+  )(using Logger[IO]): VdomNode =
+    <.span(
+      SequenceStyles.CurrentHeader,
+      sequenceType.toString,
+      <.span(
+        // ExploreStyles.SequenceTileTitleSide,
+        // ExploreStyles.SequenceTileTitleEdit
+      )(
+        Button(
+          onClickE = _.stopPropagationCB >> editingSequenceTypes.mod(_.add(sequenceType)),
+          label = "Edit",
+          // icon = Icons.Pencil,
+          tooltip = "Enter sequence editing mode",
+          tooltipOptions = TooltipOptions.Top
+        ).mini.compact
+          .when:
+            isEditable && !editingSequenceTypes.get.isEditing(sequenceType)
+        ,
+        React
+          .Fragment(
+            Button(
+              onClickE = _.stopPropagationCB >>
+                editingSequenceTypes.mod(_.remove(sequenceType)) >> onCancel,
+              label = "Cancel",
+              // icon = Icons.Close,
+              tooltip = "Cancel sequence editing",
+              tooltipOptions = TooltipOptions.Top,
+              severity = Button.Severity.Danger,
+              loading = isEditInFlight
+            ).mini.compact,
+            Button( // commit
+              onClickE = _.stopPropagationCB >>
+                (onAccept >> editingSequenceTypes.async.mod(_.remove(sequenceType))).runAsync,
+              label = "Accept",
+              // icon = Icons.Checkmark,
+              tooltip = "Accept sequence modifications",
+              tooltipOptions = TooltipOptions.Top,
+              severity = Button.Severity.Success,
+              loading = isEditInFlight
+            ).mini.compact
+          )
+          .when(editingSequenceTypes.get.isEditing(sequenceType))
+      )
+    )
 
   // private val ArchiveBaseUrl = "https://archive.gemini.edu/preview" // In case they want the image instead
   private val ArchiveBaseUrl = "https://archive.gemini.edu/fullheader"
@@ -219,13 +271,18 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected case class AlertRow(sequenceType: SequenceType, position: NonNegInt, content: VdomNode)
 
   def stitchSequence(
-    visits:           List[VisitData],
-    currentVisitId:   Option[Visit.Id],     // Used to move current visit steps to current sequences
-    nextScienceIndex: StepIndex,            // Used to continue numbering from visits
-    acquisitionRows:  List[SequenceRow[D]], // Should have completed steps already removed
-    scienceRows:      List[SequenceRow[D]], // Should have completed steps already removed
-    alertRow:         Option[AlertRow] = none
-  ): List[SequenceTableRowType] = {
+    visits:               List[VisitData],
+    currentVisitId:       Option[Visit.Id],     // Used to move current visit steps to current sequences
+    nextScienceIndex:     StepIndex,            // Used to continue numbering from visits
+    acquisitionRows:      List[SequenceRow[D]], // Should have completed steps already removed
+    scienceRows:          List[SequenceRow[D]], // Should have completed steps already removed
+    isEditable:           Boolean,
+    editingSequenceTypes: View[EditingSequenceTypes],
+    isEditInFlight:       Boolean,
+    onEditAccept:         IO[Unit],
+    onEditCancel:         Callback,
+    alertRow:             Option[AlertRow] = none
+  )(using Logger[IO]): List[SequenceTableRowType] = {
     val (pastVisits, currentVisits): (List[VisitData], List[VisitData]) =
       visits.partition: visitData =>
         !currentVisitId.contains_(visitData.visitId)
@@ -264,13 +321,20 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       currentVisitRows: List[SequenceTableRowType],
       steps:            List[SequenceRow[D]],
       nextIndex:        StepIndex
-    ): List[SequenceTableRowType] =
+    )(using Logger[IO]): List[SequenceTableRowType] =
       Option
         .when(currentVisitRows.nonEmpty || steps.nonEmpty):
           Expandable(
             HeaderRow(
               RowId(sequenceType.toString),
-              renderCurrentHeader(sequenceType)
+              renderCurrentHeader(
+                sequenceType,
+                isEditable,
+                editingSequenceTypes,
+                isEditInFlight,
+                onEditAccept,
+                onEditCancel
+              )
             ).toHeaderOrRow,
             currentVisitRows ++
               insertAlertRow(

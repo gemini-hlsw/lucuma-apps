@@ -24,6 +24,7 @@ import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 
 import SequenceRowFormatters.*
+import lucuma.core.enums.SequenceType
 
 // `T` is the actual type of the table row, from which we extract an `R` using `getStep`.
 // `D` is the `DynamicConfig`.
@@ -96,8 +97,11 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.exposureTime),
       header = _ => "Exp (sec)",
       cell = c =>
-        val isEditing: Boolean  = c.table.options.meta.exists(_.isEditing.value)
-        val isFinished: Boolean = c.getStep.forall(_.isFinished)
+        val sequenceType: Option[SequenceType] = c.getStep.flatMap(_.sequenceType)
+        val isEditing: Boolean                 =
+          (c.table.options.meta.map(_.editingSequenceTypes.value), sequenceType).tupled
+            .exists(_.contains(_))
+        val isFinished: Boolean                = c.getStep.forall(_.isFinished)
         (c.value, c.getStep.flatMap(_.instrument))
           .mapN[VdomNode]: (v, i) =>
             if isEditing && !isFinished then

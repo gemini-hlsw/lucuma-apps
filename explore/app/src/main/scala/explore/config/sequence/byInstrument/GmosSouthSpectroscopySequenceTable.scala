@@ -13,20 +13,25 @@ import lucuma.core.model.sequence.*
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
-import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.EditingSequenceTypes
 import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
+import cats.effect.IO
 
 final case class GmosSouthSpectroscopySequenceTable(
-  visits:             View[Option[ExecutionVisits]],
-  staticConfig:       gmos.StaticConfig.GmosSouth,
-  acquisition:        Option[Atom[gmos.DynamicConfig.GmosSouth]],
-  science:            Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  acquisitonSN:       Option[SignalToNoiseAt],
-  scienceSN:          Option[SignalToNoiseAt],
-  isEditing:          IsEditing,
-  modAcquisition:     Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
-  modScience:         Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
-  isUserStaffOrAdmin: Boolean
+  visits:               View[Option[ExecutionVisits]],
+  staticConfig:         gmos.StaticConfig.GmosSouth,
+  acquisition:          Option[Atom[gmos.DynamicConfig.GmosSouth]],
+  science:              Option[List[Atom[gmos.DynamicConfig.GmosSouth]]],
+  acquisitonSN:         Option[SignalToNoiseAt],
+  scienceSN:            Option[SignalToNoiseAt],
+  editingSequenceTypes: View[EditingSequenceTypes],
+  modAcquisition:       Endo[Option[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  modScience:           Endo[List[Atom[gmos.DynamicConfig.GmosSouth]]] => Callback,
+  isUserStaffOrAdmin:   Boolean,
+  isEditable:           Boolean,
+  isEditInFlight:       Boolean,
+  onEditAccept:         IO[Unit],
+  onEditCancel:         Callback
 ) extends ReactFnProps(GmosSouthSpectroscopySequenceTable.component)
     with SequenceTable[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth]
     with SpectroscopySequenceTable[gmos.DynamicConfig.GmosSouth]:

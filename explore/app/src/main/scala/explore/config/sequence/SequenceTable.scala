@@ -16,6 +16,7 @@ import lucuma.schemas.model.Visit
 import lucuma.schemas.model.enums.AtomExecutionState
 import lucuma.schemas.model.enums.StepExecutionState
 import lucuma.ui.sequence.*
+import cats.effect.IO
 
 private trait SequenceTable[S, D]:
   def visits: View[Option[ExecutionVisits]]
@@ -23,10 +24,14 @@ private trait SequenceTable[S, D]:
   def acquisition: Option[Atom[D]]
   def science: Option[List[Atom[D]]]
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def isEditing: IsEditing
+  def editingSequenceTypes: View[EditingSequenceTypes]
   def modAcquisition: Endo[Option[Atom[D]]] => Callback
   def modScience: Endo[List[Atom[D]]] => Callback
   def isUserStaffOrAdmin: Boolean
+  def isEditable: Boolean
+  def isEditInFlight: Boolean
+  def onEditAccept: IO[Unit]
+  def onEditCancel: Callback
 
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
 

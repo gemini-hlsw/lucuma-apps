@@ -49,12 +49,12 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   private type Props = SequenceTable[S, D]
 
   private case class TableMeta[D](
-    allVisits:          View[Option[ExecutionVisits]],
-    datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    isEditing:          IsEditing = IsEditing.False,
-    modAcquisition:     Endo[Option[Atom[D]]] => Callback,
-    modScience:         Endo[List[Atom[D]]] => Callback,
-    isUserStaffOrAdmin: Boolean
+    allVisits:            View[Option[ExecutionVisits]],
+    datasetIdsInFlight:   View[HashSet[Dataset.Id]],
+    editingSequenceTypes: EditingSequenceTypes,
+    modAcquisition:       Endo[Option[Atom[D]]] => Callback,
+    modScience:           Endo[List[Atom[D]]] => Callback,
+    isUserStaffOrAdmin:   Boolean
   ) extends SequenceTableMeta[D]
 
   private lazy val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta[D]]
@@ -123,13 +123,21 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
           useMemo(
             (visitsData, props.acquisitionRows, props.scienceRows, props.currentVisitId)
           ): (visitsData, acquisition, science, currentVisitId) =>
+            import ctx.given
+
             val (visitRows, nextScienceIndex): (List[VisitData], StepIndex) = visitsData.value
+
             stitchSequence(
               visitRows,
               currentVisitId,
               nextScienceIndex,
               acquisition,
-              science
+              science,
+              props.isEditable,
+              props.editingSequenceTypes,
+              props.isEditInFlight,
+              props.onEditAccept,
+              props.onEditCancel
             )
         datasetIdsInFlight <- useStateView(HashSet.empty[Dataset.Id])
         tableState         <-
@@ -155,14 +163,14 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               meta = TableMeta(
                 props.visits,
                 datasetIdsInFlight,
-                props.isEditing,
+                props.editingSequenceTypes.get,
                 props.modAcquisition,
                 props.modScience,
                 props.isUserStaffOrAdmin
               )
             )
         _                  <-
-          useEffectWithDeps(props.isEditing.value): isEditing =>
+          useEffectWithDeps(props.editingSequenceTypes.get.isEditing): isEditing =>
             dynTable.modCollapsedCols(_ => !isEditing)
         tableDnd           <- useVirtualizedTableDragAndDrop(
                                 table,
@@ -222,9 +230,11 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 case id if id == HeaderColumnId       => SequenceStyles.HiddenColTableHeader
                 case id if id == ExtraRowColumnId     => SequenceStyles.HiddenColTableHeader
                 case id if id == DragHandleColumnId   =>
-                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing.value)
+                  SequenceStyles.HiddenColTableHeader.unless:
+                    props.editingSequenceTypes.get.isEditing
                 case id if id == EditControlsColumnId =>
-                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing.value)
+                  SequenceStyles.HiddenColTableHeader.unless:
+                    props.editingSequenceTypes.get.isEditing
                 case _                                => TagMod.empty,
               rowMod = tableDnd.rowMod: (row, _) =>
                 row.original.value.fold(

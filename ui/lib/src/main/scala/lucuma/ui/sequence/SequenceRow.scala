@@ -28,6 +28,7 @@ import monocle.Focus
 import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
+import lucuma.core.enums.ObserveClass
 
 /**
  * A row of a sequence table. It can be one of:
@@ -38,7 +39,7 @@ import monocle.macros.GenPrism
  * We usually want to group executed steps by visits in the tables, thus dedicating an (expandable)
  * row to the visit.
  */
-trait SequenceRow[+D]:
+sealed trait SequenceRow[+D]:
   def id: Ior[Visit.Id, Step.Id] // Executed steps have both.
   protected def instrumentConfig: Option[D]
   def stepConfig: Option[StepConfig]
@@ -46,6 +47,7 @@ trait SequenceRow[+D]:
   def isFinished: Boolean
   def stepEstimate: Option[StepEstimate]
   def signalToNoise: Option[SignalToNoise]
+  def sequenceType: Option[SequenceType]
 
   lazy val rowId: RowId = RowId:
     id match
@@ -145,6 +147,7 @@ object SequenceRow:
     val instrumentConfig = step.instrumentConfig.some
     val stepConfig       = step.stepConfig.some
     val telescopeConfig  = step.telescopeConfig.some
+    val sequenceType     = seqType.some
     val breakpoint       = step.breakpoint
     val isFinished       = false
     val stepEstimate     = step.estimate.some
@@ -200,6 +203,7 @@ object SequenceRow:
       val instrumentConfig = none
       val stepConfig       = none
       val telescopeConfig  = none
+      val sequenceType     = none
       export visit.{created, id => visitId, interval}
 
     object ExecutedVisit:
@@ -214,6 +218,9 @@ object SequenceRow:
       val instrumentConfig = stepRecord.instrumentConfig.some
       val stepConfig       = stepRecord.stepConfig.some
       val telescopeConfig  = stepRecord.telescopeConfig.some
+      val sequenceType     = stepRecord.observeClass match
+        case ObserveClass.Acquisition => SequenceType.Acquisition.some
+        case _                        => SequenceType.Science.some
       export stepRecord.{datasets, executionState, id => stepId, interval, qaState}
 
     object ExecutedStep:

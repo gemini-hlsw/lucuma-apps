@@ -34,13 +34,9 @@ import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
-import lucuma.react.primereact.TooltipOptions
 import lucuma.refined.*
 import lucuma.schemas.model.ModeSignalToNoise
-import lucuma.ui.primereact.*
-import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -52,6 +48,7 @@ import monocle.Optional
 import org.scalajs.dom.HTMLElement
 
 import scala.collection.immutable.SortedSet
+import lucuma.ui.sequence.EditingSequenceTypes
 
 final case class SequenceTile(
   obsId:               Observation.Id,
@@ -60,10 +57,9 @@ final case class SequenceTile(
   customSedTimestamps: List[Timestamp],
   calibrationRole:     Option[CalibrationRole],
   sequenceChanged:     View[Pot[Unit]],
-  isEditing:           View[IsEditing],
+  editingSequenceTypes: View[EditingSequenceTypes],
   isUserStaffOrAdmin:  Boolean,
-  isEditable:          Boolean
-) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence", canMinimize = !isEditing.get)(
+) extends Tile[SequenceTile](ObsTabTileIds.SequenceId.id, "Sequence", canMinimize = !editingSequenceTypes.get.isEditing)(
       SequenceTile // TODO Move isEditing state here, but we need to be able to change tile state from within tile
     )
 
@@ -97,12 +93,12 @@ object SequenceTile
                   Message.Severity.Warning,
                   sticky = true
                 )
-                .runAsyncAndForget >> props.isEditing.set(IsEditing.False)
-            ).when_(props.isEditing.get) >>
+                .runAsyncAndForget >> props.editingSequenceTypes.set(EditingSequenceTypes.NotEditing)
+            ).when_(props.editingSequenceTypes.get.isEditing) >>
               // Keep editable sequence in sync with live sequence
               resetEditableSequenceFrom(newLiveSequence)).unless_(isEditInFlight.get)
         undoStacks               <- useStateView(UndoStacks.empty[IO, Option[EditableSequence]])
-        _                        <- useEffectWithDeps(props.isEditing.get.value): _ =>
+        _                        <- useEffectWithDeps(props.editingSequenceTypes.get.value): _ =>
                                       undoStacks.set(UndoStacks.empty[IO, Option[EditableSequence]])
       yield
         import ctx.given
@@ -115,6 +111,8 @@ object SequenceTile
 
         val undoCtx: UndoContext[Option[EditableSequence]] =
           UndoContext(undoStacks, editableSequence)
+
+        val isEditable: Boolean = sizeState.isMaximized && liveSequence.isReady
 
         def replaceLocalAcquisitionAtomMod[S, D](
           atom:                    Option[Atom[D]],
@@ -262,15 +260,16 @@ object SequenceTile
           config:           ExecutionConfig[S, D],
           editableOptional: Optional[EditableSequence, Option[Atom[D]]]
         ): Option[Atom[D]] = // For acquisition, we ignore possibleFuture
-          if props.isEditing.get then
-            editableSequence.get.flatMap(editableOptional.getOption).flatten
+          if props.editingSequenceTypes.get.isEditing(SequenceType.Acquisition)
+          then editableSequence.get.flatMap(editableOptional.getOption).flatten
           else config.acquisition.map(_.nextAtom)
 
         def resolveScience[S, D](
           config:           ExecutionConfig[S, D],
           editableOptional: Optional[EditableSequence, List[Atom[D]]]
         ): Option[List[Atom[D]]] =
-          if props.isEditing.get then editableSequence.get.flatMap(editableOptional.getOption)
+          if props.editingSequenceTypes.get.isEditing(SequenceType.Science)
+          then editableSequence.get.flatMap(editableOptional.getOption)
           else config.science.map(a => a.nextAtom +: a.possibleFuture)
 
         def modSequence[D](
@@ -297,52 +296,13 @@ object SequenceTile
 
                 <.span(ExploreStyles.SequenceTileTitle)(
                   <.span(ExploreStyles.SequenceTileTitleSide, ExploreStyles.SequenceTileTitleUndo)(
-                    UndoButtons(undoCtx, size = PlSize.Mini).when(props.isEditing.get).unless(isEditInFlight.get)
+                    // UndoButtons(undoCtx, size = PlSize.Mini).when(props.isEditing.get).unless(isEditInFlight.get)
                   ),
                   <.span(ExploreStyles.SequenceTileTitleSummary)(
                     HelpIcon("target/main/sequence-times.md".refined),
                     planned,
                     executed,
                     pending
-                  ),
-                  <.span(
-                    ExploreStyles.SequenceTileTitleSide,
-                    ExploreStyles.SequenceTileTitleEdit
-                  )(
-                    Button(
-                      onClick = props.isEditing.set(IsEditing.True),
-                      label = "Edit",
-                      icon = Icons.Pencil,
-                      tooltip = "Enter sequence editing mode",
-                      tooltipOptions = TooltipOptions.Top
-                    ).mini.compact
-                      .when(
-                        props.isEditable && !props.isEditing.get && sizeState.isMaximized && liveSequence.isReady
-                      ),
-                    React
-                      .Fragment(
-                        Button(
-                          onClick = props.isEditing.set(IsEditing.False) >>
-                            resetEditableSequenceFrom(liveSequence),
-                          label = "Cancel",
-                          icon = Icons.Close,
-                          tooltip = "Cancel sequence editing",
-                          tooltipOptions = TooltipOptions.Top,
-                          severity = Button.Severity.Danger,
-                          loading = isEditInFlight.get
-                        ).mini.compact,
-                        Button(
-                          onClick =
-                            (commitEdits >> props.isEditing.async.set(IsEditing.False)).runAsync,
-                          label = "Accept",
-                          icon = Icons.Checkmark,
-                          tooltip = "Accept sequence modifications",
-                          tooltipOptions = TooltipOptions.Top,
-                          severity = Button.Severity.Success,
-                          loading = isEditInFlight.get
-                        ).mini.compact
-                      )
-                      .when(props.isEditing.get)
                   )
                 )
               .getOrElse(executed)
@@ -377,10 +337,14 @@ object SequenceTile
                             resolveScience(config, EditableSequence.gmosNorthScience),
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing.get,
+                            props.editingSequenceTypes,
                             modSequence(EditableSequence.gmosNorthAcquisition),
                             modSequence(EditableSequence.gmosNorthScience),
-                            props.isUserStaffOrAdmin
+                            props.isUserStaffOrAdmin,
+                            isEditable,
+                            isEditInFlight.get,
+                            commitEdits,
+                            resetEditableSequenceFrom(liveSequence)
                           )
                         case ModeSignalToNoise.GmosNorthImaging(snPerFilter)          =>
                           GmosNorthImagingSequenceTable(
@@ -389,10 +353,14 @@ object SequenceTile
                             resolveAcquisition(config, EditableSequence.gmosNorthAcquisition),
                             resolveScience(config, EditableSequence.gmosNorthScience),
                             snPerFilter,
-                            props.isEditing.get,
+                            props.editingSequenceTypes,
                             modSequence(EditableSequence.gmosNorthAcquisition),
                             modSequence(EditableSequence.gmosNorthScience),
-                            props.isUserStaffOrAdmin
+                            props.isUserStaffOrAdmin,
+                            isEditable,
+                            isEditInFlight.get,
+                            commitEdits,
+                            resetEditableSequenceFrom(liveSequence)
                           )
                         case _                                                        => mismatchError
                     case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
@@ -405,10 +373,14 @@ object SequenceTile
                             resolveScience(config, EditableSequence.gmosSouthScience),
                             acquisitionSn,
                             scienceSn,
-                            props.isEditing.get,
+                            props.editingSequenceTypes,
                             modSequence(EditableSequence.gmosSouthAcquisition),
                             modSequence(EditableSequence.gmosSouthScience),
-                            props.isUserStaffOrAdmin
+                            props.isUserStaffOrAdmin,
+                            isEditable,
+                            isEditInFlight.get,
+                            commitEdits,
+                            resetEditableSequenceFrom(liveSequence)
                           )
                         case ModeSignalToNoise.GmosSouthImaging(snPerFilter)          =>
                           GmosSouthImagingSequenceTable(
@@ -417,10 +389,14 @@ object SequenceTile
                             resolveAcquisition(config, EditableSequence.gmosSouthAcquisition),
                             resolveScience(config, EditableSequence.gmosSouthScience),
                             snPerFilter,
-                            props.isEditing.get,
+                            props.editingSequenceTypes,
                             modSequence(EditableSequence.gmosSouthAcquisition),
                             modSequence(EditableSequence.gmosSouthScience),
-                            props.isUserStaffOrAdmin
+                            props.isUserStaffOrAdmin,
+                            isEditable,
+                            isEditInFlight.get,
+                            commitEdits,
+                            resetEditableSequenceFrom(liveSequence)
                           )
                         case _                                                        => mismatchError
                     case SequenceData(
@@ -434,10 +410,14 @@ object SequenceTile
                         resolveScience(config, EditableSequence.flamingos2Science),
                         acquisitionSn,
                         scienceSn,
-                        props.isEditing.get,
+                        props.editingSequenceTypes,
                         modSequence(EditableSequence.flamingos2Acquisition),
                         modSequence(EditableSequence.flamingos2Science),
-                        props.isUserStaffOrAdmin
+                        props.isUserStaffOrAdmin,
+                        isEditable,
+                        isEditInFlight.get,
+                        commitEdits,
+                        resetEditableSequenceFrom(liveSequence)
                       )
                     case SequenceData(
                           InstrumentExecutionConfig.Igrins2(config),
@@ -448,8 +428,12 @@ object SequenceTile
                         config.static,
                         config.science.map(a => a.nextAtom +: a.possibleFuture),
                         scienceSn,
-                        IsEditing.False,
-                        props.isUserStaffOrAdmin
+                        props.editingSequenceTypes,
+                        props.isUserStaffOrAdmin,
+                        isEditable,
+                        isEditInFlight.get,
+                        commitEdits,
+                        resetEditableSequenceFrom(liveSequence)
                       )
                     case _                                                                        => mismatchError
                   },
