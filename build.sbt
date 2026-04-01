@@ -22,8 +22,8 @@ ThisBuild / githubWorkflowPublishTargetBranches := Seq(
 ThisBuild / description        := "Lucuma Apps"
 Global / onChangedBuildSource  := ReloadOnSourceChanges
 ThisBuild / turbo              := true
-ThisBuild / scalaVersion       := "3.8.3-RC3"
-ThisBuild / crossScalaVersions := Seq("3.8.3-RC3")
+ThisBuild / scalaVersion       := "3.8.3"
+ThisBuild / crossScalaVersions := Seq("3.8.3")
 ThisBuild / scalacOptions ++= Seq("-language:implicitConversions", "-explain-cyclic")
 ThisBuild / scalacOptions ++= Seq(
   // ScalablyTyped macros introduce deprecated methods, this silences those warnings
