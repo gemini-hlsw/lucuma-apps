@@ -121,6 +121,8 @@ trait ObservationDB {
     type Flamingos2Reads                     = enums.Flamingos2Reads
     type Flamingos2Decker                    = enums.Flamingos2Decker
     type Flamingos2ReadoutMode               = enums.Flamingos2ReadoutMode
+    type GhostResolutionMode                 = enums.GhostResolutionMode
+    type GhostBinning                        = enums.GhostBinning
     type GmosAmpCount                        = enums.GmosAmpCount
     type GmosAmpGain                         = enums.GmosAmpGain
     type GmosAmpReadMode                     = enums.GmosAmpReadMode

@@ -78,6 +78,8 @@ trait syntax:
           InstrumentMode.GmosSouthImaging(etm, filter, none).some
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
           InstrumentMode.Igrins2Spectroscopy(etm).some
+        case ItcInstrumentConfig.GhostIfu(_, _, _)                                               =>
+          none
         case _                                                                                   => None
 
   // We may consider adjusting this to consider small variations of RV identical for the
