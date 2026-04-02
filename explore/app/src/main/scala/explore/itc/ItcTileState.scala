@@ -11,8 +11,8 @@ import cats.derived.*
 import cats.syntax.all.*
 import crystal.*
 import explore.model.itc.*
-import monocle.Focus
 import explore.modes.ItcInstrumentConfig
+import monocle.Focus
 
 case class TargetAndResults(
   target: ItcTarget,

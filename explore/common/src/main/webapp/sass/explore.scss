@@ -3736,6 +3736,10 @@ a.explore-upgrade-link {
 }
 
 .observations-summary-table {
+  .p-datatable-thead > tr > th {
+    vertical-align: top;
+  }
+
   td.p-datatable-emptymessage {
     background-color: var(--table-striped-background);
 

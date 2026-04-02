@@ -158,6 +158,7 @@ object ObsSummaryTile
                                  )
                              ,
                              enableSorting = true,
+                             enableColumnFilters = true,
                              enableMultiRowSelection = true,
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate,
@@ -209,6 +210,7 @@ object ObsSummaryTile
           hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
           tableMod =
             ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
+          columnFilterRenderer = FilterMethod.render,
           headerCellMod = _ => ExploreStyles.StickyHeader,
           rowMod = rowTagMod: row =>
             TagMod(
