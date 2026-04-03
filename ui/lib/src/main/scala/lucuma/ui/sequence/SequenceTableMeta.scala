@@ -3,19 +3,5 @@
 
 package lucuma.ui.sequence
 
-import cats.Endo
-import japgolly.scalajs.react.Callback
-import lucuma.core.enums.SequenceType
-import lucuma.core.model.sequence.Atom
-
 trait SequenceTableMeta[D]:
-  // TODO Move the mods into the editContext.onAccept
-  def editContext: SequenceEditContext
-  def modAcquisition: Endo[Option[Atom[D]]] => Callback
-  def modScience: Endo[List[Atom[D]]] => Callback
-
-  def seqTypeMod(seqType: SequenceType): Endo[List[Atom[D]]] => Callback =
-    seqType match
-      case SequenceType.Acquisition =>
-        modAtomList => modAcquisition(atom => modAtomList(atom.toList).headOption)
-      case SequenceType.Science     => modScience
+  def editContexts: SequenceEditContexts[D]

@@ -73,7 +73,7 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
-import lucuma.ui.sequence.EditingSequenceTypes
+import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
@@ -291,7 +291,8 @@ object ObsTabTiles:
         roleLayouts          <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
         _                    <- useEffectWithDeps(props.calibrationRole): role =>
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))
-        editingSequenceTypes <- useStateView(EditingSequenceTypes.NotEditing)
+        isEditingAcquisition <- useStateView(IsEditing.False)
+        isEditingScience     <- useStateView(IsEditing.False)
       yield
         import ctx.given
 
@@ -409,7 +410,8 @@ object ObsTabTiles:
               customSedTimestamps,
               props.calibrationRole,
               sequenceChanged,
-              editingSequenceTypes,
+              isEditingAcquisition,
+              isEditingScience,
               props.isStaffOrAdminUser
             )
 

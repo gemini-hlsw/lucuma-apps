@@ -3,7 +3,6 @@
 
 package explore.config.sequence
 
-import cats.Endo
 import cats.Eq
 import cats.effect.IO
 import cats.syntax.all.*
@@ -16,7 +15,6 @@ import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
-import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Dataset
 import lucuma.react.SizePx
 import lucuma.react.resizeDetector.hooks.*
@@ -42,7 +40,7 @@ private type SequenceColumnsType[D] =
   SequenceColumns[D, SequenceIndexedRow[D], SequenceRow[D], Nothing, Nothing, Nothing]
 private type ColumnType[D]          =
   ColumnDef[
-    Expandable[HeaderOrRow[SequenceEditContext, SequenceIndexedRow[D]]],
+    Expandable[HeaderOrRow[SequenceEditContexts[D], SequenceIndexedRow[D]]],
     ?,
     Nothing,
     Nothing,
@@ -53,15 +51,14 @@ private type ColumnType[D]          =
 
 private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
     extends SequenceRowBuilder[D]
+    with SequenceEditorBuilder[D]
     with SequenceEditOptics[D]:
   private type Props = SequenceTable[S, D]
 
   private case class TableMeta[D](
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
-    editContext:        SequenceEditContext,
-    modAcquisition:     Endo[Option[Atom[D]]] => Callback,
-    modScience:         Endo[List[Atom[D]]] => Callback,
+    editContexts:       SequenceEditContexts[D],
     isUserStaffOrAdmin: Boolean
   ) extends SequenceTableMeta[D]
 
@@ -119,29 +116,42 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   protected[sequence] val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx                <- useContext(AppContext.ctx)
-        visitsData         <- useMemo(props.instrumentVisits):
-                                visitsSequences(_, none)
-        resize             <- useResizeDetector
-        dynTable           <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
-        cols               <- useMemo(()): _ =>
-                                import ctx.given
-                                dynTable.setInitialColWidths(columns)
-        rows               <-
+        ctx                           <- useContext(AppContext.ctx)
+        visitsData                    <- useMemo(props.instrumentVisits):
+                                           visitsSequences(_, none)
+        resize                        <- useResizeDetector
+        given Logger[IO]               = ctx.logger
+        given ToastCtx[IO]             = ctx.toastCtx
+        editContexts                  <- useEditContexts(
+                                           props.isEditEnabled,
+                                           props.isEditingAcquisition,
+                                           props.isEditingScience,
+                                           props.acquisition,
+                                           props.science,
+                                           props.remoteReplace
+                                         )
+        dynTable                      <- useDynTable(DynTableDef, SizePx(resize.width.orEmpty))
+        cols                          <- useMemo(()): _ =>
+                                           import ctx.given
+                                           dynTable.setInitialColWidths(columns)
+        resolvedAcquisition            = editContexts.acquisition.resolvedSequence
+        resolvedScience                = editContexts.science.resolvedSequence
+        (acquisitionRows, scienceRows) = props.buildRows(resolvedAcquisition, resolvedScience)
+        rows                          <-
           useMemo(
-            (visitsData, props.acquisitionRows, props.scienceRows, props.currentVisitId)
+            (visitsData, acquisitionRows, scienceRows, props.currentVisitId)
           ): (visitsData, acquisition, science, currentVisitId) =>
             import ctx.given
 
             val (visitRows, nextScienceIndex): (List[VisitData], StepIndex) = visitsData.value
 
             stitchSequence(visitRows, currentVisitId, nextScienceIndex, acquisition, science)
-        datasetIdsInFlight <- useStateView(HashSet.empty[Dataset.Id])
-        tableState         <-
+        datasetIdsInFlight            <- useStateView(HashSet.empty[Dataset.Id])
+        tableState                    <-
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
               PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
-        table              <-
+        table                         <-
           useReactTable:
             TableOptions(
               cols,
@@ -160,41 +170,41 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
               meta = TableMeta(
                 props.visits,
                 datasetIdsInFlight,
-                props.editContext,
-                props.modAcquisition,
-                props.modScience,
+                editContexts,
+                // props.modAcquisition,
+                // props.modScience,
                 props.isUserStaffOrAdmin
               )
             )
-        _                  <-
-          useEffectWithDeps(props.editContext.isEditing): isEditing =>
+        _                             <-
+          useEffectWithDeps(editContexts.isEditing): isEditing =>
             dynTable.modCollapsedCols(_ => !isEditing)
-        tableDnd           <- useVirtualizedTableDragAndDrop(
-                                table,
-                                DragHandleColumnId,
-                                getData = _.original.value.toOption
-                                  .flatMap:
-                                    _.step match
-                                      case SequenceRow.futureStep(fs) => (fs.stepId, fs.seqType).some
-                                      case _                          => none,
-                                containerRef = resize.ref,
-                                onDrop = (sourceData, target) =>
-                                  (table.options.meta,
-                                   sourceData.map(_._1),
-                                   sourceData.map(_._2),
-                                   target.flatMap(_.data.map(_._1)),
-                                   target.map(_.edge)
-                                  )
-                                    .mapN: (meta, sourceStepId, seqType, targetStepId, edge) =>
-                                      meta.seqTypeMod(seqType):
-                                        moveStep(sourceStepId, targetStepId, edge)
-                                    .orEmpty,
-                                canDrop = (targetData, sourceArgs) =>
-                                  targetData.exists: // Only allow dragging into same sequence type
-                                    case (targetStepId, targetSeqType) =>
-                                      sourceArgs.source.data.value.exists: (sourceStepId, sourceSeqType) =>
-                                        sourceSeqType === targetSeqType && sourceStepId != targetStepId
-                              )
+        tableDnd                      <- useVirtualizedTableDragAndDrop(
+                                           table,
+                                           DragHandleColumnId,
+                                           getData = _.original.value.toOption
+                                             .flatMap:
+                                               _.step match
+                                                 case SequenceRow.futureStep(fs) => (fs.stepId, fs.seqType).some
+                                                 case _                          => none,
+                                           containerRef = resize.ref,
+                                           onDrop = (sourceData, target) =>
+                                             (table.options.meta,
+                                              sourceData.map(_._1),
+                                              sourceData.map(_._2),
+                                              target.flatMap(_.data.map(_._1)),
+                                              target.map(_.edge)
+                                             )
+                                               .mapN: (meta, sourceStepId, seqType, targetStepId, edge) =>
+                                                 meta.editContexts.seqTypeMod(seqType):
+                                                   moveStep(sourceStepId, targetStepId, edge)
+                                               .orEmpty,
+                                           canDrop = (targetData, sourceArgs) =>
+                                             targetData.exists: // Only allow dragging into same sequence type
+                                               case (targetStepId, targetSeqType) =>
+                                                 sourceArgs.source.data.value.exists: (sourceStepId, sourceSeqType) =>
+                                                   sourceSeqType === targetSeqType && sourceStepId != targetStepId
+                                         )
       yield
         val extraRowMod: TagMod =
           TagMod(
@@ -227,11 +237,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 case id if id == HeaderColumnId       => SequenceStyles.HiddenColTableHeader
                 case id if id == ExtraRowColumnId     => SequenceStyles.HiddenColTableHeader
                 case id if id == DragHandleColumnId   =>
-                  SequenceStyles.HiddenColTableHeader.unless:
-                    props.editContext.isEditing
+                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing)
                 case id if id == EditControlsColumnId =>
-                  SequenceStyles.HiddenColTableHeader.unless:
-                    props.editContext.isEditing
+                  SequenceStyles.HiddenColTableHeader.unless(props.isEditing)
                 case _                                => TagMod.empty,
               rowMod = tableDnd.rowMod: (row, _) =>
                 row.original.value.fold(

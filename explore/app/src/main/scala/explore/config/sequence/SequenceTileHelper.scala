@@ -6,41 +6,23 @@ package explore.config.sequence
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.StreamingClient
-import crystal.Pot
 import crystal.react.*
-import crystal.react.given
 import crystal.react.hooks.*
 import explore.*
 import explore.model.AppContext
 import explore.model.Observation
-import explore.model.reusability.given
 import explore.model.syntax.all.needsITC
 import japgolly.scalajs.react.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.Instrument
 import lucuma.core.model.Target
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.reusability.given
-import lucuma.ui.sequence.SequenceData
+import lucuma.ui.sequence.LiveSequence
 
 import scala.concurrent.duration.*
 
 object SequenceTileHelper:
-
-  protected[sequence] case class LiveSequence(
-    visits:   Pot[View[Option[ExecutionVisits]]],
-    sequence: Pot[View[Option[SequenceData]]]
-  ):
-    val isReady: Boolean                       = visits.isReady && sequence.isReady
-    val sequenceInstrument: Option[Instrument] =
-      sequence.toOption.flatMap(_.get).map(_.config.instrument)
-
-  protected object LiveSequence:
-    given Reusability[LiveSequence] =
-      Reusability.by(x => (x.visits.map(_.get), x.sequence.map(_.get)))
-
   protected[sequence] def useLiveSequence(
     obsId:               Observation.Id,
     targetIds:           List[Target.Id],

@@ -43,7 +43,7 @@ import scala.collection.immutable.HashSet
 // Methods for building visits rows on the sequence table
 trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   protected type SequenceTableRowType =
-    Expandable[HeaderOrRow[SequenceEditContext, SequenceIndexedRow[D]]]
+    Expandable[HeaderOrRow[SequenceEditContexts[D], SequenceIndexedRow[D]]]
 
   protected def getRowId(row: SequenceTableRowType): RowId =
     row.value match
@@ -87,8 +87,9 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
 
   protected def renderCurrentHeader(
     sequenceType: SequenceType
-  )(using Logger[IO]): SequenceEditContext => VdomNode =
-    ctx =>
+  )(using Logger[IO]): SequenceEditContexts[D] => VdomNode =
+    ctxs =>
+      val ctx = ctxs.forSequenceType(sequenceType)
       <.span(
         SequenceStyles.CurrentHeader,
         sequenceType.toString,
@@ -97,20 +98,19 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
           // ExploreStyles.SequenceTileTitleEdit
         )(
           Button(
-            onClickE = _.stopPropagationCB >> ctx.editingSequenceTypes.mod(_.add(sequenceType)),
+            onClickE = _.stopPropagationCB >> ctx.isEditing.set(IsEditing.True),
             label = "Edit",
             // icon = Icons.Pencil,
             tooltip = "Enter sequence editing mode",
             tooltipOptions = TooltipOptions.Top
           ).mini.compact
             .when:
-              ctx.isEditable && !ctx.editingSequenceTypes.get.isEditing(sequenceType)
+              ctxs.isEditEnabled && !ctx.isEditing.get
           ,
           React
             .Fragment(
               Button(
-                onClickE = _.stopPropagationCB >>
-                  ctx.editingSequenceTypes.mod(_.remove(sequenceType)) >> ctx.onCancel,
+                onClickE = _.stopPropagationCB >> ctx.onCancel,
                 label = "Cancel",
                 // icon = Icons.Close,
                 tooltip = "Cancel sequence editing",
@@ -119,10 +119,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
                 loading = ctx.isEditInFlight
               ).mini.compact,
               Button( // commit
-                onClickE = _.stopPropagationCB >>
-                  (ctx.onAccept >> ctx.editingSequenceTypes.async.mod(
-                    _.remove(sequenceType)
-                  )).runAsync,
+                onClickE = _.stopPropagationCB >> ctx.onAccept.runAsync,
                 label = "Accept",
                 // icon = Icons.Checkmark,
                 tooltip = "Accept sequence modifications",
@@ -131,7 +128,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
                 loading = ctx.isEditInFlight
               ).mini.compact
             )
-            .when(ctx.editingSequenceTypes.get.isEditing(sequenceType))
+            .when(ctx.isEditing.get)
         )
       )
 
@@ -319,7 +316,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
       Option
         .when(currentVisitRows.nonEmpty || steps.nonEmpty):
           Expandable(
-            HeaderRow[SequenceEditContext](
+            HeaderRow(
               RowId(sequenceType.toString),
               renderCurrentHeader(sequenceType)
             ).toHeaderOrRow,

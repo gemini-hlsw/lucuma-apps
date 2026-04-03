@@ -10,7 +10,6 @@ import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.ObserveClass
-import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
@@ -18,6 +17,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
 import lucuma.react.SizePx
 import lucuma.react.common.*
@@ -41,22 +41,14 @@ object StepIndex extends NewType[PosInt]:
   val One: StepIndex = StepIndex(PosInt.unsafeFrom(1))
 type StepIndex = StepIndex.Type
 
-object EditingSequenceTypes extends NewType[Set[SequenceType]]:
-  val NotEditing: EditingSequenceTypes = EditingSequenceTypes(Set.empty)
+object IsEditEnabled extends NewBoolean
+type IsEditEnabled = IsEditEnabled.Type
 
-  extension (v: EditingSequenceTypes)
-    def isEditing: Boolean =
-      v.value.nonEmpty
+object IsEditing extends NewBoolean
+type IsEditing = IsEditing.Type
 
-    def isEditing(seqType: SequenceType): Boolean =
-      v.value.contains(seqType)
-
-    def add(seqType: SequenceType): EditingSequenceTypes =
-      EditingSequenceTypes(v.value + seqType)
-
-    def remove(seqType: SequenceType): EditingSequenceTypes =
-      EditingSequenceTypes(v.value - seqType)
-type EditingSequenceTypes = EditingSequenceTypes.Type
+object IsEditInFlight extends NewBoolean
+type IsEditInFlight = IsEditInFlight.Type
 
 private def renderStepType(icon: VdomNode, tooltip: String): VdomNode =
   <.span(icon).withTooltip(content = tooltip, showDelay = 100, position = Tooltip.Position.Bottom)

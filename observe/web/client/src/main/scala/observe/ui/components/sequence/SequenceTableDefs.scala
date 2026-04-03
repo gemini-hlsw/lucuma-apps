@@ -3,7 +3,6 @@
 
 package observe.ui.components.sequence
 
-import cats.Endo
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.FetchClient
@@ -61,9 +60,9 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    editContext:        SequenceEditContext = ???,
-    modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
-    modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
+    editContexts:       SequenceEditContexts[D] = ???
+    // modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
+    // modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
   ) extends SequenceTableMeta[D]
 
   protected val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
