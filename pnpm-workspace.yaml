@@ -1,8 +1,9 @@
 packages:
   - schemas
   - explore
-  - ui/demo
   - observe/web/client
+  - ui/demo
+  - ui/tests
 
 # https://pnpm.io/settings#minimumreleaseage
 # 2 days, in minutes
