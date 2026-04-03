@@ -28,8 +28,6 @@ import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.tabs.DeckShown
-import lucuma.ui.undo.UndoSetter
-import lucuma.ui.undo.Undoer
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
@@ -50,6 +48,8 @@ import lucuma.react.primereact.Tree.Node
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.{*, given}
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import lucuma.ui.utils.*
 import monocle.Iso
 import org.scalajs.dom

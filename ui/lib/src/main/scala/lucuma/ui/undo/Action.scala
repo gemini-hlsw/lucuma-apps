@@ -3,9 +3,9 @@
 
 package lucuma.ui.undo
 
-import lucuma.ui.optics.GetAdjust
 import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import japgolly.scalajs.react.util.DefaultEffects.Sync as DefaultS
+import lucuma.ui.optics.GetAdjust
 import monocle.Lens
 
 /*

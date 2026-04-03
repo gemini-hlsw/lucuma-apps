@@ -33,7 +33,6 @@ import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.targets.TargetColumns
-import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -48,6 +47,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoSetter
 import monocle.Iso
 import org.typelevel.log4cats.Logger
 

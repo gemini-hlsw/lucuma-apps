@@ -14,7 +14,6 @@ import explore.model.AppContext
 import explore.model.Help
 import explore.model.ObsIdSet
 import explore.model.formats.formatPercentile
-import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ConstraintSet
@@ -39,6 +38,7 @@ import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.*
 import lucuma.ui.utils.given
 import monocle.Lens
 

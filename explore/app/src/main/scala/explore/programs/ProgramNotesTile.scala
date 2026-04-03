@@ -22,7 +22,6 @@ import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.services.OdbProgramApi
 import explore.syntax.ui.*
-import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -31,6 +30,7 @@ import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.toast.*
+import lucuma.ui.undo.*
 
 final case class ProgramNotesTile(
   programId:         Program.Id,

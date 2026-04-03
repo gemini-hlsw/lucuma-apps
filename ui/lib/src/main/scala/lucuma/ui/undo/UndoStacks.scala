@@ -4,9 +4,9 @@
 package lucuma.ui.undo
 
 import cats.Eq
-import monocle.Focus
-import lucuma.ui.undo.UndoStack
 import lucuma.ui.undo.Restorer
+import lucuma.ui.undo.UndoStack
+import monocle.Focus
 
 case class UndoStacks[F[_], M](
   undo:    UndoStack[F, M],

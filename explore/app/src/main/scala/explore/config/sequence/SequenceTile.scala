@@ -21,8 +21,6 @@ import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
-import lucuma.ui.undo.UndoContext
-import lucuma.ui.undo.UndoStacks
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.TagOf
@@ -47,6 +45,8 @@ import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoStacks
 import monocle.Iso
 import monocle.Optional
 import org.scalajs.dom.HTMLElement

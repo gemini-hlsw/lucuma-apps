@@ -30,7 +30,6 @@ import explore.model.ProposalType
 import explore.model.ProposalType.FastTurnaround
 import explore.model.enums.GridLayoutSection
 import explore.model.layout.LayoutsMap
-import lucuma.ui.undo.*
 import explore.users.AddProgramUserButton
 import explore.users.ProgramUsersTable
 import japgolly.scalajs.react.*
@@ -52,6 +51,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.react.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.*
 import monocle.Iso
 
 case class ProposalEditor(

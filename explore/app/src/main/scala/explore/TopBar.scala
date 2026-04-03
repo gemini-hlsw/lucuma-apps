@@ -18,7 +18,6 @@ import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
 import explore.programs.ProgramsPopup
-import lucuma.ui.undo.UndoStacks
 import explore.users.RedeemInvitationsPopup
 import explore.users.UserPreferencesPopup
 import japgolly.scalajs.react.*
@@ -45,6 +44,7 @@ import lucuma.ui.layout.LayoutStyles
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoStacks
 import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
 import org.typelevel.log4cats.extras.LogLevel.logLevelOrder

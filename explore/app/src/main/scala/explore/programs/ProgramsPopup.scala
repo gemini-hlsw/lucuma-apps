@@ -20,7 +20,6 @@ import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
 import explore.services.OdbProgramApi
 import explore.syntax.ui.*
-import lucuma.ui.undo.UndoStacks
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -38,6 +37,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoStacks
 import lucuma.ui.utils.*
 import org.typelevel.log4cats.Logger
 

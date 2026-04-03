@@ -42,7 +42,6 @@ import explore.plots.PlotData
 import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
-import lucuma.ui.undo.UndoSetter
 import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -79,6 +78,7 @@ import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoSetter
 import queries.schemas.itc.syntax.itcTarget
 
 import java.time.Instant

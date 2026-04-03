@@ -6,7 +6,6 @@ package explore.components.undo
 import explore.Icons
 import explore.components.ToolbarTooltipOptions
 import explore.components.ui.ExploreStyles
-import lucuma.ui.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
@@ -14,6 +13,7 @@ import lucuma.react.common.style.Css
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.Undoer
 
 case class UndoButtons(
   undoer:   Undoer,

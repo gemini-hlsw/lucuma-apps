@@ -19,7 +19,6 @@ import explore.model.TargetEditObsInfo
 import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
 import explore.targeteditor.TargetEditor
-import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
@@ -27,6 +26,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.undo.UndoSetter
 
 final case class SingleTargetEditorTile(
   programId:          Program.Id,

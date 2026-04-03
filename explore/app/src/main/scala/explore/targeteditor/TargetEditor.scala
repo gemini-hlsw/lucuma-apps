@@ -34,7 +34,6 @@ import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targeteditor.RVInput
 import explore.targets.TargetSource
-import lucuma.ui.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -65,6 +64,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoSetter
 import monocle.Prism
 import org.typelevel.log4cats.Logger
 

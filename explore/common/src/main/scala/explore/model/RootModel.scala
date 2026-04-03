@@ -13,13 +13,13 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.modes.ScienceModes
 import explore.syntax.ui.*
-import lucuma.ui.undo.UndoStacks
 import lucuma.core.model.GuestUser
 import lucuma.core.model.ServiceUser
 import lucuma.core.model.StandardUser
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.ui.sso.UserVault
+import lucuma.ui.undo.UndoStacks
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional

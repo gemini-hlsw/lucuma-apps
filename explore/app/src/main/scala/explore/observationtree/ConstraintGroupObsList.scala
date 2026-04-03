@@ -22,7 +22,6 @@ import explore.model.display.given
 import explore.model.enums.AppTab
 import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
-import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ScienceBand
@@ -37,6 +36,7 @@ import lucuma.react.primereact.Message
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.*
 import monocle.Iso
 import mouse.boolean.*
 import org.typelevel.log4cats.Logger

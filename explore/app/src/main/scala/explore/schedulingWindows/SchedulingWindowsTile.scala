@@ -27,7 +27,6 @@ import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.render.given
 import explore.services.OdbObservationApi
-import lucuma.ui.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch
@@ -52,6 +51,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
+import lucuma.ui.undo.UndoSetter
 import lucuma.ui.utils.Render
 import monocle.Iso
 import monocle.Lens

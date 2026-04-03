@@ -15,14 +15,14 @@ import explore.model.Observation
 import explore.model.ObservationList
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
-import lucuma.ui.undo.Action
-import lucuma.ui.undo.AsyncAction
-import lucuma.ui.optics.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.ui.optics.*
+import lucuma.ui.undo.Action
+import lucuma.ui.undo.AsyncAction
 import monocle.Lens
 
 object ObsActions:

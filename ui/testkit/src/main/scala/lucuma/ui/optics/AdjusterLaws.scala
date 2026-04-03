@@ -3,8 +3,8 @@
 
 package lucuma.ui.optics
 
-import monocle.internal.IsEq
 import lucuma.ui.optics.Adjuster
+import monocle.internal.IsEq
 
 case class AdjusterLaws[S, A](setter: Adjuster[S, A]) {
   import IsEq.syntax

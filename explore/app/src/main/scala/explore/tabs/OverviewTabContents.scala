@@ -31,7 +31,6 @@ import explore.model.TargetAttachmentAssignmentMap
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.GroupWarning
 import explore.model.layout.LayoutsMap
-import lucuma.ui.undo.*
 import explore.validations.GroupWarningsTile
 import explore.validations.ObservationValidationsTableBody
 import explore.validations.ObservationValidationsTableTileState
@@ -52,6 +51,7 @@ import lucuma.ui.primereact.FormInputTextAreaView
 import lucuma.ui.primereact.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.*
 
 case class OverviewTabContents(
   programId:                   Program.Id,

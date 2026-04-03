@@ -4,11 +4,11 @@
 package lucuma.ui.optics
 
 import cats.Eq
+import lucuma.ui.optics.Adjuster
 import monocle.law.discipline.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.*
 import org.typelevel.discipline.Laws
-import lucuma.ui.optics.Adjuster
 
 object AdjusterTests extends Laws {
   def apply[S: {Arbitrary, Eq}, A: Arbitrary](

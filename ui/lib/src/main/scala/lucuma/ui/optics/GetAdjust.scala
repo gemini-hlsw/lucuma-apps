@@ -4,9 +4,9 @@
 package lucuma.ui.optics
 
 import lucuma.ui.optics.*
+import lucuma.ui.optics.Adjuster
 import monocle.Getter
 import monocle.Lens
-import lucuma.ui.optics.Adjuster
 
 // Wrap a Getter and an Adjuster
 case class GetAdjust[T, A](getter: Getter[T, A], adjuster: Adjuster[T, A]) {

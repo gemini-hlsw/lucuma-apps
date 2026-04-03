@@ -20,7 +20,6 @@ import explore.model.RegionOrCoordinatesAt
 import explore.model.RegionOrTracking
 import explore.model.display.given
 import explore.model.syntax.all.*
-import lucuma.ui.optics.GetAdjust
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.callback.Callback
 import japgolly.scalajs.react.util.Effect
@@ -49,6 +48,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.model.CoordinatesAt
+import lucuma.ui.optics.GetAdjust
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.pot.*

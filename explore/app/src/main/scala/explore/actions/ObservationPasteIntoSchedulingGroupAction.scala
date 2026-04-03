@@ -11,8 +11,8 @@ import explore.model.Observation
 import explore.model.ProgramSummaries
 import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
-import lucuma.ui.undo.*
 import lucuma.core.model.TimingWindow
+import lucuma.ui.undo.*
 
 import scala.collection.immutable.SortedSet
 

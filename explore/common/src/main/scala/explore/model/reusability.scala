@@ -19,7 +19,6 @@ import explore.model.itc.ItcTargetProblem
 import explore.modes.ConfigSelection
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
-import lucuma.ui.undo.UndoStacks
 import explore.utils.OdbRestClient
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability
@@ -53,6 +52,7 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.SequenceRow
+import lucuma.ui.undo.UndoStacks
 
 /**
  * Reusability instances for model classes

@@ -39,7 +39,6 @@ import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
-import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
@@ -64,6 +63,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.*
 import org.typelevel.log4cats.Logger
 import spire.std.any.*
 
