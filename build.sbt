@@ -1115,7 +1115,7 @@ lazy val rootOnlySetupNodePnpmInstall =
 lazy val exploreSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter explore --prefer-offline"),
+      List("pnpm install --frozen-lockfile --filter explore --filter {ui/tests} --prefer-offline"),
       name = Some("pnpm install")
     )
   )

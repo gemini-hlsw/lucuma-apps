@@ -81,7 +81,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter explore --prefer-offline
+        run: pnpm install --frozen-lockfile --filter explore --filter {ui/tests} --prefer-offline
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -226,7 +226,7 @@ jobs:
           cache: pnpm
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --filter explore --prefer-offline
+        run: pnpm install --frozen-lockfile --filter explore --filter {ui/tests} --prefer-offline
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
