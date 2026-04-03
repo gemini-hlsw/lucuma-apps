@@ -15,7 +15,7 @@ import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.formats.*
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ConstraintSet

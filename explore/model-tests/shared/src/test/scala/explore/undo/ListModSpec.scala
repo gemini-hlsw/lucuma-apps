@@ -5,7 +5,7 @@ package explore.undo
 
 import eu.timepit.refined.scalacheck.numeric.*
 import explore.data.KeyedIndexedList
-import explore.optics.AdjusterTests
+import lucuma.ui.optics.AdjusterTests
 import monocle.Focus
 import monocle.Iso
 import monocle.Lens

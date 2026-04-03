@@ -18,7 +18,7 @@ import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
 import explore.programs.ProgramsPopup
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoStacks
 import explore.users.RedeemInvitationsPopup
 import explore.users.UserPreferencesPopup
 import japgolly.scalajs.react.*

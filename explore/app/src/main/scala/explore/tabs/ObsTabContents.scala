@@ -25,9 +25,9 @@ import explore.plots.PlotData
 import explore.shortcuts.*
 import explore.shortcuts.given
 import explore.syntax.ui.*
-import explore.undo.UndoContext
-import explore.undo.UndoSetter
-import explore.undo.Undoer
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*

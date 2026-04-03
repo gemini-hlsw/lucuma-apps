@@ -10,7 +10,7 @@ import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.syntax.all.*
 import explore.services.OdbAsterismApi
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import lucuma.core.model.Target
 import lucuma.schemas.model.TargetWithId

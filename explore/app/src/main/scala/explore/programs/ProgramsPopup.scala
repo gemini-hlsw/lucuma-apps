@@ -20,7 +20,7 @@ import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
 import explore.services.OdbProgramApi
 import explore.syntax.ui.*
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoStacks
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program

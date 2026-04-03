@@ -5,7 +5,7 @@ package explore.common
 
 import cats.MonadError
 import crystal.react.*
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.Reusability
 import japgolly.scalajs.react.util.Effect
 import monocle.Lens

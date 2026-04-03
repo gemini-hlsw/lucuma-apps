@@ -42,7 +42,7 @@ import explore.plots.PlotData
 import explore.schedulingWindows.*
 import explore.syntax.ui.*
 import explore.targeteditor.ObservationTargetsEditorTile
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import explore.utils.tracking.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia

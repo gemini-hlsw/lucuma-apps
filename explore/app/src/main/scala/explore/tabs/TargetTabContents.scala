@@ -30,7 +30,7 @@ import explore.shortcuts.given
 import explore.targeteditor.ObservationTargetsEditorTile
 import explore.targets.TargetPasteAction
 import explore.targets.TargetSummaryTile
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*

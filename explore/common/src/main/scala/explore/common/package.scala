@@ -5,7 +5,7 @@ package explore
 
 import crystal.react.ReuseView
 import crystal.react.reuse.Reuse
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import monocle.Lens
 import monocle.Optional

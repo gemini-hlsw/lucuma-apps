@@ -39,7 +39,7 @@ import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*

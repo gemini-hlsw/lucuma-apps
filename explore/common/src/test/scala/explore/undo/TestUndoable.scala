@@ -11,6 +11,7 @@ import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import japgolly.scalajs.react.util.DefaultEffects.Sync as DefaultS
 import org.typelevel.log4cats.Logger
+import lucuma.ui.undo.UndoContext
 
 class TestUndoable[M](
   val valueRef:   VarRef[DefaultS, M],

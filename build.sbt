@@ -416,7 +416,7 @@ lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
 
 lazy val explore_workers = project
   .in(file("explore/workers"))
-  .dependsOn(explore_model.js)
+  .dependsOn(explore_model.js, explore_common)
   .enablePlugins(ScalaJSPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)

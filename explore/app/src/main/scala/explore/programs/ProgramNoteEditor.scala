@@ -11,7 +11,7 @@ import explore.components.MarkdownEditor
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ProgramNote
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.validation.InputValidSplitEpi

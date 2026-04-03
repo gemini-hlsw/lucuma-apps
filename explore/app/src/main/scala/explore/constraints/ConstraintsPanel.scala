@@ -14,7 +14,7 @@ import explore.model.AppContext
 import explore.model.Help
 import explore.model.ObsIdSet
 import explore.model.formats.formatPercentile
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ConstraintSet

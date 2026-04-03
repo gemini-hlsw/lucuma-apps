@@ -17,7 +17,7 @@ import explore.model.ObservationList
 import explore.model.enums.AppTab
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean

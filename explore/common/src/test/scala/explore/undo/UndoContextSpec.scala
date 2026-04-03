@@ -12,8 +12,8 @@ import eu.timepit.refined.types.numeric.NonNegInt
 import explore.data.KeyedIndexedList
 import explore.data.tree.*
 import explore.data.tree.KeyedIndexedTree.Index
-import explore.optics.Adjuster
-import explore.optics.GetAdjust
+import lucuma.ui.optics.Adjuster
+import lucuma.ui.optics.GetAdjust
 import log4cats.loglevel.LogLevelLogger
 import lucuma.refined.*
 import monocle.Focus

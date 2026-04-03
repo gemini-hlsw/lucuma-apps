@@ -17,7 +17,7 @@ import explore.model.conversions.*
 import explore.model.display.given
 import explore.model.enums.SourceProfileType
 import explore.model.formats.*
-import explore.optics.all.*
+import explore.optics.ModelOptics.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Band

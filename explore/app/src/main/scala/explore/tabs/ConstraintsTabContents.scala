@@ -27,7 +27,7 @@ import explore.model.reusability.given
 import explore.observationtree.ConstraintGroupObsList
 import explore.shortcuts.*
 import explore.shortcuts.given
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*

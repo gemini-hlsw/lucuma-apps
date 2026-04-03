@@ -11,7 +11,7 @@ import explore.model.ObsIdSet
 import explore.model.Observation
 import explore.model.ObservationList
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.TagMod
 import japgolly.scalajs.react.vdom.html_<^.*

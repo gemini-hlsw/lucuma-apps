@@ -19,7 +19,7 @@ import explore.model.itc.ItcTargetProblem
 import explore.modes.ConfigSelection
 import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoStacks
 import explore.utils.OdbRestClient
 import japgolly.scalajs.react.ReactCats.*
 import japgolly.scalajs.react.Reusability

@@ -38,7 +38,7 @@ import explore.modes.ItcInstrumentConfig
 import explore.modes.ScienceModes
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle

@@ -9,11 +9,11 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import explore.model.Constants
 import explore.model.TargetList
+import explore.optics.ModelOptics.*
 import explore.model.itc.ItcQueryProblem
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
-import explore.optics.all.*
 import lucuma.core.enums.GmosRoi
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength

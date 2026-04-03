@@ -6,7 +6,7 @@ package explore.components.undo
 import explore.Icons
 import explore.components.ToolbarTooltipOptions
 import explore.components.ui.ExploreStyles
-import explore.undo.Undoer
+import lucuma.ui.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps

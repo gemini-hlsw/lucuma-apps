@@ -15,7 +15,7 @@ import explore.model.GroupEditTileIds
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.GroupWarning
 import explore.model.layout.LayoutsMap
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.*

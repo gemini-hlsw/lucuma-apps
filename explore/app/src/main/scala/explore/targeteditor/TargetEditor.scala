@@ -34,7 +34,7 @@ import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targeteditor.RVInput
 import explore.targets.TargetSource
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*

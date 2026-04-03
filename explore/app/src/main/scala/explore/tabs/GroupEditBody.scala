@@ -20,7 +20,7 @@ import explore.model.ProgramTimeRange
 import explore.model.enums.GroupWarning
 import explore.services.OdbApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.optics.syntax.lens.*

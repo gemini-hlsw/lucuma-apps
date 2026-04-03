@@ -21,8 +21,8 @@ import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
-import explore.undo.UndoContext
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoStacks
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.TagOf

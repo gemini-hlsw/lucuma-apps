@@ -22,7 +22,7 @@ import explore.observationtree.SchedulingGroupObsList
 import explore.schedulingWindows.ObsIdSetSchedulingWindowsTile
 import explore.shortcuts.*
 import explore.shortcuts.given
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*

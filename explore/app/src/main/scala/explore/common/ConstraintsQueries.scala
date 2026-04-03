@@ -11,7 +11,7 @@ import eu.timepit.refined.types.numeric.PosBigDecimal
 import explore.model.ObsIdSet
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import lucuma.core.enums.*
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ConstraintSet

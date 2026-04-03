@@ -13,7 +13,7 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.modes.ScienceModes
 import explore.syntax.ui.*
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoStacks
 import lucuma.core.model.GuestUser
 import lucuma.core.model.ServiceUser
 import lucuma.core.model.StandardUser

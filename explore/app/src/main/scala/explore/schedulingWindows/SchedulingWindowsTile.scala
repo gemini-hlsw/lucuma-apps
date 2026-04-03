@@ -27,7 +27,7 @@ import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.render.given
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect.Dispatch

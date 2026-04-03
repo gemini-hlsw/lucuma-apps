@@ -20,7 +20,7 @@ import explore.model.RegionOrCoordinatesAt
 import explore.model.RegionOrTracking
 import explore.model.display.given
 import explore.model.syntax.all.*
-import explore.optics.GetAdjust
+import lucuma.ui.optics.GetAdjust
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.callback.Callback
 import japgolly.scalajs.react.util.Effect

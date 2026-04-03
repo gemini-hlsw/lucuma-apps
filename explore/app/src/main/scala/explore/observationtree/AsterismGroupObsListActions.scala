@@ -10,7 +10,7 @@ import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.TargetList
 import explore.services.OdbAsterismApi
-import explore.undo.*
+import lucuma.ui.undo.*
 import japgolly.scalajs.react.callback.Callback
 import lucuma.core.model.Target
 import monocle.Iso

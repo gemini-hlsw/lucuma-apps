@@ -24,8 +24,8 @@ import explore.model.enums.AppTab
 import explore.model.syntax.all.*
 import explore.render.given
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
-import explore.undo.Undoer
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ScienceBand

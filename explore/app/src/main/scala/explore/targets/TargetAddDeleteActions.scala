@@ -7,7 +7,7 @@ import cats.effect.IO
 import cats.syntax.all.*
 import explore.model.ProgramSummaries
 import explore.services.OdbTargetApi
-import explore.undo.*
+import lucuma.ui.undo.*
 import lucuma.core.enums.TargetDisposition
 import lucuma.core.model.Program
 import lucuma.core.model.Target

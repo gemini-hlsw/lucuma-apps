@@ -5,8 +5,8 @@ package explore
 
 import cats.derived.*
 import cats.kernel.Eq
-import explore.optics.*
-import explore.optics.all.*
+import lucuma.ui.optics.*
+import lucuma.ui.optics.*
 import monocle.Focus
 import monocle.Lens
 import munit.DisciplineSuite

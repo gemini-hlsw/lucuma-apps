@@ -27,8 +27,8 @@ import explore.programs.ProgramDetailsTile
 import explore.programs.ProgramNotesTile
 import explore.programs.ProgramUnrequestedConfigsTile
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
-import explore.undo.Undoer
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import explore.users.AddProgramUserButton
 import explore.users.ProgramUsersTable
 import japgolly.scalajs.react.*

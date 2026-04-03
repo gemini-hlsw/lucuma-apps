@@ -28,8 +28,8 @@ import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import explore.tabs.DeckShown
-import explore.undo.UndoSetter
-import explore.undo.Undoer
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef

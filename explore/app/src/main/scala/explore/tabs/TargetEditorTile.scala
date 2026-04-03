@@ -19,7 +19,7 @@ import explore.model.TargetEditObsInfo
 import explore.model.TargetTabTileIds
 import explore.model.UserPreferences
 import explore.targeteditor.TargetEditor
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType

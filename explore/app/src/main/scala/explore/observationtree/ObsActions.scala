@@ -13,11 +13,11 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
-import explore.optics.all.*
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
-import explore.undo.Action
-import explore.undo.AsyncAction
+import lucuma.ui.undo.Action
+import lucuma.ui.undo.AsyncAction
+import lucuma.ui.optics.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program

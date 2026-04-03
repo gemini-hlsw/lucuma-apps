@@ -14,8 +14,8 @@ import explore.modes.ScienceModes
 import explore.proposal.ProposalTabContents
 import explore.syntax.ui.*
 import explore.tabs.*
-import explore.undo.UndoContext
-import explore.undo.Undoer
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.Undoer
 import japgolly.scalajs.react.React
 import japgolly.scalajs.react.ReactMonocle.*
 import japgolly.scalajs.react.extra.router.*

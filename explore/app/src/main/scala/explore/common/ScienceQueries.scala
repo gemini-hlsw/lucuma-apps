@@ -13,7 +13,7 @@ import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta

@@ -25,7 +25,7 @@ import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.targets.MotionCorrectedTarget
 import explore.targets.TargetColumns
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
