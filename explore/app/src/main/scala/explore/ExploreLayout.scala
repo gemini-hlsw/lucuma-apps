@@ -408,7 +408,7 @@ object ExploreLayout:
                                   undoStacks = view.zoom(RootModel.undoStacks),
                                   globalPreferences = globalPrefs,
                                   message = msg
-                                ): VdomElement
+                                )
                           else
                             React.Fragment(
                               SideTabs(

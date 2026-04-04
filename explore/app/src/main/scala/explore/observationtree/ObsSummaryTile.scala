@@ -192,7 +192,8 @@ object ObsSummaryTile
                 severity =
                   if props.showFilters.get.value then Button.Severity.Primary
                   else Button.Severity.Secondary,
-                onClick = props.showFilters.mod(_.flip),
+                onClick = props.showFilters.mod(_.flip) >>
+                  table.resetColumnFilters().when_(props.showFilters.get.value),
                 tooltip = "Toggle column filters"
               ).compact,
               Button(

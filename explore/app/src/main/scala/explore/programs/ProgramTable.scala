@@ -221,6 +221,8 @@ object ProgramTable:
                    )
                  )
                )
+      _     <- useEffectWithDeps(props.showFilters): showFilters =>
+                  table.resetColumnFilters().unless_(showFilters)
     } yield PrimeAutoHeightVirtualizedTable(
       table,
       estimateSize = _ => 32.toPx,

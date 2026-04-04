@@ -558,6 +558,9 @@ object UserPreferencesQueries:
                       excludeFromVisibility
                     )
                   .setSorting(prefs.lucumaTableColumnPreferences.applySorting(tableState.sorting))
+                  .setColumnFilters:
+                    prefs.lucumaTableColumnPreferences
+                      .applyFilters(tableState.columnFilters)
         .map(_.orEmpty)
 
     def save(state: TableState[TF]): F[Unit] =
@@ -576,7 +579,12 @@ object UserPreferencesQueries:
                 visible =
                   state.columnVisibility.value.getOrElse(col.id, Visibility.Visible).value.assign,
                 sorting = sorting.get(col.id).map(_._1).orUnassign,
-                sortingOrder = sorting.get(col.id).map(_._2).orUnassign
+                sortingOrder = sorting.get(col.id).map(_._2).orUnassign,
+                filter = state.columnFilters.value
+                  .get(col.id)
+                  .collect:
+                    case s: String => s
+                  .orUnassign
               )
             )
           )
@@ -603,3 +611,10 @@ object UserPreferencesQueries:
       sortedCols match
         case Nil      => original
         case nonEmpty => Sorting(nonEmpty.map((colId, dir, _) => colId -> dir)*)
+
+    def applyFilters(original: ColumnFilters): ColumnFilters =
+      original.modify(
+        _ ++
+          tableColsPrefs
+            .flatMap(col => col.filter.map(f => (ColumnId(col.columnId), f)))
+      )

@@ -456,6 +456,7 @@ object UserPreferencesQueriesGQL {
           columnId
           sorting
           sortingOrder
+          filter
         }
       }"""
   }
@@ -468,7 +469,7 @@ object UserPreferencesQueriesGQL {
           objects: $objects,
           onConflict: {
             constraint: lucumaTableColumnPreferences_pkey,
-            update_columns: [visible, sorting, sortingOrder]
+            update_columns: [visible, sorting, sortingOrder, filter]
           }) {
           affected_rows
         }
