@@ -180,10 +180,20 @@ object ObsSummaryTile
                            .foldMap(_.toggleVisibility(showScienceBand))
         resizer     <- useResizeDetector
         adding      <- useStateView(AddingObservation(false)) // adding new observation
+        showFilters <- useStateView(ShowFilters(false))
       } yield {
         val title = React.Fragment(
           toggleAllRowsSelected.get.map: toggleAllRowsSelected =>
             <.span(^.textAlign.center)(
+              Button(
+                size = Button.Size.Small,
+                icon = Icons.Filter,
+                severity =
+                  if (showFilters.get.value) Button.Severity.Primary
+                  else Button.Severity.Secondary,
+                onClick = showFilters.mod(s => ShowFilters(!s.value)),
+                tooltip = "Toggle column filters"
+              ).compact,
               Button(
                 size = Button.Size.Small,
                 icon = Icons.CheckDouble,
@@ -210,7 +220,8 @@ object ObsSummaryTile
           hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
           tableMod =
             ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
-          columnFilterRenderer = FilterMethod.render,
+          columnFilterRenderer =
+            if (showFilters.get.value) FilterMethod.render else _ => EmptyVdom,
           headerCellMod = _ => ExploreStyles.StickyHeader,
           rowMod = rowTagMod: row =>
             TagMod(
