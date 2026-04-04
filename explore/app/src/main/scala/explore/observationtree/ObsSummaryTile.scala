@@ -23,6 +23,7 @@ import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.TargetList
 import explore.model.enums.TableId
+import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.undo.UndoSetter
@@ -55,7 +56,8 @@ final case class ObsSummaryTile(
   allTargets:      TargetList,
   showScienceBand: Boolean,
   readonly:        Boolean,
-  backButton:      VdomNode
+  backButton:      VdomNode,
+  showFilters:     View[Visible]
 ) extends Tile[ObsSummaryTile](
       ObsSummaryTabTileIds.SummaryId.id,
       "Observations Summary",
@@ -180,7 +182,6 @@ object ObsSummaryTile
                            .foldMap(_.toggleVisibility(showScienceBand))
         resizer     <- useResizeDetector
         adding      <- useStateView(AddingObservation(false)) // adding new observation
-        showFilters <- useStateView(ShowFilters(false))
       } yield {
         val title = React.Fragment(
           toggleAllRowsSelected.get.map: toggleAllRowsSelected =>
@@ -189,9 +190,9 @@ object ObsSummaryTile
                 size = Button.Size.Small,
                 icon = Icons.Filter,
                 severity =
-                  if (showFilters.get.value) Button.Severity.Primary
+                  if props.showFilters.get.value then Button.Severity.Primary
                   else Button.Severity.Secondary,
-                onClick = showFilters.mod(s => ShowFilters(!s.value)),
+                onClick = props.showFilters.mod(_.flip),
                 tooltip = "Toggle column filters"
               ).compact,
               Button(
@@ -221,7 +222,7 @@ object ObsSummaryTile
           tableMod =
             ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
           columnFilterRenderer =
-            if (showFilters.get.value) FilterMethod.render else _ => EmptyVdom,
+            if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
           headerCellMod = _ => ExploreStyles.StickyHeader,
           rowMod = rowTagMod: row =>
             TagMod(

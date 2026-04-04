@@ -81,9 +81,6 @@ def obsEditAttachments(
 object AddingObservation extends NewBoolean
 type AddingObservation = AddingObservation.Type
 
-object ShowFilters extends NewBoolean
-type ShowFilters = ShowFilters.Type
-
 def insertObs(
   programId:    Program.Id,
   parentId:     Option[Group.Id],

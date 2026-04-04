@@ -216,6 +216,8 @@ object UserPreferencesQueriesGQL {
           elevationPlotSkyBrightnessVisible
           elevationPlotLunarElevationVisible
           wavelengthUnits
+          observationTableFilters
+          programsTableFilters
           logLevel
           lastOpenPrograms
         }
@@ -247,6 +249,8 @@ object UserPreferencesQueriesGQL {
           elevationPlotSkyBrightnessVisible
           elevationPlotLunarElevationVisible
           wavelengthUnits
+          observationTableFilters
+          programsTableFilters
           logLevel
           lastOpenPrograms
         }

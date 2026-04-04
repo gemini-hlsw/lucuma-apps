@@ -42,6 +42,8 @@ case class GlobalPreferences(
   elevationPlotSkyBrightnessVisible:    Visible,
   elevationPlotLunarElevationVisible:   Visible,
   wavelengthUnits:                      WavelengthUnits,
+  observationTableFilters:              Visible,
+  programsTableFilters:                 Visible,
   logLevel:                             LogLevel,
   lastOpenPrograms:                     List[Program.Id] = List.empty,
   agsVisibility:                        Option[AGSVisibility] = None
@@ -74,6 +76,8 @@ object GlobalPreferences:
   val elevationPlotLunarElevationVisible   =
     Focus[GlobalPreferences](_.elevationPlotLunarElevationVisible)
   val wavelengthUnits                      = Focus[GlobalPreferences](_.wavelengthUnits)
+  val observationTableFilters              = Focus[GlobalPreferences](_.observationTableFilters)
+  val programsTableFilters                 = Focus[GlobalPreferences](_.programsTableFilters)
   val logLevel                             = Focus[GlobalPreferences](_.logLevel)
   val lastOpenPrograms                     = Focus[GlobalPreferences](_.lastOpenPrograms)
   val agsVisibility                        =
@@ -112,5 +116,7 @@ object GlobalPreferences:
       Visible.Shown,
       Visible.Hidden,
       WavelengthUnits.Nanometers,
+      Visible.Hidden,
+      Visible.Hidden,
       LogLevel.Info
     )

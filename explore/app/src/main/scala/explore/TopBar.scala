@@ -290,6 +290,7 @@ object TopBar:
               props.vault.get.isStaff,
               props.programInfos,
               props.undoStacks,
+              props.globalPreferences,
               isProgramsOpen.setState(IsProgramOpen(false)).some
             )
           else EmptyVdom,

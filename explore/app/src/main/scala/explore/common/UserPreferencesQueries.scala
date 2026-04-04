@@ -109,6 +109,28 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+    def storeTableFilterPreferences[F[_]: ApplicativeThrow](
+      userId:                  User.Id,
+      observationTableFilters: Option[Visible] = None,
+      programsTableFilters:    Option[Visible] = None
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserPreferencesAladinUpdate[F]
+        .execute(
+          objects = LucumaUserPreferencesInsertInput(
+            userId = userId.show.assign,
+            observationTableFilters = observationTableFilters.map(_.value).orIgnore,
+            programsTableFilters = programsTableFilters.map(_.value).orIgnore
+          ),
+          update_columns = List(
+            LucumaUserPreferencesUpdateColumn.ObservationTableFilters.some
+              .filter(_ => observationTableFilters.isDefined),
+            LucumaUserPreferencesUpdateColumn.ProgramsTableFilters.some
+              .filter(_ => programsTableFilters.isDefined)
+          ).flattenOption.widen[LucumaUserPreferencesUpdateColumn]
+        )
+        .attempt
+        .void
+
   end GlobalUserPreferences
 
   object GridLayouts:
