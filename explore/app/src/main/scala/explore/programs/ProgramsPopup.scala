@@ -61,6 +61,8 @@ object ProgramsPopup:
 
   private object ShowDeleted extends NewBoolean
 
+  private object ShowFilters extends NewBoolean
+
   private def selectProgram(
     onClose:    Option[Callback],
     undoStacks: View[UndoStacks[IO, ProgramSummaries]],
@@ -94,6 +96,7 @@ object ProgramsPopup:
       isOpen         <- useStateView(IsOpen(true))
       isAdding       <- useStateView(IsAdding(false))    // Adding new program
       showDeleted    <- useStateView(ShowDeleted(false)) // Show deleted
+      showFilters    <- useStateView(ShowFilters(false)) // Show column filters
       newProgramId   <- useStateView(none[Program.Id])   // Recently added program
       virtualizerRef <- useRef(none[HTMLTableVirtualizer])
     } yield
@@ -144,7 +147,18 @@ object ProgramsPopup:
         dismissableMask = props.onClose.isDefined,
         resizable = true,
         clazz = LucumaPrimeStyles.Dialog.Large |+| ExploreStyles.ProgramsPopup,
-        header = "Programs",
+        header = <.span(^.display.flex, ^.alignItems.center)(
+          "Programs",
+          <.span(^.marginLeft := "0.5em")(Button(
+            size = Button.Size.Small,
+            icon = Icons.Filter,
+            severity =
+              if (showFilters.get.value) Button.Severity.Primary
+              else Button.Severity.Secondary,
+            onClick = showFilters.mod(s => ShowFilters(!s.value)),
+            tooltip = "Toggle column filters"
+          ).compact)
+        ),
         footer = programInfosViewOpt.map: pis =>
           React.Fragment(
             props.message.map(msg =>
@@ -187,6 +201,7 @@ object ProgramsPopup:
               props.onClose.isEmpty,
               onHide.some,
               newProgramId.get,
-              virtualizerRef
+              virtualizerRef,
+              showFilters = showFilters.get.value
             )
       )

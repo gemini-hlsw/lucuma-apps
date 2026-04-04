@@ -2182,6 +2182,12 @@ svg.fa-check.explore-success-icon {
 
   height: 90vh;
   top: $top-bottom-space;
+
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    &.pl-dialog-large {
+      width: 80%;
+    }
+  }
 }
 
 .api-keys-popup.p-dialog,
@@ -2474,6 +2480,10 @@ img.partner-split-flag {
   overflow-x: auto;
   min-width: 100%;
   position: relative;
+
+  .p-datatable-thead > tr > th {
+    vertical-align: top;
+  }
 
   table {
     min-height: 60px;
@@ -3736,10 +3746,6 @@ a.explore-upgrade-link {
 }
 
 .observations-summary-table {
-  .p-datatable-thead > tr > th {
-    vertical-align: top;
-  }
-
   td.p-datatable-emptymessage {
     background-color: var(--table-striped-background);
 
