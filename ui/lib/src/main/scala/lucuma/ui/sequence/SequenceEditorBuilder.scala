@@ -19,9 +19,8 @@ import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoContext
 import lucuma.ui.undo.UndoStacks
 import org.typelevel.log4cats.Logger
-// import lucuma.core.enums.Instrument
 
-trait SequenceEditorBuilder[D: Eq]: // (instrument: Instrument):
+trait SequenceEditorBuilder[D: Eq]:
 
   private def useSeqTypeEditContext(
     isEditing:     View[IsEditing],

@@ -6,6 +6,7 @@ package lucuma.ui.sequence
 import lucuma.core.model.sequence.Atom
 import monocle.Iso
 
+// We can't use NewType because of the type parameter.
 opaque type EditableSequence[D] = List[Atom[D]]
 object EditableSequence:
   def apply[D](value: List[Atom[D]]): EditableSequence[D]           = value

@@ -30,7 +30,7 @@ object UndoButtons:
         Button(
           severity = Button.Severity.Secondary,
           outlined = true,
-          onClick = props.undoer.undo,
+          onClickE = _.stopPropagationCB >> props.undoer.undo,
           disabled = props.undoer.isUndoEmpty || props.disabled || props.undoer.working,
           loading = props.undoer.working,
           clazz = props.size.cls,
@@ -41,7 +41,7 @@ object UndoButtons:
         Button(
           severity = Button.Severity.Secondary,
           outlined = true,
-          onClick = props.undoer.redo,
+          onClickE = _.stopPropagationCB >> props.undoer.redo,
           disabled = props.undoer.isRedoEmpty || props.disabled || props.undoer.working,
           loading = props.undoer.working,
           clazz = props.size.cls,

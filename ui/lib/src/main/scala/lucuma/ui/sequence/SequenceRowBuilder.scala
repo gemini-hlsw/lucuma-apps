@@ -36,6 +36,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.sequence.*
 import lucuma.ui.syntax.render.*
 import lucuma.ui.table.*
+import lucuma.ui.undo.UndoButtons
 import org.typelevel.log4cats.Logger
 
 import scala.collection.immutable.HashSet
@@ -89,10 +90,15 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
     sequenceType: SequenceType
   )(using Logger[IO]): SequenceEditContexts[D] => VdomNode =
     ctxs =>
-      val ctx = ctxs.forSequenceType(sequenceType)
+      val ctx: SequenceEditContext[D] = ctxs.forSequenceType(sequenceType)
       <.span(
         SequenceStyles.CurrentHeader,
         sequenceType.toString,
+        <.span( // (ExploreStyles.SequenceTileTitleSide, ExploreStyles.SequenceTileTitleUndo)(
+          UndoButtons(ctx.undoCtx, size = PlSize.Mini)
+            .when(ctx.isEditing.get)
+            .unless(ctx.isEditInFlight)
+        ),
         <.span(
           // ExploreStyles.SequenceTileTitleSide,
           // ExploreStyles.SequenceTileTitleEdit

@@ -102,9 +102,6 @@ object SequenceTile
                   timeDisplay("Planned", total, timeClass = staleCss, timeTooltip = staleTooltip)
 
                 <.span(ExploreStyles.SequenceTileTitle)(
-                  <.span(ExploreStyles.SequenceTileTitleSide, ExploreStyles.SequenceTileTitleUndo)(
-                    // UndoButtons(undoCtx, size = PlSize.Mini).when(props.isEditing.get).unless(isEditInFlight.get)
-                  ),
                   <.span(ExploreStyles.SequenceTileTitleSummary)(
                     HelpIcon("target/main/sequence-times.md".refined),
                     planned,
