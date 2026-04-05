@@ -37,7 +37,6 @@ import lucuma.ui.sequence.*
 import lucuma.ui.sequence.IsEditing
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
-import monocle.Iso
 import org.scalajs.dom.HTMLElement
 
 import scala.collection.immutable.SortedSet
@@ -117,11 +116,21 @@ object SequenceTile
           severity = Message.Severity.Error
         )
 
-        // TODO Test the Iso?
-        def flatExecutionSequence[D]: Iso[Option[ExecutionSequence[D]], List[Atom[D]]] =
-          Iso[Option[ExecutionSequence[D]], List[Atom[D]]](
-            _.foldMap(s => s.nextAtom +: s.possibleFuture)
-          )(l => if (l.isEmpty) none else ExecutionSequence(l.head, l.tail, false).some)
+        extension [D](execution: View[Option[ExecutionSequence[D]]])
+          def flatExecutionSequence: View[List[Atom[D]]] =
+            execution.zoom(_.foldMap(s => s.nextAtom +: s.possibleFuture))(modList =>
+              optExSeq =>
+                val list: List[Atom[D]]    = optExSeq.foldMap(s => s.nextAtom +: s.possibleFuture)
+                val newList: List[Atom[D]] = modList(list)
+                if (newList.isEmpty) none
+                else ExecutionSequence(newList.head, newList.tail, optExSeq.exists(_.hasMore)).some
+            )
+
+        extension [S, D](execution: View[ExecutionConfig[S, D]])
+          def flatAcquisition: View[List[Atom[D]]] =
+            execution.zoom(ExecutionConfig.acquisition).flatExecutionSequence
+          def flatScience: View[List[Atom[D]]]     =
+            execution.zoom(ExecutionConfig.science).flatExecutionSequence
 
         val body =
           props.sequenceChanged.get
@@ -150,12 +159,8 @@ object SequenceTile
                                 GmosNorthSpectroscopySequenceTable(
                                   visitsViewOpt,
                                   config.static,
-                                  gmosNorthExecutionView.zoom:
-                                    ExecutionConfig.acquisition.andThen(flatExecutionSequence)
-                                  ,
-                                  gmosNorthExecutionView.zoom:
-                                    ExecutionConfig.science.andThen(flatExecutionSequence)
-                                  ,
+                                  gmosNorthExecutionView.flatAcquisition,
+                                  gmosNorthExecutionView.flatScience,
                                   acquisitionSn,
                                   scienceSn,
                                   isEditEnabled,
@@ -171,12 +176,8 @@ object SequenceTile
                                 GmosNorthImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
-                                  gmosNorthExecutionView.zoom:
-                                    ExecutionConfig.acquisition.andThen(flatExecutionSequence)
-                                  ,
-                                  gmosNorthExecutionView.zoom:
-                                    ExecutionConfig.science.andThen(flatExecutionSequence)
-                                  ,
+                                  gmosNorthExecutionView.flatAcquisition,
+                                  gmosNorthExecutionView.flatScience,
                                   snPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
@@ -205,12 +206,8 @@ object SequenceTile
                                 GmosSouthSpectroscopySequenceTable(
                                   visitsViewOpt,
                                   config.static,
-                                  gmosSouthExecutionView.zoom:
-                                    ExecutionConfig.acquisition.andThen(flatExecutionSequence)
-                                  ,
-                                  gmosSouthExecutionView.zoom:
-                                    ExecutionConfig.science.andThen(flatExecutionSequence)
-                                  ,
+                                  gmosSouthExecutionView.flatAcquisition,
+                                  gmosSouthExecutionView.flatScience,
                                   acquisitionSn,
                                   scienceSn,
                                   isEditEnabled,
@@ -226,12 +223,8 @@ object SequenceTile
                                 GmosSouthImagingSequenceTable(
                                   visitsViewOpt,
                                   config.static,
-                                  gmosSouthExecutionView.zoom:
-                                    ExecutionConfig.acquisition.andThen(flatExecutionSequence)
-                                  ,
-                                  gmosSouthExecutionView.zoom:
-                                    ExecutionConfig.science.andThen(flatExecutionSequence)
-                                  ,
+                                  gmosSouthExecutionView.flatAcquisition,
+                                  gmosSouthExecutionView.flatScience,
                                   snPerFilter,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
@@ -258,12 +251,8 @@ object SequenceTile
                             Flamingos2SequenceTable(
                               visitsViewOpt,
                               config.static,
-                              flamingos2ExecutionView.zoom:
-                                ExecutionConfig.acquisition.andThen(flatExecutionSequence)
-                              ,
-                              flamingos2ExecutionView.zoom:
-                                ExecutionConfig.science.andThen(flatExecutionSequence)
-                              ,
+                              flamingos2ExecutionView.flatAcquisition,
+                              flamingos2ExecutionView.flatScience,
                               acquisitionSn,
                               scienceSn,
                               isEditEnabled,
@@ -290,9 +279,7 @@ object SequenceTile
                             Igrins2SequenceTable(
                               visitsViewOpt,
                               config.static,
-                              igrins2ExecutionView.zoom:
-                                ExecutionConfig.science.andThen(flatExecutionSequence)
-                              ,
+                              igrins2ExecutionView.flatScience,
                               scienceSn,
                               props.isEditingAcquisition,
                               props.isEditingScience,
