@@ -13,7 +13,6 @@ import explore.*
 import explore.components.*
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.config.sequence.byInstrument.*
 import explore.model.AppContext
 import explore.model.Execution
@@ -45,6 +44,7 @@ import lucuma.ui.sequence.IsEditing
 import lucuma.ui.sequence.SequenceData
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoButtons
 import lucuma.ui.undo.UndoContext
 import lucuma.ui.undo.UndoStacks
 import monocle.Iso

@@ -2,6 +2,8 @@
 $tablet-responsive-cutoff: 992px;
 $mobile-responsive-cutoff: 670px;
 
+$container-xtra-small-cutoff: 376px;
+
 @mixin text-ellipsis {
   overflow: hidden;
   text-overflow: ellipsis;

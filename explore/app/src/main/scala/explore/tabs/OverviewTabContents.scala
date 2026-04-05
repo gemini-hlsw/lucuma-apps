@@ -17,7 +17,6 @@ import explore.components.Tile
 import explore.components.TileContents
 import explore.components.TileController
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.ExploreGridLayouts
@@ -52,6 +51,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoButtons
 
 case class OverviewTabContents(
   programId:                   Program.Id,

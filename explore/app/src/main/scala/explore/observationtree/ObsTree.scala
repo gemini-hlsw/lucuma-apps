@@ -13,9 +13,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.ObsGroupHelper
 import explore.components.ActionButtons
-import explore.components.ToolbarTooltipOptions
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.Focused
 import explore.model.Group
@@ -48,6 +46,7 @@ import lucuma.react.primereact.Tree.Node
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.{*, given}
+import lucuma.ui.undo.UndoButtons
 import lucuma.ui.undo.UndoSetter
 import lucuma.ui.undo.Undoer
 import lucuma.ui.utils.*
@@ -439,7 +438,7 @@ object ObsTree:
                         disabled = adding.get.value || isSystemGroupFocused,
                         loading = adding.get.value,
                         tooltip = "Add a new Observation",
-                        tooltipOptions = ToolbarTooltipOptions.Default,
+                        tooltipOptions = DefaultTooltipOptions,
                         onClick = insertObs(
                           props.programId,
                           props.resolvedActiveGroupId, // Set the active group as the new obs parent if it is selected
@@ -455,7 +454,7 @@ object ObsTree:
                         disabled = adding.get.value || isSystemGroupFocused,
                         loading = adding.get.value,
                         tooltip = "Add a new Group",
-                        tooltipOptions = ToolbarTooltipOptions.Default,
+                        tooltipOptions = DefaultTooltipOptions,
                         onClick = insertGroup(
                           props.programId,
                           props.resolvedActiveGroupId, // Set the active group as the new group parent if it is selected
@@ -493,7 +492,7 @@ object ObsTree:
                   outlined = true,
                   disabled = false,
                   tooltip = "Hide Observation Tree",
-                  tooltipOptions = ToolbarTooltipOptions.Default,
+                  tooltipOptions = DefaultTooltipOptions,
                   icon = Icons.ArrowLeftFromLine,
                   clazz = ExploreStyles.ObsTreeHideShow,
                   onClick = props.deckShown.mod(_.flip)

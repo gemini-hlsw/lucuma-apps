@@ -10,7 +10,6 @@ import explore.Icons
 import explore.common.ConstraintsQueries
 import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.ConstraintGroupList
 import explore.model.Focused
@@ -37,6 +36,7 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoButtons
 import monocle.Iso
 import mouse.boolean.*
 import org.typelevel.log4cats.Logger

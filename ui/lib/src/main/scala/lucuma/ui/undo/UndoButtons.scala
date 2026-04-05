@@ -1,11 +1,9 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.components.undo
+package lucuma.ui.undo
 
-import explore.Icons
-import explore.components.ToolbarTooltipOptions
-import explore.components.ui.ExploreStyles
+import cats.syntax.semigroup.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnProps
@@ -24,9 +22,11 @@ case class UndoButtons(
 object UndoButtons:
   private type Props = UndoButtons
 
+  private val ButtonsUndoCss: Css = Css("lucuma-ui-buttons-undo") |+| Css("p-button-group")
+
   private val component =
     ScalaFnComponent[Props](props =>
-      <.span(ExploreStyles.ButtonsUndo, Css("p-button-group"))(
+      <.span(ButtonsUndoCss)(
         Button(
           severity = Button.Severity.Secondary,
           outlined = true,
@@ -34,9 +34,9 @@ object UndoButtons:
           disabled = props.undoer.isUndoEmpty || props.disabled || props.undoer.working,
           loading = props.undoer.working,
           clazz = props.size.cls,
-          icon = Icons.Undo,
+          icon = UndoIcons.Undo,
           tooltip = "Undo",
-          tooltipOptions = ToolbarTooltipOptions.Default
+          tooltipOptions = DefaultTooltipOptions
         ).compact,
         Button(
           severity = Button.Severity.Secondary,
@@ -45,9 +45,9 @@ object UndoButtons:
           disabled = props.undoer.isRedoEmpty || props.disabled || props.undoer.working,
           loading = props.undoer.working,
           clazz = props.size.cls,
-          icon = Icons.Redo,
+          icon = UndoIcons.Redo,
           tooltip = "Redo",
-          tooltipOptions = ToolbarTooltipOptions.Default
+          tooltipOptions = DefaultTooltipOptions
         ).compact
       )
     )

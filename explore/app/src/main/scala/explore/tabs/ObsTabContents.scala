@@ -231,7 +231,7 @@ object ObsTabContents extends TwoPanels:
                 outlined = true,
                 disabled = false,
                 tooltip = "Show Observation Tree",
-                tooltipOptions = ToolbarTooltipOptions.Default,
+                tooltipOptions = DefaultTooltipOptions,
                 icon = Icons.ArrowRightFromLine,
                 clazz = ExploreStyles.ObsTreeHideShow,
                 onClick = deckShown.mod(_.flip)

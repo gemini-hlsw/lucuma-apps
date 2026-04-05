@@ -1,0 +1,17 @@
+@use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
+
+@container tile (min-width: #{lucumaUICommon.$container-xtra-small-cutoff}) {
+  // For very small tiles make the undo buttons remove the text
+  .lucuma-ui-buttons-undo .p-button-label {
+    display: none;
+  }
+}
+
+// -------
+// Undo
+// -------
+.lucuma-ui-buttons-undo {
+  .p-component.p-button {
+    color: var(--site-text-color);
+  }
+}

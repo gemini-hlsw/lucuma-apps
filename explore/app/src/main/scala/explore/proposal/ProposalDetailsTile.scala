@@ -21,7 +21,6 @@ import explore.common.ProposalOdbExtensions.*
 import explore.components.FormStaticData
 import explore.components.HelpIcon
 import explore.components.ui.*
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.CallForProposal
 import explore.model.ExploreModelValidators
@@ -64,6 +63,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoButtons
 import org.typelevel.log4cats.Logger
 import spire.std.any.*
 

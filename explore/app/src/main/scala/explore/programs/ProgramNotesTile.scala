@@ -13,7 +13,6 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.IsActive
 import explore.model.ProgramNote
@@ -31,6 +30,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.toast.*
 import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoButtons
 
 final case class ProgramNotesTile(
   programId:         Program.Id,
