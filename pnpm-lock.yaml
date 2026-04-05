@@ -330,15 +330,6 @@ importers:
         specifier: 18.3.1
         version: 18.3.1(react@18.3.1)
 
-  ui/tests:
-    dependencies:
-      react:
-        specifier: 18.3.1
-        version: 18.3.1
-      react-dom:
-        specifier: 18.3.1
-        version: 18.3.1(react@18.3.1)
-
 packages:
 
   '@apideck/better-ajv-errors@0.3.6':
@@ -5579,7 +5570,7 @@ snapshots:
     dependencies:
       '@types/estree': 1.0.8
       estree-walker: 2.0.2
-      picomatch: 4.0.4
+      picomatch: 4.0.3
     optionalDependencies:
       rollup: 2.79.2
 
