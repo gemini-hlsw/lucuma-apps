@@ -432,9 +432,6 @@ object ExploreStyles:
   val SequenceRowFirstInAtom   = Css("explore-sequence-row-first-in-atom")
   val SequenceTileController   = Css("explore-sequence-tile-controller")
   val SequenceTileTitle        = Css("explore-sequence-tile-title")
-  // val SequenceTileTitleSide    = Css("explore-sequence-tile-title-side")
-  // val SequenceTileTitleUndo    = Css("explore-sequence-tile-title-undo")
-  // val SequenceTileTitleEdit    = Css("explore-sequence-tile-title-edit")
   val SequenceTileTitleSummary = Css("explore-sequence-tile-title-summary")
   val SequenceTileTitleItem    = Css("explore-sequence-tile-title-item")
 

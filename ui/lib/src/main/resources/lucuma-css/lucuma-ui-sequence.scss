@@ -91,6 +91,14 @@
     .lucuma-sequence-current-header {
       display: flex;
       justify-content: space-between;
+
+      button {
+        margin-top: 2px;
+
+        .p-button-loading-icon {
+          height: 1em;
+        }
+      }
     }
   }
 }
@@ -215,5 +223,15 @@ table tr {
         align-items: center;
       }
     }
+  }
+}
+
+.lucuma-sequence-editor-buttons {
+  display: flex;
+  gap: 1rem;
+
+  button {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
   }
 }

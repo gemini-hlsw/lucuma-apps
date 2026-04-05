@@ -55,14 +55,15 @@ trait SequenceEditorBuilder[D: Eq]:
       isEditing,
       isEditInFlight.get,
       UndoContext(undoStacks, editableSequence),
-      onAccept = ((remoteReplace(editableSequence.get.value) >>= sequence.async.set).onError: e =>
-        ToastCtx[IO]
-          .showToast(
-            s"Failed to update sequence: ${e.getMessage}",
-            Message.Severity.Error,
-            sticky = true
-          )
-          .switching(isEditInFlight.as(IsEditInFlight.Value).async)) >>
+      onAccept = (remoteReplace(editableSequence.get.value) >>= sequence.async.set)
+        .onError: e =>
+          ToastCtx[IO]
+            .showToast(
+              s"Failed to update sequence: ${e.getMessage}",
+              Message.Severity.Error,
+              sticky = true
+            )
+        .switching(isEditInFlight.as(IsEditInFlight.Value).async) >>
         isEditing.async.set(IsEditing.False),
       onCancel = isEditing.set(IsEditing.False) >> resetEditableSequenceFrom(sequence.get),
       sequence.get

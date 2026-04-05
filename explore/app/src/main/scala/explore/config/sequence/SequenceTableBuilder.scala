@@ -171,8 +171,6 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                 props.visits,
                 datasetIdsInFlight,
                 editContexts,
-                // props.modAcquisition,
-                // props.modScience,
                 props.isUserStaffOrAdmin
               )
             )
@@ -270,9 +268,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   case Right(stepRow) =>
                     cell.column.id match
                       case id if id == DragHandleColumnId   =>
-                        TagMod(^.paddingRight := "0")
+                        TagMod(^.paddingLeft := "0", ^.paddingRight := "0")
                       case id if id == EditControlsColumnId =>
-                        TagMod(^.paddingLeft := "0")
+                        TagMod(^.paddingLeft := "0", ^.paddingRight := "0")
                       case id if id == ExtraRowColumnId     =>
                         stepRow.step match // Extra row is shown in a selected row or in an executed step row.
                           case SequenceRow.Executed.ExecutedStep(_, _, _) => extraRowMod

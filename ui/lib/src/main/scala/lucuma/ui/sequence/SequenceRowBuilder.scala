@@ -91,22 +91,19 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
   )(using Logger[IO]): SequenceEditContexts[D] => VdomNode =
     ctxs =>
       val ctx: SequenceEditContext[D] = ctxs.forSequenceType(sequenceType)
+
       <.span(
         SequenceStyles.CurrentHeader,
         sequenceType.toString,
-        <.span( // (ExploreStyles.SequenceTileTitleSide, ExploreStyles.SequenceTileTitleUndo)(
-          UndoButtons(ctx.undoCtx, size = PlSize.Mini)
-            .when(ctx.isEditing.get)
-            .unless(ctx.isEditInFlight)
-        ),
         <.span(
-          // ExploreStyles.SequenceTileTitleSide,
-          // ExploreStyles.SequenceTileTitleEdit
-        )(
+          UndoButtons(ctx.undoCtx, size = PlSize.Mini, loading = ctx.isEditInFlight)
+            .when(ctx.isEditing.get)
+        ),
+        <.span(SequenceStyles.EditorButtons)(
           Button(
             onClickE = _.stopPropagationCB >> ctx.isEditing.set(IsEditing.True),
             label = "Edit",
-            // icon = Icons.Pencil,
+            icon = SequenceIcons.Pencil,
             tooltip = "Enter sequence editing mode",
             tooltipOptions = TooltipOptions.Top
           ).mini.compact
@@ -118,7 +115,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
               Button(
                 onClickE = _.stopPropagationCB >> ctx.onCancel,
                 label = "Cancel",
-                // icon = Icons.Close,
+                icon = SequenceIcons.XMark,
                 tooltip = "Cancel sequence editing",
                 tooltipOptions = TooltipOptions.Top,
                 severity = Button.Severity.Danger,
@@ -127,7 +124,7 @@ trait SequenceRowBuilder[D] extends SequenceQaEditHelper:
               Button( // commit
                 onClickE = _.stopPropagationCB >> ctx.onAccept.runAsync,
                 label = "Accept",
-                // icon = Icons.Checkmark,
+                icon = SequenceIcons.Check,
                 tooltip = "Accept sequence modifications",
                 tooltipOptions = TooltipOptions.Top,
                 severity = Button.Severity.Success,

@@ -16,7 +16,8 @@ import lucuma.ui.undo.Undoer
 case class UndoButtons(
   undoer:   Undoer,
   size:     PlSize = PlSize.Tiny,
-  disabled: Boolean = false
+  disabled: Boolean = false,
+  loading:  Boolean = false
 ) extends ReactFnProps[UndoButtons](UndoButtons.component)
 
 object UndoButtons:
@@ -32,7 +33,7 @@ object UndoButtons:
           outlined = true,
           onClickE = _.stopPropagationCB >> props.undoer.undo,
           disabled = props.undoer.isUndoEmpty || props.disabled || props.undoer.working,
-          loading = props.undoer.working,
+          loading = props.undoer.working || props.loading,
           clazz = props.size.cls,
           icon = UndoIcons.Undo,
           tooltip = "Undo",
@@ -43,7 +44,7 @@ object UndoButtons:
           outlined = true,
           onClickE = _.stopPropagationCB >> props.undoer.redo,
           disabled = props.undoer.isRedoEmpty || props.disabled || props.undoer.working,
-          loading = props.undoer.working,
+          loading = props.undoer.working || props.loading,
           clazz = props.size.cls,
           icon = UndoIcons.Redo,
           tooltip = "Redo",
