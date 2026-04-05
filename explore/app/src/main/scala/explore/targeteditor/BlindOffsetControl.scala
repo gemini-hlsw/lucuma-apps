@@ -23,7 +23,6 @@ import explore.model.boopickle.CatalogPicklers.given
 import explore.model.reusability.given
 import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.catalog.BlindOffsetCandidate

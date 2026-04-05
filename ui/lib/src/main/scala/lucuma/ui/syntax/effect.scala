@@ -5,6 +5,7 @@ package lucuma.ui.syntax
 
 import cats.MonadThrow
 import cats.data.NonEmptyList
+import cats.effect.MonadCancelThrow
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.syntax.all.*
@@ -132,6 +133,29 @@ trait effect {
       tail:     Resource[F, fs2.Stream[F, ?]]*
     )(using Temporal[F]): Resource[F, fs2.Stream[F, Pot[A]]] =
       resetOnResourceSignalsB(NonEmptyList.of(head, tail*), debounce.some)
+
+  extension [F[_]: MonadCancelThrow, A](f: F[A])
+    /**
+     * Switch the value of a ViewF to true while executing the given effect, then switch it back to
+     * false when the effect is finished
+     */
+    def switching(
+      view: ViewF[F, Boolean]
+    ): F[A] = switching(view, true, false)
+
+    /**
+     * Switch the value of a ViewF to true-ish (by the function) while executing the given effect,
+     * then switch it back to false when the effect is finished
+     */
+    def switching[B](view: ViewF[F, B], boolToB: Boolean => B): F[A] =
+      switching(view, boolToB(true), boolToB(false))
+
+    /**
+     * Switch the value of a ViewF to the @param acquire value while executing the given effect,
+     * then switch it back to @param release when the effect is finished
+     */
+    def switching[B](view: ViewF[F, B], acquire: B, release: B): F[A] =
+      MonadCancelThrow[F].bracket(view.set(acquire))(_ => f)(_ => view.set(release))
 }
 
 object effect extends effect

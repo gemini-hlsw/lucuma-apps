@@ -15,7 +15,7 @@ import lucuma.react.primereact.Message
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
-import lucuma.ui.sequence.IsEditing
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoContext
 import lucuma.ui.undo.UndoStacks
 import org.typelevel.log4cats.Logger
@@ -56,9 +56,16 @@ trait SequenceEditorBuilder[D: Eq]: // (instrument: Instrument):
       isEditing,
       isEditInFlight.get,
       UndoContext(undoStacks, editableSequence),
-      (remoteReplace(editableSequence.get.value) >>= sequence.async.set) >>
+      onAccept = ((remoteReplace(editableSequence.get.value) >>= sequence.async.set).onError: e =>
+        ToastCtx[IO]
+          .showToast(
+            s"Failed to update sequence: ${e.getMessage}",
+            Message.Severity.Error,
+            sticky = true
+          )
+          .switching(isEditInFlight.as(IsEditInFlight.Value).async)) >>
         isEditing.async.set(IsEditing.False),
-      isEditing.set(IsEditing.False) >> resetEditableSequenceFrom(sequence.get),
+      onCancel = isEditing.set(IsEditing.False) >> resetEditableSequenceFrom(sequence.get),
       sequence.get
     )
 

@@ -24,7 +24,6 @@ import explore.model.ObservationList
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
-import explore.syntax.ui.*
 import explore.tabs.DeckShown
 import explore.utils.*
 import japgolly.scalajs.react.*

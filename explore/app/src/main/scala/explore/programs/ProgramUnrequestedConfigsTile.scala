@@ -23,7 +23,6 @@ import explore.model.PopupState
 import explore.model.TargetList
 import explore.model.enums.TableId
 import explore.model.reusability.given
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Configuration
@@ -37,6 +36,7 @@ import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.table.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*

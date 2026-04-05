@@ -29,7 +29,6 @@ import explore.model.enums.AppTab
 import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
-import explore.syntax.ui.*
 import explore.targets.TargetAddDeleteActions
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -48,6 +47,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.PrimeStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.toast.*
 import lucuma.ui.undo.*
 import lucuma.ui.undo.UndoButtons

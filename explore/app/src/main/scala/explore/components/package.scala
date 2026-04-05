@@ -8,12 +8,12 @@ import cats.effect.IO
 import crystal.react.*
 import explore.Icons
 import explore.model.IsActive
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.primereact.ConfirmDialog
 import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
+import lucuma.ui.syntax.effect.*
 import org.typelevel.log4cats.Logger
 
 def deleteConfirmation(
