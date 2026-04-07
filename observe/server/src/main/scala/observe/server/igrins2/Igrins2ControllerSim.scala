@@ -8,12 +8,9 @@ import cats.effect.Ref
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.util.TimeSpan
-import observe.model.Observation
 import observe.model.dhs.ImageFileId
 import observe.server.InstrumentControllerSim
 import observe.server.keywords.GdsClient
-import observe.server.keywords.KeywordBag
-import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
@@ -24,15 +21,7 @@ final case class Igrins2ControllerSim[F[_]: {Async, Logger}] private (
   configRef: Ref[F, Option[Igrins2Config]]
 ) extends Igrins2Controller[F]:
 
-  override def gdsClient: GdsClient[F] = new GdsClient[F]:
-    override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
-      overrideLogMessage("IGRINS2", "setKeywords")
-
-    override def openObservation(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag): F[Unit] =
-      overrideLogMessage("IGRINS2", "openObservation")
-
-    override def closeObservation(id: ImageFileId): F[Unit] =
-      overrideLogMessage("IGRINS2", "closeObservation")
+  override def gdsClient: GdsClient[F] = GdsClient.loggingClient("IGRINS-2")
 
   override def applyConfig(config: Igrins2Config): F[Unit] =
     configRef.set(config.some) *>

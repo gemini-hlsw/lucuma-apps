@@ -7,10 +7,8 @@ import cats.Applicative
 import cats.implicits.*
 import fs2.Stream
 import lucuma.core.util.TimeSpan
-import observe.model.Observation
 import observe.model.dhs.ImageFileId
 import observe.server.keywords.GdsClient
-import observe.server.keywords.KeywordBag
 import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
 
@@ -35,15 +33,7 @@ class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Contro
 
   def dcIsWritingMEF: F[Boolean] = false.pure[F]
 
-  override def gdsClient: GdsClient[F] = new GdsClient[F]:
-    override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
-      overrideLogMessage(name, "setKeywords")
-
-    override def openObservation(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag): F[Unit] =
-      overrideLogMessage(name, "openObservation")
-
-    override def closeObservation(id: ImageFileId): F[Unit] =
-      overrideLogMessage(name, "closeObservation")
+  override def gdsClient: GdsClient[F] = GdsClient.loggingClient(name)
 
   override def applyConfig(config: Igrins2Config): F[Unit] = overrideLogMessage(name, "applyConfig")
 
