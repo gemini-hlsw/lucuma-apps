@@ -4,6 +4,7 @@
 package observe.ui.components.sequence
 
 import cats.Eq
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.hooks.*
 import crystal.react.syntax.effect.*
@@ -26,6 +27,8 @@ import lucuma.ui.reusability.given
 import lucuma.ui.sequence.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoStacks
 import observe.model.SequenceStatus
 import observe.model.StepState
 import observe.ui.Icons
@@ -149,6 +152,18 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           useMemo(dynTable.columnSizing, dynTable.columnVisibility):
             (columnSizing, columnVisibility) =>
               PartialTableState(columnSizing = columnSizing, columnVisibility = columnVisibility)
+        // TODO Remove the following 4 when sequence editing is supported in observe.
+        dummyIsEditing           <- useStateView(IsEditing.False)
+        dummyEditableSequence    <- useStateView(EditableSequence(List.empty[Atom[D]]))
+        dummyUndoStacks          <- useStateView(UndoStacks.empty[IO, EditableSequence[D]])
+        dummyEditContext          = SequenceEditContext[D](
+                                      dummyIsEditing,
+                                      IsEditInFlight.False,
+                                      UndoContext(dummyUndoStacks, dummyEditableSequence),
+                                      IO.unit,
+                                      Callback.empty,
+                                      Nil
+                                    )
         table                    <-
           useReactTable:
             TableOptions(
@@ -169,7 +184,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 props.selectedRowId,
                 props.visits,
                 datasetIdsInFlight,
-                props.onBreakpointFlip
+                props.onBreakpointFlip,
+                SequenceEditContexts(IsEditEnabled.False, dummyEditContext, dummyEditContext)
               )
             )
         odbQueryApi              <- useContext(ODBQueryApi.ctx)
