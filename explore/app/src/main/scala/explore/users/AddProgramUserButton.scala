@@ -11,7 +11,6 @@ import explore.model.AppContext
 import explore.model.IsActive
 import explore.model.ProgramUser
 import explore.model.display.given
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ProgramUserRole
 import lucuma.core.model.Program
@@ -20,6 +19,7 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
+import lucuma.ui.syntax.effect.*
 
 case class AddProgramUserButton(
   programId: Program.Id,

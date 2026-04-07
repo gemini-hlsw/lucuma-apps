@@ -5,12 +5,14 @@ package lucuma.ui.optics
 
 import cats.derived.*
 import cats.kernel.Eq
+import cats.laws.discipline.arbitrary.given
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.scalacheck.all.*
 import lucuma.core.optics.laws.discipline.SplitEpiTests
 import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.ui.optics.*
 import monocle.Focus
+import monocle.Iso
 import monocle.Lens
 import monocle.law.discipline.IsoTests
 import munit.DisciplineSuite
@@ -31,7 +33,6 @@ object Outer {
 }
 
 class OpticsSuite extends DisciplineSuite {
-
   implicit def wrapArb[A: Arbitrary]: Arbitrary[Inner[A]] =
     Arbitrary[Inner[A]] {
       for {

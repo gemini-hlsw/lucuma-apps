@@ -42,6 +42,7 @@ import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.primereact.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.pot.*
 import lucuma.ui.table.*
 import org.scalajs.dom.window

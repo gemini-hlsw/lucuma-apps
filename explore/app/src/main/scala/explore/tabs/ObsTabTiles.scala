@@ -48,7 +48,6 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -208,31 +207,31 @@ object ObsTabTiles:
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx                 <- useContext(AppContext.ctx)
-        agsState            <- useStateView[AgsState](AgsState.Idle)
+        ctx                  <- useContext(AppContext.ctx)
+        agsState             <- useStateView[AgsState](AgsState.Idle)
         // the configuration the user has selected from the spectroscopy modes table, if any
-        selectedConfig      <- useStateView(ConfigSelection.Empty)
+        selectedConfig       <- useStateView(ConfigSelection.Empty)
         // selected target for imaging, shared between the itc tile and the modes table
-        selectedItcTarget   <-
+        selectedItcTarget    <-
           useStateView[Option[ItcTarget]](
             props.obsTargets.values.flatMap(_.target.itcTarget.toOption).headOption
           )
-        customSedTimestamps <-
+        customSedTimestamps  <-
           // The updatedAt timestamps for any custom seds.
           useMemo((props.asterismAsNel, props.attachments.get)): (asterism, attachments) =>
             asterism.foldMap:
               _.map:
                 _.target.sourceProfile.customSedId.flatMap(attachments.get).map(_.updatedAt)
               .toList.flattenOption
-        sequenceChanged     <- useStateView(().ready) // Signal that the sequence has changed
+        sequenceChanged      <- useStateView(().ready) // Signal that the sequence has changed
         // if the timestamp for a custom sed attachment changes, it means either a new custom sed
         // has been assigned, OR a new version of the custom sed has been uploaded. This is to
         // catch the latter case.
-        _                   <- useEffectWithDeps(customSedTimestamps): _ =>
-                                 sequenceChanged.set(pending)
-        obsTimeOrNowPot     <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
-                                 vizTime => IO(vizTime.getOrElse(Instant.now()))
-        trackingOptMapPot   <-
+        _                    <- useEffectWithDeps(customSedTimestamps): _ =>
+                                  sequenceChanged.set(pending)
+        obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
+                                  vizTime => IO(vizTime.getOrElse(Instant.now()))
+        trackingOptMapPot    <-
           useEffectKeepResultWithDeps(props.observation.get.observingMode.map(_.siteFor),
                                       obsTimeOrNowPot.value.toOption,
                                       props.asterismAsNel.map(_.science)
@@ -255,44 +254,45 @@ object ObsTabTiles:
         // Store guide star selection in a view for fast local updates
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
-        guideStarSelection  <- useStateView:
-                                 props.selectedGSName.get.fold(GuideStarSelection.Default)(
-                                   RemoteGSSelection.apply
-                                 )
-                               .map: gss =>
-                                 import ctx.given
+        guideStarSelection   <- useStateView:
+                                  props.selectedGSName.get.fold(GuideStarSelection.Default)(
+                                    RemoteGSSelection.apply
+                                  )
+                                .map: gss =>
+                                  import ctx.given
 
-                                 // We tell the backend and the local cache of changes to the selected guidestar
-                                 // In some cases when we do a real override
-                                 gss.withOnMod {
-                                   (_, _) match {
-                                     // Change of override
-                                     case (AgsOverride(m, _, _), AgsOverride(n, _, _)) if m =!= n =>
-                                       props.selectedGSName.set(n.some) *>
-                                         odbApi
-                                           .setGuideTargetName(props.obsId, n.some)
-                                           .runAsyncAndForget
-                                     // Going from automatic to manual selection
-                                     case (AgsSelection(_), AgsOverride(n, _, _))                 =>
-                                       props.selectedGSName.set(n.some) *>
-                                         odbApi
-                                           .setGuideTargetName(props.obsId, n.some)
-                                           .runAsyncAndForget
-                                     // Going from manual to automated selection
-                                     case (AgsOverride(n, _, _), AgsSelection(_))                 =>
-                                       props.selectedGSName.set(none) *>
-                                         odbApi
-                                           .setGuideTargetName(props.obsId, none)
-                                           .runAsyncAndForget
-                                     case _                                                       =>
-                                       // All other combinations
-                                       Callback.empty
-                                   }
-                                 }
-        roleLayouts         <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
-        _                   <- useEffectWithDeps(props.calibrationRole): role =>
-                                 roleLayouts.setState(roleLayout(props.userPreferences.get, role))
-        isEditing           <- useStateView(IsEditing.False)
+                                  // We tell the backend and the local cache of changes to the selected guidestar
+                                  // In some cases when we do a real override
+                                  gss.withOnMod {
+                                    (_, _) match {
+                                      // Change of override
+                                      case (AgsOverride(m, _, _), AgsOverride(n, _, _)) if m =!= n =>
+                                        props.selectedGSName.set(n.some) *>
+                                          odbApi
+                                            .setGuideTargetName(props.obsId, n.some)
+                                            .runAsyncAndForget
+                                      // Going from automatic to manual selection
+                                      case (AgsSelection(_), AgsOverride(n, _, _))                 =>
+                                        props.selectedGSName.set(n.some) *>
+                                          odbApi
+                                            .setGuideTargetName(props.obsId, n.some)
+                                            .runAsyncAndForget
+                                      // Going from manual to automated selection
+                                      case (AgsOverride(n, _, _), AgsSelection(_))                 =>
+                                        props.selectedGSName.set(none) *>
+                                          odbApi
+                                            .setGuideTargetName(props.obsId, none)
+                                            .runAsyncAndForget
+                                      case _                                                       =>
+                                        // All other combinations
+                                        Callback.empty
+                                    }
+                                  }
+        roleLayouts          <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
+        _                    <- useEffectWithDeps(props.calibrationRole): role =>
+                                  roleLayouts.setState(roleLayout(props.userPreferences.get, role))
+        isEditingAcquisition <- useStateView(IsEditing.False)
+        isEditingScience     <- useStateView(IsEditing.False)
       yield
         import ctx.given
 
@@ -402,9 +402,6 @@ object ObsTabTiles:
 
           val notesTile = NotesTile(notesView, hidden = hideTiles)
 
-          val isEditable =
-            !props.observation.get.observingMode.exists(_.instrument === Instrument.Igrins2)
-
           val sequenceTile =
             SequenceTile(
               props.obsId,
@@ -413,9 +410,9 @@ object ObsTabTiles:
               customSedTimestamps,
               props.calibrationRole,
               sequenceChanged,
-              isEditing,
-              props.isStaffOrAdminUser,
-              isEditable
+              isEditingAcquisition,
+              isEditingScience,
+              props.isStaffOrAdminUser
             )
 
           val odbOrSelectedConfig: Option[BasicConfiguration] =

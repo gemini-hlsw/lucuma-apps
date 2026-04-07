@@ -45,7 +45,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.Tracking
-import lucuma.core.model.sequence.Atom
 import lucuma.itc.ItcCcd
 import lucuma.itc.client.GraphResult
 import lucuma.schemas.ObservationDB.Enums.Existence
@@ -136,8 +135,6 @@ object reusability:
   given Reusability[Configuration]                      = Reusability.byEq
   given Reusability[ConfigurationRequest]               = Reusability.byEq
   given Reusability[TimingWindow]                       = Reusability.byEq
-  given [D]: Reusability[Visit[D]]                      = Reusability.byEq
-  given [D]: Reusability[StepRecord[D]]                 = Reusability.byEq
   given Reusability[ApiKey]                             = Reusability.byEq
   given Reusability[SignalToNoise]                      = Reusability.byEq
   given Reusability[ScienceRequirements.Spectroscopy]   = Reusability.byEq
@@ -145,8 +142,6 @@ object reusability:
   given Reusability[ScienceRequirements]                = Reusability.byEq
   given Reusability[Transformation]                     = Reusability.byEq
   given [F[_]]: Reusability[OdbRestClient[F]]           = Reusability.by(_.authToken)
-  given [D: Eq]: Reusability[Atom[D]]                   = Reusability.byEq
-  given Reusability[ExecutionVisits]                    = Reusability.byEq
   given Reusability[ProgramNote]                        = Reusability.byEq
   given Reusability[ProgramUser]                        = Reusability.byEq
   given Reusability[UserInvitation]                     = Reusability.byEq

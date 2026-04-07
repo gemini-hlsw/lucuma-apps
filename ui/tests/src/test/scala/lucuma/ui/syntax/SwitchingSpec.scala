@@ -1,11 +1,12 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.syntax.ui
+package lucuma.ui.syntax
 
 import cats.effect.IO
 import cats.effect.Ref
 import crystal.ViewF
+import lucuma.ui.syntax.effect.*
 
 class SwitchingSpec extends munit.CatsEffectSuite {
   test("switching view should be true during the effect and false after") {

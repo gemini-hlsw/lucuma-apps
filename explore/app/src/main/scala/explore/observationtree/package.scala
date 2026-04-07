@@ -16,12 +16,12 @@ import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.enums.AppTab
 import explore.services.OdbObservationApi
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.primereact.*
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.toast.*
 import lucuma.ui.undo.UndoSetter
 import monocle.Iso

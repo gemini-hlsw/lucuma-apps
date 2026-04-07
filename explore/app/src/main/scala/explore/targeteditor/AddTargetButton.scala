@@ -23,7 +23,6 @@ import explore.model.TargetList
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
-import explore.syntax.ui.*
 import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
 import japgolly.scalajs.react.*
@@ -43,6 +42,7 @@ import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.primereact.*
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoSetter
 
 case class AddTargetButton(

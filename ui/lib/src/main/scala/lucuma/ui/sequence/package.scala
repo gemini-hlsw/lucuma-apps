@@ -41,8 +41,14 @@ object StepIndex extends NewType[PosInt]:
   val One: StepIndex = StepIndex(PosInt.unsafeFrom(1))
 type StepIndex = StepIndex.Type
 
+object IsEditEnabled extends NewBoolean
+type IsEditEnabled = IsEditEnabled.Type
+
 object IsEditing extends NewBoolean
 type IsEditing = IsEditing.Type
+
+object IsEditInFlight extends NewBoolean
+type IsEditInFlight = IsEditInFlight.Type
 
 private def renderStepType(icon: VdomNode, tooltip: String): VdomNode =
   <.span(icon).withTooltip(content = tooltip, showDelay = 100, position = Tooltip.Position.Bottom)
