@@ -11,6 +11,7 @@ import explore.model.SupportedInstruments
 import io.circe.Decoder
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
+import lucuma.core.math.Declination
 import lucuma.odb.json.angle.decoder.given
 import monocle.Getter
 import monocle.Lens
@@ -81,11 +82,17 @@ object ImagingModeRow {
 }
 
 case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
-  def filtered(minimumFov: Option[Angle], filterTypes: Set[FilterType]): List[ImagingModeRow] =
+  def filtered(
+    minimumFov:  Option[Angle],
+    filterTypes: Set[FilterType],
+    declination: Option[Declination] = None
+  ): List[ImagingModeRow] =
+    import explore.model.syntax.all.*
     given Order[Angle]                    = Angle.AngleOrder
     val filter: ImagingModeRow => Boolean = r =>
       minimumFov.forall(fov => r.fov >= fov) &&
-        (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains))
+        (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
+        declination.forall(r.instrument.site.inPreferredDeclination)
 
     matrix.filter(filter)
 
