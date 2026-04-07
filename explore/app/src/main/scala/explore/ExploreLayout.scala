@@ -391,16 +391,24 @@ object ExploreLayout:
                           ),
                         showProgsPopupPot.renderPot(showProgsPopup =>
                           if (showProgsPopup)
-                            ProgramsPopup(
-                              currentProgramId = none,
-                              vault.get.user.id,
-                              vault.get.isStaff,
-                              props.model.programSummaries.throttlerView
-                                .zoom(Pot.readyPrism)
-                                .zoom(ProgramSummaries.programs),
-                              undoStacks = view.zoom(RootModel.undoStacks),
-                              message = msg
-                            ): VdomElement
+                            props.model.rootModel
+                              .zoom:
+                                RootModel.userPreferences
+                                  .andThen(Pot.readyPrism)
+                                  .andThen(UserPreferences.globalPreferences)
+                              .asView
+                              .map: globalPrefs =>
+                                ProgramsPopup(
+                                  currentProgramId = none,
+                                  vault.get.user.id,
+                                  vault.get.isStaff,
+                                  props.model.programSummaries.throttlerView
+                                    .zoom(Pot.readyPrism)
+                                    .zoom(ProgramSummaries.programs),
+                                  undoStacks = view.zoom(RootModel.undoStacks),
+                                  globalPreferences = globalPrefs,
+                                  message = msg
+                                )
                           else
                             React.Fragment(
                               SideTabs(

@@ -39,7 +39,7 @@ import scala.collection.immutable.TreeSeqMap
 object ObsSummaryColumns:
   import ObsSummaryRow.*
 
-  private val ColDef = ColumnDef[Expandable[ObsSummaryRow]]
+  private val ColDef = ColumnDef[Expandable[ObsSummaryRow]].WithColumnFilters
 
   protected[observationtree] val ObservationIdColumnId = ColumnId("observation_id")
   protected[observationtree] val GroupColumnId         = ColumnId("group")
@@ -76,13 +76,6 @@ object ObsSummaryColumns:
       ConstraintsColumnId   -> "Constraints",
       ConfigurationColumnId -> "Configuration",
       DurationColumnId      -> "Duration"
-      // ValidationCheckColumnId -> " ",
-      // CompletionColumnId    -> "Completion",
-      // FindingChartColumnId -> "Finding Chart",
-      // Default hidden columns
-      // PriorityColumnId      -> "Priority",
-      // TimingWindowsColumnId -> "Scheduling Windows",
-      // ChargedTimeColumnId -> "ChargedTime"
     )
 
   protected[observationtree] val ColumnsExcludedFromVisibility: Set[ColumnId] =
@@ -98,14 +91,11 @@ object ObsSummaryColumns:
       RAColumnId  -> Visibility.Hidden,
       DecColumnId -> Visibility.Hidden,
       SEDColumnId -> Visibility.Hidden
-      // PriorityColumnId      -> Visibility.Hidden,
-      // TimingWindowsColumnId -> Visibility.Hidden,
-      // ChargedTimeColumnId -> Visibility.Hidden
     )
 
-  def columns(pid: Program.Id, ctx: AppContext[IO]): List[ColDef.Type] =
+  def columns(pid: Program.Id, ctx: AppContext[IO]) =
     // For columns that only have data in the base observation row.
-    def obsColumn[V](id: ColumnId, accessor: ObsRow => V): ColDef.TypeFor[Option[V]] =
+    def obsColumn[V](id: ColumnId, accessor: ObsRow => V) =
       ColDef(id, v => v.value.fold(_ => none, accessor(_).some), ColumnNames(id))
 
     extension [A](name: String | (A, TargetWithId))
@@ -135,7 +125,7 @@ object ObsSummaryColumns:
       id:               ColumnId,
       accessor:         ObsRow => V,
       expandedAccessor: ExpandedTargetRow => V
-    ): ColDef.TypeFor[V] =
+    ) =
       ColDef(id, v => v.value.fold(expandedAccessor, accessor), ColumnNames(id))
 
     def constraintUrl(constraintId: Observation.Id): String =
@@ -187,6 +177,8 @@ object ObsSummaryColumns:
         enableResizing = false
       ).withSize(35.toPx),
       obsColumn(ObservationIdColumnId, _.obs)
+        .withFilterMethod:
+          FilterMethod.Text(_.foldMap(o => o.reference.fold(o.id.show)(_.label)))
         .withCell:
           _.value.map(obsLink)
         .sortableWith(identifierSortFn),
@@ -199,20 +191,27 @@ object ObsSummaryColumns:
         r => r.obs.title,
         r => (r.obs.id, r.targetWithId)
       )
+        .withFilterMethod(FilterMethod.Text(_.sortableValue))
         .withCell:
           _.value match
             case s: String => <.span(s)
             case (a, b)    => targetLink(a, b)
         .sortableBy(_.sortableValue),
       obsColumn(GroupColumnId, _.group)
+        .withFilterMethod:
+          FilterMethod.Text(
+            _.flatten.foldMap(g => g.name.map(_.value).getOrElse(g.id.show))
+          )
         .withCell:
           _.value.flatten.map(groupLink)
         .sortableBy(_.flatMap(_.flatMap(_.name))),
       // TODO: ValidationCheckColumnId
       obsColumn(StateColumnId, _.obs.workflow.value.state)
+        .withFilterMethod(FilterMethod.Text(_.foldMap(_.toString)))
         .withCell(_.value.map(_.toString).orEmpty)
         .sortable,
       obsColumn(ScienceBandColumnId, _.obs.scienceBand)
+        .withFilterMethod(FilterMethod.Text(_.flatten.foldMap(_.shortName)))
         .withCell:
           _.value.flatten.fold("Not set")(_.shortName)
         .sortable,
@@ -223,6 +222,16 @@ object ObsSummaryColumns:
         r => r.coordsOrRegion.ra,
         r => r.coordsOrRegion.ra
       )
+        .withFilterMethod:
+          FilterMethod.Text: v =>
+            v.foldMap(
+              _.fold(_ => "",
+                     _.fold(
+                       _.format(MathValidators.truncatedRA.reverseGet),
+                       MathValidators.truncatedRA.reverseGet(_)
+                     )
+              )
+            )
         .withCell(_.value.format(MathValidators.truncatedRA.reverseGet))
         .sortable,
       mixedColumn(
@@ -231,6 +240,16 @@ object ObsSummaryColumns:
         r => r.coordsOrRegion.dec,
         r => r.coordsOrRegion.dec
       )
+        .withFilterMethod:
+          FilterMethod.Text: v =>
+            v.foldMap(
+              _.fold(_ => "",
+                     _.fold(
+                       _.format(MathValidators.truncatedDec.reverseGet),
+                       MathValidators.truncatedDec.reverseGet(_)
+                     )
+              )
+            )
         .withCell(_.value.format(MathValidators.truncatedDec.reverseGet))
         .sortable,
       // TODO: TimingColumnId
@@ -246,12 +265,15 @@ object ObsSummaryColumns:
                 .map(_.shortName)
                 .orElse(Target.surfaceSpectralDefinition.getOption(t).map(_.shortName)),
         ColumnNames(SEDColumnId)
-      ).withCell(cell =>
-        cell.value
-          .filterNot(_ => cell.row.getCanExpand())
-          .orEmpty
-      ).sortable,
+      ).withFilterMethod(FilterMethod.Text(_.orEmpty))
+       .withCell(cell =>
+         cell.value
+           .filterNot(_ => cell.row.getCanExpand())
+           .orEmpty
+       )
+       .sortable,
       obsColumn(ConstraintsColumnId, r => (r.obs.id, r.obs.constraints.summaryString))
+        .withFilterMethod(FilterMethod.Text(_.fold("")(_._2)))
         .withCell: cell =>
           cell.value.map: (id, constraintsSummary) =>
             <.a(
@@ -262,6 +284,7 @@ object ObsSummaryColumns:
         .sortableBy(_.map(_._2)),
       // TODO: FindingChartColumnId
       obsColumn(ConfigurationColumnId, _.obs.basicConfiguration.foldMap(_.shortName))
+        .withFilterMethod(FilterMethod.Text(_.orEmpty))
         .withCell(cell =>
           val tt: Option[VdomNode] = cell.value.map(identity)
           <.span(cell.value.orEmpty)
@@ -271,13 +294,17 @@ object ObsSummaryColumns:
       obsColumn(
         DurationColumnId,
         _.obs.execution.digest.programTimeEstimate
-      ).withCell:
-        _.value.map: cv =>
-          cv.value.map: d =>
-            val text = HoursMinutesAbbreviation.format(d)
-            <.span(text, cv.staleClass)
-              .withOptionalTooltip(content = cv.staleTooltip, position = Tooltip.Position.Left.some)
-      .sortableBy(_.sortableTimeSpan)
+      ).withFilterMethod:
+        FilterMethod.Text(_.flatMap(_.value).foldMap(HoursMinutesAbbreviation.format))
+      .withCell:
+          _.value.map: cv =>
+            cv.value.map: d =>
+              val text = HoursMinutesAbbreviation.format(d)
+              <.span(text, cv.staleClass)
+                .withOptionalTooltip(content = cv.staleTooltip,
+                                     position = Tooltip.Position.Left.some
+                )
+        .sortableBy(_.sortableTimeSpan)
       // TODO: PriorityColumnId
       // TODO: ChargedTimeColumnId
     )

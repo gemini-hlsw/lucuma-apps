@@ -23,6 +23,7 @@ import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.TargetList
 import explore.model.enums.TableId
+import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.undo.UndoSetter
@@ -55,7 +56,8 @@ final case class ObsSummaryTile(
   allTargets:      TargetList,
   showScienceBand: Boolean,
   readonly:        Boolean,
-  backButton:      VdomNode
+  backButton:      VdomNode,
+  showFilters:     View[Visible]
 ) extends Tile[ObsSummaryTile](
       ObsSummaryTabTileIds.SummaryId.id,
       "Observations Summary",
@@ -158,6 +160,7 @@ object ObsSummaryTile
                                  )
                              ,
                              enableSorting = true,
+                             enableColumnFilters = true,
                              enableMultiRowSelection = true,
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate,
@@ -185,6 +188,16 @@ object ObsSummaryTile
             <.span(^.textAlign.center)(
               Button(
                 size = Button.Size.Small,
+                icon = Icons.Filter,
+                severity =
+                  if props.showFilters.get.value then Button.Severity.Primary
+                  else Button.Severity.Secondary,
+                onClick = props.showFilters.mod(_.flip) >>
+                  table.resetColumnFilters().when_(props.showFilters.get.value),
+                tooltip = "Toggle column filters"
+              ).compact,
+              Button(
+                size = Button.Size.Small,
                 icon = Icons.CheckDouble,
                 label = "Select All",
                 onClick = toggleAllRowsSelected(true)
@@ -209,6 +222,8 @@ object ObsSummaryTile
           hoverableRows = rowsPot.value.value.toOption.exists(_.nonEmpty),
           tableMod =
             ExploreStyles.ExploreTable |+| ExploreStyles.ObservationsSummaryTable |+| ExploreStyles.ExploreSelectableTable,
+          columnFilterRenderer =
+            if props.showFilters.get.value then FilterMethod.render else _ => EmptyVdom,
           headerCellMod = _ => ExploreStyles.StickyHeader,
           rowMod = rowTagMod: row =>
             TagMod(

@@ -38,7 +38,8 @@ case class ProgramTable(
   isRequired:       Boolean,
   onClose:          Option[Callback],
   newProgramId:     Option[Program.Id],
-  virtualizerRef:   UseRef[Option[HTMLTableVirtualizer]]
+  virtualizerRef:   UseRef[Option[HTMLTableVirtualizer]],
+  showFilters:      Boolean = true
 ) extends ReactFnProps(ProgramTable.component)
 
 object ProgramTable:
@@ -220,6 +221,8 @@ object ProgramTable:
                    )
                  )
                )
+      _     <- useEffectWithDeps(props.showFilters): showFilters =>
+                  table.resetColumnFilters().unless_(showFilters)
     } yield PrimeAutoHeightVirtualizedTable(
       table,
       estimateSize = _ => 32.toPx,
@@ -227,7 +230,8 @@ object ProgramTable:
       compact = Compact.Very,
       tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
       virtualizerRef = props.virtualizerRef,
-      columnFilterRenderer = FilterMethod.render,
+      columnFilterRenderer =
+        if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
       emptyMessage = "No programs available"
     )
   )

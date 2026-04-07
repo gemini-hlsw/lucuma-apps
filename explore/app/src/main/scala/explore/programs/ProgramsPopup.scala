@@ -11,13 +11,16 @@ import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Focused
+import explore.model.GlobalPreferences
 import explore.model.ProgramInfo
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
+import explore.model.enums.Visible
 import explore.services.OdbProgramApi
 import explore.syntax.ui.*
 import explore.undo.UndoStacks
@@ -42,13 +45,14 @@ import lucuma.ui.utils.*
 import org.typelevel.log4cats.Logger
 
 case class ProgramsPopup(
-  currentProgramId: Option[Program.Id],
-  userId:           User.Id,
-  isStaff:          Boolean,
-  programInfos:     ViewOpt[ProgramInfoList],
-  undoStacks:       View[UndoStacks[IO, ProgramSummaries]],
-  onClose:          Option[Callback] = none,
-  message:          Option[String] = none
+  currentProgramId:  Option[Program.Id],
+  userId:            User.Id,
+  isStaff:           Boolean,
+  programInfos:      ViewOpt[ProgramInfoList],
+  undoStacks:        View[UndoStacks[IO, ProgramSummaries]],
+  globalPreferences: View[GlobalPreferences],
+  onClose:           Option[Callback] = none,
+  message:           Option[String] = none
 ) extends ReactFnProps(ProgramsPopup.component)
 
 object ProgramsPopup:
@@ -99,6 +103,17 @@ object ProgramsPopup:
     } yield
       import ctx.given
 
+      val showFilters: View[Visible] =
+        props.globalPreferences
+          .zoom(GlobalPreferences.programsTableFilters)
+          .withOnMod: v =>
+            GlobalUserPreferences
+              .storeTableFilterPreferences[IO](
+                props.userId,
+                programsTableFilters = v.some
+              )
+              .runAsync
+
       val onHide: Callback =
         props.onClose.map(oc => isOpen.set(IsOpen(false)) >> oc).orEmpty >> newProgramId.set(none)
 
@@ -144,7 +159,20 @@ object ProgramsPopup:
         dismissableMask = props.onClose.isDefined,
         resizable = true,
         clazz = LucumaPrimeStyles.Dialog.Large |+| ExploreStyles.ProgramsPopup,
-        header = "Programs",
+        header = <.span(^.display.flex, ^.alignItems.center)(
+          "Programs",
+          <.span(^.marginLeft := "0.5em")(
+            Button(
+              size = Button.Size.Small,
+              icon = Icons.Filter,
+              severity =
+                if (showFilters.get.value) Button.Severity.Primary
+                else Button.Severity.Secondary,
+              onClick = showFilters.mod(_.flip),
+              tooltip = "Toggle column filters"
+            ).compact
+          )
+        ),
         footer = programInfosViewOpt.map: pis =>
           React.Fragment(
             props.message.map(msg =>
@@ -187,6 +215,7 @@ object ProgramsPopup:
               props.onClose.isEmpty,
               onHide.some,
               newProgramId.get,
-              virtualizerRef
+              virtualizerRef,
+              showFilters = showFilters.get.value
             )
       )

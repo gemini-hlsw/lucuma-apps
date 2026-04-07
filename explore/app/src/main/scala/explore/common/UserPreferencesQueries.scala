@@ -109,6 +109,28 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+    def storeTableFilterPreferences[F[_]: ApplicativeThrow](
+      userId:                  User.Id,
+      observationTableFilters: Option[Visible] = None,
+      programsTableFilters:    Option[Visible] = None
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserPreferencesAladinUpdate[F]
+        .execute(
+          objects = LucumaUserPreferencesInsertInput(
+            userId = userId.show.assign,
+            observationTableFilters = observationTableFilters.map(_.value).orIgnore,
+            programsTableFilters = programsTableFilters.map(_.value).orIgnore
+          ),
+          update_columns = List(
+            LucumaUserPreferencesUpdateColumn.ObservationTableFilters.some
+              .filter(_ => observationTableFilters.isDefined),
+            LucumaUserPreferencesUpdateColumn.ProgramsTableFilters.some
+              .filter(_ => programsTableFilters.isDefined)
+          ).flattenOption.widen[LucumaUserPreferencesUpdateColumn]
+        )
+        .attempt
+        .void
+
   end GlobalUserPreferences
 
   object GridLayouts:
@@ -536,6 +558,9 @@ object UserPreferencesQueries:
                       excludeFromVisibility
                     )
                   .setSorting(prefs.lucumaTableColumnPreferences.applySorting(tableState.sorting))
+                  .setColumnFilters:
+                    prefs.lucumaTableColumnPreferences
+                      .applyFilters(tableState.columnFilters)
         .map(_.orEmpty)
 
     def save(state: TableState[TF]): F[Unit] =
@@ -554,7 +579,12 @@ object UserPreferencesQueries:
                 visible =
                   state.columnVisibility.value.getOrElse(col.id, Visibility.Visible).value.assign,
                 sorting = sorting.get(col.id).map(_._1).orUnassign,
-                sortingOrder = sorting.get(col.id).map(_._2).orUnassign
+                sortingOrder = sorting.get(col.id).map(_._2).orUnassign,
+                filter = state.columnFilters.value
+                  .get(col.id)
+                  .collect:
+                    case s: String => s
+                  .orUnassign
               )
             )
           )
@@ -581,3 +611,10 @@ object UserPreferencesQueries:
       sortedCols match
         case Nil      => original
         case nonEmpty => Sorting(nonEmpty.map((colId, dir, _) => colId -> dir)*)
+
+    def applyFilters(original: ColumnFilters): ColumnFilters =
+      original.modify(
+        _ ++
+          tableColsPrefs
+            .flatMap(col => col.filter.map(f => (ColumnId(col.columnId), f)))
+      )

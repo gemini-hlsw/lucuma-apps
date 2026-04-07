@@ -10,6 +10,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.*
@@ -241,6 +242,18 @@ object ObsTabContents extends TwoPanels:
         val backButton: VdomNode =
           makeBackButton(props.programId, AppTab.Observations, twoPanelState, ctx)
 
+        val filtersView =
+          props.globalPreferences
+            .zoom(GlobalPreferences.observationTableFilters)
+            .withOnMod: v =>
+              import ctx.given
+              GlobalUserPreferences
+                .storeTableFilterPreferences[IO](
+                  props.vault.userId.get,
+                  observationTableFilters = v.some
+                )
+                .runAsync
+
         val obsSummaryTableTile: Tile[?] =
           ObsSummaryTile(
             props.vault.userId,
@@ -251,7 +264,8 @@ object ObsTabContents extends TwoPanels:
             props.targets.get,
             props.programSummaries.get.allocatedScienceBands.nonEmpty,
             props.readonly,
-            backButton
+            backButton,
+            filtersView
           )
 
         val plotData: PlotData =
