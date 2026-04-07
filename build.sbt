@@ -266,10 +266,13 @@ lazy val ui_tests =
       libraryDependencies ++=
         In(Test)(
           LucumaCoreTestkit.value ++
+            MUnitCatsEffect.value ++
             MUnit.value ++
-            Discipline.value
+            Discipline.value ++
+            Log4CatsLogLevel.value
         )
     )
+    .settings(commonModuleTest: _*)
 
 lazy val ui_css = project
   .in(file("ui/css"))
@@ -382,7 +385,7 @@ lazy val exploreCommonJsLibSettings =
     dependencyOverrides ++= ScalaJsReact.value
   )
 
-lazy val exploreCommonModuleTest = Seq(
+lazy val commonModuleTest = Seq(
   Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
@@ -402,7 +405,7 @@ lazy val explore_modelTestkit = crossProject(JVMPlatform, JSPlatform)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
   .settings(exploreTestkitLibSettings: _*)
-  .jsSettings(exploreCommonModuleTest: _*)
+  .jsSettings(commonModuleTest: _*)
   .jvmSettings(exploreCommonJvmSettings)
 
 lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
@@ -411,12 +414,12 @@ lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(explore_modelTestkit)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
-  .jsSettings(exploreCommonModuleTest: _*)
+  .jsSettings(commonModuleTest: _*)
   .jvmSettings(exploreCommonJvmSettings)
 
 lazy val explore_workers = project
   .in(file("explore/workers"))
-  .dependsOn(explore_model.js)
+  .dependsOn(explore_model.js, explore_common)
   .enablePlugins(ScalaJSPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
@@ -444,7 +447,7 @@ lazy val explore_common = project
   .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
-  .settings(exploreCommonModuleTest: _*)
+  .settings(commonModuleTest: _*)
   .settings(
     libraryDependencies ++=
       LucumaSsoFrontendClient.value ++
@@ -1112,7 +1115,7 @@ lazy val rootOnlySetupNodePnpmInstall =
 lazy val exploreSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter explore --prefer-offline"),
+      List("pnpm install --frozen-lockfile --filter explore --filter {ui/tests} --prefer-offline"),
       name = Some("pnpm install")
     )
   )

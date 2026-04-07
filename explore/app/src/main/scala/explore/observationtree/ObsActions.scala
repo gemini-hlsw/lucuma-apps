@@ -13,16 +13,16 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
-import explore.optics.all.*
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
-import explore.undo.Action
-import explore.undo.AsyncAction
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.ui.optics.*
+import lucuma.ui.undo.Action
+import lucuma.ui.undo.AsyncAction
 import monocle.Lens
 
 object ObsActions:

@@ -1,9 +1,9 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.optics
+package lucuma.ui.optics
 
-import explore.optics.all.*
+import lucuma.ui.optics.*
 import monocle.*
 
 // An Adjuster is just like a Setter, but less strict: it does not abide by the "compose modify" law.
@@ -14,13 +14,8 @@ trait Adjuster[From, To] { self =>
   def modify(f: To => To): From => From
 
   /**
-   * ************************************************************
+   * Compose methods between an [[Adjuster]] and another Optics
    */
-  /** Compose methods between an [[Adjuster]] and another Optics */
-  /**
-   * ************************************************************
-   */
-
   /** compose an [[Adjuster]] with a [[Adjuster]] */
   final def andThen[X](other: Adjuster[To, X]): Adjuster[From, X] =
     new Adjuster[From, X] {

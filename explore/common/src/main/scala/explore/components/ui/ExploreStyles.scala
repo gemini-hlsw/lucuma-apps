@@ -439,8 +439,6 @@ object ExploreStyles:
   val SequenceTileTitleItem    = Css("explore-sequence-tile-title-item")
 
   val ButtonCopy: Css            = Css("explore-button-copy")
-  val ButtonsUndo: Css           = Css("explore-buttons-undo")
-  val ButtonsUndoLabel: Css      = Css("explore-buttons-undo-label")
   val ButtonSummary: Css         = Css("explore-button-summary")
   val TitleUndoButtons: Css      = Css("explore-title-undo-buttons")
   val TitleSelectColumns: Css    = Css("explore-title-select-columns")

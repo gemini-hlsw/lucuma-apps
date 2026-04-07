@@ -1,9 +1,10 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.optics
+package lucuma.ui.optics
 
 import cats.Eq
+import lucuma.ui.optics.Adjuster
 import monocle.law.discipline.*
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop.*

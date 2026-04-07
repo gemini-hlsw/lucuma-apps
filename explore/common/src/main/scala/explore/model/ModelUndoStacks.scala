@@ -4,7 +4,7 @@
 package explore.model
 
 import cats.Eq
-import explore.undo.UndoStacks
+import lucuma.ui.undo.UndoStacks
 import monocle.Focus
 
 case class ModelUndoStacks[F[_]](

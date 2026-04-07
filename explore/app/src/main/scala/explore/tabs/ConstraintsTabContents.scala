@@ -27,7 +27,6 @@ import explore.model.reusability.given
 import explore.observationtree.ConstraintGroupObsList
 import explore.shortcuts.*
 import explore.shortcuts.given
-import explore.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -41,6 +40,7 @@ import lucuma.react.resizeDetector.*
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.{*, given}
+import lucuma.ui.undo.*
 import monocle.Iso
 
 import scala.collection.immutable.SortedSet

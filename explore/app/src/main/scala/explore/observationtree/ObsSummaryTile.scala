@@ -26,7 +26,6 @@ import explore.model.enums.TableId
 import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.model.syntax.all.*
-import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
@@ -42,6 +41,7 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.table.*
 import lucuma.ui.table.*
 import lucuma.ui.table.hooks.*
+import lucuma.ui.undo.UndoSetter
 import monocle.Iso
 import workers.WorkerClient
 

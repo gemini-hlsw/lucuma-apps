@@ -13,7 +13,6 @@ import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
@@ -21,6 +20,7 @@ import lucuma.core.optics.syntax.lens.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.ToastCtx
+import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 

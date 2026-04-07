@@ -15,7 +15,7 @@ import explore.model.ProgramSummaries
 import explore.model.TargetIdSet
 import explore.model.syntax.all.*
 import explore.services.OdbAsterismApi
-import explore.undo.*
+import lucuma.ui.undo.*
 import monocle.Iso
 
 import scala.annotation.unused

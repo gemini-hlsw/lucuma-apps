@@ -10,9 +10,7 @@ import crystal.react.hooks.*
 import explore.Icons
 import explore.actions.ObservationInsertAction
 import explore.components.ActionButtons
-import explore.components.ToolbarTooltipOptions
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.AsterismGroup
 import explore.model.AsterismGroupList
@@ -33,7 +31,6 @@ import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
 import explore.syntax.ui.*
 import explore.targets.TargetAddDeleteActions
-import explore.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
@@ -52,6 +49,8 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.syntax.toast.*
+import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoButtons
 import mouse.boolean.*
 import org.typelevel.log4cats.Logger
 
@@ -574,7 +573,7 @@ object AsterismGroupObsList:
                 label = "Obs",
                 icon = Icons.New,
                 tooltip = "Add a new Observation",
-                tooltipOptions = ToolbarTooltipOptions.Default,
+                tooltipOptions = DefaultTooltipOptions,
                 severity = Button.Severity.Success,
                 disabled = addingTargetOrObs.get.value,
                 loading = addingTargetOrObs.get.value,
@@ -591,7 +590,7 @@ object AsterismGroupObsList:
                 label = "Tgt",
                 icon = Icons.New,
                 tooltip = "Add a new Target",
-                tooltipOptions = ToolbarTooltipOptions.Default,
+                tooltipOptions = DefaultTooltipOptions,
                 severity = Button.Severity.Success,
                 disabled = addingTargetOrObs.get.value,
                 loading = addingTargetOrObs.get.value,

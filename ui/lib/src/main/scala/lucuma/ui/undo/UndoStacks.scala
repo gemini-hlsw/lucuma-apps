@@ -1,9 +1,11 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.undo
+package lucuma.ui.undo
 
 import cats.Eq
+import lucuma.ui.undo.Restorer
+import lucuma.ui.undo.UndoStack
 import monocle.Focus
 
 case class UndoStacks[F[_], M](

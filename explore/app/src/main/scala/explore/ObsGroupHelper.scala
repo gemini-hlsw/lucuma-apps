@@ -7,7 +7,7 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
-import explore.undo.UndoSetter
+import lucuma.ui.undo.UndoSetter
 
 trait ObsGroupHelper:
   protected def observations: UndoSetter[ObservationList]

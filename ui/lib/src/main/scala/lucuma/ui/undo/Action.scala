@@ -1,11 +1,11 @@
 // Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
 // For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
 
-package explore.undo
+package lucuma.ui.undo
 
-import explore.optics.GetAdjust
 import japgolly.scalajs.react.util.DefaultEffects.Async as DefaultA
 import japgolly.scalajs.react.util.DefaultEffects.Sync as DefaultS
+import lucuma.ui.optics.GetAdjust
 import monocle.Lens
 
 /*

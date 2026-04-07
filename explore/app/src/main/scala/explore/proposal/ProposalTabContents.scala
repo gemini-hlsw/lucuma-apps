@@ -18,7 +18,6 @@ import explore.model.layout.LayoutsMap
 import explore.model.reusability.given
 import explore.services.OdbProposalApi
 import explore.syntax.ui.*
-import explore.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
@@ -36,6 +35,9 @@ import lucuma.ui.components.LoginStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
+import lucuma.ui.undo.*
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoSetter
 import org.typelevel.log4cats.Logger
 
 case class ProposalTabContents(

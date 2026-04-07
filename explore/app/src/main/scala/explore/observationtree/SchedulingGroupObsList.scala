@@ -12,7 +12,6 @@ import explore.Icons
 import explore.common.TimingWindowsQueries
 import explore.components.ActionButtons
 import explore.components.ui.ExploreStyles
-import explore.components.undo.UndoButtons
 import explore.model.AppContext
 import explore.model.Focused
 import explore.model.ObsIdSet
@@ -24,8 +23,6 @@ import explore.model.enums.AppTab
 import explore.model.syntax.all.*
 import explore.render.given
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
-import explore.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ScienceBand
@@ -43,6 +40,9 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.render.*
+import lucuma.ui.undo.UndoButtons
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import lucuma.ui.utils.Render
 import monocle.Iso
 import mouse.boolean.*
