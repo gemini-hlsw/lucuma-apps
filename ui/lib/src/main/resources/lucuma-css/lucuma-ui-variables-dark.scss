@@ -357,16 +357,16 @@
 
 @mixin dropdown-dark {
   --dropdown-selection-background: var(--control-background-color);
-  --dropdown-selection-visible-color: @gray-darker;
+  --dropdown-selection-visible-color: var(--color-text-light-75);
   --dropdown-item-color: var(--site-input-color);
 }
 
 @mixin checkbox-dark {
   --checkbox-background: var(--control-background-color);
-  --checkbox-focus-background: @gray-dark;
+  --checkbox-focus-background: var(--gray-dark);
   --checkbox-active-background: var(--control-background-color);
   --checkbox-active-focus-background: var(--control-background-color);
-  --checkbox-active-focus-check-color: @selectedTextColor;
+  --checkbox-active-focus-check-color: var(--color-text-full);
   --checkbox-border-color: var(--site-border-color);
   --checkbox-active-color: var(--form-input-color);
   --checkbox-hover-color: var(--input-color);

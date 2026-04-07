@@ -11,6 +11,23 @@
 
 @include meta.load-css('/lucuma-css/lucuma-ui-prime');
 
+.light-theme {
+  .p-button {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+
+  .p-button:enabled:hover {
+    background: hsl(210deg 50% 38%);
+    border-color: hsl(210deg 50% 38%);
+  }
+
+  .p-button:enabled:active {
+    background: hsl(210deg 50% 33%);
+    border-color: hsl(210deg 50% 33%);
+  }
+}
+
 .dark-theme,
 .light-theme {
   // TODO: Move to lucuma-ui

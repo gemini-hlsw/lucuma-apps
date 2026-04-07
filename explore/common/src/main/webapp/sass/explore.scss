@@ -21,8 +21,12 @@
   background: var(--control-background-color);
 }
 
-:root {
+.dark-theme {
   color-scheme: dark;
+}
+
+.light-theme {
+  color-scheme: light;
 }
 
 // Full viewport settings taken from https://dev.to/lennythedev/css-gotcha-how-to-fill-page-with-a-div-270j
@@ -49,6 +53,8 @@ a {
 body {
   overflow: hidden;
   position: fixed;
+  background-color: var(--color-background);
+  color: var(--text-color);
   min-height: 100dvh;
 
   /* mobile viewport bug fix */
@@ -3694,7 +3700,8 @@ $help-title-height: 40px;
   }
 }
 
-.dark-theme .p-selectbutton {
+.dark-theme .p-selectbutton,
+.light-theme .p-selectbutton {
   .p-button {
     border-color: var(--site-border-color);
   }
