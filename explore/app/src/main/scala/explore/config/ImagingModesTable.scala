@@ -215,6 +215,7 @@ object ImagingModesTable extends ModesTableCommon:
       ctx              <- useContext(AppContext.ctx)
       itcResults       <- useStateView(ItcResultsCache.Empty)
       itcProgress      <- useStateView(none[Progress])
+      dec              =  props.baseCoordinates.map(_.dec)
       rows             <- useMemo(
                             props.matrix,
                             props.exposureTimeMode,
@@ -224,7 +225,8 @@ object ImagingModesTable extends ModesTableCommon:
                             props.imaging.minimumFov,
                             props.imaging.allowedFilterTypes,
                             props.targetView.get,
-                            itcResults.get.cache.size
+                            itcResults.get.cache.size,
+                            dec
                           ):
                             (
                               matrix,
@@ -235,10 +237,11 @@ object ImagingModesTable extends ModesTableCommon:
                               minimumFov,
                               fts,
                               selectedTarget,
-                              _
+                              _,
+                              dec
                             ) =>
                               matrix
-                                .filtered(minimumFov, fts)
+                                .filtered(minimumFov, fts, dec)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in
                                   // multiple places, but we will still need to validate that the etm in set in
