@@ -1,4 +1,3 @@
-
 """whether this query should be cached (Hasura Cloud only)"""
 directive @cached(
   """measured in seconds"""
