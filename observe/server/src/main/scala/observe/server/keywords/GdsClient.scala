@@ -65,61 +65,6 @@ object GdsClient:
     }
     Client.fromHttpApp(service.orNotFound)
 
-  def apply[F[_]: Temporal](base: Client[F], gdsUri: Uri): GdsClient[F] = new GdsClient[F] {
-
-    private val client = makeClient(base)
-
-    /**
-     * Set the keywords for an image
-     */
-    override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
-      makeRequest("keywords", KeywordRequest(id, ks).asJson)
-
-    override def openObservation(
-      obsId: Observation.Id,
-      id:    ImageFileId,
-      ks:    KeywordBag
-    ): F[Unit] =
-      makeRequest("open-observation", OpenObservationRequest(obsId, id, ks).asJson)
-
-    override def closeObservation(id: ImageFileId): F[Unit] =
-      makeRequest("close-observation", IdRequest(id).asJson)
-
-    override def abortObservation(id: ImageFileId): F[Unit] =
-      makeRequest("abort-observation", IdRequest(id).asJson)
-
-    private def makeRequest(path: String, body: Json): F[Unit] = {
-      val uri         = gdsUri / path
-      val postRequest = POST(body, uri)
-
-      // Do the request
-      client
-        .expect[String](postRequest)
-        .adaptErr { case e => ObserveFailure.GdsException(e, uri) }
-        .void
-    }
-  }
-
-  case class KeywordRequest(id: ImageFileId, ks: KeywordBag)
-  case class OpenObservationRequest(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag)
-  case class IdRequest(id: ImageFileId)
-
-  given Encoder[InternalKeyword] =
-    Encoder.forProduct3("keyword", "value_type", "value")(ikw =>
-      (ikw.name.name, KeywordType.gdsKeywordType(ikw.keywordType), ikw.value)
-    )
-
-  given Encoder[KeywordRequest] =
-    Encoder.forProduct2("data_label", "keywords")(kwr => (kwr.id, kwr.ks.keywords))
-
-  given Encoder[OpenObservationRequest] =
-    Encoder.forProduct3("program_id", "data_label", "keywords")(oor =>
-      (oor.obsId.show, oor.id.value, oor.ks.keywords)
-    )
-
-  given Encoder[IdRequest] =
-    Encoder.forProduct1("data_label")(_.id.value)
-
   def loggingClient[F[_]: Logger](name: String) =
     new GdsClient[F]:
       override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
@@ -137,3 +82,61 @@ object GdsClient:
 
       override def abortObservation(id: ImageFileId): F[Unit] =
         overrideLogMessage(name, "abortObservation")
+
+  object json:
+    def apply[F[_]: Temporal](base: Client[F], gdsUri: Uri): GdsClient[F] =
+      new GdsClient[F] {
+
+        private val client = makeClient(base)
+
+        /**
+         * Set the keywords for an image
+         */
+        override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
+          makeRequest("keywords", KeywordRequest(id, ks).asJson)
+
+        override def openObservation(
+          obsId: Observation.Id,
+          id:    ImageFileId,
+          ks:    KeywordBag
+        ): F[Unit] =
+          makeRequest("open-observation", OpenObservationRequest(obsId, id, ks).asJson)
+
+        override def closeObservation(id: ImageFileId): F[Unit] =
+          makeRequest("close-observation", IdRequest(id).asJson)
+
+        override def abortObservation(id: ImageFileId): F[Unit] =
+          makeRequest("abort-observation", IdRequest(id).asJson)
+
+        private def makeRequest(path: String, body: Json): F[Unit] = {
+          val uri         = gdsUri / path
+          val postRequest = POST(body, uri)
+
+          // Do the request
+          client
+            .expect[String](postRequest)
+            .adaptErr { case e => ObserveFailure.GdsException(e, uri) }
+            .void
+        }
+      }
+
+    case class KeywordRequest(id: ImageFileId, ks: KeywordBag)
+    case class OpenObservationRequest(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag)
+    case class IdRequest(id: ImageFileId)
+
+    given Encoder[InternalKeyword] =
+      Encoder.forProduct3("keyword", "value_type", "value")(ikw =>
+        (ikw.name.name, KeywordType.gdsKeywordType(ikw.keywordType), ikw.value)
+      )
+
+    given Encoder[KeywordRequest] =
+      Encoder.forProduct2("data_label", "keywords")(kwr => (kwr.id, kwr.ks.keywords))
+
+    given Encoder[OpenObservationRequest] =
+      Encoder.forProduct3("program_id", "data_label", "keywords")(oor =>
+        (oor.obsId.show, oor.id.value, oor.ks.keywords)
+      )
+
+    given Encoder[IdRequest] =
+      Encoder.forProduct1("data_label")(_.id.value)
+

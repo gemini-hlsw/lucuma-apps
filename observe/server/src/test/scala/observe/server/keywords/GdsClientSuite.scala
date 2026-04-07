@@ -13,9 +13,9 @@ import munit.CatsEffectSuite
 import observe.model.dhs.*
 import observe.model.enums.KeywordName
 import observe.server.ObserveFailure
-import observe.server.keywords.GdsClient.IdRequest
-import observe.server.keywords.GdsClient.KeywordRequest
-import observe.server.keywords.GdsClient.OpenObservationRequest
+import observe.server.keywords.GdsClient.json.IdRequest
+import observe.server.keywords.GdsClient.json.KeywordRequest
+import observe.server.keywords.GdsClient.json.OpenObservationRequest
 import org.http4s.*
 import org.http4s.client.Client
 import org.http4s.syntax.all.*
@@ -27,7 +27,7 @@ class GdsClientSuite extends munit.CatsEffectSuite:
   val id          = ImageFileId("label")
 
   test("openObservation should succeed if http client returns Status.Ok"):
-    val client = GdsClient(httpClient(Status.Ok, "Success"), uri)
+    val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
     val ks     =
       KeywordBag(BooleanKeyword(KeywordName.SSA: KeywordName, false),
                  DoubleKeyword(KeywordName.OBJECT, 98.76)
@@ -39,30 +39,30 @@ class GdsClientSuite extends munit.CatsEffectSuite:
     val ks    =
       KeywordBag(BooleanKeyword(KeywordName.SSA, false), DoubleKeyword(KeywordName.OBJECT, 98.76))
     badStatuses.traverse_ : status =>
-      val client = GdsClient(httpClient(status, "Error"), uri)
+      val client = GdsClient.json(httpClient(status, "Error"), uri)
 
       interceptIO[ObserveFailure.GdsException](client.openObservation(obsId, id, ks))
 
   test("closeObservation should succeed if http client returns Status.Ok"):
-    val client = GdsClient(httpClient(Status.Ok, "Success"), uri)
+    val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
     assertIO_(client.closeObservation(id))
 
   test("closeObservation should throw exception if http client returns a bad status"):
     badStatuses.traverse_ : status =>
-      val client = GdsClient(httpClient(status, "Error"), uri)
+      val client = GdsClient.json(httpClient(status, "Error"), uri)
       interceptIO[ObserveFailure.GdsException](client.closeObservation(id))
 
   test("abortObservation should succeed if http client returns Status.Ok"):
-    val client = GdsClient(httpClient(Status.Ok, "Success"), uri)
+    val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
     assertIO_(client.abortObservation(id))
 
   test("abortObservation should throw exception if http client returns a bad status"):
     badStatuses.traverse_ : status =>
-      val client = GdsClient(httpClient(status, "Error"), uri)
+      val client = GdsClient.json(httpClient(status, "Error"), uri)
       interceptIO[ObserveFailure.GdsException](client.abortObservation(id))
 
   test("setKeywords should succeed if http client returns Status.Ok"):
-    val client = GdsClient(httpClient(Status.Ok, "Success"), uri)
+    val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
     val ks     = KeywordBag(StringKeyword(KeywordName.INSTRUMENT, "The INSTR."),
                         Int32Keyword(KeywordName.OBJECT, 123)
     )
@@ -73,7 +73,7 @@ class GdsClientSuite extends munit.CatsEffectSuite:
                         Int32Keyword(KeywordName.OBJECT, 123)
     )
     badStatuses.traverse_ : status =>
-      val client = GdsClient(httpClient(status, "Error"), uri)
+      val client = GdsClient.json(httpClient(status, "Error"), uri)
       interceptIO[ObserveFailure.GdsException](client.setKeywords(id, ks))
 
   test("OpenObservationRequests should encode to JSON properly"):
