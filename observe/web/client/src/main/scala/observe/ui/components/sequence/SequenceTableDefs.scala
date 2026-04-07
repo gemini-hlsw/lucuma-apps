@@ -60,9 +60,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     allVisits:          View[Option[ExecutionVisits]],
     datasetIdsInFlight: View[HashSet[Dataset.Id]],
     onBreakpointFlip:   (Observation.Id, Step.Id) => Callback,
-    editContexts:       SequenceEditContexts[D] = ???
-    // modAcquisition:     Endo[Option[Atom[D]]] => Callback = _ => Callback.empty,
-    // modScience:         Endo[List[Atom[D]]] => Callback = _ => Callback.empty
+    editContexts:       SequenceEditContexts[D]
   ) extends SequenceTableMeta[D]
 
   protected val ColDef = ColumnDef[SequenceTableRowType].WithTableMeta[TableMeta]
