@@ -131,7 +131,7 @@ object Igrins2LongslitConfigPanel
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
                 resetToOriginal = true,
-                helpId = Some("configuration/igrins2/offset-mode.md".refined),
+                helpId = Some("configuration/igrins2/offset-mode.md".refined)
               ),
               React.Fragment(
                 <.span(

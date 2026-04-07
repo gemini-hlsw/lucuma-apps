@@ -27,10 +27,11 @@ import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step as OdbStep
 import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
@@ -69,6 +70,7 @@ import observe.server.gws.GwsHeader
 import observe.server.igrins2.Igrins2
 import observe.server.igrins2.Igrins2Controller
 import observe.server.igrins2.Igrins2ControllerDisabled
+import observe.server.igrins2.Igrins2Header
 import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
@@ -284,7 +286,16 @@ object SeqTranslate {
       // Either a Step.Id is specified, or a sequence type to pick the next step from.
       stepIdFrom:      Either[SequenceType, OdbStep.Id],
       insSpec:         InstrumentSpecifics[S, D],
-      instf:           (SystemOverrides, CoreStepType, StepType, D) => InstrumentSystem[F],
+      instf:           (
+        SystemOverrides,
+        CoreStepType,
+        StepType,
+        D,
+        TelescopeConfig,
+        ObserveClass
+      ) => InstrumentSystem[
+        F
+      ],
       instHeader:      D => KeywordsClient[F] => Header[F],
       mkStepGen:       StepGen.Factory[F, D],
       startIdx:        PosInt = PosInt.unsafeFrom(1)
@@ -315,7 +326,13 @@ object SeqTranslate {
                 stepType,
                 insSpec,
                 (ov: SystemOverrides) =>
-                  instf(ov, step.stepConfig.stepType, stepType, step.instrumentConfig),
+                  instf(ov,
+                        step.stepConfig.stepType,
+                        stepType,
+                        step.instrumentConfig,
+                        step.telescopeConfig,
+                        step.observeClass
+                  ),
                 instHeader(step.instrumentConfig),
                 mkStepGen
               )
@@ -471,6 +488,7 @@ object SeqTranslate {
       case gn: gmos.DynamicConfig.GmosNorth => gn.centralWavelength
       case gs: gmos.DynamicConfig.GmosSouth => gs.centralWavelength
       case f2: Flamingos2DynamicConfig      => f2.centralWavelength.some
+      case i2: Igrins2DynamicConfig         => Igrins2.CentralWavelength
     }
 
     private def getTcs[S, D](
@@ -479,7 +497,7 @@ object SeqTranslate {
       inst:            InstrumentSpecifics[S, D],
       lsource:         LightSource,
       observation:     OdbObservation,
-      telescopeConfig: CoreTelescopeConfig,
+      telescopeConfig: TelescopeConfig,
       dynamicConfig:   D
     ): SystemOverrides => System[F] = site match {
       case Site.GS =>
@@ -533,16 +551,16 @@ object SeqTranslate {
 
     private def calcSystems[S, D](
       observation:     OdbObservation,
-      telescopeConfig: CoreTelescopeConfig,
+      telescopeConfig: TelescopeConfig,
       dynamicConfig:   D,
       stepType:        StepType,
       instSpec:        InstrumentSpecifics[S, D]
     ): Map[Resource, SystemOverrides => System[F]] = {
 
-      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] = b(
-        overriddenSystems.gcal(ov)
-      )
-      def defaultGcal: SystemOverrides => Gcal[F]                                  = adaptGcal(Gcal.defaultGcal)
+      def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] =
+        b(overriddenSystems.gcal(ov))
+
+      def defaultGcal: SystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
 
       stepType match {
         case StepType.CelestialObject(inst) =>
@@ -713,17 +731,6 @@ object SeqTranslate {
 //        dummyHeader[F]
 //      }
 //
-//    private def gemsHeaders(
-//      kwClient:   KeywordsClient[F],
-//      obsKReader: ObsKeywordsReader[F],
-//      tcsKReader: TcsKeywordsReader[F]
-//    ): Header[F] = GemsHeader.header[F](
-//      kwClient,
-//      systemss.gemsKeywordsReader,
-//      obsKReader,
-//      tcsKReader
-//    )
-//
     private def calcHeaders[D](
       obsCfg:     OdbObservation,
       stepCfg:    OdbStep[D],
@@ -806,7 +813,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosNorth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig) =>
+            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
               GmosNorth.build(
                 overriddenSystems.gmosNorth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -831,7 +838,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             GmosSouth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig) =>
+            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
               GmosSouth.build(
                 overriddenSystems.gmosSouth(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -856,7 +863,7 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Flamingos2.specifics,
-            (systemOverrides, coreStepType, _, dynamicConfig) =>
+            (systemOverrides, coreStepType, _, dynamicConfig, _, _) =>
               Flamingos2.build(
                 overriddenSystems.flamingos2(systemOverrides),
                 overriddenSystems.dhs(systemOverrides),
@@ -881,8 +888,19 @@ object SeqTranslate {
             executionConfig,
             stepIdFrom,
             Igrins2.specifics,
-            (_, _, _, _) => ???,      // Igrins2.build[F](), // TODO
-            _ => _ => dummyHeader[F], // TODO
+            (systemOverrides, _, _, dynamicConfig, telescopeConfig, observeClass) =>
+              Igrins2.build(
+                overriddenSystems.igrins2(systemOverrides),
+                dynamicConfig,
+                telescopeConfig,
+                observeClass
+              ),
+            (_: Igrins2DynamicConfig) =>
+              (kwClient: KeywordsClient[F]) =>
+                Igrins2Header.header(
+                  kwClient,
+                  systemss.tcsKeywordReader
+                ),
             StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
       }

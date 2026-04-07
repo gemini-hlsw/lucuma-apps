@@ -2,10 +2,10 @@
   "name": "@gemini-hlsw/explore",
   "private": true,
   "dependencies": {
-    "@atlaskit/pragmatic-drag-and-drop": "1.7.9",
+    "@atlaskit/pragmatic-drag-and-drop": "1.7.10",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0",
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "2.1.5",
-    "@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration": "2.0.15",
+    "@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration": "2.0.16",
     "@floating-ui/react": "0.27.19",
     "@fontsource/lato": "5.2.7",
     "@fortawesome/fontawesome-svg-core": "7.2.0",
@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "6.0.1",
-    "sass": "1.98.0",
+    "sass": "1.99.0",
     "unplugin-fonts": "1.4.0",
     "vite": "8.0.3",
     "vite-plugin-mkcert": "1.17.10",

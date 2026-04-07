@@ -22,6 +22,7 @@ import lucuma.core.enums.AttachmentType
 import lucuma.core.model.Program
 import lucuma.core.util.Timestamp
 import lucuma.ui.primereact.ToastCtx
+import lucuma.ui.syntax.effect.*
 import org.scalajs.dom.File as DomFile
 import org.typelevel.log4cats.Logger
 

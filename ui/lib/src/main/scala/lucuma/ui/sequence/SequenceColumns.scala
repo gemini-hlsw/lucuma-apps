@@ -31,20 +31,26 @@ import SequenceRowFormatters.*
 // `CM` is the type of the column meta.
 // `TF` is the type of the global filter.
 class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM, TF](
-  colDef:          ColumnDef.Applied[Expandable[HeaderOrRow[T]], TM, CM, TF],
+  colDef:          ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, TF],
   getStepFromRow:  T => Option[R],
   getIndexFromRow: T => Option[StepIndex]
 ) extends SequenceEditRowHelpers[D, T, R, TM, CM, TF](getStepFromRow):
+
   private lazy val dragHandleCol: colDef.TypeFor[Boolean] =
     colDef(
       SequenceColumns.DragHandleColumnId,
       _.getStep.map(_.isFinished).getOrElse(true),
       header = "",
       cell = c =>
-        val isFinished: Boolean = c.value
-        <.span(SequenceStyles.DragHandleCell)(
-          SequenceIcons.GripDotsVertical.unless(isFinished)
-        )
+        for
+          seqType <- c.getStep.flatMap(_.sequenceType)
+          ctx     <- c.table.options.meta.map(_.editContexts.forSequenceType(seqType))
+          if ctx.isEditing.get
+        yield
+          val isFinished: Boolean = c.value
+          <.span(SequenceStyles.DragHandleCell)(
+            SequenceIcons.GripDotsVertical.unless(isFinished)
+          )
       ,
       enableResizing = false
     )
@@ -55,23 +61,28 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.map(_.isFinished).getOrElse(true),
       header = "",
       cell = c =>
-        val isFinished: Boolean = c.value
-        <.span(SequenceStyles.EditControlsCell)(
-          Button(
-            icon = SequenceIcons.Clone,
-            clazz = SequenceStyles.CloneButton,
-            onClick = c.getStep.foldMap(step => handleAllSeqTypesRowEditAsync(c)(cloneRow(step))),
-            tooltip = "Clone Step",
-            tooltipOptions = TooltipOptions.Top
-          ).mini.compact,
-          Button(
-            icon = SequenceIcons.Trash,
-            clazz = SequenceStyles.DeleteButton,
-            onClick = c.getFutureStep.foldMap(step => handleRowEdit(c)(deleteRow(step.stepId))),
-            tooltip = "Remove Step",
-            tooltipOptions = TooltipOptions.Top
-          ).mini.compact.unless(isFinished)
-        )
+        for
+          seqType <- c.getStep.flatMap(_.sequenceType)
+          ctx     <- c.table.options.meta.map(_.editContexts.forSequenceType(seqType))
+          if ctx.isEditing.get
+        yield
+          val isFinished: Boolean = c.getStep.forall(_.isFinished)
+          <.span(SequenceStyles.EditControlsCell)(
+            Button(
+              icon = SequenceIcons.Clone,
+              clazz = SequenceStyles.CloneButton,
+              onClick = c.getStep.foldMap(step => handleAllSeqTypesRowEditAsync(c)(cloneRow(step))),
+              tooltip = "Clone Step",
+              tooltipOptions = TooltipOptions.Top
+            ).mini.compact,
+            Button(
+              icon = SequenceIcons.Trash,
+              clazz = SequenceStyles.DeleteButton,
+              onClick = c.getFutureStep.foldMap(step => handleRowEdit(c)(deleteRow(step.stepId))),
+              tooltip = "Remove Step",
+              tooltipOptions = TooltipOptions.Top
+            ).mini.compact.unless(isFinished)
+          )
       ,
       enableResizing = false
     )
@@ -96,7 +107,11 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.exposureTime),
       header = _ => "Exp (sec)",
       cell = c =>
-        val isEditing: Boolean  = c.table.options.meta.exists(_.isEditing.value)
+        val isEditing: Boolean  =
+          (for
+            seqType <- c.getStep.flatMap(_.sequenceType)
+            ctx     <- c.table.options.meta.map(_.editContexts.forSequenceType(seqType))
+          yield ctx.isEditing.get.value).getOrElse(false)
         val isFinished: Boolean = c.getStep.forall(_.isFinished)
         (c.value, c.getStep.flatMap(_.instrument))
           .mapN[VdomNode]: (v, i) =>
@@ -292,8 +307,8 @@ object SequenceColumns:
 
   object BaseColumnSizes {
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
-      DragHandleColumnId   -> FixedSize(35.toPx),
-      EditControlsColumnId -> FixedSize(70.toPx),
+      DragHandleColumnId   -> FixedSize(25.toPx),
+      EditControlsColumnId -> FixedSize(50.toPx),
       IndexAndTypeColumnId -> FixedSize(60.toPx),
       ExposureColumnId     -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
       GuideColumnId        -> FixedSize(36.toPx),
@@ -373,17 +388,17 @@ object SequenceColumns:
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 
-  def headerCell[T, R, TM, CM, FM](
+  def headerCell[D, T, R, TM <: SequenceTableMeta[D], CM, FM](
     colId:  ColumnId,
-    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[T]], TM, CM, FM]
-  ): colDef.TypeFor[Option[VdomNode]] =
+    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, FM]
+  ): colDef.TypeFor[Option[SequenceEditContexts[D] => VdomNode]] =
     colDef(
       colId,
       _.value.left.toOption.map(_.content),
       header = "",
       cell = cell =>
-        cell.value
-          .map: header =>
+        (cell.value, cell.table.options.meta.map(_.editContexts))
+          .mapN: (renderHeader, editContexts) =>
             <.span(
               SequenceStyles.TableHeader,
               TagMod(
@@ -395,7 +410,7 @@ object SequenceColumns:
                   TableStyles.ExpanderChevronOpen.when(cell.row.getIsExpanded())
                 )(TableIcons.ChevronRight.withFixedWidth())
               ).when(cell.row.getCanExpand()),
-              <.span(SequenceStyles.TableHeaderContent)(header)
+              <.span(SequenceStyles.TableHeaderContent)(renderHeader(editContexts))
             ),
       enableResizing = false
     )

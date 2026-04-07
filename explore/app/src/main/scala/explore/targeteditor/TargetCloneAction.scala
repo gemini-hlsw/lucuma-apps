@@ -14,12 +14,12 @@ import explore.model.OnCloneParameters
 import explore.model.syntax.all.*
 import explore.services.OdbAsterismApi
 import explore.services.OdbTargetApi
-import explore.undo.*
 import japgolly.scalajs.react.*
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.undo.*
 
 import scala.annotation.unused
 

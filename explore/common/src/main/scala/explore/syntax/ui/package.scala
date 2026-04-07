@@ -5,7 +5,6 @@ package explore.syntax.ui
 
 import cats.*
 import cats.data.NonEmptyList
-import cats.effect.MonadCancelThrow
 import cats.syntax.all.*
 import clue.ResponseException
 import clue.js.FetchJsRequest
@@ -20,7 +19,6 @@ import explore.model.RegionOrCoordinatesAt
 import explore.model.RegionOrTracking
 import explore.model.display.given
 import explore.model.syntax.all.*
-import explore.optics.GetAdjust
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.callback.Callback
 import japgolly.scalajs.react.util.Effect
@@ -49,6 +47,7 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.schemas.model.CoordinatesAt
+import lucuma.ui.optics.GetAdjust
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.pot.*
@@ -105,30 +104,6 @@ extension [F[_]: {ApplicativeThrow, ToastCtx}, A](f: F[A])
         ToastCtx[F]
           .showToast(throwable.getMessage, Message.Severity.Error, sticky = true)
     }
-
-extension [F[_]: MonadCancelThrow, A](f: F[A])
-
-  /**
-   * Switch the value of a ViewF to true while executing the given effect, then switch it back to
-   * false when the effect is finished
-   */
-  def switching(
-    view: ViewF[F, Boolean]
-  ): F[A] = switching(view, true, false)
-
-  /**
-   * Switch the value of a ViewF to true-ish (by the function) while executing the given effect,
-   * then switch it back to false when the effect is finished
-   */
-  def switching[B](view: ViewF[F, B], boolToB: Boolean => B): F[A] =
-    switching(view, boolToB(true), boolToB(false))
-
-  /**
-   * Switch the value of a ViewF to the @param acquire value while executing the given effect, then
-   * switch it back to @param release when the effect is finished
-   */
-  def switching[B](view: ViewF[F, B], acquire: B, release: B): F[A] =
-    MonadCancelThrow[F].bracket(view.set(acquire))(_ => f)(_ => view.set(release))
 
 extension [A](pot: Pot[A])
   def orSpinner(f: A => VdomNode): VdomNode =

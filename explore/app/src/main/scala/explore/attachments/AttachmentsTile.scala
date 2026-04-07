@@ -55,6 +55,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.react.given
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.table.*
 import lucuma.ui.utils.*
 import org.scalajs.dom.File as DomFile

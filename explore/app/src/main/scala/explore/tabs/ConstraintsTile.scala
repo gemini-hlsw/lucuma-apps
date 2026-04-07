@@ -15,7 +15,6 @@ import explore.model.ObsTabTileIds
 import explore.model.display.given
 import explore.model.formats.*
 import explore.services.OdbObservationApi
-import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.ConstraintSet
@@ -25,6 +24,7 @@ import lucuma.core.syntax.display.*
 import lucuma.react.primereact.Dropdown
 import lucuma.react.primereact.SelectItem
 import lucuma.schemas.model.CentralWavelength
+import lucuma.ui.undo.UndoSetter
 
 final case class ConstraintsTile(
   obsId:                   Observation.Id,

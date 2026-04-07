@@ -5,7 +5,7 @@ package explore.model
 
 import cats.syntax.all.*
 import eu.timepit.refined.collection.NonEmpty
-import explore.optics.all.*
+import explore.optics.ModelOptics.*
 import lucuma.core.math.*
 import lucuma.core.math.HourAngle.HMS
 import lucuma.core.model.IntCentiPercent

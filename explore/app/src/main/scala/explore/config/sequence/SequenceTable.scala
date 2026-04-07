@@ -3,11 +3,10 @@
 
 package explore.config.sequence
 
-import cats.Endo
 import cats.data.NonEmptyList
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
-import japgolly.scalajs.react.callback.Callback
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.*
@@ -20,15 +19,18 @@ import lucuma.ui.sequence.*
 private trait SequenceTable[S, D]:
   def visits: View[Option[ExecutionVisits]]
   def staticConfig: S
-  def acquisition: Option[Atom[D]]
-  def science: Option[List[Atom[D]]]
+  def acquisition: View[List[Atom[D]]]
+  def science: View[List[Atom[D]]]
   def signalToNoise: SequenceType => D => Option[SignalToNoise]
-  def isEditing: IsEditing
-  def modAcquisition: Endo[Option[Atom[D]]] => Callback
-  def modScience: Endo[List[Atom[D]]] => Callback
+  def isEditEnabled: IsEditEnabled
+  def isEditingAcquisition: View[IsEditing]
+  def isEditingScience: View[IsEditing]
   def isUserStaffOrAdmin: Boolean
+  def remoteReplace: SequenceType => List[Atom[D]] => IO[List[Atom[D]]]
 
   def toInstrumentVisits: PartialFunction[ExecutionVisits, NonEmptyList[Visit[D]]]
+
+  lazy val isEditing: Boolean = isEditingAcquisition.get || isEditingScience.get
 
   protected[sequence] lazy val instrumentVisits: List[Visit[D]] =
     visits.get
@@ -71,18 +73,25 @@ private trait SequenceTable[S, D]:
   private lazy val isExecuting: Boolean                         =
     currentVisitData.exists(_._3)
 
-  protected[sequence] lazy val scienceRows: List[SequenceRow[D]] =
-    science
-      .map(futureSteps(SequenceType.Science, currentSequenceType.filter(_ => isExecuting)))
-      .orEmpty
+  protected[sequence] def buildRows(
+    resolvedAcquisition: List[Atom[D]],
+    resolvedScience:     List[Atom[D]]
+  ): (List[SequenceRow[D]], List[SequenceRow[D]]) = {
+    val scienceRows: List[SequenceRow[D]] =
+      futureSteps(SequenceType.Science, currentSequenceType.filter(_ => isExecuting))(
+        resolvedScience
+      )
 
-  // Hide acquisition when science is executing or when sequence is complete.
-  protected[sequence] lazy val isAcquisitionDisplayed: Boolean =
-    !currentSequenceType.contains_(SequenceType.Science) && scienceRows.nonEmpty
+    // Hide acquisition when science is executing or when sequence is complete.
+    val isAcquisitionDisplayed: Boolean =
+      !currentSequenceType.contains_(SequenceType.Science) && scienceRows.nonEmpty
 
-  protected[sequence] lazy val acquisitionRows: List[SequenceRow[D]] =
-    acquisition // If we are executing Science, don't show any future acquisition rows.
-      .filter(_ => isAcquisitionDisplayed)
-      .map(List(_))
-      .map(futureSteps(SequenceType.Acquisition, currentSequenceType.filter(_ => isExecuting)))
-      .orEmpty
+    val acquisitionRows: List[SequenceRow[D]] =
+      resolvedAcquisition.headOption // If we are executing Science, don't show any future acquisition rows.
+        .filter(_ => isAcquisitionDisplayed)
+        .map(List(_))
+        .map(futureSteps(SequenceType.Acquisition, currentSequenceType.filter(_ => isExecuting)))
+        .orEmpty
+
+    (acquisitionRows, scienceRows)
+  }

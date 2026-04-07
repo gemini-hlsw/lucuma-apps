@@ -31,6 +31,8 @@ import lucuma.core.util.WithUid
 import lucuma.react.SizePx
 import lucuma.react.common.Size
 import lucuma.react.table.*
+import lucuma.schemas.model.ExecutionVisits
+import lucuma.schemas.model.StepRecord
 import lucuma.schemas.model.Visit
 import lucuma.ui.aladin.facade.AladinOptions
 import lucuma.ui.sso.UserVault
@@ -151,6 +153,9 @@ trait ModelReusabiltyInstances
   given Reusability[ConstraintSet]                           = Reusability.byEq
   given Reusability[InstrumentExecutionConfig]               = Reusability.byEq
   given [D]: Reusability[Visit[D]]                           = Reusability.byEq
+  given [D]: Reusability[StepRecord[D]]                      = Reusability.byEq
+  given [D: Eq]: Reusability[Atom[D]]                        = Reusability.byEq
+  given Reusability[ExecutionVisits]                         = Reusability.byEq
 
 trait TableReusabilityInstances:
   given Reusability[SizePx]                    = Reusability.by(_.value)
@@ -164,7 +169,7 @@ trait TableReusabilityInstances:
   given Reusability[ColumnFilters]             = Reusability.by(_.value.toSet)
   given Reusability[RowSelection]              = Reusability.by(_.value.toSet)
   given [TF]: Reusability[TableState[TF]]      =
-    Reusability.by(state => (state.columnVisibility, state.sorting))
+    Reusability.by(state => (state.columnVisibility, state.sorting, state.columnFilters))
   given Reusability[ColumnSize]                = Reusability.byEq
   given Reusability[Map[ColumnId, ColumnSize]] = Reusability.map
 

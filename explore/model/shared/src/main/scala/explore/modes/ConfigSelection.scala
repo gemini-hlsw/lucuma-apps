@@ -96,6 +96,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
+      case ItcInstrumentConfig.GhostIfu(_, _, _)                                              =>
+        none
       case _                                                                                  => none)
 
 object ConfigSelection:

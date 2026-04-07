@@ -15,6 +15,8 @@ import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.SelectButtonOptional
 import lucuma.react.primereact.SplitButton
 import lucuma.react.primereact.ToggleButton
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.TooltipOptions
 
 import scalajs.js
 
@@ -119,4 +121,11 @@ extension [A](
 extension (addons: List[TagMod])
   private[primereact] def build(size: js.UndefOr[PlSize]): TagMod = addons.toTagMod(using
     a => <.span(a, PrimeStyles.InputGroupAddon |+| size.toOption.map(_.cls).orEmpty)
+  )
+
+val DefaultTooltipOptions =
+  TooltipOptions(
+    showOnDisabled = true,
+    position = Tooltip.Position.Top,
+    showDelay = 200
   )

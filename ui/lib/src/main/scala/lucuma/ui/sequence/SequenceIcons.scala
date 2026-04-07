@@ -35,6 +35,10 @@ object SequenceIcons:
   private val faGripDotsVertical: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faPencil")
+  val faPencil: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-solid-svg-icons", "faSquare")
   private val faSquare: FAIcon = js.native
 
@@ -53,6 +57,7 @@ object SequenceIcons:
     faCircle,
     faClone,
     faCrosshairs,
+    faPencil,
     faSquare,
     faTrash,
     faXMark
@@ -71,6 +76,7 @@ object SequenceIcons:
   inline def Clone            = FontAwesomeIcon(faClone)
   inline def Crosshairs       = FontAwesomeIcon(faCrosshairs)
   inline def GripDotsVertical = FontAwesomeIcon(faGripDotsVertical)
+  inline def Pencil           = FontAwesomeIcon(faPencil)
   inline def Square           = FontAwesomeIcon(faSquare)
   inline def Trash            = FontAwesomeIcon(faTrash)
   inline def XMark            = FontAwesomeIcon(faXMark)

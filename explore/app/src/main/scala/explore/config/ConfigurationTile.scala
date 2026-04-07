@@ -37,8 +37,6 @@ import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import explore.modes.ScienceModes
 import explore.services.OdbObservationApi
-import explore.syntax.ui.*
-import explore.undo.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Angle
@@ -57,6 +55,8 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.*
 import lucuma.schemas.odb.input.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.effect.*
+import lucuma.ui.undo.*
 import monocle.Iso
 import queries.schemas.itc.syntax.*
 

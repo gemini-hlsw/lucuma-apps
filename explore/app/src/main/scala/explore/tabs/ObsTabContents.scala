@@ -10,6 +10,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.*
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.*
@@ -25,9 +26,6 @@ import explore.plots.PlotData
 import explore.shortcuts.*
 import explore.shortcuts.given
 import explore.syntax.ui.*
-import explore.undo.UndoContext
-import explore.undo.UndoSetter
-import explore.undo.Undoer
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -47,6 +45,9 @@ import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.{*, given}
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.UndoSetter
+import lucuma.ui.undo.Undoer
 import monocle.Iso
 import monocle.Optional
 
@@ -231,7 +232,7 @@ object ObsTabContents extends TwoPanels:
                 outlined = true,
                 disabled = false,
                 tooltip = "Show Observation Tree",
-                tooltipOptions = ToolbarTooltipOptions.Default,
+                tooltipOptions = DefaultTooltipOptions,
                 icon = Icons.ArrowRightFromLine,
                 clazz = ExploreStyles.ObsTreeHideShow,
                 onClick = deckShown.mod(_.flip)
@@ -240,6 +241,18 @@ object ObsTabContents extends TwoPanels:
 
         val backButton: VdomNode =
           makeBackButton(props.programId, AppTab.Observations, twoPanelState, ctx)
+
+        val filtersView =
+          props.globalPreferences
+            .zoom(GlobalPreferences.observationTableFilters)
+            .withOnMod: v =>
+              import ctx.given
+              GlobalUserPreferences
+                .storeTableFilterPreferences[IO](
+                  props.vault.userId.get,
+                  observationTableFilters = v.some
+                )
+                .runAsync
 
         val obsSummaryTableTile: Tile[?] =
           ObsSummaryTile(
@@ -251,7 +264,8 @@ object ObsTabContents extends TwoPanels:
             props.targets.get,
             props.programSummaries.get.allocatedScienceBands.nonEmpty,
             props.readonly,
-            backButton
+            backButton,
+            filtersView
           )
 
         val plotData: PlotData =

@@ -525,13 +525,6 @@ thead tr th.sticky-header {
   container-type: size;
 }
 
-@container tile (min-width: #{exploreCommon.$tile-xtra-small-cutoff}) {
-  // For very small tiles make the undo buttons remove the text
-  .explore-buttons-undo .p-button-label {
-    display: none;
-  }
-}
-
 .fade-in {
   animation: fadeIn 0.5s;
 }
@@ -634,15 +627,6 @@ thead tr th.sticky-header {
   &:enabled:hover {
     color: var(--site-text-color);
     filter: brightness(100%);
-  }
-}
-
-// -------
-// Undo
-// -------
-.explore-buttons-undo {
-  .p-component.p-button {
-    color: var(--site-text-color);
   }
 }
 
@@ -1307,20 +1291,6 @@ $search-preview-margin: 5px;
   width: 100%;
   display: flex;
 
-  .explore-sequence-tile-title-side {
-    flex: 1 1 0;
-
-    &.explore-sequence-tile-title-undo {
-      text-align: center;
-    }
-
-    &.explore-sequence-tile-title-edit {
-      display: flex;
-      justify-content: flex-end;
-      gap: 1rem;
-    }
-  }
-
   .explore-sequence-tile-title-summary {
     display: flex;
     gap: 1rem;
@@ -1331,7 +1301,7 @@ $search-preview-margin: 5px;
   }
 }
 
-@container tile (min-width: #{exploreCommon.$tile-xtra-small-cutoff}) {
+@container tile (min-width: #{lucumaUICommon.$container-xtra-small-cutoff}) {
   .explore-sequence-tile-title {
     > :first-child {
       display: inline;
@@ -2182,6 +2152,12 @@ svg.fa-check.explore-success-icon {
 
   height: 90vh;
   top: $top-bottom-space;
+
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    &.pl-dialog-large {
+      width: 80%;
+    }
+  }
 }
 
 .api-keys-popup.p-dialog,
@@ -2474,6 +2450,10 @@ img.partner-split-flag {
   overflow-x: auto;
   min-width: 100%;
   position: relative;
+
+  .p-datatable-thead > tr > th {
+    vertical-align: top;
+  }
 
   table {
     min-height: 60px;

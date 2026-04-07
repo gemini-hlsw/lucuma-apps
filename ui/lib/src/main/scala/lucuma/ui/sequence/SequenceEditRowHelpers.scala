@@ -26,9 +26,9 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
 ) extends SequenceEditOptics[D]:
 
   protected type CellContextType[A] =
-    CellContext[Expandable[HeaderOrRow[T]], A, TM, ?, TF, ?, ?]
+    CellContext[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], A, TM, ?, TF, ?, ?]
 
-  extension (row: Expandable[HeaderOrRow[T]])
+  extension (row: Expandable[HeaderOrRow[SequenceEditContexts[D], T]])
     protected def getStep: Option[R] =
       row.value.toOption.flatMap(row => getStepFromRow(row))
 
@@ -47,7 +47,7 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
     c.table.options.meta.foldMap: meta =>
       rowEdit
         .flatMap: mod =>
-          meta.seqTypeMod(seqType)(mod).toAsync
+          meta.editContexts.seqTypeMod(seqType)(mod).toAsync
         .runAsyncAndForget
 
   protected def handleAllSeqTypesRowEditAsync[A](c: CellContextType[A])(
@@ -59,7 +59,8 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   protected def handleSeqTypeRowEdit[A](c: CellContextType[A], seqType: SequenceType)(
     rowEdit: Endo[List[Atom[D]]]
   ): Callback =
-    c.table.options.meta.foldMap(_.seqTypeMod(seqType)(rowEdit))
+    c.table.options.meta.foldMap:
+      _.editContexts.seqTypeMod(seqType)(rowEdit)
 
   protected def handleRowEdit[A](c: CellContextType[A])(rowEdit: Endo[List[Atom[D]]]): Callback =
     c.getFutureStep.foldMap: futureStep =>

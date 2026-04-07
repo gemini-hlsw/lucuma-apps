@@ -1,0 +1,116 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package queries.schemas.itc
+
+import cats.Hash
+import cats.data.EitherNec
+import cats.data.NonEmptyList
+import cats.syntax.all.*
+import explore.model.Constants
+import explore.model.TargetList
+import explore.model.itc.ItcQueryProblem
+import explore.model.itc.ItcTarget
+import explore.model.itc.ItcTargetProblem
+import explore.modes.ItcInstrumentConfig
+import explore.optics.ModelOptics.*
+import lucuma.core.enums.GmosRoi
+import lucuma.core.math.RadialVelocity
+import lucuma.core.math.Wavelength
+import lucuma.core.model.*
+import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.itc.client.GmosFpu
+import lucuma.itc.client.InstrumentMode
+import lucuma.itc.client.TargetInput
+
+import scala.collection.immutable.SortedSet
+
+trait syntax:
+
+  extension (row: ItcInstrumentConfig)
+    // GHOST NOTE: This will need to return anEitherNec[ItcQueryProblem, ItcAsterismGraphResults]]
+    // and take the list of targets or their number as a parameter to validate the GHOST mode.
+    // (Standard resolution can have one or 2 targets, high resolution can only have one.)
+    // Actually, we may need to validate the targets earlier, because the GHOST ItcInstrumentConfig
+    // will need to assign targets to CCDs.
+    // It will also need to validate that the ETM is Time and Count.
+    def toItcClientMode: Option[InstrumentMode] =
+      row match
+        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
+          val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
+          modeOverrides
+            .map(_.centralWavelength.value)
+            .flatMap: (cw: Wavelength) =>
+              InstrumentMode
+                .GmosNorthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.North(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
+                .some
+        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
+          val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
+          modeOverrides
+            .map(_.centralWavelength.value)
+            .flatMap: (cw: Wavelength) =>
+              InstrumentMode
+                .GmosSouthSpectroscopy(etm,
+                                       cw,
+                                       grating,
+                                       filter,
+                                       GmosFpu.South(fpu.asRight),
+                                       ccd,
+                                       roi
+                )
+                .some
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, etm)             =>
+          InstrumentMode
+            .Flamingos2Spectroscopy(etm, disperser, filter, fpu)
+            .some
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosNorthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm, modeOverrides)                    =>
+          InstrumentMode.GmosSouthImaging(etm, filter, none).some
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
+          InstrumentMode.Igrins2Spectroscopy(etm).some
+        case ItcInstrumentConfig.GhostIfu(_, _, _)                                               =>
+          none
+        case _                                                                                   => None
+
+  // We may consider adjusting this to consider small variations of RV identical for the
+  // purpose of doing ITC calculations
+  private given Hash[RadialVelocity] = Hash.by(_.rv.value)
+  private given Hash[SourceProfile]  = Hash.fromUniversalHashCode
+  private given Hash[TargetInput]    = Hash.by(x => (x.sourceProfile, x.radialVelocity))
+  private given Hash[ItcTarget]      = Hash.by(x => (x.name.value, x.input))
+
+  extension (targetIds: SortedSet[Target.Id])
+    // assumes all targets are present
+    def toAsterism(allTargets: TargetList): List[Target] =
+      targetIds.toList.map(targetId => allTargets.get(targetId).map(_.target)).flattenOption
+
+    def toItcTargets(allTargets: TargetList): EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
+      toAsterism(allTargets).toItcTargets
+
+  extension (target: Target)
+    def itcTarget: EitherNec[ItcTargetProblem, ItcTarget] =
+      // ToOs have source profiles, but no RV, so we'll just use Zero
+      val rv: RadialVelocity = TargetRV.getOption(target).getOrElse(RadialVelocity.Zero)
+      ItcTarget(target.name, TargetInput(Target.sourceProfile.get(target), rv)).orItcProblem
+
+  extension (asterism: List[Target])
+    def toItcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
+      asterism
+        .traverse(_.itcTarget)
+        .map(_.hashDistinct)
+        .flatMap(
+          _.toNel
+            .toRightNec(ItcTargetProblem(None, ItcQueryProblem.GenericError(Constants.NoTargets)))
+        )
+
+object syntax extends syntax

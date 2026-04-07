@@ -15,7 +15,6 @@ import crystal.Pot
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.cats.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.UserPreferencesQueries.TableStore
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
@@ -131,12 +130,12 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       ModeSlitSize.milliarcseconds.get(ss.value).setScale(3, BigDecimal.RoundingMode.UP)
     )
 
-  private val formatSlitLength: ModeSlitSize => String = ss =>
-    f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(0, BigDecimal.RoundingMode.DOWN)}%1.0f"
-
-  private def formatInstrument(r: (Instrument, NonEmptyString)): String = r match
-    case (i @ Instrument.Gnirs, m) => s"${i.longName} $m"
-    case (i, _)                    => i.longName
+  private def formatSlitLength(instrument: Instrument, ss: ModeSlitSize): String =
+    instrument match
+      case Instrument.Ghost =>
+        f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(1, BigDecimal.RoundingMode.UP)}%3.1f"
+      case _                =>
+        f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(0, BigDecimal.RoundingMode.DOWN)}%1.0f"
 
   private def formatFPU(r: FocalPlane): String = r match
     case FocalPlane.SingleSlit   => "Single"
@@ -149,20 +148,12 @@ private object SpectroscopyModesTable extends ModesTableCommon:
 
     val width = config match {
       case ItcInstrumentConfig.GmosNorthSpectroscopy(
-            _,
-            _,
-            _,
-            _,
-            Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
+            modeOverrides = Some(InstrumentOverrides.GmosSpectroscopy(ccdMode = ccd))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
         fmtGmos(px, ccd.xBin)
       case ItcInstrumentConfig.GmosSouthSpectroscopy(
-            _,
-            _,
-            _,
-            _,
-            Some(InstrumentOverrides.GmosSpectroscopy(_, ccd, _))
+            modeOverrides = Some(InstrumentOverrides.GmosSpectroscopy(ccdMode = ccd))
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
         fmtGmos(px, ccd.xBin)
@@ -184,7 +175,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
     List(
       column(
         InstrumentColumnId,
-        row => formatInstrument(SpectroscopyModeRow.instrumentAndConfig.get(row.entry))
+        _.entry.instrumentLabel
       )
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
@@ -212,10 +203,15 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(cell => slitWidthCell(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(100.toPx))
         .sortableBy(_._2),
-      column(SlitLengthColumnId, row => SpectroscopyModeRow.slitLength.get(row.entry))
-        .withCell(cell => formatSlitLength(cell.value.value))
+      column(SlitLengthColumnId,
+             row =>
+               (SpectroscopyModeRow.instrument.get(row.entry),
+                SpectroscopyModeRow.slitLength.get(row.entry)
+               )
+      )
+        .withCell(cell => formatSlitLength(cell.value._1, cell.value._2.value))
         .withColumnSize(FixedSize(105.toPx))
-        .sortable,
+        .sortableBy(_._2),
       column(GratingColumnId, row => SpectroscopyModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.gratingStr)
         .withColumnSize(FixedSize(96.toPx))

@@ -9,6 +9,9 @@ import fs2.Stream
 import giapi.client.GiapiClient
 import giapi.client.commands.Configuration
 import giapi.client.igrins2.Igrins2Client
+import lucuma.core.enums.ObserveClass
+import lucuma.core.math.Angle
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
@@ -23,14 +26,25 @@ sealed trait Igrins2Config:
   val readoutTime: TimeSpan
 
 object Igrins2Config:
-  def apply(d: Igrins2DynamicConfig): Igrins2Config =
+  def apply(
+    d:            Igrins2DynamicConfig,
+    tc:           TelescopeConfig,
+    observeClass: ObserveClass
+  ): Igrins2Config =
     val expTSecs = d.exposure.toSeconds.toDouble
-    // TODO pass along p/q and state (save svc)
-    // ig2:seq:p
-    // ig2:seq:q
-    // ig2:seq:state
-    val config   = Configuration.single("ig2:dcs:expTime", expTSecs) |+|
-      Configuration.single("ig2:seq:state", "sci")
+    val pArcsec  = tc.offset.p.toSignedDecimalArcseconds.toDouble
+    val qArcsec  = tc.offset.q.toSignedDecimalArcseconds.toDouble
+
+    val seqState = observeClass match
+      case ObserveClass.DayCal      => "dayCal"
+      case ObserveClass.Acquisition => "acq"
+      case _                        => "sci"
+
+    val config =
+      Configuration.single("ig2:dcs:expTime", expTSecs) |+|
+        Configuration.single("ig2:seq:state", seqState) |+|
+        Configuration.single("ig2:seq:p", pArcsec) |+|
+        Configuration.single("ig2:seq:q", qArcsec)
 
     new Igrins2Config:
       override def configuration: Configuration = config
@@ -44,7 +58,7 @@ trait Igrins2Controller[F[_]] extends GiapiInstrumentController[F, Igrins2Config
 
   def sequenceComplete: F[Unit]
 
-  def requestedTime: F[Option[Float]]
+  def requestedTime: F[Option[BigDecimal]]
 
   def currentStatus: F[Igrins2ControllerState]
 
@@ -81,7 +95,7 @@ object Igrins2Controller:
       override def sequenceComplete: F[Unit] =
         client.sequenceComplete
 
-      def requestedTime: F[Option[Float]] = client.requestedTime
+      def requestedTime: F[Option[BigDecimal]] = client.requestedTime.map(_.map(BigDecimal(_)))
 
       def currentStatus: F[Igrins2ControllerState] =
         client.currentStatus

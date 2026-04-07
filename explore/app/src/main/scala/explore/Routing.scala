@@ -14,8 +14,6 @@ import explore.modes.ScienceModes
 import explore.proposal.ProposalTabContents
 import explore.syntax.ui.*
 import explore.tabs.*
-import explore.undo.UndoContext
-import explore.undo.Undoer
 import japgolly.scalajs.react.React
 import japgolly.scalajs.react.ReactMonocle.*
 import japgolly.scalajs.react.extra.router.*
@@ -34,6 +32,8 @@ import lucuma.ui.react.given
 import lucuma.ui.router.syntax.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.undo.UndoContext
+import lucuma.ui.undo.Undoer
 
 import scala.collection.immutable.SortedSet
 import scala.scalajs.LinkingInfo

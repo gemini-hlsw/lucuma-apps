@@ -20,7 +20,6 @@ import explore.model.ProgramTimeRange
 import explore.model.enums.GroupWarning
 import explore.services.OdbApi
 import explore.syntax.ui.*
-import explore.undo.UndoSetter
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.optics.syntax.lens.*
@@ -39,6 +38,8 @@ import lucuma.ui.format.TimeSpanFormatter.HoursMinutesAbbreviation
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.effect.*
+import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 

@@ -64,6 +64,10 @@ object ModesQueriesGQL:
             filter
             fpu
           }
+          ghost {
+            resolutionMode
+            binning
+          }
         }
 
         imagingConfigOptions(

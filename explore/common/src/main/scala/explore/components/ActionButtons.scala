@@ -36,7 +36,7 @@ object ActionButtons:
           icon = Icons.Clone.withFixedWidth(),
           onClick = props.copyProps.callback,
           tooltip = "Copy" + props.copyProps.tooltipExtraStr,
-          tooltipOptions = ToolbarTooltipOptions.Default,
+          tooltipOptions = DefaultTooltipOptions,
           disabled = props.copyProps.disabled,
           severity = Button.Severity.Secondary
         ).compact.mini,
@@ -44,7 +44,7 @@ object ActionButtons:
           icon = Icons.Clipboard.withFixedWidth(),
           onClick = props.pasteProps.callback,
           tooltip = "Paste" + props.pasteProps.tooltipExtraStr,
-          tooltipOptions = ToolbarTooltipOptions.Default,
+          tooltipOptions = DefaultTooltipOptions,
           disabled = props.pasteProps.disabled,
           severity = Button.Severity.Secondary,
           clazz = PlSize.Mini.cls
@@ -53,7 +53,7 @@ object ActionButtons:
           icon = Icons.Trash.withFixedWidth(),
           onClick = props.deleteProps.callback,
           tooltip = "Delete" + props.deleteProps.tooltipExtraStr,
-          tooltipOptions = ToolbarTooltipOptions.Default,
+          tooltipOptions = DefaultTooltipOptions,
           disabled = props.deleteProps.disabled,
           severity = Button.Severity.Secondary
         ).compact.mini

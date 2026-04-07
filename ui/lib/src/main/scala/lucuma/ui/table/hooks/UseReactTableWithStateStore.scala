@@ -41,6 +41,7 @@ private object UseReactTableWithStateStore:
                              table.setColumnPinning(newState.columnPinning).to[DefaultA] >>
                              table.setRowPinning(newState.rowPinning).to[DefaultA] >>
                              table.setSorting(newState.sorting).to[DefaultA] >>
+                             table.setColumnFilters(newState.columnFilters).to[DefaultA] >>
                              table.setExpanded(newState.expanded).to[DefaultA] >>
                              table.setColumnSizing(newState.columnSizing).to[DefaultA] >>
                              table.setColumnSizingInfo(newState.columnSizingInfo).to[DefaultA] >>

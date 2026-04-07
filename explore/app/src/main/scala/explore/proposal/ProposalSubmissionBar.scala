@@ -29,6 +29,7 @@ import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.effect.*
 import org.typelevel.log4cats.Logger
 
 import java.time.Duration

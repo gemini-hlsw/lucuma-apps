@@ -6,7 +6,7 @@ package explore.model.itc
 import cats.data.*
 import cats.syntax.all.*
 import explore.modes.*
-import explore.optics.all.*
+import explore.optics.ModelOptics.*
 import lucuma.core.model.ConstraintSet
 import lucuma.core.util.Timestamp
 import monocle.Focus

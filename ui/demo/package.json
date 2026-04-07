@@ -2,7 +2,7 @@
   "name": "@gemini-hlsw/lucuma-ui-demo",
   "private": true,
   "devDependencies": {
-    "@atlaskit/pragmatic-drag-and-drop": "1.7.9",
+    "@atlaskit/pragmatic-drag-and-drop": "1.7.10",
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "2.1.5",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0",
     "@react-hook/resize-observer": "2.0.2",
@@ -15,7 +15,7 @@
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-grid-layout": "1.5.3",
-    "sass": "1.98.0",
+    "sass": "1.99.0",
     "ua-parser-js": "2.0.9",
     "vite": "8.0.3"
   },

@@ -83,3 +83,5 @@ trait ModelOptics {
               .mapValues[(LineWidthQuantity, Measure[LineFluxValue])]: l =>
                 (l.lineWidth, l.lineFlux)
 }
+
+object ModelOptics extends ModelOptics
