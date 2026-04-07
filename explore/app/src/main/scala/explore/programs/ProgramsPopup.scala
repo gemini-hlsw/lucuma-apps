@@ -158,19 +158,17 @@ object ProgramsPopup:
         dismissableMask = props.onClose.isDefined,
         resizable = true,
         clazz = LucumaPrimeStyles.Dialog.Large |+| ExploreStyles.ProgramsPopup,
-        header = <.span(^.display.flex, ^.alignItems.center)(
+        header = <.span(ExploreStyles.ProgramsPopupTitle)(
           "Programs",
-          <.span(^.marginLeft := "0.5em")(
-            Button(
-              size = Button.Size.Small,
-              icon = Icons.Filter,
-              severity =
-                if (showFilters.get.value) Button.Severity.Primary
-                else Button.Severity.Secondary,
-              onClick = showFilters.mod(_.flip),
-              tooltip = "Toggle column filters"
-            ).compact
-          )
+          Button(
+            text = false,
+            icon = Icons.Filter,
+            severity =
+              if (showFilters.get.value) Button.Severity.Primary
+              else Button.Severity.Secondary,
+            onClick = showFilters.mod(_.flip),
+            tooltip = "Toggle column filters"
+          ).tiny.compact
         ),
         footer = programInfosViewOpt.map: pis =>
           React.Fragment(

@@ -2155,12 +2155,31 @@ svg.fa-check.explore-success-icon {
       width: 80%;
     }
   }
+
+  .p-dialog-footer {
+    display: flex;
+    align-items: baseline;
+
+    .pl-checkbox-with-label {
+      flex-grow: 1;
+    }
+
+    :last-child {
+      align-self: end;
+    }
+  }
 }
 
 .api-keys-popup.p-dialog,
 .programs-popup.p-dialog {
   .api-keys-table {
     height: 200px;
+  }
+
+  .programs-popup-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
   }
 
   .programs-popup-warning {
