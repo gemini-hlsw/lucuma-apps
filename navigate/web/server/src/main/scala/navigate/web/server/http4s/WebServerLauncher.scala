@@ -202,6 +202,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
 
     def publishStats[F[_]: Temporal](cs: ClientsSetDb[F]): Stream[F, Unit] =
       Stream.fixedRate[F](10.minute).flatMap(_ => Stream.eval(cs.report))
+      
+    val HttpClientTimeout: Duration = 40.seconds 
 
     val navigate: Resource[IO, ExitCode] =
       for {
@@ -210,7 +212,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
         conf   <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
         _      <- Resource.eval(printBanner(conf))
         dsp    <- Dispatcher.sequential[IO]
-        cli    <- client(10.seconds)
+        cli    <- client(HttpClientTimeout)
         topics <- TopicManager.create[IO](dsp)
         cs     <- Resource.eval(ClientsSetDb.create[IO])
         _      <- Resource.eval(publishStats(cs).compile.drain.start)
