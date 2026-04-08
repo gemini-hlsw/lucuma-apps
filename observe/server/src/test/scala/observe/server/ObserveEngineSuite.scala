@@ -1116,7 +1116,7 @@ class ObserveEngineSuite extends TestCommon {
     val stepCount = 2
 
     val firstEvents = List(
-      TestOdbProxy.VisitStart(seqObsId1, staticCfg1),
+      TestOdbProxy.VisitStart(seqObsId1),
       TestOdbProxy.SequenceStart(seqObsId1)
     )
 
@@ -1193,7 +1193,7 @@ class ObserveEngineSuite extends TestCommon {
     val stepCount = 2
 
     val firstEvents = List(
-      TestOdbProxy.VisitStart(seqObsId1, staticCfg1),
+      TestOdbProxy.VisitStart(seqObsId1),
       TestOdbProxy.SequenceStart(seqObsId1)
     )
 

@@ -3,8 +3,6 @@
 
 package observe.server.odb
 
-import cats.Applicative
-import cats.MonadThrow
 import cats.effect.Sync
 import cats.syntax.all.*
 import lucuma.core.model.Observation
@@ -13,16 +11,14 @@ import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
 import observe.server.ObserveFailure
 
-class DummyOdbProxy[F[_]: Sync] extends OdbProxy[F] {
+class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
   val evCmds = new DummyOdbCommands[F]
 
   override def read(oid: Observation.Id): F[OdbObservationData] =
-    MonadThrow[F]
-      .raiseError(ObserveFailure.Unexpected("TestOdbProxy.read: Not implemented."))
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.read: Not implemented."))
 
   override def resetAcquisition(obsId: Observation.Id): F[Unit] =
-    MonadThrow[F]
-      .raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
 
   export evCmds.{
     datasetEndExposure,
@@ -43,23 +39,22 @@ class DummyOdbProxy[F[_]: Sync] extends OdbProxy[F] {
   override def stepStartStep[D](
     obsId:  Observation.Id,
     stepId: Step.Id
-  ): F[Unit] = Applicative[F].unit
+  ): F[Unit] = F.unit
 
   override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
-    Applicative[F].unit
+    F.unit
 
-  override def stepEndConfigure(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepEndConfigure(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def stepStartObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepStartObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def visitStart[S](obsId: Observation.Id, staticCfg: S): F[Unit] =
-    Applicative[F].unit
+  override def visitStart(obsId: Observation.Id): F[Unit] = F.unit
 
-  override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
+  override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure
 }

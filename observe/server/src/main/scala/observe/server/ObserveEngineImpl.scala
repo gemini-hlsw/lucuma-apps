@@ -204,7 +204,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                 .fromEventStream:
                   Stream.eval[F, Event[F]]:
                     systems.odb
-                      .visitStart(obsId, seq.staticCfg)
+                      .visitStart(obsId)
                       .as:
                         Event.modifyState:
                           EngineHandle

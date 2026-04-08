@@ -243,8 +243,8 @@ object TestOdbProxy {
                 )
               }
 
-          override def visitStart[S](obsId: Observation.Id, staticCfg: S): F[Unit] = addEvent(
-            VisitStart(obsId, staticCfg)
+          override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(
+            VisitStart(obsId)
           )
 
           override def sequenceStart(obsId: Observation.Id): F[Unit] =
@@ -326,7 +326,7 @@ object TestOdbProxy {
       )
 
   sealed trait OdbEvent
-  case class VisitStart[S](obsId: Observation.Id, staticCfg: S)               extends OdbEvent
+  case class VisitStart[S](obsId: Observation.Id)                             extends OdbEvent
   case class SequenceStart(obsId: Observation.Id)                             extends OdbEvent
   case class StepStartStep[D](obsId: Observation.Id)                          extends OdbEvent
   case class StepStartConfigure(obsId: Observation.Id)                        extends OdbEvent

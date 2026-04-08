@@ -29,7 +29,6 @@ import observe.server.engine.SequenceState
 import OdbObservation.TargetEnvironment
 
 sealed trait SequenceData[F[_]]:
-  type S
   type D
   def instrument: Instrument
 
@@ -37,7 +36,6 @@ sealed trait SequenceData[F[_]]:
   def overrides: SystemOverrides
   def targetEnvironment: TargetEnvironment
   def constraintSet: ConstraintSet
-  def staticCfg: S
   def seq: SequenceState[F]
   def pendingObsCmd: Option[PendingObserveCmd]
   def visitStartDone: Boolean
@@ -133,7 +131,6 @@ object SequenceData:
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
   ) extends SequenceData[F]:
-    type S = gmos.StaticConfig.GmosNorth
     type D = gmos.DynamicConfig.GmosNorth
     val instrument: Instrument = Instrument.GmosNorth
 
@@ -147,7 +144,6 @@ object SequenceData:
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
   ) extends SequenceData[F]:
-    type S = gmos.StaticConfig.GmosSouth
     type D = gmos.DynamicConfig.GmosSouth
     val instrument: Instrument = Instrument.GmosSouth
 
@@ -161,7 +157,6 @@ object SequenceData:
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
   ) extends SequenceData[F]:
-    type S = Flamingos2StaticConfig
     type D = Flamingos2DynamicConfig
     val instrument: Instrument = Instrument.Flamingos2
 
@@ -175,6 +170,5 @@ object SequenceData:
     pendingObsCmd:     Option[PendingObserveCmd],
     visitStartDone:    Boolean
   ) extends SequenceData[F]:
-    type S = Igrins2StaticConfig
     type D = Igrins2DynamicConfig
     val instrument: Instrument = Instrument.Igrins2
