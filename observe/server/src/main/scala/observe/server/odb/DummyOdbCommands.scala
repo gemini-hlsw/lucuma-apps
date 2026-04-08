@@ -3,7 +3,6 @@
 
 package observe.server.odb
 
-import cats.Applicative
 import cats.effect.Sync
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
@@ -14,25 +13,24 @@ import observe.common.EventsGQL.*
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
 
-class DummyOdbCommands[F[_]: Sync] extends OdbCommands[F] {
+class DummyOdbCommands[F[_]: Sync as F] extends OdbCommands[F] {
   override def sequenceStart(
     obsId: Observation.Id
-  ): F[Unit] =
-    ().pure[F]
+  ): F[Unit] = F.unit
 
   override def stepStartStep[D](
     obsId:  Observation.Id,
     stepId: Step.Id
-  ): F[Unit] = ().pure[F]
+  ): F[Unit] = F.unit
 
   override def stepStartConfigure(obsId: Observation.Id, stepId: Step.Id): F[Unit] =
-    Applicative[F].unit
+    F.unit
 
   override def stepEndConfigure(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    false.pure[F]
+    false.pure
 
   override def stepStartObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    false.pure[F]
+    false.pure
 
   override def datasetStartExposure(
     obsId:  Observation.Id,
@@ -48,44 +46,41 @@ class DummyOdbCommands[F[_]: Sync] extends OdbCommands[F] {
     obsId:  Observation.Id,
     fileId: ImageFileId
   ): F[Boolean] =
-    true.pure[F]
+    true.pure
 
   override def stepEndObserve(obsId: Observation.Id, stepId: Step.Id): F[Boolean] =
-    false.pure[F]
+    false.pure
 
-  override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  override def stepEndStep(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  def stepAbort(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  def stepStop(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  def stepPause(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure[F]
+  def stepContinue(obsId: Observation.Id, stepId: Step.Id): F[Boolean] = false.pure
 
-  override def obsContinue(obsId: Observation.Id): F[Boolean] =
-    false.pure[F]
+  override def obsContinue(obsId: Observation.Id): F[Boolean] = false.pure
 
-  override def obsPause(obsId: Observation.Id): F[Boolean] =
-    false.pure[F]
+  override def obsPause(obsId: Observation.Id): F[Boolean] = false.pure
 
-  override def obsStop(obsId: Observation.Id): F[Boolean] =
-    false.pure[F]
+  override def obsStop(obsId: Observation.Id): F[Boolean] = false.pure
 
   override def datasetStartReadout(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    false.pure[F]
+    false.pure
 
   override def datasetEndReadout(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    false.pure[F]
+    false.pure
 
   override def datasetStartWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    false.pure[F]
+    false.pure
 
   override def datasetEndWrite(obsId: Observation.Id, fileId: ImageFileId): F[Boolean] =
-    false.pure[F]
+    false.pure
 
-  override def visitStart[S](obsId: Observation.Id, staticCfg: S): F[Unit] =
-    Applicative[F].unit
+  override def visitStart(obsId: Observation.Id): F[Unit] =
+    F.unit
 
-  override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure[F]
+  override def getCurrentRecordedIds: F[ObsRecordedIds] = ObsRecordedIds.Empty.pure
 }

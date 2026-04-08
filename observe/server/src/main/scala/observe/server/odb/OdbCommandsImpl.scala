@@ -17,13 +17,9 @@ import lucuma.core.model.Observation
 import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Dataset
 import lucuma.core.model.sequence.Step
-import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
-import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.IdempotencyKey
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Scalars.VisitId
-import lucuma.schemas.odb.input.*
 import observe.common.EventsGQL.*
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
@@ -53,10 +49,10 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
   private def addIdempotencyKey(idempotencyKey: IdempotencyKey): Endo[Request[F]] = req =>
     req.putHeaders(`Idempotency-Key`(idempotencyKey.toString))
 
-  override def visitStart[S](obsId: Observation.Id, staticCfg: S): F[Unit] =
+  override def visitStart(obsId: Observation.Id): F[Unit] =
     for
       _   <- L.debug(s"Record visit for obsId: [$obsId]")
-      vId <- recordVisit(obsId, staticCfg)
+      vId <- recordVisit(obsId)
       _   <- setCurrentVisitId(obsId, vId.some)
     yield ()
 
@@ -216,54 +212,14 @@ case class OdbCommandsImpl[F[_]: UUIDGen](
       _      <- setCurrentVisitId(obsId, none)
     yield result
 
-  private def recordVisit[S](
-    obsId:     Observation.Id,
-    staticCfg: S
-  ): F[VisitId] = staticCfg match
-    case s @ gmos.StaticConfig.GmosNorth(_, _, _, _) => recordGmosNorthVisit(obsId, s)
-    case s @ gmos.StaticConfig.GmosSouth(_, _, _, _) => recordGmosSouthVisit(obsId, s)
-    case s @ Flamingos2StaticConfig(_, _)            => recordFlamingos2Visit(obsId, s)
-    case s @ Igrins2StaticConfig(_, _)               => recordIgrins2Visit(obsId, s)
-
-  private def recordGmosNorthVisit(
-    obsId:     Observation.Id,
-    staticCfg: gmos.StaticConfig.GmosNorth
+  private def recordVisit(
+    obsId: Observation.Id
   ): F[VisitId] =
     newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordGmosNorthVisitMutation[F]
-        .execute(obsId, staticCfg.toInput, idempotencyKey, addIdempotencyKey(idempotencyKey))
+      RecordVisitMutation[F]
+        .execute(obsId, idempotencyKey, addIdempotencyKey(idempotencyKey))
         .raiseGraphQLErrors
-        .map(_.recordGmosNorthVisit.visit.id)
-
-  private def recordGmosSouthVisit(
-    obsId:     Observation.Id,
-    staticCfg: gmos.StaticConfig.GmosSouth
-  ): F[VisitId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordGmosSouthVisitMutation[F]
-        .execute(obsId, staticCfg.toInput, idempotencyKey, addIdempotencyKey(idempotencyKey))
-        .raiseGraphQLErrors
-        .map(_.recordGmosSouthVisit.visit.id)
-
-  private def recordFlamingos2Visit(
-    obsId:     Observation.Id,
-    staticCfg: Flamingos2StaticConfig
-  ): F[VisitId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordFlamingos2VisitMutation[F]
-        .execute(obsId, staticCfg.toInput, idempotencyKey, addIdempotencyKey(idempotencyKey))
-        .raiseGraphQLErrors
-        .map(_.recordFlamingos2Visit.visit.id)
-
-  private def recordIgrins2Visit(
-    obsId:     Observation.Id,
-    staticCfg: Igrins2StaticConfig
-  ): F[VisitId] =
-    newIdempotencyKey.flatMap: idempotencyKey =>
-      RecordIgrins2VisitMutation[F]
-        .execute(obsId, staticCfg.toInput, idempotencyKey, addIdempotencyKey(idempotencyKey))
-        .raiseGraphQLErrors
-        .map(_.recordIgrins2Visit.visit.id)
+        .map(_.recordVisit.visit.id)
 
   private def recordDataset(
     stepId:  Step.Id,
