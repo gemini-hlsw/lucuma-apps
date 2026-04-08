@@ -51,10 +51,13 @@ case class StepProgressCell(
     (sequenceStatus.isRunning && requests.subsystemInFlight(stepId)) ||
       (loadedStepId.contains_(stepId) && !sequenceStatus.isIdle)
 
-  val anyError: Boolean =
-    subsystemStatus.exists(_._2 === ActionStatus.Failed)
+  // private val anyError: Boolean =
+  //   subsystemStatus.exists(_._2 === ActionStatus.Failed)
 
-  val isBias: Boolean = stepType === StepTypeDisplay.Bias
+  private val isBias: Boolean = stepType === StepTypeDisplay.Bias
+
+  private val isLoadedStep: Boolean =
+    loadedStepId.contains_(stepId)
 
   // def canControlThisStep(selected: Option[Step.Id], hasControls: Boolean): Boolean =
   //   hasControls && selected.exists(_ === step.get.id)
@@ -140,7 +143,8 @@ object StepProgressCell
           props.requests.subsystemRun.getOrElse(props.stepId, Map.empty),
           props.sequenceStatus,
           props.systemOverrides,
-          props.clientMode
+          props.clientMode,
+          props.isLoadedStep
         ),
         exposureControlButtons,
         if (props.isBias)

@@ -37,13 +37,13 @@ case class ObservationRequests(
   def subsystemInFlight(stepId: Step.Id): Boolean =
     subsystemRun.get(stepId).exists(_.exists(_._2 === OperationRequest.InFlight))
 
-  def withSequenceStatus(status: SequenceStatus): ObservationRequests =
+  def withSequenceStatus(status: SequenceStatus, isPaused: Boolean): ObservationRequests =
     this.copy(
       run = if (status.isRunning) OperationRequest.Idle else run,
       stop = if (status.isRunning) stop else OperationRequest.Idle,
       abort = if (status.isAborted) OperationRequest.Idle else abort,
-      pause = if (status.isUserStopRequested) OperationRequest.Idle else pause,
-      cancelPause = if (status.isUserStopRequested) OperationRequest.Idle else cancelPause,
+      pause = if (status.isUserStopRequested || isPaused) OperationRequest.Idle else pause,
+      cancelPause = if (!status.isUserStopRequested) OperationRequest.Idle else cancelPause,
       resume = if (status.isRunning) OperationRequest.Idle else resume,
       startFrom = if (status.isRunning) OperationRequest.Idle else startFrom
     )

@@ -44,7 +44,8 @@ case class SubsystemControls(
   subsystemRequests: Map[Resource | Instrument, OperationRequest],
   sequenceStatus:    SequenceStatus,
   systemOverrides:   SystemOverrides,
-  clientMode:        ClientMode
+  clientMode:        ClientMode,
+  isLoadedStep:      Boolean
 ) extends ReactFnProps(SubsystemControls):
   private val canOperate: Boolean =
     clientMode.canOperate && sequenceStatus.isIdle
@@ -69,21 +70,21 @@ case class SubsystemControls(
     subsystem: Resource | Instrument
   ): (FontAwesomeIcon, Button.Severity, Boolean) = // (icon, severity, disabled)
     subsystemState(subsystem) match
-      case (_, OperationRequest.InFlight)                  =>
+      case (_, OperationRequest.InFlight)                    =>
         (SubsystemControls.RunningIcon, Button.Severity.Warning, true)
-      case (ActionStatus.Running | ActionStatus.Paused, _) =>
+      case (ActionStatus.Running | ActionStatus.Paused, _)   =>
         (SubsystemControls.RunningIcon, Button.Severity.Warning, true)
-      case (ActionStatus.Completed, _)                     =>
+      case (ActionStatus.Completed, _) if props.isLoadedStep =>
         (SubsystemControls.CompletedIcon,
          Button.Severity.Success,
          !isSubsystemEnabled(subsystem).value
         )
-      case (ActionStatus.Failed, _)                        =>
+      case (ActionStatus.Failed, _) if props.isLoadedStep    =>
         (SubsystemControls.FailureIcon,
          Button.Severity.Danger,
          !isSubsystemEnabled(subsystem).value
         )
-      case _                                               =>
+      case _                                                 =>
         (SubsystemControls.IdleIcon, Button.Severity.Primary, !isSubsystemEnabled(subsystem).value)
 
 object SubsystemControls

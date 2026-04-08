@@ -27,7 +27,6 @@ type Operator = Operator.Type
 
 object SubsystemEnabled extends NewBoolean:
   inline def Enabled = True; inline def Disabled = False
-
 type SubsystemEnabled = SubsystemEnabled.Type
 
 object PausedStep extends NewType[Step.Id]

@@ -39,9 +39,9 @@ case class ExecutionState(
 
   // If there's a running step or resource, the step is considered locked.
   lazy val isLocked: Boolean =
-    // loadedStep.isDefined ||
-    stepResources.exists:
-      _.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
+    sequenceStatus.isRunning ||
+      stepResources.exists:
+        _.exists(r => ActionStatus.LockedStatuses.contains_(r._2))
 
   lazy val isWaitingAcquisitionPrompt: Boolean =
     sequenceType === SequenceType.Acquisition && sequenceStatus.isWaitingUserPrompt

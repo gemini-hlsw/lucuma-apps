@@ -214,8 +214,8 @@ trait ServerEventHandler:
               _.map: (obsId, obsRequests) =>
                 obsId -> sequenceExecution
                   .get(obsId)
-                  .map(_.sequenceStatus)
-                  .map(obsRequests.withSequenceStatus(_))
+                  .map: es =>
+                    obsRequests.withSequenceStatus(es.sequenceStatus, es.pausedStep.isDefined)
                   .getOrElse(obsRequests)
             ) >>>
             RootModelData.loadedObservations
