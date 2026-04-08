@@ -27,13 +27,13 @@
         devShell = pkgs.devshell.mkShell {
           imports = [ typelevel-nix.typelevelShell ];
           packages = [
-            pkgs.corepack # also installs pnpm
             pkgs.nodePackages.typescript-language-server
             pkgs.nodePackages.vscode-langservers-extracted
             pkgs.nodePackages.prettier
             pkgs.nodePackages.typescript
             pkgs.nodePackages.graphqurl
             pkgs.hasura-cli
+            pkgs.pnpm
             pkgs.sops
             pkgs.age
             pkgs.yq
