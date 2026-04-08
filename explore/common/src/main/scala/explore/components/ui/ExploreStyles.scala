@@ -144,11 +144,12 @@ object ExploreStyles:
   val EmptyUserPreferences  = Css("empty-user-preferences")
   val WavelengthUnits       = Css("wavelength-units")
 
-  val ProgramsPopup     = Css("programs-popup")
-  val ProgramsPopupWarn = Css("programs-popup-warning")
-  val ProgramTable      = Css("program-table")
-  val ProgramName       = Css("program-name")
-  val ProgramNameInput  = Css("program-name-input")
+  val ProgramsPopup      = Css("programs-popup")
+  val ProgramsPopupWarn  = Css("programs-popup-warning")
+  val ProgramsPopupTitle = Css("programs-popup-title")
+  val ProgramTable       = Css("program-table")
+  val ProgramName        = Css("program-name")
+  val ProgramNameInput   = Css("program-name-input")
 
   val NotesTile: Css = Css("observer-notes-tile")
 

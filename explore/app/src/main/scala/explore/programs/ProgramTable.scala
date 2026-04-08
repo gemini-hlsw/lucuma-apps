@@ -9,9 +9,11 @@ import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.reuse.*
 import explore.*
+import explore.common.UserPreferencesQueries.TableStore
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.ProgramInfo
+import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbProgramApi
 import japgolly.scalajs.react.*
@@ -27,6 +29,7 @@ import lucuma.react.table.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.table.*
+import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 
 case class ProgramTable(
@@ -205,22 +208,30 @@ object ProgramTable:
               .withFilterMethod(FilterMethod.Text(_.get.name.foldMap(_.value)))
           )
       rows  <- useMemo(props.programInfos)(identity)
-      table <- useReactTable(
-                 TableOptions(
-                   cols,
-                   rows,
-                   enableSorting = true,
-                   enableColumnResizing = false,
-                   enableColumnFilters = true,
-                   enableFacetedUniqueValues = true,
-                   meta = TableMeta(props.currentProgramId,
-                                    props.userId,
-                                    props.isStaff,
-                                    props.newProgramId,
-                                    props.programInfos.size
+      table <- useReactTableWithStateStore:
+                 import ctx.given
+
+                 TableOptionsWithStateStore(
+                   TableOptions(
+                     cols,
+                     rows,
+                     enableSorting = true,
+                     enableColumnResizing = false,
+                     enableColumnFilters = true,
+                     enableFacetedUniqueValues = true,
+                     meta = TableMeta(props.currentProgramId,
+                                      props.userId,
+                                      props.isStaff,
+                                      props.newProgramId,
+                                      props.programInfos.size
+                     )
+                   ),
+                   TableStore(
+                     props.userId.some,
+                     TableId.ProgramsSelector,
+                     cols
                    )
                  )
-               )
       _     <- useEffectWithDeps(props.showFilters): showFilters =>
                   table.resetColumnFilters().unless_(showFilters)
     } yield PrimeAutoHeightVirtualizedTable(

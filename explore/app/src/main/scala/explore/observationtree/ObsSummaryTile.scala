@@ -162,6 +162,7 @@ object ObsSummaryTile
                              enableSorting = true,
                              enableColumnFilters = true,
                              enableMultiRowSelection = true,
+                             enableFacetedUniqueValues = true,
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate,
                              onColumnVisibilityChange = columnVisibility.handleTableUpdate

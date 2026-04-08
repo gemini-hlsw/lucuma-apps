@@ -2152,7 +2152,20 @@ svg.fa-check.explore-success-icon {
 
   @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
     &.pl-dialog-large {
-      width: 80%;
+      width: 85%;
+    }
+  }
+
+  .p-dialog-footer {
+    display: flex;
+    align-items: baseline;
+
+    .pl-checkbox-with-label {
+      flex-grow: 1;
+    }
+
+    :last-child {
+      align-self: end;
     }
   }
 }
@@ -2161,6 +2174,12 @@ svg.fa-check.explore-success-icon {
 .programs-popup.p-dialog {
   .api-keys-table {
     height: 200px;
+  }
+
+  .programs-popup-title {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5em;
   }
 
   .programs-popup-warning {
@@ -2182,12 +2201,6 @@ svg.fa-check.explore-success-icon {
 
   .p-dialog-content {
     padding: 0 0.5rem;
-  }
-
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    .p-dialog-content {
-      padding: 0 1.5rem;
-    }
   }
 
   .p-dialog-footer {
