@@ -207,11 +207,11 @@ object ObsSummaryColumns:
         .sortableBy(_.flatMap(_.flatMap(_.name))),
       // TODO: ValidationCheckColumnId
       obsColumn(StateColumnId, _.obs.workflow.value.state)
-        .withFilterMethod(FilterMethod.Text(_.foldMap(_.toString)))
+        .withFilterMethod(FilterMethod.Select(_.foldMap(_.toString)))
         .withCell(_.value.map(_.toString).orEmpty)
         .sortable,
       obsColumn(ScienceBandColumnId, _.obs.scienceBand)
-        .withFilterMethod(FilterMethod.Text(_.flatten.foldMap(_.shortName)))
+        .withFilterMethod(FilterMethod.Select(_.flatten.foldMap(_.shortName)))
         .withCell:
           _.value.flatten.fold("Not set")(_.shortName)
         .sortable,
@@ -265,15 +265,15 @@ object ObsSummaryColumns:
                 .map(_.shortName)
                 .orElse(Target.surfaceSpectralDefinition.getOption(t).map(_.shortName)),
         ColumnNames(SEDColumnId)
-      ).withFilterMethod(FilterMethod.Text(_.orEmpty))
-       .withCell(cell =>
-         cell.value
-           .filterNot(_ => cell.row.getCanExpand())
-           .orEmpty
-       )
-       .sortable,
+      ).withFilterMethod(FilterMethod.Select(_.orEmpty))
+        .withCell(cell =>
+          cell.value
+            .filterNot(_ => cell.row.getCanExpand())
+            .orEmpty
+        )
+        .sortable,
       obsColumn(ConstraintsColumnId, r => (r.obs.id, r.obs.constraints.summaryString))
-        .withFilterMethod(FilterMethod.Text(_.fold("")(_._2)))
+        .withFilterMethod(FilterMethod.Select(_.fold("")(_._2)))
         .withCell: cell =>
           cell.value.map: (id, constraintsSummary) =>
             <.a(
@@ -284,7 +284,7 @@ object ObsSummaryColumns:
         .sortableBy(_.map(_._2)),
       // TODO: FindingChartColumnId
       obsColumn(ConfigurationColumnId, _.obs.basicConfiguration.foldMap(_.shortName))
-        .withFilterMethod(FilterMethod.Text(_.orEmpty))
+        .withFilterMethod(FilterMethod.Select(_.orEmpty))
         .withCell(cell =>
           val tt: Option[VdomNode] = cell.value.map(identity)
           <.span(cell.value.orEmpty)

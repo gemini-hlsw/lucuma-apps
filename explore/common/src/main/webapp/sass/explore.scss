@@ -2152,7 +2152,7 @@ svg.fa-check.explore-success-icon {
 
   @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
     &.pl-dialog-large {
-      width: 80%;
+      width: 85%;
     }
   }
 
@@ -2201,12 +2201,6 @@ svg.fa-check.explore-success-icon {
 
   .p-dialog-content {
     padding: 0 0.5rem;
-  }
-
-  @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-    .p-dialog-content {
-      padding: 0 1.5rem;
-    }
   }
 
   .p-dialog-footer {
