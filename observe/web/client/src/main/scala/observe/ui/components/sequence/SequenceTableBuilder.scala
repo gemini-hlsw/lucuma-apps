@@ -198,7 +198,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
 
             Callback.when(props.loadedStepId.isEmpty)(
               props.nextStepId
-                .map(stepId => props.setSelectedRowId(SelectedRowId(none, stepId)))
+                .map(stepId => props.setSelectedRowId(SelectedRowId.forFutureStep(stepId)))
                 .orEmpty
             ) >>
               scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
@@ -224,11 +224,15 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case Expanded.Rows(rows) => Expanded.Rows(rows + (getRowId(sequence.last) -> true))
             case _                        => Callback.empty
       yield
-        extension (step: SequenceRow[D])
+        extension (step: SequenceRow[D]) {
           def isSelected: Boolean =
             props.selectedRowId match
               case Some(rowId) => step.selectableRowId.contains(rowId)
               case _           => false
+
+          def isLoaded: Boolean =
+            step.selectableRowId === props.loadedStepId.map(SelectedRowId.forFutureStep(_))
+        }
 
         val tableStyle: Css =
           ObserveStyles.ObserveTable |+| ObserveStyles.StepTable |+| SequenceStyles.SequenceTable
@@ -263,8 +267,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                           props.executionState.isLocked
                     )
                   .whenDefined,
-                SequenceStyles.RowHasExtra.when_(step.isSelected || step.isFinished),
-                ObserveStyles.RowIdle.unless_(step.isSelected),
+                SequenceStyles.RowHasExtra
+                  .when_(step.isSelected || step.isLoaded || step.isFinished),
+                ObserveStyles.RowIdle.unless_(step.isSelected || step.isLoaded),
                 ObserveStyles.StepRowWithBreakpoint.when_(stepHasBreakpoint),
                 ObserveStyles.StepRowFirstInAtom.when_(step.isFirstInAtom),
                 step.stepState match
@@ -311,7 +316,7 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
                 case id if id == ExtraRowColumnId   =>
                   stepRow.step match // Extra row is shown in a selected row or in an executed step row.
                     case SequenceRow.Executed.ExecutedStep(_, _, _) => extraRowMod
-                    case step if step.isSelected                    => extraRowMod
+                    case step if step.isSelected || step.isLoaded   => extraRowMod
                     case _                                          => TagMod.empty
                 case _                              =>
                   TagMod.empty

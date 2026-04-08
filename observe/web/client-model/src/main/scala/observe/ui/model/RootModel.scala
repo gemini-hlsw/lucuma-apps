@@ -93,10 +93,7 @@ case class RootModelData(
     executionState.get(obsId).exists(_.isLocked)
 
   def obsSelectedRow(obsId: Observation.Id): Option[SelectedRowId] =
-    executionState
-      .get(obsId)
-      .flatMap(_.runningStep.map(step => SelectedRowId(none, step.id)))
-      .orElse(userSelectedRow.get(obsId))
+    userSelectedRow.get(obsId)
 
   def withLoginResult(result: Either[Throwable, Option[UserVault]]): RootModelData =
     val vault: Option[UserVault] = result.toOption.flatten

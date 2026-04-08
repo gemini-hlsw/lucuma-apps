@@ -33,6 +33,10 @@ import lucuma.ui.utils.zipWithMappedIndex
 
 final case class SelectedRowId(visitId: Option[Visit.Id], stepId: Step.Id) derives Eq
 
+object SelectedRowId:
+  def forFutureStep(stepId: Step.Id): SelectedRowId =
+    SelectedRowId(none, stepId)
+
 object SequenceRowHeight:
   val Regular: SizePx   = 25.toPx
   val WithExtra: SizePx = 60.toPx

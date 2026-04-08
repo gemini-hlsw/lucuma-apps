@@ -200,10 +200,12 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                 case step                                              =>
                   (step.selectableRowId, step.stepTypeDisplay, step.exposureTime, step.stepConfig)
                     .mapN: (selectableRowId, stepType, exposureTime, stepConfig) =>
-                      meta.selectedRowId
-                        .filter(_ == selectableRowId)
-                        .map: selectedRowId =>
-                          val stepId: Step.Id = selectedRowId.stepId
+                      List(
+                        meta.selectedRowId,
+                        meta.executionState.loadedStep.map(ls => SelectedRowId.forFutureStep(ls.id))
+                      ).collectFirst {
+                        case Some(selRowId) if selRowId === selectableRowId =>
+                          val stepId: Step.Id = selRowId.stepId
 
                           def inactiveStepResourceMap: Map[Resource | Instrument, ActionStatus] =
                             (stepResources(stepConfig) + instrument)
@@ -230,6 +232,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                             progress = meta.progress,
                             isPreview = isPreview
                           )
+                      }
       )
     ) ++
       SequenceColumns(ColDef, _._1.some, _._2.some)(instrument)
