@@ -185,7 +185,7 @@ trait ServerEventHandler:
           (RootModelData.executionState
             .at(obsId)
             .some
-            .andThen(ExecutionState.runningStep)
+            .andThen(ExecutionState.loadedStep)
             .some
             .filter(_.id === stepId)
             .andThen(ObserveStep.configStatus.at(subsystem))

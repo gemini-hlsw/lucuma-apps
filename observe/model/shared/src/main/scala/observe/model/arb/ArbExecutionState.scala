@@ -59,7 +59,7 @@ trait ArbExecutionState:
       (x.sequenceStatus,
        x.observer,
        x.sequenceType,
-       x.runningStep,
+       x.loadedStep,
        x.nsState,
        x.systemOverrides,
        x.breakpoints.toList

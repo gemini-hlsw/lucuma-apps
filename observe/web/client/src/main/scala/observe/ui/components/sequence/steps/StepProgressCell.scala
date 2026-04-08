@@ -31,7 +31,7 @@ case class StepProgressCell(
   isFinished:      Boolean,
   obsId:           Observation.Id,
   requests:        ObservationRequests,
-  runningStepId:   Option[Step.Id],
+  loadedStepId:    Option[Step.Id],
   fileIds:         Option[NonEmptyChain[ImageFileId]],
   sequenceStatus:  SequenceStatus,
   isPausedInStep:  Boolean,
@@ -49,7 +49,7 @@ case class StepProgressCell(
   // We can have a runningStepId but the state as Idle if last step was aborted.
   private val isRunning: Boolean =
     (sequenceStatus.isRunning && requests.subsystemInFlight(stepId)) ||
-      (runningStepId.contains_(stepId) && !sequenceStatus.isIdle)
+      (loadedStepId.contains_(stepId) && !sequenceStatus.isIdle)
 
   val anyError: Boolean =
     subsystemStatus.exists(_._2 === ActionStatus.Failed)

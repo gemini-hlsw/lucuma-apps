@@ -4,7 +4,7 @@
 package observe.model.arb
 
 object all
-    extends ArbRunningStep
+    extends ArbRunningStepProgress
     with ArbNotification
     with ArbObserveStep
     with ArbStandardStep

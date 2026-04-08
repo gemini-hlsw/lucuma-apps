@@ -160,7 +160,7 @@ trait ObserveModelArbitraries {
          s.status,
          s.systemOverrides,
          s.sequenceType,
-         s.runningStep,
+         s.loadedStep,
          s.willStopIn,
          s.breakpoints.toList
         )

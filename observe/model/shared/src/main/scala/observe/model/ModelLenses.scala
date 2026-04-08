@@ -19,8 +19,8 @@ trait ModelLenses {
   //   GenLens[SequenceView](_.metadata.name)
   val eachStepT: Traversal[List[ObserveStep], ObserveStep]                  =
     Traversal.fromTraverse[List, ObserveStep]
-  val obsRunningStepL: Lens[SequenceView, Option[ObserveStep]]              =
-    GenLens[SequenceView](_.runningStep)
+  val obsLoadedStepL: Lens[SequenceView, Option[ObserveStep]]               =
+    GenLens[SequenceView](_.loadedStep)
   val eachViewT: Traversal[List[SequenceView], SequenceView]                =
     Traversal.fromTraverse[List, SequenceView]
   val sessionQueueL: Lens[SequencesQueue[SequenceView], List[SequenceView]] =

@@ -194,9 +194,9 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           useEffectOnMount: // If sequence is not running, auto select next step.
             val autoScrollCandidates: List[String] =
               AlertRowId.toString +:
-                (props.runningStepId ++ props.nextStepId).map(_.toString).toList
+                (props.loadedStepId ++ props.nextStepId).map(_.toString).toList
 
-            Callback.when(props.runningStepId.isEmpty)(
+            Callback.when(props.loadedStepId.isEmpty)(
               props.nextStepId
                 .map(stepId => props.setSelectedRowId(SelectedRowId(none, stepId)))
                 .orEmpty
@@ -209,11 +209,11 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           useEffectWithDeps(
             (props.executionState.sequenceStatus.isRunning,
              props.executionState.sequenceStatus.isWaitingUserPrompt,
-             props.runningStepId
+             props.loadedStepId
             )
-          ): (_, _, runningStepId) =>
+          ): (_, _, loadedStepId) =>
             val autoScrollCandidates: List[String] =
-              AlertRowId.toString +: runningStepId.map(_.toString).toList
+              AlertRowId.toString +: loadedStepId.map(_.toString).toList
 
             scrollToRowId(virtualizerRef, table)(autoScrollCandidates)
         _                        <- // If sequence completes, expand last visit.
