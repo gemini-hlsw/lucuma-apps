@@ -60,6 +60,8 @@ import lucuma.ui.table.hooks.*
 import java.text.DecimalFormat
 import scala.language.implicitConversions
 
+import scalajs.js.JSConverters.*
+
 case class SpectroscopyModesTable(
   userId:                   Option[User.Id],
   selectedConfig:           View[ConfigSelection],
@@ -180,20 +182,22 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
-      column(TimeColumnId, _.totalItcTime)
+      column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.Time)
         .withColumnSize(FixedSize(85.toPx))
+        // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
-      column(SNColumnId, _.totalSN)
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
+      column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.SN)
         .withColumnSize(FixedSize(85.toPx))
+        // put undefined last, though this may not be common on TxC mode
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
       column(SlitWidthColumnId,
              row =>
                (SpectroscopyModeRow.instrumentConfig.get(row.entry),
@@ -280,7 +284,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             declination = dec
           )
 
-      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(_.enabled)
+      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
       // Computes the mode overrides for the current parameters
       val fixedModeRows: List[SpectroscopyModeRow] =
         sortedRows
