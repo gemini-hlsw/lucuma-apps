@@ -51,7 +51,10 @@ given KeyEncoder[SubsystemOrServer] = KeyEncoder.instance:
   case s: Server     => s.tag
 
 given KeyDecoder[SubsystemOrServer] = KeyDecoder.instance: tag =>
-  Enumerated[Resource].fromTag(tag).orElse(Enumerated[Instrument].fromTag(tag))
+  Enumerated[Resource]
+    .fromTag(tag)
+    .orElse(Enumerated[Instrument].fromTag(tag))
+    .orElse(Enumerated[Server].fromTag(tag))
 
 // Resources come before Instruments before Servers
 given Enumerated[SubsystemOrServer] = Enumerated
