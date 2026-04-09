@@ -21,12 +21,12 @@ import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
 import observe.model.SequenceStatus
 import observe.model.StepProgress
+import observe.model.Subsystem
+import observe.model.enums.ControlStrategy
 import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
 import observe.ui.components.ObservationSequence
 import observe.ui.model.*
-import observe.model.Subsystem
-import observe.model.enums.ControlStrategy
 
 case class ObservationExecutionDisplay(
   selectedObs:                ObsSummary,

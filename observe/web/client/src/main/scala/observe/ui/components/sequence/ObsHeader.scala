@@ -13,11 +13,11 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
 import lucuma.react.common.*
 import observe.model.*
+import observe.model.enums.ControlStrategy
 import observe.ui.ObserveStyles
 import observe.ui.components.ConfigPanel
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
-import observe.model.enums.ControlStrategy
 
 case class ObsHeader(
   observation:                ObsSummary,

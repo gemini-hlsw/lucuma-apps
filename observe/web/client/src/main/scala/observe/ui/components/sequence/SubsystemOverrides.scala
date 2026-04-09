@@ -14,10 +14,10 @@ import lucuma.core.model.Observation
 import lucuma.react.common.*
 import lucuma.refined.*
 import lucuma.ui.primereact.{*, given}
+import observe.model.Subsystem
 import observe.model.SubsystemEnabled
 import observe.model.SystemOverrides
 import observe.model.enums.ControlStrategy
-import observe.model.Subsystem
 import observe.model.enums.Resource
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
