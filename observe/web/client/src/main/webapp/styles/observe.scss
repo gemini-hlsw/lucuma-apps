@@ -984,6 +984,19 @@ body {
   .observe-obs-summary-subsystems {
     display: flex;
     gap: 0.8em;
+    white-space: nowrap;
+
+    .observe-subsystem-readonly {
+      .p-checkbox-box {
+        background-color: var(--yellow-700);
+      }
+    }
+
+    .observe-subsystem-simulated {
+      .p-checkbox-box {
+        background-color: var(--red-500);
+      }
+    }
   }
 }
 

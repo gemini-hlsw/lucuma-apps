@@ -121,6 +121,8 @@ object ObserveStyles:
   val ObsSummaryTitle: Css      = Css("observe-obs-summary-title")
   val ObsSummaryDetails: Css    = Css("observe-obs-summary-details")
   val ObsSummarySubsystems: Css = Css("observe-obs-summary-subsystems")
+  val ReadonlySubsystem: Css    = Css("observe-subsystem-readonly")
+  val SimulatedSubsystem: Css   = Css("observe-subsystem-simulated")
   val ObsSummaryButton: Css     = Css("observe-obs-summary-button")
   val ObsLoadSection: Css       = Css("observe-obs-load-section")
 

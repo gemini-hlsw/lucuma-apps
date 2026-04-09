@@ -12,6 +12,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.Observation
 import lucuma.react.common.*
+import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.ui.primereact.{*, given}
 import observe.model.Subsystem
@@ -43,11 +45,23 @@ object SubsystemOverrides
           enabled:         View[SubsystemEnabled],
           controlStrategy: Option[ControlStrategy]
         ): VdomNode =
-          CheckboxView(
-            id = label,
-            value = enabled.as(SubsystemEnabled.Value),
-            label = label.value,
-            disabled = controlStrategy.contains_(ControlStrategy.Simulated)
+          <.span(
+            CheckboxView(
+              id = label,
+              value = enabled.as(SubsystemEnabled.Value),
+              label = label.value,
+              disabled = controlStrategy.contains_(ControlStrategy.Simulated),
+              clazz = controlStrategy match
+                case Some(ControlStrategy.Simulated) => ObserveStyles.SimulatedSubsystem
+                case Some(ControlStrategy.ReadOnly)  => ObserveStyles.ReadonlySubsystem
+                case _                               => Css.Empty
+            )
+          ).withTooltip(
+            content = controlStrategy match
+              case Some(ControlStrategy.Simulated) => "Simulated"
+              case Some(ControlStrategy.ReadOnly)  => "Read-only"
+              case _                               => "",
+            position = Tooltip.Position.Top
           )
 
         <.span(ObserveStyles.ObsSummarySubsystems)(
