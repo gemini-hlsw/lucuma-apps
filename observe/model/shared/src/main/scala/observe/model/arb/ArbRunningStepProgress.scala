@@ -12,7 +12,7 @@ import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
-trait ArbRunningStep {
+trait ArbRunningStepProgress {
 
   given arbRunningStep: Arbitrary[RunningStepProgress] =
     Arbitrary {
@@ -28,4 +28,4 @@ trait ArbRunningStep {
 
 }
 
-object ArbRunningStep extends ArbRunningStep
+object ArbRunningStepProgress extends ArbRunningStepProgress

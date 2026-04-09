@@ -185,7 +185,7 @@ trait ServerEventHandler:
           (RootModelData.executionState
             .at(obsId)
             .some
-            .andThen(ExecutionState.runningStep)
+            .andThen(ExecutionState.loadedStep)
             .some
             .filter(_.id === stepId)
             .andThen(ObserveStep.configStatus.at(subsystem))
@@ -214,8 +214,8 @@ trait ServerEventHandler:
               _.map: (obsId, obsRequests) =>
                 obsId -> sequenceExecution
                   .get(obsId)
-                  .map(_.sequenceStatus)
-                  .map(obsRequests.withSequenceStatus(_))
+                  .map: es =>
+                    obsRequests.withSequenceStatus(es.sequenceStatus, es.pausedStep.isDefined)
                   .getOrElse(obsRequests)
             ) >>>
             RootModelData.loadedObservations

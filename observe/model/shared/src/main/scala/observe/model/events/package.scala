@@ -23,7 +23,7 @@ extension (q: SequenceView)
       q.status,
       q.metadata.observer,
       q.sequenceType,
-      q.runningStep,
+      q.loadedStep,
       None,
       q.systemOverrides,
       q.breakpoints,

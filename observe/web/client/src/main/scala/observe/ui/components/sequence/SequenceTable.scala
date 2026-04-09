@@ -55,20 +55,20 @@ private trait SequenceTable[S, D](
       .flatMap(_.steps.lastOption)
       .map(_.id)
 
-  protected[sequence] lazy val runningStepId: Option[Step.Id] =
-    executionState.runningStep.map(_.id)
+  protected[sequence] lazy val loadedStepId: Option[Step.Id] =
+    executionState.loadedStep.map(_.id)
 
   // Obtain the id of the last recorded step only if its step id is the same
   // as the currently executing step. This will be filtered out from the visit steps.
   protected[sequence] lazy val currentRecordedStepId: Option[Step.Id] =
-    lastVisitStepId.filter(runningStepId.contains_(_))
+    lastVisitStepId.filter(loadedStepId.contains_(_))
 
   // There's a temporary situation where the loadedStep has moved on to the next one,
   // but the visits and sequence haven't caught up yet. Therefore, if the loadedStep id
   // is the 2nd in the future sequence, and the last visit step id is the same as the
   // 1st in the future sequence, we remove the 1st future step.
   private def shouldHideFirstFutureStep(secondStepId: Option[Step.Id]): Boolean =
-    (runningStepId, secondStepId, executionState.sequenceStatus) match
+    (loadedStepId, secondStepId, executionState.sequenceStatus) match
       case (Some(runStepId), Some(secStepId), _)               => runStepId === secStepId
       case (None, None, _)                                     => true
       case (None, _, status) if status =!= SequenceStatus.Idle => true // Avoid glitch

@@ -57,7 +57,7 @@ sealed trait SequenceRow[+D]:
 
   lazy val selectableRowId: Option[SelectedRowId] = id match
     case Ior.Left(visitId)         => none
-    case Ior.Right(stepId)         => SelectedRowId(none, stepId).some
+    case Ior.Right(stepId)         => SelectedRowId.forFutureStep(stepId).some
     case Ior.Both(visitId, stepId) => SelectedRowId(visitId.some, stepId).some
 
   lazy val instrument: Option[Instrument] = instrumentConfig.map:

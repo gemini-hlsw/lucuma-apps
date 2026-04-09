@@ -16,13 +16,13 @@ case class SequenceView(
   status:          SequenceStatus,
   systemOverrides: SystemOverrides,
   sequenceType:    SequenceType,
-  runningStep:     Option[ObserveStep],
+  loadedStep:      Option[ObserveStep],
   willStopIn:      Option[Int],
   breakpoints:     Set[Step.Id]
 ) derives Eq:
   def pausedStep: Option[PausedStep] =
-    runningStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))
+    loadedStep.filter(_.isObservePaused).map(_.id).map(PausedStep(_))
 
 object SequenceView:
-  val runningStep: Optional[SequenceView, ObserveStep] =
-    Focus[SequenceView](_.runningStep).some
+  val loadedStep: Optional[SequenceView, ObserveStep] =
+    Focus[SequenceView](_.loadedStep).some

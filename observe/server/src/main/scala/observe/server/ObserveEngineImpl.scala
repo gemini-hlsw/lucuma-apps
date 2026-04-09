@@ -612,7 +612,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     val instrument: Instrument          = obsSeq.instrument
     val seqType: SequenceType           = sequenceState.currentSequenceType
 
-    val engineRunningStep: Option[ObserveStep] =
+    val engineLoadedStep: Option[ObserveStep] =
       sequenceState.loadedStep.map: ls =>
         val stepResources =
           ls.resources.toList.mapFilter: x =>
@@ -629,7 +629,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
             obsSeq.pendingObsCmd
           )
 
-    val engStep: Option[ObserveStep] = engineRunningStep
+    val engStep: Option[ObserveStep] = engineLoadedStep
 
     // TODO: Implement willStopIn
     SequenceView(
