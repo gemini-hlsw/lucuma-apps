@@ -165,7 +165,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
           clientsDb,
           oe,
           events,
-          wsb
+          wsb,
+          conf.observeEngine.systemControl.toMap
         ).service
       )
 

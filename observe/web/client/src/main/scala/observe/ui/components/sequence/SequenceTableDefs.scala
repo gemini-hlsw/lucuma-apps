@@ -26,6 +26,7 @@ import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
 import observe.model.ExecutionState
 import observe.model.StepProgress
+import observe.model.Subsystem
 import observe.model.enums.ActionStatus
 import observe.model.enums.Resource
 import observe.ui.Icons
@@ -46,7 +47,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   private lazy val isGmos: Boolean =
     List(Instrument.GmosNorth, Instrument.GmosSouth).contains_(instrument)
 
-  private lazy val stepResources: StepConfig => Set[Resource | Instrument] =
+  private lazy val stepResources: StepConfig => Set[Subsystem] =
     case StepConfig.Bias | StepConfig.Dark => if isGmos then Set(Resource.Gcal) else Set.empty
     case StepConfig.Gcal(_, _, _, _)       => Set(Resource.TCS, Resource.Gcal)
     case StepConfig.Science                => Set(Resource.TCS, Resource.Gcal)
@@ -207,7 +208,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                         case Some(selRowId) if selRowId === selectableRowId =>
                           val stepId: Step.Id = selRowId.stepId
 
-                          def inactiveStepResourceMap: Map[Resource | Instrument, ActionStatus] =
+                          def inactiveStepResourceMap: Map[Subsystem, ActionStatus] =
                             (stepResources(stepConfig) + instrument)
                               .map(_ -> ActionStatus.Pending)
                               .toMap

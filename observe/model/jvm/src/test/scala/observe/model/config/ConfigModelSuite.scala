@@ -4,6 +4,7 @@
 package observe.model.config
 
 import cats.kernel.laws.discipline.*
+import observe.model.config.SystemsControlConfiguration
 import observe.model.config.arb.ArbSystemsControlConfiguration.given
 
 /**

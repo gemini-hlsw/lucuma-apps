@@ -25,8 +25,8 @@ import observe.model.ObservationProgress
 import observe.model.Operator
 import observe.model.SequenceView
 import observe.model.SequencesQueue
+import observe.model.Subsystem
 import observe.model.UserPrompt.ChecksOverride
-import observe.model.enums.Resource
 import observe.model.given
 import observe.model.odb.ObsRecordedIds
 
@@ -77,7 +77,7 @@ object ClientEvent:
   case class SingleActionEvent(
     obsId:     Observation.Id,
     stepId:    Step.Id,
-    subsystem: Resource | Instrument,
+    subsystem: Subsystem,
     event:     SingleActionState,
     error:     Option[String]
   ) extends AllClientEvent derives Eq

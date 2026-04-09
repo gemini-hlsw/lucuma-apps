@@ -3,11 +3,10 @@
 
 package observe.ui.model.arb
 
-import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbUid.given
-import observe.model.enums.Resource
+import observe.model.Subsystem
 import observe.model.given
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.OperationRequest
@@ -26,7 +25,7 @@ trait ArbObservationRequests:
       cancelPause       <- arbitrary[OperationRequest]
       resume            <- arbitrary[OperationRequest]
       startFrom         <- arbitrary[OperationRequest]
-      subsystemRun      <- arbitrary[Map[Step.Id, Map[Resource | Instrument, OperationRequest]]]
+      subsystemRun      <- arbitrary[Map[Step.Id, Map[Subsystem, OperationRequest]]]
       acquisitionPrompt <- arbitrary[OperationRequest]
     yield ObservationRequests(
       run,
@@ -48,7 +47,7 @@ trait ArbObservationRequests:
      OperationRequest,
      OperationRequest,
      OperationRequest,
-     List[(Step.Id, List[(Resource | Instrument, OperationRequest)])],
+     List[(Step.Id, List[(Subsystem, OperationRequest)])],
      OperationRequest
     )
   ].contramap(x =>

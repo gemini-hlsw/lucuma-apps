@@ -12,7 +12,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Step
-import observe.model.enums.Resource
+import observe.model.Subsystem
 import observe.model.enums.RunOverride
 
 import scala.annotation.unused
@@ -80,7 +80,7 @@ trait SequenceApi[F[_]: MonadThrow]:
   def execute(
     @unused obsId:     Observation.Id,
     @unused stepId:    Step.Id,
-    @unused subsystem: Resource | Instrument
+    @unused subsystem: Subsystem
   ): F[Unit] =
     NotAuthorized
 

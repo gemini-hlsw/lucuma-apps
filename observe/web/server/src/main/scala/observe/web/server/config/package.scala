@@ -9,6 +9,8 @@ import lucuma.core.enums.Site
 import lucuma.core.util.Enumerated
 import lucuma.sso.client.util.GpgPublicKeyReader
 import observe.model.config.*
+import observe.model.config.SystemsControlConfiguration
+import observe.model.enums.ControlStrategy
 import org.http4s.Uri
 import pureconfig.*
 import pureconfig.error.*

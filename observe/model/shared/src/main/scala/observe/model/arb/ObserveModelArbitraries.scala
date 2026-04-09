@@ -43,11 +43,11 @@ trait ObserveModelArbitraries {
     } yield Conditions(ce, iq, sb, wv)
   }
 
-  given Arbitrary[Resource | Instrument] =
+  given Arbitrary[Subsystem] =
     Arbitrary:
       Gen.oneOf(arbitrary[Resource], arbitrary[Instrument])
 
-  given Cogen[Resource | Instrument] =
+  given Cogen[Subsystem] =
     Cogen[Either[Resource, Instrument]].contramap:
       case r: Resource   => r.asLeft
       case i: Instrument => i.asRight

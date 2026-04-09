@@ -185,7 +185,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
     observer: Observer,
     user:     User,
     stepId:   Step.Id,
-    sys:      Resource | Instrument,
+    sys:      Subsystem,
     clientID: ClientId
   ): F[Unit] = Applicative[F].unit
 

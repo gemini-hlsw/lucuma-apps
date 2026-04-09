@@ -19,9 +19,9 @@ import monocle.Prism
 import monocle.macros.GenPrism
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.Observer
+import observe.model.Subsystem
 import observe.model.SystemOverrides
 import observe.model.enums.PendingObserveCmd
-import observe.model.enums.Resource
 import observe.server.engine.ActionCoordsInSeq
 import observe.server.engine.LoadedStep
 import observe.server.engine.SequenceState
@@ -46,19 +46,19 @@ sealed trait SequenceData[F[_]]:
 
   def withCompleteVisitStart: SequenceData[F] = SequenceData.visitStartDone.replace(true)(this)
 
-  lazy val resources: Set[Resource | Instrument] =
+  lazy val resources: Set[Subsystem] =
     loadedStep.map(_.resources).getOrElse(Set.empty)
 
   def configActionCoord(
     stepId: Step.Id,
-    r:      Resource | Instrument
+    r:      Subsystem
   ): Option[ActionCoordsInSeq] =
     loadedStep
       .filter(_.id === stepId)
       .flatMap(_.generator.configActionCoord(r))
       .map { case (ex, ac) => ActionCoordsInSeq(stepId, ex, ac) }
 
-  def resourceAtCoords(c: ActionCoordsInSeq): Option[Resource | Instrument] =
+  def resourceAtCoords(c: ActionCoordsInSeq): Option[Subsystem] =
     loadedStep
       .filter(_.id === c.stepId)
       .flatMap(_.generator.resourceAtCoords(c.execIdx, c.actIdx))

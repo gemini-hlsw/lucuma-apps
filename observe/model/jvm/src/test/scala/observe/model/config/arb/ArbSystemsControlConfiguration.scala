@@ -5,6 +5,8 @@ package observe.model.config.arb
 
 import lucuma.core.util.arb.ArbEnumerated.given
 import observe.model.config.*
+import observe.model.config.SystemsControlConfiguration
+import observe.model.enums.ControlStrategy
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen

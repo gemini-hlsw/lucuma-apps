@@ -11,8 +11,9 @@ import lucuma.core.util.arb.ArbUid.given
 import observe.model.Notification
 import observe.model.Notification.*
 import observe.model.Observation
+import observe.model.Subsystem
 import observe.model.enums.Resource
-import observe.model.given_Enumerated_|
+import observe.model.given
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
@@ -58,9 +59,7 @@ trait ArbNotification {
   }
 
   given subsCogen: Cogen[SubsystemBusy] =
-    Cogen[(Observation.Id, Step.Id, Resource | Instrument)].contramap(x =>
-      (x.obsId, x.stepId, x.resource)
-    )
+    Cogen[(Observation.Id, Step.Id, Subsystem)].contramap(x => (x.obsId, x.stepId, x.resource))
 
   given notArb: Arbitrary[Notification] = Arbitrary[Notification] {
     for {

@@ -16,7 +16,7 @@ import lucuma.core.util.Enumerated
 import monocle.Lens
 import observe.model.ClientId
 import observe.model.Observer
-import observe.model.enums.Resource
+import observe.model.Subsystem
 import observe.model.enums.RunOverride
 import observe.model.given
 import observe.ui.model.ObservationRequests
@@ -136,7 +136,7 @@ case class SequenceApiImpl(
   override def execute(
     obsId:     Observation.Id,
     stepId:    Step.Id,
-    subsystem: Resource | Instrument
+    subsystem: Subsystem
   ): IO[Unit] =
     setInFlight(
       obsId,
@@ -148,7 +148,7 @@ case class SequenceApiImpl(
     ) >>
       client.postNoData:
         Uri.Path.empty / obsId.toString / stepId.toString / client.clientId.value / "execute" /
-          Enumerated[Resource | Instrument].tag(subsystem) / observer.toString
+          Enumerated[Subsystem].tag(subsystem) / observer.toString
 
   override def proceedAfterPrompt(obsId: Observation.Id, sequenceType: SequenceType): IO[Unit] =
     setInFlight(obsId, ObservationRequests.acquisitionPrompt) >>

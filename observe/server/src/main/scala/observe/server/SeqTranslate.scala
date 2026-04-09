@@ -135,7 +135,7 @@ object SeqTranslate {
         stepType:  StepType
       ): StepGen[F] = {
 
-        val configs: Map[Resource | Instrument, SystemOverrides => Action[F]] =
+        val configs: Map[Subsystem, SystemOverrides => Action[F]] =
           otherSysf.map { case (r, sf) =>
             val kind = ActionType.Configure(r)
             r -> { (ov: SystemOverrides) =>

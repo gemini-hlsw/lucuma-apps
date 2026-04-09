@@ -14,20 +14,22 @@ import java.util.UUID
 type ObservationName = String
 type TargetName      = String
 
+type Subsystem = Resource | Instrument
+
 val UnknownTargetName = "None"
 
 val CalibrationQueueName: String = "Calibration Queue"
 val CalibrationQueueId: QueueId  =
   QueueId(UUID.fromString("7156fa7e-48a6-49d1-a267-dbf3bbaa7577"))
 
-given KeyEncoder[Resource | Instrument] = KeyEncoder.instance:
+given KeyEncoder[Subsystem] = KeyEncoder.instance:
   case r: Resource   => r.tag
   case i: Instrument => i.tag
-given KeyDecoder[Resource | Instrument] = KeyDecoder.instance: tag =>
+given KeyDecoder[Subsystem] = KeyDecoder.instance: tag =>
   Enumerated[Resource].fromTag(tag).orElse(Enumerated[Instrument].fromTag(tag))
 
 // Resources come before Instruments
-given Enumerated[Resource | Instrument] = Enumerated
+given Enumerated[Subsystem] = Enumerated
   .from(
     Enumerated[Resource].all.head,
     (Enumerated[Resource].all.tail ++ Enumerated[Instrument].all)*

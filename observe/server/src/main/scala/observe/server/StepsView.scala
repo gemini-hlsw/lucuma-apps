@@ -12,10 +12,10 @@ import observe.model.ActionType
 import observe.model.InstrumentDynamicConfig
 import observe.model.ObserveStep
 import observe.model.StepState
+import observe.model.Subsystem
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ActionStatus
 import observe.model.enums.PendingObserveCmd
-import observe.model.enums.Resource
 import observe.model.given
 import observe.server.engine.Action
 import observe.server.engine.Action.ActionState
@@ -31,13 +31,13 @@ trait StepsView[F[_]] {
   def stepView(
     stepg:         StepGen[F],
     step:          engine.EngineStep[F],
-    altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
+    altCfgStatus:  List[(Subsystem, ActionStatus)],
     pendingObsCmd: Option[PendingObserveCmd]
   ): ObserveStep
 }
 
 object StepsView {
-  private def kindToResource(kind: ActionType): List[Resource | Instrument] = kind match {
+  private def kindToResource(kind: ActionType): List[Subsystem] = kind match {
     case ActionType.Configure(r) => List(r)
     case _                       => Nil
   }
@@ -54,7 +54,7 @@ object StepsView {
 
   def actionsToResources[F[_]](
     s: NonEmptyList[Action[F]]
-  ): (List[Resource | Instrument], List[Resource | Instrument]) =
+  ): (List[Subsystem], List[Subsystem]) =
     separateActions(s).bimap(
       _.map(_.kind).flatMap(kindToResource),
       _.map(_.kind).flatMap(kindToResource)
@@ -62,20 +62,19 @@ object StepsView {
 
   private[server] def configStatus[F[_]](
     executions: List[ParallelActions[F]]
-  ): List[(Resource | Instrument, ActionStatus)] = {
+  ): List[(Subsystem, ActionStatus)] = {
     // Remove undefined actions
     val ex                 = executions.filter(!separateActions(_)._2.exists(_.kind === ActionType.Undefined))
     // Split where at least one is running
     val (current, pending) = splitAfter(ex)(separateActions(_)._1.nonEmpty)
 
     // Calculate the state up to the current
-    val configStatus = current.foldLeft(Map.empty[Resource | Instrument, ActionStatus]) {
-      case (s, e) =>
-        val (a, r) = separateActions(e).bimap(
-          _.flatMap(a => kindToResource(a.kind).tupleRight(ActionStatus.Running)).toMap,
-          _.flatMap(r => kindToResource(r.kind).tupleRight(ActionStatus.Completed)).toMap
-        )
-        s ++ a ++ r
+    val configStatus = current.foldLeft(Map.empty[Subsystem, ActionStatus]) { case (s, e) =>
+      val (a, r) = separateActions(e).bimap(
+        _.flatMap(a => kindToResource(a.kind).tupleRight(ActionStatus.Running)).toMap,
+        _.flatMap(r => kindToResource(r.kind).tupleRight(ActionStatus.Completed)).toMap
+      )
+      s ++ a ++ r
     }
 
     // Find out systems in the future
@@ -99,7 +98,7 @@ object StepsView {
    */
   private[server] def pendingConfigStatus[F[_]](
     executions: List[ParallelActions[F]]
-  ): List[(Resource | Instrument, ActionStatus)] =
+  ): List[(Subsystem, ActionStatus)] =
     executions
       .map(actionsToResources)
       .flatMap { case (a, b) => a ::: b }
@@ -112,7 +111,7 @@ object StepsView {
    */
   def stepConfigStatus[F[_]](
     step: engine.EngineStep[F]
-  ): List[(Resource | Instrument, ActionStatus)] =
+  ): List[(Subsystem, ActionStatus)] =
     step.status match {
       case StepState.Pending => pendingConfigStatus(step.executions)
       case _                 => configStatus(step.executions)
@@ -136,7 +135,7 @@ object StepsView {
     def stepView(
       stepg:         StepGen[F],
       step:          engine.EngineStep[F],
-      altCfgStatus:  List[(Resource | Instrument, ActionStatus)],
+      altCfgStatus:  List[(Subsystem, ActionStatus)],
       pendingObsCmd: Option[PendingObserveCmd]
     ): ObserveStep = {
       val status       = step.status

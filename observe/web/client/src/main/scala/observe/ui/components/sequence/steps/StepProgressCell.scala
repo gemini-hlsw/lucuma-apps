@@ -15,10 +15,10 @@ import lucuma.react.common.*
 import lucuma.ui.sequence.StepTypeDisplay
 import observe.model.SequenceStatus
 import observe.model.StepProgress
+import observe.model.Subsystem
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ActionStatus
-import observe.model.enums.Resource
 import observe.ui.ObserveStyles
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
@@ -35,7 +35,7 @@ case class StepProgressCell(
   fileIds:         Option[NonEmptyChain[ImageFileId]],
   sequenceStatus:  SequenceStatus,
   isPausedInStep:  Boolean,
-  subsystemStatus: Map[Resource | Instrument, ActionStatus],
+  subsystemStatus: Map[Subsystem, ActionStatus],
   systemOverrides: SystemOverrides,
   exposureTime:    TimeSpan,
   progress:        Option[StepProgress],

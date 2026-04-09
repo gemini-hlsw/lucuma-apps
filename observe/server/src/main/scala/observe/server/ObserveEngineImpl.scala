@@ -75,10 +75,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
    */
   private def checkResources(obsId: Observation.Id)(st: EngineState[F]): Boolean = {
     // Resources used by running sequences
-    val used: Set[Resource | Instrument] = ObserveEngine.resourcesInUse(st, excludeObs = obsId.some)
+    val used: Set[Subsystem] = ObserveEngine.resourcesInUse(st, excludeObs = obsId.some)
 
     // Resources that will be used by sequences in running queues
-    val reservedByQueues: Set[Resource | Instrument] = ObserveEngine.resourcesReserved(st)
+    val reservedByQueues: Set[Subsystem] = ObserveEngine.resourcesReserved(st)
 
     st.sequences
       .get(obsId)
@@ -922,7 +922,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     Applicative[F].unit
 
   private def configSystemCheck(
-    sys: Resource | Instrument,
+    sys: Subsystem,
     st:  EngineState[F]
   ): Boolean = {
     // Resources used by running sequences
@@ -938,7 +938,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   private def configSystemHandle(
     obsId:    Observation.Id,
     stepId:   Step.Id,
-    sys:      Resource | Instrument,
+    sys:      Subsystem,
     clientId: ClientId
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
@@ -991,7 +991,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     observer: Observer,
     user:     User,
     stepId:   Step.Id,
-    sys:      Resource | Instrument,
+    sys:      Subsystem,
     clientId: ClientId
   ): F[Unit] =
     setObserver(obsId, user, observer) >>
