@@ -21,7 +21,7 @@ import lucuma.ui.syntax.all.*
 import observe.model.ExecutionState
 import observe.model.SequenceStatus
 import observe.model.StepProgress
-import observe.model.Subsystem
+import observe.model.SubsystemOrServer
 import observe.model.enums.ControlStrategy
 import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
@@ -31,7 +31,7 @@ import observe.ui.model.*
 case class ObservationExecutionDisplay(
   selectedObs:                ObsSummary,
   rootModelData:              View[RootModelData],
-  subsystemControlStrategies: Map[Subsystem, ControlStrategy],
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
   linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObservationExecutionDisplay)
 

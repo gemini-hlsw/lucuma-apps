@@ -3,7 +3,7 @@
 
 package observe.server
 
-import cats.syntax.eq.*
+import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.ConstraintSet

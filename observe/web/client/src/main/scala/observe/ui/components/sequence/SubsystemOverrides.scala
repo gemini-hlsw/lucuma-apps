@@ -16,8 +16,9 @@ import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.ui.primereact.{*, given}
-import observe.model.Subsystem
+import observe.model.Server
 import observe.model.SubsystemEnabled
+import observe.model.SubsystemOrServer
 import observe.model.SystemOverrides
 import observe.model.enums.ControlStrategy
 import observe.model.enums.Resource
@@ -29,7 +30,7 @@ case class SubsystemOverrides(
   obsId:             Observation.Id,
   instrument:        Instrument,
   overrides:         View[SystemOverrides],
-  controlStrategies: Map[Subsystem, ControlStrategy]
+  controlStrategies: Map[SubsystemOrServer, ControlStrategy]
 ) extends ReactFnProps(SubsystemOverrides)
 
 object SubsystemOverrides
@@ -84,7 +85,7 @@ object SubsystemOverrides
             props.overrides
               .zoom(SystemOverrides.isDhsEnabled)
               .withOnMod(configApi.setDhsEnabled(props.obsId, _).runAsync),
-            ControlStrategy.FullControl.some
+            props.controlStrategies.get(Server.Dhs)
           ),
           renderOverrideControl(
             NonEmptyString.unsafeFrom(props.instrument.longName),

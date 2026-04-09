@@ -11,7 +11,7 @@ import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbNewType.given
 import observe.model.ClientConfig
 import observe.model.ClientId
-import observe.model.Subsystem
+import observe.model.SubsystemOrServer
 import observe.model.Version
 import observe.model.arb.ArbSubsystem.given
 import observe.model.enums.ControlStrategy
@@ -41,7 +41,7 @@ trait ArbClientConfig:
       exploreBaseUri             <- arbitrary[Uri]
       clientId                   <- arbitrary[ClientId]
       version                    <- arbitrary[Version]
-      subsystemControlStrategies <- arbitrary[Map[Subsystem, ControlStrategy]]
+      subsystemControlStrategies <- arbitrary[Map[SubsystemOrServer, ControlStrategy]]
     yield ClientConfig(
       site,
       environment,
@@ -62,7 +62,7 @@ trait ArbClientConfig:
        Uri,
        ClientId,
        Version,
-       List[(Subsystem, ControlStrategy)]
+       List[(SubsystemOrServer, ControlStrategy)]
       )
     ].contramap(x =>
       (x.site,

@@ -10,6 +10,7 @@ import observe.model.BatchCommandState
 import observe.model.Observation
 import observe.model.SequenceStatus
 import observe.model.Subsystem
+import observe.model.arb.ArbSubsystem.given
 import observe.model.arb.ObserveModelArbitraries.given
 import observe.server.ExecutionQueue.SequenceInQueue
 import org.scalacheck.Arbitrary

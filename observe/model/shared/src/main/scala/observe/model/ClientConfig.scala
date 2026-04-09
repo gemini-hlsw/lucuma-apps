@@ -28,7 +28,7 @@ case class ClientConfig(
   exploreBaseUri:             Uri,
   clientId:                   ClientId,
   version:                    Version,
-  subsystemControlStrategies: Map[Subsystem, ControlStrategy]
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:

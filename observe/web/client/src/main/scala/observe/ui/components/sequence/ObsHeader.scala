@@ -29,7 +29,7 @@ case class ObsHeader(
   observer:                   View[Option[Observer]],
   operator:                   View[Option[Operator]],
   conditions:                 View[Conditions],
-  subsystemControlStrategies: Map[Subsystem, ControlStrategy],
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
   linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObsHeader)
 

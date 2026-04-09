@@ -14,7 +14,13 @@ import java.util.UUID
 type ObservationName = String
 type TargetName      = String
 
-type Subsystem = Resource | Instrument
+enum Server(val tag: String) derives Enumerated:
+  case Dhs extends Server("Dhs")
+
+type Subsystem         = Resource | Instrument
+type SubsystemOrServer = Subsystem | Server
+object SubsystemOrServer:
+  def fromSubsystem(s: Subsystem): SubsystemOrServer = s
 
 val UnknownTargetName = "None"
 
@@ -25,6 +31,7 @@ val CalibrationQueueId: QueueId  =
 given KeyEncoder[Subsystem] = KeyEncoder.instance:
   case r: Resource   => r.tag
   case i: Instrument => i.tag
+
 given KeyDecoder[Subsystem] = KeyDecoder.instance: tag =>
   Enumerated[Resource].fromTag(tag).orElse(Enumerated[Instrument].fromTag(tag))
 
@@ -37,3 +44,22 @@ given Enumerated[Subsystem] = Enumerated
   .withTag:
     case r: Resource   => r.tag
     case i: Instrument => i.tag
+
+given KeyEncoder[SubsystemOrServer] = KeyEncoder.instance:
+  case r: Resource   => r.tag
+  case i: Instrument => i.tag
+  case s: Server     => s.tag
+
+given KeyDecoder[SubsystemOrServer] = KeyDecoder.instance: tag =>
+  Enumerated[Resource].fromTag(tag).orElse(Enumerated[Instrument].fromTag(tag))
+
+// Resources come before Instruments before Servers
+given Enumerated[SubsystemOrServer] = Enumerated
+  .from(
+    Enumerated[Subsystem].all.head,
+    (Enumerated[Subsystem].all.tail ++ Enumerated[Server].all)*
+  )
+  .withTag:
+    case r: Resource   => r.tag
+    case i: Instrument => i.tag
+    case s: Server     => s.tag

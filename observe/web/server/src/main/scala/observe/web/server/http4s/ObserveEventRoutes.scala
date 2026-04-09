@@ -49,7 +49,7 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
   engine:                     ObserveEngine[F],
   engineOutput:               Topic[F, (Option[ClientId], ClientEvent)],
   webSocketBuilder:           WebSocketBuilder2[F],
-  subsystemControlStrategies: Map[Subsystem, ControlStrategy]
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy]
 )(using
   L:                          Logger[F]
 ) extends ModelLenses
