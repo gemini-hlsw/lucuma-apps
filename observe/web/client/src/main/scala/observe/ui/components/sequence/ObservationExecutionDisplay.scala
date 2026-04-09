@@ -25,11 +25,14 @@ import observe.model.odb.RecordedVisit
 import observe.ui.ObserveStyles
 import observe.ui.components.ObservationSequence
 import observe.ui.model.*
+import observe.model.Subsystem
+import observe.model.enums.ControlStrategy
 
 case class ObservationExecutionDisplay(
-  selectedObs:      ObsSummary,
-  rootModelData:    View[RootModelData],
-  linkToExploreObs: Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+  selectedObs:                ObsSummary,
+  rootModelData:              View[RootModelData],
+  subsystemControlStrategies: Map[Subsystem, ControlStrategy],
+  linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObservationExecutionDisplay)
 
 object ObservationExecutionDisplay
@@ -89,6 +92,7 @@ object ObservationExecutionDisplay
           props.rootModelData.zoom(RootModelData.observer),
           props.rootModelData.zoom(RootModelData.operator),
           props.rootModelData.zoom(RootModelData.conditions),
+          props.subsystemControlStrategies,
           props.linkToExploreObs
         ),
         executionStateAndConfig.map(

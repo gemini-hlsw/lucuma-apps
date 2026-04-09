@@ -3,6 +3,7 @@
 
 package observe.ui.components.sequence
 
+import cats.syntax.all.*
 import crystal.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -15,14 +16,18 @@ import lucuma.refined.*
 import lucuma.ui.primereact.{*, given}
 import observe.model.SubsystemEnabled
 import observe.model.SystemOverrides
+import observe.model.enums.ControlStrategy
+import observe.model.Subsystem
+import observe.model.enums.Resource
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
 import observe.ui.services.ConfigApi
 
 case class SubsystemOverrides(
-  obsId:      Observation.Id,
-  instrument: Instrument,
-  overrides:  View[SystemOverrides]
+  obsId:             Observation.Id,
+  instrument:        Instrument,
+  overrides:         View[SystemOverrides],
+  controlStrategies: Map[Subsystem, ControlStrategy]
 ) extends ReactFnProps(SubsystemOverrides)
 
 object SubsystemOverrides
@@ -34,13 +39,15 @@ object SubsystemOverrides
         import ctx.given
 
         def renderOverrideControl(
-          label:   NonEmptyString,
-          enabled: View[SubsystemEnabled]
+          label:           NonEmptyString,
+          enabled:         View[SubsystemEnabled],
+          controlStrategy: Option[ControlStrategy]
         ): VdomNode =
           CheckboxView(
             id = label,
             value = enabled.as(SubsystemEnabled.Value),
-            label = label.value
+            label = label.value,
+            disabled = controlStrategy.contains_(ControlStrategy.Simulated)
           )
 
         <.span(ObserveStyles.ObsSummarySubsystems)(
@@ -48,25 +55,29 @@ object SubsystemOverrides
             "TCS".refined,
             props.overrides
               .zoom(SystemOverrides.isTcsEnabled)
-              .withOnMod(configApi.setTcsEnabled(props.obsId, _).runAsync)
+              .withOnMod(configApi.setTcsEnabled(props.obsId, _).runAsync),
+            props.controlStrategies.get(Resource.TCS)
           ),
           renderOverrideControl(
             "GCAL".refined,
             props.overrides
               .zoom(SystemOverrides.isGcalEnabled)
-              .withOnMod(configApi.setGcalEnabled(props.obsId, _).runAsync)
+              .withOnMod(configApi.setGcalEnabled(props.obsId, _).runAsync),
+            props.controlStrategies.get(Resource.Gcal)
           ),
           renderOverrideControl(
             "DHS".refined,
             props.overrides
               .zoom(SystemOverrides.isDhsEnabled)
-              .withOnMod(configApi.setDhsEnabled(props.obsId, _).runAsync)
+              .withOnMod(configApi.setDhsEnabled(props.obsId, _).runAsync),
+            ControlStrategy.FullControl.some
           ),
           renderOverrideControl(
             NonEmptyString.unsafeFrom(props.instrument.longName),
             props.overrides
               .zoom(SystemOverrides.isInstrumentEnabled)
-              .withOnMod(configApi.setInstrumentEnabled(props.obsId, _).runAsync)
+              .withOnMod(configApi.setInstrumentEnabled(props.obsId, _).runAsync),
+            props.controlStrategies.get(props.instrument)
           )
         )
     )
