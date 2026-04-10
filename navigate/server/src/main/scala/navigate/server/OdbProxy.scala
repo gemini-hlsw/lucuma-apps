@@ -13,10 +13,8 @@ import lucuma.core.enums.SlewStage
 import lucuma.core.model.Ephemeris
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
-import mouse.boolean.given
 import navigate.queries.ObsQueriesGQL.ActiveNonsiderealTargetsQuery
 import navigate.queries.ObsQueriesGQL.AddSlewEventMutation
-import navigate.queries.ObsQueriesGQL.NonsiderealGuideTargetsQuery
 import org.typelevel.log4cats.Logger
 
 import java.time.LocalDate
@@ -85,6 +83,7 @@ object OdbProxy {
         .map(_.flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des))))
         .flattenOption
 
+    // TODO: Query relevant non-sidereal guide targets
     override def queryNonSiderealObs(
       site:  Site,
       start: LocalDate,
@@ -92,27 +91,6 @@ object OdbProxy {
     ): F[List[Ephemeris.Key]] = ActiveNonsiderealTargetsQuery[F]
       .query(site, start, end)
       .raiseGraphQLErrors
-      .flatMap(d =>
-        d.observations.matches
-          .map(obs =>
-            NonsiderealGuideTargetsQuery[F]
-              .query(obs.id)
-              .map(
-                _.data.flatMap(
-                  _.observation.flatMap { x =>
-                    val r = x.targetEnvironment.guideEnvironment.guideTargets
-                      .map(
-                        _.nonsidereal
-                          .flatMap(x => Ephemeris.Key.fromTypeAndDes.getOption((x.keyType, x.des)))
-                      )
-                      .flattenOption
-                    r.nonEmpty.option(r)
-                  }
-                )
-              )
-          )
-          .sequence
-          .map(l => (extractNonsiderealTargets(d) ++ l.flattenOption.flatten).distinct)
-      )
+      .map(d => extractNonsiderealTargets(d).distinct)
   }
 }
