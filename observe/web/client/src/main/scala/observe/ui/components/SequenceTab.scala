@@ -54,6 +54,9 @@ object SequenceTab
                   ObservationExecutionDisplay(
                     _,
                     props.rootModel.data,
+                    props.rootModel.clientConfig.toOption
+                      .map(_.subsystemControlStrategies)
+                      .getOrElse(Map.empty),
                     renderExploreLinkToObs
                   )
               ,

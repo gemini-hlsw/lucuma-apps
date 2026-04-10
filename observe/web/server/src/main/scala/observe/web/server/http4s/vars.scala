@@ -14,10 +14,11 @@ import lucuma.core.util.Enumerated
 import observe.model.ClientId
 import observe.model.Observer
 import observe.model.Operator
+import observe.model.Subsystem
 import observe.model.SubsystemEnabled
 import observe.model.enums.Resource
 import observe.model.enums.RunOverride
-import observe.model.given_Enumerated_|
+import observe.model.given
 import org.http4s.QueryParamDecoder
 import org.http4s.dsl.impl.OptionalQueryParamDecoderMatcher
 
@@ -31,7 +32,7 @@ trait EnumeratedVar[A: Enumerated]:
 
 object InstrumentVar           extends EnumeratedVar[Instrument]
 object ResourceVar             extends EnumeratedVar[Resource]
-object ResourceOrInstrumentVar extends EnumeratedVar[Resource | Instrument]
+object ResourceOrInstrumentVar extends EnumeratedVar[Subsystem]
 
 object ObsIdVar:
   def unapply(str: String): Option[Observation.Id] =

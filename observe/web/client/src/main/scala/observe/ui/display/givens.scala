@@ -8,6 +8,9 @@ import lucuma.core.enums.Instrument
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import observe.model.RunningStepProgress
+import observe.model.Server
+import observe.model.Subsystem
+import observe.model.SubsystemOrServer
 import observe.model.enums.*
 
 // private def conditionIntToString(v: Int): String = if (v === 100) "Any" else v.toString
@@ -22,7 +25,9 @@ import observe.model.enums.*
 
 given Display[Resource] = Display.byShortName(_.label)
 
-given Display[Resource | Instrument] = Display.by(
+given Display[Server] = Display.byShortName(_.tag)
+
+given Display[Subsystem] = Display.by(
   {
     case r: Resource   => r.shortName
     case i: Instrument => i.shortName
@@ -30,6 +35,19 @@ given Display[Resource | Instrument] = Display.by(
   {
     case r: Resource   => r.longName
     case i: Instrument => i.longName
+  }
+)
+
+given Display[SubsystemOrServer] = Display.by(
+  {
+    case r: Resource   => r.shortName
+    case i: Instrument => i.shortName
+    case s: Server     => s.tag
+  },
+  {
+    case r: Resource   => r.longName
+    case i: Instrument => i.longName
+    case s: Server     => s.tag
   }
 )
 

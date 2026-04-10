@@ -9,7 +9,6 @@ import io.circe.Decoder
 import io.circe.Encoder
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
-import observe.model.enums.Resource
 
 enum Notification derives Eq, Encoder, Decoder:
   // Notification that user tried to run a sequence that used resource already in use
@@ -19,5 +18,5 @@ enum Notification derives Eq, Encoder, Decoder:
   // Notification that a request to load a sequence in the backend failed
   case LoadingFailed(obsId: Observation.Id, msgs: List[String]) extends Notification
   // Notification that a resource configuration failed as the resource was busy
-  case SubsystemBusy(obsId: Observation.Id, stepId: Step.Id, resource: Resource | Instrument)
+  case SubsystemBusy(obsId: Observation.Id, stepId: Step.Id, resource: Subsystem)
       extends Notification

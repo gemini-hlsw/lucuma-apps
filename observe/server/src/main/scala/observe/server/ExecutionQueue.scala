@@ -10,7 +10,7 @@ import monocle.Lens
 import observe.model.BatchCommandState
 import observe.model.Observation
 import observe.model.SequenceStatus
-import observe.model.enums.Resource
+import observe.model.Subsystem
 import observe.server.ExecutionQueue.SequenceInQueue
 
 final case class ExecutionQueue(
@@ -24,14 +24,14 @@ object ExecutionQueue {
     obsId:      Observation.Id,
     instrument: Instrument,
     state:      SequenceStatus,
-    resources:  Set[Resource | Instrument]
+    subsystems: Set[Subsystem]
   )
 
   def init(name: String): ExecutionQueue =
     ExecutionQueue(name, BatchCommandState.Idle, List.empty)
 
   given Eq[SequenceInQueue] =
-    Eq.by(x => (x.obsId, x.state, x.resources))
+    Eq.by(x => (x.obsId, x.state, x.subsystems))
 
   given Eq[ExecutionQueue] =
     Eq.by(x => (x.name, x.cmdState, x.queue))

@@ -5,11 +5,9 @@ package observe.model
 
 import cats.derived.*
 import cats.kernel.Order
-import lucuma.core.enums.Instrument
-import observe.model.enums.Resource
 
 enum ActionType derives Order:
   case Observe
   case Undefined // Used in tests
-  case Configure(sys: Resource | Instrument)
+  case Configure(sys: Subsystem)
   case OdbEvent

@@ -13,22 +13,24 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
 import lucuma.react.common.*
 import observe.model.*
+import observe.model.enums.ControlStrategy
 import observe.ui.ObserveStyles
 import observe.ui.components.ConfigPanel
 import observe.ui.model.ObsSummary
 import observe.ui.model.ObservationRequests
 
 case class ObsHeader(
-  observation:      ObsSummary,
-  loadedObsId:      Option[Pot[Observation.Id]],
-  refreshing:       Pot[View[Boolean]],
-  sequenceStatus:   SequenceStatus,
-  requests:         ObservationRequests,
-  overrides:        Option[View[SystemOverrides]],
-  observer:         View[Option[Observer]],
-  operator:         View[Option[Operator]],
-  conditions:       View[Conditions],
-  linkToExploreObs: Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
+  observation:                ObsSummary,
+  loadedObsId:                Option[Pot[Observation.Id]],
+  refreshing:                 Pot[View[Boolean]],
+  sequenceStatus:             SequenceStatus,
+  requests:                   ObservationRequests,
+  overrides:                  Option[View[SystemOverrides]],
+  observer:                   View[Option[Observer]],
+  operator:                   View[Option[Operator]],
+  conditions:                 View[Conditions],
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
+  linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObsHeader)
 
 object ObsHeader
@@ -52,7 +54,12 @@ object ObsHeader
             <.span(props.observation.constraintsSummary),
             props.overrides
               .map: overrides =>
-                SubsystemOverrides(props.observation.obsId, props.observation.instrument, overrides)
+                SubsystemOverrides(
+                  props.observation.obsId,
+                  props.observation.instrument,
+                  overrides,
+                  props.subsystemControlStrategies
+                )
                   .when(props.loadedObsId.contains_(props.observation.obsId.ready))
               .whenDefined
           )

@@ -3,7 +3,6 @@
 
 package observe.model.arb
 
-import lucuma.core.enums.Instrument
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.arb.ArbSignalToNoise
 import lucuma.core.model.sequence.Step
@@ -21,7 +20,6 @@ import observe.model.GmosParameters.*
 import observe.model.enums.ActionStatus
 import observe.model.enums.PendingObserveCmd
 import observe.model.enums.PendingObserveCmd.*
-import observe.model.enums.Resource
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.*
 import org.scalacheck.Cogen
@@ -32,7 +30,7 @@ import ArbInstrumentDynamicConfig.given
 import ArbNsRunningState.given
 import ArbSignalToNoise.given
 import ArbStepState.given
-import ArbSystem.given
+import ArbSubsystem.given
 
 trait ArbNodAndShuffleStep {
 
@@ -66,7 +64,7 @@ trait ArbNodAndShuffleStep {
         sn <- arbitrary[Option[SignalToNoise]]
         s  <- arbitrary[StepState]
         f  <- arbitrary[Option[dhs.ImageFileId]]
-        cs <- arbitrary[Map[(Resource | Instrument), ActionStatus]]
+        cs <- arbitrary[Map[Subsystem, ActionStatus]]
         os <- arbitrary[NodAndShuffleStatus]
         oc <- arbitrary[Option[PendingObserveCmd]]
       } yield ObserveStep.NodAndShuffle(
@@ -93,7 +91,7 @@ trait ArbNodAndShuffleStep {
         Option[SignalToNoise],
         StepState,
         Option[dhs.ImageFileId],
-        List[(Resource | Instrument, ActionStatus)],
+        List[(Subsystem, ActionStatus)],
         NodAndShuffleStatus
       )
     ].contramap(s =>

@@ -6,6 +6,7 @@ package observe.model.config
 import cats.Eq
 import cats.derived.*
 import lucuma.core.util.NewType
+import observe.model.config.SystemsControlConfiguration
 import org.http4s.Uri
 
 import scala.concurrent.duration.FiniteDuration

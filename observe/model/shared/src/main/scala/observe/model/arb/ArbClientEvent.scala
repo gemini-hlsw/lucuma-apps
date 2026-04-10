@@ -22,9 +22,9 @@ import observe.model.ObservationProgress
 import observe.model.Operator
 import observe.model.SequenceView
 import observe.model.SequencesQueue
+import observe.model.Subsystem
 import observe.model.UserPrompt.ChecksOverride
 import observe.model.arb.ObserveModelArbitraries.given
-import observe.model.enums.Resource
 import observe.model.events.*
 import observe.model.events.ClientEvent.SingleActionState
 import observe.model.odb.ObsRecordedIds
@@ -38,7 +38,7 @@ import ArbLogMessage.given
 import ArbNotification.given
 import ArbObsRecordedIds.given
 import ArbObservationProgress.given
-import ArbSystem.given
+import ArbSubsystem.given
 import ArbUserPrompt.given
 import ArbExecutionState.given
 
@@ -96,13 +96,13 @@ trait ArbClientEvent:
     for
       o  <- arbitrary[Observation.Id]
       s  <- arbitrary[Step.Id]
-      ss <- arbitrary[Resource | Instrument]
+      ss <- arbitrary[Subsystem]
       t  <- arbitrary[SingleActionState]
       e  <- arbitrary[Option[String]]
     yield ClientEvent.SingleActionEvent(o, s, ss, t, e)
 
   given Cogen[ClientEvent.SingleActionEvent] =
-    Cogen[(Observation.Id, Step.Id, Resource | Instrument, SingleActionState, Option[String])]
+    Cogen[(Observation.Id, Step.Id, Subsystem, SingleActionState, Option[String])]
       .contramap(x => (x.obsId, x.stepId, x.subsystem, x.event, x.error))
 
   given Arbitrary[ClientEvent.ChecksOverrideEvent] = Arbitrary:

@@ -3,7 +3,6 @@
 
 package observe.model.arb
 
-import lucuma.core.enums.Instrument
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.arb.ArbSignalToNoise
 import lucuma.core.model.sequence.Step
@@ -23,7 +22,7 @@ import ArbDhsTypes.given
 import ArbInstrumentDynamicConfig.given
 import ArbSignalToNoise.given
 import ArbStepState.given
-import ArbSystem.given
+import ArbSubsystem.given
 
 trait ArbStandardStep {
 
@@ -36,7 +35,7 @@ trait ArbStandardStep {
       tc <- arbitrary[TelescopeConfig]
       sn <- arbitrary[Option[SignalToNoise]]
       f  <- arbitrary[Option[dhs.ImageFileId]]
-      cs <- arbitrary[Map[(Resource | Instrument), ActionStatus]]
+      cs <- arbitrary[Map[Subsystem, ActionStatus]]
       os <- arbitrary[ActionStatus]
     } yield ObserveStep.Standard(
       id = id,
@@ -61,7 +60,7 @@ trait ArbStandardStep {
         Option[SignalToNoise],
         StepState,
         Option[dhs.ImageFileId],
-        List[(Resource | Instrument, ActionStatus)],
+        List[(Subsystem, ActionStatus)],
         ActionStatus
       )
     ].contramap(s =>

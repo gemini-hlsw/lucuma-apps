@@ -5,7 +5,6 @@ package observe.server
 
 import cats.syntax.eq.*
 import lucuma.core.enums.Breakpoint
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.Atom
@@ -15,9 +14,9 @@ import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import observe.model.Subsystem
 import observe.model.SystemOverrides
 import observe.model.dhs.DataId
-import observe.model.enums.Resource
 import observe.server.engine.EngineStep
 
 sealed trait StepGen[F[_]]:
@@ -26,7 +25,7 @@ sealed trait StepGen[F[_]]:
   def sequenceType: SequenceType
   def id: Step.Id
   def dataId: DataId
-  def resources: Set[Resource | Instrument]
+  def resources: Set[Subsystem]
   def obsControl: SystemOverrides => InstrumentSystem.ObserveControl[F]
   def generator: StepActionsGen[F]
   def instConfig: D
@@ -59,7 +58,7 @@ object StepGen:
     sequenceType: SequenceType,
     id: Step.Id,
     dataId: DataId,
-    resources: Set[Resource | Instrument],
+    resources: Set[Subsystem],
     obsControl: SystemOverrides => InstrumentSystem.ObserveControl[F],
     generator: StepActionsGen[F],
     instConfig: D,
@@ -81,7 +80,7 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Resource | Instrument],
+    resources:       Set[Subsystem],
     obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosNorth,
@@ -97,7 +96,7 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Resource | Instrument],
+    resources:       Set[Subsystem],
     obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      gmos.DynamicConfig.GmosSouth,
@@ -113,7 +112,7 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Resource | Instrument],
+    resources:       Set[Subsystem],
     obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      Flamingos2DynamicConfig,
@@ -129,7 +128,7 @@ object StepGen:
     sequenceType:    SequenceType,
     id:              Step.Id,
     dataId:          DataId,
-    resources:       Set[Resource | Instrument],
+    resources:       Set[Subsystem],
     obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
     generator:       StepActionsGen[F],
     instConfig:      Igrins2DynamicConfig,

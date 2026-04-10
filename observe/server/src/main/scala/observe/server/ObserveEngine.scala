@@ -32,7 +32,6 @@ import mouse.all.*
 import observe.model.*
 import observe.model.config.*
 import observe.model.enums.BatchExecState
-import observe.model.enums.Resource
 import observe.model.enums.RunOverride
 import observe.server.engine.*
 import observe.server.engine.Event
@@ -205,7 +204,7 @@ trait ObserveEngine[F[_]] {
     observer: Observer,
     user:     User,
     stepId:   Step.Id,
-    sys:      Resource | Instrument,
+    sys:      Subsystem,
     clientID: ClientId
   ): F[Unit]
 
@@ -242,7 +241,7 @@ object ObserveEngine {
       st.selected.igrins2
     ).flattenOption
 
-  private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Resource | Instrument] =
+  private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =
     observations(st)
       .filter(d => d.seq.status.isError || d.seq.status.isIdle)
       .flatMap(s =>
@@ -261,7 +260,7 @@ object ObserveEngine {
   def resourcesInUse[F[_]](
     st:         EngineState[F],
     excludeObs: Option[Observation.Id] = none
-  ): Set[Resource | Instrument] =
+  ): Set[Subsystem] =
     observations(st)
       .mapFilter(s =>
         s.resources.some
@@ -274,9 +273,9 @@ object ObserveEngine {
   /**
    * Resources reserved by running queues.
    */
-  def resourcesReserved[F[_]](st: EngineState[F]): Set[Resource | Instrument] = {
-    def reserved(q: ExecutionQueue): Set[Resource | Instrument] = q.queue.collect {
-      case s if !s.state.isCompleted => s.resources
+  def resourcesReserved[F[_]](st: EngineState[F]): Set[Subsystem] = {
+    def reserved(q: ExecutionQueue): Set[Subsystem] = q.queue.collect {
+      case s if !s.state.isCompleted => s.subsystems
     }.foldK
 
     val runningQs = st.queues.values.filter(_.status.running)
@@ -339,7 +338,7 @@ object ObserveEngine {
       .get(qid)
       .map(_.queue.collect {
         case s if !s.state.isRunning && !s.state.isCompleted =>
-          s.obsId -> s.resources
+          s.obsId -> s.subsystems
       })
       .orEmpty
 
@@ -365,7 +364,7 @@ object ObserveEngine {
    *   parallel.
    */
   @unused
-  private def nextRunnableObservations[F[_]](qid: QueueId, freed: Set[Resource | Instrument])(
+  private def nextRunnableObservations[F[_]](qid: QueueId, freed: Set[Subsystem])(
     st: EngineState[F]
   ): Set[Observation.Id] = {
     // Set of all resources in use
@@ -375,7 +374,7 @@ object ObserveEngine {
       .get(qid)
       .map(_.queue.collect {
         case s if !s.state.isRunning && !s.state.isCompleted =>
-          s.obsId -> s.resources
+          s.obsId -> s.subsystems
       })
       .orEmpty
 

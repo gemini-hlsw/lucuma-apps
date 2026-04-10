@@ -6,12 +6,11 @@ package observe.ui.model
 import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
-import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
 import observe.model.SequenceStatus
-import observe.model.enums.Resource
+import observe.model.Subsystem
 import observe.ui.model.enums.OperationRequest
 
 case class ObservationRequests(
@@ -22,7 +21,7 @@ case class ObservationRequests(
   cancelPause:       OperationRequest,
   resume:            OperationRequest,
   startFrom:         OperationRequest,
-  subsystemRun:      Map[Step.Id, Map[Resource | Instrument, OperationRequest]],
+  subsystemRun:      Map[Step.Id, Map[Subsystem, OperationRequest]],
   acquisitionPrompt: OperationRequest
 ) derives Eq:
   val stepRequestInFlight: Boolean                =
@@ -61,22 +60,21 @@ object ObservationRequests:
     acquisitionPrompt = OperationRequest.Idle
   )
 
-  val run: Lens[ObservationRequests, OperationRequest]               =
+  val run: Lens[ObservationRequests, OperationRequest]                                        =
     Focus[ObservationRequests](_.run)
-  val stop: Lens[ObservationRequests, OperationRequest]              =
+  val stop: Lens[ObservationRequests, OperationRequest]                                       =
     Focus[ObservationRequests](_.stop)
-  val abort: Lens[ObservationRequests, OperationRequest]             =
+  val abort: Lens[ObservationRequests, OperationRequest]                                      =
     Focus[ObservationRequests](_.abort)
-  val pause: Lens[ObservationRequests, OperationRequest]             =
+  val pause: Lens[ObservationRequests, OperationRequest]                                      =
     Focus[ObservationRequests](_.pause)
-  val cancelPause: Lens[ObservationRequests, OperationRequest]       =
+  val cancelPause: Lens[ObservationRequests, OperationRequest]                                =
     Focus[ObservationRequests](_.cancelPause)
-  val resume: Lens[ObservationRequests, OperationRequest]            =
+  val resume: Lens[ObservationRequests, OperationRequest]                                     =
     Focus[ObservationRequests](_.resume)
-  val startFrom: Lens[ObservationRequests, OperationRequest]         =
+  val startFrom: Lens[ObservationRequests, OperationRequest]                                  =
     Focus[ObservationRequests](_.startFrom)
-  val subsystemRun
-    : Lens[ObservationRequests, Map[Step.Id, Map[Resource | Instrument, OperationRequest]]] =
+  val subsystemRun: Lens[ObservationRequests, Map[Step.Id, Map[Subsystem, OperationRequest]]] =
     Focus[ObservationRequests](_.subsystemRun)
-  val acquisitionPrompt: Lens[ObservationRequests, OperationRequest] =
+  val acquisitionPrompt: Lens[ObservationRequests, OperationRequest]                          =
     Focus[ObservationRequests](_.acquisitionPrompt)

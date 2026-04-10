@@ -18,6 +18,7 @@ import lucuma.react.primereact.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.sequence.SequenceIcons
 import observe.model.SequenceStatus
+import observe.model.Subsystem
 import observe.model.SubsystemEnabled
 import observe.model.SystemOverrides
 import observe.model.enums.*
@@ -39,9 +40,9 @@ import scala.scalajs.js.JSConverters.*
 case class SubsystemControls(
   obsId:             Observation.Id,
   stepId:            Step.Id,
-  subsystems:        List[Resource | Instrument],
-  subsystemStatus:   Map[Resource | Instrument, ActionStatus],
-  subsystemRequests: Map[Resource | Instrument, OperationRequest],
+  subsystems:        List[Subsystem],
+  subsystemStatus:   Map[Subsystem, ActionStatus],
+  subsystemRequests: Map[Subsystem, OperationRequest],
   sequenceStatus:    SequenceStatus,
   systemOverrides:   SystemOverrides,
   clientMode:        ClientMode,
@@ -50,12 +51,12 @@ case class SubsystemControls(
   private val canOperate: Boolean =
     clientMode.canOperate && sequenceStatus.isIdle
 
-  private def subsystemState(subsystem: Resource | Instrument): (ActionStatus, OperationRequest) =
+  private def subsystemState(subsystem: Subsystem): (ActionStatus, OperationRequest) =
     (subsystemStatus.getOrElse(subsystem, ActionStatus.Pending),
      subsystemRequests.getOrElse(subsystem, OperationRequest.Idle)
     )
 
-  private def isSubsystemEnabled(subsystem: Resource | Instrument): SubsystemEnabled =
+  private def isSubsystemEnabled(subsystem: Subsystem): SubsystemEnabled =
     subsystem match
       case Resource.TCS  => systemOverrides.isTcsEnabled
       case Resource.Gcal => systemOverrides.isGcalEnabled
@@ -67,7 +68,7 @@ case class SubsystemControls(
   // If we are completed, we want a checkmark.
   // Otherwise, no icon.
   private def buttonProperties(
-    subsystem: Resource | Instrument
+    subsystem: Subsystem
   ): (FontAwesomeIcon, Button.Severity, Boolean) = // (icon, severity, disabled)
     subsystemState(subsystem) match
       case (_, OperationRequest.InFlight)                    =>
@@ -109,7 +110,7 @@ object SubsystemControls
           ObserveStyles.ConfigButtonStrip
         )( // (ObserveStyles.notInMobile)(
           props.subsystems
-            .sorted[Resource | Instrument]
+            .sorted[Subsystem]
             .map: subsystem =>
               val (icon, severity, disabled) = props.buttonProperties(subsystem)
 

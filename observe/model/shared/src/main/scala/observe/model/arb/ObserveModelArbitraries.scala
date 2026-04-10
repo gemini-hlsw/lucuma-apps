@@ -43,15 +43,6 @@ trait ObserveModelArbitraries {
     } yield Conditions(ce, iq, sb, wv)
   }
 
-  given Arbitrary[Resource | Instrument] =
-    Arbitrary:
-      Gen.oneOf(arbitrary[Resource], arbitrary[Instrument])
-
-  given Cogen[Resource | Instrument] =
-    Cogen[Either[Resource, Instrument]].contramap:
-      case r: Resource   => r.asLeft
-      case i: Instrument => i.asRight
-
   // N.B. We don't want to auto derive this to limit the size of the lists for performance reasons
   given sequencesQueueArb[A](using arb: Arbitrary[A]): Arbitrary[SequencesQueue[A]] =
     Arbitrary {

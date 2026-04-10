@@ -10,13 +10,11 @@ import eu.timepit.refined.cats.*
 import io.circe.Decoder
 import io.circe.Encoder
 import io.circe.refined.*
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Step
 import monocle.Focus
 import monocle.Lens
 import observe.model.enums.ActionStatus
-import observe.model.enums.Resource
 
 /**
  * This class concentrates all the execution state that is kept in the server, except for current
@@ -34,7 +32,7 @@ case class ExecutionState(
 ) derives Eq,
       Encoder.AsObject,
       Decoder:
-  lazy val stepResources: Option[Map[Resource | Instrument, ActionStatus]] =
+  lazy val stepResources: Option[Map[Subsystem, ActionStatus]] =
     loadedStep.map(_.configStatus)
 
   // If there's a running step or resource, the step is considered locked.

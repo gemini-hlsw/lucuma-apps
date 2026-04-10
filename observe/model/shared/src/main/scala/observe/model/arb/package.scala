@@ -20,4 +20,4 @@ object all
     with ArbStepProgress
     with ArbObservationProgress
     with ArbUserPrompt
-    with ArbSystem
+    with ArbSubsystem

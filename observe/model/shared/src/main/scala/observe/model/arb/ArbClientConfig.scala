@@ -11,7 +11,10 @@ import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbNewType.given
 import observe.model.ClientConfig
 import observe.model.ClientId
+import observe.model.SubsystemOrServer
 import observe.model.Version
+import observe.model.arb.ArbSubsystem.given
+import observe.model.enums.ControlStrategy
 import org.http4s.Uri
 import org.http4s.laws.discipline.arbitrary.http4sTestingCogenForUri
 import org.scalacheck.Arbitrary
@@ -31,18 +34,46 @@ trait ArbClientConfig:
 
   given Arbitrary[ClientConfig] = Arbitrary:
     for
-      site           <- arbitrary[Site]
-      environment    <- arbitrary[ExecutionEnvironment]
-      odbUri         <- arbitrary[Uri]
-      ssoUri         <- arbitrary[Uri]
-      exploreBaseUri <- arbitrary[Uri]
-      clientId       <- arbitrary[ClientId]
-      version        <- arbitrary[Version]
-    yield ClientConfig(site, environment, odbUri, ssoUri, exploreBaseUri, clientId, version)
+      site                       <- arbitrary[Site]
+      environment                <- arbitrary[ExecutionEnvironment]
+      odbUri                     <- arbitrary[Uri]
+      ssoUri                     <- arbitrary[Uri]
+      exploreBaseUri             <- arbitrary[Uri]
+      clientId                   <- arbitrary[ClientId]
+      version                    <- arbitrary[Version]
+      subsystemControlStrategies <- arbitrary[Map[SubsystemOrServer, ControlStrategy]]
+    yield ClientConfig(
+      site,
+      environment,
+      odbUri,
+      ssoUri,
+      exploreBaseUri,
+      clientId,
+      version,
+      subsystemControlStrategies
+    )
 
   given Cogen[ClientConfig] =
-    Cogen[(Site, ExecutionEnvironment, Uri, Uri, Uri, ClientId, Version)].contramap(x =>
-      (x.site, x.environment, x.odbUri, x.ssoUri, x.exploreBaseUri, x.clientId, x.version)
+    Cogen[
+      (Site,
+       ExecutionEnvironment,
+       Uri,
+       Uri,
+       Uri,
+       ClientId,
+       Version,
+       List[(SubsystemOrServer, ControlStrategy)]
+      )
+    ].contramap(x =>
+      (x.site,
+       x.environment,
+       x.odbUri,
+       x.ssoUri,
+       x.exploreBaseUri,
+       x.clientId,
+       x.version,
+       x.subsystemControlStrategies.toList
+      )
     )
 
 object ArbClientConfig extends ArbClientConfig

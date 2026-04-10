@@ -65,9 +65,12 @@ import observe.model.ClientId
 import observe.model.Conditions
 import observe.model.Observation
 import observe.model.SequenceStatus
+import observe.model.Subsystem
 import observe.model.SystemOverrides
 import observe.model.config.*
+import observe.model.config.SystemsControlConfiguration
 import observe.model.dhs.*
+import observe.model.enums.ControlStrategy
 import observe.model.enums.Resource
 import observe.server.ODBSequencesLoader
 import observe.server.engine.Action
@@ -194,23 +197,23 @@ object TestCommon {
     32
   )
 
-  def configure[F[_]: Applicative](resource: Resource | Instrument): F[Result] =
+  def configure[F[_]: Applicative](resource: Subsystem): F[Result] =
     Result.OK(Response.Configured(resource)).pure[F].widen
 
-  def pendingAction[F[_]: Applicative](resource: Resource | Instrument): Action[F] =
+  def pendingAction[F[_]: Applicative](resource: Subsystem): Action[F] =
     engine.fromF[F](ActionType.Configure(resource), configure(resource))
 
   def odbAction[F[_]: Applicative]: Action[F] =
     engine.fromF(ActionType.OdbEvent, Result.OK(Response.Ignored).pure[F])
 
-  def running[F[_]: Applicative](resource: Resource | Instrument): Action[F] =
+  def running[F[_]: Applicative](resource: Subsystem): Action[F] =
     Action
       .state[F]
       .replace(Action.State(Action.ActionState.Started, Nil))(
         pendingAction(resource)
       )
 
-  def done[F[_]: Applicative](resource: Resource | Instrument): Action[F] =
+  def done[F[_]: Applicative](resource: Subsystem): Action[F] =
     Action
       .state[F]
       .replace(Action.State(Action.ActionState.Completed(Response.Configured(resource)), Nil))(
@@ -399,7 +402,7 @@ object TestCommon {
 
   def stepGenWithResources(
     stepIdx:   Int,
-    resources: Set[Resource | Instrument]
+    resources: Set[Subsystem]
   ): StepGen.GmosNorth[IO] =
     StepGen.GmosNorth[IO](
       atomId = atomId1,
@@ -458,7 +461,7 @@ object TestCommon {
    */
   def loadSequenceWithResources(
     id:        Observation.Id,
-    resources: Set[Resource | Instrument],
+    resources: Set[Subsystem],
     lens:      monocle.Lens[EngineState[IO], Option[SequenceData[IO]]]
   ): cats.Endo[EngineState[IO]] =
     loadSequence(id, stepGenWithResources(1, resources).some, lens)

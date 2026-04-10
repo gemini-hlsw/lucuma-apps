@@ -9,7 +9,6 @@ import cats.derived.*
 import cats.syntax.all.*
 import io.circe.*
 import lucuma.core.enums.Breakpoint
-import lucuma.core.enums.Instrument
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
@@ -32,7 +31,7 @@ enum ObserveStep(
   val signalToNoise:   Option[SignalToNoise],
   val status:          StepState,
   val fileId:          Option[ImageFileId],
-  val configStatus:    Map[(Resource | Instrument), ActionStatus]
+  val configStatus:    Map[Subsystem, ActionStatus]
 ) derives Eq,
       Encoder.AsObject,
       Decoder:
@@ -44,7 +43,7 @@ enum ObserveStep(
     override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
-    override val configStatus:    Map[(Resource | Instrument), ActionStatus],
+    override val configStatus:    Map[Subsystem, ActionStatus],
     val observeStatus:            ActionStatus
   ) extends ObserveStep(
         id,
@@ -65,7 +64,7 @@ enum ObserveStep(
     override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
-    override val configStatus:    Map[(Resource | Instrument), ActionStatus],
+    override val configStatus:    Map[Subsystem, ActionStatus],
     val nsStatus:                 NodAndShuffleStatus,
     val pendingObserveCmd:        Option[PendingObserveCmd]
   ) extends ObserveStep(
@@ -170,8 +169,8 @@ object ObserveStep:
       }
     }
 
-  def configStatus: Lens[ObserveStep, Map[(Resource | Instrument), ActionStatus]] =
-    Lens[ObserveStep, Map[(Resource | Instrument), ActionStatus]] {
+  def configStatus: Lens[ObserveStep, Map[Subsystem, ActionStatus]] =
+    Lens[ObserveStep, Map[Subsystem, ActionStatus]] {
       case s: Standard      => s.configStatus
       case s: NodAndShuffle => s.configStatus
     } { n =>

@@ -17,6 +17,7 @@ import io.circe.syntax.*
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
 import observe.model.*
+import observe.model.enums.ControlStrategy
 import observe.model.events.*
 import observe.model.events.ClientEvent.InitialEvent
 import observe.server.ObserveEngine
@@ -39,17 +40,18 @@ import scala.concurrent.duration.*
  * Rest Endpoints under the /api route
  */
 class ObserveEventRoutes[F[_]: {Async, Compression}](
-  site:             Site,
-  environment:      ExecutionEnvironment,
-  odbWsUri:         Uri,
-  ssoUri:           Uri,
-  exploreBaseUri:   Uri,
-  clientsDb:        ClientsSetDb[F],
-  engine:           ObserveEngine[F],
-  engineOutput:     Topic[F, (Option[ClientId], ClientEvent)],
-  webSocketBuilder: WebSocketBuilder2[F]
+  site:                       Site,
+  environment:                ExecutionEnvironment,
+  odbWsUri:                   Uri,
+  ssoUri:                     Uri,
+  exploreBaseUri:             Uri,
+  clientsDb:                  ClientsSetDb[F],
+  engine:                     ObserveEngine[F],
+  engineOutput:               Topic[F, (Option[ClientId], ClientEvent)],
+  webSocketBuilder:           WebSocketBuilder2[F],
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy]
 )(using
-  L:                Logger[F]
+  L:                          Logger[F]
 ) extends ModelLenses
     with Http4sDsl[F] {
 
@@ -78,7 +80,8 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
                 ssoUri,
                 exploreBaseUri,
                 clientId,
-                Version(NonEmptyString.unsafeFrom(OcsBuildInfo.version))
+                Version(NonEmptyString.unsafeFrom(OcsBuildInfo.version)),
+                subsystemControlStrategies
               )
             )
           )
