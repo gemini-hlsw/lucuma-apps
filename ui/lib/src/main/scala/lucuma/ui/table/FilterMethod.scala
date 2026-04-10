@@ -3,7 +3,6 @@
 
 package lucuma.ui.table
 
-import cats.Eq
 import cats.syntax.all.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.Css
@@ -19,13 +18,14 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
     val delayMillis: Int = 250,
     val placeholder: String = "<Filter>",
     val clazz:       Css = Css.Empty
-  )                      extends FilterMethod[A, String]((a, b) => convert(a).toLowerCase.contains(b.toLowerCase))
+  ) extends FilterMethod[A, String]((a, b) => convert(a).toLowerCase.contains(b.toLowerCase))
+
   case Select[A](
     val display:     A => String,
     val placeholder: String = "<Filter>",
     val showCount:   Boolean = true,
     val clazz:       Css = Css.Empty
-  )(using val eq: Eq[A]) extends FilterMethod[A, A](_ === _)
+  ) extends FilterMethod[A, String]((a, f) => display(a) === f)
 
   protected[table] def filterFn[T, TM, TF]: FilterFn.Type[T, TM, WithFilterMethod, TF, F, Nothing] =
     (row, columnId, filterValue, _) => compare(row.getValue(columnId), filterValue)
@@ -47,12 +47,12 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
           clazz
         )
       case other                                    =>
-        val s: Select[A]                                   = other.asInstanceOf[Select[A]] // This avoids unchecked warnings on A
+        val s: Select[A] = other.asInstanceOf[Select[A]] // This avoids unchecked warnings on A
+
         val Select(display, placeholder, showCount, clazz) = s
-        import s.eq
 
         ColumnFilter.Select(
-          col.asInstanceOf[Column[T, A, TM, CM, TF, A, Any]],
+          col.asInstanceOf[Column[T, A, TM, CM, TF, String, Any]],
           display,
           placeholder,
           showCount,
