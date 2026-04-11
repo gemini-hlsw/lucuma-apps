@@ -17,7 +17,7 @@
     "react-grid-layout": "1.5.3",
     "sass": "1.99.0",
     "ua-parser-js": "2.0.9",
-    "vite": "8.0.3"
+    "vite": "8.0.8"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "7.2.0",
