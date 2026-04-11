@@ -118,9 +118,9 @@ object ObsSummaryTile
         )
 
       for {
-        ctx                   <- useContext(AppContext.ctx)
-        columnVisibility      <- useStateView[ColumnVisibility](DefaultColVisibility)
-        toggleAllRowsSelected <- useStateView[Option[Boolean => Callback]](none)
+        ctx        <- useContext(AppContext.ctx)
+        colVisib   <- useStateView[ColumnVisibility](DefaultColVisibility)
+        allRowsSel <- useStateView[Option[Boolean => Callback]](none)
 
         cols        <- useMemo(()):                           // Columns
                          _ => columns(props.programId, ctx)
@@ -141,7 +141,7 @@ object ObsSummaryTile
                                  getObsRows(obs, targets, group, now)
         rowSelection = props.selectedObsIds.as(obsIds2RowSelection)
         tableState  <-
-          useMemo(rowSelection.get, columnVisibility.get): (rowSelection, columnVisibility) =>
+          useMemo(rowSelection.get, colVisib.get): (rowSelection, columnVisibility) =>
             PartialTableState(rowSelection = rowSelection, columnVisibility = columnVisibility)
         table       <- useReactTableWithStateStore:
                          import ctx.given
@@ -165,7 +165,7 @@ object ObsSummaryTile
                              enableFacetedUniqueValues = true,
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate,
-                             onColumnVisibilityChange = columnVisibility.handleTableUpdate
+                             onColumnVisibilityChange = colVisib.handleTableUpdate
                            ),
                            TableStore(
                              props.userId,
@@ -175,7 +175,7 @@ object ObsSummaryTile
                            )
                          )
         _           <- useEffectOnMount:
-                         toggleAllRowsSelected.set: // TODO Can this whole dance be avoided now?
+                         allRowsSel.set: // TODO Can this whole dance be avoided now?
                            ((v: Boolean) => table.toggleAllRowsSelected(v)).some
         _           <- useEffectWithDeps(props.showScienceBand): showScienceBand =>
                          table
@@ -185,7 +185,7 @@ object ObsSummaryTile
         adding      <- useStateView(AddingObservation(false)) // adding new observation
       } yield {
         val title = React.Fragment(
-          toggleAllRowsSelected.get.map: toggleAllRowsSelected =>
+          allRowsSel.get.map: toggleAllRowsSelected =>
             <.span(^.textAlign.center)(
               Button(
                 size = Button.Size.Small,
@@ -210,7 +210,7 @@ object ObsSummaryTile
                 onClick = toggleAllRowsSelected(false)
               ).compact
             ),
-          ColumnSelectorInTitle(SelectableColumnNames, columnVisibility)
+          ColumnSelectorInTitle(SelectableColumnNames, colVisib)
         )
 
         val body = PrimeAutoHeightVirtualizedTable(
