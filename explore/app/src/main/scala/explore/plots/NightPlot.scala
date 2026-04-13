@@ -222,24 +222,6 @@ object NightPlot:
         _:          AxisLabelsFormatterContextObject
       ) => timeFormat(labelValue.value.asInstanceOf[Double])
 
-    val tooltipFormatter: TooltipFormatterCallbackFunction =
-      (point: Point, _: Tooltip) =>
-        val x: Double                             = point.x
-        val y: Double                             = point.y.toOption.orEmpty
-        val time: String                          = timeFormat(x)
-        val seriesType: SeriesType                = SeriesType.fromSeriesIndex(point.series.index.toInt)
-        val (seriesName, value): (String, String) = seriesType match
-          case SeriesType.Elevation        =>
-            ("Elevation",
-             formatAngle(y) +
-               s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
-            )
-          case SeriesType.ParallacticAngle => ("Parallactic Angle", formatAngle(y))
-          case SeriesType.SkyBrightness    => ("Sky Brightness", "%.2f".format(point.y))
-          case SeriesType.LunarElevation   => ("Elevation", formatAngle(y))
-
-        s"<strong>${point.series.name}</strong><br/>$time ($timeDisplayStr)<br/>$seriesName: $value"
-
     val dusk: String = instantFormat(tbNauticalNight.start)
     val dawn: String = instantFormat(tbNauticalNight.end)
 
@@ -256,7 +238,8 @@ object NightPlot:
         )
         .collect: // Plot lunar elevation only once.
           case ((Some((targetPlotData, targetChartData)), index), seriesType)
-              if seriesType =!= SeriesType.LunarElevation || index === 0 =>
+              if (seriesType =!= SeriesType.LunarElevation || index === 0) &&
+                (!targetPlotData.elevationOnly || seriesType === SeriesType.Elevation) =>
             ChartSeriesData(
               seriesType,
               targetPlotData,
@@ -264,6 +247,24 @@ object NightPlot:
               opts.visiblePlots.contains_(seriesType),
               shouldHideTargetLabels
             )
+
+    val tooltipFormatter: TooltipFormatterCallbackFunction =
+      (point: Point, _: Tooltip) =>
+        val x: Double                             = point.x
+        val y: Double                             = point.y.toOption.orEmpty
+        val time: String                          = timeFormat(x)
+        val seriesType: SeriesType                = seriesToPlot(point.series.index.toInt).seriesType
+        val (seriesName, value): (String, String) = seriesType match
+          case SeriesType.Elevation        =>
+            ("Elevation",
+             formatAngle(y) +
+               s"<br/>Airmass: ${"%.3f".format(point.asInstanceOf[ElevationPointWithAirmass].airmass)}"
+            )
+          case SeriesType.ParallacticAngle => ("Parallactic Angle", formatAngle(y))
+          case SeriesType.SkyBrightness    => ("Sky Brightness", "%.2f".format(point.y))
+          case SeriesType.LunarElevation   => ("Elevation", formatAngle(y))
+
+        s"<strong>${point.series.name}</strong><br/>$time ($timeDisplayStr)<br/>$seriesName: $value"
 
     val targetsBelowHorizonStr: Option[String] =
       Option.when(
@@ -429,6 +430,15 @@ object NightPlot:
         .setSeries:
           seriesToPlot
             .map: seriesData =>
+
+              val className = "elevation-plot-series" +
+                (if (seriesData.objectPlotData.elevationOnly) " highcharts-dotted-series"
+                 else if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"
+                 else "") +
+                (if (seriesData.seriesType =!= SeriesType.Elevation)
+                   s" highcharts-color-${seriesData.seriesType.ordinal}"
+                 else "")
+
               val baseSeries: SeriesAreaOptions =
                 SeriesAreaOptions((), (), area, ())
                   .setName(if (seriesData.showLabel) seriesData.name else "")
@@ -440,13 +450,9 @@ object NightPlot:
                         )
                           .contains_(seriesData.seriesType)
                       .setOnArea(false)
-                  .setClassName:
-                    "elevation-plot-series" +
-                      (if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"
-                       else "") +
-                      (if (seriesData.seriesType =!= SeriesType.Elevation)
-                         s" highcharts-color-${seriesData.seriesType.ordinal}"
-                       else "")
+                      .setMinFontSize(1)
+                  .setClassName(className)
+                  .setShowInLegend(seriesData.seriesType === SeriesType.Elevation)
                   .setYAxis(seriesData.yAxis)
                   .setData(seriesData.data)
                   .setVisible(seriesData.visible)

@@ -77,6 +77,10 @@ See https://github.com/highcharts/highcharts/issues/13320 */
     stroke-dasharray: 10, 12;
   }
 
+  .highcharts-dotted-series {
+    stroke-dasharray: 1, 4;
+  }
+
   .highcharts-color-0 {
     fill: hsl(0deg 87% 66%);
     stroke: hsl(0deg 87% 66%);

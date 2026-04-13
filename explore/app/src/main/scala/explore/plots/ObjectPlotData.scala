@@ -36,9 +36,10 @@ trait ElevationPointWithAirmass extends Point:
 
 // Can wrap data for a target or an asterism.
 case class ObjectPlotData(
-  name:    NonEmptyString,
-  targets: NonEmptyList[Target],
-  sites:   List[Site]
+  name:          NonEmptyString,
+  targets:       NonEmptyList[Target],
+  sites:         List[Site],
+  elevationOnly: Boolean = false
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
 
