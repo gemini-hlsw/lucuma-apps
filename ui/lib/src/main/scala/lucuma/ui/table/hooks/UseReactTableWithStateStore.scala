@@ -32,22 +32,8 @@ private object UseReactTableWithStateStore:
       canSave     <- useRef(CanSave(false))
       _           <- useEffectOnMount:
                        (options.stateStore.load() >>=
-                         (mod =>
-                           val newState: TableState[TF] = mod(table.getState())
-
-                           // We apply partial state changes in case there are partial state overrides.
-                           table.setColumnVisibility(newState.columnVisibility).to[DefaultA] >>
-                             // table.setColumnOrder(newState.columnOrder).to[DefaultA] >> // Not implemented yet in lucuma-react
-                             table.setColumnPinning(newState.columnPinning).to[DefaultA] >>
-                             table.setRowPinning(newState.rowPinning).to[DefaultA] >>
-                             table.setSorting(newState.sorting).to[DefaultA] >>
-                             table.setColumnFilters(newState.columnFilters).to[DefaultA] >>
-                             table.setExpanded(newState.expanded).to[DefaultA] >>
-                             table.setColumnSizing(newState.columnSizing).to[DefaultA] >>
-                             table.setColumnSizingInfo(newState.columnSizingInfo).to[DefaultA] >>
-                             table.setRowSelection(newState.rowSelection).to[DefaultA] >>
-                             prefsLoadad.setStateAsync(PrefsLoaded(true))
-                         ))
+                         (_.foldMap(table.setState(_).to[IO]) >>
+                           prefsLoadad.setStateAsync(PrefsLoaded(true))))
                          .guaranteeCase(outcome => canSave.setAsync(CanSave(true)).unlessA(outcome.isSuccess))
       _           <- useEffectWithDeps(table.getState()): state =>
                        // Don't save prefs while we are still attempting to load them or if we just loaded them.

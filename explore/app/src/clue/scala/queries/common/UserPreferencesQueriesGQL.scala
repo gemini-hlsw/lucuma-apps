@@ -448,15 +448,11 @@ object UserPreferencesQueriesGQL {
   }
 
   @GraphQL
-  trait TableColumnPreferencesQuery extends GraphQLOperation[UserPreferencesDB] {
+  trait TablePreferencesQuery extends GraphQLOperation[UserPreferencesDB] {
     val document = """
-      query tableColumnPreferences($tableId: LucumaTableIdsEnum, $userId: String) {
-        lucumaTableColumnPreferences(where: {tableId: {_eq: $tableId}, userId: {_eq: $userId}}) {
-          visible
-          columnId
-          sorting
-          sortingOrder
-          filter
+      query($tableId: LucumaTableIdsEnum!, $userId: String!) {
+        lucumaTablePreferencesByPk(tableId: $tableId, userId: $userId) {
+          preferences
         }
       }"""
   }
@@ -464,12 +460,12 @@ object UserPreferencesQueriesGQL {
   @GraphQL
   trait TableColumnPreferencesUpsert extends GraphQLOperation[UserPreferencesDB] {
     val document = """
-      mutation tableColumnPreferencesUpsert($objects: [LucumaTableColumnPreferencesInsertInput!]!) {
-        insertLucumaTableColumnPreferences(
-          objects: $objects,
+      mutation($object: LucumaTablePreferencesInsertInput!) {
+        insertLucumaTablePreferences(
+          objects: [$object],
           onConflict: {
-            constraint: lucumaTableColumnPreferences_pkey,
-            update_columns: [visible, sorting, sortingOrder, filter]
+            constraint: lucumaTablePreferences_pkey,
+            update_columns: [preferences]
           }) {
           affected_rows
         }

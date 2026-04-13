@@ -4,7 +4,6 @@
 package explore.programs
 
 import cats.Order.given
-import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
 import crystal.react.syntax.all.*
@@ -151,11 +150,7 @@ object ProgramConfigRequestsTile:
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate
                            ),
-                           TableStore(
-                             props.userId,
-                             TableId.RequestedConfigs,
-                             columns
-                           )
+                           TableStore(props.userId, TableId.RequestedConfigs)
                          )
         _           <- useEffectOnMount:
                          props.tileState.zoom(TileState.table).set(table.some)

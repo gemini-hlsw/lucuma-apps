@@ -226,14 +226,10 @@ object ProgramTable:
                                       props.programInfos.size
                      )
                    ),
-                   TableStore(
-                     props.userId.some,
-                     TableId.ProgramsSelector,
-                     cols
-                   )
+                   TableStore(props.userId.some, TableId.ProgramsSelector)
                  )
       _     <- useEffectWithDeps(props.showFilters): showFilters =>
-                  table.resetColumnFilters().unless_(showFilters)
+                 table.resetColumnFilters().unless_(showFilters)
     } yield PrimeAutoHeightVirtualizedTable(
       table,
       estimateSize = _ => 32.toPx,
@@ -241,8 +237,7 @@ object ProgramTable:
       compact = Compact.Very,
       tableMod = ExploreStyles.ExploreTable |+| ExploreStyles.ExploreBorderTable,
       virtualizerRef = props.virtualizerRef,
-      columnFilterRenderer =
-        if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
+      columnFilterRenderer = if (props.showFilters) FilterMethod.render else _ => EmptyVdom,
       emptyMessage = "No programs available"
     )
   )

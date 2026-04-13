@@ -242,7 +242,7 @@ object ConstraintsSummaryTile
                                   state = tableState,
                                   onColumnVisibilityChange = columnVisibility.handleTableUpdate
                                 ),
-                                TableStore(props.userId, TableId.ConstraintsSummary, cols)
+                                TableStore(props.userId, TableId.ConstraintsSummary)
                               )
       } yield TileContents:
         <.div(

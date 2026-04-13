@@ -123,11 +123,7 @@ object ProgramUnrequestedConfigsTile:
                              state = tableState,
                              onRowSelectionChange = rowSelection.handleTableUpdate
                            ),
-                           TableStore(
-                             props.userId,
-                             TableId.UnrequestedConfigs,
-                             columns
-                           )
+                           TableStore(props.userId, TableId.UnrequestedConfigs)
                          )
                        }
         _           <- useEffectOnMount(
