@@ -64,9 +64,7 @@ extension (a: Aladin)
     PixelScale(a.getSize()(0) / a.getFov()(0), a.getSize()(1) / a.getFov()(1))
 
   def applyZoom(zoomFactor: Double, duration: Int = 200): Callback =
-    Callback(
-      a.view.zoom.applyZoom(ZoomTo(zoomFactor, duration))
-    )
+    Callback(a.view.zoom.applyZoom(ZoomTo(zoomFactor, duration)))
 
   def increaseZoomCB: Callback =
     Callback(a.increaseZoom())
@@ -129,6 +127,27 @@ object ReactAladin
             Callback(c.abort()) *> abortRef.setState(none)
           .getOrEmpty
 
+      def setupListener(aladin: Aladin, abortRef: UseState[Option[AbortController]]): Callback =
+        val catalogCanvas = aladin.view.catalogCanvas
+        val controller    = new AbortController()
+
+        val listener: js.Function1[MouseEvent, Unit] = (e: MouseEvent) => {
+          e.stopImmediatePropagation()
+          e.preventDefault()
+        }
+
+        val options = EventListenerOptions(capture = true, signal = controller.signal)
+
+        Callback(catalogCanvas.addEventListener("mousedown", listener, options)) *>
+          Callback(catalogCanvas.addEventListener("wheel", listener, options)) *>
+          abortRef.setState(Some(controller))
+
+      def disablePanning(
+        aladin:   Aladin,
+        abortRef: UseState[Option[AbortController]]
+      ): Callback =
+        abortRef.value.map(c => Callback(c.abort())).getOrEmpty *> setupListener(aladin, abortRef)
+
       def resetAladin(
         r:         CallbackTo[Option[html.Div]],
         state:     UseState[Boolean],
@@ -144,7 +163,8 @@ object ReactAladin
               CallbackTo(A.aladin(e, props.options)).flatMap { a =>
                 state.setState(true) *>
                   aladinRef.setState(Some(a)) *>
-                  props.customize.fold(Callback.empty)(f => f(a))
+                  props.customize.fold(Callback.empty)(f => f(a)) *>
+                  disablePanning(a, abortRef).unless_(props.panningEnabled)
               }
           case _                                => Callback.empty
         }
@@ -161,36 +181,10 @@ object ReactAladin
                        AsyncCallback.fromCallbackToJsPromise(CallbackTo(A.init)).toCallback *>
                          resetAladin(r.get, init, aladinRef, abortRef, props, false)
                      }
-        _         <-
-          useEffectWithDeps(props.panningEnabled): enabled =>
-            aladinRef.value
-              .map: aladin =>
-                val catalogCanvas = aladin.view.catalogCanvas
-                if (!enabled) {
-                  // Disable panning
-                  abortRef.value match {
-                    case Some(_) => Callback.empty
-                    case None    =>
-                      // we can use abort controller to remove the listener cleanly
-                      val controller = new AbortController()
-
-                      // don'l let mouse down propagate
-                      val listener: js.Function1[MouseEvent, Unit] = (e: MouseEvent) => {
-                        e.stopImmediatePropagation()
-                        e.preventDefault()
-                      }
-
-                      val options =
-                        EventListenerOptions(capture = true, signal = controller.signal)
-
-                      Callback(catalogCanvas.addEventListener("mousedown", listener, options)) *>
-                        Callback(catalogCanvas.addEventListener("wheel", listener, options)) *>
-                        abortRef.setState(Some(controller))
-                  }
-                } else {
-                  // Enable panning
-                  cleanupListener(abortRef)
-                }
-              .getOrEmpty
+        _         <- useEffectWithDeps(props.panningEnabled): enabled =>
+                       aladinRef.value
+                         .map: aladin =>
+                           if enabled then cleanupListener(abortRef) else disablePanning(aladin, abortRef)
+                         .getOrEmpty
       } yield <.div(props.clazz, ^.untypedRef := r)
     )
