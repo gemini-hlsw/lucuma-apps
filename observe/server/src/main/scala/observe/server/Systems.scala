@@ -426,7 +426,7 @@ object Systems {
 
         def igrins2GDS: Resource[F, GdsClient[F]] =
           Resource.pure[F, GdsClient[F]](
-            GdsClient.json(if (settings.systemControl.igrins2Gds.command) httpClient
+            GdsClient.json(if (settings.systemControl.igrins2.command) httpClient
                            else GdsClient.alwaysOkClient[F],
                            settings.igrins2Gds.value
             )
