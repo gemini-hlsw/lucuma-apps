@@ -7,7 +7,6 @@ import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import explore.model.GlobalPreferences
 import queries.schemas.UserPreferencesDB
-// gql: import queries.schemas.UserPreferencesDB.given
 
 object UserPreferencesQueriesGQL {
 
