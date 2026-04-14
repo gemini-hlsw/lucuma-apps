@@ -6,10 +6,9 @@ package navigate.model.config
 import cats.Eq
 import com.comcast.ip4s.Host
 import com.comcast.ip4s.Port
+import fs2.io.file.Path
 import org.http4s.Uri
 import org.http4s.implicits.uri
-
-import java.nio.file.Path
 
 /**
  * Configuration for the TLS server
