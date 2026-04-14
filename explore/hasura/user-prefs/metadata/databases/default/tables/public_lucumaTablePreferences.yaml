@@ -1,0 +1,7 @@
+table:
+  name: lucumaTablePreferences
+  schema: public
+object_relationships:
+  - name: lucumaTableId
+    using:
+      foreign_key_constraint_on: tableId

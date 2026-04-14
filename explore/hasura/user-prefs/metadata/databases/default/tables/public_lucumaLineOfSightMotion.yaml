@@ -2,3 +2,11 @@ table:
   name: lucumaLineOfSightMotion
   schema: public
 is_enum: true
+array_relationships:
+  - name: lucumaTargets
+    using:
+      foreign_key_constraint_on:
+        column: lineOfSightMotion
+        table:
+          name: lucumaTarget
+          schema: public

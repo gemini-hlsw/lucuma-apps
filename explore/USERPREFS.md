@@ -1,8 +1,8 @@
 # User preferences
 
-explore stores a set of user preferences outside of the main odb api server. It is reserved
+`explore` stores a set of user preferences outside of the main ODB API server. It is reserved
 for settings which would only impact the UI, e.g. zoom of the aladin display, range of plots, etc.
-In general, anything that is of no interest to the API users can go to the user prefs database
+In general, anything that is of no interest to the API users can go to the user prefs database.
 
 For the user preferences db we are using hasura to provide an automatic graphql api for simple
 odb tables.
@@ -87,3 +87,22 @@ hasura metadata reload --endpoint https://gpp-prefs-dev.lucuma.xyz
 
 For more information visit:
 https://hasura.io/docs/latest/migrations-metadata-seeds/migrations-metadata-setup/
+
+## Manual migrations (in case `hasura metadata apply` fails)
+
+We have had instances where `migrate apply` succeeds but `metadata apply` fails. In this case, it is possible to recreate the metadata manually for the new DB schema.
+
+To achieve this:
+
+- Nuke the old metadata on the server:`hasura metadata clear --endpoint <server_url>`
+- Spin up a console on the server where you want to recreate the metadata: `hasura console --endpoint <server_url>`
+- In the console, go to `Data` tab on the top bar.
+- Choose the `default/public` DB.
+- Press the `Track` button on each relevant table (just leave out the `pg_stat*` ones).
+- Some tables must be marked as `enum`s: Click on each of these tables on the left, then on the `Modify` tab, and activate the `Set Table as Enum` option.
+
+You can also refresh the local metadata in the repo:
+
+- Stand on the directory `hasura/user-prefs` (within `explore`).
+- `rm -Rf metatada`
+- `hasura metadata export --endpoint <server_url>` (this will download the metadata from the server to the `metadata` directory.
