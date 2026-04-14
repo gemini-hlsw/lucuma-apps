@@ -203,7 +203,7 @@ object TargetTable:
                             onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
                             meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
                           ),
-                          TableStore(props.userId, TableId.AsterismTargets, cols)
+                          TableStore(props.userId, TableId.AsterismTargets)
                         )
         adding     <- useStateView(AreAdding(false))
       yield

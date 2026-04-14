@@ -171,11 +171,7 @@ object GroupWarningsTile
                         getSubRows = (row, _) => row.subRows,
                         getRowId = (row, _, _) => RowId(row.value.rowId)
                       ),
-                      TableStore(
-                        props.userId,
-                        TableId.GroupWarnings,
-                        cols
-                      )
+                      TableStore(props.userId, TableId.GroupWarnings)
                     )
         resize <- useResizeDetector
       } yield

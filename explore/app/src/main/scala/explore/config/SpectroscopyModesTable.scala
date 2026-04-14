@@ -5,7 +5,6 @@ package explore.config
 
 import algebra.instances.all.*
 import cats.data.*
-import cats.effect.*
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import coulomb.*
@@ -351,7 +350,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                                 state = tableState,
                                 meta = TableMeta(itcProgress.get)
                               ),
-                              TableStore(props.userId, TableId.SpectroscopyModes, cols)
+                              TableStore(props.userId, TableId.SpectroscopyModes)
                             )
         // We need to have an indicator of whether we need to scrollTo the selectedIndex as
         // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"

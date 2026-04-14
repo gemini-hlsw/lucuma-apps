@@ -296,7 +296,7 @@ object ImagingModesTable extends ModesTableCommon:
                                 enableSorting = true,
                                 meta = TableMeta(itcProgress.get)
                               ),
-                              TableStore(props.userId, TableId.ImagingModes, cols)
+                              TableStore(props.userId, TableId.ImagingModes)
                             )
       // We need to have an indicator of whether we need to scrollTo the selectedIndex as
       // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"

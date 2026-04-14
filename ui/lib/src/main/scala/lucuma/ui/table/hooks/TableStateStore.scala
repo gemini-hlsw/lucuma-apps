@@ -3,9 +3,8 @@
 
 package lucuma.ui.table.hooks
 
-import cats.Endo
 import lucuma.react.table.TableState
 
 trait TableStateStore[F[_], TF]:
-  def load(): F[Endo[TableState[TF]]]
+  def load(): F[Option[TableState[TF]]]
   def save(state: TableState[TF]): F[Unit]

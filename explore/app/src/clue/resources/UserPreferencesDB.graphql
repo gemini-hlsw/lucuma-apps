@@ -1,4 +1,3 @@
-
 """whether this query should be cached (Hasura Cloud only)"""
 directive @cached(
   """measured in seconds"""
@@ -2489,422 +2488,6 @@ input LucumaObservationUpdates {
 }
 
 """
-columns and relationships of "lucumaSortDirection"
-"""
-type LucumaSortDirection {
-  id: String!
-}
-
-"""
-aggregated selection of "lucumaSortDirection"
-"""
-type LucumaSortDirectionAggregate {
-  aggregate: LucumaSortDirectionAggregateFields
-  nodes: [LucumaSortDirection!]!
-}
-
-"""
-aggregate fields of "lucumaSortDirection"
-"""
-type LucumaSortDirectionAggregateFields {
-  count(columns: [LucumaSortDirectionSelectColumn!], distinct: Boolean): Int!
-  max: LucumaSortDirectionMaxFields
-  min: LucumaSortDirectionMinFields
-}
-
-"""
-Boolean expression to filter rows from the table "lucumaSortDirection". All fields are combined with a logical 'AND'.
-"""
-input LucumaSortDirectionBoolExp {
-  _and: [LucumaSortDirectionBoolExp!]
-  _not: LucumaSortDirectionBoolExp
-  _or: [LucumaSortDirectionBoolExp!]
-  id: StringComparisonExp
-}
-
-"""
-unique or primary key constraints on table "lucumaSortDirection"
-"""
-enum LucumaSortDirectionConstraint {
-  """
-  unique or primary key constraint on columns "id"
-  """
-  lucumaSortDirection_pkey
-}
-
-enum LucumaSortDirectionEnum {
-  ASC
-  DESC
-}
-
-"""
-Boolean expression to compare columns of type "LucumaSortDirectionEnum". All fields are combined with logical 'AND'.
-"""
-input LucumaSortDirectionEnumComparisonExp {
-  _eq: LucumaSortDirectionEnum
-  _in: [LucumaSortDirectionEnum!]
-  _isNull: Boolean
-  _neq: LucumaSortDirectionEnum
-  _nin: [LucumaSortDirectionEnum!]
-}
-
-"""
-input type for inserting data into table "lucumaSortDirection"
-"""
-input LucumaSortDirectionInsertInput {
-  id: String
-}
-
-"""aggregate max on columns"""
-type LucumaSortDirectionMaxFields {
-  id: String
-}
-
-"""aggregate min on columns"""
-type LucumaSortDirectionMinFields {
-  id: String
-}
-
-"""
-response of any mutation on the table "lucumaSortDirection"
-"""
-type LucumaSortDirectionMutationResponse {
-  """number of rows affected by the mutation"""
-  affected_rows: Int!
-
-  """data from the rows affected by the mutation"""
-  returning: [LucumaSortDirection!]!
-}
-
-"""
-on_conflict condition type for table "lucumaSortDirection"
-"""
-input LucumaSortDirectionOnConflict {
-  constraint: LucumaSortDirectionConstraint!
-  update_columns: [LucumaSortDirectionUpdateColumn!]! = []
-  where: LucumaSortDirectionBoolExp
-}
-
-"""Ordering options when selecting data from "lucumaSortDirection"."""
-input LucumaSortDirectionOrderBy {
-  id: OrderBy
-}
-
-"""primary key columns input for table: lucumaSortDirection"""
-input LucumaSortDirectionPkColumnsInput {
-  id: String!
-}
-
-"""
-select columns of table "lucumaSortDirection"
-"""
-enum LucumaSortDirectionSelectColumn {
-  """column name"""
-  id
-}
-
-"""
-input type for updating data in table "lucumaSortDirection"
-"""
-input LucumaSortDirectionSetInput {
-  id: String
-}
-
-"""
-update columns of table "lucumaSortDirection"
-"""
-enum LucumaSortDirectionUpdateColumn {
-  """column name"""
-  id
-}
-
-input LucumaSortDirectionUpdates {
-  """sets the columns of the filtered rows to the given values"""
-  _set: LucumaSortDirectionSetInput
-  where: LucumaSortDirectionBoolExp!
-}
-
-"""
-columns and relationships of "lucumaTableColumnPreferences"
-"""
-type LucumaTableColumnPreferences {
-  columnId: String!
-  createdAt: timestamptz
-  filter: String
-  sorting: LucumaSortDirectionEnum
-  sortingOrder: Int
-  tableId: LucumaTableIdsEnum!
-  updatedAt: timestamptz
-  userId: String!
-  visible: Boolean!
-}
-
-"""
-aggregated selection of "lucumaTableColumnPreferences"
-"""
-type LucumaTableColumnPreferencesAggregate {
-  aggregate: LucumaTableColumnPreferencesAggregateFields
-  nodes: [LucumaTableColumnPreferences!]!
-}
-
-"""
-aggregate fields of "lucumaTableColumnPreferences"
-"""
-type LucumaTableColumnPreferencesAggregateFields {
-  avg: LucumaTableColumnPreferencesAvgFields
-  count(columns: [LucumaTableColumnPreferencesSelectColumn!], distinct: Boolean): Int!
-  max: LucumaTableColumnPreferencesMaxFields
-  min: LucumaTableColumnPreferencesMinFields
-  stddev: LucumaTableColumnPreferencesStddevFields
-  stddevPop: LucumaTableColumnPreferencesStddev_popFields
-  stddevSamp: LucumaTableColumnPreferencesStddev_sampFields
-  sum: LucumaTableColumnPreferencesSumFields
-  varPop: LucumaTableColumnPreferencesVar_popFields
-  varSamp: LucumaTableColumnPreferencesVar_sampFields
-  variance: LucumaTableColumnPreferencesVarianceFields
-}
-
-"""aggregate avg on columns"""
-type LucumaTableColumnPreferencesAvgFields {
-  sortingOrder: Float
-}
-
-"""
-Boolean expression to filter rows from the table "lucumaTableColumnPreferences". All fields are combined with a logical 'AND'.
-"""
-input LucumaTableColumnPreferencesBoolExp {
-  _and: [LucumaTableColumnPreferencesBoolExp!]
-  _not: LucumaTableColumnPreferencesBoolExp
-  _or: [LucumaTableColumnPreferencesBoolExp!]
-  columnId: StringComparisonExp
-  createdAt: TimestamptzComparisonExp
-  filter: StringComparisonExp
-  sorting: LucumaSortDirectionEnumComparisonExp
-  sortingOrder: IntComparisonExp
-  tableId: LucumaTableIdsEnumComparisonExp
-  updatedAt: TimestamptzComparisonExp
-  userId: StringComparisonExp
-  visible: BooleanComparisonExp
-}
-
-"""
-unique or primary key constraints on table "lucumaTableColumnPreferences"
-"""
-enum LucumaTableColumnPreferencesConstraint {
-  """
-  unique or primary key constraint on columns "tableId", "userId", "columnId"
-  """
-  lucumaTableColumnPreferences_pkey
-}
-
-"""
-input type for incrementing numeric columns in table "lucumaTableColumnPreferences"
-"""
-input LucumaTableColumnPreferencesIncInput {
-  sortingOrder: Int
-}
-
-"""
-input type for inserting data into table "lucumaTableColumnPreferences"
-"""
-input LucumaTableColumnPreferencesInsertInput {
-  columnId: String
-  createdAt: timestamptz
-  filter: String
-  sorting: LucumaSortDirectionEnum
-  sortingOrder: Int
-  tableId: LucumaTableIdsEnum
-  updatedAt: timestamptz
-  userId: String
-  visible: Boolean
-}
-
-"""aggregate max on columns"""
-type LucumaTableColumnPreferencesMaxFields {
-  columnId: String
-  createdAt: timestamptz
-  filter: String
-  sortingOrder: Int
-  updatedAt: timestamptz
-  userId: String
-}
-
-"""aggregate min on columns"""
-type LucumaTableColumnPreferencesMinFields {
-  columnId: String
-  createdAt: timestamptz
-  filter: String
-  sortingOrder: Int
-  updatedAt: timestamptz
-  userId: String
-}
-
-"""
-response of any mutation on the table "lucumaTableColumnPreferences"
-"""
-type LucumaTableColumnPreferencesMutationResponse {
-  """number of rows affected by the mutation"""
-  affected_rows: Int!
-
-  """data from the rows affected by the mutation"""
-  returning: [LucumaTableColumnPreferences!]!
-}
-
-"""
-on_conflict condition type for table "lucumaTableColumnPreferences"
-"""
-input LucumaTableColumnPreferencesOnConflict {
-  constraint: LucumaTableColumnPreferencesConstraint!
-  update_columns: [LucumaTableColumnPreferencesUpdateColumn!]! = []
-  where: LucumaTableColumnPreferencesBoolExp
-}
-
-"""
-Ordering options when selecting data from "lucumaTableColumnPreferences".
-"""
-input LucumaTableColumnPreferencesOrderBy {
-  columnId: OrderBy
-  createdAt: OrderBy
-  filter: OrderBy
-  sorting: OrderBy
-  sortingOrder: OrderBy
-  tableId: OrderBy
-  updatedAt: OrderBy
-  userId: OrderBy
-  visible: OrderBy
-}
-
-"""primary key columns input for table: lucumaTableColumnPreferences"""
-input LucumaTableColumnPreferencesPkColumnsInput {
-  columnId: String!
-  tableId: LucumaTableIdsEnum!
-  userId: String!
-}
-
-"""
-select columns of table "lucumaTableColumnPreferences"
-"""
-enum LucumaTableColumnPreferencesSelectColumn {
-  """column name"""
-  columnId
-
-  """column name"""
-  createdAt
-
-  """column name"""
-  filter
-
-  """column name"""
-  sorting
-
-  """column name"""
-  sortingOrder
-
-  """column name"""
-  tableId
-
-  """column name"""
-  updatedAt
-
-  """column name"""
-  userId
-
-  """column name"""
-  visible
-}
-
-"""
-input type for updating data in table "lucumaTableColumnPreferences"
-"""
-input LucumaTableColumnPreferencesSetInput {
-  columnId: String
-  createdAt: timestamptz
-  filter: String
-  sorting: LucumaSortDirectionEnum
-  sortingOrder: Int
-  tableId: LucumaTableIdsEnum
-  updatedAt: timestamptz
-  userId: String
-  visible: Boolean
-}
-
-"""aggregate stddev on columns"""
-type LucumaTableColumnPreferencesStddevFields {
-  sortingOrder: Float
-}
-
-"""aggregate stddev_pop on columns"""
-type LucumaTableColumnPreferencesStddev_popFields {
-  sortingOrder: Float
-}
-
-"""aggregate stddev_samp on columns"""
-type LucumaTableColumnPreferencesStddev_sampFields {
-  sortingOrder: Float
-}
-
-"""aggregate sum on columns"""
-type LucumaTableColumnPreferencesSumFields {
-  sortingOrder: Int
-}
-
-"""
-update columns of table "lucumaTableColumnPreferences"
-"""
-enum LucumaTableColumnPreferencesUpdateColumn {
-  """column name"""
-  columnId
-
-  """column name"""
-  createdAt
-
-  """column name"""
-  filter
-
-  """column name"""
-  sorting
-
-  """column name"""
-  sortingOrder
-
-  """column name"""
-  tableId
-
-  """column name"""
-  updatedAt
-
-  """column name"""
-  userId
-
-  """column name"""
-  visible
-}
-
-input LucumaTableColumnPreferencesUpdates {
-  """increments the numeric columns with given value of the filtered values"""
-  _inc: LucumaTableColumnPreferencesIncInput
-
-  """sets the columns of the filtered rows to the given values"""
-  _set: LucumaTableColumnPreferencesSetInput
-  where: LucumaTableColumnPreferencesBoolExp!
-}
-
-"""aggregate var_pop on columns"""
-type LucumaTableColumnPreferencesVar_popFields {
-  sortingOrder: Float
-}
-
-"""aggregate var_samp on columns"""
-type LucumaTableColumnPreferencesVar_sampFields {
-  sortingOrder: Float
-}
-
-"""aggregate variance on columns"""
-type LucumaTableColumnPreferencesVarianceFields {
-  sortingOrder: Float
-}
-
-"""
 columns and relationships of "lucumaTableIds"
 """
 type LucumaTableIds {
@@ -2955,6 +2538,7 @@ enum LucumaTableIdsEnum {
   IMAGING_MODES
   OBSERVATIONS_SUMMARY
   OBSERVATION_VALIDATIONS
+  PROGRAMS_SELECTOR
   REQUESTED_CONFIGS
   SPECTROSCOPY_MODES
   TARGETS_SUMMARY
@@ -3046,6 +2630,204 @@ input LucumaTableIdsUpdates {
   """sets the columns of the filtered rows to the given values"""
   _set: LucumaTableIdsSetInput
   where: LucumaTableIdsBoolExp!
+}
+
+"""
+columns and relationships of "lucumaTablePreferences"
+"""
+type LucumaTablePreferences {
+  preferences(
+    """JSON select path"""
+    path: String
+  ): jsonb!
+  tableId: LucumaTableIdsEnum!
+  userId: String!
+}
+
+"""
+aggregated selection of "lucumaTablePreferences"
+"""
+type LucumaTablePreferencesAggregate {
+  aggregate: LucumaTablePreferencesAggregateFields
+  nodes: [LucumaTablePreferences!]!
+}
+
+"""
+aggregate fields of "lucumaTablePreferences"
+"""
+type LucumaTablePreferencesAggregateFields {
+  count(columns: [LucumaTablePreferencesSelectColumn!], distinct: Boolean): Int!
+  max: LucumaTablePreferencesMaxFields
+  min: LucumaTablePreferencesMinFields
+}
+
+"""append existing jsonb value of filtered columns with new jsonb value"""
+input LucumaTablePreferencesAppendInput {
+  preferences: jsonb
+}
+
+"""
+Boolean expression to filter rows from the table "lucumaTablePreferences". All fields are combined with a logical 'AND'.
+"""
+input LucumaTablePreferencesBoolExp {
+  _and: [LucumaTablePreferencesBoolExp!]
+  _not: LucumaTablePreferencesBoolExp
+  _or: [LucumaTablePreferencesBoolExp!]
+  preferences: JsonbComparisonExp
+  tableId: LucumaTableIdsEnumComparisonExp
+  userId: StringComparisonExp
+}
+
+"""
+unique or primary key constraints on table "lucumaTablePreferences"
+"""
+enum LucumaTablePreferencesConstraint {
+  """
+  unique or primary key constraint on columns "tableId", "userId"
+  """
+  lucumaTablePreferences_pkey
+}
+
+"""
+delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+"""
+input LucumaTablePreferencesDeleteAtPathInput {
+  preferences: [String!]
+}
+
+"""
+delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+"""
+input LucumaTablePreferencesDeleteElemInput {
+  preferences: Int
+}
+
+"""
+delete key/value pair or string element. key/value pairs are matched based on their key value
+"""
+input LucumaTablePreferencesDeleteKeyInput {
+  preferences: String
+}
+
+"""
+input type for inserting data into table "lucumaTablePreferences"
+"""
+input LucumaTablePreferencesInsertInput {
+  preferences: jsonb
+  tableId: LucumaTableIdsEnum
+  userId: String
+}
+
+"""aggregate max on columns"""
+type LucumaTablePreferencesMaxFields {
+  userId: String
+}
+
+"""aggregate min on columns"""
+type LucumaTablePreferencesMinFields {
+  userId: String
+}
+
+"""
+response of any mutation on the table "lucumaTablePreferences"
+"""
+type LucumaTablePreferencesMutationResponse {
+  """number of rows affected by the mutation"""
+  affected_rows: Int!
+
+  """data from the rows affected by the mutation"""
+  returning: [LucumaTablePreferences!]!
+}
+
+"""
+on_conflict condition type for table "lucumaTablePreferences"
+"""
+input LucumaTablePreferencesOnConflict {
+  constraint: LucumaTablePreferencesConstraint!
+  update_columns: [LucumaTablePreferencesUpdateColumn!]! = []
+  where: LucumaTablePreferencesBoolExp
+}
+
+"""Ordering options when selecting data from "lucumaTablePreferences"."""
+input LucumaTablePreferencesOrderBy {
+  preferences: OrderBy
+  tableId: OrderBy
+  userId: OrderBy
+}
+
+"""primary key columns input for table: lucumaTablePreferences"""
+input LucumaTablePreferencesPkColumnsInput {
+  tableId: LucumaTableIdsEnum!
+  userId: String!
+}
+
+"""prepend existing jsonb value of filtered columns with new jsonb value"""
+input LucumaTablePreferencesPrependInput {
+  preferences: jsonb
+}
+
+"""
+select columns of table "lucumaTablePreferences"
+"""
+enum LucumaTablePreferencesSelectColumn {
+  """column name"""
+  preferences
+
+  """column name"""
+  tableId
+
+  """column name"""
+  userId
+}
+
+"""
+input type for updating data in table "lucumaTablePreferences"
+"""
+input LucumaTablePreferencesSetInput {
+  preferences: jsonb
+  tableId: LucumaTableIdsEnum
+  userId: String
+}
+
+"""
+update columns of table "lucumaTablePreferences"
+"""
+enum LucumaTablePreferencesUpdateColumn {
+  """column name"""
+  preferences
+
+  """column name"""
+  tableId
+
+  """column name"""
+  userId
+}
+
+input LucumaTablePreferencesUpdates {
+  """append existing jsonb value of filtered columns with new jsonb value"""
+  _append: LucumaTablePreferencesAppendInput
+
+  """
+  delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+  """
+  _deleteAtPath: LucumaTablePreferencesDeleteAtPathInput
+
+  """
+  delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+  """
+  _deleteElem: LucumaTablePreferencesDeleteElemInput
+
+  """
+  delete key/value pair or string element. key/value pairs are matched based on their key value
+  """
+  _deleteKey: LucumaTablePreferencesDeleteKeyInput
+
+  """prepend existing jsonb value of filtered columns with new jsonb value"""
+  _prepend: LucumaTablePreferencesPrependInput
+
+  """sets the columns of the filtered rows to the given values"""
+  _set: LucumaTablePreferencesSetInput
+  where: LucumaTablePreferencesBoolExp!
 }
 
 """
@@ -4376,46 +4158,6 @@ input lucumaObservation_streamCursorValueInput {
 }
 
 """
-Streaming cursor of the table "lucumaSortDirection"
-"""
-input lucumaSortDirection_streamCursorInput {
-  """Stream column input with initial value"""
-  initialValue: lucumaSortDirection_streamCursorValueInput!
-
-  """cursor ordering"""
-  ordering: CursorOrdering
-}
-
-"""Initial value of the column from where the streaming should start"""
-input lucumaSortDirection_streamCursorValueInput {
-  id: String
-}
-
-"""
-Streaming cursor of the table "lucumaTableColumnPreferences"
-"""
-input lucumaTableColumnPreferences_streamCursorInput {
-  """Stream column input with initial value"""
-  initialValue: lucumaTableColumnPreferences_streamCursorValueInput!
-
-  """cursor ordering"""
-  ordering: CursorOrdering
-}
-
-"""Initial value of the column from where the streaming should start"""
-input lucumaTableColumnPreferences_streamCursorValueInput {
-  columnId: String
-  createdAt: timestamptz
-  filter: String
-  sorting: LucumaSortDirectionEnum
-  sortingOrder: Int
-  tableId: LucumaTableIdsEnum
-  updatedAt: timestamptz
-  userId: String
-  visible: Boolean
-}
-
-"""
 Streaming cursor of the table "lucumaTableIds"
 """
 input lucumaTableIds_streamCursorInput {
@@ -4429,6 +4171,24 @@ input lucumaTableIds_streamCursorInput {
 """Initial value of the column from where the streaming should start"""
 input lucumaTableIds_streamCursorValueInput {
   id: String
+}
+
+"""
+Streaming cursor of the table "lucumaTablePreferences"
+"""
+input lucumaTablePreferences_streamCursorInput {
+  """Stream column input with initial value"""
+  initialValue: lucumaTablePreferences_streamCursorValueInput!
+
+  """cursor ordering"""
+  ordering: CursorOrdering
+}
+
+"""Initial value of the column from where the streaming should start"""
+input lucumaTablePreferences_streamCursorValueInput {
+  preferences: jsonb
+  tableId: LucumaTableIdsEnum
+  userId: String
 }
 
 """
@@ -4679,32 +4439,6 @@ type Mutation {
   deleteLucumaObservationByPk(observationId: String!): LucumaObservation
 
   """
-  delete data from the table: "lucumaSortDirection"
-  """
-  deleteLucumaSortDirection(
-    """filter the rows which have to be deleted"""
-    where: LucumaSortDirectionBoolExp!
-  ): LucumaSortDirectionMutationResponse
-
-  """
-  delete single row from the table: "lucumaSortDirection"
-  """
-  deleteLucumaSortDirectionByPk(id: String!): LucumaSortDirection
-
-  """
-  delete data from the table: "lucumaTableColumnPreferences"
-  """
-  deleteLucumaTableColumnPreferences(
-    """filter the rows which have to be deleted"""
-    where: LucumaTableColumnPreferencesBoolExp!
-  ): LucumaTableColumnPreferencesMutationResponse
-
-  """
-  delete single row from the table: "lucumaTableColumnPreferences"
-  """
-  deleteLucumaTableColumnPreferencesByPk(columnId: String!, tableId: LucumaTableIdsEnum!, userId: String!): LucumaTableColumnPreferences
-
-  """
   delete data from the table: "lucumaTableIds"
   """
   deleteLucumaTableIds(
@@ -4716,6 +4450,19 @@ type Mutation {
   delete single row from the table: "lucumaTableIds"
   """
   deleteLucumaTableIdsByPk(id: String!): LucumaTableIds
+
+  """
+  delete data from the table: "lucumaTablePreferences"
+  """
+  deleteLucumaTablePreferences(
+    """filter the rows which have to be deleted"""
+    where: LucumaTablePreferencesBoolExp!
+  ): LucumaTablePreferencesMutationResponse
+
+  """
+  delete single row from the table: "lucumaTablePreferences"
+  """
+  deleteLucumaTablePreferencesByPk(tableId: LucumaTableIdsEnum!, userId: String!): LucumaTablePreferences
 
   """
   delete data from the table: "lucumaTarget"
@@ -5034,50 +4781,6 @@ type Mutation {
   ): LucumaObservation
 
   """
-  insert data into the table: "lucumaSortDirection"
-  """
-  insertLucumaSortDirection(
-    """the rows to be inserted"""
-    objects: [LucumaSortDirectionInsertInput!]!
-
-    """upsert condition"""
-    onConflict: LucumaSortDirectionOnConflict
-  ): LucumaSortDirectionMutationResponse
-
-  """
-  insert a single row into the table: "lucumaSortDirection"
-  """
-  insertLucumaSortDirectionOne(
-    """the row to be inserted"""
-    object: LucumaSortDirectionInsertInput!
-
-    """upsert condition"""
-    onConflict: LucumaSortDirectionOnConflict
-  ): LucumaSortDirection
-
-  """
-  insert data into the table: "lucumaTableColumnPreferences"
-  """
-  insertLucumaTableColumnPreferences(
-    """the rows to be inserted"""
-    objects: [LucumaTableColumnPreferencesInsertInput!]!
-
-    """upsert condition"""
-    onConflict: LucumaTableColumnPreferencesOnConflict
-  ): LucumaTableColumnPreferencesMutationResponse
-
-  """
-  insert a single row into the table: "lucumaTableColumnPreferences"
-  """
-  insertLucumaTableColumnPreferencesOne(
-    """the row to be inserted"""
-    object: LucumaTableColumnPreferencesInsertInput!
-
-    """upsert condition"""
-    onConflict: LucumaTableColumnPreferencesOnConflict
-  ): LucumaTableColumnPreferences
-
-  """
   insert data into the table: "lucumaTableIds"
   """
   insertLucumaTableIds(
@@ -5098,6 +4801,28 @@ type Mutation {
     """upsert condition"""
     onConflict: LucumaTableIdsOnConflict
   ): LucumaTableIds
+
+  """
+  insert data into the table: "lucumaTablePreferences"
+  """
+  insertLucumaTablePreferences(
+    """the rows to be inserted"""
+    objects: [LucumaTablePreferencesInsertInput!]!
+
+    """upsert condition"""
+    onConflict: LucumaTablePreferencesOnConflict
+  ): LucumaTablePreferencesMutationResponse
+
+  """
+  insert a single row into the table: "lucumaTablePreferences"
+  """
+  insertLucumaTablePreferencesOne(
+    """the row to be inserted"""
+    object: LucumaTablePreferencesInsertInput!
+
+    """upsert condition"""
+    onConflict: LucumaTablePreferencesOnConflict
+  ): LucumaTablePreferences
 
   """
   insert data into the table: "lucumaTarget"
@@ -5548,68 +5273,6 @@ type Mutation {
   ): [LucumaObservationMutationResponse]
 
   """
-  update data of the table: "lucumaSortDirection"
-  """
-  updateLucumaSortDirection(
-    """sets the columns of the filtered rows to the given values"""
-    _set: LucumaSortDirectionSetInput
-
-    """filter the rows which have to be updated"""
-    where: LucumaSortDirectionBoolExp!
-  ): LucumaSortDirectionMutationResponse
-
-  """
-  update single row of the table: "lucumaSortDirection"
-  """
-  updateLucumaSortDirectionByPk(
-    """sets the columns of the filtered rows to the given values"""
-    _set: LucumaSortDirectionSetInput
-    pk_columns: LucumaSortDirectionPkColumnsInput!
-  ): LucumaSortDirection
-
-  """
-  update multiples rows of table: "lucumaSortDirection"
-  """
-  updateLucumaSortDirectionMany(
-    """updates to execute, in order"""
-    updates: [LucumaSortDirectionUpdates!]!
-  ): [LucumaSortDirectionMutationResponse]
-
-  """
-  update data of the table: "lucumaTableColumnPreferences"
-  """
-  updateLucumaTableColumnPreferences(
-    """increments the numeric columns with given value of the filtered values"""
-    _inc: LucumaTableColumnPreferencesIncInput
-
-    """sets the columns of the filtered rows to the given values"""
-    _set: LucumaTableColumnPreferencesSetInput
-
-    """filter the rows which have to be updated"""
-    where: LucumaTableColumnPreferencesBoolExp!
-  ): LucumaTableColumnPreferencesMutationResponse
-
-  """
-  update single row of the table: "lucumaTableColumnPreferences"
-  """
-  updateLucumaTableColumnPreferencesByPk(
-    """increments the numeric columns with given value of the filtered values"""
-    _inc: LucumaTableColumnPreferencesIncInput
-
-    """sets the columns of the filtered rows to the given values"""
-    _set: LucumaTableColumnPreferencesSetInput
-    pk_columns: LucumaTableColumnPreferencesPkColumnsInput!
-  ): LucumaTableColumnPreferences
-
-  """
-  update multiples rows of table: "lucumaTableColumnPreferences"
-  """
-  updateLucumaTableColumnPreferencesMany(
-    """updates to execute, in order"""
-    updates: [LucumaTableColumnPreferencesUpdates!]!
-  ): [LucumaTableColumnPreferencesMutationResponse]
-
-  """
   update data of the table: "lucumaTableIds"
   """
   updateLucumaTableIds(
@@ -5636,6 +5299,76 @@ type Mutation {
     """updates to execute, in order"""
     updates: [LucumaTableIdsUpdates!]!
   ): [LucumaTableIdsMutationResponse]
+
+  """
+  update data of the table: "lucumaTablePreferences"
+  """
+  updateLucumaTablePreferences(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaTablePreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaTablePreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaTablePreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaTablePreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaTablePreferencesPrependInput
+
+    """sets the columns of the filtered rows to the given values"""
+    _set: LucumaTablePreferencesSetInput
+
+    """filter the rows which have to be updated"""
+    where: LucumaTablePreferencesBoolExp!
+  ): LucumaTablePreferencesMutationResponse
+
+  """
+  update single row of the table: "lucumaTablePreferences"
+  """
+  updateLucumaTablePreferencesByPk(
+    """append existing jsonb value of filtered columns with new jsonb value"""
+    _append: LucumaTablePreferencesAppendInput
+
+    """
+    delete the field or element with specified path (for JSON arrays, negative integers count from the end)
+    """
+    _deleteAtPath: LucumaTablePreferencesDeleteAtPathInput
+
+    """
+    delete the array element with specified index (negative integers count from the end). throws an error if top level container is not an array
+    """
+    _deleteElem: LucumaTablePreferencesDeleteElemInput
+
+    """
+    delete key/value pair or string element. key/value pairs are matched based on their key value
+    """
+    _deleteKey: LucumaTablePreferencesDeleteKeyInput
+
+    """prepend existing jsonb value of filtered columns with new jsonb value"""
+    _prepend: LucumaTablePreferencesPrependInput
+
+    """sets the columns of the filtered rows to the given values"""
+    _set: LucumaTablePreferencesSetInput
+    pk_columns: LucumaTablePreferencesPkColumnsInput!
+  ): LucumaTablePreferences
+
+  """
+  update multiples rows of table: "lucumaTablePreferences"
+  """
+  updateLucumaTablePreferencesMany(
+    """updates to execute, in order"""
+    updates: [LucumaTablePreferencesUpdates!]!
+  ): [LucumaTablePreferencesMutationResponse]
 
   """
   update data of the table: "lucumaTarget"
@@ -6326,96 +6059,6 @@ type Query {
   lucumaObservationByPk(observationId: String!): LucumaObservation
 
   """
-  fetch data from the table: "lucumaSortDirection"
-  """
-  lucumaSortDirection(
-    """distinct select on columns"""
-    distinctOn: [LucumaSortDirectionSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaSortDirectionOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaSortDirectionBoolExp
-  ): [LucumaSortDirection!]!
-
-  """
-  fetch aggregated fields from the table: "lucumaSortDirection"
-  """
-  lucumaSortDirectionAggregate(
-    """distinct select on columns"""
-    distinctOn: [LucumaSortDirectionSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaSortDirectionOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaSortDirectionBoolExp
-  ): LucumaSortDirectionAggregate!
-
-  """
-  fetch data from the table: "lucumaSortDirection" using primary key columns
-  """
-  lucumaSortDirectionByPk(id: String!): LucumaSortDirection
-
-  """
-  fetch data from the table: "lucumaTableColumnPreferences"
-  """
-  lucumaTableColumnPreferences(
-    """distinct select on columns"""
-    distinctOn: [LucumaTableColumnPreferencesSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaTableColumnPreferencesOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaTableColumnPreferencesBoolExp
-  ): [LucumaTableColumnPreferences!]!
-
-  """
-  fetch aggregated fields from the table: "lucumaTableColumnPreferences"
-  """
-  lucumaTableColumnPreferencesAggregate(
-    """distinct select on columns"""
-    distinctOn: [LucumaTableColumnPreferencesSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaTableColumnPreferencesOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaTableColumnPreferencesBoolExp
-  ): LucumaTableColumnPreferencesAggregate!
-
-  """
-  fetch data from the table: "lucumaTableColumnPreferences" using primary key columns
-  """
-  lucumaTableColumnPreferencesByPk(columnId: String!, tableId: LucumaTableIdsEnum!, userId: String!): LucumaTableColumnPreferences
-
-  """
   fetch data from the table: "lucumaTableIds"
   """
   lucumaTableIds(
@@ -6457,6 +6100,51 @@ type Query {
 
   """fetch data from the table: "lucumaTableIds" using primary key columns"""
   lucumaTableIdsByPk(id: String!): LucumaTableIds
+
+  """
+  fetch data from the table: "lucumaTablePreferences"
+  """
+  lucumaTablePreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): [LucumaTablePreferences!]!
+
+  """
+  fetch aggregated fields from the table: "lucumaTablePreferences"
+  """
+  lucumaTablePreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): LucumaTablePreferencesAggregate!
+
+  """
+  fetch data from the table: "lucumaTablePreferences" using primary key columns
+  """
+  lucumaTablePreferencesByPk(tableId: LucumaTableIdsEnum!, userId: String!): LucumaTablePreferences
 
   """
   fetch data from the table: "lucumaTarget"
@@ -7337,124 +7025,6 @@ type Subscription {
   ): [LucumaObservation!]!
 
   """
-  fetch data from the table: "lucumaSortDirection"
-  """
-  lucumaSortDirection(
-    """distinct select on columns"""
-    distinctOn: [LucumaSortDirectionSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaSortDirectionOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaSortDirectionBoolExp
-  ): [LucumaSortDirection!]!
-
-  """
-  fetch aggregated fields from the table: "lucumaSortDirection"
-  """
-  lucumaSortDirectionAggregate(
-    """distinct select on columns"""
-    distinctOn: [LucumaSortDirectionSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaSortDirectionOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaSortDirectionBoolExp
-  ): LucumaSortDirectionAggregate!
-
-  """
-  fetch data from the table: "lucumaSortDirection" using primary key columns
-  """
-  lucumaSortDirectionByPk(id: String!): LucumaSortDirection
-
-  """
-  fetch data from the table in a streaming manner : "lucumaSortDirection"
-  """
-  lucumaSortDirectionStream(
-    """maximum number of rows returned in a single batch"""
-    batchSize: Int!
-
-    """cursor to stream the results returned by the query"""
-    cursor: [lucumaSortDirection_streamCursorInput]!
-
-    """filter the rows returned"""
-    where: LucumaSortDirectionBoolExp
-  ): [LucumaSortDirection!]!
-
-  """
-  fetch data from the table: "lucumaTableColumnPreferences"
-  """
-  lucumaTableColumnPreferences(
-    """distinct select on columns"""
-    distinctOn: [LucumaTableColumnPreferencesSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaTableColumnPreferencesOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaTableColumnPreferencesBoolExp
-  ): [LucumaTableColumnPreferences!]!
-
-  """
-  fetch aggregated fields from the table: "lucumaTableColumnPreferences"
-  """
-  lucumaTableColumnPreferencesAggregate(
-    """distinct select on columns"""
-    distinctOn: [LucumaTableColumnPreferencesSelectColumn!]
-
-    """limit the number of rows returned"""
-    limit: Int
-
-    """skip the first n rows. Use only with order_by"""
-    offset: Int
-
-    """sort the rows by one or more columns"""
-    orderBy: [LucumaTableColumnPreferencesOrderBy!]
-
-    """filter the rows returned"""
-    where: LucumaTableColumnPreferencesBoolExp
-  ): LucumaTableColumnPreferencesAggregate!
-
-  """
-  fetch data from the table: "lucumaTableColumnPreferences" using primary key columns
-  """
-  lucumaTableColumnPreferencesByPk(columnId: String!, tableId: LucumaTableIdsEnum!, userId: String!): LucumaTableColumnPreferences
-
-  """
-  fetch data from the table in a streaming manner : "lucumaTableColumnPreferences"
-  """
-  lucumaTableColumnPreferencesStream(
-    """maximum number of rows returned in a single batch"""
-    batchSize: Int!
-
-    """cursor to stream the results returned by the query"""
-    cursor: [lucumaTableColumnPreferences_streamCursorInput]!
-
-    """filter the rows returned"""
-    where: LucumaTableColumnPreferencesBoolExp
-  ): [LucumaTableColumnPreferences!]!
-
-  """
   fetch data from the table: "lucumaTableIds"
   """
   lucumaTableIds(
@@ -7510,6 +7080,65 @@ type Subscription {
     """filter the rows returned"""
     where: LucumaTableIdsBoolExp
   ): [LucumaTableIds!]!
+
+  """
+  fetch data from the table: "lucumaTablePreferences"
+  """
+  lucumaTablePreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): [LucumaTablePreferences!]!
+
+  """
+  fetch aggregated fields from the table: "lucumaTablePreferences"
+  """
+  lucumaTablePreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): LucumaTablePreferencesAggregate!
+
+  """
+  fetch data from the table: "lucumaTablePreferences" using primary key columns
+  """
+  lucumaTablePreferencesByPk(tableId: LucumaTableIdsEnum!, userId: String!): LucumaTablePreferences
+
+  """
+  fetch data from the table in a streaming manner : "lucumaTablePreferences"
+  """
+  lucumaTablePreferencesStream(
+    """maximum number of rows returned in a single batch"""
+    batchSize: Int!
+
+    """cursor to stream the results returned by the query"""
+    cursor: [lucumaTablePreferences_streamCursorInput]!
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): [LucumaTablePreferences!]!
 
   """
   fetch data from the table: "lucumaTarget"

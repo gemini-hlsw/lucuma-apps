@@ -14,7 +14,6 @@ import clue.data.syntax.*
 import clue.syntax.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.*
-import explore.givens.given
 import explore.model.AladinFullScreen
 import explore.model.AladinMouseScroll
 import explore.model.AsterismVisualOptions
@@ -34,6 +33,7 @@ import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.*
 import explore.model.layout.*
+import io.circe.parser.*
 import io.circe.syntax.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
@@ -44,6 +44,7 @@ import lucuma.core.util.Enumerated
 import lucuma.itc.GraphType
 import lucuma.react.gridlayout.*
 import lucuma.react.table.*
+import lucuma.typed.tanstackTableCore as raw
 import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
@@ -55,10 +56,11 @@ import queries.schemas.UserPreferencesDB.Enums.*
 import queries.schemas.UserPreferencesDB.Types.*
 
 import scala.collection.immutable.SortedMap
+import scala.scalajs.js.JSON
 
 object UserPreferencesQueries:
-  type TableColumnPreferences = TableColumnPreferencesQuery.Data
-  val TableColumnPreferences = TableColumnPreferencesQuery.Data
+  type TableColumnPreferences = TablePreferencesQuery.Data
+  val TableColumnPreferences = TablePreferencesQuery.Data
 
   object GlobalUserPreferences:
     def loadPreferences[F[_]: MonadThrow](
@@ -529,92 +531,40 @@ object UserPreferencesQueries:
   end ElevationPlotPreference
 
   case class TableStore[F[_]: MonadThrow, TF](
-    userId:                Option[User.Id],
-    tableId:               TableId,
-    columns:               List[ColumnDef[?, ?, ?, ?, TF, ?, ?]],
-    // Allow for the ignoring of visibility while still including sort order.
-    excludeFromVisibility: Set[ColumnId] = Set.empty
+    userId:  Option[User.Id],
+    tableId: TableId
   )(using FetchClient[F, UserPreferencesDB], Logger[F])
       extends TableStateStore[F, TF]:
-    def load(): F[TableState[TF] => TableState[TF]] =
+
+    // We do Js-level Json (de)serialization of TableState
+    def load(): F[Option[TableState[TF]]] =
       userId
         .traverse: uid =>
-          TableColumnPreferencesQuery[F]
-            .query(
-              userId = uid.show.assign,
-              tableId = tableId.assign
-            )
+          TablePreferencesQuery[F]
+            .query(userId = uid.show, tableId = tableId)
             .raiseGraphQLErrors
             .recoverWith: t =>
               Logger[F]
                 .error(t)(s"Error loading table preferences for [$tableId]")
-                .as(TableColumnPreferencesQuery.Data(Nil))
-            .map: prefs =>
-              (tableState: TableState[TF]) =>
-                tableState
-                  .setColumnVisibility:
-                    prefs.lucumaTableColumnPreferences.applyVisibility(
-                      tableState.columnVisibility,
-                      excludeFromVisibility
-                    )
-                  .setSorting(prefs.lucumaTableColumnPreferences.applySorting(tableState.sorting))
-                  .setColumnFilters:
-                    prefs.lucumaTableColumnPreferences
-                      .applyFilters(tableState.columnFilters)
-        .map(_.orEmpty)
+                .as(TablePreferencesQuery.Data(none))
+            .map:
+              _.lucumaTablePreferencesByPk
+                .map(_.preferences)
+                .map: json =>
+                  TableState.fromJs[TF]:
+                    JSON.parse(json.toString).asInstanceOf[raw.buildLibTypesMod.TableState]
+        .map(_.flatten)
 
     def save(state: TableState[TF]): F[Unit] =
       userId.traverse { uid =>
         TableColumnPreferencesUpsert[F]
           .execute(
-            columns.map(col =>
-              val sorting: Map[ColumnId, (SortDirection, Int)] = state.sorting.value.zipWithIndex
-                .map((colSort, idx) => colSort.columnId -> (colSort.direction, idx))
-                .toMap
-
-              LucumaTableColumnPreferencesInsertInput(
-                userId = uid.show.assign,
-                tableId = tableId.assign,
-                columnId = col.id.value.assign,
-                visible =
-                  state.columnVisibility.value.getOrElse(col.id, Visibility.Visible).value.assign,
-                sorting = sorting.get(col.id).map(_._1).orUnassign,
-                sortingOrder = sorting.get(col.id).map(_._2).orUnassign,
-                filter = state.columnFilters.value
-                  .get(col.id)
-                  .collect:
-                    case s: String => s
-                  .orUnassign
-              )
+            LucumaTablePreferencesInsertInput(
+              userId = uid.show.assign,
+              tableId = tableId.assign,
+              preferences = parse(JSON.stringify(state.toJs)).toOption.orIgnore
             )
           )
           .attempt
       }.void
   end TableStore
-
-  extension (tableColsPrefs: List[TableColumnPreferencesQuery.Data.LucumaTableColumnPreferences])
-    def applyVisibility(original: ColumnVisibility, exclude: Set[ColumnId]): ColumnVisibility =
-      original.modify(
-        _ ++
-          tableColsPrefs
-            .filterNot(col => exclude.contains(ColumnId(col.columnId)))
-            .map(col => ColumnId(col.columnId) -> Visibility.fromVisible(col.visible))
-      )
-
-    def applySorting(original: Sorting): Sorting =
-      val sortedCols =
-        tableColsPrefs
-          .flatMap(col => (ColumnId(col.columnId).some, col.sorting, col.sortingOrder).tupled)
-          .sortBy(_._3)
-
-      // We don't force unsorting, in case there's a default sorting.
-      sortedCols match
-        case Nil      => original
-        case nonEmpty => Sorting(nonEmpty.map((colId, dir, _) => colId -> dir)*)
-
-    def applyFilters(original: ColumnFilters): ColumnFilters =
-      original.modify(
-        _ ++
-          tableColsPrefs
-            .flatMap(col => col.filter.map(f => (ColumnId(col.columnId), f)))
-      )
