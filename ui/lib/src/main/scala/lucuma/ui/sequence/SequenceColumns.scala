@@ -234,6 +234,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
+    colDef(
+      SequenceColumns.FowlerSamplesColumnId,
+      _.getStep.flatMap(_.fowlerSamples),
+      header = "Fowler samples",
+      cell = _.value.orEmpty
+    )
+
   lazy val ForGmos: List[colDef.TypeFor[?]] =
     List(
       dragHandleCol,
@@ -274,6 +282,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     List(
       indexAndTypeCol,
       exposureCol,
+      fowlerCol,
       guideStateCol,
       pOffsetCol,
       qOffsetCol,
@@ -288,22 +297,24 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
-  val DragHandleColumnId: ColumnId   = ColumnId("dragHandle")
-  val EditControlsColumnId: ColumnId = ColumnId("editControls")
-  val IndexAndTypeColumnId: ColumnId = ColumnId("stepType")
-  val ExposureColumnId: ColumnId     = ColumnId("exposure")
-  val GuideColumnId: ColumnId        = ColumnId("guide")
-  val PColumnId: ColumnId            = ColumnId("p")
-  val QColumnId: ColumnId            = ColumnId("q")
-  val WavelengthColumnId: ColumnId   = ColumnId("lambda")
-  val FPUColumnId: ColumnId          = ColumnId("fpu")
-  val GratingColumnId: ColumnId      = ColumnId("grating")
-  val FilterColumnId: ColumnId       = ColumnId("filter")
-  val XBinColumnId: ColumnId         = ColumnId("xbin")
-  val YBinColumnId: ColumnId         = ColumnId("ybin")
-  val ROIColumnId: ColumnId          = ColumnId("roi")
-  val ReadModeColumnId: ColumnId     = ColumnId("readMode")
-  val SNColumnId: ColumnId           = ColumnId("sn")
+
+  val DragHandleColumnId: ColumnId    = ColumnId("dragHandle")
+  val EditControlsColumnId: ColumnId  = ColumnId("editControls")
+  val IndexAndTypeColumnId: ColumnId  = ColumnId("stepType")
+  val ExposureColumnId: ColumnId      = ColumnId("exposure")
+  val GuideColumnId: ColumnId         = ColumnId("guide")
+  val PColumnId: ColumnId             = ColumnId("p")
+  val QColumnId: ColumnId             = ColumnId("q")
+  val WavelengthColumnId: ColumnId    = ColumnId("lambda")
+  val FPUColumnId: ColumnId           = ColumnId("fpu")
+  val GratingColumnId: ColumnId       = ColumnId("grating")
+  val FilterColumnId: ColumnId        = ColumnId("filter")
+  val XBinColumnId: ColumnId          = ColumnId("xbin")
+  val YBinColumnId: ColumnId          = ColumnId("ybin")
+  val ROIColumnId: ColumnId           = ColumnId("roi")
+  val ReadModeColumnId: ColumnId      = ColumnId("readMode")
+  val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
+  val SNColumnId: ColumnId            = ColumnId("sn")
 
   object BaseColumnSizes {
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
@@ -334,7 +345,7 @@ object SequenceColumns:
       )
 
     val ForIgrins2: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes
+      CommonColumnSizes ++ Map(FowlerSamplesColumnId -> FixedSize(60.toPx))
 
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       instrument match
@@ -376,6 +387,7 @@ object SequenceColumns:
       PColumnId,
       QColumnId,
       GuideColumnId,
+      FowlerSamplesColumnId,
       ExposureColumnId,
       SNColumnId
     ).reverse

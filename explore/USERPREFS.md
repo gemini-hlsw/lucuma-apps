@@ -65,7 +65,7 @@ Migrations are being handled via hasura tools with the migration and metadata fi
 
 [hasura](hasura/user-prefs)
 
-_Note_ unset NODE_OPTIONS before running `hasura console`
+_Note_ unset NODE_OPTIONS before running `hasura console`. Hasura has a bug where if you have it set, it won't save the migrations.
 
 Changes should be first tested on user-prefs-master to be later applied to
 

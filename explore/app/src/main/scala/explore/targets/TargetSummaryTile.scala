@@ -235,7 +235,7 @@ object TargetSummaryTile
                                       props.focusTargetId(none).unless_(rs.value.isEmpty)
                                     .handleTableUpdate
                                 ),
-                                TableStore(props.userId, TableId.TargetsSummary, cols)
+                                TableStore(props.userId, TableId.TargetsSummary)
                               )
         virtualizerRef   <- useRef(none[HTMLTableVirtualizer])
         resizer          <- useResizeDetector

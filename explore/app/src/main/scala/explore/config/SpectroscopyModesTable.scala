@@ -5,7 +5,6 @@ package explore.config
 
 import algebra.instances.all.*
 import cats.data.*
-import cats.effect.*
 import cats.implicits.catsKernelOrderingForOrder
 import cats.syntax.all.*
 import coulomb.*
@@ -59,6 +58,8 @@ import lucuma.ui.table.hooks.*
 
 import java.text.DecimalFormat
 import scala.language.implicitConversions
+
+import scalajs.js.JSConverters.*
 
 case class SpectroscopyModesTable(
   userId:                   Option[User.Id],
@@ -180,20 +181,22 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
-      column(TimeColumnId, _.totalItcTime)
+      column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.Time)
         .withColumnSize(FixedSize(85.toPx))
+        // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
-      column(SNColumnId, _.totalSN)
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
+      column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.SN)
         .withColumnSize(FixedSize(85.toPx))
+        // put undefined last, though this may not be common on TxC mode
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
       column(SlitWidthColumnId,
              row =>
                (SpectroscopyModeRow.instrumentConfig.get(row.entry),
@@ -280,7 +283,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
             declination = dec
           )
 
-      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(_.enabled)
+      val sortedRows: List[SpectroscopyModeRow]    = rows.sortBy(!_.enabled)
       // Computes the mode overrides for the current parameters
       val fixedModeRows: List[SpectroscopyModeRow] =
         sortedRows
@@ -347,7 +350,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                                 state = tableState,
                                 meta = TableMeta(itcProgress.get)
                               ),
-                              TableStore(props.userId, TableId.SpectroscopyModes, cols)
+                              TableStore(props.userId, TableId.SpectroscopyModes)
                             )
         // We need to have an indicator of whether we need to scrollTo the selectedIndex as
         // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"

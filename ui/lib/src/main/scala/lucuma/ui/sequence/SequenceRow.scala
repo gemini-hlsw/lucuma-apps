@@ -7,6 +7,7 @@ import cats.Eq
 import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
+import lucuma.core.enums.Igrins2FowlerSamples
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
@@ -130,6 +131,14 @@ sealed trait SequenceRow[+D]:
 
   lazy val readMode: Option[String] = instrumentConfig.collect:
     case Flamingos2DynamicConfig(_, _, _, readMode, _, _, _, _, _) => readMode.shortName
+
+  lazy val fowlerSamples: Option[String] = instrumentConfig.collect:
+    case ig2: Igrins2DynamicConfig => ig2.fowlerSamples match
+      case Igrins2FowlerSamples.One     => "1"
+      case Igrins2FowlerSamples.Two     => "2"
+      case Igrins2FowlerSamples.Four    => "4"
+      case Igrins2FowlerSamples.Eight   => "8"
+      case Igrins2FowlerSamples.Sixteen => "16"
 
   lazy val roi: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(_, _, _, roi, _, _, _) => roi.shortName

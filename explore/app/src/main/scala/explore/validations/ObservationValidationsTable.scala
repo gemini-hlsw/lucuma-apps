@@ -3,7 +3,6 @@
 
 package explore.validations
 
-import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.View
 import explore.Icons
@@ -159,11 +158,7 @@ object ObservationValidationsTableBody {
           getSubRows = (row, _) => row.subRows,
           getRowId = (row, _, _) => RowId(row.value.rowId)
         ),
-        TableStore(
-          props.userId,
-          TableId.ObservationValidations,
-          cols
-        )
+        TableStore(props.userId, TableId.ObservationValidations)
       )
     )
     .useEffectOnMountBy((p, _, _, _, table) =>

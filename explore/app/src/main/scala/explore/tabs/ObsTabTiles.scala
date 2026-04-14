@@ -460,28 +460,62 @@ object ObsTabTiles:
               trackType
             )
 
+          // If we have a telluric group we want to plot the targets together
+          val telluricGroup: Map[ObjectPlotData.Id, ObjectPlotData] =
+            (for {
+              gid   <- props.observation.get.groupId
+              group <- props.programSummaries.groups.get(gid)
+              if group.isTelluricCalibration
+            } yield props.programSummaries.groupsChildren
+              .getOrElse(gid.some, Nil)
+              // Collect siblings, aka the tellurics
+              .collect:
+                case Left(obs) if obs.id =!= props.obsId => obs
+              .flatMap: siblings =>
+                val targets = siblings.scienceTargetIds.toList
+                  .flatMap(tid => props.programSummaries.targets.get(tid).map(_.target))
+                  .filterNot(t => Target.opportunity.getOption(t).isDefined)
+
+                NonEmptyList
+                  .fromList(targets)
+                  .map: nel =>
+                    val isTelluric           = siblings.calibrationRole.isDefined
+                    val name: NonEmptyString =
+                      NonEmptyString.from(s"${siblings.title}".take(100)).getOrElse("-".refined)
+                    val sites                = siblings.observingMode.toList.map(_.siteFor)
+
+                    ObjectPlotData.Id(siblings.id.asLeft) ->
+                      ObjectPlotData(name, nel, sites, elevationOnly = isTelluric)
+              .toMap).getOrElse(Map.empty)
+
           val plotData: Option[PlotData] =
             props.scienceTargetsForTracking.map: ts =>
+              val scienceName =
+                if (telluricGroup.nonEmpty)
+                  ts.map(_.name.value).toList.mkString(", ")
+                else
+                  props.obsId.show
+
               PlotData:
                 Map(
                   ObjectPlotData.Id(props.obsId.asLeft) ->
                     ObjectPlotData(
-                      NonEmptyString.from(props.obsId.toString).getOrElse("Observation".refined),
+                      NonEmptyString.from(scienceName).getOrElse("-".refined),
                       ts,
                       obsConf.configuration.foldMap(conf => List(conf.siteFor))
                     )
-                )
+                ) ++ telluricGroup
 
           val skyPlotTile: Option[Tile[?]] =
-            plotData.map:
+            plotData.map: pd =>
               ElevationPlotTile(
                 props.vault.userId,
                 ObsTabTileIds.PlotId.id,
-                _,
+                pd,
                 props.observation.get.observingMode.map(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
-                true,
+                telluricGroup.isEmpty,
                 props.observation.get.timingWindows,
                 globalPreferences.get,
                 Constants.NoTargetSelected,

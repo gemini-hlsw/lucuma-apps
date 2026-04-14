@@ -202,8 +202,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
 
     def publishStats[F[_]: Temporal](cs: ClientsSetDb[F]): Stream[F, Unit] =
       Stream.fixedRate[F](10.minute).flatMap(_ => Stream.eval(cs.report))
-      
-    val HttpClientTimeout: Duration = 40.seconds 
+
+    val HttpClientTimeout: Duration = 40.seconds
 
     val navigate: Resource[IO, ExitCode] =
       for {

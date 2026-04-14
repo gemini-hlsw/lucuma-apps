@@ -36,6 +36,7 @@ import lucuma.core.math.BoundedInterval
 import lucuma.core.math.BoundedInterval.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.SignalToNoise
+import lucuma.core.math.TotalSN
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.model.ConstraintSet
@@ -55,6 +56,8 @@ import lucuma.ui.reusability.given
 import lucuma.ui.table.*
 import lucuma.ui.table.ColumnSize.*
 import lucuma.ui.table.hooks.*
+
+import scalajs.js.JSConverters.*
 
 final case class ImagingModesTable(
   userId:              Option[User.Id],
@@ -164,20 +167,22 @@ object ImagingModesTable extends ModesTableCommon:
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
-      column(TimeColumnId, _.totalItcTime)
+      column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.Time)
         .withColumnSize(FixedSize(85.toPx))
+        // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
-      column(SNColumnId, _.totalSN)
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
+      column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
           itcCell(cell.row.original.result, ItcColumns.SN)
         .withColumnSize(FixedSize(85.toPx))
         .withSortUndefined(UndefinedPriority.Last)
-        .sortable,
+        // put undefined last, though this may not be common on TxC mode
+        .sortableWith((a, b) => (a.toOption, b.toOption).mapN(_.compare(_)).getOrElse(0)),
       column(FilterColumnId, row => ImagingModeRow.instrumentConfig.get(row.entry))
         .withCell(_.value.filterStr)
         .withColumnSize(FixedSize(69.toPx))
@@ -215,7 +220,7 @@ object ImagingModesTable extends ModesTableCommon:
       ctx              <- useContext(AppContext.ctx)
       itcResults       <- useStateView(ItcResultsCache.Empty)
       itcProgress      <- useStateView(none[Progress])
-      dec              =  props.baseCoordinates.map(_.dec)
+      dec               = props.baseCoordinates.map(_.dec)
       rows             <- useMemo(
                             props.matrix,
                             props.exposureTimeMode,
@@ -242,6 +247,7 @@ object ImagingModesTable extends ModesTableCommon:
                             ) =>
                               matrix
                                 .filtered(minimumFov, fts, dec)
+                                .sortBy(!_.enabled)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in
                                   // multiple places, but we will still need to validate that the etm in set in
@@ -290,7 +296,7 @@ object ImagingModesTable extends ModesTableCommon:
                                 enableSorting = true,
                                 meta = TableMeta(itcProgress.get)
                               ),
-                              TableStore(props.userId, TableId.ImagingModes, cols)
+                              TableStore(props.userId, TableId.ImagingModes)
                             )
       // We need to have an indicator of whether we need to scrollTo the selectedIndex as
       // a state because otherwise the scrollTo effect below would often run in the same "hook cyle"
