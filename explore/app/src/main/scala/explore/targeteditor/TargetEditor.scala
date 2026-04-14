@@ -453,11 +453,10 @@ object TargetEditor:
         }
 
         val targetSources: NonEmptyList[TargetSource[IO]] =
-          props.obsTargets.focus.target match
-            case Target.Nonsidereal(_, _, _) =>
-              NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
-            case _                           =>
-              NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient))
+          NonEmptyList.of(
+            TargetSource.FromSimbad[IO](ctx.simbadClient),
+            TargetSource.FromHorizons[IO](ctx.horizonsClient)
+          )
 
         React.Fragment(
           TargetCloneSelector(
