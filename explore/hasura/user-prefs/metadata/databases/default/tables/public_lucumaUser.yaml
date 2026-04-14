@@ -1,3 +1,33 @@
 table:
   name: lucumaUser
   schema: public
+object_relationships:
+  - name: lucumaUserPreference
+    using:
+      foreign_key_constraint_on:
+        column: userId
+        table:
+          name: lucumaUserPreferences
+          schema: public
+array_relationships:
+  - name: exploreAsterismPreferences
+    using:
+      foreign_key_constraint_on:
+        column: userId
+        table:
+          name: exploreAsterismPreferences
+          schema: public
+  - name: lucumaGridLayoutPositions
+    using:
+      foreign_key_constraint_on:
+        column: userId
+        table:
+          name: lucumaGridLayoutPositions
+          schema: public
+  - name: lucumaTargets
+    using:
+      foreign_key_constraint_on:
+        column: userId
+        table:
+          name: lucumaTarget
+          schema: public

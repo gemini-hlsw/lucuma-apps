@@ -2,3 +2,11 @@ table:
   name: explorePlotRange
   schema: public
 is_enum: true
+array_relationships:
+  - name: lucumaUserPreferences
+    using:
+      foreign_key_constraint_on:
+        column: elevationPlotRange
+        table:
+          name: lucumaUserPreferences
+          schema: public

@@ -2,3 +2,11 @@ table:
   name: lucumaGridLayoutId
   schema: public
 is_enum: true
+array_relationships:
+  - name: lucumaGridLayoutPositions
+    using:
+      foreign_key_constraint_on:
+        column: section
+        table:
+          name: lucumaGridLayoutPositions
+          schema: public

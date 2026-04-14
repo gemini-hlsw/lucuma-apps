@@ -1,3 +1,13 @@
 table:
   name: lucumaGridLayoutPositions
   schema: public
+object_relationships:
+  - name: lucumaGridBreakpointName
+    using:
+      foreign_key_constraint_on: breakpointName
+  - name: lucumaGridLayoutId
+    using:
+      foreign_key_constraint_on: section
+  - name: lucumaUser
+    using:
+      foreign_key_constraint_on: userId
