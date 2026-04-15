@@ -21,6 +21,7 @@ import explore.model.AppContext
 import explore.model.Constants
 import explore.model.PopupState
 import explore.model.enums.TargetType
+import explore.render.given
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
