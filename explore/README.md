@@ -43,6 +43,18 @@ You may need to update your node modules via `pnpm install`
 With that you can open the app at:
 http://local.lucuma.xyz:8080/
 
+## Overriding endpoints locally
+
+You can override the default endpoints via `EXPLORE_*` environment variables before running vite.
+
+For example
+
+```
+EXPLORE_ODB_URI=ws://localhost:8082/ws pnpm explore dev
+```
+
+Options: `EXPLORE_ODB_URI`, `EXPLORE_ODB_REST_URI`, `EXPLORE_ITC_URI`, `EXPLORE_PREFS_URI`, `EXPLORE_SSO_URI`.
+
 ## Test full deployment
 
 In same cases you may want to test locally how the app looks without deploying. In that case you need to:
