@@ -4,6 +4,7 @@
 package explore.targeteditor
 
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
@@ -20,6 +21,7 @@ import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
 import explore.model.PopupState
 import explore.model.TargetList
+import explore.model.enums.TargetType
 import explore.services.OdbAsterismApi
 import explore.services.OdbObservationApi
 import explore.services.OdbTargetApi
@@ -120,10 +122,8 @@ object AddTargetButton
         onSelected <- useStateView((_: TargetWithOptId) => Callback.empty)
         sources    <- useStateView:
                         // we'll always set this before opening the popup
-                        NonEmptyList
-                          .one[TargetSource[IO]](
-                            TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
-                          )
+                        NonEmptyList.one[TargetSource[IO]]:
+                          TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
         blindRef   <- usePopupMenuRef
       yield
         import ctx.given
@@ -279,7 +279,7 @@ object AddTargetButton
           TargetSelectionPopup(
             "Add Target",
             popupState,
-            sources.get,
+            NonEmptyMap.one(TargetType.Nonsidereal, sources.get),
             selectExistingLabel = "Link",
             selectExistingIcon = Icons.Link,
             selectNewLabel = "Add",

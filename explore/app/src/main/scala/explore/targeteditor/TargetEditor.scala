@@ -5,6 +5,7 @@ package explore.targeteditor
 
 import cats.Endo
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
@@ -28,6 +29,7 @@ import explore.model.ObservationsAndTargets
 import explore.model.OnCloneParameters
 import explore.model.TargetEditObsInfo
 import explore.model.UserPreferences
+import explore.model.enums.TargetType
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
 import explore.services.OdbTargetApi
@@ -452,10 +454,12 @@ object TargetEditor:
           )
         }
 
-        val targetSources: NonEmptyList[TargetSource[IO]] =
-          NonEmptyList.of(
-            TargetSource.FromSimbad[IO](ctx.simbadClient),
-            TargetSource.FromHorizons[IO](ctx.horizonsClient)
+        val targetSources: NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]] =
+          NonEmptyMap.of(
+            TargetType.Sidereal    ->
+              NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
+            TargetType.Nonsidereal ->
+              NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
         React.Fragment(

@@ -4,6 +4,7 @@
 package explore.targeteditor
 
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.*
@@ -13,6 +14,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.HelpIcon
 import explore.model.*
+import explore.model.enums.TargetType
 import explore.targets.TargetSelectionPopup
 import explore.targets.TargetSource
 import japgolly.scalajs.react.*
@@ -36,7 +38,7 @@ import scalajs.js.JSConverters.*
 case class SearchForm(
   id:            Target.Id,
   targetName:    View[NonEmptyString],
-  targetSources: NonEmptyList[TargetSource[IO]],
+  targetSources: NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]],
   targetSet:     Target => Callback,
   searching:     View[Set[Target.Id]],
   readonly:      Boolean,
