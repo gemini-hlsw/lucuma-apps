@@ -55,6 +55,23 @@ fetch('/environments.conf.json').then((response) => {
         ExplorePWA.runServiceWorker();
       }
 
+      // Allow override of environments via environment variables
+      // It only makes sense for local dev
+      if (
+        /local.lucuma.xyz/.test(window.location) ||
+        /local.gemini.edu/.test(window.location)
+      ) {
+        // Override the dev env, it is just a json object we can update in place
+        const dev = environments.find((e) => e.hostName === '*');
+        if (dev) {
+          if (import.meta.env.EXPLORE_ODB_URI) dev.odbURI = import.meta.env.EXPLORE_ODB_URI;
+          if (import.meta.env.EXPLORE_ODB_REST_URI) dev.odbRestURI = import.meta.env.EXPLORE_ODB_REST_URI;
+          if (import.meta.env.EXPLORE_ITC_URI) dev.itcURI = import.meta.env.EXPLORE_ITC_URI;
+          if (import.meta.env.EXPLORE_PREFS_URI) dev.preferencesDBURI = import.meta.env.EXPLORE_PREFS_URI;
+          if (import.meta.env.EXPLORE_SSO_URI) dev.sso = { ...dev.sso, uri: import.meta.env.EXPLORE_SSO_URI };
+        }
+      }
+
       // IMPORTANT: Start explore **after** the PWA service worker
       // Otherwise, errors on load may swallow the service worker
       // And leave the user unable to upgrade forever
