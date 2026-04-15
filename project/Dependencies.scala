@@ -354,6 +354,10 @@ object Dependencies {
     deps("org.typelevel" %%% "munit-cats-effect")(mUnitCatsEffect)
   )
 
+  val Otel4s = Def.setting(
+    deps("org.typelevel" %%% "otel4s-core")(otel4s)
+  )
+
   val Natchez = Def.setting(
     depsJVM(
       "org.tpolecat" %% "natchez-core",

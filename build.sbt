@@ -452,7 +452,8 @@ lazy val explore_common = project
     libraryDependencies ++=
       LucumaSsoFrontendClient.value ++
         LucumaCatalog.value ++
-        LucumaReact.value,
+        LucumaReact.value ++
+        Otel4s.value,
     buildInfoKeys    := Seq[BuildInfoKey](
       scalaVersion,
       sbtVersion,
