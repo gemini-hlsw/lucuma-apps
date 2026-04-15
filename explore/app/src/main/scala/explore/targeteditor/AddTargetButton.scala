@@ -35,6 +35,8 @@ import lucuma.core.model.Target
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.fa.LayeredIcon
+import lucuma.react.fa.Transform
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupMenu
@@ -122,8 +124,11 @@ object AddTargetButton
         onSelected <- useStateView((_: TargetWithOptId) => Callback.empty)
         sources    <- useStateView:
                         // we'll always set this before opening the popup
-                        NonEmptyList.one[TargetSource[IO]]:
-                          TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
+                        NonEmptyMap.one(
+                          TargetType.Sidereal,
+                          NonEmptyList.one[TargetSource[IO]]:
+                            TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
+                        )
         blindRef   <- usePopupMenuRef
       yield
         import ctx.given
@@ -180,18 +185,28 @@ object AddTargetButton
         val hasTargetOfOpportunity: Boolean =
           observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
 
-        val programsAndSimbad = NonEmptyList.of(
-          TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets),
-          TargetSource.FromSimbad[IO](ctx.simbadClient)
-        )
+        val programsAndSimbad =
+          NonEmptyMap.one(
+            TargetType.Sidereal,
+            NonEmptyList.of(
+              TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets),
+              TargetSource.FromSimbad[IO](ctx.simbadClient)
+            )
+          )
 
-        val simbad = NonEmptyList.one(
-          TargetSource.FromSimbad[IO](ctx.simbadClient)
-        )
+        val simbad =
+          NonEmptyMap.one(
+            TargetType.Sidereal,
+            NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient))
+          )
 
-        val horizons = NonEmptyList.one(
-          TargetSource.FromHorizons[IO](ctx.horizonsClient)
-        )
+        val all =
+          NonEmptyMap.of(
+            TargetType.Sidereal    ->
+              NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
+            TargetType.Nonsidereal ->
+              NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
+          )
 
         val blindOffsetItems: List[MenuItem] =
           props.blindOffsetInfo
@@ -231,20 +246,25 @@ object AddTargetButton
           props.readOnly && props.allowBlindOffset && blindOffsetItems.nonEmpty
 
         val menuItems = List(
-          MenuItem.Item("Non-Sidereal Target Search",
-                        icon = Icons.PlanetRinged,
-                        command = onSelected.set(insertTargetCB) >>
-                          sources.set(horizons) >> popupState.set(PopupState.Open)
+          MenuItem.Item(
+            "Target Search",
+            icon = LayeredIcon()(
+              Icons.Star.withTransform(Transform(x = -6, y = -4, size = 15)),
+              Icons.PlanetRinged.withTransform(Transform(x = 6, y = 5, size = 15))
+            ),
+            command = onSelected.set(insertTargetCB) >>
+              sources.set(all) >> popupState.set(PopupState.Open)
           ),
-          MenuItem.Item("Empty Sidereal Target",
-                        icon = Icons.Star,
-                        command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
+          MenuItem.Item(
+            "Empty Sidereal Target",
+            icon = Icons.Star,
+            command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
           ),
-          MenuItem.Item("Target of Opportunity",
-                        icon = Icons.HourglassClock,
-                        command =
-                          insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
-                        disabled = hasTargets
+          MenuItem.Item(
+            "Target of Opportunity",
+            icon = Icons.HourglassClock,
+            command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
+            disabled = hasTargets
           )
         ) ++
           blindOffsetItems
@@ -279,7 +299,7 @@ object AddTargetButton
           TargetSelectionPopup(
             "Add Target",
             popupState,
-            NonEmptyMap.one(TargetType.Nonsidereal, sources.get),
+            sources.get,
             selectExistingLabel = "Link",
             selectExistingIcon = Icons.Link,
             selectNewLabel = "Add",
