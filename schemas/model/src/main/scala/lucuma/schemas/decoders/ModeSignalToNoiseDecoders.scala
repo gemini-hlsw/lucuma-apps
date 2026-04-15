@@ -49,6 +49,18 @@ trait ModeSignalToNoiseDecoders:
       .as[List[(GmosSouthFilter, SignalToNoiseAt)]](using snTupleListDecoder[GmosSouthFilter])
       .map(m => ModeSignalToNoise.GmosSouthImaging(m.toMap))
 
+  given Decoder[ModeSignalToNoise.GhostIfu] = Decoder.instance: c =>
+    for
+      redSn  <- c.downField("red")
+                  .downField("selected")
+                  .downField("signalToNoiseAt")
+                  .as[Option[SignalToNoiseAt]]
+      blueSn <- c.downField("blue")
+                  .downField("selected")
+                  .downField("signalToNoiseAt")
+                  .as[Option[SignalToNoiseAt]]
+    yield ModeSignalToNoise.GhostIfu(redSn, blueSn)
+
   given Decoder[ModeSignalToNoise] = Decoder.instance: c =>
     if c.value.isNull then Right(ModeSignalToNoise.Undefined)
     else
@@ -59,3 +71,4 @@ trait ModeSignalToNoiseDecoders:
           case Itc.Type.GmosNorthImaging    => c.as[ModeSignalToNoise.GmosNorthImaging]
           case Itc.Type.GmosSouthImaging    => c.as[ModeSignalToNoise.GmosSouthImaging]
           case Itc.Type.Igrins2Spectroscopy => c.as[ModeSignalToNoise.Spectroscopy]
+          case Itc.Type.GhostIfu            => c.as[ModeSignalToNoise.GhostIfu]

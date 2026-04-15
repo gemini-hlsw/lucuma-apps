@@ -57,12 +57,23 @@ trait ArbModeSignalToNoise:
     Cogen[List[(lucuma.core.enums.GmosSouthFilter, SignalToNoiseAt)]].contramap: sn =>
       sn.science.toList
 
+  given Arbitrary[ModeSignalToNoise.GhostIfu] = Arbitrary:
+    for
+      redSN  <- arbitrary[Option[SignalToNoiseAt]]
+      blueSN <- arbitrary[Option[SignalToNoiseAt]]
+    yield ModeSignalToNoise.GhostIfu(redSN, blueSN)
+
+  given Cogen[ModeSignalToNoise.GhostIfu] =
+    Cogen[(Option[SignalToNoiseAt], Option[SignalToNoiseAt])].contramap: sn =>
+      (sn.red, sn.blue)
+
   given Arbitrary[ModeSignalToNoise] = Arbitrary:
     Gen.oneOf(
       Gen.const(ModeSignalToNoise.Undefined),
       arbitrary[ModeSignalToNoise.Spectroscopy],
       arbitrary[ModeSignalToNoise.GmosNorthImaging],
-      arbitrary[ModeSignalToNoise.GmosSouthImaging]
+      arbitrary[ModeSignalToNoise.GmosSouthImaging],
+      arbitrary[ModeSignalToNoise.GhostIfu]
     )
 
   given Cogen[ModeSignalToNoise] =
@@ -72,7 +83,10 @@ trait ArbModeSignalToNoise:
         ModeSignalToNoise.Spectroscopy,
         Either[
           ModeSignalToNoise.GmosNorthImaging,
-          ModeSignalToNoise.GmosSouthImaging
+          Either[
+            ModeSignalToNoise.GmosSouthImaging,
+            ModeSignalToNoise.GhostIfu
+          ]
         ]
       ]
     ]].contramap: isn =>
@@ -80,6 +94,7 @@ trait ArbModeSignalToNoise:
         case ModeSignalToNoise.Undefined             => Left(())
         case s: ModeSignalToNoise.Spectroscopy       => Right(Left(s))
         case gnm: ModeSignalToNoise.GmosNorthImaging => Right(Right(Left(gnm)))
-        case gsm: ModeSignalToNoise.GmosSouthImaging => Right(Right(Right(gsm)))
+        case gsm: ModeSignalToNoise.GmosSouthImaging => Right(Right(Right(Left(gsm))))
+        case gst: ModeSignalToNoise.GhostIfu         => Right(Right(Right(Right(gst))))
 
 object ArbModeSignalToNoise extends ArbModeSignalToNoise

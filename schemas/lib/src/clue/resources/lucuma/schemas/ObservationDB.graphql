@@ -8886,10 +8886,11 @@ type ItcResult {
 
 """A discriminator for the types of ITC results."""
 enum ItcType {
-  SPECTROSCOPY
-  IGRINS_2_SPECTROSCOPY
+  GHOST_IFU
   GMOS_NORTH_IMAGING
   GMOS_SOUTH_IMAGING
+  IGRINS_2_SPECTROSCOPY
+  SPECTROSCOPY
 }
 
 """
@@ -8932,6 +8933,13 @@ configurations and targets.  There are specific instances for each `ItcType`.
 interface Itc {
   """The type of the Itc results."""
   itcType: ItcType!
+}
+
+"""GHOST IFU ITC results.  Each channel is paired with its result set."""
+type ItcGhostIfu implements Itc {
+  itcType: ItcType!
+  red: ItcResultSet!
+  blue: ItcResultSet!
 }
 
 """

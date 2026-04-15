@@ -10,6 +10,7 @@ import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
 import lucuma.core.enums.ScienceMode
+import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.model.BasicConfiguration
 
 // ModeSelection is a collection of InstrumentConfigAndItcResult objects that are consistent with each other
@@ -86,18 +87,29 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
           .some
       case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _)              =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-      case ItcInstrumentConfig.GmosNorthImaging(_, _, _)                                      =>
+      case ItcInstrumentConfig.GmosNorthImaging(_, _)                                         =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosNorthImaging.apply)
-      case ItcInstrumentConfig.GmosSouthImaging(_, _, _)                                      =>
+      case ItcInstrumentConfig.GmosSouthImaging(_, _)                                         =>
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _, _), _) => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
-      case ItcInstrumentConfig.GhostIfu(_, _, _)                                              =>
-        none
+      case ItcInstrumentConfig.GhostIfu(resolutionMode = res,
+                                        signalToNoiseAt = snAt,
+                                        redDetector = red,
+                                        blueDetector = blue
+          ) =>
+        (red.value.timeAndCount, blue.value.timeAndCount).mapN: (redT, blueT) =>
+          val redDetector  = ItcGhostDetector(redT, red.value.readMode, red.value.binning)
+          val blueDetector = ItcGhostDetector(blueT, blue.value.readMode, blue.value.binning)
+          BasicConfiguration.GhostIfu(resolutionMode = res,
+                                      signalToNoiseAt = snAt,
+                                      red = redDetector,
+                                      blue = blueDetector
+          )
       case _                                                                                  => none)
 
 object ConfigSelection:

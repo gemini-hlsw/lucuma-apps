@@ -10,6 +10,7 @@ import clue.data.syntax.*
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.Flamingos2Fpu
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosNorthFpu
@@ -21,6 +22,7 @@ import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
+import lucuma.schemas.ObservationDB.Types.GhostIfuInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
@@ -42,7 +44,7 @@ enum ObservingModeSummary derives Order:
     centralWavelength: CentralWavelength,
     ampReadMode:       GmosAmpReadMode,
     roi:               GmosRoi
-  )                      extends ObservingModeSummary
+  )                                                  extends ObservingModeSummary
   // TODO: Update for acquisition customization?
   case GmosSouthLongSlit(
     grating:           GmosSouthGrating,
@@ -51,26 +53,28 @@ enum ObservingModeSummary derives Order:
     centralWavelength: CentralWavelength,
     ampReadMode:       GmosAmpReadMode,
     roi:               GmosRoi
-  )                      extends ObservingModeSummary
+  )                                                  extends ObservingModeSummary
   // TODO: Update for acquisition customization?
   case Flamingos2LongSlit(
     grating: Flamingos2Disperser,
     filter:  Flamingos2Filter,
     fpu:     Flamingos2Fpu
-  )                      extends ObservingModeSummary
+  )                                                  extends ObservingModeSummary
   case GmosNorthImaging(
     variant:     GmosImagingVariant,
     filters:     NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
-  )                      extends ObservingModeSummary
+  )                                                  extends ObservingModeSummary
   case GmosSouthImaging(
     variant:     GmosImagingVariant,
     filters:     NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
-  )                      extends ObservingModeSummary
-  case Igrins2LongSlit() extends ObservingModeSummary
+  )                                                  extends ObservingModeSummary
+  case Igrins2LongSlit()                             extends ObservingModeSummary
+  // What else is needed for GHOST? Do we want to base this on detector readmode and binning?
+  case GhostIfu(resolutionMode: GhostResolutionMode) extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
     case GmosNorthLongSlit(_, _, _, _, _, _) => ObservingModeType.GmosNorthLongSlit
@@ -79,6 +83,7 @@ enum ObservingModeSummary derives Order:
     case GmosNorthImaging(_, _, _, _)        => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)        => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit()                   => ObservingModeType.Igrins2LongSlit
+    case GhostIfu(_)                         => ObservingModeType.GhostIfu
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -134,6 +139,12 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput()
       ) // No configuration for ig2 just yet
+    case GhostIfu(resolutionMode)                                                     =>
+      ObservingModeInput.GhostIfu(
+        GhostIfuInput(
+          resolutionMode = resolutionMode.assign
+        )
+      )
 
 object ObservingModeSummary:
   def fromObservingMode(observingMode: ObservingMode): ObservingModeSummary =
@@ -164,6 +175,8 @@ object ObservingModeSummary:
         GmosSouthImaging(s.variant, s.filters, s.ampReadMode, s.roi)
       case _: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit()
+      case g: ObservingMode.GhostIfu           =>
+        GhostIfu(g.resolutionMode)
 
   given Display[ObservingModeSummary] = Display.byShortName:
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -184,6 +197,9 @@ object ObservingModeSummary:
       s"GMOS-S Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case Igrins2LongSlit()                                                            =>
       s"IGRINS2 Longslit"
+    case GhostIfu(resolutionMode)                                                     =>
+      // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
+      s"GHOST IFU ${resolutionMode.shortName}"
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =

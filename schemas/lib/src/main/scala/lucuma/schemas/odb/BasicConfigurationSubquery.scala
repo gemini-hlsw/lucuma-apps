@@ -38,5 +38,18 @@ object BasicConfigurationSubquery
           igrins2LongSlit {
             offsetMode
           }
+          ghostIfu {
+            resolutionMode
+            red {
+              exposureTimeMode $ExposureTimeModeSubquery
+              readMode
+              binning
+            }
+            blue {
+              exposureTimeMode $ExposureTimeModeSubquery
+              readMode
+              binning
+            }
+          }
         }
       """

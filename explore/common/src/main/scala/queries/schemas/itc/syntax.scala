@@ -14,11 +14,13 @@ import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosRoi
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
@@ -34,14 +36,56 @@ trait syntax:
     // Actually, we may need to validate the targets earlier, because the GHOST ItcInstrumentConfig
     // will need to assign targets to CCDs.
     // It will also need to validate that the ETM is Time and Count.
-    def toItcClientMode: Option[InstrumentMode] =
+    def toItcClientMode(targetCount: Int): EitherNec[ItcQueryProblem, InstrumentMode] =
+      def validateGhostMode(
+        ghost:       ItcInstrumentConfig.GhostIfu,
+        targetCount: Int
+      ): EitherNec[ItcQueryProblem, InstrumentMode] =
+        if (ghost.resolutionMode == GhostResolutionMode.Standard && targetCount > 2)
+          ItcQueryProblem
+            .GenericError(
+              s"GHOST standard resolution mode supports up to 2 targets, but $targetCount were provided."
+            )
+            .leftNec
+        else if (ghost.resolutionMode == GhostResolutionMode.High && targetCount > 1)
+          ItcQueryProblem
+            .GenericError(
+              s"GHOST high resolution mode supports only 1 target, but $targetCount were provided."
+            )
+            .leftNec
+        else
+          val red  = ghost.redDetector.value
+          val blue = ghost.blueDetector.value
+          (red.timeAndCount, blue.timeAndCount)
+            .mapN: (redTC, blueTC) =>
+              // Need to put the signalToNoiseAt into the individual detectors for the IT
+              val itcRed: ItcGhostDetector  =
+                ItcGhostDetector(redTC.copy(at = ghost.signalToNoiseAt), red.readMode, red.binning)
+              val itcBlue: ItcGhostDetector =
+                ItcGhostDetector(
+                  blueTC.copy(at = ghost.signalToNoiseAt),
+                  blue.readMode,
+                  blue.binning
+                )
+              InstrumentMode
+                .GhostSpectroscopy(ghost.resolutionMode,
+                                   redDetector = itcRed,
+                                   blueDetector = itcBlue
+                )
+                .rightNec
+            .getOrElse(
+              ItcQueryProblem
+                .GenericError("GHOST only supports Time and Count exposure mode.")
+                .leftNec
+            )
+
       row match
         case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
-            .flatMap: (cw: Wavelength) =>
+            .map: (cw: Wavelength) =>
               InstrumentMode
                 .GmosNorthSpectroscopy(etm,
                                        cw,
@@ -51,13 +95,14 @@ trait syntax:
                                        ccd,
                                        roi
                 )
-                .some
+                .rightNec
+            .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
-            .flatMap: (cw: Wavelength) =>
+            .map: (cw: Wavelength) =>
               InstrumentMode
                 .GmosSouthSpectroscopy(etm,
                                        cw,
@@ -67,20 +112,22 @@ trait syntax:
                                        ccd,
                                        roi
                 )
-                .some
+                .rightNec
+            .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, etm)             =>
           InstrumentMode
             .Flamingos2Spectroscopy(etm, disperser, filter, fpu)
-            .some
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm, modeOverrides)                    =>
-          InstrumentMode.GmosNorthImaging(etm, filter, none).some
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm, modeOverrides)                    =>
-          InstrumentMode.GmosSouthImaging(etm, filter, none).some
+            .rightNec
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                                   =>
+          InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                   =>
+          InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
-          InstrumentMode.Igrins2Spectroscopy(etm).some
-        case ItcInstrumentConfig.GhostIfu(_, _, _)                                               =>
-          none
-        case _                                                                                   => None
+          InstrumentMode.Igrins2Spectroscopy(etm).rightNec
+        case g: ItcInstrumentConfig.GhostIfu                                                     =>
+          validateGhostMode(g, targetCount)
+        case _                                                                                   =>
+          ItcQueryProblem.UnsupportedMode.leftNec
 
   // We may consider adjusting this to consider small variations of RV identical for the
   // purpose of doing ITC calculations

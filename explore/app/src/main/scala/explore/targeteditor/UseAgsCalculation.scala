@@ -127,7 +127,8 @@ object UseAgsCalculation:
       case ObservingModeType.Igrins2LongSlit =>
         applyGuideProbe(AgsParams.Igrins2LongSlit().some, guideProbe)
 
-      case other => sys.error(s"Unsupported observing mode type for AGS calculation: $other")
+      case ObservingModeType.GhostIfu =>
+        applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
 
   private def runAgsQuery(
     props:          AgsCalcProps,

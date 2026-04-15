@@ -131,7 +131,7 @@ case class SpectroscopyModeRow(
     intervalCenter(wavelength).flatMap: cw =>
       val instrumentConfig: Option[ItcInstrumentConfig] =
         instrument.instrument match
-          case Instrument.GmosNorth | Instrument.GmosSouth | Instrument.Flamingos2 =>
+          case Instrument.GmosNorth | Instrument.GmosSouth =>
             // In case we have no particular overrides, set ccd with binning calculated
             // from the target
             instrument match
@@ -157,11 +157,9 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _)              =>
-                i.some
               case i                                                                       =>
                 i.some
-          case _                                                                   => none
+          case _                                           => none
 
       instrumentConfig.map: i =>
         copy(instrument = i)
@@ -229,7 +227,10 @@ object SpectroscopyModeRow {
     for {
       resolutionMode <- c.downField("resolutionMode").as[GhostResolutionMode]
       binning        <- c.downField("binning").as[GhostBinning]
-    } yield ItcInstrumentConfig.GhostIfu(resolutionMode, binning, placeholderEtm)
+    } yield
+      val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(binning)
+      val blue = ItcInstrumentConfig.GhostIfu.GhostDetector.Blue(binning)
+      ItcInstrumentConfig.GhostIfu(resolutionMode, placeholderEtm.at, red, blue)
 
   given Decoder[SpectroscopyModeRow] = c =>
     for {

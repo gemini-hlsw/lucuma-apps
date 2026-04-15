@@ -53,7 +53,7 @@ object ITCRequests:
     modes:               List[ItcInstrumentConfig],
     cache:               Cache[F],
     callback:            ((ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])) => F[Unit]
-  )(using Monoid[F[Unit]], ItcClient[F]): F[Unit] = {
+  )(using ItcClient[F]): F[Unit] = {
     def itcResults(r: ClientCalculationResult): EitherNec[ItcTargetProblem, ItcResult] =
       // Convert to usable types
       r.targetTimes.partitionErrors.fold(
@@ -73,12 +73,14 @@ object ITCRequests:
 
     def doRequest(
       params: ItcRequestParams
-    ): F[Option[(ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]] =
+    ): F[EitherNec[ItcTargetProblem, ItcResult]] =
       Logger[F].debug(
         s"ITC: Request for mode: ${params.mode} and target count: ${params.asterism.length}"
       ) *>
-        params.mode.toItcClientMode
-          .traverse: mode =>
+        params.mode
+          .toItcClientMode(params.asterism.length)
+          .leftMap(_.map(_.toTargetProblem))
+          .flatTraverse: mode =>
             val result =
               if (params.mode.mode == ScienceMode.Imaging)
                 ItcClient[F]
@@ -104,19 +106,18 @@ object ITCRequests:
                     ),
                     false
                   )
-            result.map(r => params -> itcResults(r))
+            result.map(itcResults)
 
-    val cacheableRequest =
+    val cacheableRequest: Cacheable[F, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult]] =
       Cacheable(
         CacheName("itcQuery"),
         cacheVersion,
         doRequest,
         (_, g) =>
-          g.exists:
-            _._2 match
-              case Right(_)                                     => true
-              case Left(Chain(ItcQueryProblem.GenericError(_))) => false
-              case Left(_)                                      => true
+          g match
+            case Right(_)                                     => true
+            case Left(Chain(ItcQueryProblem.GenericError(_))) => false
+            case Left(_)                                      => true
       )
 
     val itcRowsParams: List[ItcRequestParams] =
@@ -129,11 +130,13 @@ object ITCRequests:
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _)   =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _, _)            =>
+          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _)               =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _, _)            =>
+          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)               =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)               =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _)                 =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode
@@ -144,6 +147,6 @@ object ITCRequests:
     ) { params =>
       // ITC supports sending many modes at once, but sending them one by one
       // maximizes cache hits
-      cache.eval(cacheableRequest).apply(params).flatMap(_.map(callback).orEmpty)
+      cache.eval(cacheableRequest).apply(params).flatMap(r => callback(params, r))
     }.void
   }

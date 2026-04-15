@@ -197,6 +197,8 @@ object ConfigurationTile
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
+      val EmptyGhostIfuInput: ObservingModeInput          =
+        ObservingModeInput.GhostIfu(GhostIfuInput())
       val EmptyGmosNorthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
@@ -311,6 +313,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.igrins2LongSlit
                   .andThen(ObservingModeInput.Igrins2LongSlit.value)
+                  .modify
+            )
+
+        val optGhostIfuAligner: Option[Aligner[GhostIfu, GhostIfuInput]] =
+          optModeAligner(EmptyGhostIfuInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.ghostIfu,
+              modInput:
+                ObservingModeInput.ghostIfu
+                  .andThen(ObservingModeInput.GhostIfu.value)
                   .modify
             )
 
@@ -472,6 +484,19 @@ object ConfigurationTile
                       props.sequenceChanged,
                       props.permissions,
                       props.units
+                    ),
+                  // Ghost IFU
+                  optGhostIfuAligner.map: ghostAligner =>
+                    GhostIfuConfigPanel(
+                      // props.programId,
+                      // props.obsId,
+                      // props.obsConf.calibrationRole,
+                      ghostAligner,
+                      revertConfig,
+                      // props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions
+                      // props.units
                     )
                 )
             )
