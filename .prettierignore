@@ -17,4 +17,5 @@ target
 pnpm-lock.yaml
 
 *.graphql
+!resource/web/src/main/resources/resource.graphql
 secrets.yaml

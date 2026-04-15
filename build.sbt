@@ -97,7 +97,10 @@ lazy val root = tlCrossRootProject.aggregate(
   navigate_server,
   navigate_web_server,
   navigate_model,
-  navigate_schema_util
+  navigate_schema_util,
+  resource_server,
+  resource_web_server,
+  resource_model
 )
 
 // BEGIN SCHEMAS
@@ -169,6 +172,8 @@ lazy val schemas_lib =
           (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
         val navigateSchemaFile: File     =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
+        val resourceSchemaFile: File     =
+          (Compile / crossProjectBaseDirectory).value / "../../resource/web/server/src/main/resources/resource.graphql"
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
           gitDescribedVersion.value.getOrElse("0.0.0").takeWhile(c => c != '+' && c != '-') +
             "-" + version.value
@@ -181,7 +186,8 @@ lazy val schemas_lib =
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./odb": "./${odbSchemaFile.getName}",
-             |    "./navigate": "./${navigateSchemaFile.getName}"
+             |    "./navigate": "./${navigateSchemaFile.getName}",
+             |    "./resource": "./${resourceSchemaFile.getName}"
              |  },
              |  "repository": {
              |    "type": "git",
@@ -205,6 +211,19 @@ lazy val schemas_lib =
         IO.write(
           npmDir / navigateSchemaFile.getName,
           navigateSchemaContent
+        )
+
+        val resourceSchemaContent = IO
+          .read(
+            resourceSchemaFile
+          )
+          .replace(
+            "from \"lucuma/schemas/ObservationDB.graphql\"",
+            "from \"./ObservationDB.graphql\""
+          )
+        IO.write(
+          npmDir / resourceSchemaFile.getName,
+          resourceSchemaContent
         )
 
         streams.value.log.info(s"Created NPM project in ${npmDir}")
@@ -952,6 +971,79 @@ lazy val navigate_deploy = project
   .settings(navigateDeployedAppMappings: _*)
   .settings(navigateCommonSettings: _*)
 
+// BEGIN RESOURCE
+
+lazy val resource_server = project
+  .in(file("resource/server"))
+  .dependsOn(
+    schemas_lib.jvm,
+    resource_model % "compile->compile;test->test"
+  )
+  .settings(
+    libraryDependencies ++=
+      CatsEffect.value ++
+        Clue.value ++
+        Fs2.value ++
+        Grackle.value ++
+        GrackleSkunk.value ++
+        Log4Cats.value ++
+        LucumaCore.value ++
+        PureConfig.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        )
+  )
+
+lazy val resource_web_server = project
+  .in(file("resource/web"))
+  .dependsOn(
+    schemas_model.jvm,
+    navigate_schema_util,
+    resource_server,
+    resource_model % "compile->compile;test->test"
+  )
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    libraryDependencies ++=
+      CatsEffect.value ++
+        Fs2.value ++
+        Grackle.value ++
+        GrackleSkunk.value ++
+        GraphQLRoutes.value ++
+        Http4sCirce.value ++
+        Http4sServer.value ++
+        Log4Cats.value ++
+        Logback.value ++
+        LucumaCore.value ++
+        LucumaSsoBackendClient.value ++
+        Natchez.value ++
+        PureConfig.value ++
+        In(Test)(
+          MUnit.value ++
+            MUnitCatsEffect.value
+        )
+  )
+  .settings(
+    buildInfoUsePackageAsPath := true,
+    buildInfoKeys ++= Seq[BuildInfoKey](name, version, buildInfoBuildNumber),
+    buildInfoOptions += BuildInfoOption.BuildTime,
+    buildInfoObject           := "BuildInfo",
+    buildInfoPackage          := "resource.web.server"
+  )
+
+lazy val resource_model = project
+  .in(file("resource/model"))
+  .settings(
+    libraryDependencies ++=
+      Circe.value ++
+        Ip4s.value ++
+        LucumaCore.value ++
+        Monocle.value ++
+        PureConfig.value ++
+        In(Test)(MUnit.value ++ Discipline.value)
+  )
+
 // BEGIN ALIASES
 
 def prettierCmd(fix: Boolean): String =
@@ -1081,7 +1173,7 @@ ThisBuild / githubWorkflowPermissions := Some(
 
 lazy val setupPnpmAndNode = List(
   WorkflowStep.Use(
-    UseRef.Public("pnpm", "action-setup", "v4"),
+    UseRef.Public("pnpm", "action-setup", "v5"),
     name = Some("Setup pnpm")
   ),
   WorkflowStep.Use(
@@ -1230,7 +1322,7 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
 ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodePnpmInstall
 
 val usePathsFilter: WorkflowStep = WorkflowStep.Use(
-  UseRef.Public("dorny", "paths-filter", "v3"),
+  UseRef.Public("dorny", "paths-filter", "v4"),
   Map(
     "filters" ->
       """projectDef:
@@ -1245,7 +1337,9 @@ explore:
 navigate:
   - 'navigate/**'
 observe:
-  - 'observe/**'"""
+  - 'observe/**'
+resource:
+  - 'resource/**'"""
   ),
   "changedProjects".some
 )

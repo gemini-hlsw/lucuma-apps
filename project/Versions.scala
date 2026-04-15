@@ -27,6 +27,7 @@ object Versions {
   val http4sDom              = "0.2.12"
   val http4sJdkHttpClient    = "0.10.0"
   val http4sScalaXml         = "0.24.0"
+  val ip4s                   = "3.8.0"
   val javaTimeJs             = "2.6.0"
   val jwt                    = "11.0.4"
   val kittens                = "3.5.0"
@@ -55,6 +56,7 @@ object Versions {
   val scalaCollectionContrib = "0.4.0"
   val scalaJsDom             = "2.8.1"
   val scalaJsReact           = "3.0.0"
+  val skunk                  = "0.6.5"
   val slf4j                  = "2.0.17"
   val unboundId              = "3.2.1"
 }

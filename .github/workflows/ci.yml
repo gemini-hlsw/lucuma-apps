@@ -71,7 +71,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -129,7 +129,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -198,7 +198,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - id: changedProjects
-        uses: dorny/paths-filter@v3
+        uses: dorny/paths-filter@v4
         with:
           filters: |
             projectDef:
@@ -214,9 +214,11 @@ jobs:
               - 'navigate/**'
             observe:
               - 'observe/**'
+            resource:
+              - 'resource/**'
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -295,7 +297,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -393,7 +395,7 @@ jobs:
         run: sbt -v -J-Xmx6g +update
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
 
       - name: Setup Node.js
         uses: actions/setup-node@v6

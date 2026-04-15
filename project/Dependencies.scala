@@ -168,6 +168,10 @@ object Dependencies {
     )(grackle)
   )
 
+  val GrackleSkunk = Def.setting(
+    depsJVM("org.typelevel" %% "grackle-skunk")(grackle)
+  )
+
   val GraphQLRoutes = Def.setting(
     depsJVM("edu.gemini" %% "lucuma-graphql-routes")(graphQLRoutes)
   )
@@ -213,6 +217,10 @@ object Dependencies {
 
   val Http4sXml = Def.setting(
     depsJVM("org.http4s" %% "http4s-scala-xml")(http4sScalaXml)
+  )
+
+  val Ip4s = Def.setting(
+    deps("com.comcast" %%% "ip4s-core")(ip4s)
   )
 
   val JavaTimeJs = Def.setting(
@@ -403,6 +411,10 @@ object Dependencies {
 
   val ScalaJsReactTest = Def.setting(
     deps("com.github.japgolly.scalajs-react" %%% "test")(scalaJsReact)
+  )
+
+  val Skunk = Def.setting(
+    depsJVM("org.tpolecat" %% "skunk-core", "org.tpolecat" %% "skunk-circe")(skunk)
   )
 
   val Slf4j = Def.setting(
