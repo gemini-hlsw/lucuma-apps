@@ -7,6 +7,7 @@ import cats.Eq
 import cats.Order
 import cats.Order.*
 import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.derived.*
 import cats.effect.IO
 import cats.effect.kernel.Outcome
@@ -19,6 +20,8 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Constants
 import explore.model.PopupState
+import explore.model.enums.TargetType
+import explore.render.given
 import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -47,7 +50,7 @@ import scala.concurrent.duration.*
 case class TargetSelectionPopup(
   title:               String,
   popupState:          View[PopupState],
-  targetSources:       NonEmptyList[TargetSource[IO]],
+  targetSources:       NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]],
   selectExistingLabel: String,
   selectExistingIcon:  FontAwesomeIcon,
   selectNewLabel:      String,
@@ -55,7 +58,10 @@ case class TargetSelectionPopup(
   onSelected:          TargetWithOptId => Callback,
   onCancel:            Callback = Callback.empty,
   initialSearch:       Option[NonEmptyString] = None
-) extends ReactFnProps(TargetSelectionPopup.component)
+) extends ReactFnProps(TargetSelectionPopup.component):
+  val initialTargetType: TargetType                        = targetSources.keys.head
+  val defaultTargetSources: NonEmptyList[TargetSource[IO]] = targetSources.head._2
+  val isMultiType: Boolean                                 = targetSources.size > 1
 
 object SearchingState extends NewBoolean { inline def Searching = True; inline def Idle = False }
 
@@ -144,10 +150,15 @@ object TargetSelectionPopup:
       )
       .orEmpty
 
+  object IsSourceEnabled extends NewBoolean
+  type IsSourceEnabled = IsSourceEnabled.Type
+
   private val component = ScalaFnComponent[Props]: props =>
     for
       ctx            <- useContext(AppContext.ctx)
       inputValue     <- useStateView(props.initialSearch.map(_.value).orEmpty)
+      targetType     <- useStateView(props.initialTargetType)
+      sources         = props.targetSources(targetType.get).getOrElse(props.defaultTargetSources)
       results        <- useStateView(SortedMap.empty[TargetSource[IO], NonEmptyList[Result]])
       searching      <- useStateView(SearchingState.Idle)
       singleEffect   <- useSingleEffect
@@ -156,14 +167,13 @@ object TargetSelectionPopup:
       // re render when selected changes
       _              <- useEffectWithDeps(selectedTarget.get)(sel =>
                           aladinRef.value
-                            .map(a =>
+                            .map: a =>
                               sel
-                                .collect { case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
-                                  tracking.baseCoordinates
-                                }
+                                .collect:
+                                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
+                                    tracking.baseCoordinates
                                 .map(a.gotoRaDecCB)
                                 .orEmpty
-                            )
                             .orEmpty
                             // We need to do this callback delayed or it miss calculates aladin div size
                             .delayMs(10)
@@ -173,33 +183,31 @@ object TargetSelectionPopup:
       _              <- useEffectWithDeps(props.popupState.get.value): isOpen =>
                           import ctx.given
                           cleanState >> props.initialSearch
-                            .map(name =>
+                            .map: name =>
                               inputValue.set(name.value) >>
                                 singleEffect
-                                  .submit(
-                                    search(name.value, props.targetSources, results, selectedTarget, searching)
-                                  )
+                                  .submit:
+                                    search(name.value, sources, results, selectedTarget, searching)
                                   .runAsync
-                            )
                             .orEmpty
                             .when_(isOpen)
     yield
       import ctx.given
 
-      def searchName(name: String): IO[Unit] =
+      def searchName(targetType: TargetType, name: String): IO[Unit] =
         cleanResults.toAsync >>
-          search(name, props.targetSources, results, selectedTarget, searching)
+          search(name, props.targetSources(targetType).get, results, selectedTarget, searching)
 
-      val cancel = props.popupState.set(PopupState.Closed) >> props.onCancel
+      val cancel: Callback = props.popupState.set(PopupState.Closed) >> props.onCancel
 
       // don't show aladin preview if none of the target sources support it
-      val showPreview = props.targetSources.exists(_.canPreview)
+      val canPreview: Boolean = sources.exists(_.canPreview)
 
       Dialog(
         closable = false,
         clazz = ExploreStyles.TargetSearchForm |+| LucumaPrimeStyles.Dialog.Large,
         contentClass = ExploreStyles.TargetSearchContent |+|
-          ExploreStyles.TargetSearchHasPreview.when_(showPreview),
+          ExploreStyles.TargetSearchHasPreview.when_(canPreview),
         footer = <.div(
           Button(
             label = "Close",
@@ -217,6 +225,14 @@ object TargetSelectionPopup:
         React.Fragment(
           <.span(ExploreStyles.TargetSearchTop)(
             <.form(ExploreStyles.TargetSearchInput)(
+              <.span(ExploreStyles.TargetSearchType)(
+                EnumRadioButtonsView(
+                  idBase = "target-type".refined,
+                  value = targetType.withOnMod: t =>
+                    targetType.set(t) >> searchName(t, inputValue.get).runAsync,
+                  name = "target-type".refined
+                )
+              ).when(props.isMultiType),
               FormInputTextView(
                 id = "target-search-name".refined,
                 placeholder = "Name",
@@ -226,9 +242,8 @@ object TargetSelectionPopup:
                 onTextChange = (t: String) =>
                   inputValue.set(t) >>
                     singleEffect
-                      .submit(
-                        IO.sleep(700.milliseconds) >> searchName(t)
-                      )
+                      .submit:
+                        IO.sleep(700.milliseconds) >> searchName(targetType.get, t)
                       .runAsync
               ).withMods(^.autoFocus := true)
             )(
@@ -236,19 +251,19 @@ object TargetSelectionPopup:
               ^.onSubmit ==> (e =>
                 e.preventDefaultCB >>
                   singleEffect
-                    .submit(searchName(inputValue.get))
+                    .submit(searchName(targetType.get, inputValue.get))
                     .runAsync
                     .whenA(searching.get == SearchingState.Searching)
               )
             )
           ),
-          Option.when(showPreview):
+          Option.when(canPreview):
             <.div(ExploreStyles.TargetSearchPreview)(
               aladinRef.value.map(AladinZoomControl(_, factor = 1.5)),
               selectedTarget.get
-                .collect { case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
-                  tracking.baseCoordinates
-                }
+                .collect:
+                  case SelectedTarget(Target.Sidereal(_, tracking, _, _), _, _, _) =>
+                    tracking.baseCoordinates
                 .map[VdomNode] { case coordinates =>
                   ReactAladin(
                     ExploreStyles.TargetSearchAladin, // required placeholder

@@ -1211,6 +1211,24 @@ $search-preview-margin: 5px;
 
 .explore-target-search-input {
   margin-bottom: 0.5em;
+  display: flex;
+  gap: 1.5em;
+  align-items: center;
+
+  .explore-target-search-type {
+    display: flex;
+    gap: 1em;
+
+    .pl-radiobutton-with-label {
+      display: flex;
+
+      label {
+        display: flex;
+        align-items: center;
+        gap: 0.25em;
+      }
+    }
+  }
 }
 
 @mixin target-search-preview {

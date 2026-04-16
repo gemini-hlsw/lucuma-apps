@@ -4,6 +4,7 @@
 package explore
 
 import cats.syntax.all.given
+import explore.model.enums.TargetType
 import explore.model.formats.durationHMS
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -14,7 +15,7 @@ import lucuma.ui.syntax.render.*
 import lucuma.ui.utils.Render
 
 object render:
-  given Render[TimingWindowRepeat] = Render.by {
+  given Render[TimingWindowRepeat] = Render.by:
     case TimingWindowRepeat(period, None)                     =>
       React.Fragment(
         "repeat ",
@@ -31,9 +32,8 @@ object render:
         " with a period of ",
         <.b(durationHMS.reverseGet(period))
       )
-  }
 
-  given Render[TimingWindowEnd.After] = Render.by {
+  given Render[TimingWindowEnd.After] = Render.by:
     case TimingWindowEnd.After(duration, None)         =>
       React.Fragment("for ", <.b(DurationLongFormatter(duration.toDuration)))
     case TimingWindowEnd.After(duration, Some(repeat)) =>
@@ -43,4 +43,7 @@ object render:
         ", ",
         repeat.renderVdom
       )
-  }
+
+  given Render[TargetType] = Render.by:
+    case TargetType.Sidereal    => React.Fragment(Icons.Star, "Sidereal")
+    case TargetType.Nonsidereal => React.Fragment(Icons.PlanetRinged, "Nonsidereal")

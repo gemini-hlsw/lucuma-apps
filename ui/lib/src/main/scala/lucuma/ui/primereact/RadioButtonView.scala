@@ -17,7 +17,7 @@ final case class RadioButtonView[V[_], A](
   id:        NonEmptyString,
   value:     A,                                         // The value this radio button will assign to the ExternalValue
   view:      V[A],
-  label:     NonEmptyString,
+  label:     VdomNode,
   name:      js.UndefOr[NonEmptyString] = js.undefined, // name of the "radio button group"
   disabled:  js.UndefOr[Boolean] = js.undefined,
   clazz:     js.UndefOr[Css] = js.undefined,
@@ -52,7 +52,7 @@ object RadioButtonView {
           props.view.set(a).when_(checked)
             >> props.onChange.toOption.foldMap(_(a, checked))
       ),
-      <.label(^.htmlFor := props.id.value, props.label.value)
+      <.label(^.htmlFor := props.id.value, props.label)
     )
   }
 
