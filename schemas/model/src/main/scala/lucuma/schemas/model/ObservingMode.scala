@@ -15,6 +15,7 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
+import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
@@ -35,6 +36,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
+    case _: ObservingMode.GhostIfu           => ObservingModeType.GhostIfu
 
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case o: ObservingMode.GmosNorthLongSlit => o.fpu.asLeft.some
@@ -48,6 +50,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthImaging   => Site.GS
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
     case _: ObservingMode.Igrins2LongSlit    => Site.GN
+    case _: ObservingMode.GhostIfu           => Site.GS
 
   def toBasicConfiguration: BasicConfiguration = this match
     case n: ObservingMode.GmosNorthLongSlit                =>
@@ -62,6 +65,18 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
     case _: ObservingMode.Igrins2LongSlit                  =>
       BasicConfiguration.Igrins2LongSlit
+    case g: ObservingMode.GhostIfu                         =>
+      val red  = ItcGhostDetector(
+        timeAndCount = g.red.timeAndCount,
+        binning = g.red.binning,
+        readMode = g.red.readMode
+      )
+      val blue = ItcGhostDetector(
+        timeAndCount = g.blue.timeAndCount,
+        binning = g.blue.binning,
+        readMode = g.blue.readMode
+      )
+      BasicConfiguration.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red = red, blue = blue)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -91,6 +106,8 @@ object ObservingMode:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
           .orElse:
             c.downField("igrins2LongSlit").as[Igrins2LongSlit]
+          .orElse:
+            c.downField("ghostIfu").as[GhostIfu]
           .orElse:
             DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
@@ -677,6 +694,109 @@ object ObservingMode:
     val explicitOffsets: Lens[Igrins2LongSlit, Option[NonEmptyList[Offset]]] =
       Focus[Igrins2LongSlit](_.explicitOffsets)
 
+  case class GhostIfu(
+    resolutionMode:       GhostResolutionMode,
+    signalToNoiseAt:      Wavelength,
+    red:                  GhostIfu.GhostDetector,
+    blue:                 GhostIfu.GhostDetector,
+    defaultIfu1Agitator:  GhostIfu1FiberAgitator,
+    explicitIfu1Agitator: Option[GhostIfu1FiberAgitator],
+    defaultIfu2Agitator:  GhostIfu2FiberAgitator,
+    explicitIfu2Agitator: Option[GhostIfu2FiberAgitator]
+  ) extends ObservingMode(Instrument.Ghost) derives Eq:
+    val ifu1Agitator: GhostIfu1FiberAgitator = explicitIfu1Agitator.getOrElse(defaultIfu1Agitator)
+    val ifu2Agitator: GhostIfu2FiberAgitator = explicitIfu2Agitator.getOrElse(defaultIfu2Agitator)
+    def isCustomized: Boolean                =
+      explicitIfu1Agitator.exists(_ =!= defaultIfu1Agitator) ||
+        explicitIfu2Agitator.exists(_ =!= defaultIfu2Agitator) ||
+        red.isCustomized ||
+        blue.isCustomized
+    def revertCustomizations: GhostIfu       =
+      this.copy(explicitIfu1Agitator = None,
+                explicitIfu2Agitator = None,
+                red = red.revertCustomizations,
+                blue = blue.revertCustomizations
+      )
+
+  object GhostIfu:
+    // TODO: When the ODB API has the signalToNoiseAt value, we can switch to deriving the decoder
+    given Decoder[GhostIfu] = Decoder.instance: c =>
+      for {
+        resolutionMode       <- c.downField("resolutionMode").as[GhostResolutionMode]
+        red                  <- c.downField("red").as[GhostIfu.GhostDetector]
+        blue                 <- c.downField("blue").as[GhostIfu.GhostDetector]
+        defaultIfu1Agitator  <- c.downField("defaultIfu1Agitator").as[GhostIfu1FiberAgitator]
+        explicitIfu1Agitator <-
+          c.downField("explicitIfu1Agitator").as[Option[GhostIfu1FiberAgitator]]
+        defaultIfu2Agitator  <- c.downField("defaultIfu2Agitator").as[GhostIfu2FiberAgitator]
+        explicitIfu2Agitator <-
+          c.downField("explicitIfu2Agitator").as[Option[GhostIfu2FiberAgitator]]
+      } yield GhostIfu(
+        resolutionMode,
+        red.timeAndCount.at, // Temporary: Not yet in the ODB API
+        red,
+        blue,
+        defaultIfu1Agitator,
+        explicitIfu1Agitator,
+        defaultIfu2Agitator,
+        explicitIfu2Agitator
+      )
+
+    case class GhostDetector(
+      timeAndCount:     ExposureTimeMode.TimeAndCountMode,
+      defaultBinning:   GhostBinning,
+      explicitBinning:  Option[GhostBinning],
+      defaultReadMode:  GhostReadMode,
+      explicitReadMode: Option[GhostReadMode]
+    ) derives Eq:
+      val binning: GhostBinning               = explicitBinning.getOrElse(defaultBinning)
+      val readMode: GhostReadMode             = explicitReadMode.getOrElse(defaultReadMode)
+      def isCustomized: Boolean               =
+        explicitBinning.exists(_ =!= defaultBinning) ||
+          explicitReadMode.exists(_ =!= defaultReadMode)
+      def revertCustomizations: GhostDetector =
+        this.copy(explicitBinning = None, explicitReadMode = None)
+
+    object GhostDetector:
+      val timeAndCount: Lens[GhostDetector, ExposureTimeMode.TimeAndCountMode] =
+        Focus[GhostDetector](_.timeAndCount)
+      val defaultBinning: Lens[GhostDetector, GhostBinning]                    =
+        Focus[GhostDetector](_.defaultBinning)
+      val explicitBinning: Lens[GhostDetector, Option[GhostBinning]]           =
+        Focus[GhostDetector](_.explicitBinning)
+      val defaultReadMode: Lens[GhostDetector, GhostReadMode]                  =
+        Focus[GhostDetector](_.defaultReadMode)
+      val explicitReadMode: Lens[GhostDetector, Option[GhostReadMode]]         =
+        Focus[GhostDetector](_.explicitReadMode)
+
+      given Decoder[GhostIfu.GhostDetector] = Decoder.instance: c =>
+        for {
+          timeAndCount     <-
+            c.downField("exposureTimeMode")
+              .as[ExposureTimeMode]
+              .flatMap: etm =>
+                ExposureTimeMode.timeAndCount
+                  .getOption(etm)
+                  .toRight(
+                    DecodingFailure("Expected TimeAndCountMode for GHOST detector", c.history)
+                  )
+          defaultBinning   <- c.downField("defaultBinning").as[GhostBinning]
+          explicitBinning  <- c.downField("explicitBinning").as[Option[GhostBinning]]
+          defaultReadMode  <- c.downField("defaultReadMode").as[GhostReadMode]
+          explicitReadMode <- c.downField("explicitReadMode").as[Option[GhostReadMode]]
+        } yield GhostDetector(timeAndCount,
+                              defaultBinning,
+                              explicitBinning,
+                              defaultReadMode,
+                              explicitReadMode
+        )
+
+    val resolutionMode: Lens[GhostIfu, GhostResolutionMode] =
+      Focus[GhostIfu](_.resolutionMode)
+
+    val signalToNoiseAt: Lens[GhostIfu, Wavelength] =
+      Focus[GhostIfu](_.signalToNoiseAt)
+
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
 
@@ -694,3 +814,6 @@ object ObservingMode:
 
   val igrins2LongSlit: Prism[ObservingMode, Igrins2LongSlit] =
     GenPrism[ObservingMode, Igrins2LongSlit]
+
+  val ghostIfu: Prism[ObservingMode, GhostIfu] =
+    GenPrism[ObservingMode, GhostIfu]

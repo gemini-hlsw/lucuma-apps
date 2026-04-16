@@ -73,8 +73,6 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[InstrumentOverrides.GmosSpectroscopy] = generatePickler
 
-  given Pickler[InstrumentOverrides.GmosImaging] = generatePickler
-
   given Pickler[ItcInstrumentConfig.GmosNorthSpectroscopy] = generatePickler
 
   given Pickler[ItcInstrumentConfig.GmosSouthSpectroscopy] = generatePickler
@@ -92,6 +90,14 @@ trait ItcPicklers extends CommonPicklers {
   given Pickler[ItcInstrumentConfig.GmosSouthImaging] = generatePickler
 
   given Pickler[ItcInstrumentConfig.Igrins2Spectroscopy] = generatePickler
+
+  given Pickler[ItcInstrumentConfig.GhostIfu.GhostDetector]      = generatePickler
+  given Pickler[ItcInstrumentConfig.GhostIfu.GhostDetector.Red]  = picklerNewType(
+    ItcInstrumentConfig.GhostIfu.GhostDetector.Red
+  )
+  given Pickler[ItcInstrumentConfig.GhostIfu.GhostDetector.Blue] = picklerNewType(
+    ItcInstrumentConfig.GhostIfu.GhostDetector.Blue
+  )
 
   given Pickler[ItcInstrumentConfig.GhostIfu] = generatePickler
 

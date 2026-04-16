@@ -165,6 +165,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
         val px              = widthArcSeconds / Igrins2PixelScale
         f"$px%2.1f px"
+      // TODO: Is there a relevant tooltip for GHOST?
       case _                                                      => ""
     }
 

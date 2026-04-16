@@ -33,6 +33,7 @@ import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.*
+import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
 import lucuma.schemas.ObservationDB.Types.*
@@ -602,6 +603,29 @@ extension (o: ObservingMode.Igrins2LongSlit)
     explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
   )
 
+extension (d: ObservingMode.GhostIfu.GhostDetector)
+  def toInput: GhostDetectorInput = GhostDetectorInput(
+    exposureTimeMode = d.timeAndCount.toInput.assign,
+    explicitBinning = d.explicitBinning.orUnassign,
+    explicitReadMode = d.explicitReadMode.orUnassign
+  )
+
+extension (d: ItcGhostDetector)
+  def toInput: GhostDetectorInput = GhostDetectorInput(
+    exposureTimeMode = d.timeAndCount.toInput.assign,
+    explicitBinning = d.binning.assign,
+    explicitReadMode = d.readMode.assign
+  )
+
+extension (o: ObservingMode.GhostIfu)
+  def toInput: GhostIfuInput = GhostIfuInput(
+    resolutionMode = o.resolutionMode.assign,
+    red = o.red.toInput.assign,
+    blue = o.blue.toInput.assign,
+    explicitIfu1Agitator = o.explicitIfu1Agitator.orUnassign,
+    explicitIfu2Agitator = o.explicitIfu2Agitator.orUnassign
+  )
+
 extension (b: ObservingMode)
   def toInput: ObservingModeInput = b match
     case o: ObservingMode.GmosNorthLongSlit  =>
@@ -616,6 +640,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
+    case o: ObservingMode.GhostIfu           =>
+      ObservingModeInput.GhostIfu(o.toInput)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -668,6 +694,13 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.Igrins2LongSlit                                                       =>
       ObservingModeInput.Igrins2LongSlit:
         Igrins2LongSlitInput()
+    case BasicConfiguration.GhostIfu(resolutionMode = res, red = red, blue = blue)                =>
+      ObservingModeInput.GhostIfu:
+        GhostIfuInput(
+          resolutionMode = res.assign,
+          red = red.toInput.assign,
+          blue = blue.toInput.assign
+        )
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

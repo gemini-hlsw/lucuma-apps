@@ -116,7 +116,7 @@ final case class Observation(
     ).reduce(_ >>> _)
 
   // Computes mode parameters locally, for quick invocation of ITC.
-  def toModeOverride(targets: TargetList): Option[InstrumentOverrides] =
+  def toModeOverride(targets: TargetList): Option[InstrumentOverrides.GmosSpectroscopy] =
     observingMode.flatMap:
       case ObservingMode.GmosNorthLongSlit(
             grating = grating,
@@ -183,48 +183,56 @@ final case class Observation(
             mode,
             explicitRoi.getOrElse(defaultRoi)
           )
-      case _: ObservingMode.Flamingos2LongSlit =>
-        InstrumentOverrides.Flamingos2Spectroscopy().some
-      case _: ObservingMode.GmosNorthImaging   =>
-        InstrumentOverrides.GmosImaging().some
-      case _: ObservingMode.GmosSouthImaging   =>
-        InstrumentOverrides.GmosImaging().some
-      case _: ObservingMode.Igrins2LongSlit    =>
-        InstrumentOverrides.Igrins2Spectroscopy().some
+      case _ => none
 
   // Imaging modes can return multiple configs due to multiple filters.
   def toInstrumentConfig(targets: TargetList): List[ItcInstrumentConfig] =
     import ObservingMode.*
-    (toModeOverride(targets), observingMode)
-      .mapN:
-        case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), n: GmosNorthLongSlit) =>
-          List(
-            ItcInstrumentConfig
-              .GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, n.exposureTimeMode, o.some)
-          )
-        case (o @ InstrumentOverrides.GmosSpectroscopy(_, _, _), s: GmosSouthLongSlit) =>
-          List(
-            ItcInstrumentConfig
-              .GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, s.exposureTimeMode, o.some)
-          )
-        case (o @ InstrumentOverrides.GmosImaging(), n: GmosNorthImaging)              =>
+    val modeOverride: Option[InstrumentOverrides.GmosSpectroscopy] = toModeOverride(targets)
+
+    observingMode
+      .foldMap:
+        case n: GmosNorthLongSlit                =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig
+                .GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, n.exposureTimeMode, o.some)
+            )
+        case s: GmosSouthLongSlit                =>
+          modeOverride.foldMap: o =>
+            List(
+              ItcInstrumentConfig
+                .GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, s.exposureTimeMode, o.some)
+            )
+        case n: GmosNorthImaging                 =>
           n.filters.toList
-            .map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode, o.some))
-        case (o @ InstrumentOverrides.GmosImaging(), n: GmosSouthImaging)              =>
+            .map(f => ItcInstrumentConfig.GmosNorthImaging(f.filter, f.exposureTimeMode))
+        case n: GmosSouthImaging                 =>
           n.filters.toList
-            .map(f => ItcInstrumentConfig.GmosSouthImaging(f.filter, f.exposureTimeMode, o.some))
-        case (_, f: ObservingMode.Flamingos2LongSlit)                                  =>
+            .map(f => ItcInstrumentConfig.GmosSouthImaging(f.filter, f.exposureTimeMode))
+        case f: ObservingMode.Flamingos2LongSlit =>
           List(
             ItcInstrumentConfig
               .Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
           )
-        case (_, i: ObservingMode.Igrins2LongSlit)                                     =>
+        case i: ObservingMode.Igrins2LongSlit    =>
           List(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
-        case _                                                                         =>
-          List.empty
-      .getOrElse(List.empty)
+        case g: ObservingMode.GhostIfu           =>
+          val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(
+            g.red.timeAndCount.some,
+            g.red.readMode,
+            g.red.binning
+          )
+          val blue = ItcInstrumentConfig.GhostIfu.GhostDetector.Blue(
+            g.blue.timeAndCount.some,
+            g.blue.readMode,
+            g.blue.binning
+          )
+          List(
+            ItcInstrumentConfig.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red, blue)
+          )
 
   lazy val constraintsSummary: String =
     s"${constraints.imageQuality.toImageQuality.label} ${constraints.cloudExtinction.toCloudExtinction.label}" +

@@ -64,6 +64,8 @@ case class ObsSummary(
           s"${disperser.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Igrins2LongSlit                       =>
           none
+        case BasicConfiguration.GhostIfu(resolutionMode, _, _, _)     =>
+          resolutionMode.shortName.some
 
   lazy val instrumentConfigurationSummary: String =
     s"${instrument.shortName} ${configurationSummary.orEmpty}"

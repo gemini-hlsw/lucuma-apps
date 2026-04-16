@@ -4,7 +4,7 @@
 package explore.itc
 
 import cats.data.EitherNec
-import cats.data.NonEmptyList
+
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*
@@ -200,37 +200,11 @@ object ItcSpectroscopyTile
               .fold(bandValues(sourceProfile), emissionLineValues(sourceProfile))
 
           // IGRINS2 has multiple ccd labels
-          // GHOST NOTE: GHOST will return Blue first, then Red. We need to label the CCDs,
-          // but it may also have different signalToNoiseAt for each arm, which we might need to label, too.
+          // GHOST NOTE: GHOST has lines for each detector, but they overlap so this method of labeling will not work.
           val ccdLabels: Map[NonNegInt, String] = instrumentConfig match
             case ItcInstrumentConfig.Igrins2Spectroscopy(_) =>
               Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
             case _                                          => Map.empty
-
-          // If there are multiple values, they need to match the order of CCD labels.
-          // These should be distinct values. If there is only one, it won't be labeled.
-          // GHOST NOTE: Blue then Red, distinct
-          val signalToNoiseAt: NonEmptyList[Wavelength] = instrumentConfig match
-            case GmosNorthSpectroscopy(exposureTimeMode = etm)  =>
-              NonEmptyList.one(etm.at)
-            case GmosSouthSpectroscopy(exposureTimeMode = etm)  =>
-              NonEmptyList.one(etm.at)
-            case GmosNorthImaging(exposureTimeMode = etm)       =>
-              NonEmptyList.one(etm.at)
-            case GmosSouthImaging(exposureTimeMode = etm)       =>
-              NonEmptyList.one(etm.at)
-            case Flamingos2Spectroscopy(exposureTimeMode = etm) =>
-              NonEmptyList.one(etm.at)
-            case Igrins2Spectroscopy(exposureTimeMode = etm)    =>
-              NonEmptyList.one(etm.at)
-            case GhostIfu(exposureTimeMode = etm)               =>
-              NonEmptyList.one(etm.at)
-            case GpiSpectroscopy(exposureTimeMode = etm)        =>
-              NonEmptyList.one(etm.at)
-            case GnirsSpectroscopy(exposureTimeMode = etm)      =>
-              NonEmptyList.one(etm.at)
-            case GenericSpectroscopy(exposureTimeMode = etm)    =>
-              NonEmptyList.one(etm.at)
 
           <.div(
             ExploreStyles.ItcPlotSection,
@@ -248,7 +222,7 @@ object ItcSpectroscopyTile
               graphResult.graphData,
               graphTypeView.get,
               graphResult.target.name.value,
-              signalToNoiseAt,
+              instrumentConfig.signalToNoiseAt,
               detailsView.get,
               ccdLabels
             ),

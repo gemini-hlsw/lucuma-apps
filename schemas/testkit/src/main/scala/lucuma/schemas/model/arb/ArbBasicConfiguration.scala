@@ -10,6 +10,8 @@ import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.itc.ItcGhostDetector
+import lucuma.itc.arb.ArbItcGhostDetector.given
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import org.scalacheck.Arbitrary
@@ -78,6 +80,16 @@ trait ArbBasicConfiguration {
       Gen.const(BasicConfiguration.Igrins2LongSlit)
     )
 
+  given Arbitrary[BasicConfiguration.GhostIfu] =
+    Arbitrary[BasicConfiguration.GhostIfu](
+      for {
+        resolutionMode <- arbitrary[GhostResolutionMode]
+        snAt           <- arbitrary[Wavelength]
+        red            <- arbitrary[ItcGhostDetector]
+        blue           <- arbitrary[ItcGhostDetector]
+      } yield BasicConfiguration.GhostIfu(resolutionMode, snAt, red = red, blue = blue)
+    )
+
   given Arbitrary[BasicConfiguration] = Arbitrary[BasicConfiguration](
     Gen.oneOf(
       arbitrary[BasicConfiguration.GmosNorthLongSlit],
@@ -85,7 +97,8 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosNorthImaging],
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
-      arbitrary[BasicConfiguration.Igrins2LongSlit.type]
+      arbitrary[BasicConfiguration.Igrins2LongSlit.type],
+      arbitrary[BasicConfiguration.GhostIfu]
     )
   )
 
@@ -136,6 +149,10 @@ trait ArbBasicConfiguration {
     Cogen[NonEmptyList[GmosSouthFilter]]
       .contramap(_.filters)
 
+  given Cogen[BasicConfiguration.GhostIfu] =
+    Cogen[(GhostResolutionMode, ItcGhostDetector, ItcGhostDetector)]
+      .contramap(o => (o.resolutionMode, o.red, o.blue))
+
   given Cogen[BasicConfiguration] =
     Cogen[Either[
       BasicConfiguration.Igrins2LongSlit.type,
@@ -146,8 +163,11 @@ trait ArbBasicConfiguration {
           Either[
             BasicConfiguration.GmosSouthLongSlit,
             Either[
-              BasicConfiguration.GmosNorthImaging,
-              BasicConfiguration.GmosSouthImaging
+              BasicConfiguration.GhostIfu,
+              Either[
+                BasicConfiguration.GmosNorthImaging,
+                BasicConfiguration.GmosSouthImaging
+              ]
             ]
           ]
         ]
@@ -158,8 +178,11 @@ trait ArbBasicConfiguration {
         case f: BasicConfiguration.Flamingos2LongSlit => f.asLeft.asRight
         case n: BasicConfiguration.GmosNorthLongSlit  => n.asLeft.asRight.asRight
         case s: BasicConfiguration.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
-        case n: BasicConfiguration.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight
-        case s: BasicConfiguration.GmosSouthImaging   => s.asRight.asRight.asRight.asRight.asRight
+        case g: BasicConfiguration.GhostIfu           => g.asLeft.asRight.asRight.asRight.asRight
+        case n: BasicConfiguration.GmosNorthImaging   =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight
+        case s: BasicConfiguration.GmosSouthImaging   =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

@@ -16,9 +16,12 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
+import lucuma.core.util.NewType
 import lucuma.refined.*
 import lucuma.schemas.model.CentralWavelength
+import monocle.Focus
 import monocle.Getter
+import monocle.Lens
 
 sealed trait ItcInstrumentConfig derives Eq:
   def instrument: Instrument
@@ -49,6 +52,10 @@ sealed trait ItcInstrumentConfig derives Eq:
   // Used by the modes tables to replace the exposure time mode in the ITC config when the user changes it in the UI.
   // GHOST NOTE: For GHOST, this will set both ETMs (one for each arm) to the same value.
   def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig
+
+  // The wavelength at which S/N will be measured. Usually comes from the ExposureTimeMode,
+  // but GHOST has to be different
+  def signalToNoiseAt: Wavelength
 
 object ItcInstrumentConfig:
   // GMOS suporta a total wavelength range of 360-1030 nm
@@ -82,6 +89,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GmosSouthSpectroscopy(
@@ -104,17 +113,18 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GmosNorthImaging(
-    filter:                     GmosNorthFilter,
-    exposureTimeMode:           ExposureTimeMode,
-    override val modeOverrides: Option[InstrumentOverrides.GmosImaging]
+    filter:           GmosNorthFilter,
+    exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = GmosNorthFilter
     type FPU      = Unit
-    type Override = InstrumentOverrides.GmosImaging
+    type Override = Unit
 
     val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
     val filterStr: String                = filter.shortName
@@ -127,18 +137,19 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GmosSouthImaging(
-    filter:                     GmosSouthFilter,
-    exposureTimeMode:           ExposureTimeMode,
-    override val modeOverrides: Option[InstrumentOverrides.GmosImaging]
+    filter:           GmosSouthFilter,
+    exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
 
     type Grating  = Unit
     type Filter   = GmosSouthFilter
     type FPU      = Unit
-    type Override = InstrumentOverrides.GmosImaging
+    type Override = Unit
     val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
     val filterStr: String                = filter.shortName
     val instrument                       = Instrument.GmosSouth
@@ -150,6 +161,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class Flamingos2Spectroscopy(
@@ -171,12 +184,15 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GhostIfu(
-    resolutionMode:   GhostResolutionMode,
-    binning:          GhostBinning,
-    exposureTimeMode: ExposureTimeMode
+    resolutionMode:  GhostResolutionMode,
+    signalToNoiseAt: Wavelength,
+    redDetector:     GhostIfu.GhostDetector.Red,
+    blueDetector:    GhostIfu.GhostDetector.Blue
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = Unit
@@ -193,14 +209,73 @@ object ItcInstrumentConfig:
     val gratingDisplay: Display[Grating] = Display.byShortName(_ => "Echelle")
     val filterStr: String                = "none"
     val instrument                       = Instrument.Ghost
-    override def instrumentLabel: String = s"${instrument.longName} $modeStr ${binning.name}"
+    // This is for the modes table, and binning is always the same for both detectors there.
+    override def instrumentLabel: String =
+      s"${instrument.longName} $modeStr ${redDetector.value.binning.name}"
     val site                             = Site.GS
     val hasFilter                        = false
     val mode                             = ScienceMode.Spectroscopy
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
-      copy(exposureTimeMode = etm)
+      val tAndC = ExposureTimeMode.timeAndCount.getOption(etm)
+      GhostIfu.signalToNoiseAt.replace(etm.at)(
+        GhostIfu.blueTimeAndCount.replace(tAndC)(
+          GhostIfu.redTimeAndCount.replace(tAndC)(this)
+        )
+      )
   }
+
+  object GhostIfu:
+    val resolutionMode: Lens[GhostIfu, GhostResolutionMode] =
+      Focus[GhostIfu](_.resolutionMode)
+
+    val signalToNoiseAt: Lens[GhostIfu, Wavelength] =
+      Focus[GhostIfu](_.signalToNoiseAt)
+    case class GhostDetector(
+      timeAndCount: Option[ExposureTimeMode.TimeAndCountMode],
+      readMode:     GhostReadMode,
+      binning:      GhostBinning
+    ) derives Eq
+
+    object GhostDetector:
+      val timeAndCount: Lens[GhostDetector, Option[ExposureTimeMode.TimeAndCountMode]] =
+        Focus[GhostDetector](_.timeAndCount)
+
+      object Red extends NewType[GhostDetector]:
+        def apply(
+          timeAndCount: Option[ExposureTimeMode.TimeAndCountMode],
+          readMode:     GhostReadMode,
+          binning:      GhostBinning
+        ): Red =
+          Red(GhostDetector(timeAndCount, readMode, binning))
+        // constructor used by spectroscopy modes matrix decoder
+        def apply(binning: GhostBinning): Red =
+          Red(GhostDetector(none, GhostReadMode.DefaultRed, binning))
+      type Red = Red.Type
+
+      object Blue extends NewType[GhostDetector]:
+        def apply(
+          timeAndCount: Option[ExposureTimeMode.TimeAndCountMode],
+          readMode:     GhostReadMode,
+          binning:      GhostBinning
+        ): Blue =
+          Blue(GhostDetector(timeAndCount, readMode, binning))
+        // constructor used by spectroscopy modes matrix decoder
+        def apply(binning: GhostBinning): Blue =
+          Blue(GhostDetector(none, GhostReadMode.DefaultBlue, binning))
+      type Blue = Blue.Type
+
+    val redDetector: Lens[GhostIfu, GhostDetector.Red] =
+      Focus[GhostIfu](_.redDetector)
+
+    val blueDetector: Lens[GhostIfu, GhostDetector.Blue] =
+      Focus[GhostIfu](_.blueDetector)
+
+    val redTimeAndCount: Lens[GhostIfu, Option[ExposureTimeMode.TimeAndCountMode]] =
+      redDetector.andThen(GhostDetector.Red.Value).andThen(GhostDetector.timeAndCount)
+
+    val blueTimeAndCount: Lens[GhostIfu, Option[ExposureTimeMode.TimeAndCountMode]] =
+      blueDetector.andThen(GhostDetector.Blue.Value).andThen(GhostDetector.timeAndCount)
 
   // Igrins2 is a static instrument with no configurable grating, filter, or FPU.
   case class Igrins2Spectroscopy(exposureTimeMode: ExposureTimeMode) extends ItcInstrumentConfig
@@ -221,6 +296,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GpiSpectroscopy(
@@ -242,6 +319,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   case class GnirsSpectroscopy(
@@ -263,6 +342,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   // Used for Instruments not fully defined
@@ -286,6 +367,8 @@ object ItcInstrumentConfig:
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
   val instrument: Getter[ItcInstrumentConfig, Instrument] =

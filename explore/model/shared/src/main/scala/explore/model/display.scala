@@ -311,6 +311,8 @@ trait DisplayImplicits:
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
     case BasicConfiguration.Igrins2LongSlit                              =>
       s"IGRINS2"
+    case BasicConfiguration.GhostIfu(resolutionMode, _, _, _)            =>
+      s"GHOST IFU ${resolutionMode.shortName}"
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 

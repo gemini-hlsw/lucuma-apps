@@ -326,6 +326,10 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-itc-client")(lucumaServers)
   )
 
+  val LucumaItcTestKit = Def.setting(
+    deps("edu.gemini" %%% "lucuma-itc-testkit")(lucumaServers)
+  )
+
   val Monocle = Def.setting(
     deps(
       "dev.optics" %%% "monocle-core",

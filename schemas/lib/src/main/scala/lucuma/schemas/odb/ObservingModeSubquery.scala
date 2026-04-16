@@ -144,5 +144,26 @@ object ObservingModeSubquery
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
           }
+          ghostIfu {
+            resolutionMode
+            red {
+              exposureTimeMode $ExposureTimeModeSubquery
+              defaultBinning
+              explicitBinning
+              defaultReadMode
+              explicitReadMode
+            }
+            blue {
+              exposureTimeMode $ExposureTimeModeSubquery
+              defaultBinning
+              explicitBinning
+              defaultReadMode
+              explicitReadMode
+            }
+            defaultIfu1Agitator
+            explicitIfu1Agitator
+            defaultIfu2Agitator
+            explicitIfu2Agitator
+          }
         }
       """

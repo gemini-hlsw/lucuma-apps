@@ -12,8 +12,11 @@ import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.probes
+import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.wavelength.decoder.given
+import lucuma.schemas.decoders.given
 import monocle.Prism
 import monocle.macros.GenPrism
 
@@ -30,18 +33,11 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case BasicConfiguration.GmosNorthLongSlit(_, _, fpu, _) => fpu.asLeft.some
     case BasicConfiguration.GmosSouthLongSlit(_, _, fpu, _) => fpu.asRight.some
-    case BasicConfiguration.GmosNorthImaging(_)             => none
-    case BasicConfiguration.GmosSouthImaging(_)             => none
-    case BasicConfiguration.Flamingos2LongSlit(_, _, _)     => none
-    case BasicConfiguration.Igrins2LongSlit                 => none
+    case _                                                  => none
 
   def f2Fpu: Option[Flamingos2Fpu] = this match
-    case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) => none
-    case BasicConfiguration.GmosSouthLongSlit(_, _, _, _) => none
-    case BasicConfiguration.GmosNorthImaging(_)           => none
-    case BasicConfiguration.GmosSouthImaging(_)           => none
     case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) => fpu.some
-    case BasicConfiguration.Igrins2LongSlit               => none
+    case _                                                => none
 
   def siteFor: Site = this match
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
@@ -50,6 +46,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosSouthImaging   => Site.GS
     case _: BasicConfiguration.Flamingos2LongSlit => Site.GS
     case BasicConfiguration.Igrins2LongSlit       => Site.GN
+    case _: BasicConfiguration.GhostIfu           => Site.GS
 
   def obsModeType: ObservingModeType = this match
     case n: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
@@ -58,6 +55,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
+    case _: BasicConfiguration.GhostIfu           => ObservingModeType.GhostIfu
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -69,6 +67,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Igrins2LongSlit                           =>
       // TODO: What is the right value?
       CentralWavelength(Wavelength.unsafeFromIntPicometers(1800000)).some
+    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+      CentralWavelength(BasicConfiguration.GhostIfu.cetralWavelength).some
     case _                                                            =>
       none
 
@@ -86,6 +86,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Igrins2LongSlit                           =>
       // TODO: What is the right value?
       AGSWavelength(BasicConfiguration.Igrins2LongSlit.optimalWavelength)
+    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+      AGSWavelength(BasicConfiguration.GhostIfu.cetralWavelength)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -101,6 +103,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Igrins2LongSlit                           =>
       // TODO: What is the right value?
       BasicConfiguration.Igrins2LongSlit.optimalWavelength
+    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+      BasicConfiguration.GhostIfu.cetralWavelength
 
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
@@ -113,6 +117,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       GuideProbe.GmosOIWFS
     case BasicConfiguration.Flamingos2LongSlit(_, _, _) => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Igrins2LongSlit             => GuideProbe.PWFS2
+    case BasicConfiguration.GhostIfu(_, _, _, _)        => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -136,9 +141,12 @@ object BasicConfiguration:
                             c.downField("igrins2LongSlit")
                               .as[Igrins2LongSlit.type]
                               .orElse:
-                                DecodingFailure("Could not decode BasicConfiguration",
-                                                c.history
-                                ).asLeft
+                                c.downField("ghostIfu")
+                                  .as[GhostIfu]
+                                  .orElse:
+                                    DecodingFailure("Could not decode BasicConfiguration",
+                                                    c.history
+                                    ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -189,6 +197,40 @@ object BasicConfiguration:
     val optimalWavelength: Wavelength   = Wavelength.fromIntNanometers(1975).get
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
+  case class GhostIfu(
+    resolutionMode:  GhostResolutionMode,
+    signalToNoiseAt: Wavelength,
+    red:             ItcGhostDetector,
+    blue:            ItcGhostDetector
+  ) extends BasicConfiguration(Instrument.Ghost) derives Eq
+
+  object GhostIfu:
+    val cetralWavelength: Wavelength = Wavelength.fromIntNanometers(530).get
+
+    given Decoder[ItcGhostDetector] = Decoder.instance:
+      c =>
+        for
+          timeAndCount <-
+            c.downField("exposureTimeMode")
+              .as[ExposureTimeMode.TimeAndCountMode]
+              .flatMap: etm =>
+                ExposureTimeMode.timeAndCount
+                  .getOption(etm)
+                  .toRight(
+                    DecodingFailure("Expected TimeAndCountMode for GHOST detector", c.history)
+                  )
+          readMode     <- c.downField("defaultReadMode").as[GhostReadMode]
+          binning      <- c.downField("defaultBinning").as[GhostBinning]
+        yield ItcGhostDetector(timeAndCount, readMode, binning)
+
+        // TODO: When the ODB API has the signalToNoise value, we can switch to deriving the decoder
+    given Decoder[GhostIfu]         = Decoder.instance: c =>
+      for
+        resolutionMode <- c.downField("resolutionMode").as[GhostResolutionMode]
+        red            <- c.downField("red").as[ItcGhostDetector]
+        blue           <- c.downField("blue").as[ItcGhostDetector]
+      yield GhostIfu(resolutionMode, red.timeAndCount.at, red = red, blue = blue)
+
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
     GenPrism[BasicConfiguration, GmosNorthLongSlit]
 
@@ -206,3 +248,6 @@ object BasicConfiguration:
 
   val igrins2LongSlit: Prism[BasicConfiguration, Igrins2LongSlit.type] =
     GenPrism[BasicConfiguration, Igrins2LongSlit.type]
+
+  val ghostIfu: Prism[BasicConfiguration, GhostIfu] =
+    GenPrism[BasicConfiguration, GhostIfu]

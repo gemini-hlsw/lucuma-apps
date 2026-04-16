@@ -557,26 +557,25 @@ trait ArbObservingMode {
         )
       )
 
-  given Arbitrary[ObservingMode.Igrins2LongSlit] =
-    Arbitrary[ObservingMode.Igrins2LongSlit](
-      for {
-        exposureTimeMode      <- arbitrary[ExposureTimeMode]
-        defaultOffsetMode     <- arbitrary[Igrins2OffsetMode]
-        explicitOffsetMode    <- arbitrary[Option[Igrins2OffsetMode]]
-        defaultSaveSVCImages  <- arbitrary[Boolean]
-        explicitSaveSVCImages <- arbitrary[Option[Boolean]]
-        defaultOffsets        <- arbitrary[NonEmptyList[Offset]]
-        explicitOffsets       <- arbitrary[Option[NonEmptyList[Offset]]]
-      } yield ObservingMode.Igrins2LongSlit(
-        exposureTimeMode,
-        defaultOffsetMode,
-        explicitOffsetMode,
-        defaultSaveSVCImages,
-        explicitSaveSVCImages,
-        defaultOffsets,
-        explicitOffsets
-      )
+  given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
+    for {
+      exposureTimeMode      <- arbitrary[ExposureTimeMode]
+      defaultOffsetMode     <- arbitrary[Igrins2OffsetMode]
+      explicitOffsetMode    <- arbitrary[Option[Igrins2OffsetMode]]
+      defaultSaveSVCImages  <- arbitrary[Boolean]
+      explicitSaveSVCImages <- arbitrary[Option[Boolean]]
+      defaultOffsets        <- arbitrary[NonEmptyList[Offset]]
+      explicitOffsets       <- arbitrary[Option[NonEmptyList[Offset]]]
+    } yield ObservingMode.Igrins2LongSlit(
+      exposureTimeMode,
+      defaultOffsetMode,
+      explicitOffsetMode,
+      defaultSaveSVCImages,
+      explicitSaveSVCImages,
+      defaultOffsets,
+      explicitOffsets
     )
+  )
 
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
@@ -601,6 +600,82 @@ trait ArbObservingMode {
         )
       )
 
+  given Arbitrary[ObservingMode.GhostIfu.GhostDetector] =
+    Arbitrary[ObservingMode.GhostIfu.GhostDetector](
+      for {
+        timeAndCount     <- arbitrary[ExposureTimeMode.TimeAndCountMode]
+        defaultReadMode  <- arbitrary[GhostReadMode]
+        explicitReadMode <- arbitrary[Option[GhostReadMode]]
+        defaultBinning   <- arbitrary[GhostBinning]
+        explicitBinning  <- arbitrary[Option[GhostBinning]]
+      } yield ObservingMode.GhostIfu.GhostDetector(
+        timeAndCount,
+        defaultBinning,
+        explicitBinning,
+        defaultReadMode,
+        explicitReadMode
+      )
+    )
+
+  given Cogen[ObservingMode.GhostIfu.GhostDetector] =
+    Cogen[
+      (ExposureTimeMode.TimeAndCountMode,
+       GhostBinning,
+       Option[GhostBinning],
+       GhostReadMode,
+       Option[GhostReadMode]
+      )
+    ]
+      .contramap(o =>
+        (o.timeAndCount, o.defaultBinning, o.explicitBinning, o.defaultReadMode, o.explicitReadMode)
+      )
+
+  given Arbitrary[ObservingMode.GhostIfu] = Arbitrary[ObservingMode.GhostIfu](
+    for {
+      resolutionMode <- arbitrary[GhostResolutionMode]
+      snAt           <- arbitrary[Wavelength]
+      red            <- arbitrary[ObservingMode.GhostIfu.GhostDetector]
+      blue           <- arbitrary[ObservingMode.GhostIfu.GhostDetector]
+      defaultIfu1    <- arbitrary[GhostIfu1FiberAgitator]
+      explicitIfu1   <- arbitrary[Option[GhostIfu1FiberAgitator]]
+      defaultIfu2    <- arbitrary[GhostIfu2FiberAgitator]
+      explicitIfu2   <- arbitrary[Option[GhostIfu2FiberAgitator]]
+    } yield ObservingMode.GhostIfu(
+      resolutionMode,
+      snAt,
+      red,
+      blue,
+      defaultIfu1,
+      explicitIfu1,
+      defaultIfu2,
+      explicitIfu2
+    )
+  )
+
+  given Cogen[ObservingMode.GhostIfu] =
+    Cogen[
+      (
+        GhostResolutionMode,
+        ObservingMode.GhostIfu.GhostDetector,
+        ObservingMode.GhostIfu.GhostDetector,
+        GhostIfu1FiberAgitator,
+        Option[GhostIfu1FiberAgitator],
+        GhostIfu2FiberAgitator,
+        Option[GhostIfu2FiberAgitator]
+      )
+    ]
+      .contramap(o =>
+        (
+          o.resolutionMode,
+          o.red,
+          o.blue,
+          o.defaultIfu1Agitator,
+          o.explicitIfu1Agitator,
+          o.defaultIfu2Agitator,
+          o.explicitIfu2Agitator
+        )
+      )
+
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
@@ -608,7 +683,8 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
-      arbitrary[ObservingMode.Igrins2LongSlit]
+      arbitrary[ObservingMode.Igrins2LongSlit],
+      arbitrary[ObservingMode.GhostIfu]
     )
   )
 
@@ -617,11 +693,14 @@ trait ArbObservingMode {
       ObservingMode.Igrins2LongSlit,
       Either[
         ObservingMode.Flamingos2LongSlit,
-        Either[ObservingMode.GmosNorthLongSlit, Either[ObservingMode.GmosSouthLongSlit,
-                                                       Either[ObservingMode.GmosNorthImaging,
-                                                              ObservingMode.GmosSouthImaging
-                                                       ]
-        ]]
+        Either[
+          ObservingMode.GmosNorthLongSlit,
+          Either[ObservingMode.GmosSouthLongSlit, Either[ObservingMode.GmosNorthImaging,
+                                                         Either[ObservingMode.GmosSouthImaging,
+                                                                ObservingMode.GhostIfu
+                                                         ]
+          ]]
+        ]
       ]
     ]]
       .contramap {
@@ -630,7 +709,8 @@ trait ArbObservingMode {
         case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight
         case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
         case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight
-        case s: ObservingMode.GmosSouthImaging   => s.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthImaging   => s.asLeft.asRight.asRight.asRight.asRight.asRight
+        case g: ObservingMode.GhostIfu           => g.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

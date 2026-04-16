@@ -70,14 +70,22 @@ object ITCGraphRequests:
           customSedTimestamps,
           m
         ).some
+      case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _)                 =>
+        ItcGraphRequestParams(
+          constraints,
+          targets,
+          customSedTimestamps,
+          m
+        ).some
       case _                                                            =>
         none
 
     def doRequest(
       request: ItcGraphRequestParams
     ): F[EitherNec[ItcQueryProblem, ItcAsterismGraphResults]] =
-      request.mode.toItcClientMode
-        .map: mode =>
+      request.mode
+        .toItcClientMode(request.asterism.length)
+        .flatTraverse: mode =>
           ItcClient[F]
             .spectroscopyIntegrationTimeAndGraphs(
               SpectroscopyIntegrationTimeAndGraphsInput(
@@ -135,7 +143,6 @@ object ITCGraphRequests:
               case a                                                            =>
                 ItcQueryProblem.GenericError(a.getMessage).leftNec
             }
-        .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec.pure[F])
 
     // We cache unexpanded results, exactly as received from server.
     val cacheableRequest

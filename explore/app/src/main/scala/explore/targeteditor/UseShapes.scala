@@ -74,6 +74,8 @@ def usePatrolFieldShapes(
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
+      case BasicConfiguration.GhostIfu(_, _, _, _)          =>
+        AgsParams.GhostIfu()
 
     guideProbe match
       case GuideProbe.PWFS1 => params.withPWFS1.some
@@ -190,8 +192,9 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
           case ObservingModeType.Igrins2LongSlit                                         =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
-          case other                                                                     =>
-            sys.error(s"Unsupported observing mode type for AGS visualization: $other")
+          case ObservingModeType.GhostIfu                                                =>
+            // TODO: What should the anchor be for GHOST IFU?
+            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -293,6 +296,12 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
-        case other                                                                     =>
-          sys.error(s"Unsupported observing mode type for AGS visualization: $other")
+        case ObservingModeType.GhostIfu                                                =>
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _                                               =>
+              Css.Empty
+          // TODO: Get shapes for GHOST
+          (probeVisibilityCss, None)
   }.map(_.value)

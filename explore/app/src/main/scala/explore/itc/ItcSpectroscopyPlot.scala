@@ -4,7 +4,6 @@
 package explore.itc
 
 import cats.data.NonEmptyChain
-import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import explore.components.ui.ExploreStyles
@@ -33,7 +32,7 @@ case class ItcSpectroscopyPlot(
   graphs:          NonEmptyChain[GraphResult],
   graphType:       GraphType,
   targetName:      String,
-  signalToNoiseAt: NonEmptyList[Wavelength],
+  signalToNoiseAt: Wavelength,
   details:         PlotDetails,
   ccdLabels:       Map[NonNegInt, String]
 ) extends ReactFnProps(ItcSpectroscopyPlot.component)
@@ -47,7 +46,7 @@ object ItcSpectroscopyPlot {
     ccdRanges:       List[(Double, Double)],
     ccdLabels:       Map[NonNegInt, String],
     targetName:      String,
-    signalToNoiseAt: NonEmptyList[Wavelength]
+    signalToNoiseAt: Wavelength
   ) = {
     val yAxis            = graph.series.foldLeft(YAxis.Empty)(_ ∪ _.yAxis.yAxis)
     val title            = graph.graphType match
@@ -89,27 +88,19 @@ object ItcSpectroscopyPlot {
       case GraphType.S2NGraph         => "Signal / Noise"
       case GraphType.SignalPixelGraph => "Pixel"
 
-    val hasS2NAtLabel = signalToNoiseAt.size > 1 &&
-      signalToNoiseAt.toList.indices.forall(i => ccdLabels.exists(_._1.value === i))
-
     val plotLines = graph.graphType match
       case GraphType.SignalGraph | GraphType.SignalPixelGraph => js.Array()
       case GraphType.S2NGraph                                 =>
-        signalToNoiseAt.toList.zipWithIndex
-          .map: (s2nAt, idx) =>
-            val value = s2nAt.toNanometers.value.value.toDouble
-            val index = NonNegInt.unsafeFrom(idx)
-            val label =
-              if (hasS2NAtLabel) f"${ccdLabels(index)}: $value%.1f nm"
-              else f"$value%.1f nm"
-            XAxisPlotLinesOptions()
-              .setDashStyle(DashStyleValue.LongDash)
-              .setWidth(3)
-              .setValue(value)
-              .clazz(ExploreStyles.ItcPlotWvPlotLine)
-              .setZIndex(10)
-              .setLabel(XAxisPlotLinesLabelOptions().setText(label))
-          .toJSArray
+        val value = signalToNoiseAt.toNanometers.value.value.toDouble
+        List(
+          XAxisPlotLinesOptions()
+            .setDashStyle(DashStyleValue.LongDash)
+            .setWidth(3)
+            .setValue(value)
+            .clazz(ExploreStyles.ItcPlotWvPlotLine)
+            .setZIndex(10)
+            .setLabel(XAxisPlotLinesLabelOptions().setText(f"$value%.1f nm"))
+        ).toJSArray
 
     val hasCcdLabels =
       ccdRanges.length > 1 && ccdRanges.indices.forall(i => ccdLabels.exists(_._1.value === i))

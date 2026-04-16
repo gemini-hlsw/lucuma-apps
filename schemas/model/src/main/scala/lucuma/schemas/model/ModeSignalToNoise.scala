@@ -14,3 +14,5 @@ enum ModeSignalToNoise derives Eq:
   case Spectroscopy(acquisition: Option[SignalToNoiseAt], science: Option[SignalToNoiseAt])
   case GmosNorthImaging(science: Map[GmosNorthFilter, SignalToNoiseAt])
   case GmosSouthImaging(science: Map[GmosSouthFilter, SignalToNoiseAt])
+  // This may change for GHOST in the future, but it is what the odb sends right now. S/N is always null.
+  case GhostIfu(red: Option[SignalToNoiseAt], blue: Option[SignalToNoiseAt])
