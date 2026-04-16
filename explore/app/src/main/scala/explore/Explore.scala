@@ -40,6 +40,7 @@ import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.otel4s.trace.Tracer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
@@ -58,6 +59,14 @@ object ExploreMain {
     LogLevelLogger.setLevel(LogLevelLogger.Level.INFO)
     LogLevelLogger.createForRoot[F]
   }
+
+  private def setupTracer(config: AppConfig): Resource[IO, Tracer[IO]] =
+    OtelSdk.build(
+      config.tracing,
+      utils.version(config.environment).value,
+      config.environment,
+      None
+    )
 
   private def buildNonCachingHttpClient[F[_]: Async]: Client[F] =
     FetchClientBuilder[F]
@@ -117,7 +126,7 @@ object ExploreMain {
       workerClients: WorkerClients[IO],
       bc:            BroadcastChannel[IO, ExploreEvent],
       configJson:    String
-    )(using Logger[IO]): IO[Unit] = {
+    )(using Logger[IO], Tracer[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
 
@@ -165,6 +174,9 @@ object ExploreMain {
     (for {
       dispatcher       <- Dispatcher.parallel[IO]
       given Logger[IO] <- Resource.eval(setupLogger[IO])
+      host             <- Resource.eval(IO(dom.window.location.host))
+      appConfig         = AppConfig.parseConf(host, configJson)
+      given Tracer[IO] <- setupTracer(appConfig)
       workerClients    <- WorkerClients.build[IO](dispatcher)
       bc               <- BroadcastChannel[IO, ExploreEvent]("explore")
       _                <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))

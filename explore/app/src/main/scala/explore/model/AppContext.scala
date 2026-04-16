@@ -7,6 +7,7 @@ import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
 import cats.syntax.all.*
+import clue.StreamingClient
 import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -37,6 +38,7 @@ import org.http4s.Uri.Scheme
 import org.http4s.client.Client
 import org.http4s.implicits.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import queries.schemas.SSO
 import queries.schemas.UserPreferencesDB
 import workers.WorkerClient
@@ -61,7 +63,8 @@ case class AppContext[F[_]](
 )(using
   val F:                  Async[F],
   val logger:             Logger[F],
-  val P:                  Parallel[F]
+  val P:                  Parallel[F],
+  val T:                  Tracer[F]
 ):
   def pushPage(location: Option[(AppTab, Program.Id, Focused)]): Callback =
     setPageVia(location, SetRouteVia.HistoryPush)
@@ -98,9 +101,9 @@ case class AppContext[F[_]](
       ProgramError(errorMsg, true).some
     ) *> resetProgramCacheTopic.close.void
 
-  given WebSocketJsClient[F, ObservationDB]     = clients.odb
-  given WebSocketJsClient[F, UserPreferencesDB] = clients.preferencesDB
-  given FetchJsClient[F, SSO]                   = clients.sso
+  given StreamingClient[F, ObservationDB]     = clients.odb
+  given StreamingClient[F, UserPreferencesDB] = clients.preferencesDB
+  given FetchJsClient[F, SSO]                 = clients.sso
 
   given itcWorker: WorkerClient[F, ItcMessage.Request]           = workerClients.itc
   given catalogWorker: WorkerClient[F, CatalogMessage.Request]   = workerClients.catalog
@@ -120,7 +123,9 @@ case class AppContext[F[_]](
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value
 
-  def from[F[_]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom}](
+  def from[F[
+    _
+  ]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom, Tracer}](
     config:               AppConfig,
     reconnectionStrategy: ReconnectionStrategy,
     pageUrl:              Option[(AppTab, Program.Id, Focused)] => String,

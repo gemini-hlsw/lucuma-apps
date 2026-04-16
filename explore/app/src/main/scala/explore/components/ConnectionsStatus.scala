@@ -49,5 +49,5 @@ object ConnectionsStatus:
     ScalaFnComponent
       .withHooks[Props]
       .useContext(AppContext.ctx)
-      .useStreamOnMountBy((_, ctx) => ctx.clients.odb.statusStream)
+      .useStreamOnMountBy((_, ctx) => ctx.clients.odbPersistent.statusStream)
       .render((_, _, status) => renderStatus(status.toPot))

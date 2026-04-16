@@ -362,6 +362,17 @@ object Dependencies {
     deps("org.typelevel" %%% "otel4s-core")(otel4s)
   )
 
+  val Otel4sSdk = Def.setting(
+    deps(
+      "org.typelevel" %%% "otel4s-sdk",
+      "org.typelevel" %%% "otel4s-sdk-exporter-trace"
+    )(otel4s)
+  )
+
+  val ClueOtel4s = Def.setting(
+    deps("edu.gemini" %%% "clue-otel4s")(clue)
+  )
+
   val Natchez = Def.setting(
     depsJVM(
       "org.tpolecat" %% "natchez-core",

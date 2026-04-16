@@ -238,8 +238,9 @@ export default defineConfig(async ({ mode }) => {
   return {
     // TODO Remove this if we get EnvironmentPlugin to work.
     root: 'app/src/main/webapp',
+    envDir: fileURLToPath(new URL('.', import.meta.url)),
     publicDir: publicDir,
-    envPrefix: ['VITE_', 'CATS_EFFECT_'],
+    envPrefix: ['VITE_', 'CATS_EFFECT_', 'EXPLORE_OTEL_', 'ODB_', 'ITC_'],
     resolve: {
       dedupe: ['react-is'],
       alias: [
