@@ -3,14 +3,10 @@
 
 package lucuma.ui.table
 
-import cats.Eq
 import cats.syntax.all.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.Css
-import lucuma.react.table.Column
-import lucuma.react.table.ColumnDef
-import lucuma.react.table.ColumnId
-import lucuma.react.table.FilterFn
+import lucuma.react.table.*
 import lucuma.ui.react.given
 
 enum FilterMethod[A, F](compare: (A, F) => Boolean):
@@ -19,13 +15,14 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
     val delayMillis: Int = 250,
     val placeholder: String = "<Filter>",
     val clazz:       Css = Css.Empty
-  )                      extends FilterMethod[A, String]((a, b) => convert(a).toLowerCase.contains(b.toLowerCase))
+  ) extends FilterMethod[A, String]((a, b) => convert(a).toLowerCase.contains(b.toLowerCase))
+
   case Select[A](
     val display:     A => String,
     val placeholder: String = "<Filter>",
     val showCount:   Boolean = true,
     val clazz:       Css = Css.Empty
-  )(using val eq: Eq[A]) extends FilterMethod[A, A](_ === _)
+  ) extends FilterMethod[A, String]((a, b) => display(a) === b)
 
   protected[table] def filterFn[T, TM, TF]: FilterFn.Type[T, TM, WithFilterMethod, TF, F, Nothing] =
     (row, columnId, filterValue, _) => compare(row.getValue(columnId), filterValue)
@@ -49,10 +46,9 @@ enum FilterMethod[A, F](compare: (A, F) => Boolean):
       case other                                    =>
         val s: Select[A]                                   = other.asInstanceOf[Select[A]] // This avoids unchecked warnings on A
         val Select(display, placeholder, showCount, clazz) = s
-        import s.eq
 
         ColumnFilter.Select(
-          col.asInstanceOf[Column[T, A, TM, CM, TF, A, Any]],
+          col.asInstanceOf[Column[T, A, TM, CM, TF, String, Any]],
           display,
           placeholder,
           showCount,
@@ -102,7 +98,9 @@ extension [T, A, TM, TF](col: ColumnDef.Applied[T, TM, Nothing, TF])
   def WithColumnFilters: ColumnDef.Applied[T, TM, WithFilterMethod, TF] =
     col.WithColumnMeta[WithFilterMethod]
 
-extension [T, A, TM, TF](col: ColumnDef.Single[T, A, TM, WithFilterMethod, TF, Nothing, Nothing])
+extension [T, A, TM, TF](
+  col: ColumnDef.Single[T, A, TM, WithFilterMethod, TF, ?, ?]
+)
   def withFilterMethod[CF](
     filterMethod: FilterMethod[A, CF]
   ): ColumnDef.Single[T, A, TM, WithFilterMethod, TF, CF, Nothing] =

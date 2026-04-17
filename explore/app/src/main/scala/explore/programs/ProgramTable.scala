@@ -219,11 +219,12 @@ object ProgramTable:
                      enableColumnResizing = false,
                      enableColumnFilters = true,
                      enableFacetedUniqueValues = true,
-                     meta = TableMeta(props.currentProgramId,
-                                      props.userId,
-                                      props.isStaff,
-                                      props.newProgramId,
-                                      props.programInfos.size
+                     meta = TableMeta(
+                       props.currentProgramId,
+                       props.userId,
+                       props.isStaff,
+                       props.newProgramId,
+                       props.programInfos.size
                      )
                    ),
                    TableStore(props.userId.some, TableId.ProgramsSelector)

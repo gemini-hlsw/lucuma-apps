@@ -3,7 +3,6 @@
 
 package lucuma.ui.table
 
-import cats.Eq
 import cats.syntax.option.*
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
@@ -39,35 +38,31 @@ object ColumnFilter:
 
   /** Requires table with facetedUniqueValues enabled */
   case class Select[A](
-    col:         Column[?, A, ?, ?, ?, A, ?],
+    col:         Column[?, A, ?, ?, ?, String, ?],
     display:     A => String = (a: A) => a.toString,
     placeholder: String = "<Filter>",
     showCount:   Boolean = true,
     clazz:       Css = Css.Empty
-  )(using val eq: Eq[A])
-      extends ReactFnProps(Select.component):
-    protected[table] val options: List[(A, String)] =
+  ) extends ReactFnProps(Select.component):
+    protected[table] val options: List[SelectItem[String]] =
       col
         .getFacetedUniqueValues()
         .filter((a, _) => display(a).nonEmpty)
+        .toList
+        .sortBy(_._2)
         .map: (a, count) =>
           val name: String  = display(a)
           val label: String = if showCount then s"$name (${count})" else name
-          (a, label)
-        .toList
-        .sortBy(_._2)
+          SelectItem(name, label)
 
   trait SelectBuilder[A]:
     type Props = Select[A]
 
     val component = ScalaFnComponent[Props]: props =>
-      import props.given
-
-      DropdownOptional(
+      DropdownOptional[String](
         id = s"${props.col.id.value}-filter",
         value = props.col.getFilterValue(),
-        options = props.options.map: (a, label) =>
-          SelectItem(value = a, label = label),
+        options = props.options,
         onChange = props.col.setFilterValue(_),
         showClear = true,
         placeholder = props.placeholder,

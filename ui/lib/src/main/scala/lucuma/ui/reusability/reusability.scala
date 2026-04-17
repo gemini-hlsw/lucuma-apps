@@ -169,7 +169,9 @@ trait TableReusabilityInstances:
   given Reusability[ColumnFilters]             = Reusability.by(_.value.toSet)
   given Reusability[RowSelection]              = Reusability.by(_.value.toSet)
   given [TF]: Reusability[TableState[TF]]      =
-    Reusability.by(state => (state.columnVisibility, state.sorting, state.columnFilters))
+    Reusability.by(state =>
+      (state.columnVisibility, state.sorting, state.columnFilters, state.columnSizing)
+    )
   given Reusability[ColumnSize]                = Reusability.byEq
   given Reusability[Map[ColumnId, ColumnSize]] = Reusability.map
 
