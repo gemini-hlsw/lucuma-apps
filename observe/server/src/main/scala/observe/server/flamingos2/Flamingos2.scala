@@ -7,10 +7,6 @@ import cats.data.Kleisli
 import cats.effect.Async
 import cats.effect.Sync
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.syntax.*
-import coulomb.units.accepted.ArcSecond
-import coulomb.units.accepted.Millimeter
 import fs2.Stream
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Fpu
@@ -18,10 +14,15 @@ import lucuma.core.enums.Flamingos2WindowCover
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepType as CoreStepType
+import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
+import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
@@ -29,9 +30,8 @@ import observe.server.flamingos2.Flamingos2Controller.*
 import observe.server.keywords.DhsClient
 import observe.server.keywords.DhsClientProvider
 import observe.server.keywords.DhsInstrument
+import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
-import observe.server.tcs.FOCAL_PLANE_SCALE
-import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 final case class Flamingos2[F[_]: {Async, Logger}](
@@ -150,26 +150,72 @@ object Flamingos2 {
       dcConfigFromSequenceConfig(dynamicConfig)
     )
 
-  def build[F[_]: {Async, Logger}](
-    controller:        Flamingos2Controller[F],
-    dhsClientProvider: DhsClientProvider[F],
-    stepType:          CoreStepType,
-    dynamicConfig:     Flamingos2DynamicConfig
-  ): Flamingos2[F] = Flamingos2(
-    controller,
-    dhsClientProvider,
-    fromSequenceConfig(dynamicConfig, stepType)
-  )
+  //  def build[F[_]: {Async, Logger}](
+  //    controller:        Flamingos2Controller[F],
+  //    dhsClientProvider: DhsClientProvider[F],
+  //    stepType:          CoreStepType,
+  //    dynamicConfig:     Flamingos2DynamicConfig
+  //  ): Flamingos2[F] = Flamingos2(
+  //    controller,
+  //    dhsClientProvider,
+  //    fromSequenceConfig(dynamicConfig, stepType)
+  //  )
 
-  object specifics extends InstrumentSpecifics[Flamingos2StaticConfig, Flamingos2DynamicConfig] {
-    override val instrument: Instrument = Instrument.Flamingos2
+  //  object specifics extends InstrumentSpecifics[Flamingos2StaticConfig, Flamingos2DynamicConfig] {
+  //    override val instrument: Instrument = Instrument.Flamingos2
+  //
+  //    // TODO Use different value if using electronic offsets
+  //    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+  //      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+  //
+  //    // The name used for this instrument in the science fold configuration
+  //    override def sfName(config: Flamingos2DynamicConfig): LightSinkName = LightSinkName.Flamingos2
+  //  }
 
-    // TODO Use different value if using electronic offsets
-    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+  def build[F[_]: {Async, Logger}]
+    : F[InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]] = (
+    new InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig] {
+      override def build(
+        systems:           Systems.OverriddenSystems[F],
+        stepType:          CoreStepType,
+        targetEnvironment: TargetEnvironment,
+        staticConf:        Flamingos2StaticConfig,
+        step:              Step[Flamingos2DynamicConfig],
+        observingTime:     Timestamp
+      ): Either[ObserveFailure, InstrumentStep[F]] =
 
-    // The name used for this instrument in the science fold configuration
-    override def sfName(config: Flamingos2DynamicConfig): LightSinkName = LightSinkName.Flamingos2
-  }
+        SeqTranslate.calcStepType(Instrument.Flamingos2, step.stepConfig, step.observeClass).map {
+          x =>
+            val config: Flamingos2Config = fromSequenceConfig(step.instrumentConfig, stepType)
+            new InstrumentStep[F] {
+              override def stepType: StepKind = x
+
+              override def sfName: LightSinkName = LightSinkName.Flamingos2
+
+              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+                Flamingos2(
+                  systems.flamingos2(sysOverrides),
+                  systems.dhs(sysOverrides),
+                  config
+                )
+
+              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+                Flamingos2Header.header(
+                  client,
+                  Flamingos2Header.ObsKeywordsReader(
+                    staticConf,
+                    step.instrumentConfig
+                  ),
+                  systems.systems.tcsKeywordReader
+                )
+
+              override def instrument: Instrument = Instrument.Flamingos2
+
+              override def centralWavelength: Option[Wavelength] =
+                step.instrumentConfig.centralWavelength.some
+            }
+        }
+    }
+  ).pure[F]
 
 }

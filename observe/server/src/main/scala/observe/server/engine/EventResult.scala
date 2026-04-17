@@ -3,12 +3,14 @@
 
 package observe.server.engine
 
+import cats.Eq
+import cats.derived.*
 import observe.server.SeqEvent
 
 sealed trait EventResult extends Product with Serializable
 
 object EventResult:
-  enum Outcome:
+  enum Outcome derives Eq:
     case Ok, Failure
 
   case class UserCommandResponse[F[_]](

@@ -8,6 +8,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.TelescopeGuideConfig
 import monocle.Focus
 import monocle.Lens
+import observe.server.Length
 import observe.server.tcs.TcsController.*
 
 case class InstrumentPorts(
@@ -26,6 +27,7 @@ case class BaseEpicsTcsConfig(
   iaa:                  Angle,
   offset:               FocalPlaneOffset,
   wavelA:               Wavelength,
+  defocusB:             Length,
   pwfs1:                GuiderConfig,
   pwfs2:                GuiderConfig,
   oiwfs:                GuiderConfig,
@@ -47,6 +49,7 @@ object BaseEpicsTcsConfig {
     Focus[BaseEpicsTcsConfig](_.offset)
   val wavelA: Lens[BaseEpicsTcsConfig, Wavelength]                         =
     Focus[BaseEpicsTcsConfig](_.wavelA)
+  val defocusB: Lens[BaseEpicsTcsConfig, Length]                           = Focus[BaseEpicsTcsConfig](_.defocusB)
   val pwfs1: Lens[BaseEpicsTcsConfig, GuiderConfig]                        =
     Focus[BaseEpicsTcsConfig](_.pwfs1)
   val pwfs2: Lens[BaseEpicsTcsConfig, GuiderConfig]                        =

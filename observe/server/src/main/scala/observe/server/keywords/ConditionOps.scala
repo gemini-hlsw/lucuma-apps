@@ -13,7 +13,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ImageQuality
-import observe.model.Conditions
+import observe.model.CurrentConditions
 
 import scala.annotation.tailrec
 import scala.math.Ordering.Implicits.infixOrderingOps
@@ -121,7 +121,7 @@ object ConditionOps {
   }
 
   extension (constrainSet: ConstraintSet) {
-    def asConditions: Conditions = Conditions(
+    def asConditions: CurrentConditions = CurrentConditions(
       constrainSet.cloudExtinction.toCloudExtinction.some,
       constrainSet.imageQuality.toImageQuality.some,
       constrainSet.skyBackground.some,

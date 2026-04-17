@@ -31,9 +31,13 @@ class TcsSouthSuite extends munit.FunSuite {
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
           Data.Observation
-            .TargetEnvironment(none, GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
+            .TargetEnvironment(List.empty,
+                               none,
+                               GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))
+            ),
           TelescopeConfig.Default,
           LightPath(LightSource.Sky, LightSinkName.Gmos),
+          none,
           none
         )
         .guideWithOI,
@@ -49,9 +53,10 @@ class TcsSouthSuite extends munit.FunSuite {
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
           Data.Observation
-            .TargetEnvironment(none, GuideEnvironment(List.empty)),
+            .TargetEnvironment(List.empty, none, GuideEnvironment(List.empty)),
           TelescopeConfig.Default,
           LightPath(LightSource.Sky, LightSinkName.Gmos),
+          none,
           none
         )
         .guideWithOI,
@@ -66,9 +71,13 @@ class TcsSouthSuite extends munit.FunSuite {
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
           Data.Observation
-            .TargetEnvironment(none, GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
+            .TargetEnvironment(List.empty,
+                               none,
+                               GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))
+            ),
           TelescopeConfig(Offset.Zero, StepGuideState.Disabled),
           LightPath(LightSource.Sky, LightSinkName.Gmos),
+          none,
           none
         )
         .guideWithOI,

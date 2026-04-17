@@ -13,7 +13,7 @@ opaque type Distance = Quantity[Long, Micrometer]
 
 object Distance {
 
-  lazy val Min: Distance = fromLongMicrometers(Int.MinValue)
+  lazy val Min: Distance = fromLongMicrometers(Long.MinValue)
 
   lazy val Zero: Distance = fromLongMicrometers(0)
 

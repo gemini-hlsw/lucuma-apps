@@ -20,7 +20,7 @@ import scala.collection.immutable.SortedMap
  */
 case class SequencesQueue[T](
   loaded:       Map[Instrument, Observation.Id],
-  conditions:   Conditions,
+  conditions:   CurrentConditions,
   operator:     Option[Operator],
   queues:       SortedMap[QueueId, ExecutionQueueView],
   sessionQueue: List[T]

@@ -65,7 +65,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   override val systems:  Systems[F],
   @unused settings:      ObserveEngineConfiguration,
   translator:            SeqTranslate[F],
-  @unused conditionsRef: Ref[F, Conditions]
+  @unused conditionsRef: Ref[F, CurrentConditions]
 ) extends ObserveEngine[F] {
 
   /**
@@ -134,7 +134,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     actual.forall(_ <= requested)
 
   private def observingConditionsMatch(
-    actualObsConditions:   Conditions,
+    actualObsConditions:   CurrentConditions,
     requiredObsConditions: ConstraintSet
   ): Option[ObsConditionsCheckOverride] = {
 
@@ -530,11 +530,11 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     executeEngine.offer:
       Event.modifyState:
         EngineHandle.modifyState:
-          (EngineState.conditions[F].replace(Conditions.Default) >>> refreshSequences)
-            .withEvent(SetConditions(Conditions.Default, None))
+          (EngineState.conditions[F].replace(CurrentConditions.Default) >>> refreshSequences)
+            .withEvent(SetConditions(CurrentConditions.Default, None))
 
   override def setConditions(
-    conditions: Conditions,
+    conditions: CurrentConditions,
     user:       User
   ): F[Unit] =
     logDebugEvent("ObserveEngine: Setting conditions") *>
@@ -549,7 +549,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState:
           EngineHandle.modifyState:
-            (EngineState.conditions[F].andThen(Conditions.iq).replace(iq.some) >>> refreshSequences)
+            (EngineState
+              .conditions[F]
+              .andThen(CurrentConditions.iq)
+              .replace(iq.some) >>> refreshSequences)
               .withEvent(SetImageQuality(iq, user.some))
 
   override def setWaterVapor(wv: WaterVapor, user: User, clientId: ClientId): F[Unit] =
@@ -557,7 +560,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState:
           EngineHandle.modifyState:
-            (EngineState.conditions[F].andThen(Conditions.wv).replace(wv.some) >>> refreshSequences)
+            (EngineState
+              .conditions[F]
+              .andThen(CurrentConditions.wv)
+              .replace(wv.some) >>> refreshSequences)
               .withEvent(SetWaterVapor(wv, user.some))
 
   override def setSkyBackground(sb: SkyBackground, user: User, clientId: ClientId): F[Unit] =
@@ -565,7 +571,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState:
           EngineHandle.modifyState:
-            (EngineState.conditions[F].andThen(Conditions.sb).replace(sb.some) >>> refreshSequences)
+            (EngineState
+              .conditions[F]
+              .andThen(CurrentConditions.sb)
+              .replace(sb.some) >>> refreshSequences)
               .withEvent(SetSkyBackground(sb, user.some))
 
   override def setCloudExtinction(ce: CloudExtinction, user: User, clientId: ClientId): F[Unit] =
@@ -573,7 +582,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
       executeEngine.offer:
         Event.modifyState:
           EngineHandle.modifyState:
-            (EngineState.conditions[F].andThen(Conditions.ce).replace(ce.some) >>> refreshSequences)
+            (EngineState
+              .conditions[F]
+              .andThen(CurrentConditions.ce)
+              .replace(ce.some) >>> refreshSequences)
               .withEvent(SetCloudExtinction(ce, user.some))
 
   override def requestRefresh(clientId: ClientId): F[Unit] =
@@ -1050,7 +1062,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
     }).as(i)
 
   private def updateSequenceEndo(
-    conditions: Conditions,
+    conditions: CurrentConditions,
     operator:   Option[Operator]
   ): Endo[SequenceData[F]] =
     (sd: SequenceData[F]) =>

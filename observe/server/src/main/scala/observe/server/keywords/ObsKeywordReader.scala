@@ -85,19 +85,7 @@ object ObsKeywordReader {
         case Site.GS => "Gemini-South"
       }
 
-      override def obsType: F[String] = (
-        step.stepConfig match {
-          case StepConfig.Bias             => "BIAS"
-          case StepConfig.Dark             => "DARK"
-          case StepConfig.Gcal(l, _, _, _) =>
-            l.lampType match {
-              case GcalLampType.Arc  => "ARC"
-              case GcalLampType.Flat => "FLAT"
-            }
-          case StepConfig.Science          => "OBJECT"
-          case StepConfig.SmartGcal(_)     => "FLAT" // It should never get this case
-        }
-      ).pure[F]
+      override def obsType: F[String] = ObsKeywordReader.obsType(step.stepConfig).pure[F]
 
       override def obsClass: F[String] = (step.observeClass match {
         case ObserveClass.Science     => "science"
@@ -212,23 +200,7 @@ object ObsKeywordReader {
 
       override def releaseDate: F[String] = calcReleaseDate
 
-      override def obsObject: F[String] = (step.stepConfig match {
-        case StepConfig.Bias                => "Bias"
-        case StepConfig.Dark                => "Dark"
-        case StepConfig.Gcal(lamp, _, _, _) =>
-          lamp.toEither.fold[String](
-            _ => "GCALflat",
-            _.toList
-              .map {
-                case GcalArc.ArArc   => "Ar"
-                case GcalArc.ThArArc => "ThAr"
-                case GcalArc.CuArArc => "CuAr"
-                case GcalArc.XeArc   => "Xe"
-              }
-              .mkString("", ",", "")
-          )
-        case _                              => ""
-      }).pure[F]
+      override def obsObject: F[String] = ObsKeywordReader.obsObject(step.stepConfig).pure[F]
 
       override def geminiQA: F[String] = "UNKNOWN".pure[F]
 
@@ -239,4 +211,37 @@ object ObsKeywordReader {
       override def astrometicField: F[Boolean] = false.pure[F]
 
     }
+
+  def obsType(stepConfig: StepConfig): String =
+    stepConfig match {
+      case StepConfig.Bias             => "BIAS"
+      case StepConfig.Dark             => "DARK"
+      case StepConfig.Gcal(l, _, _, _) =>
+        l.lampType match {
+          case GcalLampType.Arc  => "ARC"
+          case GcalLampType.Flat => "FLAT"
+        }
+      case StepConfig.Science          => "OBJECT"
+      case StepConfig.SmartGcal(_)     => "FLAT" // It should never get this case
+    }
+
+  def obsObject(stepConfig: StepConfig): String =
+    stepConfig match {
+      case StepConfig.Bias                => "Bias"
+      case StepConfig.Dark                => "Dark"
+      case StepConfig.Gcal(lamp, _, _, _) =>
+        lamp.toEither.fold[String](
+          _ => "GCALflat",
+          _.toList
+            .map {
+              case GcalArc.ArArc   => "Ar"
+              case GcalArc.ThArArc => "ThAr"
+              case GcalArc.CuArArc => "CuAr"
+              case GcalArc.XeArc   => "Xe"
+            }
+            .mkString("", ",", "")
+        )
+      case _                              => ""
+    }
+
 }

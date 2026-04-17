@@ -45,7 +45,7 @@ trait InstrumentActions[F[_]] {
   /**
    * Indicates if we should run the initial observe actions e.g. requesting a file Id
    */
-  def runInitialAction(stepType: StepType): Boolean
+  def runInitialAction(stepType: StepKind): Boolean
 }
 
 object InstrumentActions {
@@ -92,7 +92,7 @@ object InstrumentActions {
             .handleErrorWith(catchObsErrors[F])
         )
 
-      def runInitialAction(stepType: StepType): Boolean = true
+      def runInitialAction(stepType: StepKind): Boolean = true
     }
 
 }

@@ -185,7 +185,7 @@ class StepsViewSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setImageQuality(iq, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.iq).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.iq).get).exists { op =>
       op == iq
     }).assert
   }
@@ -196,7 +196,7 @@ class StepsViewSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setWaterVapor(wv, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.wv).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.wv).get).exists { op =>
       op === wv
     }).assert
   }
@@ -207,7 +207,7 @@ class StepsViewSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setCloudExtinction(ce, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.ce).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.ce).get).exists { op =>
       op === ce
     }).assert
   }
@@ -218,7 +218,7 @@ class StepsViewSuite extends TestCommon {
     for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setSkyBackground(sb, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.sb).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.sb).get).exists { op =>
       op === sb
     }
   }

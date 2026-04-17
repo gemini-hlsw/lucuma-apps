@@ -7,7 +7,6 @@ import cats.Applicative
 import cats.data.NonEmptySet
 import cats.effect.Async
 import cats.effect.Ref
-import cats.effect.Sync
 import cats.effect.Temporal
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
@@ -17,9 +16,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
-import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.SignalToNoise
-import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
@@ -30,10 +27,12 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
+import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.igrins2.{Igrins2DynamicConfig, Igrins2StaticConfig}
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.ObservationDB.Scalars.Timestamp
 import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
@@ -43,35 +42,18 @@ import observe.model.enums.Resource
 import observe.model.extensions.*
 import observe.server.InstrumentSystem.*
 import observe.server.ObserveFailure.Unexpected
+import observe.server.Systems.OverriddenSystems
 import observe.server.altair.Altair
-import observe.server.altair.AltairController
-import observe.server.altair.AltairControllerDisabled
 import observe.server.engine.*
 import observe.server.engine.Action.ActionState
 import observe.server.flamingos2.Flamingos2
-import observe.server.flamingos2.Flamingos2Controller
-import observe.server.flamingos2.Flamingos2ControllerDisabled
-import observe.server.flamingos2.Flamingos2Header
 import observe.server.gcal.*
 import observe.server.gems.Gems
-import observe.server.gems.GemsController
-import observe.server.gems.GemsControllerDisabled
-import observe.server.gmos.GmosController.GmosSite
-import observe.server.gmos.GmosControllerDisabled
-import observe.server.gmos.GmosHeader
+import observe.server.ghost.Ghost
 import observe.server.gmos.GmosNorth
-import observe.server.gmos.GmosNorth.given
-import observe.server.gmos.GmosNorthController
-import observe.server.gmos.GmosObsKeywordsReader
 import observe.server.gmos.GmosSouth
-import observe.server.gmos.GmosSouth.given
-import observe.server.gmos.GmosSouthController
-import observe.server.gmos.NSObserveCommand
 import observe.server.gws.GwsHeader
 import observe.server.igrins2.Igrins2
-import observe.server.igrins2.Igrins2Controller
-import observe.server.igrins2.Igrins2ControllerDisabled
-import observe.server.igrins2.Igrins2Header
 import observe.server.keywords.*
 import observe.server.odb.OdbObservationData
 import observe.server.tcs.*
@@ -106,14 +88,13 @@ trait SeqTranslate[F[_]] {
 object SeqTranslate {
 
   class SeqTranslateImpl[F[_]: {Async, Logger}](
-    site:                             Site,
-    systemss:                         Systems[F],
-    gmosNsCmd:                        Ref[F, Option[NSObserveCommand]],
-    @annotation.unused conditionsRef: Ref[F, Conditions],
-    environment:                      ExecutionEnvironment
+    site:                   Site,
+    systemss:               Systems[F],
+    environment:            ExecutionEnvironment,
+    instrumentStepBuilders: InstrumentStepBuilders[F]
   ) extends SeqTranslate[F] {
 
-    private val overriddenSystems = new OverriddenSystems[F](systemss)
+    private val overriddenSystems = new Systems.OverriddenSystems[F](systemss)
 
     private def translateStep[S, D](
       observation:   OdbObservation,
@@ -122,18 +103,14 @@ object SeqTranslate {
       step:          OdbStep[D],
       signalToNoise: Option[SignalToNoise],
       dataIdx:       PosInt,
-      stepType:      StepType,
-      insSpec:       InstrumentSpecifics[S, D],
-      instf:         SystemOverrides => InstrumentSystem[F],
-      instHeader:    KeywordsClient[F] => Header[F],
+      insStep:       InstrumentStep[F],
       mkStepGen:     StepGen.Factory[F, D]
     ): StepGen[F] = {
 
       def buildStep(
         dataId:    DataId,
         otherSysf: Map[Resource, SystemOverrides => System[F]],
-        headers:   SystemOverrides => HeaderExtraData => List[Header[F]],
-        stepType:  StepType
+        headers:   SystemOverrides => HeaderExtraData => List[Header[F]]
       ): StepGen[F] = {
 
         val configs: Map[Subsystem, SystemOverrides => Action[F]] =
@@ -142,20 +119,22 @@ object SeqTranslate {
             r -> { (ov: SystemOverrides) =>
               sf(ov).configure.as(Response.Configured(r)).toAction(kind)
             }
-          } + (insSpec.instrument -> { (ov: SystemOverrides) =>
-            instf(ov).configure
-              .as(Response.Configured(insSpec.instrument))
-              .toAction(ActionType.Configure(insSpec.instrument))
+          } + (insStep.instrument -> { (ov: SystemOverrides) =>
+            insStep
+              .instrumentSystem(ov)
+              .configure
+              .as(Response.Configured(insStep.instrument))
+              .toAction(ActionType.Configure(insStep.instrument))
           })
 
         def rest(ctx: HeaderExtraData, ov: SystemOverrides): List[ParallelActions[F]] = {
-          val inst = instf(ov)
+          val inst = insStep.instrumentSystem(ov)
           val env  = ObserveEnvironment(
             systemss.odb,
             overriddenSystems.dhs(ov),
-            stepType,
+            insStep.stepType,
             observation.id,
-            instf(ov),
+            inst,
             otherSysf.values.toList.map(_(ov)),
             headers(ov),
             ctx,
@@ -169,8 +148,8 @@ object SeqTranslate {
           sequenceType = sequenceType,
           id = step.id,
           dataId = dataId,
-          resources = otherSysf.keys.toSet + insSpec.instrument,
-          obsControl = (ov: SystemOverrides) => instf(ov).observeControl,
+          resources = otherSysf.keys.toSet + insStep.instrument,
+          obsControl = (ov: SystemOverrides) => insStep.instrumentSystem(ov).observeControl,
           generator = StepActionsGen(
             systemss.odb
               .stepStartStep(observation.id, step.id)
@@ -212,10 +191,11 @@ object SeqTranslate {
 
       buildStep(
         DataId(s"${observation.title}-$dataIdx"),
-        calcSystems(observation, step.telescopeConfig, step.instrumentConfig, stepType, insSpec),
+        calcSystems(observation, step.telescopeConfig, insStep),
         (ov: SystemOverrides) =>
-          calcHeaders(observation, step, stepType, instHeader)(instf(ov).keywordsClient),
-        stepType
+          calcHeaders(observation, step, insStep.stepType, insStep.instrumentHeader)(
+            insStep.instrumentSystem(ov).keywordsClient
+          )
       )
     }
 
@@ -283,21 +263,11 @@ object SeqTranslate {
 
     private def buildStep[S, D](
       observation:     OdbObservation,
+      obsTime:         Timestamp,
       executionConfig: ExecutionConfig[S, D],
       // Either a Step.Id is specified, or a sequence type to pick the next step from.
       stepIdFrom:      Either[SequenceType, OdbStep.Id],
-      insSpec:         InstrumentSpecifics[S, D],
-      instf:           (
-        SystemOverrides,
-        CoreStepType,
-        StepType,
-        D,
-        TelescopeConfig,
-        ObserveClass
-      ) => InstrumentSystem[
-        F
-      ],
-      instHeader:      D => KeywordsClient[F] => Header[F],
+      insStepBuilder:  InstrumentStepBuilder[F, S, D],
       mkStepGen:       StepGen.Factory[F, D],
       startIdx:        PosInt = PosInt.unsafeFrom(1)
     ): (List[Throwable], Option[StepGen[F]]) = {
@@ -309,14 +279,15 @@ object SeqTranslate {
 
       stepInfo
         .map: (step, atomId, seqType) =>
-          insSpec
-            .calcStepType(
-              step.stepConfig,
-              executionConfig.static,
-              step.instrumentConfig,
-              step.observeClass
+          insStepBuilder
+            .build(OverriddenSystems[F](systemss),
+                   step.stepConfig.stepType,
+                   observation.targetEnvironment,
+                   executionConfig.static,
+                   step,
+                   obsTime
             )
-            .map: stepType =>
+            .map: insStep =>
               translateStep(
                 observation,
                 atomId,
@@ -324,17 +295,7 @@ object SeqTranslate {
                 step,
                 stepSignalToNoise(observation.signalToNoise, step.instrumentConfig, seqType),
                 startIdx,
-                stepType,
-                insSpec,
-                (ov: SystemOverrides) =>
-                  instf(ov,
-                        step.stepConfig.stepType,
-                        stepType,
-                        step.instrumentConfig,
-                        step.telescopeConfig,
-                        step.observeClass
-                  ),
-                instHeader(step.instrumentConfig),
+                insStep,
                 mkStepGen
               )
             .fold(
@@ -485,21 +446,13 @@ object SeqTranslate {
     private def flatOrArcTcsSubsystems(inst: Instrument): NonEmptySet[TcsController.Subsystem] =
       NonEmptySet.of(AGUnit, (if (inst.hasOI) List(OIWFS) else List.empty)*)
 
-    private def extractWavelength[D](dynamicConfig: D): Option[Wavelength] = dynamicConfig match {
-      case gn: gmos.DynamicConfig.GmosNorth => gn.centralWavelength
-      case gs: gmos.DynamicConfig.GmosSouth => gs.centralWavelength
-      case f2: Flamingos2DynamicConfig      => f2.centralWavelength.some
-      case i2: Igrins2DynamicConfig         => Igrins2CentralWavelength.some
-    }
-
-    private def getTcs[S, D](
+    private def getTcs(
       subs:            NonEmptySet[TcsController.Subsystem],
       useGaos:         Boolean,
-      inst:            InstrumentSpecifics[S, D],
+      inst:            InstrumentStep[F],
       lsource:         LightSource,
       observation:     OdbObservation,
-      telescopeConfig: TelescopeConfig,
-      dynamicConfig:   D
+      telescopeConfig: TelescopeConfig
     ): SystemOverrides => System[F] = site match {
       case Site.GS =>
         if (useGaos) { (ov: SystemOverrides) =>
@@ -512,16 +465,18 @@ object SeqTranslate {
           )(
             observation.targetEnvironment,
             telescopeConfig,
-            LightPath(lsource, inst.sfName(dynamicConfig)),
-            extractWavelength(dynamicConfig)
+            LightPath(lsource, inst.sfName),
+            inst.centralWavelength,
+            inst.defocusB
           ): System[F]
         } else { (ov: SystemOverrides) =>
           TcsSouth
             .fromConfig[F](overriddenSystems.tcsSouth(ov), subs, None, inst, systemss.guideDb)(
               observation.targetEnvironment,
               telescopeConfig,
-              LightPath(lsource, inst.sfName(dynamicConfig)),
-              extractWavelength(dynamicConfig)
+              LightPath(lsource, inst.sfName),
+              inst.centralWavelength,
+              inst.defocusB
             ): System[F]
         }
 
@@ -536,26 +491,26 @@ object SeqTranslate {
           )(
             observation.targetEnvironment,
             telescopeConfig,
-            LightPath(lsource, inst.sfName(dynamicConfig)),
-            extractWavelength(dynamicConfig)
+            LightPath(lsource, inst.sfName),
+            inst.centralWavelength,
+            inst.defocusB
           ): System[F]
         } else { (ov: SystemOverrides) =>
           TcsNorth
             .fromConfig[F](overriddenSystems.tcsNorth(ov), subs, none, inst, systemss.guideDb)(
               observation.targetEnvironment,
               telescopeConfig,
-              LightPath(lsource, inst.sfName(dynamicConfig)),
-              extractWavelength(dynamicConfig)
+              LightPath(lsource, inst.sfName),
+              inst.centralWavelength,
+              inst.defocusB
             ): System[F]
         }
     }
 
-    private def calcSystems[S, D](
+    private def calcSystems[S](
       observation:     OdbObservation,
       telescopeConfig: TelescopeConfig,
-      dynamicConfig:   D,
-      stepType:        StepType,
-      instSpec:        InstrumentSpecifics[S, D]
+      insStep:         InstrumentStep[F]
     ): Map[Resource, SystemOverrides => System[F]] = {
 
       def adaptGcal(b: GcalController[F] => Gcal[F])(ov: SystemOverrides): Gcal[F] =
@@ -563,136 +518,96 @@ object SeqTranslate {
 
       def defaultGcal: SystemOverrides => Gcal[F] = adaptGcal(Gcal.defaultGcal)
 
-      stepType match {
-        case StepType.CelestialObject(inst) =>
+      insStep.stepType match {
+        case StepKind.CelestialObject(inst) =>
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               useGaos = false,
-              instSpec,
+              insStep,
               TcsController.LightSource.Sky,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
           )
 
-        case StepType.NodAndShuffle(inst) =>
+        case StepKind.NodAndShuffle(inst) =>
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi),
               useGaos = false,
-              instSpec,
+              insStep,
               TcsController.LightSource.Sky,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
           )
 
-        case StepType.FlatOrArc(inst, gcalCfg) =>
+        case StepKind.FlatOrArc(inst, gcalCfg) =>
           Map(
             Resource.TCS  -> getTcs(
               flatOrArcTcsSubsystems(inst),
               useGaos = false,
-              instSpec,
+              insStep,
               TcsController.LightSource.GCAL,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
           )
 
-        case StepType.NightFlatOrArc(_, gcalCfg) =>
+        case StepKind.NightFlatOrArc(_, gcalCfg) =>
           Map(
             Resource.TCS  -> getTcs(
               NonEmptySet.of(AGUnit, OIWFS, M2, M1, Mount),
               useGaos = false,
-              instSpec,
+              insStep,
               TcsController.LightSource.GCAL,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> adaptGcal(Gcal.fromConfig(site === Site.GS, gcalCfg))
           )
 
-        case StepType.DarkOrBias(_) => Map.empty[Resource, SystemOverrides => System[F]]
+        case StepKind.DarkOrBias(_) => Map.empty[Resource, SystemOverrides => System[F]]
 
-        case StepType.ExclusiveDarkOrBias(_) | StepType.DarkOrBiasNS(_) =>
+        case StepKind.ExclusiveDarkOrBias(_) | StepKind.DarkOrBiasNS(_) =>
           Map[Resource, SystemOverrides => System[F]](
             Resource.Gcal -> defaultGcal
           )
 
-        case StepType.AltairObs(inst) =>
+        case StepKind.AltairObs(inst) =>
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               useGaos = true,
-              instSpec,
+              insStep,
               TcsController.LightSource.AO,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
           )
 
         // case StepType.AlignAndCalib => Map.empty[Resource, SystemOverrides => System[F]]
 
-        case StepType.Gems(inst) =>
+        case StepKind.Gems(inst) =>
           Map(
             Resource.TCS  -> getTcs(
               inst.hasOI.fold(allButGaos, allButGaosNorOi).add(Gaos),
               useGaos = true,
-              instSpec,
+              insStep,
               TcsController.LightSource.AO,
               observation,
-              telescopeConfig,
-              dynamicConfig
+              telescopeConfig
             ),
             Resource.Gcal -> defaultGcal
           )
       }
     }
 
-//    private def calcInstHeader(
-//      config:     CleanConfig,
-//      instrument: Instrument,
-//      kwClient:   KeywordsClient[F]
-//    ): Header[F] =
-//      instrument match {
-//        case Instrument.F2                       =>
-//          Flamingos2Header.header[F](kwClient,
-//                                     Flamingos2Header.ObsKeywordsReaderODB(config),
-//                                     systemss.tcsKeywordReader
-//          )
-//        case Instrument.GmosS | Instrument.GmosN =>
-//          GmosHeader.header[F](kwClient,
-//                               GmosObsKeywordsReader(config),
-//                               systemss.gmosKeywordReader,
-//                               systemss.tcsKeywordReader
-//          )
-//        case Instrument.Gnirs                    =>
-//          GnirsHeader.header[F](kwClient, systemss.gnirsKeywordReader, systemss.tcsKeywordReader)
-//        case Instrument.Gpi                      =>
-//          GpiHeader.header[F](systemss.gpi.gdsClient,
-//                              systemss.tcsKeywordReader,
-//                              ObsKeywordReader[F](config, site)
-//          )
-//        case Instrument.Ghost                    =>
-//          GhostHeader.header[F]
-//        case Instrument.Niri                     =>
-//          NiriHeader.header[F](kwClient, systemss.niriKeywordReader, systemss.tcsKeywordReader)
-//        case Instrument.Nifs                     =>
-//          NifsHeader.header[F](kwClient, systemss.nifsKeywordReader, systemss.tcsKeywordReader)
-//        case Instrument.Gsaoi                    =>
-//          GsaoiHeader.header[F](kwClient, systemss.tcsKeywordReader, systemss.gsaoiKeywordReader)
-//      }
-//
     private def commonHeaders[D](
       obsCfg:        OdbObservation,
       stepCfg:       OdbStep[D],
@@ -735,10 +650,10 @@ object SeqTranslate {
     private def calcHeaders[D](
       obsCfg:     OdbObservation,
       stepCfg:    OdbStep[D],
-      stepType:   StepType,
+      stepType:   StepKind,
       instHeader: KeywordsClient[F] => Header[F]
     ): KeywordsClient[F] => HeaderExtraData => List[Header[F]] = stepType match {
-      case StepType.CelestialObject(_) | StepType.NodAndShuffle(_) =>
+      case StepKind.CelestialObject(_) | StepKind.NodAndShuffle(_) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             List(
@@ -747,7 +662,7 @@ object SeqTranslate {
               instHeader(kwClient)
             )
 
-      case StepType.AltairObs(_) =>
+      case StepKind.AltairObs(_) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             // Order is important
@@ -759,7 +674,7 @@ object SeqTranslate {
               instHeader(kwClient)
             )
 
-      case StepType.FlatOrArc(inst, _) =>
+      case StepKind.FlatOrArc(inst, _) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             List(
@@ -769,7 +684,7 @@ object SeqTranslate {
               instHeader(kwClient)
             )
 
-      case StepType.NightFlatOrArc(_, _) =>
+      case StepKind.NightFlatOrArc(_, _) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             List(
@@ -779,7 +694,7 @@ object SeqTranslate {
               instHeader(kwClient)
             )
 
-      case StepType.DarkOrBias(_) | StepType.DarkOrBiasNS(_) | StepType.ExclusiveDarkOrBias(_) =>
+      case StepKind.DarkOrBias(_) | StepKind.DarkOrBiasNS(_) | StepKind.ExclusiveDarkOrBias(_) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             List(
@@ -792,7 +707,7 @@ object SeqTranslate {
 //        (_: KeywordsClient[F]) =>
 //          (_: HeaderExtraData) => List.empty[Header[F]] // No headers for A&C
 
-      case StepType.Gems(_) =>
+      case StepKind.Gems(_) =>
         (kwClient: KeywordsClient[F]) =>
           (ctx: HeaderExtraData) =>
             List(
@@ -807,232 +722,110 @@ object SeqTranslate {
       odbObsData: OdbObservationData,
       stepIdFrom: Either[SequenceType, OdbStep.Id]
     ): (List[Throwable], Option[StepGen[F]]) =
-      odbObsData.executionConfig match {
-        case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
-          buildStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
-            odbObsData.observation,
-            executionConfig,
-            stepIdFrom,
-            GmosNorth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
-              GmosNorth.build(
-                overriddenSystems.gmosNorth(systemOverrides),
-                overriddenSystems.dhs(systemOverrides),
-                gmosNsCmd,
-                stepType,
-                executionConfig.static,
-                dynamicConfig
-              ),
-            (dynamicConfig: gmos.DynamicConfig.GmosNorth) =>
-              (kwClient: KeywordsClient[F]) =>
-                GmosHeader.header(
-                  kwClient,
-                  GmosObsKeywordsReader(executionConfig.static, dynamicConfig),
-                  systemss.gmosKeywordReader,
-                  systemss.tcsKeywordReader
-                ),
-            StepGen.GmosNorth[F](_, _, _, _, _, _, _, _, _, _, _, _)
+      odbObsData.observation.observationTime
+        .map { obsTime =>
+          odbObsData.executionConfig match {
+            case InstrumentExecutionConfig.GmosNorth(executionConfig)  =>
+              buildStep[gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth](
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.gmosNorth,
+                StepGen.GmosNorth[F]
+              )
+            case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
+              buildStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.gmosSouth,
+                StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _, _)
+              )
+            case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
+              buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.flamingos2,
+                StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _, _)
+              )
+            case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
+              buildStep(
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.igrins2,
+                StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
+              )
+            case InstrumentExecutionConfig.Ghost(executionConfig)      =>
+              buildStep(
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.ghost,
+                StepGen.Ghost[F](_, _, _, _, _, _, _, _, _, _, _, _)
+              )
+            case InstrumentExecutionConfig.Gnirs(_)                    => ???
+            case InstrumentExecutionConfig.Visitor(_)                  => ???
+          }
+        }
+        .getOrElse(
+          (List(
+             ObserveFailure
+               .OdbSeqError(s"Observing time not set for observation ${odbObsData.observation.id}")
+           ),
+           none
           )
-        case InstrumentExecutionConfig.GmosSouth(executionConfig)  =>
-          buildStep[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
-            odbObsData.observation,
-            executionConfig,
-            stepIdFrom,
-            GmosSouth.specifics,
-            (systemOverrides, _, stepType, dynamicConfig, _, _) =>
-              GmosSouth.build(
-                overriddenSystems.gmosSouth(systemOverrides),
-                overriddenSystems.dhs(systemOverrides),
-                gmosNsCmd,
-                stepType,
-                executionConfig.static,
-                dynamicConfig
-              ),
-            (dynamicConfig: gmos.DynamicConfig.GmosSouth) =>
-              (kwClient: KeywordsClient[F]) =>
-                GmosHeader.header(
-                  kwClient,
-                  GmosObsKeywordsReader(executionConfig.static, dynamicConfig),
-                  systemss.gmosKeywordReader,
-                  systemss.tcsKeywordReader
-                ),
-            StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _, _)
-          )
-        case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
-          buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
-            odbObsData.observation,
-            executionConfig,
-            stepIdFrom,
-            Flamingos2.specifics,
-            (systemOverrides, coreStepType, _, dynamicConfig, _, _) =>
-              Flamingos2.build(
-                overriddenSystems.flamingos2(systemOverrides),
-                overriddenSystems.dhs(systemOverrides),
-                coreStepType,
-                dynamicConfig
-              ),
-            (dynamicConfig: Flamingos2DynamicConfig) =>
-              (kwClient: KeywordsClient[F]) =>
-                Flamingos2Header.header(
-                  kwClient,
-                  Flamingos2Header.ObsKeywordsReader(
-                    executionConfig.static,
-                    dynamicConfig
-                  ),
-                  systemss.tcsKeywordReader
-                ),
-            StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _, _)
-          )
-        case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
-          buildStep(
-            odbObsData.observation,
-            executionConfig,
-            stepIdFrom,
-            Igrins2.specifics,
-            (systemOverrides, _, _, dynamicConfig, telescopeConfig, observeClass) =>
-              Igrins2.build(
-                overriddenSystems.igrins2(systemOverrides),
-                dynamicConfig,
-                telescopeConfig,
-                observeClass
-              ),
-            (_: Igrins2DynamicConfig) =>
-              (kwClient: KeywordsClient[F]) =>
-                Igrins2Header.header(
-                  kwClient,
-                  systemss.tcsKeywordReader
-                ),
-            StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
-          )
-        case InstrumentExecutionConfig.Ghost(_)                    =>
-          ???
-        case InstrumentExecutionConfig.Gnirs(_)                    =>
-          ???
-        case InstrumentExecutionConfig.Visitor(_)                  =>
-          ???
-      }
+        )
   }
 
   def apply[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
-    conditionsRef: Ref[F, Conditions],
+    conditionsRef: Ref[F, CurrentConditions],
     environment:   ExecutionEnvironment
-  ): F[SeqTranslate[F]] =
-    Ref
-      .of[F, Option[NSObserveCommand]](none)
-      .map(new SeqTranslateImpl(site, systems, _, conditionsRef, environment))
-
-//  def dataIdFromConfig[F[_]: MonadThrow](config: CleanConfig): F[DataId] =
-//    EitherT
-//      .fromEither[F](
-//        config
-//          .extractObsAs[String](DATA_LABEL_PROP)
-//          .map(toDataId)
-//          .leftMap(e => ObserveFailure.Unexpected(ConfigUtilOps.explain(e)))
-//      )
-//      .widenRethrowT
-
-  class OverriddenSystems[F[_]: {Sync, Logger}](systems: Systems[F]) {
-
-    private val tcsSouthDisabled: TcsSouthController[F]     = new TcsSouthControllerDisabled[F]
-    private val tcsNorthDisabled: TcsNorthController[F]     = new TcsNorthControllerDisabled[F]
-    private val gemsDisabled: GemsController[F]             = new GemsControllerDisabled[F]
-    private val altairDisabled: AltairController[F]         = new AltairControllerDisabled[F]
-    private val dhsDisabled: DhsClientProvider[F]           = (_: String) => new DhsClientDisabled[F]
-    private val gcalDisabled: GcalController[F]             = new GcalControllerDisabled[F]
-    private val flamingos2Disabled: Flamingos2Controller[F] = new Flamingos2ControllerDisabled[F]
-    private val igrins2Disabled: Igrins2Controller[F]       = new Igrins2ControllerDisabled[F]
-    private val gmosSouthDisabled: GmosSouthController[F]   =
-      new GmosControllerDisabled[F, GmosSite.South.type]("GMOS-S")
-    private val gmosNorthDisabled: GmosNorthController[F]   =
-      new GmosControllerDisabled[F, GmosSite.North.type]("GMOS-N")
-//    private val gsaoiDisabled: GsaoiController[F]           = new GsaoiControllerDisabled[F]
-//    private val gpiDisabled: GpiController[F]               = new GpiControllerDisabled[F](systems.gpi.statusDb)
-//    private val ghostDisabled: GhostController[F]           = new GhostControllerDisabled[F]
-//    private val nifsDisabled: NifsController[F]             = new NifsControllerDisabled[F]
-//    private val niriDisabled: NiriController[F]             = new NiriControllerDisabled[F]
-//    private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
-
-    def tcsSouth(overrides: SystemOverrides): TcsSouthController[F] =
-      if (overrides.isTcsEnabled.value) systems.tcsSouth
-      else tcsSouthDisabled
-
-    def tcsNorth(overrides: SystemOverrides): TcsNorthController[F] =
-      if (overrides.isTcsEnabled.value) systems.tcsNorth
-      else tcsNorthDisabled
-
-    def gems(overrides: SystemOverrides): GemsController[F] =
-      if (overrides.isTcsEnabled.value) systems.gems
-      else gemsDisabled
-
-    def altair(overrides: SystemOverrides): AltairController[F] =
-      if (overrides.isTcsEnabled.value) systems.altair
-      else altairDisabled
-
-    def dhs(overrides: SystemOverrides): DhsClientProvider[F] =
-      if (overrides.isDhsEnabled.value) systems.dhs
-      else dhsDisabled
-
-    def gcal(overrides: SystemOverrides): GcalController[F] =
-      if (overrides.isGcalEnabled.value) systems.gcal
-      else gcalDisabled
-
-    def flamingos2(overrides: SystemOverrides): Flamingos2Controller[F] =
-      if (overrides.isInstrumentEnabled) systems.flamingos2
-      else flamingos2Disabled
-
-    def gmosNorth(overrides: SystemOverrides): GmosNorthController[F] =
-      if (overrides.isInstrumentEnabled.value) systems.gmosNorth
-      else gmosNorthDisabled
-
-    def gmosSouth(overrides: SystemOverrides): GmosSouthController[F] =
-      if (overrides.isInstrumentEnabled.value) systems.gmosSouth
-      else gmosSouthDisabled
-
-    def igrins2(overrides: SystemOverrides): Igrins2Controller[F] =
-      if (overrides.isInstrumentEnabled.value) systems.igrins2
-      else igrins2Disabled
-
-//    def gsaoi(overrides: SystemOverrides): GsaoiController[F] =
-//      if (overrides.isInstrumentEnabled) systems.gsaoi
-//      else gsaoiDisabled
-//
-//    def gpi(overrides: SystemOverrides): GpiController[F] =
-//      if (overrides.isInstrumentEnabled) systems.gpi
-//      else gpiDisabled
-//
-//    def ghost(overrides: SystemOverrides): GhostController[F] =
-//      if (overrides.isInstrumentEnabled) systems.ghost
-//      else ghostDisabled
-//
-//    def nifs(overrides: SystemOverrides): NifsController[F] =
-//      if (overrides.isInstrumentEnabled) systems.nifs
-//      else nifsDisabled
-//
-//    def niri(overrides: SystemOverrides): NiriController[F] =
-//      if (overrides.isInstrumentEnabled) systems.niri
-//      else niriDisabled
-//
-//    def gnirs(overrides: SystemOverrides): GnirsController[F] =
-//      if (overrides.isInstrumentEnabled) systems.gnirs
-//      else gnirsDisabled
-
-  }
+  ): F[SeqTranslate[F]] = (
+    for {
+      gmosN   <- GmosNorth.build
+      gmosS   <- GmosSouth.build
+      f2      <- Flamingos2.build
+      ghost   <- Ghost.instrumentStepBuilder(conditionsRef)
+      igrins2 <- Igrins2.build
+    } yield InstrumentStepBuilders[F](
+      f2,
+      gmosN,
+      gmosS,
+      ghost,
+      igrins2
+    )
+  ).map(x => new SeqTranslateImpl(site, systems, environment, x))
 
   def calcStepType(
     inst:       Instrument,
     stepConfig: StepConfig,
     obsClass:   ObserveClass
-  ): Either[ObserveFailure, StepType] = stepConfig match {
-    case StepConfig.Bias | StepConfig.Dark => StepType.DarkOrBias(inst).asRight
+  ): Either[ObserveFailure, StepKind] = stepConfig match {
+    case StepConfig.Bias | StepConfig.Dark => StepKind.DarkOrBias(inst).asRight
     case c: StepConfig.Gcal                =>
-      if (obsClass =!= ObserveClass.DayCal && inst.hasOI) StepType.NightFlatOrArc(inst, c).asRight
-      else StepType.FlatOrArc(inst, c).asRight
+      if (obsClass =!= ObserveClass.DayCal && inst.hasOI) StepKind.NightFlatOrArc(inst, c).asRight
+      else StepKind.FlatOrArc(inst, c).asRight
     case StepConfig.Science                =>
       // TODO: Here goes the logic to differentiate between a non GAOS, GeMS ot Altair observation.
-      StepType.CelestialObject(inst).asRight
+      StepKind.CelestialObject(inst).asRight
     case StepConfig.SmartGcal(_)           => Unexpected("Smart GCAL is not supported").asLeft
   }
+
+  case class InstrumentStepBuilders[F[_]](
+    flamingos2: InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig],
+    gmosNorth:  InstrumentStepBuilder[F, gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth],
+    gmosSouth:  InstrumentStepBuilder[F, gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth],
+    ghost:      InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig],
+    igrins2:    InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig]
+  )
 
 }

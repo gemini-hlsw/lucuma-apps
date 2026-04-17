@@ -16,7 +16,7 @@ import lucuma.core.enums.Site
 import lucuma.core.util.TimeSpan
 import observe.common.test.*
 import observe.model.ActionType
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.SequenceStatus
 import observe.model.SystemOverrides
 import observe.model.dhs.*
@@ -197,7 +197,7 @@ class SeqTranslateSuite extends TestCommon {
 
   private val translator: IO[SeqTranslate[IO]] = for {
     systems <- defaultSystems
-    c       <- Ref.of[IO, Conditions](Conditions.Default)
+    c       <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
     st      <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
   } yield st
 

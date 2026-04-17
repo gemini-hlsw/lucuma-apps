@@ -242,6 +242,17 @@ object GmosController {
       case South.type => lucuma.core.enums.GmosSouthGrating
       case North.type => lucuma.core.enums.GmosNorthGrating
     }
+
+    type StaticConfig[T <: GmosSite] = T match {
+      case South.type => lucuma.core.model.sequence.gmos.StaticConfig.GmosSouth
+      case North.type => lucuma.core.model.sequence.gmos.StaticConfig.GmosNorth
+    }
+
+    type DynamicConfig[T <: GmosSite] = T match {
+      case South.type => lucuma.core.model.sequence.gmos.DynamicConfig.GmosSouth
+      case North.type => lucuma.core.model.sequence.gmos.DynamicConfig.GmosNorth
+    }
+
   }
 
 //  final class SouthConfigTypes extends Config[GmosSite.South.type]

@@ -24,6 +24,7 @@ import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.Resource
 import observe.server.ConfigResult
 import observe.server.InstrumentGuide
+import observe.server.Length
 import observe.server.ObserveFailure
 import observe.server.altair.Altair
 import observe.server.tcs.TcsController.*
@@ -90,7 +91,7 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
   private def buildBasicTcsConfig(gc: GuideConfig): F[TcsNorthConfig] =
     (BasicTcsConfig(
       gc.tcsGuide,
-      TelescopeConfig(config.offsetA, config.wavelA),
+      TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
       BasicGuidersConfig(
         P1Config(
           calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS1, M1Source.PWFS1),
@@ -128,7 +129,7 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
 
         AoTcsConfig[Site.GN.type](
           gc.tcsGuide,
-          TelescopeConfig(config.offsetA, config.wavelA),
+          TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
           AoGuidersConfig[AoGuide](
             P1Config(
               calcGuiderConfig(
@@ -178,14 +179,15 @@ class TcsNorth[F[_]: {Sync, Logger}] private (
 
 object TcsNorth {
   final case class TcsSeqConfig(
-    guideWithP1: Option[StepGuideState],
-    guideWithP2: Option[StepGuideState],
-    guideWithOI: Option[StepGuideState],
-    guideWithAO: Option[StepGuideState],
-    offsetA:     Option[InstrumentOffset],
-    wavelA:      Option[Wavelength],
-    lightPath:   LightPath,
-    instrument:  InstrumentGuide
+    guideWithP1:       Option[StepGuideState],
+    guideWithP2:       Option[StepGuideState],
+    guideWithOI:       Option[StepGuideState],
+    guideWithAO:       Option[StepGuideState],
+    offsetA:           Option[InstrumentOffset],
+    wavelA:            Option[Wavelength],
+    instrumentDefocus: Option[Length],
+    lightPath:         LightPath,
+    instrument:        InstrumentGuide
   )
 
   private[tcs] def config(
@@ -193,7 +195,8 @@ object TcsNorth {
     targets:             TargetEnvironment,
     telescopeConfig:     CoreTelescopeConfig,
     lightPath:           LightPath,
-    observingWavelength: Option[Wavelength]
+    observingWavelength: Option[Wavelength],
+    instrumentDefocus:   Option[Length]
   ): TcsSeqConfig = {
     val p: Offset.P = telescopeConfig.offset.p
     val q: Offset.Q = telescopeConfig.offset.q
@@ -223,6 +226,7 @@ object TcsNorth {
       gwao,
       offset,
       observingWavelength,
+      instrumentDefocus,
       lightPath,
       instrument
     )
@@ -238,9 +242,10 @@ object TcsNorth {
     targets:             TargetEnvironment,
     telescopeConfig:     CoreTelescopeConfig,
     lightPath:           LightPath,
-    observingWavelength: Option[Wavelength]
+    observingWavelength: Option[Wavelength],
+    defocus:             Option[Length]
   ): TcsNorth[F] = new TcsNorth(controller, subsystems, gaos, guideConfigDb)(
-    config(instrument, targets, telescopeConfig, lightPath, observingWavelength)
+    config(instrument, targets, telescopeConfig, lightPath, observingWavelength, defocus)
   )
 
 }

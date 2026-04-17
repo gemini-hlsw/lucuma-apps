@@ -30,6 +30,7 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.syntax.all.*
 import observe.server.InstrumentGuide
+import observe.server.Length
 import observe.server.keywords.USLocale
 import observe.server.tcs.*
 import observe.server.tcs.FocalPlaneScale.*
@@ -52,6 +53,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
     Angle.fromDoubleArcseconds(33.8),
     FocalPlaneOffset(OffsetX(0.0.withUnit[Millimeter]), OffsetY(0.0.withUnit[Millimeter])),
     Wavelength.fromIntMicrometers(400).get,
+    Length.Zero,
     GuiderConfig(ProbeTrackingConfig.Off, GuiderSensorOff),
     GuiderConfig(ProbeTrackingConfig.Off, GuiderSensorOff),
     GuiderConfig(ProbeTrackingConfig.Off, GuiderSensorOff),
@@ -86,7 +88,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
                          Some(false),
                          None
     ),
-    TelescopeConfig(None, None),
+    TelescopeConfig(None, None, None),
     BasicGuidersConfig(
       P1Config(GuiderConfig(ProbeTrackingConfig.Off, GuiderSensorOff)),
       P2Config(GuiderConfig(ProbeTrackingConfig.Off, GuiderSensorOff)),
@@ -885,7 +887,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
     )
 
     val config: BasicTcsConfig[Site.GS.type] = baseConfig.copy(
-      tc = TelescopeConfig(offsetDemand.some, wavelength.some)
+      tc = TelescopeConfig(offsetDemand.some, wavelength.some, None)
     )
 
     val genOut: IO[List[TestTcsEpics.TestTcsEvent]] = for {
@@ -927,7 +929,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
     )
 
     val config: BasicTcsConfig[Site.GS.type] = baseConfig.copy(
-      tc = TelescopeConfig(offset.some, wavelength.some)
+      tc = TelescopeConfig(offset.some, wavelength.some, None)
     )
 
     val genOut: IO[List[TestTcsEpics.TestTcsEvent]] = for {
@@ -962,7 +964,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
     )
 
     val config: BasicTcsConfig[Site.GS.type] = baseConfig.copy(
-      tc = TelescopeConfig(None, wavelengthDemand.some)
+      tc = TelescopeConfig(None, wavelengthDemand.some, None)
     )
 
     val genOut: IO[List[TestTcsEpics.TestTcsEvent]] = for {
@@ -998,7 +1000,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
     )
 
     val config: BasicTcsConfig[Site.GS.type] = baseConfig.copy(
-      tc = TelescopeConfig(None, wavelength.some)
+      tc = TelescopeConfig(None, wavelength.some, None)
     )
 
     val genOut: IO[List[TestTcsEpics.TestTcsEvent]] = for {

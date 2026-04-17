@@ -18,6 +18,7 @@ import monocle.Getter
 import monocle.Lens
 import observe.model.enums.ApplyCommandResult
 import observe.server.EpicsCommand
+import observe.server.Length
 import observe.server.TestEpicsCommand.*
 import observe.server.tcs.TcsEpics.*
 import observe.server.tcs.TestTcsEpics.TestTcsEvent.AoCorrectCmd
@@ -773,6 +774,16 @@ case class TestTcsEpics[F[_]: Async](
       override def setName(v: String): F[Unit] = Applicative[F].unit
     }
 
+  override val instrumentDefocusCmd: InstrumentDefocusCmd[F] = new InstrumentDefocusCmd[F] {
+    override def setDefocus(v: Length): F[Unit] = Async[F].unit
+
+    override def post(timeout: TimeSpan): F[ApplyCommandResult] =
+      ApplyCommandResult.Completed.pure[F]
+
+    override def mark: F[Unit] = Async[F].unit
+  }
+
+  override def defocusB: F[Double] = 0.0.pure[F]
 }
 
 object TestTcsEpics {

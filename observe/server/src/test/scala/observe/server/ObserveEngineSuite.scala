@@ -37,7 +37,7 @@ import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.
 import observe.common.test.*
 import observe.model
 import observe.model.ClientId
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.SequenceStatus
@@ -56,6 +56,7 @@ import observe.server.engine.EventResult.SystemUpdate
 import observe.server.engine.LoadedStep
 import observe.server.engine.SequenceState
 import observe.server.engine.SystemEvent
+import observe.server.engine.SystemEvent.SequenceComplete
 import observe.server.engine.user
 import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
@@ -84,33 +85,33 @@ class ObserveEngineSuite extends TestCommon {
       f:     ObserveEngine[F] => F[Unit],
       until: PartialFunction[(EventResult, EngineState[F]), Boolean],
       tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
-    ): F[EngineState[F]] =
+    ): F[(EventResult, EngineState[F])] =
       for
-        _ <- f(oe)
-        s <- state.get
-        r <- oe.eventResultStream(s)
-               //  .evalTap(r => cats.effect.Sync[F].delay(println(s"**** ${r._1}"))) // Uncomment for debugging
-               .evalTap((r, s) => tap.lift((r, s)).getOrElse(Async[F].unit))
-               .takeThrough(r => !until.lift(r).getOrElse(false))
-               .compile
-               .last
-        s1 = r.get._2
-        _ <- state.set(s1)
-      yield s1
+        _  <- f(oe)
+        s  <- state.get
+        r  <- oe.eventResultStream(s)
+                //  .evalTap(r => cats.effect.Sync[F].delay(println(s"**** ${r._1}"))) // Uncomment for debugging
+                .evalTap((r, s) => tap.lift((r, s)).getOrElse(Async[F].unit))
+                .takeThrough(r => !until.lift(r).getOrElse(false))
+                .compile
+                .last
+        ret = r.get
+        _  <- state.set(ret._2)
+      yield ret
 
     def executeAndWaitResult(
       f:     ObserveEngine[F] => F[Unit],
       until: PartialFunction[EventResult, Boolean],
       tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
     ): F[EngineState[F]] =
-      executeAndWait(f, r => until.lift(r._1).getOrElse(false), tap)
+      executeAndWait(f, r => until.lift(r._1).getOrElse(false), tap).map(_._2)
 
     def executeAndWaitState(
       f:     ObserveEngine[F] => F[Unit],
       until: PartialFunction[EngineState[F], Boolean],
       tap:   PartialFunction[(EventResult, EngineState[F]), F[Unit]] = PartialFunction.empty
     ): F[EngineState[F]] =
-      executeAndWait(f, r => until.lift(r._2).getOrElse(false), tap)
+      executeAndWait(f, r => until.lift(r._2).getOrElse(false), tap).map(_._2)
   }
 
   test("ObserveEngine setOperator should set operator's name") {
@@ -130,7 +131,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setImageQuality(iq, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.iq).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.iq).get).exists { op =>
       op === iq
     }).assert
 
@@ -142,7 +143,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setWaterVapor(wv, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.wv).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.wv).get).exists { op =>
       op === wv
     }).assert
   }
@@ -153,7 +154,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setCloudExtinction(ce, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.ce).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.ce).get).exists { op =>
       op === ce
     }).assert
   }
@@ -164,7 +165,7 @@ class ObserveEngineSuite extends TestCommon {
     (for {
       oe <- observeEngine
       sf <- advanceN(oe, s0, oe.setSkyBackground(sb, user, clientId), 2)
-    } yield sf.flatMap(EngineState.conditions.andThen(Conditions.sb).get).exists { op =>
+    } yield sf.flatMap(EngineState.conditions.andThen(CurrentConditions.sb).get).exists { op =>
       op === sb
     }).assert
   }
@@ -252,7 +253,7 @@ class ObserveEngineSuite extends TestCommon {
                   SequenceState.loadedStep.replace:
                     LoadedStep(DummyStepGen, DummyExecutionZipper).some
               .as(SeqEvent.NullSeqEvent)
-      _                    <-
+      res                  <-
         eo.executeAndWait(
           _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
           {
@@ -264,9 +265,14 @@ class ObserveEngineSuite extends TestCommon {
                   state
                 ) => // Loaded step should have been cleared
               state.selected.gmosNorth.exists(_.loadedStep.isEmpty)
+            case (SystemUpdate(SequenceComplete(seqObsId1), Outcome.Ok), _) => true
           }
         )
-    } yield () // If the test completes, it's correct.
+    } yield res._1 match {
+      case SystemUpdate(SequenceComplete(_), Outcome.Ok) =>
+        fail("Sequence completed when it should not have even started.")
+      case _                                             => ()
+    }
   }
 
   test("ObserveEngine should run 2nd sequence when there are no shared resources") {
@@ -550,12 +556,14 @@ class ObserveEngineSuite extends TestCommon {
     val obs = ODBObservation(
       id = seqObsId1,
       title = "Test Observation".refined,
+      none,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
       TargetEnvironment(
+        List.empty,
         Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName)),
         GuideEnvironment(List.empty)
       ),
@@ -689,12 +697,13 @@ class ObserveEngineSuite extends TestCommon {
     val obs = ODBObservation(
       id = seqObsId1,
       title = "Test Observation".refined,
+      none,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      TargetEnvironment(None, GuideEnvironment(List.empty)),
+      TargetEnvironment(List.empty, None, GuideEnvironment(List.empty)),
       reqConditions,
       List.empty,
       ModeSignalToNoise.Spectroscopy(none, none)
@@ -719,12 +728,12 @@ class ObserveEngineSuite extends TestCommon {
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
-        .andThen(Conditions.iq)
+        .andThen(CurrentConditions.iq)
         .replace(ImageQuality.Preset.PointTwo.toImageQuality.some) >>>
-      EngineState.conditions.andThen(Conditions.wv).replace(WaterVapor.Median.some) >>>
-      EngineState.conditions.andThen(Conditions.sb).replace(SkyBackground.Dark.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Median.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Dark.some) >>>
       EngineState.conditions
-        .andThen(Conditions.ce)
+        .andThen(CurrentConditions.ce)
         .replace(CloudExtinction.Preset.PointFive.toCloudExtinction.some))
       .apply(EngineState.default[IO])
 
@@ -764,12 +773,12 @@ class ObserveEngineSuite extends TestCommon {
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
-        .andThen(Conditions.iq)
+        .andThen(CurrentConditions.iq)
         .replace(ImageQuality.Preset.OnePointZero.toImageQuality.some) >>>
-      EngineState.conditions.andThen(Conditions.wv).replace(WaterVapor.Dry.some) >>>
-      EngineState.conditions.andThen(Conditions.sb).replace(SkyBackground.Darkest.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Dry.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Darkest.some) >>>
       EngineState.conditions
-        .andThen(Conditions.ce)
+        .andThen(CurrentConditions.ce)
         .replace(CloudExtinction.Preset.OnePointZero.toCloudExtinction.some))
       .apply(EngineState.default[IO])
 
@@ -817,12 +826,12 @@ class ObserveEngineSuite extends TestCommon {
       EngineState.instrumentLoaded(Instrument.GmosNorth)
     ) >>>
       EngineState.conditions
-        .andThen(Conditions.iq)
+        .andThen(CurrentConditions.iq)
         .replace(ImageQuality.Preset.OnePointZero.toImageQuality.some) >>>
-      EngineState.conditions.andThen(Conditions.wv).replace(WaterVapor.Dry.some) >>>
-      EngineState.conditions.andThen(Conditions.sb).replace(SkyBackground.Darkest.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.wv).replace(WaterVapor.Dry.some) >>>
+      EngineState.conditions.andThen(CurrentConditions.sb).replace(SkyBackground.Darkest.some) >>>
       EngineState.conditions
-        .andThen(Conditions.ce)
+        .andThen(CurrentConditions.ce)
         .replace(CloudExtinction.Preset.OnePointZero.toCloudExtinction.some))
       .apply(EngineState.default[IO])
 

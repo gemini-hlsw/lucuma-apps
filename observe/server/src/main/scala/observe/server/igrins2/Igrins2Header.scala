@@ -16,7 +16,7 @@ import org.typelevel.log4cats.Logger
 
 object Igrins2Header:
 
-  def header[F[_]: MonadThrow: Logger](
+  def header[F[_]: {MonadThrow, Logger}](
     kwClient:          KeywordsClient[F],
     tcsKeywordsReader: TcsKeywordsReader[F]
   ): Header[F] =

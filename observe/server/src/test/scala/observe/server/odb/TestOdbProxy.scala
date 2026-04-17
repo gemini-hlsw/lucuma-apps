@@ -4,7 +4,7 @@
 package observe.server.odb
 
 import cats.data.NonEmptyList
-import cats.effect.Concurrent
+import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.NonNegInt
@@ -29,6 +29,7 @@ import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
+import lucuma.core.util.Timestamp
 import lucuma.schemas.model.ModeSignalToNoise
 import monocle.Lens
 import monocle.syntax.all.focus
@@ -38,6 +39,9 @@ import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
+
+import java.time.LocalDateTime
+import java.time.ZoneId
 
 trait TestOdbProxy[F[_]] extends OdbProxy[F]:
   def outCapture: F[List[TestOdbProxy.OdbEvent]]
@@ -166,7 +170,7 @@ object TestOdbProxy {
         )
       case i                     => sys.error(s"Unexpected instrument $i")
 
-  def buildGmosNorth[F[_]: Concurrent](
+  def buildGmosNorth[F[_]: Async](
     obsId:              Observation.Id,
     staticCfg:          gmos.StaticConfig.GmosNorth,
     acquisition:        Option[Atom[gmos.DynamicConfig.GmosNorth]],
@@ -184,7 +188,7 @@ object TestOdbProxy {
       _.updateObs(obsId)(updateStartObserve)
     )
 
-  def build[F[_]: Concurrent](
+  def build[F[_]: Async](
     sequences:          Map[Instrument, InstrumentState],
     updateStartObserve: State => State = identity
   ): F[TestOdbProxy[F]] =
@@ -200,48 +204,52 @@ object TestOdbProxy {
               _.updateObs(obsId):
                 _.resetAcquisition(sequences.sequenceForObs(obsId).flatMap(_._2.acquisition))
 
-          override def read(obsId: Observation.Id): F[OdbObservationData] =
-            rf.get
-              .map { s =>
-                val (i: Instrument, st: SequenceState, staticCfg) =
-                  s.sequences
-                    .sequenceForObs(obsId)
-                    .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
-                val sciAtom: Option[Atom[?]]                      = st.science.headOption
-                val sciTail: List[Atom[?]]                        =
-                  st.science match
-                    case head :: tail => tail
-                    case Nil          => Nil
+          override def read(obsId: Observation.Id): F[OdbObservationData] = for {
+            s <- rf.get
+            t <- Async[F]
+                   .delay(LocalDateTime.now(ZoneId.of("GMT")))
+                   .map(Timestamp.unsafeFromLocalDateTime)
+          } yield {
+            val (i: Instrument, st: SequenceState, staticCfg) =
+              s.sequences
+                .sequenceForObs(obsId)
+                .getOrElse(sys.error(s"Observation $obsId not found in test ODB state"))
+            val sciAtom: Option[Atom[?]]                      = st.science.headOption
+            val sciTail: List[Atom[?]]                        =
+              st.science match
+                case head :: tail => tail
+                case Nil          => Nil
 
-                OdbObservationData(
-                  Data.Observation(
-                    obsId,
-                    title = "Test Observation".refined,
-                    Data.Observation.Program(
-                      Program.Id(PosLong.unsafeFrom(1)),
-                      None,
-                      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-                    ),
-                    Data.Observation.TargetEnvironment(none, GuideEnvironment(List.empty)),
-                    ConstraintSet(
-                      ImageQuality.Preset.TwoPointZero,
-                      CloudExtinction.Preset.TwoPointZero,
-                      SkyBackground.Bright,
-                      WaterVapor.Wet,
-                      ElevationRange.ByAirMass.Default
-                    ),
-                    List.empty,
-                    ModeSignalToNoise.Spectroscopy(none, none)
-                  ),
-                  buildExecutionConfig(
-                    i,
-                    staticCfg,
-                    st.acquisition.map(buildInstrumentExecutionSequence(i, _, List.empty, true)),
-                    sciAtom
-                      .map(buildInstrumentExecutionSequence(i, _, sciTail, st.science.nonEmpty))
-                  )
-                )
-              }
+            OdbObservationData(
+              Data.Observation(
+                obsId,
+                title = "Test Observation".refined,
+                t.some,
+                Data.Observation.Program(
+                  Program.Id(PosLong.unsafeFrom(1)),
+                  None,
+                  ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+                ),
+                Data.Observation.TargetEnvironment(List.empty, none, GuideEnvironment(List.empty)),
+                ConstraintSet(
+                  ImageQuality.Preset.TwoPointZero,
+                  CloudExtinction.Preset.TwoPointZero,
+                  SkyBackground.Bright,
+                  WaterVapor.Wet,
+                  ElevationRange.ByAirMass.Default
+                ),
+                List.empty,
+                ModeSignalToNoise.Spectroscopy(none, none)
+              ),
+              buildExecutionConfig(
+                i,
+                staticCfg,
+                st.acquisition.map(buildInstrumentExecutionSequence(i, _, List.empty, true)),
+                sciAtom
+                  .map(buildInstrumentExecutionSequence(i, _, sciTail, st.science.nonEmpty))
+              )
+            )
+          }
 
           override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(
             VisitStart(obsId)

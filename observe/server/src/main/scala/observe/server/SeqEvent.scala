@@ -13,7 +13,7 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import observe.model.ClientId
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Notification
 import observe.model.Observation
 import observe.model.Observer
@@ -40,7 +40,7 @@ object SeqEvent:
   ) extends SeqEvent
   case class SetDhsEnabled(id: Observation.Id, user: Option[User], enabled: SubsystemEnabled)
       extends SeqEvent
-  case class SetConditions(conditions: Conditions, user: Option[User])              extends SeqEvent
+  case class SetConditions(conditions: CurrentConditions, user: Option[User])       extends SeqEvent
   case class LoadSequence(sid: Observation.Id, clientId: ClientId)                  extends SeqEvent
   case class UnloadSequence(id: Observation.Id)                                     extends SeqEvent
   case class AddLoadedSequence(

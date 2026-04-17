@@ -10,6 +10,7 @@ import cats.data.OneAnd
 import cats.derived.*
 import cats.syntax.all.*
 import coulomb.*
+import coulomb.integrations.cats.all.given
 import coulomb.units.accepted.ArcSecond
 import coulomb.units.accepted.Millimeter
 import lucuma.core.enums.*
@@ -22,11 +23,14 @@ import lucuma.core.util.NewType
 import monocle.Focus
 import monocle.Lens
 import observe.server.InstrumentGuide
+import observe.server.Length
 import observe.server.tcs.*
 import observe.server.tcs.FocalPlaneScale.*
 import observe.server.tcs.TcsSouthController.GemsGuiders
 
 import scala.language.implicitConversions
+
+import Length.given
 
 /**
  * Created by jluhrs on 7/30/15.
@@ -268,8 +272,9 @@ object TcsController {
   }
 
   case class TelescopeConfig(
-    offsetA: Option[InstrumentOffset],
-    wavelA:  Option[Wavelength]
+    offsetA:  Option[InstrumentOffset],
+    wavelA:   Option[Wavelength],
+    defocusB: Option[Length]
   ) derives Eq
 
   object TelescopeConfig {
