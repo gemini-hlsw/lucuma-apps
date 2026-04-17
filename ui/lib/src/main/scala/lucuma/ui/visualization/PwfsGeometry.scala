@@ -35,6 +35,12 @@ trait PwfsGeometry extends WithPwfsGeometry:
 
   protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams
 
+  protected def posAngle(
+    gs:               Option[AgsAnalysis.Usable],
+    fallbackPosAngle: Option[Angle]
+  ): Option[Angle] =
+    gs.map(_.posAngle).orElse(fallbackPosAngle)
+
   def instrumentGeometry(
     referenceCoordinates:    Coordinates,
     blindOffset:             Option[Coordinates],
@@ -45,8 +51,7 @@ trait PwfsGeometry extends WithPwfsGeometry:
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
-    gs.map(_.posAngle)
-      .orElse(fallbackPosAngle)
+    posAngle(gs, fallbackPosAngle)
       .map: posAngle =>
         val candidatesArea: SortedMap[Css, ShapeExpression] =
           conf.map(_.guideProbe(trackType)) match

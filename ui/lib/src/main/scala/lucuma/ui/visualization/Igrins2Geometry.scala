@@ -15,6 +15,12 @@ import lucuma.react.common.style.Css
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
+import lucuma.core.math.Coordinates
+import cats.data.NonEmptySet
+import lucuma.ags.GuidedOffset
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.core.enums.TrackType
+import lucuma.ags.AgsAnalysis
 
 object Igrins2Geometry extends PwfsGeometry:
 
@@ -31,3 +37,22 @@ object Igrins2Geometry extends PwfsGeometry:
       case GuideProbe.PWFS1 => AgsParams.Igrins2LongSlit().withPWFS1
       case GuideProbe.PWFS2 => AgsParams.Igrins2LongSlit().withPWFS2
       case _                => AgsParams.Igrins2LongSlit()
+
+  def igrins2Geometry(
+    referenceCoordinates:    Coordinates,
+    blindOffset:             Option[Coordinates],
+    scienceOffsets:          Option[NonEmptySet[GuidedOffset]],
+    fallbackPosAngle:        Option[Angle],
+    conf:                    Option[BasicConfiguration],
+    trackType:               Option[TrackType],
+    gs:                      Option[AgsAnalysis.Usable],
+    candidatesVisibilityCss: Css
+  ) = instrumentGeometry(referenceCoordinates,
+                         blindOffset,
+                         scienceOffsets,
+                         fallbackPosAngle,
+                         conf,
+                         trackType,
+                         gs,
+                         candidatesVisibilityCss
+  )

@@ -364,11 +364,17 @@ object AladinContainer extends AladinCommon {
                     .void
                     .when_(offset === Offset.Zero)
                 .getOrEmpty
+        // get the coords for all targets, we need them for ghost
+        asterismCoords          <- useMemo((props.obsTargets, props.obsTimeCoords)):
+                                     (obsTargets, obsTimeCoords) =>
+                                       obsTargets.science.flatMap: t =>
+                                         obsTimeCoords.allTargetsMap.get(t.id)
         // Memoized svg for visualization shapes
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
+                                     asterismCoords.value,
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )

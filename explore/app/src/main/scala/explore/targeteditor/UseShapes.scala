@@ -203,12 +203,13 @@ def useVisualizationShapes(
   vizConf:         Option[ConfigurationForVisualization],
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
+  asterismCoords:  List[Coordinates],
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS)
-  ) { (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS) =>
+    (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS)
+  ) { (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS) =>
     val candidatesVisibilityCss: Css =
       ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
 
@@ -304,7 +305,7 @@ def useVisualizationShapes(
               Css.Empty
 
           (probeVisibilityCss,
-           GhostGeometry.instrumentGeometry(
+           GhostGeometry.ghostGeometry(
              baseCoords,
              blindOffset,
              vizConf.flatMap(_.guidedSciOffsets),
@@ -312,7 +313,9 @@ def useVisualizationShapes(
              vizConf.map(_.configuration),
              vizConf.flatMap(_.trackType),
              selectedGS,
-             candidatesVisibilityCss
+             candidatesVisibilityCss,
+             asterismCoords.headOption,
+             asterismCoords.drop(1).headOption
            )
           )
   }.map(_.value)
