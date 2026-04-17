@@ -10,6 +10,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.syntax.all.*
 import io.circe.Decoder
 import lucuma.core.enums.AttachmentType
+import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.Partner
 import lucuma.core.enums.ProgramUserRole
 import lucuma.core.enums.TacCategory
@@ -38,11 +39,10 @@ case class Proposal(
     private def hasUser(partner: Partner): Boolean =
       users.exists(_.partnerLink.partnerOption.exists(_ === partner))
 
-  private def cfPError(users: List[ProgramUser]): Option[String] =
-    call.fold("Call for Proposal is required.".some)(cfp =>
-      // shouldn't have a proposal without having a PI.
+  private def cfPError(users: List[ProgramUser]): List[String] =
+    call.fold(List("Call for Proposal is required."))(cfp =>
       val piAffiliation = users.pi.fold(PartnerLink.HasUnspecifiedPartner)(_.partnerLink)
-      piAffiliation match
+      val partnerError  = piAffiliation match
         case PartnerLink.HasPartner(partner)   =>
           Option.when(!cfp.partners.exists(_.partner === partner)) {
             "PI partner not valid for this Call for Proposal."
@@ -53,6 +53,13 @@ case class Proposal(
           }
         // This gets checked in usersAndTimesErrors
         case PartnerLink.HasUnspecifiedPartner => none
+      val band3Error    = Option.when(
+        proposalType.exists:
+          case ProposalType.Queue(_, _, _, _, _, _, _, considerForBand3) =>
+            considerForBand3 === ConsiderForBand3.Unset
+          case _ => false
+      )("Band 3 consideration must be specified before the proposal can be submitted.")
+      List(partnerError, band3Error).flattenOption
     )
 
   // if this is None, either a CfP has not been selected or they are not required for the proposal type
@@ -156,7 +163,7 @@ case class Proposal(
     title.fold("Title is required.".some)(_ => none).toList,
     abstrakt.fold("Abstract is required.".some)(_ => none).toList,
     Option.unless(category.isDefined)("Category is required.").toList,
-    cfPError(users).toList,
+    cfPError(users),
     usersAndTimesErrors(users),
     fastTurnaroundErrors(users),
     attachmentErrors(attachments),
