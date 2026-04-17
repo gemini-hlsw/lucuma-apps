@@ -3,24 +3,24 @@
 
 package lucuma.ui.visualization
 
+import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
+import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
+import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.igrins2.scienceArea
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.react.common.style.Css
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
-import lucuma.core.math.Coordinates
-import cats.data.NonEmptySet
-import lucuma.ags.GuidedOffset
-import lucuma.schemas.model.BasicConfiguration
-import lucuma.core.enums.TrackType
-import lucuma.ags.AgsAnalysis
 
 object Igrins2Geometry extends PwfsGeometry:
 

@@ -62,7 +62,6 @@ import scala.collection.MapView
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
-import lucuma.core.enums.GhostResolutionMode
 
 case class AladinContainer(
   obsTargets:             ObservationTargets,
@@ -513,26 +512,16 @@ object AladinContainer extends AladinCommon {
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
-        val ifuLabelMap: Map[Target.Id, String] =
+        val targetLabels: Map[Target.Id, String] =
           props.vizConf
-            .map(_.configuration)
-            .collect:
-              case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-                List("SR-IFU1", "SR-IFU2")
-              case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.High)     =>
-                List("HR-IFU1")
-            .map: labels =>
-              props.obsTargets.science
-                .zip(labels)
-                .map((t, label) => t.id -> label)
-                .toMap
-            .getOrElse(Map.empty)
+            .foldMap(_.configuration.targetLabelsMap(props.obsTargets.science))
 
         val scienceTargets: List[SvgTarget] =
           targetCoords
             .filterNot(_.target.disposition === TargetDisposition.BlindOffset)
             .flatMap { tc =>
-              val title = ifuLabelMap
+              // Some modes like GHOST want to add a label to the targets
+              val title = targetLabels
                 .get(tc.target.id)
                 .fold(tc.targetName)(l => s"$l: ${tc.targetName}")
 

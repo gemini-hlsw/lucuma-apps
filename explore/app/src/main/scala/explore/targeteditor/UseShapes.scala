@@ -286,7 +286,7 @@ def useVisualizationShapes(
               Css.Empty
 
           (probeVisibilityCss,
-           Igrins2Geometry.instrumentGeometry(
+           Igrins2Geometry.igrins2Geometry(
              baseCoords,
              blindOffset,
              vizConf.flatMap(_.guidedSciOffsets),

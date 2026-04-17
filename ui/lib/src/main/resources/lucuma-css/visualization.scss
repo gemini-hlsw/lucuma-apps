@@ -219,7 +219,9 @@
   .ghost-science-area {
     stroke: cyan;
     stroke-width: 0.8px;
-    fill-opacity: 0;
+    stroke-dasharray: 3 3;
+    fill: cyan;
+    fill-opacity: 0.05;
   }
 
   &.ghost-ifu-patrol-field-visible .ghost-ifu1-patrol-field,
