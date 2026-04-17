@@ -36,6 +36,13 @@ object CrossTarget
           ^.cy := scale(p.q),
           ^.r  := scale(p.maxP * p.radius),
           p.pointCss
+        ),
+        <.circle(
+          ^.cx           := scale(p.p),
+          ^.cy           := scale(p.q),
+          ^.r            := scale(p.maxP * (p.radius + 5)),
+          ^.fill         := "transparent",
+          ^.pointerEvents := "all"
         )
       ).withTooltipOptions(content = p.title.getOrElse("<>"))
     )
