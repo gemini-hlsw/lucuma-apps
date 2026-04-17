@@ -52,9 +52,9 @@ trait DisplayImplicits:
     Display.byShortName(_.label)
 
   given Display[ConsiderForBand3] = Display.byShortName:
-    case ConsiderForBand3.Unset           => "Unset"
-    case ConsiderForBand3.Consider        => "Consider"
-    case ConsiderForBand3.DoNotConsider   => "Do Not Consider"
+    case ConsiderForBand3.Unset         => "Not Selected"
+    case ConsiderForBand3.Consider      => "Yes"
+    case ConsiderForBand3.DoNotConsider => "No"
 
   given Display[Band] =
     Display.by(_.shortName, _.longName)

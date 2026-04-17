@@ -266,7 +266,7 @@ object ProposalDetailsBody:
       props.proposalAligner.get.proposalType match {
         case Some(ProposalType.LargeProgram(_, _, _, _, _, _, _)) =>
           ("Semester Max", "Semester Min")
-        case _                                              => ("Max Time", "Min Time")
+        case _                                                    => ("Max Time", "Min Time")
       }
 
     def makeMinimumPctInput[A](pctView: View[IntPercent], id: NonEmptyString): TagMod =
@@ -390,7 +390,15 @@ object ProposalDetailsBody:
               value = v,
               label = React.Fragment(
                 "Consider for Band 3",
-                HelpIcon("proposal/main/consider-for-band3.md".refined)
+                HelpIcon("proposal/main/consider-for-band3.md".refined),
+                Option.when(v.get === ConsiderForBand3.Unset)(
+                  Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
+                )
+              ),
+              exclude =
+                if v.get =!= ConsiderForBand3.Unset then Set(ConsiderForBand3.Unset) else Set.empty,
+              clazz = ExploreStyles.WarningInput.when_(
+                v.get === ConsiderForBand3.Unset && !props.readonly
               ),
               disabled = props.readonly
             ),
