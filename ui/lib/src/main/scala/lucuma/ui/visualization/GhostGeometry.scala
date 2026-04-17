@@ -8,7 +8,7 @@ import lucuma.ags.AgsParams
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
 import lucuma.core.geom.ShapeExpression
-import lucuma.core.geom.igrins2.scienceArea
+import lucuma.core.geom.ghost
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.react.common.style.Css
@@ -16,18 +16,19 @@ import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
 
-object Igrins2Geometry extends PwfsGeometry:
+object GhostGeometry extends PwfsGeometry:
 
   def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
     SortedMap(
-      (Igrins2SvcFov, scienceArea.svcFieldOfView(posAngle, offset)),
-      (Igrins2ScienceSlit, scienceArea.scienceSlitFOV(posAngle, offset))
+      (GhostScienceArea, ghost.scienceArea.fovAt(posAngle, offset)),
+      (GhostIfu1PatrolField, ghost.GhostIfuPatrolField.ifu1PatrolFieldAt(posAngle, offset)),
+      (GhostIfu2PatrolField, ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, offset))
     )
 
-  override protected def candidatesAreaCss: Css = Flamingos2CandidatesArea
+  override protected def candidatesAreaCss: Css = GhostCandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
     guideProbe match
-      case GuideProbe.PWFS1 => AgsParams.Igrins2LongSlit().withPWFS1
-      case GuideProbe.PWFS2 => AgsParams.Igrins2LongSlit().withPWFS2
-      case _                => AgsParams.Igrins2LongSlit()
+      case GuideProbe.PWFS1 => AgsParams.GhostIfu().withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.GhostIfu().withPWFS2
+      case _                => AgsParams.GhostIfu()

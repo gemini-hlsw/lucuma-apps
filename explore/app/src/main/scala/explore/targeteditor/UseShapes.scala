@@ -27,6 +27,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
+import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPosition
@@ -193,8 +194,7 @@ def usePatrolFieldShapes(
           case ObservingModeType.Igrins2LongSlit                                         =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
           case ObservingModeType.GhostIfu                                                =>
-            // TODO: What should the anchor be for GHOST IFU?
-            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+            (VisualizationStyles.Anchor, ghost.scienceArea.fov)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -285,7 +285,7 @@ def useVisualizationShapes(
               Css.Empty
 
           (probeVisibilityCss,
-           Igrins2Geometry.igrins2Geometry(
+           Igrins2Geometry.instrumentGeometry(
              baseCoords,
              blindOffset,
              vizConf.flatMap(_.guidedSciOffsets),
@@ -302,6 +302,17 @@ def useVisualizationShapes(
               VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
               Css.Empty
-          // TODO: Get shapes for GHOST
-          (probeVisibilityCss, None)
+
+          (probeVisibilityCss,
+           GhostGeometry.instrumentGeometry(
+             baseCoords,
+             blindOffset,
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.map(_.posAngle),
+             vizConf.map(_.configuration),
+             vizConf.flatMap(_.trackType),
+             selectedGS,
+             candidatesVisibilityCss
+           )
+          )
   }.map(_.value)

@@ -32,7 +32,7 @@ import scala.collection.immutable.SortedMap
 /**
  * GMOS geometry for visualization
  */
-object GmosGeometry extends PwfsGeometry:
+object GmosGeometry extends WithPwfsGeometry:
 
   // Shape to display for a specific mode
   def shapesForMode(
