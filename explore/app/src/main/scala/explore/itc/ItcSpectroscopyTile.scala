@@ -4,7 +4,6 @@
 package explore.itc
 
 import cats.data.EitherNec
-
 import cats.effect.IO
 import cats.syntax.all.*
 import crystal.*

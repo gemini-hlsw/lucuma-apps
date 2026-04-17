@@ -95,7 +95,7 @@ object ObsSummaryColumns:
 
   def columns(pid: Program.Id, ctx: AppContext[IO]) =
     // For columns that only have data in the base observation row.
-    def obsColumn[V](id: ColumnId, accessor: ObsRow => V) =
+    def obsColumn[V](id: ColumnId, accessor: ObsRow => V): ColDef.TypeFor[Option[V]] =
       ColDef(id, v => v.value.fold(_ => none, accessor(_).some), ColumnNames(id))
 
     extension [A](name: String | (A, TargetWithId))
@@ -125,7 +125,7 @@ object ObsSummaryColumns:
       id:               ColumnId,
       accessor:         ObsRow => V,
       expandedAccessor: ExpandedTargetRow => V
-    ) =
+    ): ColDef.TypeFor[V] =
       ColDef(id, v => v.value.fold(expandedAccessor, accessor), ColumnNames(id))
 
     def constraintUrl(constraintId: Observation.Id): String =
@@ -190,8 +190,7 @@ object ObsSummaryColumns:
         TargetColumnId,
         r => r.obs.title,
         r => (r.obs.id, r.targetWithId)
-      )
-        .withFilterMethod(FilterMethod.Text(_.sortableValue))
+      ).withFilterMethod(FilterMethod.Text(_.sortableValue))
         .withCell:
           _.value match
             case s: String => <.span(s)

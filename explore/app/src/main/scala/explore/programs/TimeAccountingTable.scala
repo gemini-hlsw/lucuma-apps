@@ -136,7 +136,7 @@ object TimeAccountingTable:
   private val BandColId: Map[Option[ScienceBand], ColumnId] =
     DataColumnKeys.map(osb => (osb, ColumnId(osb.fold("no-band")(_.tag)))).toMap
 
-  private val LabelColumnDef =
+  private val LabelColumnDef: ColDef.Type =
     ColDef(
       LabelColId,
       _.label,
@@ -145,7 +145,7 @@ object TimeAccountingTable:
       footer = _.table.options.meta.fold(EmptyVdom)(_.label)
     ).withSize(200.toPx)
 
-  private def bandColDef(osb: Option[ScienceBand]) =
+  private def bandColDef(osb: Option[ScienceBand]): ColDef.Type =
     ColDef(
       BandColId(osb),
       _.data(osb),
@@ -154,7 +154,7 @@ object TimeAccountingTable:
       footer = _.table.options.meta.fold(EmptyVdom)(_.data(osb).toCell)
     ).withSize(90.toPx)
 
-  private val TotalColDef =
+  private val TotalColDef: ColDef.Type =
     ColDef(
       TotalColId,
       _.total,
@@ -163,7 +163,7 @@ object TimeAccountingTable:
       footer = _.table.options.meta.fold(EmptyVdom)(_.total.leftMap(_.asReady).toCell)
     ).withSize(90.toPx)
 
-  private val Columns: Reusable[List[ColumnDef.WithTableMeta[Row, ?, Row]]] =
+  private val Columns: Reusable[List[ColDef.Type]] =
     Reusable.always:
       LabelColumnDef +: DataColumnKeys.map(bandColDef) :+ TotalColDef
 

@@ -400,9 +400,9 @@ object SequenceColumns:
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 
-  def headerCell[D, T, R, TM <: SequenceTableMeta[D], CM, FM](
+  def headerCell[D, T, R, TM <: SequenceTableMeta[D], CM, TF](
     colId:  ColumnId,
-    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, FM]
+    colDef: ColumnDef.Applied[Expandable[HeaderOrRow[SequenceEditContexts[D], T]], TM, CM, TF]
   ): colDef.TypeFor[Option[SequenceEditContexts[D] => VdomNode]] =
     colDef(
       colId,
