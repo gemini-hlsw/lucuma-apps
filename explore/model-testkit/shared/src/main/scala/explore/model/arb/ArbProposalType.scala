@@ -32,12 +32,14 @@ trait ArbProposalType:
         aeonMultiFacility <- arbitrary[Boolean]
         jwstSynergy       <- arbitrary[Boolean]
         usLongTerm        <- arbitrary[Boolean]
+        considerForBand3  <- arbitrary[ConsiderForBand3]
       } yield Classical(scienceSubtype,
                         minPercentType,
                         partnerSplits,
                         aeonMultiFacility,
                         jwstSynergy,
-                        usLongTerm
+                        usLongTerm,
+                        considerForBand3
       )
     }
 
@@ -49,7 +51,8 @@ trait ArbProposalType:
         List[PartnerSplit],
         Boolean,
         Boolean,
-        Boolean
+        Boolean,
+        ConsiderForBand3
       )
     ].contramap(p =>
       (p.scienceSubtype,
@@ -57,7 +60,8 @@ trait ArbProposalType:
        p.partnerSplits,
        p.aeonMultiFacility,
        p.jwstSynergy,
-       p.usLongTerm
+       p.usLongTerm,
+       p.considerForBand3
       )
     )
 
