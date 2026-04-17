@@ -139,4 +139,3 @@ object GdsClient:
 
     given Encoder[IdRequest] =
       Encoder.forProduct1("data_label")(_.id.value)
-
