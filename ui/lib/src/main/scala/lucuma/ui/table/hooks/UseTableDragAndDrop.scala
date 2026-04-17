@@ -8,17 +8,17 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.Context
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.react.SizePx
 import lucuma.react.pragmaticdnd.*
 import lucuma.react.pragmaticdnd.facade.*
-import lucuma.react.table.*
-import org.scalajs.dom.HTMLElement
 import lucuma.react.syntax.*
+import lucuma.react.table.*
+import lucuma.ui.dnd.*
+import org.scalajs.dom.HTMLElement
 
 import scala.annotation.unused
 
 import scalajs.js
-import lucuma.ui.dnd.*
-import lucuma.react.SizePx
 
 private type Target[D] = (data: D, edge: Edge)
 

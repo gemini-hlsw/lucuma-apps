@@ -17,7 +17,6 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
-// TODO replace with a real tracing backend
 import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 
 import java.net.URLDecoder
