@@ -243,6 +243,7 @@ object ExploreStyles:
 
   val ProposalTab: Css             = Css("explore-proposal-tab")
   val ProposalDetailsGrid: Css     = Css("explore-proposal-details-grid")
+  val ProposalPhaseIFlags: Css     = Css("explore-proposal-phase-i-flags")
   val ProposalAbstract: Css        = Css("explore-proposal-abstract")
   val AbstractTitleTooLong: Css    = Css("explore-abstract-too-long")
   val ProposalSubmissionBar: Css   = Css("explore-proposal-submission-line")

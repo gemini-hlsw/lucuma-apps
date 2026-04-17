@@ -51,6 +51,11 @@ trait DisplayImplicits:
   given Display[ToOActivation] =
     Display.byShortName(_.label)
 
+  given Display[ConsiderForBand3] = Display.byShortName:
+    case ConsiderForBand3.Unset           => "Unset"
+    case ConsiderForBand3.Consider        => "Consider"
+    case ConsiderForBand3.DoNotConsider   => "Do Not Consider"
+
   given Display[Band] =
     Display.by(_.shortName, _.longName)
 
