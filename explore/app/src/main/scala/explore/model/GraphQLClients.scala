@@ -7,7 +7,7 @@ import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
 import cats.syntax.all.*
-import clue.StreamingClient
+import clue.PersistentStreamingClient
 import clue.js.*
 import clue.otel4s.Otel4sMiddleware
 import clue.websocket.*
@@ -18,22 +18,21 @@ import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
 import queries.schemas.*
 
+type TracedWsClient[F[_], S] =
+  PersistentStreamingClient[F, S, CloseParams, Either[Throwable, CloseParams]]
+
 case class GraphQLClients[F[_]: {Async, Parallel}] protected (
-  // Persistent clients kept for connect/disconnect lifecycle.
-  odbPersistent:   WebSocketJsClient[F, ObservationDB],
-  prefsPersistent: WebSocketJsClient[F, UserPreferencesDB],
-  // Traced views exposed to query/subscription call sites.
-  odb:             StreamingClient[F, ObservationDB],
-  preferencesDB:   StreamingClient[F, UserPreferencesDB],
-  sso:             FetchJsClient[F, SSO]
+  odb:           TracedWsClient[F, ObservationDB],
+  preferencesDB: WebSocketJsClient[F, UserPreferencesDB],
+  sso:           FetchJsClient[F, SSO]
 ):
   def init(payload: F[Map[String, Json]]): F[Unit] =
-    (prefsPersistent.connect(), odbPersistent.connect(payload)).parTupled.void
+    (preferencesDB.connect(), odb.connect(payload)).parTupled.void
 
   def close(): F[Unit] =
     List(
-      prefsPersistent.disconnect(CloseParams(code = 1000)),
-      odbPersistent.disconnect(CloseParams(code = 1000))
+      preferencesDB.disconnect(CloseParams(code = 1000)),
+      odb.disconnect(CloseParams(code = 1000))
     ).sequence.void
 
 object GraphQLClients:
@@ -53,9 +52,7 @@ object GraphQLClients:
       ssoClient   <-
         FetchJsClient.of[F, SSO](s"${ssoURI.toString}/graphql", "SSO")
     } yield GraphQLClients(
-      odbClient,
+      Otel4sMiddleware(odbClient),
       prefsClient,
-      Otel4sMiddleware(odbClient: StreamingClient[F, ObservationDB]),
-      Otel4sMiddleware(prefsClient: StreamingClient[F, UserPreferencesDB]),
       Otel4sMiddleware(ssoClient)
     )

@@ -36,11 +36,15 @@ import lucuma.ui.utils.showEnvironment
 import org.http4s.Uri
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
+import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
+import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
@@ -60,7 +64,7 @@ object ExploreMain {
     LogLevelLogger.createForRoot[F]
   }
 
-  private def setupTracer(config: AppConfig): Resource[IO, Tracer[IO]] =
+  private def setupOtel(config: AppConfig): Resource[IO, OtelSdk.OtelResources] =
     OtelSdk.build(
       config.tracing,
       utils.version(config.environment).value,
@@ -126,7 +130,7 @@ object ExploreMain {
       workerClients: WorkerClients[IO],
       bc:            BroadcastChannel[IO, ExploreEvent],
       configJson:    String
-    )(using Logger[IO], Tracer[IO]): IO[Unit] = {
+    )(using Logger[IO], Tracer[IO], TracerProvider[IO]): IO[Unit] = {
       given FetchJsBackend[IO]     = FetchJsBackend[IO](FetchMethod.GET)
       given WebSocketJsBackend[IO] = WebSocketJsBackend[IO](dispatcher)
 
@@ -145,7 +149,10 @@ object ExploreMain {
       for {
         host                 <- IO(dom.window.location.host)
         appConfig             = AppConfig.parseConf(host, configJson)
-        httpClient            = buildNonCachingHttpClient[IO]
+        traceMiddleware      <- ClientMiddleware
+                                   .builder[IO](ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {}))
+                                   .build
+        httpClient            = traceMiddleware(buildNonCachingHttpClient[IO])
         _                    <- info"Git Commit: [${utils.gitHash.getOrElse("NONE")}]"
         _                    <- info"Config: ${appConfig.show}"
         ctx                  <- AppContext.from[IO](
@@ -176,7 +183,9 @@ object ExploreMain {
       given Logger[IO] <- Resource.eval(setupLogger[IO])
       host             <- Resource.eval(IO(dom.window.location.host))
       appConfig         = AppConfig.parseConf(host, configJson)
-      given Tracer[IO] <- setupTracer(appConfig)
+      otel             <- setupOtel(appConfig)
+      given Tracer[IO]          = otel.tracer
+      given TracerProvider[IO]  = otel.tracerProvider
       workerClients    <- WorkerClients.build[IO](dispatcher)
       bc               <- BroadcastChannel[IO, ExploreEvent]("explore")
       _                <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))

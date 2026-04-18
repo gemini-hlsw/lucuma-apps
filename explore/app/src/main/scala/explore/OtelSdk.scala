@@ -22,9 +22,11 @@ import org.typelevel.otel4s.sdk.context.Context
 import org.typelevel.otel4s.sdk.context.LocalContext
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
+import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
 import org.typelevel.otel4s.sdk.trace.exporter.NonEmptySpanExporter
 import org.typelevel.otel4s.sdk.trace.processor.BatchSpanProcessor
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 
 import scala.concurrent.duration.*
 
@@ -32,13 +34,15 @@ import scala.concurrent.duration.*
 object OtelSdk:
   private val InstrumentationScope = "explore"
 
+  case class OtelResources(tracer: Tracer[IO], tracerProvider: TracerProvider[IO])
+
   def build(
     config:         Option[TracingConfig],
     serviceVersion: String,
     environment:    ExecutionEnvironment,
     vault:          Option[UserVault]
-  ): Resource[IO, Tracer[IO]] =
-    config.fold(Resource.pure[IO, Tracer[IO]](Tracer.noop[IO])): cfg =>
+  ): Resource[IO, OtelResources] =
+    config.fold(Resource.pure[IO, OtelResources](OtelResources(Tracer.noop[IO], TracerProvider.noop[IO]))): cfg =>
       for
         given Random[IO]      <- Resource.eval(Random.scalaUtilRandom[IO])
         localContext          <- Resource.eval(LocalProvider[IO, Context].local)
@@ -61,9 +65,10 @@ object OtelSdk:
               .builder[IO]
               .addResource(resourceFor(cfg.serviceName, serviceVersion, environment, vault))
               .addSpanProcessor(processor)
+              .addTextMapPropagators(W3CTraceContextPropagator.default)
               .build
         tracer                <- Resource.eval(tp.tracer(InstrumentationScope).get)
-      yield tracer
+      yield OtelResources(tracer, tp)
 
   private def headersFor(headers: Map[String, String]): Headers =
     Headers(headers.toList.map((k, v) => Header.Raw(CIString(k), v)))

@@ -191,6 +191,10 @@ object Dependencies {
     deps("org.http4s" %%% "http4s-dom")(http4sDom)
   )
 
+  val Http4sOtel4sClient = Def.setting(
+    deps("org.http4s" %%% "http4s-otel4s-middleware-trace-client")(http4sOtel4s)
+  )
+
   val Http4sJdkClient =
     Def.setting(
       depsJVM(
@@ -366,7 +370,7 @@ object Dependencies {
     deps(
       "org.typelevel" %%% "otel4s-sdk",
       "org.typelevel" %%% "otel4s-sdk-exporter-trace"
-    )(otel4s)
+    )(otel4sSdk)
   )
 
   val ClueOtel4s = Def.setting(

@@ -7,7 +7,6 @@ import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
 import cats.syntax.all.*
-import clue.StreamingClient
 import clue.js.*
 import clue.websocket.*
 import eu.timepit.refined.types.string.NonEmptyString
@@ -101,9 +100,9 @@ case class AppContext[F[_]](
       ProgramError(errorMsg, true).some
     ) *> resetProgramCacheTopic.close.void
 
-  given StreamingClient[F, ObservationDB]     = clients.odb
-  given StreamingClient[F, UserPreferencesDB] = clients.preferencesDB
-  given FetchJsClient[F, SSO]                 = clients.sso
+  given TracedWsClient[F, ObservationDB]        = clients.odb
+  given WebSocketJsClient[F, UserPreferencesDB] = clients.preferencesDB
+  given FetchJsClient[F, SSO]                   = clients.sso
 
   given itcWorker: WorkerClient[F, ItcMessage.Request]           = workerClients.itc
   given catalogWorker: WorkerClient[F, CatalogMessage.Request]   = workerClients.catalog
