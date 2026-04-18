@@ -9,6 +9,7 @@ import cats.effect.std.SecureRandom
 import cats.syntax.all.*
 import clue.PersistentStreamingClient
 import clue.js.*
+import clue.js.given
 import clue.otel4s.Otel4sMiddleware
 import clue.websocket.*
 import io.circe.Json
