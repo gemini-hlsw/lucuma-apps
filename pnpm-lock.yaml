@@ -87,8 +87,8 @@ importers:
         specifier: 3.8.2
         version: 3.8.2
       highcharts:
-        specifier: 12.5.0
-        version: 12.5.0
+        specifier: 12.6.0
+        version: 12.6.0
       loglevel:
         specifier: 1.9.2
         version: 1.9.2
@@ -2513,11 +2513,11 @@ packages:
   hastscript@9.0.1:
     resolution: {integrity: sha512-g7df9rMFX/SPi34tyGCyUBREQoKkapwdY/T04Qn9TDWfHhAYt4/I0gMVirzK5wEzeUqIjEB+LXC/ypb7Aqno5w==}
 
-  highcharts@12.5.0:
-    resolution: {integrity: sha512-uNSSv1KqRLNvkyXlf1FbeGWB1mJ/8/IYpVeqYiTIop5Wo8peUvNyzUfLa58vILsmXyz+XrETtgKIEOcSgBBKuQ==}
+  highcharts@12.6.0:
+    resolution: {integrity: sha512-zWwoXECOakJT2huBMqIZOjDNLLgyZFCcfZqTj2g6cvYOGxjF3nvooC+rIaF5aKiharluyGKNflfRNrzOAIjdRg==}
     peerDependencies:
-      jspdf: ^3.0.0
-      svg2pdf.js: ^2.6.0
+      jspdf: ^4.1.0
+      svg2pdf.js: ^2.7.0
     peerDependenciesMeta:
       jspdf:
         optional: true
@@ -6472,7 +6472,7 @@ snapshots:
       property-information: 7.1.0
       space-separated-tokens: 2.0.2
 
-  highcharts@12.5.0: {}
+  highcharts@12.6.0: {}
 
   hoist-non-react-statics@3.3.2:
     dependencies:

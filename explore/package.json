@@ -22,7 +22,7 @@
     "@tanstack/react-table": "8.21.3",
     "@tanstack/react-virtual": "3.13.23",
     "aladin-lite": "3.8.2",
-    "highcharts": "12.5.0",
+    "highcharts": "12.6.0",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
     "primereact": "10.9.7",
