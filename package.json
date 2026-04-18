@@ -4,7 +4,7 @@
   "packageManager": "pnpm@10.33.0",
   "devDependencies": {
     "prettier": "3.8.3",
-    "stylelint": "17.6.0",
+    "stylelint": "17.8.0",
     "stylelint-color-format": "1.1.0",
     "stylelint-config-standard-scss": "17.0.0",
     "stylelint-value-no-unknown-custom-properties": "6.1.1"
