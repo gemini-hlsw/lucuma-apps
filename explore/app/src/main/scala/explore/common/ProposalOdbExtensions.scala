@@ -60,31 +60,60 @@ trait ProposalOdbExtensions:
               toOActivation,
               minPercentTime,
               minPercentTotalTime,
-              totalTime
+              totalTime,
+              aeonMultiFacility,
+              jwstSynergy
             ) =>
           ProposalTypeInput.LargeProgram(
             LargeProgramInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
               minPercentTotalTime = minPercentTotalTime.assign,
-              totalTime = totalTime.toInput.assign
+              totalTime = totalTime.toInput.assign,
+              aeonMultiFacility = aeonMultiFacility.assign,
+              jwstSynergy = jwstSynergy.assign
             )
           )
-        case ProposalType.Classical(_, minPercentTime, partnerSplits)                        =>
+        case ProposalType.Classical(
+              _,
+              minPercentTime,
+              partnerSplits,
+              aeonMultiFacility,
+              jwstSynergy,
+              usLongTerm,
+              considerForBand3
+            ) =>
           ProposalTypeInput.Classical(
             ClassicalInput(
               minPercentTime = minPercentTime.assign,
               partnerSplits =
-                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign
+                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign,
+              aeonMultiFacility = aeonMultiFacility.assign,
+              jwstSynergy = jwstSynergy.assign,
+              usLongTerm = usLongTerm.assign,
+              considerForBand3 = considerForBand3.assign
             )
           )
-        case ProposalType.Queue(_, toOActivation, minPercentTime, partnerSplits)             =>
+        case ProposalType.Queue(
+              _,
+              toOActivation,
+              minPercentTime,
+              partnerSplits,
+              aeonMultiFacility,
+              jwstSynergy,
+              usLongTerm,
+              considerForBand3
+            ) =>
           ProposalTypeInput.Queue(
             QueueInput(
               toOActivation = toOActivation.assign,
               minPercentTime = minPercentTime.assign,
               partnerSplits =
-                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign
+                if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign,
+              aeonMultiFacility = aeonMultiFacility.assign,
+              jwstSynergy = jwstSynergy.assign,
+              usLongTerm = usLongTerm.assign,
+              considerForBand3 = considerForBand3.assign
             )
           )
         case ProposalType.SystemVerification(_, toOActivation, minPercentTime)               =>

@@ -23,6 +23,10 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
         ... on Classical {
           minPercentTime
           partnerSplits $PartnerSplitSubquery
+          aeonMultiFacility
+          jwstSynergy
+          usLongTerm
+          considerForBand3
         }
         ... on DirectorsTime {
           toOActivation
@@ -42,11 +46,17 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
             hours
             minutes
           }
+          aeonMultiFacility
+          jwstSynergy
         }
         ... on Queue {
           toOActivation
           minPercentTime
           partnerSplits $PartnerSplitSubquery
+          aeonMultiFacility
+          jwstSynergy
+          usLongTerm
+          considerForBand3
         }
         ... on SystemVerification {
           toOActivation

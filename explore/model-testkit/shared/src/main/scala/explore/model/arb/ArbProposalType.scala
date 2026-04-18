@@ -9,6 +9,7 @@ import explore.model.ProgramUser
 import explore.model.ProposalType
 import explore.model.ProposalType.*
 import explore.model.arb.ArbPartnerSplit.given
+import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
@@ -25,10 +26,21 @@ trait ArbProposalType:
   given Arbitrary[Classical] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        minPercentType <- arbitrary[IntPercent]
-        partnerSplits  <- arbitrary[List[PartnerSplit]]
-      } yield Classical(scienceSubtype, minPercentType, partnerSplits)
+        scienceSubtype    <- arbitrary[ScienceSubtype]
+        minPercentType    <- arbitrary[IntPercent]
+        partnerSplits     <- arbitrary[List[PartnerSplit]]
+        aeonMultiFacility <- arbitrary[Boolean]
+        jwstSynergy       <- arbitrary[Boolean]
+        usLongTerm        <- arbitrary[Boolean]
+        considerForBand3  <- arbitrary[ConsiderForBand3]
+      } yield Classical(scienceSubtype,
+                        minPercentType,
+                        partnerSplits,
+                        aeonMultiFacility,
+                        jwstSynergy,
+                        usLongTerm,
+                        considerForBand3
+      )
     }
 
   given Cogen[Classical] =
@@ -36,9 +48,22 @@ trait ArbProposalType:
       (
         ScienceSubtype,
         IntPercent,
-        List[PartnerSplit]
+        List[PartnerSplit],
+        Boolean,
+        Boolean,
+        Boolean,
+        ConsiderForBand3
       )
-    ].contramap(p => (p.scienceSubtype, p.minPercentTime, p.partnerSplits))
+    ].contramap(p =>
+      (p.scienceSubtype,
+       p.minPercentTime,
+       p.partnerSplits,
+       p.aeonMultiFacility,
+       p.jwstSynergy,
+       p.usLongTerm,
+       p.considerForBand3
+      )
+    )
 
   given Arbitrary[DemoScience] =
     Arbitrary {
@@ -108,11 +133,15 @@ trait ArbProposalType:
         minPercentType      <- arbitrary[IntPercent]
         minPercentTotalTime <- arbitrary[IntPercent]
         totalTime           <- arbitrary[TimeSpan]
+        aeonMultiFacility   <- arbitrary[Boolean]
+        jwstSynergy         <- arbitrary[Boolean]
       } yield LargeProgram(scienceSubtype,
                            toOActivation,
                            minPercentType,
                            minPercentTotalTime,
-                           totalTime
+                           totalTime,
+                           aeonMultiFacility,
+                           jwstSynergy
       )
     }
 
@@ -122,10 +151,19 @@ trait ArbProposalType:
       ToOActivation,
       IntPercent,
       IntPercent,
-      TimeSpan
+      TimeSpan,
+      Boolean,
+      Boolean
     )
   ].contramap(p =>
-    (p.scienceSubtype, p.toOActivation, p.minPercentTime, p.minPercentTotalTime, p.totalTime)
+    (p.scienceSubtype,
+     p.toOActivation,
+     p.minPercentTime,
+     p.minPercentTotalTime,
+     p.totalTime,
+     p.aeonMultiFacility,
+     p.jwstSynergy
+    )
   )
 
   given Arbitrary[PoorWeather] =
@@ -142,11 +180,23 @@ trait ArbProposalType:
   given Arbitrary[Queue] =
     Arbitrary {
       for {
-        scienceSubtype <- arbitrary[ScienceSubtype]
-        toOActivation  <- arbitrary[ToOActivation]
-        minPercentType <- arbitrary[IntPercent]
-        partnerSplits  <- arbitrary[List[PartnerSplit]]
-      } yield Queue(scienceSubtype, toOActivation, minPercentType, partnerSplits)
+        scienceSubtype    <- arbitrary[ScienceSubtype]
+        toOActivation     <- arbitrary[ToOActivation]
+        minPercentType    <- arbitrary[IntPercent]
+        partnerSplits     <- arbitrary[List[PartnerSplit]]
+        aeonMultiFacility <- arbitrary[Boolean]
+        jwstSynergy       <- arbitrary[Boolean]
+        usLongTerm        <- arbitrary[Boolean]
+        considerForBand3  <- arbitrary[ConsiderForBand3]
+      } yield Queue(scienceSubtype,
+                    toOActivation,
+                    minPercentType,
+                    partnerSplits,
+                    aeonMultiFacility,
+                    jwstSynergy,
+                    usLongTerm,
+                    considerForBand3
+      )
     }
 
   given Cogen[Queue] =
@@ -155,9 +205,23 @@ trait ArbProposalType:
         ScienceSubtype,
         ToOActivation,
         IntPercent,
-        List[PartnerSplit]
+        List[PartnerSplit],
+        Boolean,
+        Boolean,
+        Boolean,
+        ConsiderForBand3
       )
-    ].contramap(p => (p.scienceSubtype, p.toOActivation, p.minPercentTime, p.partnerSplits))
+    ].contramap(p =>
+      (p.scienceSubtype,
+       p.toOActivation,
+       p.minPercentTime,
+       p.partnerSplits,
+       p.aeonMultiFacility,
+       p.jwstSynergy,
+       p.usLongTerm,
+       p.considerForBand3
+      )
+    )
 
   given Arbitrary[SystemVerification] =
     Arbitrary {

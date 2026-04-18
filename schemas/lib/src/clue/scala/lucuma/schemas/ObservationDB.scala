@@ -94,6 +94,7 @@ trait ObservationDB {
     type ChargeClass                         = enums.ChargeClass
     type CloudExtinctionPreset               = CloudExtinction.Preset
     type ConfigurationRequestStatus          = enums.ConfigurationRequestStatus
+    type ConsiderForBand3                    = enums.ConsiderForBand3
     type CoolStarTemperature                 = enums.CoolStarTemperature
     type DatasetQaState                      = enums.DatasetQaState
     type DatasetStage                        = enums.DatasetStage

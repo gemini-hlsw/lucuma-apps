@@ -211,6 +211,26 @@ object ProposalDetailsBody:
     val activationView: Option[View[ToOActivation]] =
       proposalTypeView.toOptionView.map(_.zoom(ProposalType.toOActivation).toOptionView).flatten
 
+    val aeonMultiFacilityView: Option[View[Boolean]] =
+      proposalTypeView.toOptionView
+        .map(_.zoom(ProposalType.aeonMultiFacility).toOptionView)
+        .flatten
+
+    val jwstSynergyView: Option[View[Boolean]] =
+      proposalTypeView.toOptionView
+        .map(_.zoom(ProposalType.jwstSynergy).toOptionView)
+        .flatten
+
+    val usLongTermView: Option[View[Boolean]] =
+      proposalTypeView.toOptionView
+        .map(_.zoom(ProposalType.usLongTerm).toOptionView)
+        .flatten
+
+    val considerForBand3View: Option[View[ConsiderForBand3]] =
+      proposalTypeView.toOptionView
+        .map(_.zoom(ProposalType.considerForBand3).toOptionView)
+        .flatten
+
     val needsPartnerSelection =
       scienceSubtype match {
         // Queue is set by default even if there is no CfP selection
@@ -244,8 +264,9 @@ object ProposalDetailsBody:
 
     val (maxTimeLabel, minTimeLabel) =
       props.proposalAligner.get.proposalType match {
-        case Some(ProposalType.LargeProgram(_, _, _, _, _)) => ("Semester Max", "Semester Min")
-        case _                                              => ("Max Time", "Min Time")
+        case Some(ProposalType.LargeProgram(_, _, _, _, _, _, _)) =>
+          ("Semester Max", "Semester Min")
+        case _                                                    => ("Max Time", "Min Time")
       }
 
     def makeMinimumPctInput[A](pctView: View[IntPercent], id: NonEmptyString): TagMod =
@@ -363,6 +384,62 @@ object ProposalDetailsBody:
               disabled = props.readonly
             )
           ),
+          considerForBand3View.map: v =>
+            FormEnumDropdownView(
+              id = "consider-for-band3".refined,
+              value = v,
+              label = React.Fragment(
+                "Consider for Band 3",
+                HelpIcon("proposal/main/consider-for-band3.md".refined),
+                Option.when(v.get === ConsiderForBand3.Unset)(
+                  Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
+                )
+              ),
+              exclude =
+                if v.get =!= ConsiderForBand3.Unset then Set(ConsiderForBand3.Unset) else Set.empty,
+              clazz = ExploreStyles.WarningInput.when_(
+                v.get === ConsiderForBand3.Unset && !props.readonly
+              ),
+              disabled = props.readonly
+            ),
+          Option
+            .when(
+              aeonMultiFacilityView.isDefined || jwstSynergyView.isDefined ||
+                usLongTermView.isDefined
+            )(
+              <.div(ExploreStyles.ProposalPhaseIFlags)(
+                aeonMultiFacilityView.map: v =>
+                  CheckboxView(
+                    id = "aeon-multi-facility".refined,
+                    value = v,
+                    label = React.Fragment(
+                      "AEON / Multi-Facility",
+                      HelpIcon("proposal/main/aeon-multi-facility.md".refined)
+                    ),
+                    disabled = props.readonly
+                  ),
+                jwstSynergyView.map: v =>
+                  CheckboxView(
+                    id = "jwst-synergy".refined,
+                    value = v,
+                    label = React.Fragment(
+                      "JWST Synergy",
+                      HelpIcon("proposal/main/jwst-synergy.md".refined)
+                    ),
+                    disabled = props.readonly
+                  ),
+                usLongTermView.map: v =>
+                  CheckboxView(
+                    id = "us-long-term".refined,
+                    value = v,
+                    label = React.Fragment(
+                      "US Long Term",
+                      HelpIcon("proposal/main/us-long-term.md".refined)
+                    ),
+                    disabled = props.readonly
+                  )
+              )
+            ),
           minimumPct1View.map(mv =>
             <.div(
               ExploreStyles.PartnerSplitsGrid,

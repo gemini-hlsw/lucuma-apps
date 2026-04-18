@@ -10,6 +10,7 @@ import eu.timepit.refined.cats.given
 import io.circe.ACursor
 import io.circe.Decoder
 import io.circe.refined.*
+import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
@@ -31,14 +32,14 @@ object ProposalType:
   def toScienceSubtype(s: ScienceSubtype): ProposalType => ProposalType =
     s match
       case ScienceSubtype.Classical => {
-        case Queue(_, _, minTime, splits) =>
-          Classical(ScienceSubtype.Classical, minTime, splits)
-        case i                            => i
+        case Queue(_, _, minTime, splits, aeon, jwst, lt, cfb3) =>
+          Classical(ScienceSubtype.Classical, minTime, splits, aeon, jwst, lt, cfb3)
+        case i                                                  => i
       }
       case ScienceSubtype.Queue     => {
-        case Classical(_, minTime, splits) =>
-          Queue(ScienceSubtype.Queue, ToOActivation.None, minTime, splits)
-        case i                             => i
+        case Classical(_, minTime, splits, aeon, jwst, lt, cfb3) =>
+          Queue(ScienceSubtype.Queue, ToOActivation.None, minTime, splits, aeon, jwst, lt, cfb3)
+        case i                                                   => i
       }
       case _                        => identity
 
@@ -110,17 +111,81 @@ object ProposalType:
       case i               => i
     })
 
+  val aeonMultiFacility: Optional[ProposalType, Boolean] =
+    Optional[ProposalType, Boolean] {
+      case c: Classical    => c.aeonMultiFacility.some
+      case l: LargeProgram => l.aeonMultiFacility.some
+      case q: Queue        => q.aeonMultiFacility.some
+      case _               => none
+    }(a => {
+      case c: Classical    => c.copy(aeonMultiFacility = a)
+      case l: LargeProgram => l.copy(aeonMultiFacility = a)
+      case q: Queue        => q.copy(aeonMultiFacility = a)
+      case i               => i
+    })
+
+  val jwstSynergy: Optional[ProposalType, Boolean] =
+    Optional[ProposalType, Boolean] {
+      case c: Classical    => c.jwstSynergy.some
+      case l: LargeProgram => l.jwstSynergy.some
+      case q: Queue        => q.jwstSynergy.some
+      case _               => none
+    }(a => {
+      case c: Classical    => c.copy(jwstSynergy = a)
+      case l: LargeProgram => l.copy(jwstSynergy = a)
+      case q: Queue        => q.copy(jwstSynergy = a)
+      case i               => i
+    })
+
+  val usLongTerm: Optional[ProposalType, Boolean] =
+    Optional[ProposalType, Boolean] {
+      case c: Classical => c.usLongTerm.some
+      case q: Queue     => q.usLongTerm.some
+      case _            => none
+    }(a => {
+      case c: Classical => c.copy(usLongTerm = a)
+      case q: Queue     => q.copy(usLongTerm = a)
+      case i            => i
+    })
+
+  val considerForBand3: Optional[ProposalType, ConsiderForBand3] =
+    Optional[ProposalType, ConsiderForBand3] {
+      case c: Classical => c.considerForBand3.some
+      case q: Queue     => q.considerForBand3.some
+      case _            => none
+    }(a => {
+      case c: Classical => c.copy(considerForBand3 = a)
+      case q: Queue     => q.copy(considerForBand3 = a)
+      case i            => i
+    })
+
   // Define the Classical case class implementing ProposalType
   case class Classical(
-    scienceSubtype: ScienceSubtype,
-    minPercentTime: IntPercent,
-    partnerSplits:  List[PartnerSplit]
+    scienceSubtype:    ScienceSubtype,
+    minPercentTime:    IntPercent,
+    partnerSplits:     List[PartnerSplit],
+    aeonMultiFacility: Boolean,
+    jwstSynergy:       Boolean,
+    usLongTerm:        Boolean,
+    considerForBand3:  ConsiderForBand3
   ) extends ProposalType derives Eq
 
   object Classical {
-    val minPercentTime: Lens[Classical, IntPercent] = Focus[Classical](_.minPercentTime)
+    val minPercentTime: Lens[Classical, IntPercent]         = Focus[Classical](_.minPercentTime)
+    val aeonMultiFacility: Lens[Classical, Boolean]         = Focus[Classical](_.aeonMultiFacility)
+    val jwstSynergy: Lens[Classical, Boolean]               = Focus[Classical](_.jwstSynergy)
+    val usLongTerm: Lens[Classical, Boolean]                = Focus[Classical](_.usLongTerm)
+    val considerForBand3: Lens[Classical, ConsiderForBand3] = Focus[Classical](_.considerForBand3)
 
-    val Default: Classical = Classical(ScienceSubtype.Classical, 100.refined, List.empty)
+    val Default: Classical =
+      Classical(ScienceSubtype.Classical,
+                100.refined,
+                List.empty,
+                false,
+                false,
+                false,
+                ConsiderForBand3.Unset
+      )
   }
 
   // Define the DemoScience case class implementing ProposalType
@@ -182,7 +247,9 @@ object ProposalType:
     toOActivation:       ToOActivation,
     minPercentTime:      IntPercent,
     minPercentTotalTime: IntPercent,
-    totalTime:           TimeSpan
+    totalTime:           TimeSpan,
+    aeonMultiFacility:   Boolean,
+    jwstSynergy:         Boolean
   ) extends ProposalType derives Eq
 
   object LargeProgram {
@@ -191,13 +258,18 @@ object ProposalType:
       Focus[LargeProgram](_.minPercentTotalTime)
     val toOActivation: Lens[LargeProgram, ToOActivation]    = Focus[LargeProgram](_.toOActivation)
     val totalTime: Lens[LargeProgram, TimeSpan]             = Focus[LargeProgram](_.totalTime)
+    val aeonMultiFacility: Lens[LargeProgram, Boolean]      =
+      Focus[LargeProgram](_.aeonMultiFacility)
+    val jwstSynergy: Lens[LargeProgram, Boolean]            = Focus[LargeProgram](_.jwstSynergy)
 
     val Default: LargeProgram =
       LargeProgram(ScienceSubtype.LargeProgram,
                    ToOActivation.None,
                    100.refined,
                    100.refined,
-                   TimeSpan.Zero
+                   TimeSpan.Zero,
+                   false,
+                   false
       )
   }
 
@@ -212,17 +284,34 @@ object ProposalType:
 
   // Define the Queue case class implementing ProposalType
   case class Queue(
-    scienceSubtype: ScienceSubtype,
-    toOActivation:  ToOActivation,
-    minPercentTime: IntPercent,
-    partnerSplits:  List[PartnerSplit]
+    scienceSubtype:    ScienceSubtype,
+    toOActivation:     ToOActivation,
+    minPercentTime:    IntPercent,
+    partnerSplits:     List[PartnerSplit],
+    aeonMultiFacility: Boolean,
+    jwstSynergy:       Boolean,
+    usLongTerm:        Boolean,
+    considerForBand3:  ConsiderForBand3
   ) extends ProposalType derives Eq
 
   object Queue {
-    val minPercentTime: Lens[Queue, IntPercent]   = Focus[Queue](_.minPercentTime)
-    val toOActivation: Lens[Queue, ToOActivation] = Focus[Queue](_.toOActivation)
+    val minPercentTime: Lens[Queue, IntPercent]         = Focus[Queue](_.minPercentTime)
+    val toOActivation: Lens[Queue, ToOActivation]       = Focus[Queue](_.toOActivation)
+    val aeonMultiFacility: Lens[Queue, Boolean]         = Focus[Queue](_.aeonMultiFacility)
+    val jwstSynergy: Lens[Queue, Boolean]               = Focus[Queue](_.jwstSynergy)
+    val usLongTerm: Lens[Queue, Boolean]                = Focus[Queue](_.usLongTerm)
+    val considerForBand3: Lens[Queue, ConsiderForBand3] = Focus[Queue](_.considerForBand3)
 
-    val Default: Queue = Queue(ScienceSubtype.Queue, ToOActivation.None, 100.refined, List.empty)
+    val Default: Queue =
+      Queue(ScienceSubtype.Queue,
+            ToOActivation.None,
+            100.refined,
+            List.empty,
+            false,
+            false,
+            false,
+            ConsiderForBand3.Unset
+      )
   }
 
   // Define the SystemVerification case class implementing ProposalType
@@ -258,9 +347,20 @@ object ProposalType:
       tpe match
         case ScienceSubtype.Classical          =>
           for {
-            minPercentTime <- c.downField("minPercentTime").as[IntPercent]
-            partnerSplits  <- c.downField("partnerSplits").as[List[PartnerSplit]]
-          } yield Classical(tpe, minPercentTime, partnerSplits)
+            minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
+            partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
+            aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
+            jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
+            usLongTerm        <- c.downField("usLongTerm").as[Boolean]
+            considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]
+          } yield Classical(tpe,
+                            minPercentTime,
+                            partnerSplits,
+                            aeonMultiFacility,
+                            jwstSynergy,
+                            usLongTerm,
+                            considerForBand3
+          )
         case ScienceSubtype.DemoScience        =>
           for {
             toOActivation  <- c.downField("toOActivation").as[ToOActivation]
@@ -291,15 +391,36 @@ object ProposalType:
             minPercentTime      <- c.downField("minPercentTime").as[IntPercent]
             minPercentTotalTime <- c.downField("minPercentTotalTime").as[IntPercent]
             totalTime           <- c.downField("totalTime").as[TimeSpan]
-          } yield LargeProgram(tpe, toOActivation, minPercentTime, minPercentTotalTime, totalTime)
+            aeonMultiFacility   <- c.downField("aeonMultiFacility").as[Boolean]
+            jwstSynergy         <- c.downField("jwstSynergy").as[Boolean]
+          } yield LargeProgram(tpe,
+                               toOActivation,
+                               minPercentTime,
+                               minPercentTotalTime,
+                               totalTime,
+                               aeonMultiFacility,
+                               jwstSynergy
+          )
         case ScienceSubtype.PoorWeather        =>
           Right(PoorWeather(tpe))
         case ScienceSubtype.Queue              =>
           for {
-            toOActivation  <- c.downField("toOActivation").as[ToOActivation]
-            minPercentTime <- c.downField("minPercentTime").as[IntPercent]
-            partnerSplits  <- c.downField("partnerSplits").as[List[PartnerSplit]]
-          } yield Queue(tpe, toOActivation, minPercentTime, partnerSplits)
+            toOActivation     <- c.downField("toOActivation").as[ToOActivation]
+            minPercentTime    <- c.downField("minPercentTime").as[IntPercent]
+            partnerSplits     <- c.downField("partnerSplits").as[List[PartnerSplit]]
+            aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
+            jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
+            usLongTerm        <- c.downField("usLongTerm").as[Boolean]
+            considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]
+          } yield Queue(tpe,
+                        toOActivation,
+                        minPercentTime,
+                        partnerSplits,
+                        aeonMultiFacility,
+                        jwstSynergy,
+                        usLongTerm,
+                        considerForBand3
+          )
         case ScienceSubtype.SystemVerification =>
           for {
             toOActivation  <- c.downField("toOActivation").as[ToOActivation]
