@@ -863,13 +863,15 @@ object TcsControllerEpicsCommon {
       wavel.toAngstroms.value.value.doubleValue - other.toAngstroms.value.value.doubleValue
     ) <= WavelengthTolerance.value
 
-  def oiSelectionName(i: Instrument): Option[String] = i match {
-    case Instrument.Flamingos2                                => "F2".some
-    case Instrument.GmosSouth | Instrument.GmosNorth          => "GMOS".some
-    case Instrument.Gnirs                                     => "GNIRS".some
-    case Instrument.Niri                                      => "NIRI".some
-    case Instrument.Ghost | Instrument.Gpi | Instrument.Gsaoi => none
-    case i                                                    => sys.error(s"OI selection not supported for $i")
+  def oiSelectionName(i: Instrument): Option[String] = {
+    import Instrument.*
+    i match {
+      case Flamingos2                                                                   => "F2".some
+      case GmosSouth | GmosNorth                                                        => "GMOS".some
+      case Gnirs                                                                        => "GNIRS".some
+      case Niri                                                                         => "NIRI".some
+      case Ghost | Gpi | Gsaoi | AcqCam | Igrins2 | Visitor | Scorpio | Alopeke | Zorro => none
+    }
   }
 
   def calcMoveDistanceSquared(
