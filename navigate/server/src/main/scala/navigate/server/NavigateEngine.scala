@@ -608,19 +608,19 @@ object NavigateEngine {
     override def getInstrumentPort(instrument: Instrument): F[Option[Int]] =
       systems.tcsCommon.getInstrumentPorts.map { x =>
         val a = instrument match {
-          case Instrument.AcqCam     => 1
-          case Instrument.Flamingos2 => x.flamingos2Port
-          case Instrument.Ghost      => x.ghostPort
-          case Instrument.GmosNorth  => x.gmosPort
-          case Instrument.GmosSouth  => x.gmosPort
-          case Instrument.Gnirs      => x.gnirsPort
-          case Instrument.Gpi        => x.gpiPort
-          case Instrument.Gsaoi      => x.gsaoiPort
-          case Instrument.Igrins2    => x.igrins2Port
-          case Instrument.Niri       => x.niriPort
-          case Instrument.Alopeke    => (site === Site.GN).fold(2, 0)
-          case Instrument.Zorro      => (site === Site.GS).fold(2, 0)
-          case _                     => 0
+          case Instrument.AcqCam                       => 1
+          case Instrument.Flamingos2                   => x.flamingos2Port
+          case Instrument.Ghost                        => x.ghostPort
+          case Instrument.GmosNorth                    => x.gmosPort
+          case Instrument.GmosSouth                    => x.gmosPort
+          case Instrument.Gnirs                        => x.gnirsPort
+          case Instrument.Gpi                          => x.gpiPort
+          case Instrument.Gsaoi                        => x.gsaoiPort
+          case Instrument.Igrins2                      => x.igrins2Port
+          case Instrument.Niri                         => x.niriPort
+          case Instrument.Alopeke                      => (site === Site.GN).fold(2, 0)
+          case Instrument.Zorro                        => (site === Site.GS).fold(2, 0)
+          case Instrument.Visitor | Instrument.Scorpio => 0
         }
         (a =!= 0).option(a)
       }
