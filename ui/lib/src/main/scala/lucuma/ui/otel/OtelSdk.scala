@@ -23,6 +23,7 @@ import org.typelevel.otel4s.sdk.context.LocalContext
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
 import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
+import org.typelevel.otel4s.sdk.trace.exporter.NonEmptySpanExporter
 import org.typelevel.otel4s.sdk.trace.processor.BatchSpanProcessor
 import org.typelevel.otel4s.semconv.attributes.DeploymentAttributes
 import org.typelevel.otel4s.semconv.attributes.ServiceAttributes
@@ -80,7 +81,7 @@ object OtelSdk:
                                  .withClient(client)
                                  .build
       processor             <- BatchSpanProcessor
-                                 .builder[IO](exporter)
+                                 .builder[IO](NonEmptySpanExporter(exporter))
                                  .withScheduleDelay(scheduleDelay)
                                  .build
       traceProvider         <- Resource.eval:

@@ -24,20 +24,20 @@ import lucuma.core.syntax.time.*
 import org.scalajs.dom
 import org.typelevel.cats.time.given
 import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.otel4s.trace.Tracer
 import spire.math.extras.interval.IntervalSeq
 
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
-import scala.ContextFunction1
 import scala.scalajs.js.annotation.JSExport
 import scala.scalajs.js.annotation.JSExportTopLevel
 
 import scalajs.js
 
 @JSExportTopLevel("PlotServer", moduleID = "exploreworkers")
-object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
+object PlotServer extends WorkerServer[PlotMessage.Request] {
 
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
@@ -100,7 +100,7 @@ object PlotServer extends WorkerServer[IO, PlotMessage.Request] {
     }
   }
 
-  override protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
+  override protected val handler: (LoggerFactory[IO], Tracer[IO]) ?=> IO[Invocation => IO[Unit]] =
     for
       self  <- IO(dom.DedicatedWorkerGlobalScope.self)
       cache <- Cache.withIDB[IO](self.indexedDB.toOption, "explore-plots")

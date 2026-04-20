@@ -13,6 +13,7 @@ import cats.syntax.all.*
 import explore.events.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import workers.WorkerClient
 import workers.WorkerClientBuilder
 
@@ -95,14 +96,15 @@ object WorkerClients {
 
   object HorizonsWorkerClient extends WorkerClientBuilder[HorizonsMessage.Request](HorizonsWorker())
 
-  def build[F[_]: {Async, Logger, SecureRandom}](
-    dispatcher: Dispatcher[F]
+  def build[F[_]: {Async, Logger, SecureRandom, Tracer}](
+    dispatcher:      Dispatcher[F],
+    tracingEndpoint: Option[String]
   ): Resource[F, WorkerClients[F]] =
-    (ItcClient.build[F](dispatcher),
-     CatalogClient.build[F](dispatcher),
-     AgsClient.build[F](dispatcher),
-     AgsUnconstrainedClient.build[F](dispatcher),
-     PlotClient.build[F](dispatcher),
-     HorizonsWorkerClient.build[F](dispatcher)
+    (ItcClient.build[F](dispatcher, tracingEndpoint),
+     CatalogClient.build[F](dispatcher, tracingEndpoint),
+     AgsClient.build[F](dispatcher, tracingEndpoint),
+     AgsUnconstrainedClient.build[F](dispatcher, tracingEndpoint),
+     PlotClient.build[F](dispatcher, tracingEndpoint),
+     HorizonsWorkerClient.build[F](dispatcher, tracingEndpoint)
     ).parMapN(WorkerClients.apply)
 }

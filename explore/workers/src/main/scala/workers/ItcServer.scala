@@ -19,6 +19,7 @@ import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.otel4s.trace.Tracer
 
 import java.time.Duration
 import scala.concurrent.duration.*
@@ -30,7 +31,7 @@ import js.annotation.*
  * Web worker that can query gaia and store results locally
  */
 @JSExportTopLevel("ItcServer", moduleID = "exploreworkers")
-object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
+object ItcServer extends WorkerServer[ItcMessage.Request] with ItcPicklers {
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
@@ -41,7 +42,7 @@ object ItcServer extends WorkerServer[IO, ItcMessage.Request] with ItcPicklers {
       .withRequestTimeout(20.seconds)
       .create
 
-  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] = {
+  protected val handler: (LoggerFactory[IO], Tracer[IO]) ?=> IO[Invocation => IO[Unit]] = {
     given Logger[IO] = LoggerFactory[IO].getLoggerFromName("itc-server")
 
     for {

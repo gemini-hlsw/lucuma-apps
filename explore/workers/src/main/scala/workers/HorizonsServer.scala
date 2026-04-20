@@ -15,6 +15,7 @@ import org.http4s.dom.FetchClientBuilder
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
+import org.typelevel.otel4s.trace.Tracer
 import workers.horizons.HorizonsRequests
 
 import java.time.Duration
@@ -27,7 +28,7 @@ import js.annotation.*
  * Web worker that can query horizons and store results locally
  */
 @JSExportTopLevel("HorizonsServer", moduleID = "exploreworkers")
-object HorizonsServer extends WorkerServer[IO, HorizonsMessage.Request] with HorizonsPicklers:
+object HorizonsServer extends WorkerServer[HorizonsMessage.Request] with HorizonsPicklers:
   @JSExport
   def runWorker(): Unit = run.unsafeRunAndForget()
 
@@ -38,7 +39,7 @@ object HorizonsServer extends WorkerServer[IO, HorizonsMessage.Request] with Hor
       .withRequestTimeout(10.seconds)
       .create
 
-  protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] = {
+  protected val handler: (LoggerFactory[IO], Tracer[IO]) ?=> IO[Invocation => IO[Unit]] = {
     given Logger[IO] = LoggerFactory[IO].getLoggerFromName("horizons-server")
 
     for {

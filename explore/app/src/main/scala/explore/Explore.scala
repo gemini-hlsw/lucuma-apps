@@ -198,7 +198,8 @@ object ExploreMain {
       otel                    <- setupOtel(appConfig)
       given Tracer[IO]         = otel.tracer
       given TracerProvider[IO] = otel.tracerProvider
-      workerClients           <- WorkerClients.build[IO](dispatcher)
+      workerClients           <- WorkerClients
+                                   .build[IO](dispatcher, appConfig.otelEndpoint.map(_.value.renderString))
       bc                      <- BroadcastChannel[IO, ExploreEvent]("explore")
       _                       <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
     } yield ()).useForever
