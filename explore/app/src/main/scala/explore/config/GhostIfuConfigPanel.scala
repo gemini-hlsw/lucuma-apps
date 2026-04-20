@@ -12,7 +12,7 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
 import lucuma.schemas.model.ObservingMode
-// import lucuma.schemas.odb.input.*
+import lucuma.schemas.odb.input.*
 
 final case class GhostIfuConfigPanel(
   observingMode:   Aligner[ObservingMode.GhostIfu, GhostIfuInput],
@@ -27,20 +27,19 @@ object GhostIfuConfigPanel
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
       yield
-        // import ctx.given
+        import ctx.given
 
         <.div(
           <.h1("You've been GHOSTed!"),
-          <.div(props.observingMode.get.toString)
-          // TODO: uncomment the buttons when the odb supports reverting the ghost ifu config
-          // AdvancedConfigButtons(
-          //   editState = editState,
-          //   isCustomized = false, // props.observingMode.get.isCustomized,
-          //   revertConfig = props.revertConfig,
-          //   revertCustomizations = props.observingMode.view(_.toInput).mod(_.revertCustomizations),
-          //   sequenceChanged = props.sequenceChanged,
-          //   readonly = !props.permissions.isFullEdit,
-          //   showAdvancedButton = false
-          // )
+          <.div(props.observingMode.get.toString),
+          AdvancedConfigButtons(
+            editState = editState,
+            isCustomized = false, // props.observingMode.get.isCustomized,
+            revertConfig = props.revertConfig,
+            revertCustomizations = props.observingMode.view(_.toInput).mod(_.revertCustomizations),
+            sequenceChanged = props.sequenceChanged,
+            readonly = !props.permissions.isFullEdit,
+            showAdvancedButton = false
+          )
         )
     )

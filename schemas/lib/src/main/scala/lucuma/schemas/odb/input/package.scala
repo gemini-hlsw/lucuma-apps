@@ -604,14 +604,14 @@ extension (o: ObservingMode.Igrins2LongSlit)
   )
 
 extension (d: ObservingMode.GhostIfu.GhostDetector)
-  def toInput: GhostDetectorInput = GhostDetectorInput(
+  def toInput: GhostDetectorConfigInput = GhostDetectorConfigInput(
     exposureTimeMode = d.timeAndCount.toInput.assign,
     explicitBinning = d.explicitBinning.orUnassign,
     explicitReadMode = d.explicitReadMode.orUnassign
   )
 
 extension (d: ItcGhostDetector)
-  def toInput: GhostDetectorInput = GhostDetectorInput(
+  def toInput: GhostDetectorConfigInput = GhostDetectorConfigInput(
     exposureTimeMode = d.timeAndCount.toInput.assign,
     explicitBinning = d.binning.assign,
     explicitReadMode = d.readMode.assign
