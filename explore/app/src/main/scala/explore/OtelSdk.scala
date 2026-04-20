@@ -10,10 +10,7 @@ import explore.model.TracingConfig
 import fs2.io.compression.fs2ioCompressionForLiftIO
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.ui.sso.UserVault
-import org.http4s.Header
-import org.http4s.Headers
 import org.http4s.dom.FetchClientBuilder
-import org.typelevel.ci.*
 import org.typelevel.otel4s.Attribute
 import org.typelevel.otel4s.Attributes
 import org.typelevel.otel4s.sdk.TelemetryResource
@@ -23,7 +20,6 @@ import org.typelevel.otel4s.sdk.context.LocalContext
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
 import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
-import org.typelevel.otel4s.sdk.trace.exporter.NonEmptySpanExporter
 import org.typelevel.otel4s.sdk.trace.processor.BatchSpanProcessor
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
@@ -32,7 +28,7 @@ import scala.concurrent.duration.*
 
 // Setup the otel scala sdk to send instrumentation
 object OtelSdk:
-  private val InstrumentationScope = "explore"
+  private val ServiceName = "explore"
 
   case class OtelResources(tracer: Tracer[IO], tracerProvider: TracerProvider[IO])
 
@@ -51,36 +47,31 @@ object OtelSdk:
         exporter              <-
           OtlpSpanExporter
             .builder[IO]
-            .withEndpoint(cfg.endpoint)
-            .addHeaders(headersFor(cfg.headers))
+            .withEndpoint(cfg.value)
             .withClient(client)
             .build
         processor             <- BatchSpanProcessor
-                                   .builder[IO](NonEmptySpanExporter(exporter))
+                                   .builder[IO](exporter)
                                    .withScheduleDelay(30.seconds)
                                    .build
         tp                    <-
           Resource.eval:
             SdkTracerProvider
               .builder[IO]
-              .addResource(resourceFor(cfg.serviceName, serviceVersion, environment, vault))
+              .addResource(resourceFor(serviceVersion, environment, vault))
               .addSpanProcessor(processor)
               .addTextMapPropagators(W3CTraceContextPropagator.default)
               .build
-        tracer                <- Resource.eval(tp.tracer(InstrumentationScope).get)
+        tracer                <- Resource.eval(tp.tracer(ServiceName).get)
       yield OtelResources(tracer, tp)
 
-  private def headersFor(headers: Map[String, String]): Headers =
-    Headers(headers.toList.map((k, v) => Header.Raw(CIString(k), v)))
-
   private def resourceFor(
-    serviceName:    String,
     serviceVersion: String,
     environment:    ExecutionEnvironment,
     vault:          Option[UserVault]
   ): TelemetryResource =
     val base = Attributes(
-      Attribute("service.name", serviceName),
+      Attribute("service.name", ServiceName),
       Attribute("service.version", serviceVersion),
       Attribute("deployment.environment.name", environment.tag.toLowerCase)
     )

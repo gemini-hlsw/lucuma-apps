@@ -11,13 +11,7 @@
       "readTimeoutSeconds": 10,
       "expirationAnticipationSeconds": 10
     },
-    "tracing": {
-      "endpoint": "https://otel-collector.gpp.gemini.edu/v1/traces",
-      "serviceName": "explore",
-      "headers": {
-        "Authorization": "Basic REPLACE_WITH_BASE64_USER_PASS"
-      }
-    }
+    "tracing": "https://otel-collector.gpp.gemini.edu/v1/traces"
   },
   {
     "hostName": "explore-test.gemini.edu",
@@ -31,13 +25,7 @@
       "readTimeoutSeconds": 10,
       "expirationAnticipationSeconds": 10
     },
-    "tracing": {
-      "endpoint": "https://otel-collector.gpp.gemini.edu/v1/traces",
-      "serviceName": "explore",
-      "headers": {
-        "Authorization": "Basic REPLACE_WITH_BASE64_USER_PASS"
-      }
-    }
+    "tracing": "https://otel-collector.gpp.gemini.edu/v1/traces"
   },
   {
     "hostName": "explore.gemini.edu",
@@ -51,12 +39,6 @@
       "readTimeoutSeconds": 10,
       "expirationAnticipationSeconds": 10
     },
-    "tracing": {
-      "endpoint": "https://otel-collector.gpp.gemini.edu/v1/traces",
-      "serviceName": "explore",
-      "headers": {
-        "Authorization": "Basic REPLACE_WITH_BASE64_USER_PASS"
-      }
-    }
+    "tracing": "https://otel-collector.gpp.gemini.edu/v1/traces"
   }
 ]

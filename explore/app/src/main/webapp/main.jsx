@@ -55,18 +55,6 @@ fetch('/environments.conf.json').then((response) => {
         ExplorePWA.runServiceWorker();
       }
 
-      // Tracing is disabled by default in local dev to avoid CORS issues.
-      // Set EXPLORE_OTEL_ENDPOINT to enable it (e.g. EXPLORE_OTEL_ENDPOINT=http://localhost:4318).
-      if (import.meta.env.DEV) {
-        environments.forEach((e) => {
-          if (import.meta.env.EXPLORE_OTEL_ENDPOINT) {
-            e.tracing = { endpoint: `${import.meta.env.EXPLORE_OTEL_ENDPOINT}/v1/traces` };
-          } else {
-            e.tracing = null;
-          }
-        });
-      }
-
       // IMPORTANT: Start explore **after** the PWA service worker
       // Otherwise, errors on load may swallow the service worker
       // And leave the user unable to upgrade forever
