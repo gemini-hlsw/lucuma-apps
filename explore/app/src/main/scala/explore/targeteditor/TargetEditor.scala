@@ -315,7 +315,8 @@ object TargetEditor:
               label = React.Fragment("RA", HelpIcon("target/main/coordinates.md".refined)),
               disabled = disabled,
               validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.truncatedRA
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false
             ),
             FormInputTextView(
               id = "dec".refined,
@@ -323,7 +324,8 @@ object TargetEditor:
               label = React.Fragment("Dec", HelpIcon("target/main/coordinates.md".refined)),
               disabled = disabled,
               validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.truncatedDec
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false
             )
           )
         }

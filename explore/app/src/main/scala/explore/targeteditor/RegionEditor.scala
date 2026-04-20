@@ -73,7 +73,8 @@ object RegionEditor
               label = "start",
               labelClass = ExploreStyles.IndentLabel,
               validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.truncatedRA,
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false,
               disabled = props.readonly
             )
           ),
@@ -84,7 +85,8 @@ object RegionEditor
               label = "end",
               labelClass = ExploreStyles.IndentLabel,
               validFormat = MathValidators.truncatedRA,
-              changeAuditor = ChangeAuditor.truncatedRA,
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false,
               disabled = props.readonly
             )
           ),
@@ -101,7 +103,8 @@ object RegionEditor
               label = "start",
               labelClass = ExploreStyles.IndentLabel,
               validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.truncatedDec,
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false,
               disabled = props.readonly
             )
           ),
@@ -112,7 +115,8 @@ object RegionEditor
               label = "end",
               labelClass = ExploreStyles.IndentLabel,
               validFormat = MathValidators.truncatedDec,
-              changeAuditor = ChangeAuditor.truncatedDec,
+              changeAuditor = ChangeAuditor.accept,
+              validateOnPaste = false,
               disabled = props.readonly
             )
           )
