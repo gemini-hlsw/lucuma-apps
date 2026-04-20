@@ -18,9 +18,10 @@ private type Pickled = Pickled.Type
 private object WorkerMessage:
   sealed trait FromClient
   object FromClient:
-    case object ClientReady                                 extends FromClient
-    case class Start(id: WorkerProcessId, payload: Pickled) extends FromClient
-    case class End(id: WorkerProcessId)                     extends FromClient
+    case object ClientReady             extends FromClient
+    case class Start(id: WorkerProcessId, payload: Pickled, traceparent: Option[String] = None)
+        extends FromClient
+    case class End(id: WorkerProcessId) extends FromClient
 
   sealed trait FromServer
   object FromServer:

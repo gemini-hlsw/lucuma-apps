@@ -15,13 +15,12 @@ import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.model.ConstraintSet
 import lucuma.core.util.Timestamp
-import org.http4s.Uri
 import workers.WorkerRequest
 
 object ItcMessage extends ItcPicklers:
   sealed trait Request extends WorkerRequest
 
-  case class Initialize(itcURI: Uri) extends Request:
+  case object Initialize extends Request:
     type ResponseType = Option[String]
 
   case object CleanCache extends Request:
@@ -49,7 +48,7 @@ object ItcMessage extends ItcPicklers:
 
   private given Pickler[GraphQuery] = generatePickler
 
-  private given Pickler[Initialize] = generatePickler
+  private given Pickler[Initialize.type] = generatePickler
 
   private given Pickler[CleanCache.type] = generatePickler
 

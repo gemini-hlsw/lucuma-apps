@@ -5,21 +5,26 @@ package workers
 
 import boopickle.Pickler
 import cats.Monoid
-import cats.effect.Async
 import cats.effect.Fiber
+import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
-import cats.effect.Sync
 import cats.effect.std.Dispatcher
-import cats.effect.syntax.all.*
 import cats.syntax.all.*
+import explore.model.AppConfig
 import explore.model.boopickle.Boopickle.*
+import lucuma.ui.otel.OtelSdk
 import org.scalajs.dom
 import org.scalajs.dom.DedicatedWorkerGlobalScope
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 import org.typelevel.log4cats.console.ConsoleLoggerFactory
 import org.typelevel.log4cats.syntax.*
+import org.typelevel.otel4s.sdk.context.Context
+import org.typelevel.otel4s.sdk.context.LocalContext
+import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 
 import WorkerMessage.*
 
@@ -27,105 +32,124 @@ import WorkerMessage.*
  * Implements the server side of a simple client/server protocol that provides a somewhat more
  * functional/effecful way of communicating with workers.
  */
-trait WorkerServer[F[_]: Async, T: Pickler](using Monoid[F[Unit]]):
-  protected val run: F[Unit] =
+trait WorkerServer[T: Pickler](using Monoid[IO[Unit]]):
+  /** Reported as `service.name` on this worker's spans. */
+  protected val serviceName: String = "explore-worker"
+
+  protected val run: IO[Unit] =
     (for {
-      dispatcher             <- Dispatcher.parallel[F]
-      given LoggerFactory[F] <- Resource.eval(setupLoggerFactory)
-      _                      <- Resource.eval(runInternal(dispatcher))
+      dispatcher              <- Dispatcher.parallel[IO]
+      given LoggerFactory[IO] <- Resource.eval(setupLoggerFactory)
+      given Logger[IO]         = LoggerFactory[IO].getLoggerFromName("worker-server")
+      self                    <- Resource.eval(IO.delay(dom.DedicatedWorkerGlobalScope.self))
+      config                  <- Resource.eval(
+                                   WorkerConfig
+                                     .load[IO](self.location.origin, self.location.host)
+                                 )
+      otel                    <- WorkerOtelSdk.build(serviceName, config)
+      _                       <- Resource.eval(runInternal(dispatcher, self, config, otel))
     } yield ()).useForever.void
 
   /**
    * Provide an interface to handlers with an incoming message and a method to send responses (which
    * can be invoked multiple times; the client will receive a `Stream` of responses).
    */
-  protected case class Invocation(data: T, rawData: Pickled, respondRaw: Pickled => F[Unit]) {
-    def respond[S: Pickler](value: S): F[Unit] = respondRaw(Pickled(asBytes(value)))
+  protected case class Invocation(data: T, rawData: Pickled, respondRaw: Pickled => IO[Unit]) {
+    def respond[S: Pickler](value: S): IO[Unit] = respondRaw(Pickled(asBytes(value)))
   }
 
   /**
-   * Handle server-specific messages.
+   * Handle server-specific messages. Tracer[IO] is the per-worker SDK tracer (or noop).
    */
-  protected def handler: LoggerFactory[F] ?=> F[Invocation => F[Unit]]
+  protected def handler(
+    config: Option[AppConfig]
+  ): (LoggerFactory[IO], Tracer[IO], TracerProvider[IO]) ?=> IO[Invocation => IO[Unit]]
 
-  protected val F = summon[Sync[F]]
-
-  protected def setupLoggerFactory: F[LoggerFactory[F]] =
-    Sync[F].pure(ConsoleLoggerFactory.create[F])
+  protected def setupLoggerFactory: IO[LoggerFactory[IO]] =
+    IO.pure(ConsoleLoggerFactory.create[IO])
 
   protected def mount(
     self:         DedicatedWorkerGlobalScope,
-    handlerFn:    Invocation => F[Unit],
-    cancelTokens: Ref[F, Map[WorkerProcessId, F[Unit]]]
-  )(dispatcher: Dispatcher[F])(using LoggerFactory[F]): F[Unit] =
-    given Logger[F] = LoggerFactory[F].getLoggerFromName("worker-server")
+    handlerFn:    Invocation => IO[Unit],
+    cancelTokens: Ref[IO, Map[WorkerProcessId, IO[Unit]]],
+    localCtx:     LocalContext[IO]
+  )(dispatcher: Dispatcher[IO])(using LoggerFactory[IO]): IO[Unit] =
+    given Logger[IO] = LoggerFactory[IO].getLoggerFromName("worker-server")
 
-    F.delay(
+    IO.delay(
       self.onmessage = (msg: dom.MessageEvent) =>
         dispatcher.unsafeRunAndForget(
-          // Decode transferable events
           decodeFromTransferable[FromClient](msg)
             .map {
-              case FromClient.ClientReady        =>
-                postAsTransferable[F, FromServer](self, FromServer.ServerReady)
-              case FromClient.Start(id, payload) =>
-                F.delay(fromBytes[T](payload.value))
-                  .rethrow
-                  .flatMap(data =>
-                    (
+              case FromClient.ClientReady               =>
+                // Re-send ServerReady if main thread reconnects
+                postAsTransferable[IO, FromServer](self, FromServer.ServerReady)
+              case FromClient.Start(id, payload, tpOpt) =>
+                val parentCtx = tpOpt.fold(Context.root) { tp =>
+                  W3CTraceContextPropagator.default
+                    .extract(Context.root, Map("traceparent" -> tp))
+                }
+                for
+                  data <- IO.fromEither(fromBytes[T](payload.value))
+                  _    <-
+                    (localCtx.scope(
                       handlerFn(
                         Invocation(
                           data,
                           payload,
                           pickled =>
-                            postAsTransferable[F, FromServer](
+                            postAsTransferable[IO, FromServer](
                               self,
                               FromServer.Data(id, pickled)
                             ) >>
-                              F.cede // This is important so that long-running processes don't hog the scheduler
+                              // Important so that long-running processes don't hog the scheduler.
+                              IO.cede
                         )
-                      ) >>
-                        postAsTransferable[F, FromServer](self, FromServer.Complete(id))
-                    )
+                      )
+                    )(parentCtx) >>
+                      postAsTransferable[IO, FromServer](self, FromServer.Complete(id)))
                       .handleErrorWith(t =>
-                        postAsTransferable[F, FromServer](
+                        postAsTransferable[IO, FromServer](
                           self,
                           FromServer.Error(id, WorkerException.fromThrowable(t))
-                        ) >> F.cede
+                        ) >> IO.cede
                       )
                       .guarantee(cancelTokens.update(_ - id))
                       .start
-                      .flatMap((fiber: Fiber[F, Throwable, Unit]) =>
+                      .flatMap((fiber: Fiber[IO, Throwable, Unit]) =>
                         cancelTokens.update(_ + (id -> fiber.cancel))
                       )
-                  )
-              case FromClient.End(id)            =>
+                yield ()
+              case FromClient.End(id)                   =>
                 cancelTokens.modify { tokenMap =>
                   val token = tokenMap.get(id).orEmpty
                   (tokenMap - id, token)
                 }.flatten
             }
             .orEmpty
-            .handleErrorWith(e => Logger[F].error(e)("Error processing message in worker"))
+            .handleErrorWith(e => Logger[IO].error(e)("Error processing message in worker"))
         )
-    ).handleErrorWith(e => Logger[F].error(e)("Error initializing worker"))
+    ).handleErrorWith(e => Logger[IO].error(e)("Error initializing worker"))
 
-  protected def runInternal(dispatcher: Dispatcher[F])(using LoggerFactory[F]): F[Unit] =
-    given Logger[F] = LoggerFactory[F].getLoggerFromName("worker-server")
+  protected def runInternal(
+    dispatcher: Dispatcher[IO],
+    self:       DedicatedWorkerGlobalScope,
+    config:     Option[AppConfig],
+    otel:       OtelSdk.OtelResources
+  )(using LoggerFactory[IO]): IO[Unit] =
+    given Logger[IO]         = LoggerFactory[IO].getLoggerFromName("worker-server")
+    given Tracer[IO]         = otel.tracer
+    given TracerProvider[IO] = otel.tracerProvider
 
     for {
-      self         <- F.delay(dom.DedicatedWorkerGlobalScope.self)
-      handlerFn    <- handler
-      cancelTokens <- Ref[F].of(Map.empty[WorkerProcessId, F[Unit]])
-      logger       <- F.delay(LoggerFactory[F].getLogger)
+      handlerFn    <- handler(config)
+      cancelTokens <- Ref[IO].of(Map.empty[WorkerProcessId, IO[Unit]])
       _            <- debug"Mounting"
-      _            <- mount(self, handlerFn, cancelTokens)(dispatcher)
+      _            <- mount(self, handlerFn, cancelTokens, otel.localCtx)(dispatcher)
       _            <- debug"Mounted, sending ready"
-      // Because of racing conditions, the server may have missed the client's ClientReady
-      // message by the time it initializes. So, we force send a ServerReady here just in case.
-      // This assures that the client will get at least one ServerReady. We cannot just send
-      // this one since the client may not be ready yet, so we must also send the one in
-      // response to ClientReady above.
-      _            <- postAsTransferable[F, FromServer](self, FromServer.ServerReady)
+      // The client may have missed the ServerReady we send in response to its ClientReady (or we
+      // may have missed its ClientReady altogether), so always send one here too. This assures the
+      // client gets at least one ServerReady.
+      _            <- postAsTransferable[IO, FromServer](self, FromServer.ServerReady)
       _            <- debug"Ready sent!"
     } yield ()

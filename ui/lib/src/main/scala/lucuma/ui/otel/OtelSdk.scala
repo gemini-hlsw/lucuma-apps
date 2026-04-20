@@ -23,6 +23,7 @@ import org.typelevel.otel4s.sdk.context.LocalContext
 import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
 import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
+import org.typelevel.otel4s.sdk.trace.exporter.NonEmptySpanExporter
 import org.typelevel.otel4s.sdk.trace.processor.BatchSpanProcessor
 import org.typelevel.otel4s.semconv.attributes.DeploymentAttributes
 import org.typelevel.otel4s.semconv.attributes.ServiceAttributes
@@ -38,13 +39,17 @@ object OtelSdk:
   /** The default is 5 seconds, which is too short for a browser app. */
   val DefaultScheduleDelay: FiniteDuration = 30.seconds
 
-  case class OtelResources(tracer: Tracer[IO], tracerProvider: TracerProvider[IO])
+  case class OtelResources(
+    tracer:         Tracer[IO],
+    tracerProvider: TracerProvider[IO],
+    localCtx:       LocalContext[IO]
+  )
 
-  val Noop: OtelResources = OtelResources(Tracer.noop[IO], TracerProvider.noop[IO])
+  private def noop(localCtx: LocalContext[IO]): OtelResources =
+    OtelResources(Tracer.noop[IO], TracerProvider.noop[IO], localCtx)
 
   /**
-   * Build the sdk, tracing to `endpoint`. Tracing must never keep the app from starting, so a
-   * missing endpoint or any failure while building degrades to a noop tracer.
+   * Build the sdk, tracing to `endpoint`, identifying itself as `serviceName`.
    */
   def build(
     endpoint:        Option[Uri],
@@ -54,24 +59,38 @@ object OtelSdk:
     extraAttributes: Attributes = Attributes.empty,
     scheduleDelay:   FiniteDuration = DefaultScheduleDelay
   )(using Logger[IO]): Resource[IO, OtelResources] =
-    endpoint
-      .fold(Resource.pure(Noop)): uri =>
-        buildSdk(uri, serviceName, serviceVersion, environment, extraAttributes, scheduleDelay)
-      .handleErrorWith: (t: Throwable) =>
-        Resource
-          .eval(Logger[IO].warn(t)("Error initializing tracing, continuing without it"))
-          .as(Noop)
+    build(
+      endpoint,
+      serviceName,
+      resourceAttr(serviceName, serviceVersion, environment, extraAttributes),
+      scheduleDelay
+    )
+
+  def build(
+    endpoint:          Option[Uri],
+    serviceName:       String,
+    telemetryResource: TelemetryResource,
+    scheduleDelay:     FiniteDuration
+  )(using Logger[IO]): Resource[IO, OtelResources] =
+    Resource
+      .eval(LocalProvider[IO, Context].local)
+      .flatMap: local =>
+        endpoint
+          .fold(Resource.pure(noop(local))): uri =>
+            buildSdk(uri, serviceName, telemetryResource, scheduleDelay, local)
+          .handleErrorWith: (t: Throwable) =>
+            Resource
+              .eval(Logger[IO].warn(t)("Error initializing tracing, continuing without it"))
+              .as(noop(local))
 
   private def buildSdk(
-    uri:             Uri,
-    serviceName:     String,
-    serviceVersion:  String,
-    environment:     ExecutionEnvironment,
-    extraAttributes: Attributes,
-    scheduleDelay:   FiniteDuration
+    uri:               Uri,
+    serviceName:       String,
+    telemetryResource: TelemetryResource,
+    scheduleDelay:     FiniteDuration,
+    local:             LocalContext[IO]
   ): Resource[IO, OtelResources] =
     for
-      local                 <- Resource.eval(LocalProvider[IO, Context].local)
       given LocalContext[IO] = local
       client                <- FetchClientBuilder[IO].resource
       exporter              <- OtlpSpanExporter
@@ -80,24 +99,18 @@ object OtelSdk:
                                  .withClient(client)
                                  .build
       processor             <- BatchSpanProcessor
-                                 .builder[IO](exporter)
+                                 .builder[IO](NonEmptySpanExporter(exporter))
                                  .withScheduleDelay(scheduleDelay)
                                  .build
       traceProvider         <- Resource.eval:
                                  SdkTracerProvider
                                    .builder[IO]
-                                   .addResource:
-                                     resourceAttr(
-                                       serviceName,
-                                       serviceVersion,
-                                       environment,
-                                       extraAttributes
-                                     )
+                                   .addResource(telemetryResource)
                                    .addSpanProcessor(processor)
                                    .addTextMapPropagators(W3CTraceContextPropagator.default)
                                    .build
       tracer                <- Resource.eval(traceProvider.tracer(serviceName).get)
-    yield OtelResources(tracer, traceProvider)
+    yield OtelResources(tracer, traceProvider, local)
 
   private def resourceAttr(
     serviceName:     String,
