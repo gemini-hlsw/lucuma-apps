@@ -13,6 +13,7 @@ import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.wavelength.decoder.given
@@ -109,6 +110,14 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
+
+  def targetLabelsMap(scienceTargets: List[TargetWithId]): Map[Target.Id, String] =
+    this match
+      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
+        scienceTargets.zip(List("SR-IFU1", "SR-IFU2")).map((t, l) => t.id -> l).toMap
+      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.High)     =>
+        scienceTargets.zip(List("HR-IFU1")).map((t, l) => t.id -> l).toMap
+      case _                                                                          => Map.empty
 
   private def fallBackGuideProbe = this match
     case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) |

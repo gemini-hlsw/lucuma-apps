@@ -364,11 +364,17 @@ object AladinContainer extends AladinCommon {
                     .void
                     .when_(offset === Offset.Zero)
                 .getOrEmpty
+        // get the coords for all targets, we need them for ghost
+        asterismCoords          <- useMemo((props.obsTargets, props.obsTimeCoords)):
+                                     (obsTargets, obsTimeCoords) =>
+                                       obsTargets.science.flatMap: t =>
+                                         obsTimeCoords.allTargetsMap.get(t.id)
         // Memoized svg for visualization shapes
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
+                                     asterismCoords.value,
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
@@ -506,10 +512,19 @@ object AladinContainer extends AladinCommon {
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
+        val targetLabels: Map[Target.Id, String] =
+          props.vizConf
+            .foldMap(_.configuration.targetLabelsMap(props.obsTargets.science))
+
         val scienceTargets: List[SvgTarget] =
           targetCoords
             .filterNot(_.target.disposition === TargetDisposition.BlindOffset)
             .flatMap { tc =>
+              // Some modes like GHOST want to add a label to the targets
+              val title = targetLabels
+                .get(tc.target.id)
+                .fold(tc.targetName)(l => s"$l: ${tc.targetName}")
+
               def targetSvg(coords: Coordinates) =
                 SvgTarget.ScienceTarget(
                   coords,
@@ -517,7 +532,7 @@ object AladinContainer extends AladinCommon {
                   ExploreStyles.ScienceSelectedTarget,
                   TargetSize,
                   tc.isSelected && isSelectable,
-                  tc.targetName.some
+                  title.some
                 )
 
               tc.surveyOrEphemeris

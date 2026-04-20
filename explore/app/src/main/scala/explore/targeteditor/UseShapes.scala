@@ -27,6 +27,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
+import lucuma.core.geom.ghost
 import lucuma.core.geom.gmos
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPosition
@@ -193,8 +194,7 @@ def usePatrolFieldShapes(
           case ObservingModeType.Igrins2LongSlit                                         =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
           case ObservingModeType.GhostIfu                                                =>
-            // TODO: What should the anchor be for GHOST IFU?
-            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+            (VisualizationStyles.Anchor, ghost.scienceArea.fov)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -203,12 +203,13 @@ def useVisualizationShapes(
   vizConf:         Option[ConfigurationForVisualization],
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
+  asterismCoords:  List[Coordinates],
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS)
-  ) { (vizConf, baseCoordinates, blindOffset, agsOverlay, selectedGS) =>
+    (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS)
+  ) { (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS) =>
     val candidatesVisibilityCss: Css =
       ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
 
@@ -302,6 +303,19 @@ def useVisualizationShapes(
               VisualizationStyles.PwfsProbeArmVisible
             case _                                               =>
               Css.Empty
-          // TODO: Get shapes for GHOST
-          (probeVisibilityCss, None)
+
+          (probeVisibilityCss,
+           GhostGeometry.ghostGeometry(
+             baseCoords,
+             blindOffset,
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.map(_.posAngle),
+             vizConf.map(_.configuration),
+             vizConf.flatMap(_.trackType),
+             selectedGS,
+             candidatesVisibilityCss,
+             asterismCoords.headOption,
+             asterismCoords.drop(1).headOption
+           )
+          )
   }.map(_.value)

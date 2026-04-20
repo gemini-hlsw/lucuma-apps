@@ -34,7 +34,7 @@ import scala.collection.immutable.SortedMap
 /**
  * Object to produce flamingos2 geometry for visualization
  */
-object Flamingos2Geometry extends PwfsGeometry:
+object Flamingos2Geometry extends WithPwfsGeometry:
 
   // Shape to display for a specific mode
   def shapesForMode(
