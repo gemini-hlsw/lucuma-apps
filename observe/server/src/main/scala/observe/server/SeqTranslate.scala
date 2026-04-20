@@ -903,6 +903,8 @@ object SeqTranslate {
                 ),
             StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
           )
+        case InstrumentExecutionConfig.Ghost(_)                    =>
+          ???
       }
   }
 
