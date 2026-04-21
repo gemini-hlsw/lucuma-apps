@@ -66,7 +66,7 @@ object TargetColumns:
 
   val BaseColNames: TreeSeqMap[ColumnId, String] =
     TreeSeqMap(
-      TypeColumnId      -> " ",
+      TypeColumnId      -> "Target Type",
       NameColumnId      -> "Name",
       CatalogName       -> "Catalog",
       CatalogId         -> "Catalog Id",
@@ -261,6 +261,7 @@ object TargetColumns:
       val BaseColumns: List[colDef.Type]        =
         List(
           colDef(TypeColumnId, identity, BaseColNames(TypeColumnId))
+            .withHeader("")
             .withCell(t => icon(t.value))
             .withSize(35.toPx),
           NameColumn,
