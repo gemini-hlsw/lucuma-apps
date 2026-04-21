@@ -2692,9 +2692,10 @@ input[type='file'].explore-fileupload {
     }
   }
 
-  &.p-menu {
+  &.p-menu,
+  &.p-tieredmenu {
     max-height: 25rem;
-    overflow-y: scroll;
+    overflow-y: auto;
 
     .p-menuitem {
       padding-top: 0;
