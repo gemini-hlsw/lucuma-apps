@@ -463,6 +463,8 @@ object NightPlot:
                     else Double.NegativeInfinity
 
               zones
+                // Don't draw the area below the target for elevation only series, e.g. tellurics
+                .filterNot(_ => seriesData.objectPlotData.elevationOnly)
                 .fold(baseSeries)(z => baseSeries.setZones(z))
                 .asInstanceOf[SeriesOptionsType]
             .toJSArray
