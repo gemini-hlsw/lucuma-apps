@@ -65,7 +65,7 @@ object ObsSummaryColumns:
     TreeSeqMap(
       ExpanderColumnId      -> " ",
       ObservationIdColumnId -> "Observation Id",
-      TargetTypeColumnId    -> "",
+      TargetTypeColumnId    -> "Target Type",
       TargetColumnId        -> "Targets",
       GroupColumnId         -> "Group",
       StateColumnId         -> "State",
@@ -183,6 +183,7 @@ object ObsSummaryColumns:
           _.value.map(obsLink)
         .sortableWith(identifierSortFn),
       ColDef(TargetTypeColumnId, _.value, ColumnNames(TargetTypeColumnId))
+        .withoutHeader
         .withCell(_.value.iconWithTooltip)
         .withSize(35.toPx)
         .setEnableSorting(false.some),

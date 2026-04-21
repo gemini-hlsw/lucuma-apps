@@ -9,7 +9,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.MenuItem
-import lucuma.react.primereact.PopupMenu
+import lucuma.react.primereact.PopupTieredMenu
 import lucuma.react.primereact.hooks.all.*
 import lucuma.react.table.ColumnId
 import lucuma.react.table.ColumnVisibility
@@ -21,26 +21,24 @@ case class ColumnSelector(
   columnVisibility:       ColumnVisibility,
   toggleColumnVisibility: ColumnId => Callback,
   clazz:                  Css = Css.Empty
-) extends ReactFnProps(ColumnSelector.component)
+) extends ReactFnProps(ColumnSelector)
 
-object ColumnSelector:
-  private type Props = ColumnSelector
-
-  private val component =
-    ScalaFnComponent
-      .withHooks[Props]
-      .usePopupMenuRef
-      .render: (props, menuRef) =>
+object ColumnSelector
+    extends ReactFnComponent[ColumnSelector](props =>
+      usePopupMenuRef.map: menuRef =>
         val menuItems =
           props.allColumns
             .map: (colId, colName) =>
               MenuItem.Custom(
-                <.div(LucumaPrimeStyles.CheckboxWithLabel)(
+                <.div(
+                  LucumaPrimeStyles.CheckboxWithLabel,
+                  ^.onClick ==> (_.stopPropagationCB) // make the checkbox click when pressed anywhere
+                )(
                   Checkbox(
-                    id = colId.value,
+                    inputId = colId.value,
                     checked = !props.columnVisibility.value.get(colId).contains(Visibility.Hidden),
                     onChange = _ => props.toggleColumnVisibility(colId)
-                  )(^.onClick       ==> (e => e.stopPropagationCB >> e.preventDefaultCB)),
+                  ),
                   <.label(^.htmlFor := colId.value, colName)
                 )
               )
@@ -55,5 +53,7 @@ object ColumnSelector:
             severity = Button.Severity.Secondary,
             onClickE = menuRef.toggle
           ),
-          PopupMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
+          // PopuMenu has a bug where a seconf click is ignored, works with PopuTieredMenu
+          PopupTieredMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
         )
+    )
