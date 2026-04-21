@@ -46,12 +46,15 @@ trait CatalogPicklers extends ItcPicklers:
 
   given Pickler[AgsParams.Flamingos2LongSlit] = generatePickler
 
+  given agsGhostIfu: Pickler[AgsParams.GhostIfu] = generatePickler
+
   given Pickler[AgsParams] =
     compositePickler[AgsParams]
       .addConcreteType[AgsParams.GmosImaging]
       .addConcreteType[AgsParams.GmosLongSlit]
       .addConcreteType[AgsParams.Flamingos2LongSlit]
       .addConcreteType[AgsParams.Igrins2LongSlit]
+      .addConcreteType[AgsParams.GhostIfu]
 
   given Pickler[Area] =
     transformPickler((x: Long) =>
