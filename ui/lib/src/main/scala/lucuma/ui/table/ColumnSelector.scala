@@ -53,6 +53,7 @@ object ColumnSelector
             severity = Button.Severity.Secondary,
             onClickE = menuRef.toggle
           ),
+          // PopuMenu has a bug where a seconf click is ignored, works with PopuTieredMenu
           PopupTieredMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
         )
     )

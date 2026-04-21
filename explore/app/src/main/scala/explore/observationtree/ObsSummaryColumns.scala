@@ -183,7 +183,7 @@ object ObsSummaryColumns:
           _.value.map(obsLink)
         .sortableWith(identifierSortFn),
       ColDef(TargetTypeColumnId, _.value, ColumnNames(TargetTypeColumnId))
-        .withHeader("")
+        .withoutHeader
         .withCell(_.value.iconWithTooltip)
         .withSize(35.toPx)
         .setEnableSorting(false.some),

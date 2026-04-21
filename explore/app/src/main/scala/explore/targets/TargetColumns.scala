@@ -261,7 +261,7 @@ object TargetColumns:
       val BaseColumns: List[colDef.Type]        =
         List(
           colDef(TypeColumnId, identity, BaseColNames(TypeColumnId))
-            .withHeader("")
+            .withoutHeader
             .withCell(t => icon(t.value))
             .withSize(35.toPx),
           NameColumn,
