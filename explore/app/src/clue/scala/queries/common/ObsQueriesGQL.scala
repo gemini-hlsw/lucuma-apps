@@ -18,7 +18,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation($$createObservation: CreateObservationInput!) {
         createObservation(input: $$createObservation) {
-          observation $ObservationSubquery
+          observation $ObservationWithFullModeSubquery
         }
       }
     """
@@ -81,7 +81,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation ($$input: CloneObservationInput!){
         cloneObservation(input: $$input) {
-          newObservation $ObservationSubquery
+          newObservation $ObservationWithFullModeSubquery
         }
       }
     """
@@ -101,7 +101,7 @@ object ObsQueriesGQL:
       subscription($$input: ObservationEditInput!) {
         observationEdit(input: $$input) {
           observationId
-          value $ObservationSubquery
+          value $ObservationWithFullModeSubquery
           meta:value { existence }
           editType
         }
