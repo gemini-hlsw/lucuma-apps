@@ -55,7 +55,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
               combinedFilters
             }
           }
-          observingMode $ObservingModeSubquery
+          observingMode $BasicConfigurationSubquery
           observerNotes
           calibrationRole
           scienceBand

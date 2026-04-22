@@ -107,6 +107,17 @@ trait OdbObservationApi[F[_]]:
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ProgramObservationsDelta.Data.ObservationEdit]]
   def allProgramObservations(programId:  Program.Id): F[List[Observation]]
+
+  /**
+   * Fetches (id, full ObservingMode) pairs for every observation in the
+   * program belonging to a given instrument. Used to hydrate the `observingMode`
+   * field after the bulk summary query has returned the lightweight
+   * BasicConfiguration.
+   */
+  def programObservationsObservingModes(
+    programId:  Program.Id,
+    instrument: lucuma.core.enums.Instrument
+  ): F[List[(Observation.Id, Option[lucuma.schemas.model.ObservingMode])]]
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]]

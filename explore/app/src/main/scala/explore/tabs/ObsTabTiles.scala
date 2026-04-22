@@ -136,13 +136,13 @@ case class ObsTabTiles(
   val constraintSet = observation.zoom(Observation.constraints)
 
   val centralWavelength: Option[CentralWavelength] =
-    observation.get.observingMode.flatMap(_.centralWv)
+    observation.get.basicConfiguration.flatMap(_.centralWv)
 
   val conditionsWavelength: Option[Wavelength] =
-    observation.get.observingMode.map(_.conditionsWavelength)
+    observation.get.basicConfiguration.map(_.conditionsWavelength)
 
   val agsWavelength: Option[AGSWavelength] =
-    observation.get.observingMode.map(_.agsWavelength)
+    observation.get.basicConfiguration.map(_.agsWavelength)
 
   private val asterismAsNel: Option[ObservationTargets] =
     ObservationTargets.fromTargets:
@@ -151,7 +151,7 @@ case class ObsTabTiles(
   def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
     optTracking.flatMap(_.at(obsTime))
 
-  def site: Option[Site] = observation.get.observingMode.flatMap(_.siteFor)
+  def site: Option[Site] = observation.get.basicConfiguration.map(_.siteFor)
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -247,7 +247,7 @@ object ObsTabTiles:
         obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
                                   vizTime => IO(vizTime.getOrElse(Instant.now()))
         trackingOptMapPot    <-
-          useEffectKeepResultWithDeps(props.observation.get.observingMode.flatMap(_.siteFor),
+          useEffectKeepResultWithDeps(props.observation.get.basicConfiguration.map(_.siteFor),
                                       obsTimeOrNowPot.value.toOption,
                                       props.asterismAsNel.map(_.science)
           ): (site, obsTime, targets) =>
@@ -331,7 +331,7 @@ object ObsTabTiles:
             props.observation.model.zoom(Observation.scienceTargetIds)
 
           val basicConfiguration: Option[BasicConfiguration] =
-            props.observation.get.observingMode.map(_.toBasicConfiguration)
+            props.observation.get.basicConfiguration
 
           // ETM normalized to science requirements so it matches the table rows on ===.
           val revertedInstrumentConfig: List[ItcInstrumentConfig] =
@@ -563,7 +563,7 @@ object ObsTabTiles:
                   .map: nel =>
                     val name: NonEmptyString =
                       NonEmptyString.from(s"${siblings.title}".take(100)).getOrElse("-".refined)
-                    val sites                = siblings.observingMode.toList.map(_.siteFor).flattenOption
+                    val sites                = siblings.basicConfiguration.toList.map(_.siteFor)
 
                     ObjectPlotData.Id(siblings.id.asLeft) ->
                       ObjectPlotData(name,
@@ -599,7 +599,7 @@ object ObsTabTiles:
                 props.vault.userId,
                 ObsTabTileIds.PlotId.id,
                 pd,
-                props.observation.get.observingMode.flatMap(_.siteFor),
+                props.observation.get.basicConfiguration.map(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
                 obsCalibrationGroup.isEmpty,
@@ -723,7 +723,9 @@ object ObsTabTiles:
               props.obsId,
               props.observation.zoom(Observation.scienceRequirements),
               props.observation
-                .zoom((Observation.posAngleConstraint, Observation.observingMode).disjointZip),
+                .zoom(
+                  (Observation.posAngleConstraint, Observation.observingModeOption).disjointZip
+                ),
               props.observation.get.scienceTargetIds,
               optAsterismCoords,
               obsConf,

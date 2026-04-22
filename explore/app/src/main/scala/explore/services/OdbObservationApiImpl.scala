@@ -36,6 +36,7 @@ import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservations
+import queries.common.ProgramSummaryQueriesGQL.AllProgramObservationsObservingMode
 import queries.common.TargetQueriesGQL.SetGuideTargetName
 
 import java.time.Instant
@@ -407,6 +408,29 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.hasMore,
       _.id
     )
+
+  def programObservationsObservingModes(
+    programId:  Program.Id,
+    instrument: lucuma.core.enums.Instrument
+  ): F[List[(Observation.Id, Option[ObservingMode])]] =
+    val where = WhereObservation(
+      program = programId.toWhereProgram.assign,
+      instrument = WhereOptionEqInstrument(EQ = instrument.assign).assign
+    )
+    drain[
+      AllProgramObservationsObservingMode.Data.Observations.Matches,
+      Observation.Id,
+      AllProgramObservationsObservingMode.Data.Observations
+    ](
+      offset =>
+        AllProgramObservationsObservingMode[F]
+          .query(where, offset.orUnassign)
+          .processNoDataErrors
+          .map(_.observations),
+      _.matches,
+      _.hasMore,
+      _.id
+    ).map(_.map(m => (m.id, m.observingMode)))
 
   def obsCalcSubscription(
     programId: Program.Id

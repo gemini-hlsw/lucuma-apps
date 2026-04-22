@@ -89,7 +89,7 @@ object ObsSummaryTile
             ObservationRegionsOrCoordinatesAt.build(
               obsTargets,
               obs.observationTime.getOrElse(now).some,
-              obs.observingMode.flatMap(_.siteFor)
+              obs.basicConfiguration.map(_.siteFor)
             )
           .map: regionsOrCoords =>
             val headTarget = regionsOrCoords.science.headOption.map(_._1)

@@ -8,6 +8,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.Throttler
+import lucuma.core.enums.Instrument
 import explore.model.Attachment
 import explore.model.Group
 import explore.model.Observation
@@ -109,8 +110,34 @@ object ProgramCacheController
     val targets: IO[List[TargetWithId]] =
       props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
 
+    // Two-phase observation load: summary first (cheap BasicConfiguration),
+    // then a per-instrument detail query hydrates `observingMode`.
     val observations: IO[List[Observation]] =
       props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+
+    def hydrateObservingModes(summary: List[Observation]): IO[List[Observation]] =
+      val instruments: Set[Instrument] =
+        summary.flatMap(_.basicConfiguration.map(_.instrument)).toSet
+      if (instruments.isEmpty)
+        // No modes present anywhere — mark all Ready(None) and return
+        summary.map(Observation.observingMode.replace(Pot.Ready(None))).pure[IO]
+      else
+        instruments.toList
+          .parTraverse: inst =>
+            props.odbApi
+              .programObservationsObservingModes(props.programId, inst)
+              .logTime(s"AllProgramObservations-$inst")
+          .map: perInstrumentResults =>
+            val modeById: Map[Observation.Id, Option[lucuma.schemas.model.ObservingMode]] =
+              perInstrumentResults.flatten.toMap
+            summary.map: obs =>
+              obs.basicConfiguration.map(_.instrument) match
+                case None       =>
+                  // Observation has no mode set
+                  Observation.observingMode.replace(Pot.Ready(None))(obs)
+                case Some(inst) =>
+                  val full = modeById.get(obs.id).flatten
+                  Observation.observingMode.replace(Pot.Ready(full))(obs)
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       props.odbApi
@@ -143,7 +170,12 @@ object ProgramCacheController
               crs
             )
 
-    (observations, groups).parFlatMapN(initializeSummaries(_, _).map((_, Stream.empty)))
+    val hydratedObservations: IO[List[Observation]] =
+      observations.flatMap(hydrateObservingModes)
+
+    (hydratedObservations, groups).parFlatMapN(
+      initializeSummaries(_, _).map((_, Stream.empty))
+    )
   }
 
   override protected val updateStream

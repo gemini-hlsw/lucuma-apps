@@ -96,7 +96,7 @@ case class TargetTabContents(
           .map: obsId =>
             programSummaries.get.observations
               .get(obsId)
-              .flatMap(_.observingMode.flatMap(_.siteFor))
+              .flatMap(_.basicConfiguration.map(_.siteFor))
           .flattenOption
 
   private val obsAndTargets: UndoSetter[ObservationsAndTargets] =
@@ -438,9 +438,9 @@ object TargetTabContents extends TwoPanels:
                     case o @ Observation(
                           id = obsId,
                           constraints = const,
-                          observingMode = Some(conf)
+                          basicConfiguration = Some(conf)
                         ) if obsId === id =>
-                      (const, conf.toBasicConfiguration, o.needsAGS(props.targets.get))
+                      (const, conf, o.needsAGS(props.targets.get))
                   .headOption
               case _        => None
             }

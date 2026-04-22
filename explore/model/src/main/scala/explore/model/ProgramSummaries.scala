@@ -8,6 +8,7 @@ import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.derived.*
 import cats.implicits.*
+import crystal.Pot
 import eu.timepit.refined.cats.given
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
@@ -26,6 +27,7 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
+import lucuma.schemas.model.ObservingMode
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.schemas.model.TargetWithId
@@ -184,9 +186,15 @@ case class ProgramSummaries(
         existing
           .map(o =>
             // if it exists, we want to keep the existing calculated values
+            // and preserve any already-hydrated full observingMode when the
+            // basicConfiguration is unchanged (deltas only carry the summary)
+            val preservedMode: Pot[Option[ObservingMode]] =
+              if (o.basicConfiguration === observation.basicConfiguration) o.observingMode
+              else Pot.Pending
             Observation.calculatedValues
               .replace(Observation.calculatedValues.get(o))
-              .andThen(Observation.selectedGSName.replace(o.selectedGSName))(observation)
+              .andThen(Observation.selectedGSName.replace(o.selectedGSName))
+              .andThen(Observation.observingMode.replace(preservedMode))(observation)
           )
           .orElse(
             // if it doesn't exist, insert it but apply any orphaned calculated values
