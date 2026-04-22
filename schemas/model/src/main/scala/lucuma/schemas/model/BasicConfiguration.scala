@@ -262,30 +262,18 @@ object BasicConfiguration:
   ) extends BasicConfiguration derives Eq
 
   object GmosNorthImaging:
-    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
-    private val gmosNorthFilterFromFilters: Decoder[GmosNorthFilter] =
-      Decoder.instance(_.downField("filter").as[GmosNorthFilter])
-    given Decoder[GmosNorthImaging]                                  =
-      Decoder.instance(
-        _.downField("filters")
-          .as(using Decoder.decodeNonEmptyList(using gmosNorthFilterFromFilters))
-          .map(GmosNorthImaging(_))
-      )
+    private case class FilterWrapper(filter: GmosNorthFilter) derives Decoder
+    given Decoder[GmosNorthImaging] = Decoder.instance: c =>
+      c.downField("filters").as[NonEmptyList[FilterWrapper]].map(ws => GmosNorthImaging(ws.map(_.filter)))
 
   case class GmosSouthImaging(
     filters: NonEmptyList[GmosSouthFilter]
   ) extends BasicConfiguration derives Eq
 
   object GmosSouthImaging:
-    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
-    private val gmosSouthFilterFromFilters: Decoder[GmosSouthFilter] =
-      Decoder.instance(_.downField("filter").as[GmosSouthFilter])
-    given Decoder[GmosSouthImaging]                                  =
-      Decoder.instance(
-        _.downField("filters")
-          .as(using Decoder.decodeNonEmptyList(using gmosSouthFilterFromFilters))
-          .map(GmosSouthImaging(_))
-      )
+    private case class FilterWrapper(filter: GmosSouthFilter) derives Decoder
+    given Decoder[GmosSouthImaging] = Decoder.instance: c =>
+      c.downField("filters").as[NonEmptyList[FilterWrapper]].map(ws => GmosSouthImaging(ws.map(_.filter)))
 
   case class Flamingos2LongSlit(
     disperser: Flamingos2Disperser,
