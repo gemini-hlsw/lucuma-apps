@@ -6982,6 +6982,12 @@ input GhostDetectorConfigInput {
 """Edit or create GHOST IFU Mode"""
 input GhostIfuInput {
   """
+  Requested step count. If not specified, a default of 1 will applied.  Cannot
+  be unset with a null value.
+  """
+  stepCount: PosInt
+
+  """
   The disperser field must be specified.  It cannot be unset with a null value.
   """
   resolutionMode: GhostResolutionMode
@@ -6997,6 +7003,12 @@ input GhostIfuInput {
   a null value.
   """
   blue: GhostDetectorConfigInput
+
+  """
+  Slit viewing camera exposure time.  If not specified, this will remain null.
+  May be unset with a null value.
+  """
+  slitViewingCameraExposureTime: TimeSpanInput
 
   """
   IFU1 fiber agitator setting.  If not specified, a default (DISABLED) will be
@@ -7042,6 +7054,9 @@ type GhostDetectorConfig {
 
 """GHOST IFU observing mode."""
 type GhostIfu {
+  """Number of steps requested."""
+  stepCount: PosInt!
+
   """Resolution mode."""
   resolutionMode: GhostResolutionMode!
 
@@ -7050,6 +7065,9 @@ type GhostIfu {
 
   """Blue detector config."""
   blue: GhostDetectorConfig!
+
+  """Slit viewing camera exposure time (if specified)."""
+  slitViewingCameraExposureTime: TimeSpan
 
   """
   IFU 1 fiber agitator setting, either explicitly specified or else default.
@@ -7081,6 +7099,7 @@ type GhostIfu {
 """GHOST configuration that applies across all steps."""
 type GhostStatic {
   resolutionMode: GhostResolutionMode!
+  slitViewingCameraExposureTime: TimeSpan
 }
 
 """GHOST detector configuration for a single step."""
@@ -7227,6 +7246,9 @@ type Igrins2LongSlit {
   Optional explicitly specified spatial offsets. If set, overrides the default.
   """
   explicitOffsets: [Offset!]
+
+  """Telluric type configuration for this observation."""
+  telluricType: TelluricType!
 }
 
 """Edit or create IGRINS-2 Long Slit configuration"""
@@ -7254,6 +7276,12 @@ input Igrins2LongSlitInput {
   For NodAlongSlit mode, all offsets must have P = 0.
   """
   explicitOffsets: [OffsetInput!]
+
+  """
+  The telluricType field must be either specified or skipped altogether. It cannot be unset with a null value.
+  On create the default is HOT.
+  """
+  telluricType: TelluricTypeInput
 }
 
 """Metadata for `enum FilterType`"""
