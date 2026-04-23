@@ -799,6 +799,18 @@ object ObservingMode:
     val signalToNoiseAt: Lens[GhostIfu, Wavelength] =
       Focus[GhostIfu](_.signalToNoiseAt)
 
+    val red: Lens[GhostIfu, GhostIfu.GhostDetector]  = Focus[GhostIfu](_.red)
+    val blue: Lens[GhostIfu, GhostIfu.GhostDetector] = Focus[GhostIfu](_.blue)
+
+    val defaultIfu1Agitator: Lens[GhostIfu, GhostIfu1FiberAgitator]          =
+      Focus[GhostIfu](_.defaultIfu1Agitator)
+    val explicitIfu1Agitator: Lens[GhostIfu, Option[GhostIfu1FiberAgitator]] =
+      Focus[GhostIfu](_.explicitIfu1Agitator)
+    val defaultIfu2Agitator: Lens[GhostIfu, GhostIfu2FiberAgitator]          =
+      Focus[GhostIfu](_.defaultIfu2Agitator)
+    val explicitIfu2Agitator: Lens[GhostIfu, Option[GhostIfu2FiberAgitator]] =
+      Focus[GhostIfu](_.explicitIfu2Agitator)
+
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
 

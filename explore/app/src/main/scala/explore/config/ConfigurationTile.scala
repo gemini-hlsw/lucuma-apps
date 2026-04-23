@@ -488,15 +488,14 @@ object ConfigurationTile
                   // Ghost IFU
                   optGhostIfuAligner.map: ghostAligner =>
                     GhostIfuConfigPanel(
-                      // props.programId,
-                      // props.obsId,
-                      // props.obsConf.calibrationRole,
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
                       ghostAligner,
                       revertConfig,
-                      // props.modes.spectroscopy,
                       props.sequenceChanged,
-                      props.permissions
-                      // props.units
+                      props.permissions,
+                      props.units
                     )
                 )
             )

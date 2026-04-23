@@ -47,6 +47,13 @@ given Display[GmosAmpGain] = Display.by(_.shortName, _.longName)
 
 given Display[GmosRoi] = Display.byShortName(_.longName)
 
+given Display[GhostResolutionMode] = Display.by(_.shortName, _.longName)
+
+given Display[GhostBinning] =
+  Display.by(b => s"${b.spectralBinning} spectral x ${b.spatialBinning} spatial", _.name)
+
+given Display[GhostReadMode] = Display.by(_.shortName, _.longName)
+
 given Display[SequenceType] = Display.byShortName:
   case SequenceType.Acquisition => "Acquisition"
   case SequenceType.Science     => "Science"

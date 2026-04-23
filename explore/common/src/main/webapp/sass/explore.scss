@@ -1859,6 +1859,60 @@ svg.fa-check.explore-success-icon {
       / auto;
   }
 
+  .explore-ghost-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--site-border-color);
+  }
+
+  .explore-ghost-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'buttons' auto
+      / auto;
+
+    .explore-advanced-configuration-buttons {
+      grid-area: buttons;
+      justify-self: end;
+    }
+  }
+
+  .explore-ghost-detector-panel {
+    padding: 0.5em;
+    border-radius: 4px;
+
+    > .explore-ghost-detector-header {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 0.5em;
+    }
+  }
+
+  .explore-ghost-detector-panel-blue {
+    background: color-mix(in srgb, var(--blue-100) 60%, transparent);
+  }
+
+  .explore-ghost-detector-panel-red {
+    background: color-mix(in srgb, var(--red-100) 60%, transparent);
+  }
+
+  .explore-ghost-agitators {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-around;
+
+    label {
+      white-space: nowrap;
+    }
+  }
+
   .explore-gmos-longslit-lower-grid,
   .explore-flamingos2-lower-grid {
     display: grid;
@@ -1958,6 +2012,14 @@ svg.fa-check.explore-success-icon {
     }
 
     .explore-igrins2-upper-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
+        'col3' auto
+        / auto;
+    }
+
+    .explore-ghost-upper-grid {
       grid-template:
         'col1' auto
         'col2' auto
