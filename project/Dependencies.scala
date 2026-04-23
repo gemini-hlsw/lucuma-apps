@@ -366,6 +366,13 @@ object Dependencies {
     deps("org.typelevel" %%% "otel4s-core")(otel4s)
   )
 
+  val Otel4sSemconv = Def.setting(
+    deps(
+      "org.typelevel" %%% "otel4s-semconv",
+      "org.typelevel" %%% "otel4s-semconv-experimental"
+    )(otel4s)
+  )
+
   val Otel4sSdk = Def.setting(
     deps(
       "org.typelevel" %%% "otel4s-sdk",

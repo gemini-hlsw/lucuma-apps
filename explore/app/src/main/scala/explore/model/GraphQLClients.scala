@@ -52,8 +52,4 @@ object GraphQLClients:
         WebSocketJsClient.of[F, UserPreferencesDB](prefsURI.toString, "PREFS", reconnectionStrategy)
       ssoClient   <-
         FetchJsClient.of[F, SSO](s"${ssoURI.toString}/graphql", "SSO")
-    } yield GraphQLClients(
-      Otel4sMiddleware(odbClient),
-      prefsClient,
-      Otel4sMiddleware(ssoClient)
-    )
+    } yield GraphQLClients(Otel4sMiddleware(odbClient), prefsClient, Otel4sMiddleware(ssoClient))
