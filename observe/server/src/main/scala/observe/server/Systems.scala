@@ -3,7 +3,6 @@
 
 package observe.server
 
-import _root_.natchez.Trace
 import cats.Monad
 import cats.effect.Async
 import cats.effect.IO
@@ -16,7 +15,6 @@ import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
 import clue.http4s.Http4sWebSocketClient
-import clue.natchez.NatchezMiddleware
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
 import giapi.client.igrins2.Igrins2Client
@@ -95,7 +93,7 @@ object Systems {
     service:      CaService,
     tops:         Map[String, String],
     instanceName: String
-  )(using L: Logger[IO], T: Temporal[IO])(using Trace[IO]) {
+  )(using L: Logger[IO], T: Temporal[IO]) {
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, reason) =>
         // Web Socket close codes: https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
@@ -118,7 +116,7 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: {Async, Logger, Trace, Http4sHttpBackend, SecureRandom}]: F[OdbProxy[F]] =
+    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom}]: F[OdbProxy[F]] =
       for
         fetchClient                    <- // Http client used ONLY for recording events.
           Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
@@ -129,7 +127,6 @@ object Systems {
         _                              <-
           innerClient.connect:
             Map(Authorization.name.toString -> authHeader.credentials.renderString.asJson).pure[F]
-        streamingClient                 = NatchezMiddleware(innerClient)
         odbCommands                    <-
           if (settings.odbNotifications)
             Ref
@@ -137,7 +134,7 @@ object Systems {
               .map(OdbCommandsImpl[F](_)(using fetchClient))
           else
             DummyOdbCommands[F].pure[F]
-      yield OdbProxy[F](odbCommands)(using streamingClient)
+      yield OdbProxy[F](odbCommands)(using innerClient)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
@@ -511,7 +508,7 @@ object Systems {
     sso:          LucumaSSOConfiguration,
     service:      CaService,
     instanceName: String
-  )(using T: Temporal[IO], L: Logger[IO])(using Trace[IO]): Resource[IO, Systems[IO]] =
+  )(using T: Temporal[IO], L: Logger[IO]): Resource[IO, Systems[IO]] =
     Builder(settings, sso, service, decodeTops(settings.tops), instanceName).build(site, httpClient)
 
   def dummy[F[_]: {Async, Logger}]: F[Systems[F]] =
