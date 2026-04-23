@@ -265,6 +265,10 @@ tfoot {
   background-color: var(--explore-group-dragging) !important;
 }
 
+.dragging {
+  opacity: 0.5;
+}
+
 .moon-phase {
   position: absolute;
   top: 5px;
@@ -2893,6 +2897,10 @@ input[type='file'].explore-fileupload {
       background-color: var(--explore-group-dragging) !important;
       height: 32px;
     }
+  }
+
+  .p-tree-toggler {
+    align-self: end;
   }
 }
 

@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.react.pragmaticdnd.Edge
+import lucuma.ui.dnd.insertIntoList
 import monocle.Optional
 import monocle.Prism
 import monocle.Traversal
@@ -87,14 +88,8 @@ trait SequenceEditOptics[D]:
     atomsTraversal
       .andThen(Atom.steps)
       .modify: steps =>
-        steps.zipWithIndex
-          .collectFirst { case (step, idx) if step.id === nextTo => idx }
-          .fold(steps): idx =>
-            val posModifier: Int = position match
-              case Edge.Top    => 0
-              case Edge.Bottom => 1
-            val (before, after)  = steps.toList.splitAt(idx + posModifier)
-            NonEmptyList.fromListUnsafe(before ++ (newStep :: after))
+        NonEmptyList.fromListUnsafe:
+          insertIntoList(newStep, _.id === nextTo, position)(steps.toList)
 
   protected def moveStep(stepId: Step.Id, nextTo: Step.Id, position: Edge): Endo[List[Atom[D]]] =
     atoms =>

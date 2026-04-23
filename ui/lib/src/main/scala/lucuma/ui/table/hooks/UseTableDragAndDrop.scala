@@ -8,19 +8,26 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.Context
 import japgolly.scalajs.react.vdom.TagOf
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.react.SizePx
 import lucuma.react.pragmaticdnd.*
 import lucuma.react.pragmaticdnd.facade.*
+import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.ui.dnd.*
 import org.scalajs.dom.HTMLElement
 
 import scala.annotation.unused
 
 import scalajs.js
 
-type Source[D] = (data: D, height: Int)
-type Target[D] = (data: D, edge: Edge)
+private type Target[D] = (data: D, edge: Edge)
 
-final case class RowDraggingInfo[D](isDragging: Option[D], isDraggingOver: Option[Target[D]])
+private val DefaultGapHeight: SizePx = 15.toPx
+
+final case class RowDraggingInfo[D](
+  isDragging:     Option[D],
+  isDraggingOver: Option[Target[D]]
+)
 
 final case class UseTableDragAndDrop[D, T, TM, CM, TF](
   rowMod:  ((Row[T, TM, CM, TF], RowDraggingInfo[D]) => TagMod) => (
@@ -67,38 +74,29 @@ extension [D, T, TM, CM, TF](
     cellMod((_, _) => TagMod.empty)
 
 object UseTableDragAndDrop:
+  extension [D](dragOver: List[DropTargetRecord[D]])
+    private def headTarget: Option[Target[D]] =
+      dragOver.headOption.map(_.data).flatMap(d => d.extractClosestEdge.map((d.value, _)))
+
   def useTableDragAndDrop[D: cats.Eq, T, TM, CM, TF](
     @unused table: Table[T, TM, CM, TF], // Not used, just to infer type parameters.
     handleColId:   ColumnId,
     getData:       Row[T, TM, CM, TF] => D,
     canDrag:       js.UndefOr[(D, DraggableGetFeedbackArgs) => Boolean] = js.undefined,
     canDrop:       js.UndefOr[(D, DropTargetGetFeedbackArgs[D]) => Boolean] = js.undefined,
-    onDrop:        (D, Option[Target[D]]) => Callback = (_: D, _: Option[Target[D]]) => Callback.empty
+    onDrop:        (D, Option[Target[D]]) => Callback = (_: D, _: Option[Target[D]]) => Callback.empty,
+    gapHeight:     SizePx = DefaultGapHeight
   ): HookResult[UseTableDragAndDrop[D, T, TM, CM, TF]] =
-    for
-      dragging   <- useState[Option[Source[D]]](none)
-      dragOver   <- useState[Option[Target[D]]](none)
-      dndContext <- useDragAndDropContext[D, D](
-                      onDrag = payload =>
-                        val data: Option[Data[D]] =
-                          payload.location.current.dropTargets.headOption.map(_.data)
-                        val edge: Option[Edge]    = data.flatMap(_.extractClosestEdge)
-                        dragOver.setState((data.map(_.value), edge).tupled)
-                      ,
+    for dndScope <- useDragAndDropScope[D, D](
                       onDrop = payload =>
                         val sourceData: D                     = payload.source.data.value
-                        val targetData: Option[Data[D]]       =
-                          payload.location.current.dropTargets.headOption.map(_.data)
                         val targetDataEdge: Option[Target[D]] =
-                          (targetData.map(_.value), targetData.flatMap(_.extractClosestEdge)).tupled
-
-                        dragging.setState(none) >>
-                          dragOver.setState(none) >>
-                          onDrop(sourceData, targetDataEdge)
+                          payload.location.current.dropTargets.toList.headTarget
+                        onDrop(sourceData, targetDataEdge)
                     )
     yield
       val draggingInfo: RowDraggingInfo[D] =
-        RowDraggingInfo(dragging.value.map(_.data), dragOver.value)
+        RowDraggingInfo(dndScope.dragging.map(_.value), dndScope.dragOver.headTarget)
 
       val rowMod =
         (tagMod: (Row[T, TM, CM, TF], RowDraggingInfo[D]) => TagMod) =>
@@ -107,23 +105,15 @@ object UseTableDragAndDrop:
             render: Option[Ref.ToVdom[HTMLElement]] => TagOf[HTMLElement]
           ) =>
             val rowData: D = getData(row)
-            dragging.value match
-              case Some((data, height)) if data === rowData =>
-                // <.tr((^.height := s"${height}px").when(dragOver.value.isEmpty)): VdomNode
-                EmptyVdom
-              case _                                        =>
-                DraggableDropTargetWithHandle(
+            dndScope.dragging.map(_.value) match
+              case Some(data) if data === rowData => EmptyVdom
+              case _                              =>
+                DraggableDropTargetWithHandle[D, D](
                   handleRef => render(Some(handleRef))(tagMod(row, draggingInfo)),
                   getInitialData = _ => Data(rowData),
                   getData = args => Data(rowData).attachClosestEdge(args, Axis.Vertical.edges),
                   canDrag = canDrag.map(f => args => f(rowData, args)),
-                  canDrop = canDrop.map(f => args => f(rowData, args)),
-                  onDraggableDragStart = payload =>
-                    dragging.setState(
-                      (payload.source.data.value,
-                       payload.source.element.getBoundingClientRect().height.toInt
-                      ).some
-                    )
+                  canDrop = canDrop.map(f => args => f(rowData, args))
                 ).withKey(s"draggable-${row.id.value}").toUnmounted: VdomNode
 
       val cellMod =
@@ -134,22 +124,17 @@ object UseTableDragAndDrop:
             render:  TagOf[HTMLElement]
           ) =>
             val rowData: D = getData(cell.row)
-
             context
               .filter(_ => cell.column.id == handleColId)
               .map(handleRef => render.withRef(handleRef))
               .getOrElse(render)(
-                (dragOver.value, dragging.value) match
-                  case (Some((data, Edge.Top)), Some((sData, height)))
-                      if data === rowData && data =!= sData => // padding color?
-                    TagMod(^.paddingTop := s"${height}px", ^.transitionDuration := "0.1s")
-                  case (Some((data, Edge.Bottom)), Some((sData, height)))
-                      if data === rowData && data =!= sData =>
-                    TagMod(^.paddingBottom := s"${height}px", ^.transitionDuration := "0.1s")
-                  case _ => TagMod.empty
+                (draggingInfo.isDraggingOver, dndScope.dragging.map(_.value)) match
+                  case (Some((data, edge)), Some(sData)) if data === rowData && data =!= sData =>
+                    dragOverStyle(gapHeight, edge)
+                  case _                                                                       => TagMod.empty
               )(tagMod(cell, draggingInfo))
 
-      UseTableDragAndDrop[D, T, TM, CM, TF](rowMod, cellMod, dndContext)
+      UseTableDragAndDrop[D, T, TM, CM, TF](rowMod, cellMod, dndScope.context)
 
   def useVirtualizedTableDragAndDrop[D: cats.Eq, T, TM, CM, TF](
     @unused table: Table[T, TM, CM, TF], // Not used, just to infer type parameters.
