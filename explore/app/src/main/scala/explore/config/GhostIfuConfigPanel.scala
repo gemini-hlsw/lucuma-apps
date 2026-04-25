@@ -64,11 +64,9 @@ object GhostIfuConfigPanel
       yield
         import ctx.given
 
-        // GHOST doesn't expose advanced customization
         val mode                     = props.observingMode.get
         val disableEdit              =
           editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
-        val showCustomization        = props.calibrationRole.isEmpty
         val allowRevertCustomization = props.permissions.isFullEdit
 
         val resolutionModeView: View[GhostResolutionMode] =
@@ -86,7 +84,7 @@ object GhostIfuConfigPanel
             .zoom(GhostIfu.explicitIfu2Agitator, GhostIfuInput.explicitIfu2Agitator.modify)
             .view(_.orUnassign)
 
-        // The same wavelength needs to be set on for red and blue.
+        // The same wavelength needs to be set for red and blue.
         val snAtView: View[Wavelength] =
           props.observingMode
             .zoom[Wavelength, GhostIfuInput](GhostIfu.signalToNoiseAt, identity)
@@ -202,9 +200,10 @@ object GhostIfuConfigPanel
                 view = binningView.withDefault(detector.defaultBinning),
                 defaultValue = detector.defaultBinning.some,
                 label = "Binning".some,
+                helpId = Some("configuration/ghost/binning.md".refined),
                 disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = showCustomization,
+                showCustomization = false,
                 allowRevertCustomization = allowRevertCustomization
               ),
               CustomizableEnumSelectOptional(
@@ -212,9 +211,10 @@ object GhostIfuConfigPanel
                 view = readModeView.withDefault(detector.defaultReadMode),
                 defaultValue = detector.defaultReadMode.some,
                 label = "Readout".some,
+                helpId = Some("configuration/ghost/readout.md".refined),
                 disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = showCustomization,
+                showCustomization = false,
                 allowRevertCustomization = allowRevertCustomization
               )
             )
@@ -230,8 +230,9 @@ object GhostIfuConfigPanel
                 view = resolutionModeView,
                 defaultValue = mode.resolutionMode,
                 label = "Resolution Mode".some,
+                helpId = Some("configuration/ghost/resolution-mode.md".refined),
                 disabled = disableEdit,
-                showCustomization = showCustomization,
+                showCustomization = false,
                 allowRevertCustomization = allowRevertCustomization
               ),
               FormInputTextView(
@@ -243,7 +244,10 @@ object GhostIfuConfigPanel
                 units = props.units.symbol,
                 disabled = disableEdit
               )(^.autoComplete.off),
-              FormLabel(htmlFor = "ghost-agitator-ifu1".refined)("Agitators"),
+              FormLabel(htmlFor = "ghost-agitator-ifu1".refined)(
+                "Agitators",
+                HelpIcon("configuration/ghost/agitators.md".refined)
+              ),
               <.div(
                 LucumaPrimeStyles.FormField |+| ExploreStyles.GhostAgitators,
                 CheckboxView(
@@ -277,6 +281,7 @@ object GhostIfuConfigPanel
           ),
           <.div(
             ExploreStyles.GhostLowerGrid,
+            // GHOST doesn't expose advanced customization
             AdvancedConfigButtons(
               editState = editState,
               isCustomized = mode.isCustomized,

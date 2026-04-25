@@ -1864,42 +1864,35 @@ svg.fa-check.explore-success-icon {
     padding: 0.5em;
     gap: 1em;
     grid-template:
-      'col1 col2 col3' auto
+      'common blue red' auto
       / 1fr 1fr 1fr;
     border-bottom: 1px solid var(--site-border-color);
   }
 
   .explore-ghost-lower-grid {
-    display: grid;
+    display: flex;
+    justify-content: flex-end;
     padding: 0.5em;
-    gap: 1em;
-    grid-template:
-      'buttons' auto
-      / auto;
-
-    .explore-advanced-configuration-buttons {
-      grid-area: buttons;
-      justify-self: end;
-    }
   }
 
   .explore-ghost-detector-panel {
     padding: 0.5em;
-    border-radius: 4px;
 
     > .explore-ghost-detector-header {
       text-align: center;
       font-weight: bold;
       margin-bottom: 0.5em;
+      padding-bottom: 0.25em;
+      border-bottom: 2px solid currentcolor;
     }
   }
 
-  .explore-ghost-detector-panel-blue {
-    background: color-mix(in srgb, var(--blue-100) 60%, transparent);
+  .explore-ghost-detector-panel-blue > .explore-ghost-detector-header {
+    color: rgb(33 150 243);
   }
 
-  .explore-ghost-detector-panel-red {
-    background: color-mix(in srgb, var(--red-100) 60%, transparent);
+  .explore-ghost-detector-panel-red > .explore-ghost-detector-header {
+    color: rgb(244 67 54);
   }
 
   .explore-ghost-agitators {
@@ -2021,9 +2014,9 @@ svg.fa-check.explore-success-icon {
 
     .explore-ghost-upper-grid {
       grid-template:
-        'col1' auto
-        'col2' auto
-        'col3' auto
+        'common' auto
+        'blue' auto
+        'red' auto
         / auto;
     }
 
