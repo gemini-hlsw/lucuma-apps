@@ -3,19 +3,21 @@
 
 package explore.config
 
+import cats.Eq
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
-import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
+import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.syntax.ui.*
+import explore.utils.forceAssign
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -24,6 +26,7 @@ import lucuma.core.enums.GhostIfu1FiberAgitator
 import lucuma.core.enums.GhostIfu2FiberAgitator
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnComponent
@@ -39,6 +42,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
+import cats.Endo
 
 final case class GhostIfuConfigPanel(
   programId:       Program.Id,
@@ -46,24 +50,18 @@ final case class GhostIfuConfigPanel(
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GhostIfu, GhostIfuInput],
   revertConfig:    Callback,
-  sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits
 ) extends ReactFnProps(GhostIfuConfigPanel)
 
 object GhostIfuConfigPanel
     extends ReactFnComponent[GhostIfuConfigPanel](props =>
-      for
-        ctx       <- useContext(AppContext.ctx)
-        editState <- useStateView(ConfigEditState.View)
-      yield
+      useContext(AppContext.ctx).map: ctx =>
         import ctx.given
 
-        val mode                     = props.observingMode.get
-        val disableEdit              =
-          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
-        val showCustomization        = props.calibrationRole.isEmpty
-        val allowRevertCustomization = props.permissions.isFullEdit
+        // GHOST doesn't have advanced customizations.
+        val mode     = props.observingMode.get
+        val readonly = !props.permissions.isFullEdit
 
         val resolutionModeView: View[GhostResolutionMode] =
           props.observingMode
@@ -80,43 +78,74 @@ object GhostIfuConfigPanel
             .zoom(GhostIfu.explicitIfu2Agitator, GhostIfuInput.explicitIfu2Agitator.modify)
             .view(_.orUnassign)
 
-        val ifu1EnabledView: View[Boolean] =
-          ifu1AgitatorView.zoom[Boolean](
-            _.getOrElse(mode.defaultIfu1Agitator) === GhostIfu1FiberAgitator.Enabled
-          )(modBool =>
+        // The same wavelength needs to be set on for red and blue.
+        val snAtView: View[Wavelength] =
+          props.observingMode
+            .zoom[Wavelength, GhostIfuInput](GhostIfu.signalToNoiseAt, identity)
+            .viewMod: (w: Wavelength) =>
+              def detectorInput(base: GhostIfu.GhostDetector): GhostDetectorConfigInput =
+                GhostDetectorConfigInput(
+                  exposureTimeMode = ExposureTimeModeInput
+                    .TimeAndCount(
+                      TimeAndCountExposureTimeModeInput(
+                        count = base.timeAndCount.count,
+                        time = base.timeAndCount.time.toInput,
+                        at = w.toInput
+                      )
+                    )
+                    .assign
+                )
+
+              val setRed: Endo[GhostIfuInput] =
+                forceAssign(GhostIfuInput.red.modify)(mode.red.toInput)(_ =>
+                  detectorInput(mode.red)
+                )
+
+              val setBlue: Endo[GhostIfuInput] =
+                forceAssign(GhostIfuInput.blue.modify)(mode.blue.toInput)(_ =>
+                  detectorInput(mode.blue)
+                )
+
+              setBlue >>> setRed
+
+        def agitatorView[A: Eq](
+          view:     View[Option[A]],
+          default:  A,
+          enabled:  A,
+          disabled: A
+        ): View[Boolean] =
+          view.zoom(_.getOrElse(default) === enabled): set =>
             opt =>
-              val current =
-                opt.getOrElse(mode.defaultIfu1Agitator) === GhostIfu1FiberAgitator.Enabled
-              val next    =
-                if modBool(current) then GhostIfu1FiberAgitator.Enabled
-                else GhostIfu1FiberAgitator.Disabled
-              Option.when(next =!= mode.defaultIfu1Agitator)(next)
+              val next =
+                if set(opt.getOrElse(default) === enabled) then enabled else disabled
+              Option.when(next =!= default)(next)
+
+        val ifu1EnabledView: View[Boolean] =
+          agitatorView(
+            ifu1AgitatorView,
+            mode.defaultIfu1Agitator,
+            GhostIfu1FiberAgitator.Enabled,
+            GhostIfu1FiberAgitator.Disabled
           )
 
         val ifu2EnabledView: View[Boolean] =
-          ifu2AgitatorView.zoom[Boolean](
-            _.getOrElse(mode.defaultIfu2Agitator) === GhostIfu2FiberAgitator.Enabled
-          )(modBool =>
-            opt =>
-              val current =
-                opt.getOrElse(mode.defaultIfu2Agitator) === GhostIfu2FiberAgitator.Enabled
-              val next    =
-                if modBool(current) then GhostIfu2FiberAgitator.Enabled
-                else GhostIfu2FiberAgitator.Disabled
-              Option.when(next =!= mode.defaultIfu2Agitator)(next)
+          agitatorView(
+            ifu2AgitatorView,
+            mode.defaultIfu2Agitator,
+            GhostIfu2FiberAgitator.Enabled,
+            GhostIfu2FiberAgitator.Disabled
           )
 
         def detectorAligner(
-          detectorLens:      Lens[GhostIfu, GhostIfu.GhostDetector],
-          detectorInputLens: Lens[GhostIfuInput, Input[GhostDetectorConfigInput]]
+          lens:      Lens[GhostIfu, GhostIfu.GhostDetector],
+          inputLens: Lens[GhostIfuInput, Input[GhostDetectorConfigInput]]
         ): Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput] =
-          props.observingMode.zoom[GhostIfu.GhostDetector, GhostDetectorConfigInput](
-            modelGet = detectorLens.get,
-            modelMod = detectorLens.modify,
-            remoteMod = (f: GhostDetectorConfigInput => GhostDetectorConfigInput) =>
-              detectorInputLens.modify(_.map(f))
+          props.observingMode.zoom(
+            lens = lens,
+            remoteMod = f => inputLens.modify(_.map(f))
           )
 
+        // One panel per detector with a subset of the ETM
         def detectorPanel(
           label:      String,
           detector:   GhostIfu.GhostDetector,
@@ -165,20 +194,20 @@ object GhostIfuConfigPanel
                 view = binningView.withDefault(detector.defaultBinning),
                 defaultValue = detector.defaultBinning.some,
                 label = "Binning".some,
-                disabled = disableEdit,
+                disabled = readonly,
                 resetToOriginal = true,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
+                showCustomization = false,
+                allowRevertCustomization = false
               ),
               CustomizableEnumSelectOptional(
                 id = NonEmptyString.unsafeFrom(s"${idPrefix.value}-readout"),
                 view = readModeView.withDefault(detector.defaultReadMode),
                 defaultValue = detector.defaultReadMode.some,
                 label = "Readout".some,
-                disabled = disableEdit,
+                disabled = readonly,
                 resetToOriginal = true,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization
+                showCustomization = false,
+                allowRevertCustomization = false
               )
             )
           )
@@ -193,17 +222,19 @@ object GhostIfuConfigPanel
                 view = resolutionModeView,
                 defaultValue = mode.resolutionMode,
                 label = "Resolution Mode".some,
-                disabled = disableEdit,
+                disabled = readonly,
                 showCustomization = false,
                 allowRevertCustomization = false
               ),
-              FormLabel(htmlFor = "ghost-sn-wavelength".refined)("λ for S/N"),
-              <.span(LucumaPrimeStyles.FormField)(
-                <.span(
-                  ^.id := "ghost-sn-wavelength",
-                  s"${explore.model.display.wavelengthDisplay(props.units).shortName(mode.signalToNoiseAt)} ${props.units.symbol}"
-                )
-              ),
+              FormInputTextView(
+                id = "ghost-sn-wavelength".refined,
+                value = snAtView,
+                label = "λ for S/N",
+                validFormat = props.units.toInputFormat,
+                changeAuditor = props.units.toSNAuditor,
+                units = props.units.symbol,
+                disabled = readonly
+              )(^.autoComplete.off),
               FormLabel(htmlFor = "ghost-agitator-ifu1".refined)("Agitators"),
               <.div(
                 LucumaPrimeStyles.FormField |+| ExploreStyles.GhostAgitators,
@@ -211,13 +242,13 @@ object GhostIfuConfigPanel
                   id = "ghost-agitator-ifu1".refined,
                   value = ifu1EnabledView,
                   label = "IFU 1",
-                  disabled = disableEdit
+                  disabled = readonly
                 ),
                 CheckboxView(
                   id = "ghost-agitator-ifu2".refined,
                   value = ifu2EnabledView,
                   label = "IFU 2",
-                  disabled = disableEdit
+                  disabled = readonly
                 )
               )
             ),
@@ -238,16 +269,7 @@ object GhostIfuConfigPanel
           ),
           <.div(
             ExploreStyles.GhostLowerGrid,
-            AdvancedConfigButtons(
-              editState = editState,
-              isCustomized = mode.isCustomized,
-              revertConfig = props.revertConfig,
-              revertCustomizations =
-                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
-              sequenceChanged = props.sequenceChanged,
-              readonly = !props.permissions.isFullEdit,
-              showAdvancedButton = false
-            )
+            RollbackOnlyConfigButtons(props.revertConfig).unless(readonly)
           )
         )
     )
