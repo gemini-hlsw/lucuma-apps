@@ -8,6 +8,7 @@ import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
+import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
@@ -50,18 +51,25 @@ final case class GhostIfuConfigPanel(
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GhostIfu, GhostIfuInput],
   revertConfig:    Callback,
+  sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits
 ) extends ReactFnProps(GhostIfuConfigPanel)
 
 object GhostIfuConfigPanel
     extends ReactFnComponent[GhostIfuConfigPanel](props =>
-      useContext(AppContext.ctx).map: ctx =>
+      for
+        ctx       <- useContext(AppContext.ctx)
+        editState <- useStateView(ConfigEditState.View)
+      yield
         import ctx.given
 
-        // GHOST doesn't have advanced customizations.
-        val mode     = props.observingMode.get
-        val readonly = !props.permissions.isFullEdit
+        // GHOST doesn't expose advanced customization
+        val mode                     = props.observingMode.get
+        val disableEdit              =
+          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
+        val showCustomization        = props.calibrationRole.isEmpty
+        val allowRevertCustomization = props.permissions.isFullEdit
 
         val resolutionModeView: View[GhostResolutionMode] =
           props.observingMode
@@ -194,20 +202,20 @@ object GhostIfuConfigPanel
                 view = binningView.withDefault(detector.defaultBinning),
                 defaultValue = detector.defaultBinning.some,
                 label = "Binning".some,
-                disabled = readonly,
+                disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = false,
-                allowRevertCustomization = false
+                showCustomization = showCustomization,
+                allowRevertCustomization = allowRevertCustomization
               ),
               CustomizableEnumSelectOptional(
                 id = NonEmptyString.unsafeFrom(s"${idPrefix.value}-readout"),
                 view = readModeView.withDefault(detector.defaultReadMode),
                 defaultValue = detector.defaultReadMode.some,
                 label = "Readout".some,
-                disabled = readonly,
+                disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = false,
-                allowRevertCustomization = false
+                showCustomization = showCustomization,
+                allowRevertCustomization = allowRevertCustomization
               )
             )
           )
@@ -222,9 +230,9 @@ object GhostIfuConfigPanel
                 view = resolutionModeView,
                 defaultValue = mode.resolutionMode,
                 label = "Resolution Mode".some,
-                disabled = readonly,
-                showCustomization = false,
-                allowRevertCustomization = false
+                disabled = disableEdit,
+                showCustomization = showCustomization,
+                allowRevertCustomization = allowRevertCustomization
               ),
               FormInputTextView(
                 id = "ghost-sn-wavelength".refined,
@@ -233,7 +241,7 @@ object GhostIfuConfigPanel
                 validFormat = props.units.toInputFormat,
                 changeAuditor = props.units.toSNAuditor,
                 units = props.units.symbol,
-                disabled = readonly
+                disabled = disableEdit
               )(^.autoComplete.off),
               FormLabel(htmlFor = "ghost-agitator-ifu1".refined)("Agitators"),
               <.div(
@@ -242,13 +250,13 @@ object GhostIfuConfigPanel
                   id = "ghost-agitator-ifu1".refined,
                   value = ifu1EnabledView,
                   label = "IFU 1",
-                  disabled = readonly
+                  disabled = disableEdit
                 ),
                 CheckboxView(
                   id = "ghost-agitator-ifu2".refined,
                   value = ifu2EnabledView,
                   label = "IFU 2",
-                  disabled = readonly
+                  disabled = disableEdit
                 )
               )
             ),
@@ -269,7 +277,17 @@ object GhostIfuConfigPanel
           ),
           <.div(
             ExploreStyles.GhostLowerGrid,
-            RollbackOnlyConfigButtons(props.revertConfig).unless(readonly)
+            AdvancedConfigButtons(
+              editState = editState,
+              isCustomized = mode.isCustomized,
+              revertConfig = props.revertConfig,
+              revertCustomizations =
+                props.observingMode.view(_.toInput).mod(_.revertCustomizations),
+              sequenceChanged = props.sequenceChanged,
+              readonly = !props.permissions.isFullEdit,
+              showAdvancedButton = false,
+              showCustomizeButton = false
+            )
           )
         )
     )

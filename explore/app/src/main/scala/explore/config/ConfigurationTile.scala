@@ -493,6 +493,7 @@ object ConfigurationTile
                       props.obsConf.calibrationRole,
                       ghostAligner,
                       revertConfig,
+                      props.sequenceChanged,
                       props.permissions,
                       props.units
                     )
