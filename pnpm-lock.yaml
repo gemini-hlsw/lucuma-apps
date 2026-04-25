@@ -27,8 +27,8 @@ importers:
   explore:
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop':
-        specifier: 1.8.0
-        version: 1.8.0
+        specifier: 1.8.1
+        version: 1.8.1
       '@atlaskit/pragmatic-drag-and-drop-auto-scroll':
         specifier: 2.1.5
         version: 2.1.5
@@ -273,8 +273,8 @@ importers:
         version: 3.8.2
     devDependencies:
       '@atlaskit/pragmatic-drag-and-drop':
-        specifier: 1.8.0
-        version: 1.8.0
+        specifier: 1.8.1
+        version: 1.8.1
       '@atlaskit/pragmatic-drag-and-drop-auto-scroll':
         specifier: 2.1.5
         version: 2.1.5
@@ -369,8 +369,8 @@ packages:
       react: ^18.2.0
       react-dom: ^18.2.0
 
-  '@atlaskit/pragmatic-drag-and-drop@1.8.0':
-    resolution: {integrity: sha512-xUvSniuXsiu28ImUnR27oEH4Ov8AExQrdwBE3feAq0d9W9ngLgS+dD5DY3PW5wKEMFjdSecIzbg7o9bsctbf5Q==}
+  '@atlaskit/pragmatic-drag-and-drop@1.8.1':
+    resolution: {integrity: sha512-uXWNPpL8n4OmTVbduH7nq8pk8htqGo/prR5cYEE8sVCPJGAUMWn6lzvWTfI+4VCeQvHiDRODVz4YzH06OVAxhw==}
 
   '@atlaskit/tokens@13.0.0':
     resolution: {integrity: sha512-uvokC3FBpcK/RiNdhohFw5N3RxPNKzDcLaitpIVV0v61YH3N4FtHz3yL/uoRL5XE+3RrD3g8+GXlgIOiPsuftQ==}
@@ -4080,23 +4080,23 @@ snapshots:
 
   '@atlaskit/pragmatic-drag-and-drop-auto-scroll@2.1.5':
     dependencies:
-      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6
 
   '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
     dependencies:
-      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6
 
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
     dependencies:
-      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6
       css-box-model: 1.2.1
 
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.18(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
-      '@atlaskit/pragmatic-drag-and-drop': 1.8.0
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll': 2.0.2
       '@atlaskit/tokens': 13.0.0(react@18.3.1)
@@ -4110,7 +4110,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@atlaskit/pragmatic-drag-and-drop@1.8.0':
+  '@atlaskit/pragmatic-drag-and-drop@1.8.1':
     dependencies:
       '@babel/runtime': 7.28.6
       bind-event-listener: 3.0.0
