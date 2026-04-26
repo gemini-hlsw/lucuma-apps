@@ -3,8 +3,10 @@
 
 package explore.plots
 
+import cats.Order
 import cats.Semigroupal
 import cats.effect.IO
+import cats.Order.given
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
@@ -128,7 +130,8 @@ object NightPlot:
     objectPlotData:         ObjectPlotData,
     objectSeriesData:       ObjectPlotData.SeriesData,
     visible:                Boolean,
-    shouldHideTargetLabels: Boolean
+    shouldHideTargetLabels: Boolean,
+    objectIndex:            Int
   ):
     lazy val name: String               =
       if (seriesType === SeriesType.LunarElevation) "Moon" else objectPlotData.name.value
@@ -229,6 +232,8 @@ object NightPlot:
       Semigroupal[List]
         .product(
           chartData.toList
+            // Sort by id so colors stay the same
+            .sortBy(_._1)
             .map: (id, targetChartData) =>
               plotData.value
                 .get(id)
@@ -245,7 +250,8 @@ object NightPlot:
               targetPlotData,
               targetChartData,
               opts.visiblePlots.contains_(seriesType),
-              shouldHideTargetLabels
+              shouldHideTargetLabels,
+              index
             )
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
@@ -437,7 +443,7 @@ object NightPlot:
                  else "") +
                 (if (seriesData.seriesType =!= SeriesType.Elevation)
                    s" highcharts-color-${seriesData.seriesType.ordinal}"
-                 else "")
+                 else s" highcharts-color-${seriesData.objectIndex % 10}")
 
               val baseSeries: SeriesAreaOptions =
                 SeriesAreaOptions((), (), area, ())
@@ -463,9 +469,9 @@ object NightPlot:
                     else Double.NegativeInfinity
 
               zones
-                // Don't draw the area below the target for elevation only series, e.g. tellurics
-                .filterNot(_ => seriesData.objectPlotData.elevationOnly)
-                .fold(baseSeries)(z => baseSeries.setZones(z))
+                // Fill the area below the target curve based on the filled flag
+                .filter(_ => seriesData.objectPlotData.filled)
+                .fold(baseSeries)(baseSeries.setZones)
                 .asInstanceOf[SeriesOptionsType]
             .toJSArray
 
