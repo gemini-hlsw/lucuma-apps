@@ -289,11 +289,21 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       snCol
     )
 
+  lazy val ForGhost: List[colDef.TypeFor[?]] =
+    List(
+      indexAndTypeCol,
+      exposureCol,
+      guideStateCol,
+      pOffsetCol,
+      qOffsetCol
+    )
+
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
       case Instrument.Flamingos2                       => ForFlamingos2
       case Instrument.Igrins2                          => ForIgrins2
+      case Instrument.Ghost                            => ForGhost
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
@@ -347,11 +357,15 @@ object SequenceColumns:
     val ForIgrins2: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(FowlerSamplesColumnId -> FixedSize(60.toPx))
 
+    val ForGhost: Map[ColumnId, ColumnSize] =
+      CommonColumnSizes
+
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
         case Instrument.Igrins2                          => ForIgrins2
+        case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 
@@ -392,11 +406,19 @@ object SequenceColumns:
       SNColumnId
     ).reverse
 
+    val ForGhost: List[ColumnId] = List(
+      PColumnId,
+      QColumnId,
+      GuideColumnId,
+      ExposureColumnId
+    ).reverse
+
     def apply(instrument: Instrument): List[ColumnId] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
         case Instrument.Igrins2                          => ForIgrins2
+        case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 

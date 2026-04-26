@@ -62,6 +62,7 @@ object ExecutionVisitsSubquery
                   gmosSouth $GmosSouthDynamicConfigSubquery
                   flamingos2 $Flamingos2DynamicConfigSubquery
                   igrins2 $Igrins2DynamicConfigSubquery
+                  ghost $GhostDynamicConfigSubquery
                 }
               }
             }

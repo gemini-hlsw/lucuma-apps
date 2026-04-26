@@ -20,11 +20,13 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.odb.json.flamingos2.given
+import lucuma.odb.json.ghost.given
 import lucuma.odb.json.gmos.given
 import lucuma.odb.json.igrins2.given
 import lucuma.odb.json.stepconfig.given
@@ -144,6 +146,29 @@ trait VisitDecoders:
       datasets
     )
 
+  given Decoder[StepRecord.Ghost] = Decoder.instance: c =>
+    for
+      id               <- c.downField("id").as[Step.Id]
+      executionState   <- c.downField("executionState").as[StepExecutionState]
+      interval         <- c.downField("interval").as[Option[TimestampInterval]]
+      instrumentConfig <- c.downField("ghost").as[GhostDynamicConfig]
+      stepConfig       <- c.downField("stepConfig").as[StepConfig]
+      telescopeConfig  <- c.downField("telescopeConfig").as[TelescopeConfig]
+      observeClass     <- c.downField("observeClass").as[ObserveClass]
+      qaState          <- c.downField("qaState").as[Option[DatasetQaState]]
+      datasets         <- c.downField("datasets").downField("matches").as[List[Dataset]]
+    yield StepRecord.Ghost(
+      id,
+      executionState,
+      interval,
+      instrumentConfig,
+      stepConfig,
+      telescopeConfig,
+      observeClass,
+      qaState,
+      datasets
+    )
+
   given decoderAtomGmosNorth: Decoder[AtomRecord.GmosNorth] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
@@ -197,6 +222,21 @@ trait VisitDecoders:
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[StepRecord.Igrins2]]
     yield AtomRecord.Igrins2(
+      id,
+      executionState,
+      interval,
+      sequenceType,
+      steps
+    )
+
+  given decoderAtomGhost: Decoder[AtomRecord.Ghost] = Decoder.instance: c =>
+    for
+      id             <- c.downField("id").as[Atom.Id]
+      executionState <- c.downField("executionState").as[AtomExecutionState]
+      interval       <- c.downField("interval").as[Option[TimestampInterval]]
+      sequenceType   <- c.downField("sequenceType").as[SequenceType]
+      steps          <- c.downField("steps").downField("matches").as[List[StepRecord.Ghost]]
+    yield AtomRecord.Ghost(
       id,
       executionState,
       interval,
@@ -264,6 +304,18 @@ trait VisitDecoders:
       steps      <- c.downField("atomRecords").downField("matches").as[List[AtomRecord.Igrins2]]
     yield Visit.Igrins2(id, created, interval, steps)
 
+  given decoderVisitGhost: Decoder[Visit.Ghost] = Decoder.instance: c =>
+    for
+      instrument <- c.downField("instrument").as[Instrument]
+      _          <- instrument match
+                      case i if i === Instrument.Ghost => Right(())
+                      case _                           => Left(DecodingFailure("Not a Ghost Visit", c.history))
+      id         <- c.downField("id").as[Visit.Id]
+      created    <- c.downField("created").as[Timestamp]
+      interval   <- c.downField("interval").as[Option[TimestampInterval]]
+      steps      <- c.downField("atomRecords").downField("matches").as[List[AtomRecord.Ghost]]
+    yield Visit.Ghost(id, created, interval, steps)
+
   given decoderExecutionVisitsGmosNorth: Decoder[ExecutionVisits.GmosNorth] = Decoder.instance: c =>
     c.downField("visits")
       .downField("matches")
@@ -293,6 +345,13 @@ trait VisitDecoders:
       .map:
         ExecutionVisits.Igrins2(_)
 
+  given decoderExecutionVisitsGhost: Decoder[ExecutionVisits.Ghost] = Decoder.instance: c =>
+    c.downField("visits")
+      .downField("matches")
+      .as[NonEmptyList[Visit.Ghost]]
+      .map:
+        ExecutionVisits.Ghost(_)
+
   val decoderNoVisits: Decoder[Option[ExecutionVisits]] = Decoder.instance: c =>
     c.downField("visits")
       .downField("matches")
@@ -306,7 +365,8 @@ trait VisitDecoders:
       Decoder[ExecutionVisits.GmosNorth].widen,
       Decoder[ExecutionVisits.GmosSouth].widen,
       Decoder[ExecutionVisits.Flamingos2].widen,
-      Decoder[ExecutionVisits.Igrins2].widen
+      Decoder[ExecutionVisits.Igrins2].widen,
+      Decoder[ExecutionVisits.Ghost].widen
     ).reduceLeft(_ or _)
       .map(_.some)
       .or(decoderNoVisits)

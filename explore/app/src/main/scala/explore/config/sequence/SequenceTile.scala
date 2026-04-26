@@ -286,6 +286,27 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)
                             )
+                      case SequenceData(
+                            InstrumentExecutionConfig.Ghost(config),
+                            _
+                          ) =>
+                        sequnceView
+                          .zoom(
+                            SequenceData.config
+                              .andThen(InstrumentExecutionConfig.ghost)
+                              .andThen(InstrumentExecutionConfig.Ghost.executionConfig)
+                          )
+                          .toOptionView
+                          .map: ghostExecutionView =>
+                            GhostSequenceTable(
+                              visitsViewOpt,
+                              config.static,
+                              ghostExecutionView.flatScience,
+                              props.isEditingAcquisition,
+                              props.isEditingScience,
+                              props.isUserStaffOrAdmin,
+                              _ => atoms => IO(atoms)
+                            )
                       case _ => mismatchError.some
                   }
                   .getOrElse:
