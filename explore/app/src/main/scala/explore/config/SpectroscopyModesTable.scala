@@ -158,15 +158,15 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           ) =>
         val px = gmosSlitWidthPixels(slitWidth.value, ccd.xBin)
         fmtGmos(px, ccd.xBin)
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _) =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _, _) =>
         val px = flamingos2SlitWidthPixels(slitWidth.value)
         f"$px%2.1f px"
-      case ItcInstrumentConfig.Igrins2Spectroscopy(_)             =>
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_)                =>
         val widthArcSeconds = Angle.decimalArcseconds.get(slitWidth.value).withUnit[ArcSecond]
         val px              = widthArcSeconds / Igrins2PixelScale
         f"$px%2.1f px"
       // TODO: Is there a relevant tooltip for GHOST?
-      case _                                                      => ""
+      case _                                                         => ""
     }
 
     <.span(formatSlitWidth(slitWidth))

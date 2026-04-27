@@ -905,6 +905,8 @@ object SeqTranslate {
           )
         case InstrumentExecutionConfig.Ghost(_)                    =>
           ???
+        case InstrumentExecutionConfig.Gnirs(_)                    =>
+          ???
       }
   }
 

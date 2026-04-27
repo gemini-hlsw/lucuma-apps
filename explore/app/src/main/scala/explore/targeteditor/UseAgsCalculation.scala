@@ -130,6 +130,9 @@ object UseAgsCalculation:
       case ObservingModeType.GhostIfu =>
         applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
 
+      case ObservingModeType.GnirsLongSlit =>
+        none
+
   private def runAgsQuery(
     props:          AgsCalcProps,
     obsCoords:      ObservationTargetsCoordinatesAt,

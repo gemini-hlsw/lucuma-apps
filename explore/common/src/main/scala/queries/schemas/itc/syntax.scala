@@ -114,9 +114,9 @@ trait syntax:
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, etm)             =>
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm)         =>
           InstrumentMode
-            .Flamingos2Spectroscopy(etm, disperser, filter, fpu)
+            .Flamingos2Spectroscopy(etm, disperser, filter, rm, fpu)
             .rightNec
         case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                                   =>
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
