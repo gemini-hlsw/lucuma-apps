@@ -169,6 +169,7 @@ object ItcInstrumentConfig:
     grating:          Flamingos2Disperser,
     filter:           Flamingos2Filter,
     fpu:              Flamingos2Fpu,
+    readMode:         Flamingos2ReadMode,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Flamingos2Disperser
@@ -324,11 +325,11 @@ object ItcInstrumentConfig:
   }
 
   case class GnirsSpectroscopy(
-    grating:          GnirsDisperser,
+    grating:          GnirsGrating,
     filter:           GnirsFilter,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
-    type Grating  = GnirsDisperser
+    type Grating  = GnirsGrating
     type Filter   = GnirsFilter
     type FPU      = Unit
     type Override = Unit

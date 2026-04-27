@@ -195,6 +195,8 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
           case ObservingModeType.GhostIfu                                                =>
             (VisualizationStyles.Anchor, ghost.scienceArea.fov)
+          case ObservingModeType.GnirsLongSlit                                           =>
+            (Css.Empty, ShapeExpression.Empty)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -318,4 +320,6 @@ def useVisualizationShapes(
              asterismCoords.drop(1).headOption
            )
           )
+        case ObservingModeType.GnirsLongSlit                                           =>
+          (Css.Empty, none)
   }.map(_.value)

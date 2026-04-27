@@ -85,7 +85,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _)              =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _)           =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
       case ItcInstrumentConfig.GmosNorthImaging(_, _)                                         =>
         val filters = configs.collect:

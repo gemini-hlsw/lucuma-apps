@@ -213,7 +213,7 @@ final case class Observation(
         case f: ObservingMode.Flamingos2LongSlit =>
           List(
             ItcInstrumentConfig
-              .Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
+              .Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu, f.readMode, f.exposureTimeMode)
           )
         case i: ObservingMode.Igrins2LongSlit    =>
           List(

@@ -575,6 +575,8 @@ object ObservingMode:
       explicitReadoutMode.getOrElse(defaultReadoutMode)
     val offsets: NonEmptyList[Offset]      =
       explicitOffsets.getOrElse(defaultOffsets)
+    val readMode: Flamingos2ReadMode       =
+      explicitReadMode.getOrElse(Flamingos2ReadMode.Bright)
 
     def isCustomized: Boolean =
       initialDisperser =!= disperser ||
