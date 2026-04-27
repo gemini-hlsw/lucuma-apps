@@ -4,6 +4,7 @@
 package lucuma.ui.sequence
 
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -234,6 +235,84 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private def ghostExposureCountCol(
+    colId:  ColumnId,
+    label:  String,
+    getter: SequenceRow[D] => Option[PosInt]
+  ): colDef.TypeFor[Option[PosInt]] =
+    colDef(
+      colId,
+      _.getStep.flatMap(getter),
+      header = _ => label,
+      cell = _.value.map(_.value.toString).orEmpty
+    )
+
+  private def ghostExposureTimeCol(
+    colId:  ColumnId,
+    label:  String,
+    getter: SequenceRow[D] => Option[TimeSpan]
+  ): colDef.TypeFor[Option[TimeSpan]] =
+    colDef(
+      colId,
+      _.getStep.flatMap(getter),
+      header = _ => label,
+      cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
+    )
+
+  private def ghostStringCol(
+    colId:  ColumnId,
+    label:  String,
+    getter: SequenceRow[D] => Option[String]
+  ): colDef.TypeFor[Option[String]] =
+    colDef(
+      colId,
+      _.getStep.flatMap(getter),
+      header = _ => label,
+      cell = _.value.orEmpty
+    )
+
+  private lazy val ghostRedExposureCountCol =
+    ghostExposureCountCol(SequenceColumns.GhostRedExposureCountColumnId,
+                          "Red-count",
+                          _.ghostRed.map(_.exposureCount)
+    )
+  private lazy val ghostRedExposureTimeCol  =
+    ghostExposureTimeCol(SequenceColumns.GhostRedExposureTimeColumnId,
+                         "Red-Exp (s)",
+                         _.ghostRed.map(_.exposureTime)
+    )
+  private lazy val ghostRedReadModeCol      =
+    ghostStringCol(SequenceColumns.GhostRedReadModeColumnId,
+                   "Red-RM",
+                   _.ghostRed.map(_.readMode.shortName)
+    )
+  private lazy val ghostRedBinningCol       =
+    ghostStringCol(SequenceColumns.GhostRedBinningColumnId,
+                   "Red-Bin",
+                   _.ghostRed.map(_.binning.name)
+    )
+
+  private lazy val ghostBlueExposureCountCol =
+    ghostExposureCountCol(SequenceColumns.GhostBlueExposureCountColumnId,
+                          "Blue-count",
+                          _.ghostBlue.map(_.exposureCount)
+    )
+  private lazy val ghostBlueExposureTimeCol  =
+    ghostExposureTimeCol(SequenceColumns.GhostBlueExposureTimeColumnId,
+                         "Blue-Exp (s)",
+                         _.ghostBlue.map(_.exposureTime)
+    )
+  private lazy val ghostBlueReadModeCol      =
+    ghostStringCol(SequenceColumns.GhostBlueReadModeColumnId,
+                   "Blue-RM",
+                   _.ghostBlue.map(_.readMode.shortName)
+    )
+  private lazy val ghostBlueBinningCol       =
+    ghostStringCol(SequenceColumns.GhostBlueBinningColumnId,
+                   "Blue-Bin",
+                   _.ghostBlue.map(_.binning.name)
+    )
+
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
     colDef(
       SequenceColumns.FowlerSamplesColumnId,
@@ -292,10 +371,17 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
   lazy val ForGhost: List[colDef.TypeFor[?]] =
     List(
       indexAndTypeCol,
-      exposureCol,
       guideStateCol,
       pOffsetCol,
-      qOffsetCol
+      qOffsetCol,
+      ghostRedExposureCountCol,
+      ghostRedExposureTimeCol,
+      ghostRedReadModeCol,
+      ghostRedBinningCol,
+      ghostBlueExposureCountCol,
+      ghostBlueExposureTimeCol,
+      ghostBlueReadModeCol,
+      ghostBlueBinningCol
     )
 
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
@@ -325,6 +411,15 @@ object SequenceColumns:
   val ReadModeColumnId: ColumnId      = ColumnId("readMode")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
+
+  val GhostRedExposureCountColumnId: ColumnId  = ColumnId("ghostRedExposureCount")
+  val GhostRedExposureTimeColumnId: ColumnId   = ColumnId("ghostRedExposureTime")
+  val GhostRedReadModeColumnId: ColumnId       = ColumnId("ghostRedReadMode")
+  val GhostRedBinningColumnId: ColumnId        = ColumnId("ghostRedBinning")
+  val GhostBlueExposureCountColumnId: ColumnId = ColumnId("ghostBlueExposureCount")
+  val GhostBlueExposureTimeColumnId: ColumnId  = ColumnId("ghostBlueExposureTime")
+  val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
+  val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
   object BaseColumnSizes {
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
@@ -358,7 +453,22 @@ object SequenceColumns:
       CommonColumnSizes ++ Map(FowlerSamplesColumnId -> FixedSize(60.toPx))
 
     val ForGhost: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes
+      Map(
+        DragHandleColumnId             -> FixedSize(25.toPx),
+        EditControlsColumnId           -> FixedSize(50.toPx),
+        IndexAndTypeColumnId           -> FixedSize(60.toPx),
+        GuideColumnId                  -> FixedSize(36.toPx),
+        PColumnId                      -> FixedSize(75.toPx),
+        QColumnId                      -> FixedSize(75.toPx),
+        GhostRedExposureCountColumnId  -> FixedSize(60.toPx),
+        GhostRedExposureTimeColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        GhostRedReadModeColumnId       -> FixedSize(80.toPx),
+        GhostRedBinningColumnId        -> FixedSize(40.toPx),
+        GhostBlueExposureCountColumnId -> FixedSize(60.toPx),
+        GhostBlueExposureTimeColumnId  -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        GhostBlueReadModeColumnId      -> FixedSize(80.toPx),
+        GhostBlueBinningColumnId       -> FixedSize(40.toPx)
+      )
 
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       instrument match
@@ -400,7 +510,6 @@ object SequenceColumns:
     val ForIgrins2: List[ColumnId] = List(
       PColumnId,
       QColumnId,
-      GuideColumnId,
       FowlerSamplesColumnId,
       ExposureColumnId,
       SNColumnId
@@ -409,8 +518,7 @@ object SequenceColumns:
     val ForGhost: List[ColumnId] = List(
       PColumnId,
       QColumnId,
-      GuideColumnId,
-      ExposureColumnId
+      GuideColumnId
     ).reverse
 
     def apply(instrument: Instrument): List[ColumnId] =
