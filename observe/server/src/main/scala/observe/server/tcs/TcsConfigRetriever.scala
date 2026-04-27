@@ -244,23 +244,25 @@ object TcsConfigRetriever {
       getOdgw(epicsSys.odgw4Parked, epicsSys.odgw4Follow)
 
     private def getInstrumentPorts: F[InstrumentPorts] = for {
-      f2    <- epicsSys.f2Port.recover { case NullEpicsError(_) => InvalidPort }
-      ghost <- epicsSys.ghostPort.recover { case NullEpicsError(_) => InvalidPort }
-      gmos  <- epicsSys.gmosPort.recover { case NullEpicsError(_) => InvalidPort }
-      gnirs <- epicsSys.gnirsPort.recover { case NullEpicsError(_) => InvalidPort }
-      gpi   <- epicsSys.gpiPort.recover { case NullEpicsError(_) => InvalidPort }
-      gsaoi <- epicsSys.gsaoiPort.recover { case NullEpicsError(_) => InvalidPort }
-      nifs  <- epicsSys.nifsPort.recover { case NullEpicsError(_) => InvalidPort }
-      niri  <- epicsSys.niriPort.recover { case NullEpicsError(_) => InvalidPort }
+      f2      <- epicsSys.f2Port.recover { case NullEpicsError(_) => InvalidPort }
+      ghost   <- epicsSys.ghostPort.recover { case NullEpicsError(_) => InvalidPort }
+      gmos    <- epicsSys.gmosPort.recover { case NullEpicsError(_) => InvalidPort }
+      gnirs   <- epicsSys.gnirsPort.recover { case NullEpicsError(_) => InvalidPort }
+      gpi     <- epicsSys.gpiPort.recover { case NullEpicsError(_) => InvalidPort }
+      gsaoi   <- epicsSys.gsaoiPort.recover { case NullEpicsError(_) => InvalidPort }
+      igrins2 <- epicsSys.igrins2Port.recover { case NullEpicsError(_) => InvalidPort }
+      nifs    <- epicsSys.nifsPort.recover { case NullEpicsError(_) => InvalidPort }
+      niri    <- epicsSys.niriPort.recover { case NullEpicsError(_) => InvalidPort }
     } yield InstrumentPorts(
-      f2,
-      ghost,
-      gmos,
-      gnirs,
-      gpi,
-      gsaoi,
-      nifs,
-      niri
+      flamingos2Port = f2,
+      ghostPort = ghost,
+      gmosPort = gmos,
+      gnirsPort = gnirs,
+      gpiPort = gpi,
+      gsaoiPort = gsaoi,
+      igrins2Port = igrins2,
+      nifsPort = nifs,
+      niriPort = niri
     )
 
     override def retrieveConfigurationNorth(
