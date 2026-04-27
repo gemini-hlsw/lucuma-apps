@@ -39,7 +39,8 @@ case class ObjectPlotData(
   name:          NonEmptyString,
   targets:       NonEmptyList[Target],
   sites:         List[Site],
-  elevationOnly: Boolean = false
+  elevationOnly: Boolean = false,
+  filled:        Boolean = true
 ) derives Eq:
   private val PlotEvery: Duration = Duration.ofMinutes(1)
 

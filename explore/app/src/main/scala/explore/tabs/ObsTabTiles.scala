@@ -480,13 +480,17 @@ object ObsTabTiles:
                 NonEmptyList
                   .fromList(targets)
                   .map: nel =>
-                    val isTelluric           = siblings.calibrationRole.isDefined
                     val name: NonEmptyString =
                       NonEmptyString.from(s"${siblings.title}".take(100)).getOrElse("-".refined)
                     val sites                = siblings.observingMode.toList.map(_.siteFor)
 
                     ObjectPlotData.Id(siblings.id.asLeft) ->
-                      ObjectPlotData(name, nel, sites, elevationOnly = isTelluric)
+                      ObjectPlotData(name,
+                                     nel,
+                                     sites,
+                                     elevationOnly = siblings.isCalibration,
+                                     filled = false
+                      )
               .toMap).getOrElse(Map.empty)
 
           val plotData: Option[PlotData] =
@@ -503,7 +507,8 @@ object ObsTabTiles:
                     ObjectPlotData(
                       NonEmptyString.from(scienceName).getOrElse("-".refined),
                       ts,
-                      obsConf.configuration.foldMap(conf => List(conf.siteFor))
+                      obsConf.configuration.foldMap(conf => List(conf.siteFor)),
+                      elevationOnly = props.observation.get.isCalibration
                     )
                 ) ++ telluricGroup
 
