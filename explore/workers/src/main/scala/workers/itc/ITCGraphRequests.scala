@@ -13,7 +13,6 @@ import explore.model.itc.*
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.model.ConstraintSet
 import lucuma.core.util.Timestamp
-import lucuma.itc.Error
 import lucuma.itc.client.ItcClient
 import lucuma.itc.client.ItcConstraintsInput
 import lucuma.itc.client.SignificantFiguresInput
@@ -100,35 +99,14 @@ object ITCGraphRequests:
             )
             .map: (graphsResult: SpectroscopyIntegrationTimeAndGraphsResult) =>
               val asterismGraphs =
-                graphsResult.graphsOrTimes.value
-                  .fold[NonEmptyList[(ItcTarget, Either[ItcQueryProblem, ItcGraphResult])]](
-                    justTimes =>
-                      NonEmptyList.fromListUnsafe:
-                        justTimes.value.toNonEmptyList
-                          .zip(request.asterism)
-                          .toList
-                          .flatMap: (targetResult, itcTarget) =>
-                            targetResult.value.left.toOption.map:
-                              case Error.SourceTooBright(wellHalfFilledSeconds) =>
-                                itcTarget -> ItcQueryProblem
-                                  .SourceTooBright(wellHalfFilledSeconds)
-                                  .asLeft
-                              case Error.WavelengthAtOutOfRange(wv)             =>
-                                itcTarget -> ItcQueryProblem
-                                  .GenericError(Error.WavelengthAtOutOfRangeMessage)
-                                  .asLeft
-                              case Error.General(message)                       =>
-                                itcTarget -> ItcQueryProblem.GenericError(message).asLeft
-                    ,
-                    _.value.toNonEmptyList
-                      .zip(request.asterism)
-                      .map: (targetResult, itcTarget) =>
-                        itcTarget ->
-                          targetResult.value.bimap(
-                            ITCRequests.itcErrorToQueryProblems(_),
-                            timeAndGraphs => ItcGraphResult(itcTarget, timeAndGraphs)
-                          )
-                  )
+                graphsResult.graphs.value.toNonEmptyList
+                  .zip(request.asterism)
+                  .map: (targetResult, itcTarget) =>
+                    itcTarget ->
+                      targetResult.value.bimap(
+                        ITCRequests.itcErrorToQueryProblems(_),
+                        timeAndGraphs => ItcGraphResult(itcTarget, timeAndGraphs)
+                      )
                   .toList
                   .toMap
 

@@ -51,13 +51,9 @@ import lucuma.itc.ItcVersions
 import lucuma.itc.ItcWarning
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.TargetIntegrationTime
-import lucuma.itc.client.AsterismTargetGraphsResultOutcomes
 import lucuma.itc.client.GraphResult
 import lucuma.itc.client.SeriesResult
-import lucuma.itc.client.SpectroscopyGraphsResult
 import lucuma.itc.client.TargetGraphs
-import lucuma.itc.client.TargetGraphsResult
-import lucuma.itc.client.TargetGraphsResultOutcome
 import lucuma.itc.client.TargetInput
 import lucuma.itc.client.TargetTimeAndGraphsResult
 
@@ -285,8 +281,6 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcCcd] = generatePickler
 
-  given Pickler[TargetGraphsResult] = generatePickler
-
   given errorSourceTooBright: Pickler[Error.SourceTooBright]               = generatePickler
   given errorGeneral: Pickler[Error.General]                               = generatePickler
   given errorWavelengthAtOutOfRange: Pickler[Error.WavelengthAtOutOfRange] = generatePickler
@@ -295,14 +289,6 @@ trait ItcPicklers extends CommonPicklers {
     .addConcreteType[Error.SourceTooBright]
     .addConcreteType[Error.WavelengthAtOutOfRange]
     .addConcreteType[Error.General]
-
-  given Pickler[TargetGraphsResultOutcome] = picklerNewType(TargetGraphsResultOutcome)
-
-  given Pickler[AsterismTargetGraphsResultOutcomes] = picklerNewType(
-    AsterismTargetGraphsResultOutcomes
-  )
-
-  given Pickler[SpectroscopyGraphsResult] = generatePickler
 
   given Pickler[ItcAsterismGraphResults] = generatePickler
 
