@@ -285,7 +285,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
   private def engineIO(
     conf:       ObserveConfiguration,
     httpClient: Client[IO]
-  )(using Logger[IO], Trace[IO]): Resource[IO, ObserveEngine[IO]] =
+  )(using Logger[IO]): Resource[IO, ObserveEngine[IO]] =
     for {
       caS  <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
       sys  <- Systems.build(conf.site,

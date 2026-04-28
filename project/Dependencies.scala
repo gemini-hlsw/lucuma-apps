@@ -191,6 +191,10 @@ object Dependencies {
     deps("org.http4s" %%% "http4s-dom")(http4sDom)
   )
 
+  val Http4sOtel4sClient = Def.setting(
+    deps("org.http4s" %%% "http4s-otel4s-middleware-trace-client")(http4sOtel4s)
+  )
+
   val Http4sJdkClient =
     Def.setting(
       depsJVM(
@@ -360,6 +364,24 @@ object Dependencies {
 
   val Otel4s = Def.setting(
     deps("org.typelevel" %%% "otel4s-core")(otel4s)
+  )
+
+  val Otel4sSdk = Def.setting(
+    deps(
+      "org.typelevel" %%% "otel4s-sdk",
+      "org.typelevel" %%% "otel4s-sdk-exporter-trace"
+    )(otel4sSdk)
+  )
+
+  val Otel4sSemconv = Def.setting(
+    deps(
+      "org.typelevel" %%% "otel4s-semconv",
+      "org.typelevel" %%% "otel4s-semconv-experimental"
+    )(otel4s)
+  )
+
+  val ClueOtel4s = Def.setting(
+    deps("edu.gemini" %%% "clue-otel4s")(clue)
   )
 
   val Natchez = Def.setting(

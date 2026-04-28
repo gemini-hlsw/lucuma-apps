@@ -453,7 +453,11 @@ lazy val explore_common = project
       LucumaSsoFrontendClient.value ++
         LucumaCatalog.value ++
         LucumaReact.value ++
-        Otel4s.value,
+        Otel4s.value ++
+        Otel4sSdk.value ++
+        Otel4sSemconv.value ++
+        ClueOtel4s.value ++
+        Http4sOtel4sClient.value,
     buildInfoKeys    := Seq[BuildInfoKey](
       scalaVersion,
       sbtVersion,
@@ -610,7 +614,6 @@ lazy val observe_server = project
         PPrint.value ++
         Clue.value ++
         ClueHttp4s.value ++
-        ClueNatchez.value ++
         CatsParse.value ++
         Acm.value ++
         GiapiScala.value ++

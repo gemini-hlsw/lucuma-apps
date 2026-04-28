@@ -10,9 +10,14 @@ import cats.syntax.all.*
 import io.circe.*
 import io.circe.parser.decode
 import lucuma.core.enums.ExecutionEnvironment
+import lucuma.core.util.NewType
 import lucuma.ui.sso.SSOConfig
 import org.http4s.Uri
 import org.http4s.circe.*
+
+object TracingConfig extends NewType[Uri]:
+  given Show[Type] = Show[Uri].contramap(_.value)
+type TracingConfig = TracingConfig.Type
 
 case class AppConfig(
   hostName:         String,

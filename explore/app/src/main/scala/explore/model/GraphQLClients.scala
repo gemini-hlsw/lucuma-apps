@@ -7,16 +7,23 @@ import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
 import cats.syntax.all.*
+import clue.PersistentStreamingClient
 import clue.js.*
+import clue.js.given
+import clue.otel4s.Otel4sMiddleware
 import clue.websocket.*
 import io.circe.Json
 import lucuma.schemas.*
 import org.http4s.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import queries.schemas.*
 
+type TracedWsClient[F[_], S] =
+  PersistentStreamingClient[F, S, CloseParams, Either[Throwable, CloseParams]]
+
 case class GraphQLClients[F[_]: {Async, Parallel}] protected (
-  odb:           WebSocketJsClient[F, ObservationDB],
+  odb:           TracedWsClient[F, ObservationDB],
   preferencesDB: WebSocketJsClient[F, UserPreferencesDB],
   sso:           FetchJsClient[F, SSO]
 ):
@@ -30,7 +37,9 @@ case class GraphQLClients[F[_]: {Async, Parallel}] protected (
     ).sequence.void
 
 object GraphQLClients:
-  def build[F[_]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom}](
+  def build[F[
+    _
+  ]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom, Tracer}](
     odbURI:               Uri,
     prefsURI:             Uri,
     ssoURI:               Uri,
@@ -43,4 +52,4 @@ object GraphQLClients:
         WebSocketJsClient.of[F, UserPreferencesDB](prefsURI.toString, "PREFS", reconnectionStrategy)
       ssoClient   <-
         FetchJsClient.of[F, SSO](s"${ssoURI.toString}/graphql", "SSO")
-    } yield GraphQLClients(odbClient, prefsClient, ssoClient)
+    } yield GraphQLClients(Otel4sMiddleware(odbClient), prefsClient, Otel4sMiddleware(ssoClient))
