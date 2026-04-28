@@ -73,6 +73,7 @@ class TcsControllerEpicsCommonSuite extends munit.FunSuite {
       gnirsPort = 0,
       gpiPort = 0,
       gsaoiPort = 1,
+      igrins2Port = 0,
       nifsPort = 0,
       niriPort = 0
     )
