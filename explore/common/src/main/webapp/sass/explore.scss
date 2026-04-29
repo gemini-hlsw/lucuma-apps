@@ -1859,6 +1859,53 @@ svg.fa-check.explore-success-icon {
       / auto;
   }
 
+  .explore-ghost-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'common blue red' auto
+      / 1.3fr 1.6fr 1.6fr;
+    border-bottom: 1px solid var(--site-border-color);
+  }
+
+  .explore-ghost-lower-grid {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.5em;
+  }
+
+  .explore-ghost-detector-panel {
+    padding: 0.5em;
+
+    > .explore-ghost-detector-header {
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 0.5em;
+      padding-bottom: 0.25em;
+      border-bottom: 2px solid currentcolor;
+    }
+  }
+
+  .explore-ghost-detector-panel-blue > .explore-ghost-detector-header {
+    color: rgb(33 150 243);
+  }
+
+  .explore-ghost-detector-panel-red > .explore-ghost-detector-header {
+    color: rgb(244 67 54);
+  }
+
+  .explore-ghost-agitators {
+    display: flex;
+    gap: 1em;
+    align-items: center;
+    justify-content: space-around;
+
+    label {
+      white-space: nowrap;
+    }
+  }
+
   .explore-gmos-longslit-lower-grid,
   .explore-flamingos2-lower-grid {
     display: grid;
@@ -1962,6 +2009,14 @@ svg.fa-check.explore-success-icon {
         'col1' auto
         'col2' auto
         'col3' auto
+        / auto;
+    }
+
+    .explore-ghost-upper-grid {
+      grid-template:
+        'common' auto
+        'blue' auto
+        'red' auto
         / auto;
     }
 

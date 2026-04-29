@@ -4,9 +4,9 @@
 package explore.plots
 
 import cats.Order
+import cats.Order.given
 import cats.Semigroupal
 import cats.effect.IO
-import cats.Order.given
 import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*

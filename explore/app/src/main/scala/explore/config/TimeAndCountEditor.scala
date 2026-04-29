@@ -5,25 +5,20 @@ package explore.config
 
 import cats.syntax.all.*
 import crystal.react.View
-import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
 import explore.model.Constants
 import explore.model.TimeAndCountModeInfo
 import explore.model.enums.WavelengthUnits
-import explore.model.formats.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
-import lucuma.core.math.Wavelength
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -47,51 +42,19 @@ object TimeAndCountEditor extends ConfigurationFormats:
 
   protected val component =
     ScalaFnComponent[Props]: props =>
-      val exposureTime    = props.options.zoom(TimeAndCountModeInfo.time)
-      val count           = props.options.zoom(TimeAndCountModeInfo.count)
       val signalToNoiseAt = props.options.zoom(TimeAndCountModeInfo.at)
 
-      val (timeFormat, timeAuditor) = props.instrument
-        .collect { case Instrument.GmosSouth | Instrument.GmosNorth | Instrument.Flamingos2 =>
-          (durationS.optional, ChangeAuditor.int.optional)
-        }
-        .getOrElse((durationMs.optional, ChangeAuditor.posBigDecimal(2.refined).optional))
-
       React.Fragment(
-        props.controlsWrapper(
-          FormInputTextView(
-            id = props.makeId("ExposureTime".refined),
-            value = exposureTime,
-            label = "Exp. Time",
-            labelClass = props.labelClass,
-            groupClass = ExploreStyles.WarningInput.when_(exposureTime.get.isEmpty),
-            validFormat = timeFormat,
-            postAddons =
-              exposureTime.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
-            units = "s",
-            changeAuditor = timeAuditor,
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off),
-          ExploreStyles.ExposureTimeModeTime
+        TimeAndCountFieldsEditor(
+          props.instrument,
+          props.options,
+          props.readonly,
+          props.calibrationRole,
+          props.showCount,
+          props.makeId,
+          props.labelClass,
+          props.controlsWrapper
         ),
-        Option.when(props.showCount):
-          props.controlsWrapper(
-            FormInputTextView(
-              id = props.makeId("ExposureCount".refined),
-              value = count,
-              label = "Number of Exp.",
-              labelClass = props.labelClass,
-              groupClass = ExploreStyles.WarningInput.when_(count.get.isEmpty),
-              validFormat = InputValidSplitEpi.posInt.optional,
-              postAddons =
-                count.get.fold(List(props.calibrationRole.renderRequiredForITCIcon))(_ => Nil),
-              changeAuditor = ChangeAuditor.int.optional,
-              units = "#",
-              disabled = props.readonly
-            ).clearable(^.autoComplete.off),
-            ExploreStyles.ExposureTimeModeCount
-          )
-        ,
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
           props.controlsWrapper(
             FormInputTextView(
@@ -99,9 +62,9 @@ object TimeAndCountEditor extends ConfigurationFormats:
               label = Constants.SignalToNoiseAtLabel,
               labelClass = props.labelClass,
               groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
-              postAddons = signalToNoiseAt.get.fold(
+              postAddons = signalToNoiseAt.get.foldMap(_ =>
                 List(props.calibrationRole.renderRequiredForITCIcon)
-              )(_ => Nil),
+              ),
               value = signalToNoiseAt,
               units = props.units.symbol,
               validFormat = props.units.toInputWedge,
