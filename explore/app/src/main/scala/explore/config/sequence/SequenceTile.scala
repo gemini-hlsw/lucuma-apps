@@ -286,10 +286,7 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)
                             )
-                      case SequenceData(
-                            InstrumentExecutionConfig.Ghost(config),
-                            _
-                          ) =>
+                      case SequenceData(InstrumentExecutionConfig.Ghost(config), _) =>
                         sequnceView
                           .zoom(
                             SequenceData.config
@@ -302,12 +299,11 @@ object SequenceTile
                               visitsViewOpt,
                               config.static,
                               ghostExecutionView.flatScience,
-                              props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)
                             )
-                      case _ => mismatchError.some
+                      case _                                                        => mismatchError.some
                   }
                   .getOrElse:
                     Message(

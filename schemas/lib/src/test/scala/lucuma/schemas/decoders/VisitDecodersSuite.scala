@@ -6,6 +6,10 @@ package lucuma.schemas.decoders
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
+import lucuma.core.enums.GhostBinning
+import lucuma.core.enums.GhostIfu1FiberAgitator
+import lucuma.core.enums.GhostIfu2FiberAgitator
+import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.GmosAmpCount
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
@@ -20,6 +24,8 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.*
+import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.*
 import lucuma.core.refined.auto.*
 import lucuma.core.syntax.timespan.*
@@ -206,5 +212,90 @@ class VisitDecodersSuite extends InputStreamSuite {
       .map(_.as[Option[ExecutionVisits]])
       .flatMap(IO.fromEither)
       .map(visits => assertEquals(visits, None))
+  }
+
+  val expectedVisitsGhost: ExecutionVisits = ExecutionVisits.Ghost(
+    cats.data.NonEmptyList.of(
+      Visit.Ghost(
+        id = Visit.Id(457L.refined),
+        created =
+          Timestamp.unsafeFromLocalDateTime(LocalDateTime.of(2024, 2, 12, 17, 22, 6, 372335000)),
+        interval = TimestampInterval
+          .between(
+            Timestamp.unsafeFromLocalDateTime(
+              LocalDateTime.of(2024, 2, 12, 17, 22, 6, 937281000)
+            ),
+            Timestamp.unsafeFromLocalDateTime(LocalDateTime.of(2024, 2, 12, 17, 22, 7, 761573000))
+          )
+          .some,
+        atoms = List(
+          AtomRecord.Ghost(
+            id = Atom.Id.fromUuid(UUID.fromString("03e40772-09c1-443d-b4c8-b952995ad109")),
+            executionState = AtomExecutionState.NotStarted,
+            interval = TimestampInterval
+              .between(
+                Timestamp.unsafeFromLocalDateTime(
+                  LocalDateTime.of(2024, 2, 12, 17, 22, 7, 761573000)
+                ),
+                Timestamp.unsafeFromLocalDateTime(
+                  LocalDateTime.of(2024, 2, 12, 17, 22, 7, 761573000)
+                )
+              )
+              .some,
+            sequenceType = SequenceType.Science,
+            steps = List(
+              StepRecord.Ghost(
+                id = Step.Id.fromUuid(UUID.fromString("7adfa674-3753-4158-8dd8-cd08eddbb802")),
+                executionState = StepExecutionState.NotStarted,
+                interval = TimestampInterval
+                  .between(
+                    Timestamp.unsafeFromLocalDateTime(
+                      LocalDateTime.of(2024, 2, 12, 17, 22, 7, 761573000)
+                    ),
+                    Timestamp.unsafeFromLocalDateTime(
+                      LocalDateTime.of(2024, 2, 12, 17, 22, 7, 761573000)
+                    )
+                  )
+                  .some,
+                instrumentConfig = GhostDynamicConfig(
+                  red = GhostDetector.Red(
+                    GhostDetector(1000000.µsTimeSpan,
+                                  1.refined,
+                                  GhostBinning.OneByOne,
+                                  GhostReadMode.Medium
+                    )
+                  ),
+                  blue = GhostDetector.Blue(
+                    GhostDetector(2000000.µsTimeSpan,
+                                  1.refined,
+                                  GhostBinning.OneByOne,
+                                  GhostReadMode.Slow
+                    )
+                  ),
+                  ifu1FiberAgitator = GhostIfu1FiberAgitator.Disabled,
+                  ifu2FiberAgitator = GhostIfu2FiberAgitator.Disabled
+                ),
+                stepConfig = StepConfig.Science,
+                telescopeConfig = TelescopeConfig(
+                  offset = Offset(Offset.P.Zero, Offset.Q.Zero),
+                  guiding = StepGuideState.Enabled
+                ),
+                observeClass = ObserveClass.Science,
+                qaState = none,
+                datasets = Nil
+              )
+            )
+          )
+        )
+      )
+    )
+  )
+
+  test("Visits Ghost decoder") {
+    jsonResult("/visitGhost.json")
+      .map(_.hcursor.downField("observation").downField("execution"))
+      .map(_.as[Option[ExecutionVisits]])
+      .flatMap(IO.fromEither)
+      .map(visits => assertEquals(visits, Some(expectedVisitsGhost)))
   }
 }

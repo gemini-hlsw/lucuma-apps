@@ -24,7 +24,6 @@ final case class GhostSequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         GhostStaticConfig,
   science:              View[List[Atom[GhostDynamicConfig]]],
-  isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
   remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[

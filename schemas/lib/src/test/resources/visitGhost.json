@@ -1,0 +1,82 @@
+{
+  "observation": {
+    "execution": {
+      "visits": {
+        "matches": [
+          {
+            "id": "v-1c9",
+            "instrument": "GHOST",
+            "created": "2024-02-12 17:22:06.372335",
+            "interval": {
+              "start": "2024-02-12 17:22:06.937281",
+              "end": "2024-02-12 17:22:07.761573"
+            },
+            "atomRecords": {
+              "matches": [
+                {
+                  "id": "a-03e40772-09c1-443d-b4c8-b952995ad109",
+                  "executionState": "NOT_STARTED",
+                  "interval": {
+                    "start": "2024-02-12 17:22:07.761573",
+                    "end": "2024-02-12 17:22:07.761573"
+                  },
+                  "sequenceType": "SCIENCE",
+                  "steps": {
+                    "matches": [
+                      {
+                        "id": "s-7adfa674-3753-4158-8dd8-cd08eddbb802",
+                        "executionState": "NOT_STARTED",
+                        "interval": {
+                          "start": "2024-02-12 17:22:07.761573",
+                          "end": "2024-02-12 17:22:07.761573"
+                        },
+                        "ghost": {
+                          "red": {
+                            "exposureTime": {
+                              "microseconds": 1000000
+                            },
+                            "exposureCount": 1,
+                            "binning": "ONE_BY_ONE",
+                            "readMode": "MEDIUM"
+                          },
+                          "blue": {
+                            "exposureTime": {
+                              "microseconds": 2000000
+                            },
+                            "exposureCount": 1,
+                            "binning": "ONE_BY_ONE",
+                            "readMode": "SLOW"
+                          },
+                          "ifu1FiberAgitator": "DISABLED",
+                          "ifu2FiberAgitator": "DISABLED"
+                        },
+                        "stepConfig": {
+                          "stepType": "SCIENCE"
+                        },
+                        "telescopeConfig": {
+                          "offset": {
+                            "p": {
+                              "microarcseconds": 0
+                            },
+                            "q": {
+                              "microarcseconds": 0
+                            }
+                          },
+                          "guiding": "ENABLED"
+                        },
+                        "observeClass": "SCIENCE",
+                        "datasets": {
+                          "matches": []
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
