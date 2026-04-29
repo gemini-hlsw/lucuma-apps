@@ -57,6 +57,13 @@ object SequenceQueriesGql:
               }
               science { ...igrins2SequenceFields }
             }
+            ghost {
+              static {
+                resolutionMode
+                slitViewingCameraExposureTime $TimeSpanSubquery
+              }
+              science { ...ghostSequenceFields }
+            }
           }
         }
 
@@ -89,6 +96,12 @@ object SequenceQueriesGql:
         fragment igrins2SequenceFields on Igrins2ExecutionSequence {
           nextAtom $Igrins2AtomSubquery
           possibleFuture $Igrins2AtomSubquery
+          hasMore
+        }
+
+        fragment ghostSequenceFields on GhostExecutionSequence {
+          nextAtom $GhostAtomSubquery
+          possibleFuture $GhostAtomSubquery
           hasMore
         }
       """

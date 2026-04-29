@@ -69,7 +69,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       // TODO: What is the right value?
       CentralWavelength(Wavelength.unsafeFromIntPicometers(1800000)).some
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      CentralWavelength(BasicConfiguration.GhostIfu.cetralWavelength).some
+      CentralWavelength(BasicConfiguration.GhostIfu.centralWavelength).some
     case _                                                            =>
       none
 
@@ -88,7 +88,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       // TODO: What is the right value?
       AGSWavelength(BasicConfiguration.Igrins2LongSlit.optimalWavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      AGSWavelength(BasicConfiguration.GhostIfu.cetralWavelength)
+      AGSWavelength(BasicConfiguration.GhostIfu.centralWavelength)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -105,7 +105,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       // TODO: What is the right value?
       BasicConfiguration.Igrins2LongSlit.optimalWavelength
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      BasicConfiguration.GhostIfu.cetralWavelength
+      BasicConfiguration.GhostIfu.centralWavelength
 
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
@@ -214,7 +214,7 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.Ghost) derives Eq
 
   object GhostIfu:
-    val cetralWavelength: Wavelength = Wavelength.fromIntNanometers(530).get
+    val centralWavelength: Wavelength = Wavelength.fromIntNanometers(530).get
 
     given Decoder[ItcGhostDetector] = Decoder.instance:
       c =>

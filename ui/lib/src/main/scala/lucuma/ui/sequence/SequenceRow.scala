@@ -18,6 +18,8 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.ghost.GhostDetector
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
@@ -66,6 +68,7 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => Instrument.GmosSouth
     case Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => Instrument.Flamingos2
     case Igrins2DynamicConfig(_)                            => Instrument.Igrins2
+    case GhostDynamicConfig(_, _, _, _)                     => Instrument.Ghost
 
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
@@ -80,12 +83,15 @@ sealed trait SequenceRow[+D]:
     case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => gs.centralWavelength
     case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => f2.centralWavelength.some
     case Igrins2DynamicConfig(_)                                 => none
+    case GhostDynamicConfig(_, _, _, _)                          => none
 
   lazy val exposureTime: Option[TimeSpan] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(exposure, _, _, _, _, _, _)  => exposure.some
     case gmos.DynamicConfig.GmosSouth(exposure, _, _, _, _, _, _)  => exposure.some
     case Flamingos2DynamicConfig(exposure, _, _, _, _, _, _, _, _) => exposure.some
     case Igrins2DynamicConfig(exposure)                            => exposure.some
+    // We pick the longest time from both sensors
+    case g @ GhostDynamicConfig(_, _, _, _)                        => g.totalExposureTime.some
     case _                                                         => none
 
   // There's no unified grating type, so we return a string.
@@ -143,6 +149,12 @@ sealed trait SequenceRow[+D]:
   lazy val roi: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(_, _, _, roi, _, _, _) => roi.shortName
     case gmos.DynamicConfig.GmosSouth(_, _, _, roi, _, _, _) => roi.shortName
+
+  lazy val ghostRed: Option[GhostDetector] = instrumentConfig.collect:
+    case GhostDynamicConfig(red, _, _, _) => red.value
+
+  lazy val ghostBlue: Option[GhostDetector] = instrumentConfig.collect:
+    case GhostDynamicConfig(_, blue, _, _) => blue.value
 
 object SequenceRow:
   case class FutureStep[+D](

@@ -11,6 +11,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimestampInterval
@@ -76,6 +77,18 @@ enum StepRecord[+D]:
     qaState:          Option[DatasetQaState],
     datasets:         List[Dataset]
   ) extends StepRecord[Igrins2DynamicConfig]
+
+  case Ghost(
+    id:               Step.Id,
+    executionState:   StepExecutionState,
+    interval:         Option[TimestampInterval],
+    instrumentConfig: GhostDynamicConfig,
+    stepConfig:       StepConfig,
+    telescopeConfig:  TelescopeConfig,
+    observeClass:     ObserveClass,
+    qaState:          Option[DatasetQaState],
+    datasets:         List[Dataset]
+  ) extends StepRecord[GhostDynamicConfig]
 
 object StepRecord:
   given [A]: Eq[StepRecord[A]] = Eq.derived
@@ -199,3 +212,33 @@ object StepRecord:
 
     val datasets: Lens[Igrins2, List[Dataset]] =
       Focus[Igrins2](_.datasets)
+
+  object Ghost:
+    given Eq[Ghost] = Eq.derived
+
+    val id: Lens[Ghost, Step.Id] =
+      Focus[Ghost](_.id)
+
+    val executionState: Lens[Ghost, StepExecutionState] =
+      Focus[Ghost](_.executionState)
+
+    val interval: Lens[Ghost, Option[TimestampInterval]] =
+      Focus[Ghost](_.interval)
+
+    val instrumentConfig: Lens[Ghost, GhostDynamicConfig] =
+      Focus[Ghost](_.instrumentConfig)
+
+    val stepConfig: Lens[Ghost, StepConfig] =
+      Focus[Ghost](_.stepConfig)
+
+    val telescopeConfig: Lens[Ghost, TelescopeConfig] =
+      Focus[Ghost](_.telescopeConfig)
+
+    val observeClass: Lens[Ghost, ObserveClass] =
+      Focus[Ghost](_.observeClass)
+
+    val qaState: Lens[Ghost, Option[DatasetQaState]] =
+      Focus[Ghost](_.qaState)
+
+    val datasets: Lens[Ghost, List[Dataset]] =
+      Focus[Ghost](_.datasets)

@@ -70,6 +70,7 @@ case class LoadedObservation private (
       case ExecutionVisits.GmosSouth(visits)  => visits.last.id
       case ExecutionVisits.Flamingos2(visits) => visits.last.id
       case ExecutionVisits.Igrins2(visits)    => visits.last.id
+      case ExecutionVisits.Ghost(visits)      => visits.last.id
 
 object LoadedObservation:
   def apply(): LoadedObservation = new LoadedObservation()

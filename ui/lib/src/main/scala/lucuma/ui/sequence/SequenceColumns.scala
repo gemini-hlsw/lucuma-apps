@@ -4,12 +4,14 @@
 package lucuma.ui.sequence
 
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
@@ -234,6 +236,38 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private def ghostDetectorCols(
+    getter:     SequenceRow[D] => Option[GhostDetector],
+    prefix:     String,
+    countId:    ColumnId,
+    timeId:     ColumnId,
+    readModeId: ColumnId,
+    binningId:  ColumnId
+  ): List[colDef.TypeFor[?]] =
+    List(
+      colDef(countId,
+             _.getStep.flatMap(getter(_).map(_.exposureCount)),
+             header = _ => s"$prefix-count",
+             cell = _.value.map(_.value.toString).orEmpty
+      ),
+      colDef(
+        timeId,
+        _.getStep.flatMap(getter(_).map(_.exposureTime)),
+        header = _ => s"$prefix-Exp (s)",
+        cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
+      ),
+      colDef(readModeId,
+             _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
+             header = _ => s"$prefix-RM",
+             cell = _.value.orEmpty
+      ),
+      colDef(binningId,
+             _.getStep.flatMap(getter(_).map(_.binning.name)),
+             header = _ => s"$prefix-Bin",
+             cell = _.value.orEmpty
+      )
+    )
+
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
     colDef(
       SequenceColumns.FowlerSamplesColumnId,
@@ -289,11 +323,31 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       snCol
     )
 
+  lazy val ForGhost: List[colDef.TypeFor[?]] =
+    List(indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
+      ghostDetectorCols(
+        _.ghostRed,
+        "Red",
+        SequenceColumns.GhostRedExposureCountColumnId,
+        SequenceColumns.GhostRedExposureTimeColumnId,
+        SequenceColumns.GhostRedReadModeColumnId,
+        SequenceColumns.GhostRedBinningColumnId
+      ) ++
+      ghostDetectorCols(
+        _.ghostBlue,
+        "Blue",
+        SequenceColumns.GhostBlueExposureCountColumnId,
+        SequenceColumns.GhostBlueExposureTimeColumnId,
+        SequenceColumns.GhostBlueReadModeColumnId,
+        SequenceColumns.GhostBlueBinningColumnId
+      )
+
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
       case Instrument.Flamingos2                       => ForFlamingos2
       case Instrument.Igrins2                          => ForIgrins2
+      case Instrument.Ghost                            => ForGhost
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
 
 object SequenceColumns:
@@ -315,6 +369,15 @@ object SequenceColumns:
   val ReadModeColumnId: ColumnId      = ColumnId("readMode")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
+
+  val GhostRedExposureCountColumnId: ColumnId  = ColumnId("ghostRedExposureCount")
+  val GhostRedExposureTimeColumnId: ColumnId   = ColumnId("ghostRedExposureTime")
+  val GhostRedReadModeColumnId: ColumnId       = ColumnId("ghostRedReadMode")
+  val GhostRedBinningColumnId: ColumnId        = ColumnId("ghostRedBinning")
+  val GhostBlueExposureCountColumnId: ColumnId = ColumnId("ghostBlueExposureCount")
+  val GhostBlueExposureTimeColumnId: ColumnId  = ColumnId("ghostBlueExposureTime")
+  val GhostBlueReadModeColumnId: ColumnId      = ColumnId("ghostBlueReadMode")
+  val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
   object BaseColumnSizes {
     private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
@@ -347,11 +410,30 @@ object SequenceColumns:
     val ForIgrins2: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(FowlerSamplesColumnId -> FixedSize(60.toPx))
 
+    val ForGhost: Map[ColumnId, ColumnSize] =
+      Map(
+        DragHandleColumnId             -> FixedSize(25.toPx),
+        EditControlsColumnId           -> FixedSize(50.toPx),
+        IndexAndTypeColumnId           -> FixedSize(60.toPx),
+        GuideColumnId                  -> FixedSize(36.toPx),
+        PColumnId                      -> FixedSize(75.toPx),
+        QColumnId                      -> FixedSize(75.toPx),
+        GhostRedExposureCountColumnId  -> FixedSize(60.toPx),
+        GhostRedExposureTimeColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        GhostRedReadModeColumnId       -> FixedSize(80.toPx),
+        GhostRedBinningColumnId        -> FixedSize(40.toPx),
+        GhostBlueExposureCountColumnId -> FixedSize(60.toPx),
+        GhostBlueExposureTimeColumnId  -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        GhostBlueReadModeColumnId      -> FixedSize(80.toPx),
+        GhostBlueBinningColumnId       -> FixedSize(40.toPx)
+      )
+
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
         case Instrument.Igrins2                          => ForIgrins2
+        case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 
@@ -392,11 +474,18 @@ object SequenceColumns:
       SNColumnId
     ).reverse
 
+    val ForGhost: List[ColumnId] = List(
+      PColumnId,
+      QColumnId,
+      GuideColumnId
+    ).reverse
+
     def apply(instrument: Instrument): List[ColumnId] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
         case Instrument.Igrins2                          => ForIgrins2
+        case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
   }
 

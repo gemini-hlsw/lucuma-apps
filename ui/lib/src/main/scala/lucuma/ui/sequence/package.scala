@@ -15,6 +15,7 @@ import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.NewBoolean
@@ -109,6 +110,7 @@ extension [D](instrumentConfig: D)
       case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, None)                       => true
       case Flamingos2DynamicConfig(_, _, Flamingos2FpuMask.Imaging, _, _, _, _, _, _) => true
       case Igrins2DynamicConfig(_)                                                    => false
+      case GhostDynamicConfig(_, _, _, _)                                             => false
       case _                                                                          => false
 
 extension [D](step: Step[D])
