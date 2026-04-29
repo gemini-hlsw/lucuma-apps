@@ -24,6 +24,7 @@ final case class GhostSequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         GhostStaticConfig,
   science:              View[List[Atom[GhostDynamicConfig]]],
+  isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
   remoteReplace:        SequenceType => List[Atom[GhostDynamicConfig]] => IO[
@@ -33,14 +34,13 @@ final case class GhostSequenceTable(
     with SequenceTable[GhostStaticConfig, GhostDynamicConfig]
     with SpectroscopySequenceTable[GhostDynamicConfig]:
 
-  // No acquisition for GHOST. It is handled internally.
+  // No acquisition for GHOST. It is handled by the instrument with its own utility.
   override val acquisition  = View(List.empty, (_, _) => Callback.empty)
   override val acquisitonSN = none
 
-  // GHOST ITC reports red/blue separately
-  override val scienceSN    = none
+  // TBD. We may get two s/n values
+  override val scienceSN = none
 
-  // No ghost editing yet
   override val isEditEnabled = IsEditEnabled.False
 
   override val toInstrumentVisits =

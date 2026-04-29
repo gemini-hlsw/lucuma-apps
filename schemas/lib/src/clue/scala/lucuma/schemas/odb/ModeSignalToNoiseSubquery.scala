@@ -54,17 +54,5 @@ object ModeSignalToNoiseSubquery
             }
           }
         }
-        ... on ItcGhostIfu {
-          red {
-            selected {
-              signalToNoiseAt $SignalToNoiseAtSubquery
-            }
-          }
-          blue {
-            selected {
-              signalToNoiseAt $SignalToNoiseAtSubquery
-            }
-          }
-        }
       }
   """

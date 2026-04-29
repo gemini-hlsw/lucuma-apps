@@ -299,6 +299,7 @@ object SequenceTile
                               visitsViewOpt,
                               config.static,
                               ghostExecutionView.flatScience,
+                              props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)

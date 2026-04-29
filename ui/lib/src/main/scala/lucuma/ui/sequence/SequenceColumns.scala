@@ -11,6 +11,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.math.Offset
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
@@ -235,82 +236,36 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
-  private def ghostExposureCountCol(
-    colId:  ColumnId,
-    label:  String,
-    getter: SequenceRow[D] => Option[PosInt]
-  ): colDef.TypeFor[Option[PosInt]] =
-    colDef(
-      colId,
-      _.getStep.flatMap(getter),
-      header = _ => label,
-      cell = _.value.map(_.value.toString).orEmpty
-    )
-
-  private def ghostExposureTimeCol(
-    colId:  ColumnId,
-    label:  String,
-    getter: SequenceRow[D] => Option[TimeSpan]
-  ): colDef.TypeFor[Option[TimeSpan]] =
-    colDef(
-      colId,
-      _.getStep.flatMap(getter),
-      header = _ => label,
-      cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
-    )
-
-  private def ghostStringCol(
-    colId:  ColumnId,
-    label:  String,
-    getter: SequenceRow[D] => Option[String]
-  ): colDef.TypeFor[Option[String]] =
-    colDef(
-      colId,
-      _.getStep.flatMap(getter),
-      header = _ => label,
-      cell = _.value.orEmpty
-    )
-
-  private lazy val ghostRedExposureCountCol =
-    ghostExposureCountCol(SequenceColumns.GhostRedExposureCountColumnId,
-                          "Red-count",
-                          _.ghostRed.map(_.exposureCount)
-    )
-  private lazy val ghostRedExposureTimeCol  =
-    ghostExposureTimeCol(SequenceColumns.GhostRedExposureTimeColumnId,
-                         "Red-Exp (s)",
-                         _.ghostRed.map(_.exposureTime)
-    )
-  private lazy val ghostRedReadModeCol      =
-    ghostStringCol(SequenceColumns.GhostRedReadModeColumnId,
-                   "Red-RM",
-                   _.ghostRed.map(_.readMode.shortName)
-    )
-  private lazy val ghostRedBinningCol       =
-    ghostStringCol(SequenceColumns.GhostRedBinningColumnId,
-                   "Red-Bin",
-                   _.ghostRed.map(_.binning.name)
-    )
-
-  private lazy val ghostBlueExposureCountCol =
-    ghostExposureCountCol(SequenceColumns.GhostBlueExposureCountColumnId,
-                          "Blue-count",
-                          _.ghostBlue.map(_.exposureCount)
-    )
-  private lazy val ghostBlueExposureTimeCol  =
-    ghostExposureTimeCol(SequenceColumns.GhostBlueExposureTimeColumnId,
-                         "Blue-Exp (s)",
-                         _.ghostBlue.map(_.exposureTime)
-    )
-  private lazy val ghostBlueReadModeCol      =
-    ghostStringCol(SequenceColumns.GhostBlueReadModeColumnId,
-                   "Blue-RM",
-                   _.ghostBlue.map(_.readMode.shortName)
-    )
-  private lazy val ghostBlueBinningCol       =
-    ghostStringCol(SequenceColumns.GhostBlueBinningColumnId,
-                   "Blue-Bin",
-                   _.ghostBlue.map(_.binning.name)
+  private def ghostDetectorCols(
+    getter:     SequenceRow[D] => Option[GhostDetector],
+    prefix:     String,
+    countId:    ColumnId,
+    timeId:     ColumnId,
+    readModeId: ColumnId,
+    binningId:  ColumnId
+  ): List[colDef.TypeFor[?]] =
+    List(
+      colDef(countId,
+             _.getStep.flatMap(getter(_).map(_.exposureCount)),
+             header = _ => s"$prefix-count",
+             cell = _.value.map(_.value.toString).orEmpty
+      ),
+      colDef(
+        timeId,
+        _.getStep.flatMap(getter(_).map(_.exposureTime)),
+        header = _ => s"$prefix-Exp (s)",
+        cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
+      ),
+      colDef(readModeId,
+             _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
+             header = _ => s"$prefix-RM",
+             cell = _.value.orEmpty
+      ),
+      colDef(binningId,
+             _.getStep.flatMap(getter(_).map(_.binning.name)),
+             header = _ => s"$prefix-Bin",
+             cell = _.value.orEmpty
+      )
     )
 
   private lazy val fowlerCol: colDef.TypeFor[Option[String]] =
@@ -369,20 +324,23 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   lazy val ForGhost: List[colDef.TypeFor[?]] =
-    List(
-      indexAndTypeCol,
-      guideStateCol,
-      pOffsetCol,
-      qOffsetCol,
-      ghostRedExposureCountCol,
-      ghostRedExposureTimeCol,
-      ghostRedReadModeCol,
-      ghostRedBinningCol,
-      ghostBlueExposureCountCol,
-      ghostBlueExposureTimeCol,
-      ghostBlueReadModeCol,
-      ghostBlueBinningCol
-    )
+    List(indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
+      ghostDetectorCols(
+        _.ghostRed,
+        "Red",
+        SequenceColumns.GhostRedExposureCountColumnId,
+        SequenceColumns.GhostRedExposureTimeColumnId,
+        SequenceColumns.GhostRedReadModeColumnId,
+        SequenceColumns.GhostRedBinningColumnId
+      ) ++
+      ghostDetectorCols(
+        _.ghostBlue,
+        "Blue",
+        SequenceColumns.GhostBlueExposureCountColumnId,
+        SequenceColumns.GhostBlueExposureTimeColumnId,
+        SequenceColumns.GhostBlueReadModeColumnId,
+        SequenceColumns.GhostBlueBinningColumnId
+      )
 
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
     instrument match
@@ -510,6 +468,7 @@ object SequenceColumns:
     val ForIgrins2: List[ColumnId] = List(
       PColumnId,
       QColumnId,
+      GuideColumnId,
       FowlerSamplesColumnId,
       ExposureColumnId,
       SNColumnId

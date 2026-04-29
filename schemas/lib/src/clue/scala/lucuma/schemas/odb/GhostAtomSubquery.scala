@@ -13,10 +13,10 @@ import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 
 @GraphQL
 object GhostAtomSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Atom[GhostDynamicConfig]](
-      "GhostAtom"
-    ):
-  override val subquery: String = s"""
+    extends GraphQLSubquery.Typed[ObservationDB, Atom[GhostDynamicConfig]]("GhostAtom"):
+
+  override val subquery: String = 
+    s"""
         {
           id
           description

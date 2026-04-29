@@ -54,9 +54,10 @@ trait VisitDecoders:
       isWritten <- c.downField("isWritten").as[Boolean]
     yield Dataset(id, index, filename, qaState, comment, interval, isWritten)
 
-  private def stepRecordDecoder[D: Decoder, R](
-    configField: String,
-    build:       (
+  // Generic step record decoder builder.
+  private def stepRecordDecoder[D: Decoder, R <: StepRecord[D]](
+    configField:     String,
+    buildStepRecord: (
       Step.Id,
       StepExecutionState,
       Option[TimestampInterval],
@@ -78,7 +79,7 @@ trait VisitDecoders:
       observeClass    <- c.downField("observeClass").as[ObserveClass]
       qaState         <- c.downField("qaState").as[Option[DatasetQaState]]
       datasets        <- c.downField("datasets").downField("matches").as[List[Dataset]]
-    yield build(
+    yield buildStepRecord(
       id,
       executionState,
       interval,
@@ -90,34 +91,33 @@ trait VisitDecoders:
       datasets
     )
 
-  given Decoder[StepRecord.GmosNorth]  =
+  given Decoder[StepRecord.GmosNorth] =
     stepRecordDecoder[gmos.DynamicConfig.GmosNorth, StepRecord.GmosNorth](
       "gmosNorth",
       StepRecord.GmosNorth.apply
     )
-  given Decoder[StepRecord.GmosSouth]  =
+
+  given Decoder[StepRecord.GmosSouth] =
     stepRecordDecoder[gmos.DynamicConfig.GmosSouth, StepRecord.GmosSouth](
       "gmosSouth",
       StepRecord.GmosSouth.apply
     )
+
   given Decoder[StepRecord.Flamingos2] =
     stepRecordDecoder[Flamingos2DynamicConfig, StepRecord.Flamingos2](
       "flamingos2",
       StepRecord.Flamingos2.apply
     )
-  given Decoder[StepRecord.Igrins2]    =
-    stepRecordDecoder[Igrins2DynamicConfig, StepRecord.Igrins2](
-      "igrins2",
-      StepRecord.Igrins2.apply
-    )
-  given Decoder[StepRecord.Ghost]      =
-    stepRecordDecoder[GhostDynamicConfig, StepRecord.Ghost](
-      "ghost",
-      StepRecord.Ghost.apply
-    )
 
+  given Decoder[StepRecord.Igrins2] =
+    stepRecordDecoder[Igrins2DynamicConfig, StepRecord.Igrins2]("igrins2", StepRecord.Igrins2.apply)
+
+  given Decoder[StepRecord.Ghost] =
+    stepRecordDecoder[GhostDynamicConfig, StepRecord.Ghost]("ghost", StepRecord.Ghost.apply)
+
+  // Generic atom decoder builder.
   private def atomRecordDecoder[S: Decoder, R](
-    build: (Atom.Id, AtomExecutionState, Option[TimestampInterval], SequenceType, List[S]) => R
+    buildAtom: (Atom.Id, AtomExecutionState, Option[TimestampInterval], SequenceType, List[S]) => R
   ): Decoder[R] = Decoder.instance: c =>
     for
       id             <- c.downField("id").as[Atom.Id]
@@ -125,7 +125,7 @@ trait VisitDecoders:
       interval       <- c.downField("interval").as[Option[TimestampInterval]]
       sequenceType   <- c.downField("sequenceType").as[SequenceType]
       steps          <- c.downField("steps").downField("matches").as[List[S]]
-    yield build(id, executionState, interval, sequenceType, steps)
+    yield buildAtom(id, executionState, interval, sequenceType, steps)
 
   // We must specify a name since the automatic names only take the last part of the type path,
   // generating conflicts among all the `.GmosNorth` and `.GmosSouth` types.
@@ -142,24 +142,23 @@ trait VisitDecoders:
     atomRecordDecoder(AtomRecord.Ghost.apply)
 
   private def visitDecoder[A: Decoder, R](
-    expected: Instrument,
-    build:    (Visit.Id, Timestamp, Option[TimestampInterval], List[A]) => R
+    expected:   Instrument,
+    buildVisit: (Visit.Id, Timestamp, Option[TimestampInterval], List[A]) => R
   ): Decoder[R] = Decoder.instance: c =>
     for
       instrument <- c.downField("instrument").as[Instrument]
-      _          <- Either.cond(
-                      instrument === expected,
-                      (),
-                      DecodingFailure(
-                        s"Attempted to decode a $instrument visit in $expected decoder",
-                        c.history
-                      )
+      _          <- Either.cond(instrument === expected,
+                                (),
+                                DecodingFailure(
+                                  s"Attempted to decode a $instrument visit in $expected decoder",
+                                  c.history
+                                )
                     )
       id         <- c.downField("id").as[Visit.Id]
       created    <- c.downField("created").as[Timestamp]
       interval   <- c.downField("interval").as[Option[TimestampInterval]]
       atoms      <- c.downField("atomRecords").downField("matches").as[List[A]]
-    yield build(id, created, interval, atoms)
+    yield buildVisit(id, created, interval, atoms)
 
   given decoderVisitGmosNorth: Decoder[Visit.GmosNorth]   =
     visitDecoder(Instrument.GmosNorth, Visit.GmosNorth.apply)
