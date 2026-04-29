@@ -3,7 +3,6 @@
 
 package explore
 
-import cats.effect.Async
 import cats.effect.IO
 import cats.effect.Resource
 import cats.effect.Sync
@@ -34,11 +33,6 @@ import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
 import org.http4s.Uri
-import org.http4s.client.Client
-import org.http4s.dom.FetchClientBuilder
-import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
-import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
-import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.scalajs.dom
 import org.scalajs.dom.Element
 import org.typelevel.log4cats.Logger
@@ -71,12 +65,6 @@ object ExploreMain {
       config.environment,
       None
     )
-
-  private def buildNonCachingHttpClient[F[_]: Async]: Client[F] =
-    FetchClientBuilder[F]
-      .withRequestTimeout(4.seconds)
-      .withCache(dom.RequestCache.`no-store`)
-      .create
 
   def initialModel(vault: Option[UserVault]): RootModel =
     RootModel(vault = vault)
@@ -149,10 +137,6 @@ object ExploreMain {
       for {
         host                 <- IO(dom.window.location.host)
         appConfig             = AppConfig.parseConf(host, configJson)
-        traceMiddleware      <- ClientMiddleware
-                                   .builder[IO](ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {}))
-                                   .build
-        httpClient            = traceMiddleware(buildNonCachingHttpClient[IO])
         _                    <- info"Git Commit: [${utils.gitHash.getOrElse("NONE")}]"
         _                    <- info"Config: ${appConfig.show}"
         ctx                  <- AppContext.from[IO](
@@ -161,7 +145,6 @@ object ExploreMain {
                                   pageUrl,
                                   setPageVia,
                                   workerClients,
-                                  httpClient,
                                   bc
                                 )
         _                    <- initializeItc(workerClients, appConfig.itcURI, ctx.toastCtx)

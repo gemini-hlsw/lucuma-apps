@@ -35,12 +35,20 @@ import lucuma.ui.sso.SSOClient
 import org.http4s.Uri
 import org.http4s.Uri.Scheme
 import org.http4s.client.Client
+import org.http4s.dom.FetchClientBuilder
 import org.http4s.implicits.*
+import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
+import org.http4s.otel4s.middleware.trace.client.UriRedactor
+import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import queries.schemas.SSO
 import queries.schemas.UserPreferencesDB
 import workers.WorkerClient
+
+import scala.concurrent.duration.*
 
 case class ProgramError(message: String, fatal: Boolean)
 
@@ -50,6 +58,7 @@ case class AppContext[F[_]](
   workerClients:          WorkerClients[F],
   sso:                    SSOClient[F],
   tracing:                Option[TracingConfig],
+  otelHttpClient:         Client[F],
   httpClient:             Client[F],
   pageUrl:                Option[(AppTab, Program.Id, Focused)] => String,
   setPageVia:             (Option[(AppTab, Program.Id, Focused)], SetRouteVia) => Callback,
@@ -122,31 +131,46 @@ case class AppContext[F[_]](
 object AppContext:
   val ctx: Context[AppContext[IO]] = React.createContext("AppContext", null) // No default value
 
-  def from[F[
-    _
-  ]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom, Tracer}](
+  def from[
+    F[
+      _
+    ]: {Async, FetchJsBackend, WebSocketJsBackend, Parallel, Logger, SecureRandom, Tracer,
+      TracerProvider}
+  ](
     config:               AppConfig,
     reconnectionStrategy: ReconnectionStrategy,
     pageUrl:              Option[(AppTab, Program.Id, Focused)] => String,
     setPageVia:           (Option[(AppTab, Program.Id, Focused)], SetRouteVia) => Callback,
     workerClients:        WorkerClients[F],
-    httpClient:           Client[F],
     broadcastChannel:     BroadcastChannel[F, ExploreEvent]
   ): F[AppContext[F]] =
-    for
+    for {
       clients                <-
         GraphQLClients
           .build[F](config.odbURI, config.preferencesDBURI, config.sso.uri, reconnectionStrategy)
       resetProgramCacheTopic <- Topic[F, Option[ProgramError]]
-      sedMatcher             <- SEDDataLoader.loadMatcher[F](httpClient, uri"")
-      simbadClient            = SimbadClient.build(httpClient, sedMatcher, _.copy(scheme = Scheme.https.some))
+      httpClient              = FetchClientBuilder[F]
+                                  .withRequestTimeout(4.seconds)
+                                  .withCache(dom.RequestCache.`no-store`)
+                                  .create
+      traceMiddleware        <- ClientMiddleware
+                                  .builder[F](
+                                    ClientSpanDataProvider
+                                      .openTelemetry(new UriRedactor.OnlyRedactUserInfo {})
+                                  )
+                                  .build
+      otelHttpClient          = traceMiddleware(httpClient)
+      sedMatcher             <- SEDDataLoader.loadMatcher[F](otelHttpClient, uri"")
+      simbadClient            =
+        SimbadClient.build(httpClient, sedMatcher, _.copy(scheme = Scheme.https.some))
       version                 = utils.version(config.environment)
-    yield AppContext[F](
+    } yield AppContext[F](
       version,
       clients,
       workerClients,
       SSOClient(config.sso),
       config.tracing,
+      otelHttpClient,
       httpClient,
       pageUrl,
       setPageVia,
