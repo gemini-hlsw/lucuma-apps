@@ -7,9 +7,12 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
+import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
@@ -699,6 +702,7 @@ object ObservingMode:
   case class GhostIfu(
     resolutionMode:       GhostResolutionMode,
     signalToNoiseAt:      Wavelength,
+    stepCount:            PosInt,
     red:                  GhostIfu.GhostDetector,
     blue:                 GhostIfu.GhostDetector,
     defaultIfu1Agitator:  GhostIfu1FiberAgitator,
@@ -709,12 +713,14 @@ object ObservingMode:
     val ifu1Agitator: GhostIfu1FiberAgitator = explicitIfu1Agitator.getOrElse(defaultIfu1Agitator)
     val ifu2Agitator: GhostIfu2FiberAgitator = explicitIfu2Agitator.getOrElse(defaultIfu2Agitator)
     def isCustomized: Boolean                =
-      explicitIfu1Agitator.exists(_ =!= defaultIfu1Agitator) ||
+      stepCount.value =!= 1 ||
+        explicitIfu1Agitator.exists(_ =!= defaultIfu1Agitator) ||
         explicitIfu2Agitator.exists(_ =!= defaultIfu2Agitator) ||
         red.isCustomized ||
         blue.isCustomized
     def revertCustomizations: GhostIfu       =
-      this.copy(explicitIfu1Agitator = None,
+      this.copy(stepCount = PosInt.unsafeFrom(1),
+                explicitIfu1Agitator = None,
                 explicitIfu2Agitator = None,
                 red = red.revertCustomizations,
                 blue = blue.revertCustomizations
@@ -725,6 +731,7 @@ object ObservingMode:
     given Decoder[GhostIfu] = Decoder.instance: c =>
       for {
         resolutionMode       <- c.downField("resolutionMode").as[GhostResolutionMode]
+        stepCount            <- c.downField("stepCount").as[PosInt]
         red                  <- c.downField("red").as[GhostIfu.GhostDetector]
         blue                 <- c.downField("blue").as[GhostIfu.GhostDetector]
         defaultIfu1Agitator  <- c.downField("defaultIfu1Agitator").as[GhostIfu1FiberAgitator]
@@ -736,6 +743,7 @@ object ObservingMode:
       } yield GhostIfu(
         resolutionMode,
         red.timeAndCount.at, // Temporary: Not yet in the ODB API
+        stepCount,
         red,
         blue,
         defaultIfu1Agitator,
@@ -798,6 +806,9 @@ object ObservingMode:
 
     val signalToNoiseAt: Lens[GhostIfu, Wavelength] =
       Focus[GhostIfu](_.signalToNoiseAt)
+
+    val stepCount: Lens[GhostIfu, PosInt] =
+      Focus[GhostIfu](_.stepCount)
 
     val red: Lens[GhostIfu, GhostIfu.GhostDetector]  = Focus[GhostIfu](_.red)
     val blue: Lens[GhostIfu, GhostIfu.GhostDetector] = Focus[GhostIfu](_.blue)

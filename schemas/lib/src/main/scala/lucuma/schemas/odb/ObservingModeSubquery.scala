@@ -145,6 +145,7 @@ object ObservingModeSubquery
             explicitOffsets $OffsetSubquery
           }
           ghostIfu {
+            stepCount
             resolutionMode
             red {
               exposureTimeMode $ExposureTimeModeSubquery

@@ -6,6 +6,8 @@ package lucuma.schemas.model.arb
 import cats.data.NonEmptyList
 import cats.laws.discipline.arbitrary.*
 import cats.syntax.all.*
+import eu.timepit.refined.scalacheck.all.given
+import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
@@ -634,6 +636,7 @@ trait ArbObservingMode {
     for {
       resolutionMode <- arbitrary[GhostResolutionMode]
       snAt           <- arbitrary[Wavelength]
+      stepCount      <- arbitrary[PosInt]
       red            <- arbitrary[ObservingMode.GhostIfu.GhostDetector]
       blue           <- arbitrary[ObservingMode.GhostIfu.GhostDetector]
       defaultIfu1    <- arbitrary[GhostIfu1FiberAgitator]
@@ -643,6 +646,7 @@ trait ArbObservingMode {
     } yield ObservingMode.GhostIfu(
       resolutionMode,
       snAt,
+      stepCount,
       red,
       blue,
       defaultIfu1,
@@ -656,6 +660,7 @@ trait ArbObservingMode {
     Cogen[
       (
         GhostResolutionMode,
+        PosInt,
         ObservingMode.GhostIfu.GhostDetector,
         ObservingMode.GhostIfu.GhostDetector,
         GhostIfu1FiberAgitator,
@@ -667,6 +672,7 @@ trait ArbObservingMode {
       .contramap(o =>
         (
           o.resolutionMode,
+          o.stepCount,
           o.red,
           o.blue,
           o.defaultIfu1Agitator,

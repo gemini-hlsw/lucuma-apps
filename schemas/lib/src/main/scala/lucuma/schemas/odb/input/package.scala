@@ -619,6 +619,7 @@ extension (d: ItcGhostDetector)
 
 extension (o: ObservingMode.GhostIfu)
   def toInput: GhostIfuInput = GhostIfuInput(
+    stepCount = o.stepCount.assign,
     resolutionMode = o.resolutionMode.assign,
     red = o.red.toInput.assign,
     blue = o.blue.toInput.assign,

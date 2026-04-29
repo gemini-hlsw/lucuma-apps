@@ -3,12 +3,15 @@
 
 package explore.config
 
+import cats.Endo
 import cats.Eq
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
 import explore.components.*
@@ -30,6 +33,7 @@ import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
@@ -39,11 +43,11 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.GhostIfu
 import lucuma.schemas.odb.input.*
 import lucuma.ui.display.given
+import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
-import cats.Endo
 
 final case class GhostIfuConfigPanel(
   programId:       Program.Id,
@@ -72,6 +76,11 @@ object GhostIfuConfigPanel
         val resolutionModeView: View[GhostResolutionMode] =
           props.observingMode
             .zoom(GhostIfu.resolutionMode, GhostIfuInput.resolutionMode.modify)
+            .view(_.assign)
+
+        val stepCountView: View[PosInt] =
+          props.observingMode
+            .zoom(GhostIfu.stepCount, GhostIfuInput.stepCount.modify)
             .view(_.assign)
 
         val ifu1AgitatorView: View[Option[GhostIfu1FiberAgitator]] =
@@ -203,7 +212,7 @@ object GhostIfuConfigPanel
                 helpId = Some("configuration/ghost/binning.md".refined),
                 disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = false,
+                showCustomization = props.calibrationRole.isEmpty,
                 allowRevertCustomization = allowRevertCustomization
               ),
               CustomizableEnumSelectOptional(
@@ -214,7 +223,7 @@ object GhostIfuConfigPanel
                 helpId = Some("configuration/ghost/readout.md".refined),
                 disabled = disableEdit,
                 resetToOriginal = true,
-                showCustomization = false,
+                showCustomization = props.calibrationRole.isEmpty,
                 allowRevertCustomization = allowRevertCustomization
               )
             )
@@ -235,6 +244,15 @@ object GhostIfuConfigPanel
                 showCustomization = false,
                 allowRevertCustomization = allowRevertCustomization
               ),
+              FormInputTextView(
+                id = "ghost-step-count".refined,
+                value = stepCountView,
+                label = "Step Count",
+                validFormat = InputValidSplitEpi.posInt,
+                changeAuditor = ChangeAuditor.int,
+                units = "#",
+                disabled = disableEdit
+              )(^.autoComplete.off),
               FormInputTextView(
                 id = "ghost-sn-wavelength".refined,
                 value = snAtView,
