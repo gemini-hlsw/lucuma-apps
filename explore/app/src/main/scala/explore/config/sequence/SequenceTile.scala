@@ -188,6 +188,24 @@ object SequenceTile
                                       ctx.odbApi
                                         .replaceGmosNorthSequence(props.obsId, seqType, atoms)
                                 )
+                              // Twilights have no signal to noise
+                              case ModeSignalToNoise.Undefined                              =>
+                                GmosNorthSpectroscopySequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  gmosNorthExecutionView.flatAcquisition,
+                                  gmosNorthExecutionView.flatScience,
+                                  none,
+                                  none,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  seqType =>
+                                    atoms =>
+                                      ctx.odbApi
+                                        .replaceGmosNorthSequence(props.obsId, seqType, atoms)
+                                )
                               case _                                                        => mismatchError
                       case SequenceData(
                             InstrumentExecutionConfig.GmosSouth(config),
@@ -226,6 +244,24 @@ object SequenceTile
                                   gmosSouthExecutionView.flatAcquisition,
                                   gmosSouthExecutionView.flatScience,
                                   snPerFilter,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  seqType =>
+                                    atoms =>
+                                      ctx.odbApi
+                                        .replaceGmosSouthSequence(props.obsId, seqType, atoms)
+                                )
+                              // Twilights have no signal to noise
+                              case ModeSignalToNoise.Undefined                              =>
+                                GmosSouthSpectroscopySequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  gmosSouthExecutionView.flatAcquisition,
+                                  gmosSouthExecutionView.flatScience,
+                                  none,
+                                  none,
                                   isEditEnabled,
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
