@@ -43,12 +43,13 @@ import lucuma.core.util.Gid
 import lucuma.core.util.Of
 import lucuma.itc.Error
 import lucuma.itc.IntegrationTime
-import lucuma.itc.ItcAxis
 import lucuma.itc.ItcCcd
 import lucuma.itc.ItcGraph
 import lucuma.itc.ItcSeries
 import lucuma.itc.ItcVersions
 import lucuma.itc.ItcWarning
+import lucuma.itc.ItcXAxis
+import lucuma.itc.ItcYAxis
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.TargetIntegrationTime
 import lucuma.itc.client.GraphResult
@@ -246,7 +247,8 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcRequestParams] = generatePickler
 
-  given Pickler[ItcAxis] = generatePickler
+  given Pickler[ItcXAxis] = generatePickler
+  given Pickler[ItcYAxis] = generatePickler
 
   given Pickler[SeriesResult] = generatePickler
 
