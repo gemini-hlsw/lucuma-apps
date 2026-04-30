@@ -110,7 +110,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
       resized = ColumnSizing(),
       visibility = ColumnVisibility()
     ),
-    collapsibleCols = Set(DragHandleColumnId, EditControlsColumnId)
+    collapsibleCols = Set(DragHandleColumnId, EditControlsColumnId).filter(ColumnSizes.contains)
   )
 
   protected[sequence] val component =

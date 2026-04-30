@@ -408,7 +408,15 @@ object SequenceColumns:
       )
 
     val ForIgrins2: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes ++ Map(FowlerSamplesColumnId -> FixedSize(60.toPx))
+      Map(
+        IndexAndTypeColumnId  -> FixedSize(50.toPx),
+        ExposureColumnId      -> Resizable(77.toPx, min = 77.toPx),
+        FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
+        GuideColumnId         -> FixedSize(36.toPx),
+        PColumnId             -> FixedSize(95.toPx),
+        QColumnId             -> FixedSize(95.toPx),
+        SNColumnId            -> Resizable(75.toPx, min = 75.toPx)
+      )
 
     val ForGhost: Map[ColumnId, ColumnSize] =
       Map(
