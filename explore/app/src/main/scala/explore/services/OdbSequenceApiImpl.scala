@@ -14,6 +14,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.SequenceEditQueriesGql.*
 import lucuma.schemas.odb.SequenceQueriesGql.*
@@ -57,3 +58,13 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       .execute(obsId, sequenceType, atoms.map(_.toInput))
       .raiseGraphQLErrors
       .map(_.replaceFlamingos2Sequence.sequence)
+
+  def replaceIgrins2Sequence(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    atoms:        List[Atom[Igrins2DynamicConfig]]
+  ): F[List[Atom[Igrins2DynamicConfig]]] =
+    ReplaceIgrins2Sequence[F]
+      .execute(obsId, sequenceType, atoms.map(_.toInput))
+      .raiseGraphQLErrors
+      .map(_.replaceIgrins2Sequence.sequence)

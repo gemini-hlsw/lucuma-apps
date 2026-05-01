@@ -317,10 +317,11 @@ object SequenceTile
                               config.static,
                               igrins2ExecutionView.flatScience,
                               scienceSn,
+                              isEditEnabled,
                               props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
-                              _ => atoms => IO(atoms)
+                              seqType => ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _)
                             )
                       case SequenceData(InstrumentExecutionConfig.Ghost(config), _) =>
                         sequnceView

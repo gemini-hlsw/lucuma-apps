@@ -16,6 +16,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.react.pragmaticdnd.Edge
 import lucuma.react.table.*
@@ -78,7 +79,8 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
       combineOptionalsReplace(
         gmosNorth.andThen(gmos.DynamicConfig.GmosNorth.exposure),
         gmosSouth.andThen(gmos.DynamicConfig.GmosSouth.exposure),
-        flamingos2.andThen(Flamingos2DynamicConfig.exposure)
+        flamingos2.andThen(Flamingos2DynamicConfig.exposure),
+        igrins2.andThen(Igrins2DynamicConfig.exposure)
       )
 
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =

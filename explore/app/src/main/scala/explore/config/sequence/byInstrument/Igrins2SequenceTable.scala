@@ -26,7 +26,7 @@ final case class Igrins2SequenceTable(
   staticConfig:         Igrins2StaticConfig,
   science:              View[List[Atom[Igrins2DynamicConfig]]],
   scienceSN:            Option[SignalToNoiseAt],
-  // isEditEnabled:        IsEditEnabled,
+  isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
@@ -41,13 +41,8 @@ final case class Igrins2SequenceTable(
   override val acquisition  = View(List.empty, (_, _) => Callback.empty)
   override val acquisitonSN = none
 
-  // No editing for Igrins2
-  override val isEditEnabled = IsEditEnabled.False
-
   override val toInstrumentVisits =
     case ExecutionVisits.Igrins2(visits) => visits
 
 object Igrins2SequenceTable
-    extends SequenceTableBuilder[Igrins2StaticConfig, Igrins2DynamicConfig](
-      Instrument.Igrins2
-    )
+    extends SequenceTableBuilder[Igrins2StaticConfig, Igrins2DynamicConfig](Instrument.Igrins2)

@@ -30,6 +30,7 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.*
@@ -966,3 +967,21 @@ extension (atom: Atom[gmos.DynamicConfig.GmosSouth])
 extension (atom: Atom[Flamingos2DynamicConfig])
   def toInput: Flamingos2AtomInput =
     Flamingos2AtomInput(steps = atom.steps.map(_.toInput).toList)
+
+extension (igrins2Dynamic: Igrins2DynamicConfig)
+  def toInput: Igrins2DynamicInput = Igrins2DynamicInput(
+    igrins2Dynamic.exposure.toInput
+  )
+
+extension (step: Step[Igrins2DynamicConfig])
+  def toInput: Igrins2StepInput =
+    Igrins2StepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (atom: Atom[Igrins2DynamicConfig])
+  def toInput: Igrins2AtomInput =
+    Igrins2AtomInput(steps = atom.steps.map(_.toInput).toList)
