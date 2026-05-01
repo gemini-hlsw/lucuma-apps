@@ -237,6 +237,13 @@ object SpectroscopyModeRow {
       val blue = ItcInstrumentConfig.GhostIfu.GhostDetector.Blue(binning)
       ItcInstrumentConfig.GhostIfu(resolutionMode, placeholderEtm.at, red, blue)
 
+  private given Decoder[ItcInstrumentConfig.GnirsSpectroscopy] = c =>
+    for {
+      grating <- c.downField("grating").as[GnirsGrating]
+      fpu     <- c.downField("fpu").as[GnirsFpuSlit]
+      filter  <- c.downField("filter").as[GnirsFilter]
+    } yield ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, placeholderEtm)
+
   given Decoder[SpectroscopyModeRow] = c =>
     for {
       name           <- c.downField("name").as[NonEmptyString]
@@ -258,16 +265,16 @@ object SpectroscopyModeRow {
       gmosSouth      <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthSpectroscopy]]
       flamingos2     <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Spectroscopy]]
       ghost          <- c.downField("ghost").as[Option[ItcInstrumentConfig.GhostIfu]]
+      gnirs          <- c.downField("gnirs").as[Option[ItcInstrumentConfig.GnirsSpectroscopy]]
     } yield gmosNorth
       .orElse(gmosSouth)
       .orElse(flamingos2)
       .orElse(ghost)
-      .orElse(
-        Option.when(instrument === Instrument.Igrins2)(
+      .orElse(gnirs)
+      .orElse:
+        Option.when(instrument === Instrument.Igrins2):
           ItcInstrumentConfig.Igrins2Spectroscopy(placeholderEtm)
-        )
-      )
-      .map { i =>
+      .map: i =>
         SpectroscopyModeRow(
           none,
           i,
@@ -283,8 +290,9 @@ object SpectroscopyModeRow {
           SlitLength(ModeSlitSize(slitLength)),
           SlitWidth(ModeSlitSize(slitWidth))
         )
-      }
-      .getOrElse(sys.error("Instrument not found"))
+      .getOrElse:
+        sys.error:
+          s"No instrument specific configuration found for spectroscopy mode row: ${c.focus}"
 }
 
 case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq {

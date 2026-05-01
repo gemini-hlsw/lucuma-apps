@@ -326,16 +326,16 @@ object ItcInstrumentConfig:
 
   case class GnirsSpectroscopy(
     grating:          GnirsGrating,
+    fpu:              GnirsFpuSlit,
     filter:           GnirsFilter,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GnirsGrating
     type Filter   = GnirsFilter
-    type FPU      = Unit
+    type FPU      = GnirsFpuSlit
     type Override = Unit
     val gratingDisplay: Display[Grating] = Display.byShortName(_.shortName)
     val filterStr: String                = filter.shortName
-    val fpu                              = ()
     val instrument                       = Instrument.Gnirs
     val site                             = Site.GN
     val hasFilter                        = true

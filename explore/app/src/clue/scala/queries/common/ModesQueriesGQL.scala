@@ -68,6 +68,11 @@ object ModesQueriesGQL:
             resolutionMode
             binning
           }
+          gnirs {
+            fpu
+            grating
+            filter
+          }
         }
 
         imagingConfigOptions(
