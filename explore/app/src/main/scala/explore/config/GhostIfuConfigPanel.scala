@@ -123,6 +123,10 @@ object GhostIfuConfigPanel
 
               setBlue >>> setRed
 
+        // TODO add a PRV mode.
+        def isPRV =
+          resolutionModeView.get =!= GhostResolutionMode.High && resolutionModeView.get =!= GhostResolutionMode.Standard
+
         def agitatorView[A: Eq](
           view:     View[Option[A]],
           default:  A,
@@ -265,22 +269,22 @@ object GhostIfuConfigPanel
               FormLabel(htmlFor = "ghost-agitator-ifu1".refined)(
                 "Agitators",
                 HelpIcon("configuration/ghost/agitators.md".refined)
-              ),
+              ).when(isPRV),
               <.div(
                 LucumaPrimeStyles.FormField |+| ExploreStyles.GhostAgitators,
                 CheckboxView(
                   id = "ghost-agitator-ifu1".refined,
                   value = ifu1EnabledView,
-                  label = "IFU 1",
+                  label = "Agitator 1",
                   disabled = disableEdit
                 ),
                 CheckboxView(
                   id = "ghost-agitator-ifu2".refined,
                   value = ifu2EnabledView,
-                  label = "IFU 2",
+                  label = "Agitator 2",
                   disabled = disableEdit
                 )
-              )
+              ).when(isPRV)
             ),
             detectorPanel(
               label = "Blue Camera",
