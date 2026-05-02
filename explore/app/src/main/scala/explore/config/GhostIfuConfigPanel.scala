@@ -43,6 +43,7 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.GhostIfu
 import lucuma.schemas.odb.input.*
 import lucuma.ui.display.given
+import lucuma.ui.format.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -122,6 +123,10 @@ object GhostIfuConfigPanel
                 )
 
               setBlue >>> setRed
+
+        // TODO add a PRV mode.
+        def isPRV =
+          resolutionModeView.get =!= GhostResolutionMode.High && resolutionModeView.get =!= GhostResolutionMode.Standard
 
         def agitatorView[A: Eq](
           view:     View[Option[A]],
@@ -225,6 +230,16 @@ object GhostIfuConfigPanel
                 resetToOriginal = true,
                 showCustomization = props.calibrationRole.isEmpty,
                 allowRevertCustomization = allowRevertCustomization
+              ),
+              FormLabel(htmlFor = NonEmptyString.unsafeFrom(s"${idPrefix.value}-total-time"))(
+                "Total / Step"
+              ),
+              <.div(
+                ^.id := s"${idPrefix.value}-total-time",
+                // Shoud we consider the overheads?
+                formatDurationHours(
+                  timeAndCountView.get.time *| timeAndCountView.get.count.value
+                )
               )
             )
           )
@@ -247,7 +262,7 @@ object GhostIfuConfigPanel
               FormInputTextView(
                 id = "ghost-step-count".refined,
                 value = stepCountView,
-                label = "Step Count",
+                label = "Number of Steps",
                 validFormat = InputValidSplitEpi.posInt,
                 changeAuditor = ChangeAuditor.int,
                 units = "#",
@@ -265,22 +280,22 @@ object GhostIfuConfigPanel
               FormLabel(htmlFor = "ghost-agitator-ifu1".refined)(
                 "Agitators",
                 HelpIcon("configuration/ghost/agitators.md".refined)
-              ),
+              ).when(isPRV),
               <.div(
                 LucumaPrimeStyles.FormField |+| ExploreStyles.GhostAgitators,
                 CheckboxView(
                   id = "ghost-agitator-ifu1".refined,
                   value = ifu1EnabledView,
-                  label = "IFU 1",
+                  label = "Agitator 1",
                   disabled = disableEdit
                 ),
                 CheckboxView(
                   id = "ghost-agitator-ifu2".refined,
                   value = ifu2EnabledView,
-                  label = "IFU 2",
+                  label = "Agitator 2",
                   disabled = disableEdit
                 )
-              )
+              ).when(isPRV)
             ),
             detectorPanel(
               label = "Blue Camera",

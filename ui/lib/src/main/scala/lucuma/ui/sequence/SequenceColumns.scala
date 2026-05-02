@@ -426,14 +426,14 @@ object SequenceColumns:
         GuideColumnId                  -> FixedSize(36.toPx),
         PColumnId                      -> FixedSize(75.toPx),
         QColumnId                      -> FixedSize(75.toPx),
-        GhostRedExposureCountColumnId  -> FixedSize(60.toPx),
+        GhostRedExposureCountColumnId  -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),
         GhostRedExposureTimeColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         GhostRedReadModeColumnId       -> FixedSize(80.toPx),
-        GhostRedBinningColumnId        -> FixedSize(40.toPx),
-        GhostBlueExposureCountColumnId -> FixedSize(60.toPx),
+        GhostRedBinningColumnId        -> FixedSize(80.toPx),
+        GhostBlueExposureCountColumnId -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),
         GhostBlueExposureTimeColumnId  -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         GhostBlueReadModeColumnId      -> FixedSize(80.toPx),
-        GhostBlueBinningColumnId       -> FixedSize(40.toPx)
+        GhostBlueBinningColumnId       -> FixedSize(80.toPx)
       )
 
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
