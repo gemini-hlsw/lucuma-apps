@@ -26,6 +26,7 @@ case class Group(
   minimumInterval:   Option[TimeSpan],
   maximumInterval:   Option[TimeSpan],
   ordered:           Boolean,
+  sameNight:         Boolean,
   system:            Boolean,
   calibrationRoles:  List[CalibrationRole],
   parentId:          Option[Group.Id],
@@ -50,6 +51,7 @@ object Group:
   val maximumInterval: Lens[Group, Option[TimeSpan]]                                    = Focus[Group](_.maximumInterval)
   val minimumRequired: Lens[Group, Option[NonNegShort]]                                 = Focus[Group](_.minimumRequired)
   val ordered: Lens[Group, Boolean]                                                     = Focus[Group](_.ordered)
+  val sameNight: Lens[Group, Boolean]                                                   = Focus[Group](_.sameNight)
   val system: Lens[Group, Boolean]                                                      = Focus[Group](_.system)
   val parentId: Lens[Group, Option[Group.Id]]                                           = Focus[Group](_.parentId)
   val parentIndex: Lens[Group, NonNegShort]                                             = Focus[Group](_.parentIndex)
