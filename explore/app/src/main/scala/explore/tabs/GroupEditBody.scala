@@ -66,6 +66,9 @@ object GroupEditBody
       val intervalsLens: Lens[Group, (Option[TimeSpan], Option[TimeSpan])] =
         Group.minimumInterval.disjointZip(Group.maximumInterval)
 
+      val sameNightAndMaxIntervalLens: Lens[Group, (Boolean, Option[TimeSpan])] =
+        Group.sameNight.disjointZip(Group.maximumInterval)
+
       val minRequiredAndIntervalsLens
         : Lens[Group, (Option[NonNegShort], Option[TimeSpan], Option[TimeSpan])] =
         (Group.minimumRequired, Group.minimumInterval, Group.maximumInterval).disjointZip
@@ -149,6 +152,18 @@ object GroupEditBody
         )
         val orderedV     =
           groupModView(Group.ordered, o => GroupPropertiesInput(ordered = o.assign))
+
+        val sameNightV =
+          groupModView(Group.sameNight, sn => GroupPropertiesInput(sameNight = sn.assign))
+
+        val sameNightAndMaxIntervalV =
+          groupModView(
+            sameNightAndMaxIntervalLens,
+            (sn, mi) =>
+              GroupPropertiesInput(sameNight = sn.assign,
+                                   maximumInterval = mi.map(_.toInput).orUnassign
+              )
+          )
 
         val minRequiredAndIntervalsV =
           groupModView(
@@ -242,6 +257,18 @@ object GroupEditBody
             value = orderedV,
             label = "Ordered",
             disabled = isDisabled
+          ),
+          <.div(
+            LucumaPrimeStyles.CheckboxWithLabel,
+            Checkbox(
+              id = "same-night-check",
+              checked = group.sameNight,
+              onChange = sn =>
+                if sn then sameNightAndMaxIntervalV.set((true, none))
+                else sameNightV.set(false),
+              disabled = isDisabled
+            ),
+            <.label(^.htmlFor := "same-night-check", "Same Night")
           )
         )
 
@@ -258,8 +285,11 @@ object GroupEditBody
           Checkbox(
             id = "useMaxDelay",
             checked = useMaxInterval.get,
-            onChange = useMaxInterval.set,
-            disabled = isDisabled
+            onChange = useMax =>
+              if useMax && group.sameNight then
+                sameNightAndMaxIntervalV.set((false, maxIntervalV.get.some))
+              else useMaxInterval.set(useMax),
+            disabled = isDisabled || group.sameNight
           ),
           FormLabel(htmlFor = "useMaxDelay".refined)("Maximum delay").unless(useMaxInterval.get),
           FormTimeSpanInput(
