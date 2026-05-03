@@ -38,7 +38,6 @@ import lucuma.ui.format.TimeSpanFormatter.HoursMinutesAbbreviation
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
-import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import org.typelevel.log4cats.Logger
@@ -81,23 +80,19 @@ object GroupEditBody
         "Mininum delay must be <= Maximum delay".refined
 
       def groupModViewBase[A](
-        group:     UndoSetter[Group],
-        lens:      Lens[Group, A],
-        prop:      A => GroupPropertiesInput,
-        odbApi:    OdbApi[IO],
-        isLoading: View[Boolean]
+        group:  UndoSetter[Group],
+        lens:   Lens[Group, A],
+        prop:   A => GroupPropertiesInput,
+        odbApi: OdbApi[IO]
       )(using Logger[IO]) =
         props.group
           .undoableView(lens)
-          .withOnMod(a =>
-            odbApi.updateGroup(group.get.id, prop(a)).switching(isLoading.async).runAsync
-          )
+          .withOnMod(a => odbApi.updateGroup(group.get.id, prop(a)).runAsync)
 
       for
         ctx            <- useContext(AppContext.ctx)
         editType       <- useStateView:
                             if props.group.get.isAnd then GroupEditType.And else GroupEditType.Or
-        isLoading      <- useStateView(false)
         minIntervalV   <- useStateView(props.group.get.minimumInterval)
         maxIntervalV   <- useStateView(props.group.get.maximumInterval.orEmpty)
         useMaxInterval <- useStateView(props.group.get.maximumInterval.isDefined)
@@ -123,8 +118,7 @@ object GroupEditBody
                     GroupPropertiesInput(minimumInterval = n.map(_.toInput).orUnassign,
                                          maximumInterval = x.map(_.toInput).orUnassign
                     ),
-                  ctx.odbApi,
-                  isLoading
+                  ctx.odbApi
                 )(using ctx.logger).set((min, optMax))
               else Callback.empty
         nameDisplay   <- useState(props.group.get.name)
@@ -137,10 +131,10 @@ object GroupEditBody
         val group = props.group.get
         val isAnd = group.isAnd
 
-        val isDisabled: Boolean = props.readonly || isLoading.get
+        val isDisabled: Boolean = props.readonly
 
         def groupModView[A](lens: Lens[Group, A], prop: A => GroupPropertiesInput) =
-          groupModViewBase(props.group, lens, prop, ctx.odbApi, isLoading)
+          groupModViewBase(props.group, lens, prop, ctx.odbApi)
 
         val minRequiredV = groupModView(
           Group.minimumRequired,
@@ -223,6 +217,7 @@ object GroupEditBody
           )
 
         val nameForm = <.div(
+          LucumaPrimeStyles.FormColumnCompact,
           FormInputText(
             id = "nameInput".refined,
             label = "Name",
@@ -252,23 +247,27 @@ object GroupEditBody
         )
 
         val orderForm = <.div(
-          CheckboxView(
-            id = "orderedCheck".refined,
-            value = orderedV,
-            label = "Ordered",
-            disabled = isDisabled
+          <.div(
+            CheckboxView(
+              id = "orderedCheck".refined,
+              value = orderedV,
+              label = "Ordered",
+              disabled = isDisabled
+            )
           ),
           <.div(
-            LucumaPrimeStyles.CheckboxWithLabel,
-            Checkbox(
-              id = "same-night-check",
-              checked = group.sameNight,
-              onChange = sn =>
-                if sn then sameNightAndMaxIntervalV.set((true, none))
-                else sameNightV.set(false),
-              disabled = isDisabled
-            ),
-            <.label(^.htmlFor := "same-night-check", "Same Night")
+            <.div(
+              LucumaPrimeStyles.CheckboxWithLabel,
+              Checkbox(
+                id = "same-night-check",
+                checked = group.sameNight,
+                onChange = sn =>
+                  if sn then sameNightAndMaxIntervalV.set((true, none))
+                  else sameNightV.set(false),
+                disabled = isDisabled
+              ),
+              <.label(^.htmlFor := "same-night-check", "Same Night")
+            )
           )
         )
 
