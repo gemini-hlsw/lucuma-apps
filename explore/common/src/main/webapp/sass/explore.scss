@@ -393,6 +393,12 @@ html {
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
+
+  a {
+    color: var(--site-link-color);
+    text-decoration: underline;
+    font-weight: 600;
+  }
 }
 
 .block.header.obs-tree-header {

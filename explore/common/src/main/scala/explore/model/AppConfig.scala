@@ -34,12 +34,11 @@ case class AppConfig(
       Decoder
 
 object AppConfig:
-  def parseConf(host: String, json: String): AppConfig =
-    decode[List[AppConfig]](json) match
-      case Left(err)    =>
-        throw new Exception("Could not parse configuration from JSON.", err)
-      case Right(confs) =>
+  def parseConf(host: String, json: String): Either[Throwable, AppConfig] =
+    decode[List[AppConfig]](json)
+      .leftMap(err => new Exception("Could not parse configuration from JSON.", err))
+      .flatMap: confs =>
         confs
           .find(conf => host.startsWith(conf.hostName))
           .orElse(confs.find(_.hostName === "*"))
-          .getOrElse(throw new Exception("Host not found in configuration."))
+          .toRight(new Exception("Host not found in configuration."))
