@@ -264,7 +264,7 @@ object GroupEditBody
                 onChange = sn =>
                   if sn then sameNightAndMaxIntervalV.set((true, none))
                   else sameNightV.set(false),
-                disabled = isDisabled
+                disabled = isDisabled || useMaxInterval.get
               ),
               <.label(^.htmlFor := "same-night-check", "Same Night")
             )
@@ -290,15 +290,15 @@ object GroupEditBody
               else useMaxInterval.set(useMax),
             disabled = isDisabled || group.sameNight
           ),
-          FormLabel(htmlFor = "useMaxDelay".refined)("Maximum delay").unless(useMaxInterval.get),
           FormTimeSpanInput(
             value = maxIntervalV,
             id = "maxDelay".refined,
             label = "Maximum delay",
             min = TimeSpan.Zero,
-            disabled = isDisabled,
-            error = intervalError.value
-          ).when(useMaxInterval.get)
+            disabled = isDisabled || !useMaxInterval.get,
+            error = intervalError.value,
+            clazz = if useMaxInterval.get then Css.Empty else ExploreStyles.Hidden
+          )
         )
 
         val plannedTime =
@@ -306,7 +306,9 @@ object GroupEditBody
             val staleTooltip = cvter.staleTooltip
             val staleClass   = cvter.staleClass
             cvter.value.map: timeEstimateRange =>
-              <.div(ExploreStyles.GroupPlannedTime)(
+              React.Fragment(
+                Divider(clazz = ExploreStyles.GroupDivider),
+                <.div(ExploreStyles.GroupPlannedTime)(
                 if timeEstimateRange.maximum === timeEstimateRange.minimum then
                   React.Fragment(
                     FormLabel(htmlFor = "plannedTime".refined)("Planned Time"),
@@ -322,16 +324,18 @@ object GroupEditBody
                     TimeSpanView(timeEstimateRange.minimum.value, tooltip = staleTooltip)
                       .withMods(^.id := "minPlannedTime", staleClass)
                   )
+                )
               )
 
         val groupTypeSpecificForms =
-          if isAnd then <.div(ExploreStyles.GroupForm)(nameForm, orderForm, delaysForm, plannedTime)
-          else <.div(ExploreStyles.GroupForm)(nameForm, minRequiredForm, plannedTime)
+          if isAnd then <.div(ExploreStyles.GroupForm)(nameForm, orderForm, delaysForm)
+          else <.div(ExploreStyles.GroupForm)(nameForm, minRequiredForm)
 
         React.Fragment(
           <.div(ExploreStyles.GroupEditTile)(
             selectGroupForm,
             groupTypeSpecificForms,
+            plannedTime,
             props.warnings.map: nes =>
               <.div(
                 ExploreStyles.GroupWarnings,

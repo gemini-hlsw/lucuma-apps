@@ -1781,6 +1781,11 @@ svg.fa-check.explore-success-icon {
     }
   }
 
+  .group-divider.p-divider.p-divider-horizontal {
+    margin: 0.25rem 0;
+    padding: 0;
+  }
+
   .group-planned-time {
     display: grid;
     column-gap: var(--content-padding);

@@ -131,6 +131,7 @@ object ExploreStyles:
   val GroupForm: Css           = Css("group-form")
   val GroupDelaysForm: Css     = Css("group-delays-form")
   val GroupPlannedTime: Css    = Css("group-planned-time")
+  val GroupDivider: Css        = Css("group-divider")
   val GroupWarnings: Css       = Css("group-warnings")
 
   val ApiKeysPopup          = Css("api-keys-popup")
