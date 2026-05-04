@@ -380,52 +380,54 @@ object SequenceColumns:
   val GhostBlueBinningColumnId: ColumnId       = ColumnId("ghostBlueBinning")
 
   object BaseColumnSizes {
-    private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
+    // Present for editable instruments.
+    private val EditColumnSizes: Map[ColumnId, ColumnSize] = Map(
       DragHandleColumnId   -> FixedSize(25.toPx),
-      EditControlsColumnId -> FixedSize(50.toPx),
+      EditControlsColumnId -> FixedSize(50.toPx)
+    )
+
+    // Columns present in every instrument table.
+    private val CommonColumnSizes: Map[ColumnId, ColumnSize] = Map(
       IndexAndTypeColumnId -> FixedSize(60.toPx),
-      ExposureColumnId     -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
       GuideColumnId        -> FixedSize(36.toPx),
       PColumnId            -> FixedSize(75.toPx),
-      QColumnId            -> FixedSize(75.toPx),
-      WavelengthColumnId   -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),
-      FPUColumnId          -> Resizable(132.toPx, min = 132.toPx),
-      GratingColumnId      -> Resizable(120.toPx, min = 120.toPx),
-      FilterColumnId       -> Resizable(90.toPx, min = 90.toPx),
-      SNColumnId           -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
+      QColumnId            -> FixedSize(75.toPx)
+    )
+
+    // GMOS, Flamingos2 shared columns
+    private val SpectroscopyColumnSizes: Map[ColumnId, ColumnSize] = Map(
+      ExposureColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+      WavelengthColumnId -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx),
+      FPUColumnId        -> Resizable(132.toPx, min = 132.toPx),
+      GratingColumnId    -> Resizable(120.toPx, min = 120.toPx),
+      FilterColumnId     -> Resizable(90.toPx, min = 90.toPx),
+      SNColumnId         -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
     )
 
     val ForGmos: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes ++ Map(
+      CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
         XBinColumnId -> FixedSize(60.toPx),
         YBinColumnId -> FixedSize(60.toPx),
         ROIColumnId  -> Resizable(75.toPx, min = 75.toPx)
       )
 
     val ForFlamingos2: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes ++ Map(
+      CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
         ReadModeColumnId -> Resizable(75.toPx, min = 75.toPx)
       )
 
     val ForIgrins2: Map[ColumnId, ColumnSize] =
-      Map(
+      CommonColumnSizes ++ Map(
         IndexAndTypeColumnId  -> FixedSize(50.toPx),
         ExposureColumnId      -> Resizable(77.toPx, min = 77.toPx),
         FowlerSamplesColumnId -> Resizable(120.toPx, min = 90.toPx),
-        GuideColumnId         -> FixedSize(36.toPx),
         PColumnId             -> FixedSize(95.toPx),
         QColumnId             -> FixedSize(95.toPx),
         SNColumnId            -> Resizable(75.toPx, min = 75.toPx)
       )
 
     val ForGhost: Map[ColumnId, ColumnSize] =
-      Map(
-        DragHandleColumnId             -> FixedSize(25.toPx),
-        EditControlsColumnId           -> FixedSize(50.toPx),
-        IndexAndTypeColumnId           -> FixedSize(60.toPx),
-        GuideColumnId                  -> FixedSize(36.toPx),
-        PColumnId                      -> FixedSize(75.toPx),
-        QColumnId                      -> FixedSize(75.toPx),
+      CommonColumnSizes ++ Map(
         GhostRedExposureCountColumnId  -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),
         GhostRedExposureTimeColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         GhostRedReadModeColumnId       -> FixedSize(80.toPx),
@@ -437,12 +439,14 @@ object SequenceColumns:
       )
 
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
-      instrument match
-        case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
-        case Instrument.Flamingos2                       => ForFlamingos2
-        case Instrument.Igrins2                          => ForIgrins2
-        case Instrument.Ghost                            => ForGhost
-        case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
+      val instrumentCols =
+        instrument match
+          case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
+          case Instrument.Flamingos2                       => ForFlamingos2
+          case Instrument.Igrins2                          => ForIgrins2
+          case Instrument.Ghost                            => ForGhost
+          case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
+      if instrument.isSequenceEditable then EditColumnSizes ++ instrumentCols else instrumentCols
   }
 
   // The order in which they are removed by overflow. The ones at the beginning go first.

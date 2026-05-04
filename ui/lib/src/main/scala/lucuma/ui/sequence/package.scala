@@ -9,6 +9,7 @@ import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Visit
@@ -57,6 +58,14 @@ type IsEditInFlight = IsEditInFlight.Type
 
 private def renderStepType(icon: VdomNode, tooltip: String): VdomNode =
   <.span(icon).withTooltip(content = tooltip, showDelay = 100, position = Tooltip.Position.Bottom)
+
+extension (instrument: Instrument)
+  def isSequenceEditable: Boolean =
+    instrument match
+      case Instrument.GmosNorth | Instrument.GmosSouth | Instrument.Flamingos2 |
+          Instrument.Igrins2 =>
+        true
+      case _ => false
 
 extension (stepTypeDisplay: StepTypeDisplay)
   private def icon: VdomNode =

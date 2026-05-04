@@ -21,6 +21,7 @@
         secretValues = {
           FONTAWESOME_NPM_AUTH_TOKEN = "SOPS_ENCRYPTED_FONTAWESOME_NPM_AUTH_TOKEN";
           GPP_SLACK_WEBHOOK_URL = "SOPS_ENCRYPTED_GPP_SLACK_WEBHOOK_URL";
+          SSO_SERVICE_JWT = "SOPS_ENCRYPTED_SSO_SERVICE_JWT";
         };
       in
       {
@@ -56,6 +57,10 @@
             {
               name = "GPP_SLACK_WEBHOOK_URL";
               value = secretValues.GPP_SLACK_WEBHOOK_URL;
+            }
+            {
+              name = "SSO_SERVICE_JWT";
+              value = secretValues.SSO_SERVICE_JWT;
             }
             {
               "name" = "SITE";
