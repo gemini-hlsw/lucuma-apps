@@ -60,7 +60,7 @@ object ExploreMain {
 
   private def setupOtel(config: AppConfig): Resource[IO, OtelSdk.OtelResources] =
     OtelSdk.build(
-      config.tracing,
+      config.otelEndpoint,
       utils.version(config.environment).value,
       config.environment,
       None
@@ -83,6 +83,27 @@ object ExploreMain {
       (ExploreStyles.CrashMessage |+| ExploreStyles.ErrorLabel).value
         .foreach(element.classList.add)
       element.innerHTML = msg
+      // It is possible the crash is solved in a new version of explore.
+      // Add a link to request a pwa refresh.
+      // We could show this only on PWA but it's ok to show it on dev too.
+      // No react at this stage, fallback to direct DOM manipulation.
+      val reloadHint = dom.document.createElement("div")
+      val link       = dom.document.createElement("a").asInstanceOf[dom.html.Anchor]
+      link.href = "#"
+      link.textContent = "reload"
+      link.onclick = (e: dom.MouseEvent) =>
+        e.preventDefault()
+        // Ask the service worker to update via the broadcast channel
+        // It would check if there are new versions and update if needed.
+        val bc = new dom.BroadcastChannel("explore")
+        bc.postMessage(ExploreEvent.PWAReload)
+        bc.close()
+
+      reloadHint.appendChild(dom.document.createElement("hr"))
+      reloadHint.appendChild(dom.document.createTextNode(" Click "))
+      reloadHint.appendChild(link)
+      reloadHint.appendChild(dom.document.createTextNode(" to check for a new version."))
+      element.appendChild(reloadHint): Unit
     }
 
   def run(configJson: String): IO[Unit] = {
@@ -136,7 +157,7 @@ object ExploreMain {
 
       for {
         host                 <- IO(dom.window.location.host)
-        appConfig             = AppConfig.parseConf(host, configJson)
+        appConfig            <- IO.fromEither(AppConfig.parseConf(host, configJson))
         _                    <- info"Git Commit: [${utils.gitHash.getOrElse("NONE")}]"
         _                    <- info"Config: ${appConfig.show}"
         ctx                  <- AppContext.from[IO](
@@ -162,17 +183,19 @@ object ExploreMain {
       }
 
     (for {
-      dispatcher               <- Dispatcher.parallel[IO]
-      given Logger[IO]         <- Resource.eval(setupLogger[IO])
-      host                     <- Resource.eval(IO(dom.window.location.host))
-      appConfig                 = AppConfig.parseConf(host, configJson)
-      otel                     <- setupOtel(appConfig)
-      given Tracer[IO]          = otel.tracer
-      given TracerProvider[IO]  = otel.tracerProvider
-      workerClients            <- WorkerClients.build[IO](dispatcher)
-      bc                       <- BroadcastChannel[IO, ExploreEvent]("explore")
-      _                        <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
+      dispatcher              <- Dispatcher.parallel[IO]
+      given Logger[IO]        <- Resource.eval(setupLogger[IO])
+      host                    <- Resource.eval(IO(dom.window.location.host))
+      appConfig               <- Resource.eval(IO.fromEither(AppConfig.parseConf(host, configJson)))
+      otel                    <- setupOtel(appConfig)
+      given Tracer[IO]         = otel.tracer
+      given TracerProvider[IO] = otel.tracerProvider
+      workerClients           <- WorkerClients.build[IO](dispatcher)
+      bc                      <- BroadcastChannel[IO, ExploreEvent]("explore")
+      _                       <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
     } yield ()).useForever
+      .handleErrorWith: t =>
+        crash[IO](s"There was an error initializing Explore:<br/>${t.getMessage}")
   }
 
 }
