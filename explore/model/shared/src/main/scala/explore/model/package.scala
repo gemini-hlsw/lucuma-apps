@@ -120,6 +120,6 @@ val SupportedInstruments =
        Instrument.GmosSouth,
        Instrument.Flamingos2,
        Instrument.Igrins2,
-       Instrument.Ghost,
-       Instrument.Gnirs
+       Instrument.Ghost
+       //  Instrument.Gnirs
   )
