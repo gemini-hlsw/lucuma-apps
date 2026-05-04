@@ -121,4 +121,5 @@ val SupportedInstruments =
        Instrument.Flamingos2,
        Instrument.Igrins2,
        Instrument.Ghost
+       //  Instrument.Gnirs
   )
