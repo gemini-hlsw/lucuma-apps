@@ -60,7 +60,7 @@ object ExploreMain {
 
   private def setupOtel(config: AppConfig): Resource[IO, OtelSdk.OtelResources] =
     OtelSdk.build(
-      config.tracing,
+      config.otelEndpoint,
       utils.version(config.environment).value,
       config.environment,
       None
@@ -162,16 +162,16 @@ object ExploreMain {
       }
 
     (for {
-      dispatcher               <- Dispatcher.parallel[IO]
-      given Logger[IO]         <- Resource.eval(setupLogger[IO])
-      host                     <- Resource.eval(IO(dom.window.location.host))
-      appConfig                 = AppConfig.parseConf(host, configJson)
-      otel                     <- setupOtel(appConfig)
-      given Tracer[IO]          = otel.tracer
-      given TracerProvider[IO]  = otel.tracerProvider
-      workerClients            <- WorkerClients.build[IO](dispatcher)
-      bc                       <- BroadcastChannel[IO, ExploreEvent]("explore")
-      _                        <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
+      dispatcher              <- Dispatcher.parallel[IO]
+      given Logger[IO]        <- Resource.eval(setupLogger[IO])
+      host                    <- Resource.eval(IO(dom.window.location.host))
+      appConfig                = AppConfig.parseConf(host, configJson)
+      otel                    <- setupOtel(appConfig)
+      given Tracer[IO]         = otel.tracer
+      given TracerProvider[IO] = otel.tracerProvider
+      workerClients           <- WorkerClients.build[IO](dispatcher)
+      bc                      <- BroadcastChannel[IO, ExploreEvent]("explore")
+      _                       <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
     } yield ()).useForever
   }
 

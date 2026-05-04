@@ -27,7 +27,8 @@ case class AppConfig(
   odbRestURI:       Uri,
   itcURI:           Uri,
   sso:              SSOConfig,
-  tracing:          Option[TracingConfig]
+  // Renamed from `tracing`. previous pwa clients will get a None and should load anyway
+  otelEndpoint:     Option[TracingConfig]
 ) derives Eq,
       Show,
       Decoder

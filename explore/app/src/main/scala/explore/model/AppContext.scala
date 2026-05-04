@@ -169,7 +169,7 @@ object AppContext:
       clients,
       workerClients,
       SSOClient(config.sso),
-      config.tracing,
+      config.otelEndpoint,
       otelHttpClient,
       httpClient,
       pageUrl,
