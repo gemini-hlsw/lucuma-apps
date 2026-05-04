@@ -866,11 +866,16 @@ object TcsControllerEpicsCommon {
   def oiSelectionName(i: Instrument): Option[String] = {
     import Instrument.*
     i match {
-      case Flamingos2                                                                   => "F2".some
-      case GmosSouth | GmosNorth                                                        => "GMOS".some
-      case Gnirs                                                                        => "GNIRS".some
-      case Niri                                                                         => "NIRI".some
-      case Ghost | Gpi | Gsaoi | AcqCam | Igrins2 | Visitor | Scorpio | Alopeke | Zorro => none
+      case Flamingos2                                              => "F2".some
+      case GmosSouth | GmosNorth                                   => "GMOS".some
+      case Gnirs                                                   => "GNIRS".some
+      case Niri                                                    => "NIRI".some
+      case Ghost | Gpi | Gsaoi | Igrins2 | Scorpio                 =>
+        none
+      case VisitorNorth | VisitorSouth | MaroonX | Alopeke | Zorro =>
+        none
+      case AcqCamNorth | AcqCamSouth                               =>
+        none
     }
   }
 

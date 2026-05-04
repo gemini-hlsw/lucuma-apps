@@ -201,20 +201,23 @@ def readTop(tops: Map[String, String], key: NonEmptyString): NonEmptyString =
 
 extension (i: Instrument) {
   def toLightSink: LightSinkName = i match
-    case Instrument.AcqCam     => LightSinkName.Ac
-    case Instrument.Flamingos2 => LightSinkName.Flamingos2
-    case Instrument.Ghost      => LightSinkName.Ghost
-    case Instrument.GmosNorth  => LightSinkName.Gmos
-    case Instrument.GmosSouth  => LightSinkName.Gmos
-    case Instrument.Gnirs      => LightSinkName.Gnirs
-    case Instrument.Gpi        => LightSinkName.Gpi
-    case Instrument.Gsaoi      => LightSinkName.Gsaoi
-    case Instrument.Igrins2    => LightSinkName.Igrins2
-    case Instrument.Niri       => LightSinkName.Niri_f6 // TODO: handle the other cases
-    case Instrument.Visitor    => LightSinkName.Visitor
-    case Instrument.Alopeke    => LightSinkName.Visitor
-    case Instrument.Zorro      => LightSinkName.Visitor
-    case _                     => LightSinkName.Ac
+    case Instrument.AcqCamSouth  => LightSinkName.Ac
+    case Instrument.AcqCamNorth  => LightSinkName.Ac
+    case Instrument.Alopeke      => LightSinkName.Visitor
+    case Instrument.Flamingos2   => LightSinkName.Flamingos2
+    case Instrument.Ghost        => LightSinkName.Ghost
+    case Instrument.GmosNorth    => LightSinkName.Gmos
+    case Instrument.GmosSouth    => LightSinkName.Gmos
+    case Instrument.Gnirs        => LightSinkName.Gnirs
+    case Instrument.Gpi          => LightSinkName.Gpi
+    case Instrument.Gsaoi        => LightSinkName.Gsaoi
+    case Instrument.Igrins2      => LightSinkName.Igrins2
+    case Instrument.MaroonX      => LightSinkName.Visitor
+    case Instrument.Niri         => LightSinkName.Niri_f6 // TODO: handle the other cases
+    case Instrument.Scorpio      => ???
+    case Instrument.VisitorNorth => LightSinkName.Visitor
+    case Instrument.VisitorSouth => LightSinkName.Visitor
+    case Instrument.Zorro        => LightSinkName.Visitor
 }
 
 private val FocalPlaneScale: Double = 1.61144 // arcsec/mm

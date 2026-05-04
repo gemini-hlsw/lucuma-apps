@@ -42,6 +42,8 @@ object ODBSequencesLoader {
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Gnirs(_)       =>
           ???
+        case InstrumentExecutionConfig.Visitor(_)     =>
+          ???
 
     val seqState: SequenceState[F] =
       SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
@@ -93,6 +95,7 @@ object ODBSequencesLoader {
         )
       case InstrumentExecutionConfig.Ghost(_)       => ???
       case InstrumentExecutionConfig.Gnirs(_)       => ???
+      case InstrumentExecutionConfig.Visitor(_)     => ???
 
     instrumentSequenceLens.replace(seqData.some)(st)
 
