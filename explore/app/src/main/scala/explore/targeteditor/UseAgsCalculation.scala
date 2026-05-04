@@ -23,6 +23,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
@@ -130,7 +131,15 @@ object UseAgsCalculation:
       case ObservingModeType.GhostIfu =>
         applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
 
-      case ObservingModeType.GnirsLongSlit =>
+      case ObservingModeType.GnirsLongSlit                                                     =>
+        none
+      case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
+        none
+      case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
+        none
+      case VisitorObservingModeType.MaroonX                                                    =>
+        none
+      case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
         none
 
   private def runAgsQuery(

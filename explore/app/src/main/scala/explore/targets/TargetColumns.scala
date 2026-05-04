@@ -260,8 +260,7 @@ object TargetColumns:
         else t.target.iconWithTooltip
       val BaseColumns: List[colDef.Type]        =
         List(
-          colDef(TypeColumnId, identity, BaseColNames(TypeColumnId))
-            .withoutHeader
+          colDef(TypeColumnId, identity, BaseColNames(TypeColumnId)).withoutHeader
             .withCell(t => icon(t.value))
             .withSize(35.toPx),
           NameColumn,

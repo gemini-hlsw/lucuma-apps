@@ -119,7 +119,7 @@ object ObsSummary:
       programId,
       title,
       subtitle,
-      instrument.getOrElse(Instrument.Visitor),
+      instrument.getOrElse(Instrument.VisitorSouth),
       constraints,
       timingWindows,
       SortedSet.from(attachmentIds.map(_.id)),

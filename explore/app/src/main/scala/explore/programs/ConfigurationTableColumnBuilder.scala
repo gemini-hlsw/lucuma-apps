@@ -128,6 +128,7 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthImaging(_)   => "Imaging"
       case Igrins2LongSlit       => "LongSlit"
       case GhostIfu              => "IFU"
+      case Visitor(_, _)         => ""
 
     def disperser: String = mode match
       case GmosNorthLongSlit(grating)    => grating.shortName
@@ -137,6 +138,7 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthImaging(filters)     => filters.map(_.shortName).mkString(",")
       case Igrins2LongSlit               => ""
       case GhostIfu                      => ""
+      case Visitor(_, _)                 => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =
     val targetNames =
