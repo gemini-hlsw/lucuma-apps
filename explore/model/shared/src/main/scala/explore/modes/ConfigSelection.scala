@@ -95,20 +95,26 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _)      =>
+        BasicConfiguration
+          .GnirsLongSlit(grating, fpu, filter, prism, camera)
+          .some
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
-      case ItcInstrumentConfig.GhostIfu(resolutionMode = res,
-                                        signalToNoiseAt = snAt,
-                                        redDetector = red,
-                                        blueDetector = blue
+      case ItcInstrumentConfig.GhostIfu(
+            resolutionMode = res,
+            signalToNoiseAt = snAt,
+            redDetector = red,
+            blueDetector = blue
           ) =>
         (red.value.timeAndCount, blue.value.timeAndCount).mapN: (redT, blueT) =>
           val redDetector  = ItcGhostDetector(redT, red.value.readMode, red.value.binning)
           val blueDetector = ItcGhostDetector(blueT, blue.value.readMode, blue.value.binning)
-          BasicConfiguration.GhostIfu(resolutionMode = res,
-                                      signalToNoiseAt = snAt,
-                                      red = redDetector,
-                                      blue = blueDetector
+          BasicConfiguration.GhostIfu(
+            resolutionMode = res,
+            signalToNoiseAt = snAt,
+            red = redDetector,
+            blue = blueDetector
           )
       case _                                                                                  => none)
 

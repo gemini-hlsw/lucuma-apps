@@ -62,9 +62,11 @@ object ItcSpectroscopyTile
     extends TileComponent[ItcSpectroscopyTile]({ (props, _) =>
       given Reusability[TargetAndResults] = Reusability.byEq
 
-      for {
+      for
         ctx         <- useContext(AppContext.ctx)
         tileState   <- useStateView(ItcTileState.Empty)
+        _           <- useEffect:
+                         Callback.log(s"SELECTED CONFIG: ${props.selectedConfig}")
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
@@ -101,7 +103,7 @@ object ItcSpectroscopyTile
               Callback.empty
             else
               selected.set(tileState.get.graphsBrightestOrFirst)
-      } yield
+      yield
         import ctx.given
 
         def singleSN: ItcGraphResult => VdomNode =

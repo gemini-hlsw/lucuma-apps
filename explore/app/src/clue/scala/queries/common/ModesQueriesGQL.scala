@@ -73,6 +73,8 @@ object ModesQueriesGQL:
             fpu
             grating
             filter
+            prism
+            camera
           }
         }
 

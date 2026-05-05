@@ -149,12 +149,16 @@ object BasicConfiguration:
                             c.downField("igrins2LongSlit")
                               .as[Igrins2LongSlit.type]
                               .orElse:
-                                c.downField("ghostIfu")
-                                  .as[GhostIfu]
+                                c.downField("gnirsLongSlit")
+                                  .as[GnirsLongSlit]
                                   .orElse:
-                                    DecodingFailure("Could not decode BasicConfiguration",
-                                                    c.history
-                                    ).asLeft
+                                    c.downField("ghostIfu")
+                                      .as[GhostIfu]
+                                      .orElse:
+                                        DecodingFailure(
+                                          "Could not decode BasicConfiguration",
+                                          c.history
+                                        ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -201,6 +205,17 @@ object BasicConfiguration:
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
+
+  case class GnirsLongSlit(
+    grating: GnirsGrating,
+    fpu:     GnirsFpuSlit,
+    filter:  GnirsFilter,
+    prism:   GnirsPrism,
+    camera:  GnirsCamera
+  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq
+
+  object GnirsLongSlit:
+    given Decoder[GnirsLongSlit] = deriveDecoder
 
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,

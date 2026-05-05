@@ -242,7 +242,16 @@ object SpectroscopyModeRow {
       grating <- c.downField("grating").as[GnirsGrating]
       fpu     <- c.downField("fpu").as[GnirsFpuSlit]
       filter  <- c.downField("filter").as[GnirsFilter]
-    } yield ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, placeholderEtm)
+      prism   <- c.downField("prism").as[GnirsPrism]
+      camera  <- c.downField("camera").as[GnirsCamera]
+    } yield ItcInstrumentConfig.GnirsSpectroscopy(
+      grating,
+      fpu,
+      filter,
+      prism,
+      camera,
+      placeholderEtm
+    )
 
   given Decoder[SpectroscopyModeRow] = c =>
     for {

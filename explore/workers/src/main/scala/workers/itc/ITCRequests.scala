@@ -138,6 +138,8 @@ object ITCRequests:
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _)                  =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GnirsSpectroscopy(_, _, _, _, _, _)   =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode
     // you can't use `requestSingle`. You need to use `request` and handle the stream.
