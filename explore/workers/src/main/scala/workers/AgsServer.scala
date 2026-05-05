@@ -11,6 +11,7 @@ import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import org.scalajs.dom
+import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory
 import workers.*
 
@@ -27,7 +28,7 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
 
   private val CacheRetention: Duration = Duration.ofDays(60)
 
-  def agsCalculation(r: AgsMessage.AgsRequest): IO[List[AgsAnalysis.Usable]] =
+  def agsCalculation(r: AgsMessage.AgsRequest)(using Logger[IO]): IO[List[AgsAnalysis.Usable]] =
     IO.blocking:
       val correctedCandidates = r.candidates.map(_.at(r.vizTime))
       Ags
@@ -43,13 +44,18 @@ object AgsServer extends WorkerServer[IO, AgsMessage.Request] {
           r.params,
           correctedCandidates
         )
-        .sortUsablePositions
+    .flatTap: r =>
+        // We should send these as a trace but workers are out of the trace context so far.
+        Logger[IO].debug(pprint.apply(r._2).render)
+      .map:
+        _._1.sortUsablePositions
 
   protected val handler: LoggerFactory[IO] ?=> IO[Invocation => IO[Unit]] =
     for
-      self  <- IO(dom.DedicatedWorkerGlobalScope.self)
-      cache <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")
-      _     <- cache.evict(CacheRetention).start
+      self             <- IO(dom.DedicatedWorkerGlobalScope.self)
+      cache            <- Cache.withIDB[IO](self.indexedDB.toOption, "ags")
+      _                <- cache.evict(CacheRetention).start
+      given Logger[IO] <- LoggerFactory[IO].fromName("ags-worker")
     yield invocation =>
       invocation.data match {
         case AgsMessage.CleanCache               =>
