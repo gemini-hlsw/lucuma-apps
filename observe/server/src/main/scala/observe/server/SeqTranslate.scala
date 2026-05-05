@@ -907,6 +907,8 @@ object SeqTranslate {
           ???
         case InstrumentExecutionConfig.Gnirs(_)                    =>
           ???
+        case InstrumentExecutionConfig.Visitor(_)                  =>
+          ???
       }
   }
 

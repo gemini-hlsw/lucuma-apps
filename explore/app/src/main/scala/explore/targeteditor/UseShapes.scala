@@ -25,6 +25,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
 import lucuma.core.geom.ghost
@@ -183,19 +184,29 @@ def usePatrolFieldShapes(
       // We need a hidden achor centered at 0, 0
       val anchor: (Css, ShapeExpression) =
         conf.obsModeType match
-          case ObservingModeType.Flamingos2LongSlit                                      =>
+          case ObservingModeType.Flamingos2LongSlit                                            =>
             (VisualizationStyles.Anchor,
              flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
             )
-          case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+          case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit       =>
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
-          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
+          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging         =>
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
-          case ObservingModeType.Igrins2LongSlit                                         =>
+          case ObservingModeType.Igrins2LongSlit                                               =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
-          case ObservingModeType.GhostIfu                                                =>
+          case ObservingModeType.GhostIfu                                                      =>
             (VisualizationStyles.Anchor, ghost.scienceArea.fov)
-          case ObservingModeType.GnirsLongSlit                                           =>
+          case ObservingModeType.GnirsLongSlit                                                 =>
+            (Css.Empty, ShapeExpression.Empty)
+          // maybe we can use an isVisitor field
+          case VisitorObservingModeType.AlopekeSpeckle |
+              VisitorObservingModeType.AlopekeWideField =>
+            (Css.Empty, ShapeExpression.Empty)
+          case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField =>
+            (Css.Empty, ShapeExpression.Empty)
+          case VisitorObservingModeType.MaroonX                                                =>
+            (Css.Empty, ShapeExpression.Empty)
+          case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth   =>
             (Css.Empty, ShapeExpression.Empty)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
@@ -217,7 +228,7 @@ def useVisualizationShapes(
 
     (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
       conf match
-        case ObservingModeType.Flamingos2LongSlit                                      =>
+        case ObservingModeType.Flamingos2LongSlit                                                =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
@@ -238,7 +249,7 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
-        case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+        case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit           =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
@@ -259,7 +270,7 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
-        case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
+        case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging             =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
@@ -280,7 +291,7 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
-        case ObservingModeType.Igrins2LongSlit                                         =>
+        case ObservingModeType.Igrins2LongSlit                                                   =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
@@ -299,7 +310,7 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
-        case ObservingModeType.GhostIfu                                                =>
+        case ObservingModeType.GhostIfu                                                          =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
               VisualizationStyles.PwfsProbeArmVisible
@@ -320,6 +331,14 @@ def useVisualizationShapes(
              asterismCoords.drop(1).headOption
            )
           )
-        case ObservingModeType.GnirsLongSlit                                           =>
+        case ObservingModeType.GnirsLongSlit                                                     =>
+          (Css.Empty, none)
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
+          (Css.Empty, none)
+        case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
+          (Css.Empty, none)
+        case VisitorObservingModeType.MaroonX                                                    =>
+          (Css.Empty, none)
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
           (Css.Empty, none)
   }.map(_.value)
