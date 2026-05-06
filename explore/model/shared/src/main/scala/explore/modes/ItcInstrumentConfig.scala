@@ -18,7 +18,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.refined.*
-import lucuma.schemas.enums.ImagingCapabilities
+import lucuma.odb.phase0.ImagingCapabilities
 import lucuma.schemas.model.CentralWavelength
 import monocle.Focus
 import monocle.Getter
@@ -370,7 +370,9 @@ object ItcInstrumentConfig:
     val mode                             = ScienceMode.Imaging
 
     override def instrumentLabel: String =
-      capability.fold(instrument.longName)(c => s"${instrument.longName} - ${c.label}")
+      capability.fold(instrument.longName): c =>
+        val titled = c.label.split(' ').map(_.capitalize).mkString(" ")
+        s"${instrument.longName} - $titled"
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig = this
 
