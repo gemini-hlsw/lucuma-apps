@@ -3968,6 +3968,21 @@ input ObservingModeInput @oneOf {
   The igrins2LongSlit field must be either specified or skipped altogether.  It cannot be unset with a null value.
   """
   igrins2LongSlit: Igrins2LongSlitInput
+
+  """A visiting instrument mode. It cannot be unset with a null value."""
+  visitor: VisitorInput
+}
+
+input VisitorInput {
+  mode: VisitorObservingModeType
+  centralWavelength: WavelengthInput
+  guideStarMinSep: AngleInput
+}
+
+type Visitor {
+  mode: VisitorObservingModeType!
+  centralWavelength: Wavelength!
+  guideStarMinSep: Angle!
 }
 
 """Edit science requirements"""
@@ -4447,6 +4462,13 @@ input ObscalcUpdateInput {
   oldState: WhereOptionEqCalculationState @deprecated(reason: "Use `oldCalculationState` instead.")
   newCalculationState: WhereOptionEqCalculationState
   newState: WhereOptionEqCalculationState @deprecated(reason: "Use `newCalculationState` instead.")
+
+  """
+  When set to `true`, events will be limited to those that impact executable
+  observations only.  Changes to observations that are not yet `READY` or
+  `ONGOING`, or which have already completed, will not trigger events.
+  """
+  executableOnly: Boolean = false
 }
 
 input WhereOrderCalculationState {
@@ -5591,6 +5613,17 @@ enum ObservingModeType {
 
   """ObservingModeType Igrins2LongSlit"""
   IGRINS_2_LONG_SLIT
+}
+
+"""VisitorObservingModeType"""
+enum VisitorObservingModeType {
+  ALOPEKE_SPECKLE
+  ALOPEKE_WIDE_FIELD
+  MAROON_X
+  VISITOR_NORTH
+  VISITOR_SOUTH
+  ZORRO_SPECKLE
+  ZORRO_WIDE_FIELD
 }
 
 type ConstraintSet {
@@ -7116,6 +7149,9 @@ type GhostDynamic {
   blue: GhostDetector!
   ifu1FiberAgitator: GhostIfu1FiberAgitator!
   ifu2FiberAgitator: GhostIfu2FiberAgitator!
+
+  """Central wavelength, which is fixed at 655 nm."""
+  centralWavelength: Wavelength
 }
 
 """GHOST step with potential breakpoint."""
@@ -8630,6 +8666,13 @@ type Group {
   minimumInterval: TimeSpan
   maximumInterval: TimeSpan
 
+  """
+  If true, all observations in this group must be scheduled on the same night.
+  Mutually exclusive with `maximumInterval`.
+  Only valid for AND groups.
+  """
+  sameNight: Boolean!
+
   """Contained elements"""
   elements(includeDeleted: Boolean! = false): [GroupElement!]!
 
@@ -8706,6 +8749,13 @@ input GroupPropertiesInput {
 
   """If specified, elements will be separated by at most `maximumInterval`."""
   maximumInterval: TimeSpanInput
+
+  """
+  If true, all observations in this group must be scheduled on the same night.
+  Mutually exclusive with `maximumInterval`.
+  Only valid for AND groups.
+  """
+  sameNight: Boolean
 
   """
   Parent group (optional). If specified then parent index must also be specified.
@@ -8866,8 +8916,11 @@ enum PortDisposition {
 
 """Instrument"""
 enum Instrument {
-  """Instrument AcqCam"""
-  ACQ_CAM
+  """Instrument AcqCam at Gemini North"""
+  ACQ_CAM_NORTH
+
+  """Instrument AcqCam at Gemini South"""
+  ACQ_CAM_SOUTH
 
   """Instrument Flamingos2"""
   FLAMINGOS2
@@ -8896,8 +8949,11 @@ enum Instrument {
   """Instrument Niri"""
   NIRI
 
-  """Instrument Visitor"""
-  VISITOR
+  """Visitor Instrument at Gemini North"""
+  VISITOR_NORTH
+
+  """Visitor Instrument at Gemini North"""
+  VISITOR_SOUTH
 
   """Instrument Scorpio"""
   SCORPIO
@@ -8907,6 +8963,9 @@ enum Instrument {
 
   """Instrument Zorro"""
   ZORRO
+
+  """Instrument MAROON-X"""
+  MAROON_X
 }
 
 """Describes an instrument configuration option for spectroscopy."""
@@ -8986,6 +9045,21 @@ type SpectroscopyConfigOptionGnirs {
   grating: GnirsGrating!
   filter: GnirsFilter!
   fpu: GnirsFpuSlit!
+  prism: GnirsPrism!
+  camera: GnirsCamera!
+}
+
+enum GnirsPrism {
+  MIRROR
+  SXD
+  LXD
+}
+
+enum GnirsCamera {
+  LONG_BLUE
+  LONG_RED
+  SHORT_BLUE
+  SHORT_RED
 }
 
 enum GnirsGrating {
@@ -9525,6 +9599,12 @@ type ConfigurationObservingMode {
   gmosSouthImaging: ConfigurationGmosSouthImaging
   flamingos2LongSlit: ConfigurationFlamingos2LongSlit
   igrins2LongSlit: ConfigurationIgrins2LongSlit
+  visitor: ConfigurationVisitor
+}
+
+type ConfigurationVisitor {
+  mode: VisitorObservingModeType!
+  radius: Angle!
 }
 
 type ConfigurationGmosNorthLongSlit {
@@ -10533,6 +10613,7 @@ type ObservingMode {
 
   """IGRINS-2 Long Slit mode"""
   igrins2LongSlit: Igrins2LongSlit
+  visitor: Visitor
 }
 
 type ObservingModeGroup {
