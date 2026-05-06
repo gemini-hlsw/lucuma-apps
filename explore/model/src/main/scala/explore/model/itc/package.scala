@@ -62,20 +62,25 @@ extension (a: NonEmptyChain[ItcTargetProblem])
         .map(_.format)
         .mkString(prefix, "\n", "")
 
-sealed trait ItcResult derives Eq {
-  def isSuccess: Boolean = this match {
+sealed trait ItcResult derives Eq:
+  def isSuccess: Boolean = this match
     case ItcResult.Result(_, _) => true
     case _                      => false
-  }
 
-  def isPending: Boolean = this match {
+  def isPending: Boolean = this match
     case ItcResult.Pending => true
     case _                 => false
-  }
-}
+
+  def isNotApplicable: Boolean = this match
+    case ItcResult.NotApplicable => true
+    case _                       => false
+
+  def isAcceptable: Boolean = isSuccess || isNotApplicable
 
 object ItcResult {
-  case object Pending extends ItcResult
+  case object Pending       extends ItcResult
+  // Some modes (Visitors) don't produce ITC results.
+  case object NotApplicable extends ItcResult
   case class Result(
     times:          Zipper[TargetIntegrationTime],
     brightestIndex: Option[Int]

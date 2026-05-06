@@ -21,7 +21,7 @@ import explore.events.ItcMessage
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.Progress
-import explore.model.SupportedInstruments
+import explore.model.ItcSupportedInstruments
 import explore.model.WorkerClients.ItcClient
 import explore.model.boopickle.*
 import explore.model.boopickle.ItcPicklers.given
@@ -202,7 +202,7 @@ trait ModesTableCommon:
     col: ItcColumns
   ): VdomElement = {
     val content: TagMod = c.toOption match
-      case Some(Left(errors))               =>
+      case Some(Left(errors))                   =>
         if (errors.exists(_.problem === ItcQueryProblem.UnsupportedMode))
           <.span(Icons.Ban(^.color.red))
             .withTooltip(tooltip = "Mode not supported", placement = Placement.RightStart)
@@ -230,7 +230,7 @@ trait ModesTableCommon:
 
           <.span(Icons.TriangleSolid.addClass(ExploreStyles.ItcErrorIcon))
             .withTooltip(tooltip = <.div(content.mkTagMod(<.span)), placement = Placement.RightEnd)
-      case Some(Right(r: ItcResult.Result)) =>
+      case Some(Right(r: ItcResult.Result))     =>
         val ccdWarnings =
           r.ccdWarnings.collect:
             case a @ (_, v) if v.nonEmpty => a
@@ -268,9 +268,15 @@ trait ModesTableCommon:
             tooltip = tt
           )
         )
-      case Some(Right(ItcResult.Pending))   =>
+      case Some(Right(ItcResult.Pending))       =>
         Icons.Spinner.withSpin(true)
-      case _                                =>
+      case Some(Right(ItcResult.NotApplicable)) =>
+        <.span("-")
+          .withTooltip(
+            tooltip = "ITC unavailable for this mode",
+            placement = Placement.RightStart
+          )
+      case _                                    =>
         "-"
 
     <.div(ExploreStyles.ITCCell, content)
@@ -355,7 +361,7 @@ trait ModesTableCommon:
 
                     // The cache returns an error for unsupported instruments
                     row.config.instrument match
-                      case i if SupportedInstruments.contains(i) =>
+                      case i if ItcSupportedInstruments.contains(i) =>
                         cache.contains:
                           ItcRequestParams(
                             constraints,
@@ -363,7 +369,7 @@ trait ModesTableCommon:
                             customSedTimestamps,
                             row.config
                           )
-                      case _                                     => true
+                      case _                                        => true
 
               Option
                 .when(modes.nonEmpty):

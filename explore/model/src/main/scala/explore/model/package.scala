@@ -117,13 +117,20 @@ object PosAngleConstraintAndObsMode:
 
 val SupportedInstruments =
   List(
+    Instrument.Alopeke,
+    Instrument.Flamingos2,
     Instrument.GmosNorth,
     Instrument.GmosSouth,
-    Instrument.Flamingos2,
-    Instrument.Igrins2,
     Instrument.Ghost,
     Instrument.Gnirs,
-    Instrument.Alopeke,
-    Instrument.Zorro,
-    Instrument.MaroonX
+    Instrument.Igrins2,
+    Instrument.MaroonX,
+    Instrument.Zorro
   )
+
+val NoItcInstruments: List[Instrument] =
+  List(Instrument.Alopeke, Instrument.Zorro, Instrument.MaroonX)
+
+// Instruments for which an ITC computation is requested.
+val ItcSupportedInstruments: List[Instrument] =
+  SupportedInstruments.filterNot(NoItcInstruments.contains)

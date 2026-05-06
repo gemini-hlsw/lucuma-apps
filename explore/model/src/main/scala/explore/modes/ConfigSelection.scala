@@ -24,7 +24,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   lazy val isEmpty: Boolean                                 = configs.isEmpty
   lazy val nonEmpty: Boolean                                = configs.nonEmpty
 
-  // We can create a configuration if there is at least one selection and all ITCs are successful.
+  // We can create a configuration if there is at least one selection and ITCs are successful.
+  // We also allow visitos without an ITC result
   lazy val canAccept: Boolean =
     nonEmpty &&
       configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess)) &&
