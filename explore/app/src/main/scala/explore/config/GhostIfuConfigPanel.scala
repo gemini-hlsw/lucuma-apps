@@ -163,7 +163,7 @@ object GhostIfuConfigPanel
         ): Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput] =
           props.observingMode.zoom(
             lens = lens,
-            remoteMod = f => inputLens.modify(_.map(f))
+            remoteMod = forceAssign(inputLens.modify)(lens.get(mode).toInput)
           )
 
         // One panel per detector with a subset of the ETM
