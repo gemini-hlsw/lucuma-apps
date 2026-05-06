@@ -1727,7 +1727,6 @@ svg.fa-check.explore-success-icon {
 
     .group-edit-note {
       display: flex;
-      max-width: 700px;
       gap: var(--content-padding);
       padding: var(--content-padding);
       border-radius: var(--border-radius);
@@ -1780,6 +1779,11 @@ svg.fa-check.explore-success-icon {
     .pl-form-field-label {
       grid-column: 2;
     }
+  }
+
+  .group-divider.p-divider.p-divider-horizontal {
+    margin: 0.25rem 0;
+    padding: 0;
   }
 
   .group-planned-time {

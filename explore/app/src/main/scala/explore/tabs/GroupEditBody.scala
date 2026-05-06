@@ -38,7 +38,6 @@ import lucuma.ui.format.TimeSpanFormatter.HoursMinutesAbbreviation
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
-import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoSetter
 import monocle.Lens
 import org.typelevel.log4cats.Logger
@@ -66,6 +65,9 @@ object GroupEditBody
       val intervalsLens: Lens[Group, (Option[TimeSpan], Option[TimeSpan])] =
         Group.minimumInterval.disjointZip(Group.maximumInterval)
 
+      val sameNightAndMaxIntervalLens: Lens[Group, (Boolean, Option[TimeSpan])] =
+        Group.sameNight.disjointZip(Group.maximumInterval)
+
       val minRequiredAndIntervalsLens
         : Lens[Group, (Option[NonNegShort], Option[TimeSpan], Option[TimeSpan])] =
         (Group.minimumRequired, Group.minimumInterval, Group.maximumInterval).disjointZip
@@ -78,23 +80,19 @@ object GroupEditBody
         "Mininum delay must be <= Maximum delay".refined
 
       def groupModViewBase[A](
-        group:     UndoSetter[Group],
-        lens:      Lens[Group, A],
-        prop:      A => GroupPropertiesInput,
-        odbApi:    OdbApi[IO],
-        isLoading: View[Boolean]
+        group:  UndoSetter[Group],
+        lens:   Lens[Group, A],
+        prop:   A => GroupPropertiesInput,
+        odbApi: OdbApi[IO]
       )(using Logger[IO]) =
         props.group
           .undoableView(lens)
-          .withOnMod(a =>
-            odbApi.updateGroup(group.get.id, prop(a)).switching(isLoading.async).runAsync
-          )
+          .withOnMod(a => odbApi.updateGroup(group.get.id, prop(a)).runAsync)
 
       for
         ctx            <- useContext(AppContext.ctx)
         editType       <- useStateView:
                             if props.group.get.isAnd then GroupEditType.And else GroupEditType.Or
-        isLoading      <- useStateView(false)
         minIntervalV   <- useStateView(props.group.get.minimumInterval)
         maxIntervalV   <- useStateView(props.group.get.maximumInterval.orEmpty)
         useMaxInterval <- useStateView(props.group.get.maximumInterval.isDefined)
@@ -120,8 +118,7 @@ object GroupEditBody
                     GroupPropertiesInput(minimumInterval = n.map(_.toInput).orUnassign,
                                          maximumInterval = x.map(_.toInput).orUnassign
                     ),
-                  ctx.odbApi,
-                  isLoading
+                  ctx.odbApi
                 )(using ctx.logger).set((min, optMax))
               else Callback.empty
         nameDisplay   <- useState(props.group.get.name)
@@ -134,10 +131,10 @@ object GroupEditBody
         val group = props.group.get
         val isAnd = group.isAnd
 
-        val isDisabled: Boolean = props.readonly || isLoading.get
+        val isDisabled: Boolean = props.readonly
 
         def groupModView[A](lens: Lens[Group, A], prop: A => GroupPropertiesInput) =
-          groupModViewBase(props.group, lens, prop, ctx.odbApi, isLoading)
+          groupModViewBase(props.group, lens, prop, ctx.odbApi)
 
         val minRequiredV = groupModView(
           Group.minimumRequired,
@@ -149,6 +146,18 @@ object GroupEditBody
         )
         val orderedV     =
           groupModView(Group.ordered, o => GroupPropertiesInput(ordered = o.assign))
+
+        val sameNightV =
+          groupModView(Group.sameNight, sn => GroupPropertiesInput(sameNight = sn.assign))
+
+        val sameNightAndMaxIntervalV =
+          groupModView(
+            sameNightAndMaxIntervalLens,
+            (sn, mi) =>
+              GroupPropertiesInput(sameNight = sn.assign,
+                                   maximumInterval = mi.map(_.toInput).orUnassign
+              )
+          )
 
         val minRequiredAndIntervalsV =
           groupModView(
@@ -208,6 +217,7 @@ object GroupEditBody
           )
 
         val nameForm = <.div(
+          LucumaPrimeStyles.FormColumnCompact,
           FormInputText(
             id = "nameInput".refined,
             label = "Name",
@@ -237,11 +247,27 @@ object GroupEditBody
         )
 
         val orderForm = <.div(
-          CheckboxView(
-            id = "orderedCheck".refined,
-            value = orderedV,
-            label = "Ordered",
-            disabled = isDisabled
+          <.div(
+            CheckboxView(
+              id = "orderedCheck".refined,
+              value = orderedV,
+              label = "Ordered",
+              disabled = isDisabled
+            )
+          ),
+          <.div(
+            <.div(
+              LucumaPrimeStyles.CheckboxWithLabel,
+              Checkbox(
+                id = "same-night-check",
+                checked = group.sameNight,
+                onChange = sn =>
+                  if sn then sameNightAndMaxIntervalV.set((true, none))
+                  else sameNightV.set(false),
+                disabled = isDisabled || useMaxInterval.get
+              ),
+              <.label(^.htmlFor := "same-night-check", "Same Night")
+            )
           )
         )
 
@@ -258,18 +284,21 @@ object GroupEditBody
           Checkbox(
             id = "useMaxDelay",
             checked = useMaxInterval.get,
-            onChange = useMaxInterval.set,
-            disabled = isDisabled
+            onChange = useMax =>
+              if useMax && group.sameNight then
+                sameNightAndMaxIntervalV.set((false, maxIntervalV.get.some))
+              else useMaxInterval.set(useMax),
+            disabled = isDisabled || group.sameNight
           ),
-          FormLabel(htmlFor = "useMaxDelay".refined)("Maximum delay").unless(useMaxInterval.get),
           FormTimeSpanInput(
             value = maxIntervalV,
             id = "maxDelay".refined,
             label = "Maximum delay",
             min = TimeSpan.Zero,
-            disabled = isDisabled,
-            error = intervalError.value
-          ).when(useMaxInterval.get)
+            disabled = isDisabled || !useMaxInterval.get,
+            error = intervalError.value,
+            clazz = if useMaxInterval.get then Css.Empty else ExploreStyles.Hidden
+          )
         )
 
         val plannedTime =
@@ -277,7 +306,9 @@ object GroupEditBody
             val staleTooltip = cvter.staleTooltip
             val staleClass   = cvter.staleClass
             cvter.value.map: timeEstimateRange =>
-              <.div(ExploreStyles.GroupPlannedTime)(
+              React.Fragment(
+                Divider(clazz = ExploreStyles.GroupDivider),
+                <.div(ExploreStyles.GroupPlannedTime)(
                 if timeEstimateRange.maximum === timeEstimateRange.minimum then
                   React.Fragment(
                     FormLabel(htmlFor = "plannedTime".refined)("Planned Time"),
@@ -293,16 +324,18 @@ object GroupEditBody
                     TimeSpanView(timeEstimateRange.minimum.value, tooltip = staleTooltip)
                       .withMods(^.id := "minPlannedTime", staleClass)
                   )
+                )
               )
 
         val groupTypeSpecificForms =
-          if isAnd then <.div(ExploreStyles.GroupForm)(nameForm, orderForm, delaysForm, plannedTime)
-          else <.div(ExploreStyles.GroupForm)(nameForm, minRequiredForm, plannedTime)
+          if isAnd then <.div(ExploreStyles.GroupForm)(nameForm, orderForm, delaysForm)
+          else <.div(ExploreStyles.GroupForm)(nameForm, minRequiredForm)
 
         React.Fragment(
           <.div(ExploreStyles.GroupEditTile)(
             selectGroupForm,
             groupTypeSpecificForms,
+            plannedTime,
             props.warnings.map: nes =>
               <.div(
                 ExploreStyles.GroupWarnings,

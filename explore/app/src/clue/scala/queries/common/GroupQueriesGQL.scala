@@ -19,12 +19,13 @@ object GroupQueriesGQL:
         name
         minimumRequired
         ordered
+        sameNight
         system
         calibrationRoles
         minimumInterval $TimeSpanSubquery
         maximumInterval $TimeSpanSubquery
         timeEstimateRange $CalculatedProgramTimeRangeSubquery
-        parentId 
+        parentId
         parentIndex
       }
     """
