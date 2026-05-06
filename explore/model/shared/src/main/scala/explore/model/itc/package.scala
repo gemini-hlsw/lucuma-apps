@@ -16,8 +16,8 @@ import lucuma.core.math.SingleSN
 import lucuma.core.math.TotalSN
 import lucuma.core.util.TimeSpan
 import lucuma.itc.IntegrationTime
-import lucuma.itc.ItcAxis
 import lucuma.itc.ItcCcd
+import lucuma.itc.ItcYAxis
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.TargetIntegrationTime
 import lucuma.itc.client.SeriesResult
@@ -103,7 +103,7 @@ object ItcResult {
 }
 
 case class YAxis(min: Double, max: Double):
-  def ticks(maxTicks: Int = 10) =
+  def ticks(maxTicks: Int = 10): (Double, Double, Double) =
     val range       = math.niceNum(max - min, false)
     val tickSpacing = math.niceNum(range / (maxTicks - 1), true)
     val niceMin     =
@@ -120,16 +120,13 @@ end YAxis
 object YAxis:
   val Empty: YAxis = YAxis(0, 0)
 
-extension (a: Option[ItcAxis])
-  def yAxis: YAxis = a.map(a => YAxis(a.min, a.max)).getOrElse(YAxis.Empty)
-
-extension (a: ItcAxis) def step = (a.end - a.start) / (a.count - 1)
+extension (a: ItcYAxis)
+  def yAxis: YAxis =
+    YAxis(a.min, a.max)
 
 extension (a: SeriesResult)
-  def data =
-    val step  = a.xAxis.map(_.step).getOrElse(1.0)
-    val start = a.xAxis.map(_.start).getOrElse(1.0)
-    a.dataY.zipWithIndex.map((y, i) => (roundToSignificantFigures(step * i + start, 6), y))
+  def data: List[(Double, Double)] =
+    a.dataY.toList.zipWithIndex.map((y, i) => (roundToSignificantFigures(a.xAxis.at(i), 6), y))
 
 case class ItcExposureTime(
   time:  TimeSpan,

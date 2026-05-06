@@ -235,9 +235,8 @@ object ItcSpectroscopyPlot {
                   groupedGraphs.headOption.foldMap(_.series.length)
 
                 val ccdRanges = groupedGraphs.flatMap: gr =>
-                  gr.series.headOption.flatMap: s =>
-                    s.xAxis.map: axis =>
-                      (axis.start, axis.end)
+                  gr.series.headOption.map: s =>
+                    (s.xAxis.start, s.xAxis.end)
 
                 val merged =
                   GraphResult(graphType, groupedGraphs.flatMap(_.series))
