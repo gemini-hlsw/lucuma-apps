@@ -13,7 +13,6 @@ import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
 import lucuma.odb.json.angle.decoder.given
-import lucuma.odb.phase0.ImagingCapabilities
 import monocle.Getter
 import monocle.Lens
 import monocle.macros.GenLens

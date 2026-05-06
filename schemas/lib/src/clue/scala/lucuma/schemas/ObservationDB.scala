@@ -154,7 +154,7 @@ trait ObservationDB {
     type GuideState                          = enums.StepGuideState
     type HiiRegionSpectrum                   = enums.HIIRegionSpectrum
     type ImageQualityPreset                  = ImageQuality.Preset
-    type ImagingCapabilities                 = lucuma.odb.phase0.ImagingCapabilities
+    type ImagingCapabilities                 = enums.ImagingCapabilities
     type Instrument                          = enums.Instrument
     type LineFluxIntegratedUnits             = Units Of LineFlux[Integrated]
     type LineFluxSurfaceUnits                = Units Of LineFlux[Surface]

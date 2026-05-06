@@ -18,7 +18,6 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.refined.*
-import lucuma.odb.phase0.ImagingCapabilities
 import lucuma.schemas.model.CentralWavelength
 import monocle.Focus
 import monocle.Getter

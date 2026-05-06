@@ -32,6 +32,7 @@ import lucuma.core.model.ConstraintSet
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
+import lucuma.core.enums.ImagingCapabilities
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -74,6 +75,7 @@ private object BasicConfigurationPanel:
         _               <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
                              scienceModeType.set(modeType)
         creating        <- useStateView(Creating(false))
+        imagingCap      <- useStateView(none[ImagingCapabilities])
       yield
         import ctx.given
 
@@ -139,6 +141,7 @@ private object BasicConfigurationPanel:
                 props.selectedConfig.get.headOption.map(_.instrument),
                 exposureTimeView,
                 s,
+                imagingCap,
                 props.readonly,
                 props.units,
                 props.calibrationRole
@@ -171,7 +174,8 @@ private object BasicConfigurationPanel:
               props.baseCoordinates,
               props.customSedTimestamps,
               props.units,
-              props.targetView
+              props.targetView,
+              imagingCap.get
             )
           ),
           <.div(ExploreStyles.BasicConfigurationButtons)(
