@@ -249,8 +249,7 @@ object ImagingModesTable extends ModesTableCommon:
                               capability
                             ) =>
                               matrix
-                                .filtered(minimumFov, fts, dec)
-                                .filter(r => capability.forall(r.capability.contains))
+                                .filtered(minimumFov, fts, capability, dec)
                                 .sortBy(!_.enabled)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in

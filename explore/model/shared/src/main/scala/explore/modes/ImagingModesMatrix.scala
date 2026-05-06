@@ -7,8 +7,10 @@ import cats.Eq
 import cats.Order
 import cats.derived.*
 import cats.implicits.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.SupportedInstruments
 import io.circe.Decoder
+import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
@@ -16,8 +18,6 @@ import lucuma.odb.json.angle.decoder.given
 import monocle.Getter
 import monocle.Lens
 import monocle.macros.GenLens
-import eu.timepit.refined.types.string.NonEmptyString
-import io.circe.refined.given
 
 case class ImagingModeRow(
   id:         Option[Int], // we number the modes for the UI
@@ -91,6 +91,7 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
   def filtered(
     minimumFov:  Option[Angle],
     filterTypes: Set[FilterType],
+    capability:  Option[ImagingCapabilities],
     declination: Option[Declination] = None
   ): List[ImagingModeRow] =
     import explore.model.syntax.all.*
@@ -98,6 +99,7 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
     val filter: ImagingModeRow => Boolean = r =>
       minimumFov.forall(fov => r.fov >= fov) &&
         (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
+        capability.forall(r.capability.contains) &&
         declination.forall(r.instrument.site.inPreferredDeclination)
 
     matrix.filter(filter)

@@ -24,6 +24,7 @@ object ModesQueriesGQL:
         ) {
           name
           instrument
+          site
           disperserLabel
           fpuLabel
           filterLabel

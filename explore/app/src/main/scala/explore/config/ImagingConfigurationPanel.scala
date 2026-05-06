@@ -16,10 +16,10 @@ import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ImagingCapabilities
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.model.ExposureTimeMode
-import lucuma.core.enums.ImagingCapabilities
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*

@@ -370,31 +370,34 @@ object ItcInstrumentConfig:
 
     override def instrumentLabel: String =
       capability.fold(instrument.longName): c =>
-        val titled = c.label.split(' ').map(_.capitalize).mkString(" ")
-        s"${instrument.longName} - $titled"
+        val caps = c.label.split(' ').map(_.capitalize).mkString(" ")
+        s"${instrument.longName} - $caps"
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig = this
 
     val signalToNoiseAt: Wavelength = Wavelength.Min
   }
 
-  // Used for Instruments not fully defined
+  // Used for spectroscopy instruments (MaroonX)
   case class GenericSpectroscopy(
     i:                Instrument,
-    grating:          String,
-    filter:           NonEmptyString,
+    disperserLabel:   NonEmptyString,
+    fpuLabel:         NonEmptyString,
+    filterLabel:      Option[NonEmptyString],
+    site:             Site,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
-    type Grating  = String
-    type Filter   = NonEmptyString
-    type FPU      = Unit
+    type Grating  = NonEmptyString
+    type Filter   = Option[NonEmptyString]
+    type FPU      = NonEmptyString
     type Override = Unit
-    val gratingDisplay: Display[Grating] = Display.byShortName(identity)
-    val filterStr: String                = filter.value
-    val fpu                              = ()
+    val gratingDisplay: Display[Grating] = Display.byShortName(_.value)
+    val filterStr: String                = filterLabel.fold("none")(_.value)
+    val grating: Grating                 = disperserLabel
+    val filter: Filter                   = filterLabel
+    val fpu: FPU                         = fpuLabel
     val instrument                       = i
-    val site                             = Site.GN
-    val hasFilter                        = true
+    val hasFilter                        = filterLabel.isDefined
     val mode                             = ScienceMode.Spectroscopy
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =

@@ -26,13 +26,13 @@ import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ImagingCapabilities
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
-import lucuma.core.enums.ImagingCapabilities
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button

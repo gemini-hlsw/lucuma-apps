@@ -122,6 +122,7 @@ val SupportedInstruments =
        Instrument.Igrins2,
        Instrument.Ghost,
        Instrument.Alopeke,
-       Instrument.Zorro
+       Instrument.Zorro,
+       Instrument.MaroonX
        //  Instrument.Gnirs
   )
