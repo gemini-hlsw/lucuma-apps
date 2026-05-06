@@ -85,7 +85,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
     wavelengthInterval: Option[BoundedInterval[Wavelength]]
   ) extends TableRowWithResult:
     val rowId: RowId                = RowId(entry.id.orEmpty.toString)
-    val config: ItcInstrumentConfig = entry.instrument
+    val config: ItcInstrumentConfig = entry.instrumentConfig
 
   private val ColDef = ColumnDef[SpectroscopyModeRowWithResult].WithTableMeta[TableMeta]
 
@@ -380,7 +380,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             val oldCfgs = props.selectedConfig.get.configs
                             val newCfgs =
                               oldCfgs
-                                .map(cfg => rows.find(_.entry.instrument === cfg.instrumentConfig))
+                                .map(cfg => rows.find(_.entry.instrumentConfig === cfg.instrumentConfig))
                                 .flattenOption
                                 .map(_.configAndResult)
                             if (oldCfgs =!= newCfgs)
@@ -388,10 +388,10 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             else Callback.empty
         // The selected index needs to be the index into the sorted data, because that is what
         // the virtualizer uses for scrollTo.
-        selectedIndex  <- useMemo((sortedRows, props.selectedConfig.get)):
-                            (sortRows, selectedConfig) =>
-                              selectedConfig.headOption.map: head =>
-                                sortRows.indexWhere(_.entry.instrument === head.instrumentConfig)
+        selectedIndex  <-
+          useMemo((sortedRows, props.selectedConfig.get)): (sortRows, selectedConfig) =>
+            selectedConfig.headOption.map: head =>
+              sortRows.indexWhere(_.entry.instrumentConfig === head.instrumentConfig)
         visibleRows    <- useStateView(none[Range.Inclusive])
         atTop          <- useStateView(false)
         virtualizerRef <- useRef(none[HTMLTableVirtualizer])
@@ -438,7 +438,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                   ExploreStyles.TableRowSelected
                     .when:
                       props.selectedConfig.get.headOption
-                        .exists(_.instrumentConfig === row.original.entry.instrument)
+                        .exists(_.instrumentConfig === row.original.entry.instrumentConfig)
                   ,
                   (
                     ^.onClick --> props.selectedConfig.mod(

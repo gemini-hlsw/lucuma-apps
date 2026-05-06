@@ -6,14 +6,15 @@ package explore.model
 import cats.Eq
 import cats.data.EitherNec
 import cats.derived.*
-import cats.syntax.all.*
+// import cats.syntax.all.*
 import explore.model.itc.ItcResult
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.enums.Instrument
-import lucuma.schemas.model.BasicConfiguration
+// import lucuma.schemas.model.BasicConfiguration
 import monocle.Focus
 import monocle.Lens
+// import explore.modes.ModeWavelength
 
 case class InstrumentConfigAndItcResult(
   instrumentConfig: ItcInstrumentConfig,
@@ -21,18 +22,18 @@ case class InstrumentConfigAndItcResult(
 ) derives Eq:
   def instrument: Instrument = instrumentConfig.instrument
 
-  def toBasicConfiguration: Option[BasicConfiguration] =
-    instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
-        BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
-        BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _)           =>
-        BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-      case _                                                                                  => none
+  // def toBasicConfiguration(λoptimal: ModeWavelength): Option[BasicConfiguration] =
+  //   instrumentConfig match
+  //     case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
+  //       BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
+  //     case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
+  //       BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
+  //     case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _)           =>
+  //       BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
+  //     case _                                                                                  => none
 
 object InstrumentConfigAndItcResult:
-  val configuration: Lens[InstrumentConfigAndItcResult, ItcInstrumentConfig] =
+  val instrumentConfig: Lens[InstrumentConfigAndItcResult, ItcInstrumentConfig] =
     Focus[InstrumentConfigAndItcResult](_.instrumentConfig)
 
   val itcResult

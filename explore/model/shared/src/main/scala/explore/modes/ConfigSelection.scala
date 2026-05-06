@@ -10,8 +10,11 @@ import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
 import lucuma.core.enums.ScienceMode
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.model.BasicConfiguration
+import explore.modes.ModeWavelength
 
 // ModeSelection is a collection of InstrumentConfigAndItcResult objects that are consistent with each other
 final case class ConfigSelection private (configs: List[InstrumentConfigAndItcResult]) derives Eq:
@@ -69,7 +72,10 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
     if configs.contains_(configAndResult) then ConfigSelection.Empty
     else ConfigSelection.one(configAndResult)
 
-  def toBasicConfiguration(withFallbackWavelength: Boolean = false): Option[BasicConfiguration] =
+  def toBasicConfiguration(
+    λoptimal:               ModeWavelength,
+    withFallbackWavelength: Boolean = false
+  ): Option[BasicConfiguration] =
     configs.headOption.flatMap(_.instrumentConfig match
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
@@ -95,9 +101,14 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
-      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _)      =>
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm)    =>
         BasicConfiguration
-          .GnirsLongSlit(grating, fpu, filter, prism, camera)
+          .GnirsLongSlit(
+            filter,
+            fpu,
+            GnirsAcquisitionMirrorMode.Out(prism, grating, GnirsGratingWavelength(λoptimal.value)),
+            camera
+          )
           .some
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some

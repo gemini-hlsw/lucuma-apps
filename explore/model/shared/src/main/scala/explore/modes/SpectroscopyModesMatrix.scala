@@ -74,30 +74,30 @@ object SlitWidth extends NewType[ModeSlitSize]
 type SlitWidth = SlitWidth.Type
 
 case class SpectroscopyModeRow(
-  id:         Option[Int], // we number the modes for the UI
-  instrument: ItcInstrumentConfig,
-  config:     NonEmptyString,
-  focalPlane: FocalPlane,
-  capability: Option[SpectroscopyCapability],
-  ao:         ModeAO,
-  λmin:       ModeWavelength,
-  λmax:       ModeWavelength,
-  λoptimal:   ModeWavelength,
-  λdelta:     WavelengthDelta,
-  resolution: PosInt,
-  slitLength: SlitLength,
-  slitWidth:  SlitWidth
+  id:               Option[Int], // we number the modes for the UI
+  instrumentConfig: ItcInstrumentConfig,
+  config:           NonEmptyString,
+  focalPlane:       FocalPlane,
+  capability:       Option[SpectroscopyCapability],
+  ao:               ModeAO,
+  λmin:             ModeWavelength,
+  λmax:             ModeWavelength,
+  λoptimal:         ModeWavelength,
+  λdelta:           WavelengthDelta,
+  resolution:       PosInt,
+  slitLength:       SlitLength,
+  slitWidth:        SlitWidth
 ) extends ModeCommonWavelengths
     with ModeRow derives Eq {
   val instrumentLabel: String =
-    instrument.instrumentLabel
+    instrumentConfig.instrumentLabel
 
-  inline def hasFilter: Boolean = instrument.hasFilter
+  inline def hasFilter: Boolean = instrumentConfig.hasFilter
 
   val enabled =
     (focalPlane === FocalPlane.SingleSlit ||
-      (focalPlane === FocalPlane.IFU && instrument.instrument === Instrument.Ghost)) &&
-      SupportedInstruments.contains_(instrument.instrument)
+      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost)) &&
+      SupportedInstruments.contains_(instrumentConfig.instrument)
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
   def intervalCenter(cw: Wavelength): Option[CentralWavelength] =
@@ -129,12 +129,12 @@ case class SpectroscopyModeRow(
     imageQuality: ImageQuality.Preset
   ): Option[SpectroscopyModeRow] =
     intervalCenter(wavelength).flatMap: cw =>
-      val instrumentConfig: Option[ItcInstrumentConfig] =
-        instrument.instrument match
+      val newConfig: Option[ItcInstrumentConfig] =
+        instrumentConfig.instrument match
           case Instrument.GmosNorth | Instrument.GmosSouth =>
             // In case we have no particular overrides, set ccd with binning calculated
             // from the target
-            instrument match
+            instrumentConfig match
               case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, None) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
@@ -161,8 +161,8 @@ case class SpectroscopyModeRow(
                 i.some
           case _                                           => none
 
-      instrumentConfig.map: i =>
-        copy(instrument = i)
+      newConfig.map: i =>
+        copy(instrumentConfig = i)
 }
 
 object SpectroscopyModeRow {
@@ -170,7 +170,7 @@ object SpectroscopyModeRow {
   given ValueConversion[NonNegBigDecimal, BigDecimal] = _.value
 
   val instrumentConfig: Lens[SpectroscopyModeRow, ItcInstrumentConfig] =
-    GenLens[SpectroscopyModeRow](_.instrument)
+    GenLens[SpectroscopyModeRow](_.instrumentConfig)
 
   val instrument: Getter[SpectroscopyModeRow, Instrument] =
     instrumentConfig.andThen(ItcInstrumentConfig.instrument)
@@ -324,7 +324,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     observingMode match
       case ObservingMode.GmosNorthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
         matrix.find: row =>
-          row.instrument match
+          row.instrumentConfig match
             case ItcInstrumentConfig.GmosNorthSpectroscopy(
                   grating = rGrating,
                   filter = rFilter,
@@ -334,7 +334,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
             case _ => false
       case ObservingMode.GmosSouthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
         matrix.find: row =>
-          row.instrument match
+          row.instrumentConfig match
             case ItcInstrumentConfig.GmosSouthSpectroscopy(
                   grating = rGrating,
                   filter = rFilter,
@@ -344,7 +344,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
             case _ => false
       case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
         matrix.find: row =>
-          row.instrument match
+          row.instrumentConfig match
             case ItcInstrumentConfig.Flamingos2Spectroscopy(
                   grating = rGrating,
                   filter = rFilter,
@@ -354,7 +354,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
             case _ => false
       case _: ObservingMode.Igrins2LongSlit                                                    =>
         matrix.find: row =>
-          row.instrument match
+          row.instrumentConfig match
             case _: ItcInstrumentConfig.Igrins2Spectroscopy => true
             case _                                          => false
       case _                                                                                   => none
@@ -382,7 +382,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
       resolution.forall(_ <= r.resolution) &&
       (range, rowRangePM).mapN(_.pm.value <= _).forall(identity) &&
       slitLength.forall(_ <= r.slitLength) &&
-      declination.forall(r.instrument.site.inPreferredDeclination)
+      declination.forall(r.instrumentConfig.site.inPreferredDeclination)
 
     // Calculates a score for each mode for sorting purposes. It is down in Rational space, we may change it to double as we don't really need high precission for this
     val score: SpectroscopyModeRow => Rational = { r =>

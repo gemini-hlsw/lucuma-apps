@@ -81,12 +81,12 @@ object ItcImagingTile
         Message(text = msg, severity = severity): VdomNode
 
       case class ImagingFilterRow(
-        id:         Int,
-        instrument: ItcInstrumentConfig,
-        result:     Pot[EitherNec[ItcTargetProblem, ItcResult]]
+        id:               Int,
+        instrumentConfig: ItcInstrumentConfig,
+        result:           Pot[EitherNec[ItcTargetProblem, ItcResult]]
       ) extends ModeRow
           with TableRowWithResult derives Eq {
-        val config  = instrument
+        val config  = instrumentConfig
         def enabled = true
 
         private def withResult[A](

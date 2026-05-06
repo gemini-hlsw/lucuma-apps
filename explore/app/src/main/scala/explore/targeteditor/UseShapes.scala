@@ -61,8 +61,8 @@ def usePatrolFieldShapes(
     port:      PortDisposition,
     trackType: Option[TrackType]
   ): Option[SingleProbeAgsParams] =
-    val guideProbe = conf.guideProbe(trackType)
-    val params     = conf match
+    val guideProbe: GuideProbe = conf.guideProbe(trackType)
+    val params                 = conf match
       case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)  =>
         AgsParams.GmosLongSlit(fpu.asLeft, port)
       case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)  =>

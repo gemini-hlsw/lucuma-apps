@@ -323,6 +323,8 @@ trait DisplayImplicits:
       s"IGRINS2"
     case BasicConfiguration.GhostIfu(resolutionMode = rm)                =>
       s"GHOST IFU ${rm.shortName}"
+    case BasicConfiguration.GnirsLongSlit(filter = filter)               =>
+      s"GNIRS Longslit ${filter.shortName}"
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 
