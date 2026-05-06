@@ -44,3 +44,9 @@ object ColumnSize:
         .withEnableResizing(size.enableResize && !col.enableResizing.contains(false))
         .setMinSize(size.minSize)
         .setMaxSize(size.maxSize)
+
+  extension [T, TM, CM, TF, CF, FM](col: ColumnDef[T, ?, TM, CM, TF, CF, FM])
+    def withColumnSize(size: ColumnSize): ColumnDef[T, ?, TM, CM, TF, CF, FM] =
+      col match
+        case c @ ColumnDef.Single(_) => c.withColumnSize(size)
+        case c @ ColumnDef.Group(_)  => c.withColumnSize(size)

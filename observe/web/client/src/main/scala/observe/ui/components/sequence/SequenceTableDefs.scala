@@ -138,7 +138,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     FetchClient[IO, ObservationDB],
     ToastCtx[IO],
     Logger[IO]
-  ): List[ColDef.TypeFor[?]] =
+  ): List[ColDef.Type] =
     List(
       SequenceColumns
         .headerCell(HeaderColumnId, ColDef)
