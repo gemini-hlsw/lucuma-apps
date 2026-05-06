@@ -42,6 +42,7 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.GhostIfu
 import lucuma.schemas.odb.input.*
+import lucuma.ui.LucumaStyles
 import lucuma.ui.display.given
 import lucuma.ui.format.*
 import lucuma.ui.input.ChangeAuditor
@@ -162,7 +163,7 @@ object GhostIfuConfigPanel
         ): Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput] =
           props.observingMode.zoom(
             lens = lens,
-            remoteMod = f => inputLens.modify(_.map(f))
+            remoteMod = forceAssign(inputLens.modify)(lens.get(mode).toInput)
           )
 
         // One panel per detector with a subset of the ETM
@@ -198,8 +199,8 @@ object GhostIfuConfigPanel
               .view(_.orUnassign)
 
           <.div(
-            ExploreStyles.GhostDetectorPanel |+| colorClazz,
-            <.div(ExploreStyles.GhostDetectorHeader, label),
+            ExploreStyles.GhostDetectorPanel,
+            <.div(ExploreStyles.GhostDetectorHeader |+| colorClazz, label),
             <.div(
               LucumaPrimeStyles.FormColumnCompact,
               TimeAndCountModeEditor(
@@ -300,14 +301,14 @@ object GhostIfuConfigPanel
             detectorPanel(
               label = "Blue Camera",
               detector = mode.blue,
-              colorClazz = ExploreStyles.GhostDetectorPanelBlue,
+              colorClazz = LucumaStyles.GhostBlue,
               idPrefix = "ghostBlue".refined,
               aligner = detectorAligner(GhostIfu.blue, GhostIfuInput.blue)
             ),
             detectorPanel(
               label = "Red Camera",
               detector = mode.red,
-              colorClazz = ExploreStyles.GhostDetectorPanelRed,
+              colorClazz = LucumaStyles.GhostRed,
               idPrefix = "ghostRed".refined,
               aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red)
             )

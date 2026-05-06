@@ -32,9 +32,7 @@ class UseDynTable(
   def setInitialColWidths[R, TM, CM, TF](
     cols: List[ColumnDef[R, ?, TM, CM, TF, ?, ?]]
   ): List[ColumnDef[R, ?, TM, CM, TF, ?, ?]] =
-    cols.map:
-      case col @ ColumnDef.Single(_) => col.withColumnSize(initialColumnSizes(col.id))
-      case col @ ColumnDef.Group(_)  => col.withColumnSize(initialColumnSizes(col.id))
+    cols.map(col => col.withColumnSize(initialColumnSizes(col.id)))
 
   lazy val modifyColumnSizing: Endo[ColumnSizing] => Callback =
     mod => onColumnSizingChangeHandler(Updater.Mod(mod))

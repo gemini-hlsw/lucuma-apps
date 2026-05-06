@@ -14,3 +14,6 @@ object LucumaStyles:
   val Toast = Css("lucuma-toast")
 
   val HVCenter = Css("lucuma-horizontal-vertical-center")
+
+  val GhostBlue: Css = Css("lucuma-ghost-blue")
+  val GhostRed: Css  = Css("lucuma-ghost-red")
