@@ -19,6 +19,7 @@ import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.TooltipOptions
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.ui.LucumaStyles
 import lucuma.ui.format.formatSN
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.*
@@ -239,6 +240,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
   private def ghostDetectorCols(
     getter:     SequenceRow[D] => Option[GhostDetector],
     prefix:     String,
+    headerCss:  Css,
     countId:    ColumnId,
     timeId:     ColumnId,
     readModeId: ColumnId,
@@ -247,23 +249,23 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     List(
       colDef(countId,
              _.getStep.flatMap(getter(_).map(_.exposureCount)),
-             header = _ => s"$prefix-count",
+             header = _ => <.span(headerCss)(s"$prefix-count"),
              cell = _.value.map(_.value.toString).orEmpty
       ),
       colDef(
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
-        header = _ => s"$prefix-Exp (s)",
+        header = _ => <.span(headerCss)(s"$prefix-Exp (s)"),
         cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
       ),
       colDef(readModeId,
              _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
-             header = _ => s"$prefix-RM",
+             header = _ => <.span(headerCss)(s"$prefix-RM"),
              cell = _.value.orEmpty
       ),
       colDef(binningId,
              _.getStep.flatMap(getter(_).map(_.binning.name)),
-             header = _ => s"$prefix-Bin",
+             header = _ => <.span(headerCss)(s"$prefix-Bin"),
              cell = _.value.orEmpty
       )
     )
@@ -326,20 +328,22 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
   lazy val ForGhost: List[colDef.TypeFor[?]] =
     List(indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
       ghostDetectorCols(
-        _.ghostRed,
-        "Red",
-        SequenceColumns.GhostRedExposureCountColumnId,
-        SequenceColumns.GhostRedExposureTimeColumnId,
-        SequenceColumns.GhostRedReadModeColumnId,
-        SequenceColumns.GhostRedBinningColumnId
-      ) ++
-      ghostDetectorCols(
         _.ghostBlue,
         "Blue",
+        LucumaStyles.GhostBlue,
         SequenceColumns.GhostBlueExposureCountColumnId,
         SequenceColumns.GhostBlueExposureTimeColumnId,
         SequenceColumns.GhostBlueReadModeColumnId,
         SequenceColumns.GhostBlueBinningColumnId
+      ) ++
+      ghostDetectorCols(
+        _.ghostRed,
+        "Red",
+        LucumaStyles.GhostRed,
+        SequenceColumns.GhostRedExposureCountColumnId,
+        SequenceColumns.GhostRedExposureTimeColumnId,
+        SequenceColumns.GhostRedReadModeColumnId,
+        SequenceColumns.GhostRedBinningColumnId
       )
 
   def apply(instrument: Instrument): List[colDef.TypeFor[?]] =

@@ -386,8 +386,6 @@ object ExploreStyles:
   val GhostUpperGrid: Css               = Css("explore-ghost-upper-grid")
   val GhostLowerGrid: Css               = Css("explore-ghost-lower-grid")
   val GhostDetectorPanel: Css           = Css("explore-ghost-detector-panel")
-  val GhostDetectorPanelBlue: Css       = Css("explore-ghost-detector-panel-blue")
-  val GhostDetectorPanelRed: Css        = Css("explore-ghost-detector-panel-red")
   val GhostDetectorHeader: Css          = Css("explore-ghost-detector-header")
   val GhostAgitators: Css               = Css("explore-ghost-agitators")
   val GmosLongSlitUpperGrid: Css        = Css("explore-gmos-longslit-upper-grid")
