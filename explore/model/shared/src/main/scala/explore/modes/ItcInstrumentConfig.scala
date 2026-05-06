@@ -18,6 +18,7 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.refined.*
+import lucuma.schemas.enums.ImagingCapabilities
 import lucuma.schemas.model.CentralWavelength
 import monocle.Focus
 import monocle.Getter
@@ -345,6 +346,35 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
+  }
+
+  // Used for imaging instruments (Alopeke, Zorro)
+  case class GenericImaging(
+    i:           Instrument,
+    filterLabel: NonEmptyString, // not an enum just a label
+    site:        Site,
+    capability:  Option[ImagingCapabilities]
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = Unit
+    type Filter   = NonEmptyString
+    type FPU      = Unit
+    type Override = Unit
+
+    val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
+    val filterStr: String                = filterLabel.value
+    val filter: Filter                   = filterLabel
+    val grating: Grating                 = ()
+    val fpu: FPU                         = ()
+    val instrument                       = i
+    val hasFilter                        = true
+    val mode                             = ScienceMode.Imaging
+
+    override def instrumentLabel: String =
+      capability.fold(instrument.longName)(c => s"${instrument.longName} - ${c.label}")
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig = this
+
+    val signalToNoiseAt: Wavelength = Wavelength.Min
   }
 
   // Used for Instruments not fully defined

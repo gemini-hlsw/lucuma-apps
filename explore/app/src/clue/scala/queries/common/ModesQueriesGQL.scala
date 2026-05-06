@@ -83,7 +83,10 @@ object ModesQueriesGQL:
           }
         ) {
           instrument
+          filterLabel
+          site
           adaptiveOptics
+          capability
           fov {
             microarcseconds
           }
