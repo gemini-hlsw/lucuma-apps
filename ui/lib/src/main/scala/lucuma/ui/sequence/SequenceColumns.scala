@@ -239,8 +239,6 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
 
   private def ghostDetectorCols(
     getter:     SequenceRow[D] => Option[GhostDetector],
-    prefix:     String,
-    headerCss:  Css,
     countId:    ColumnId,
     timeId:     ColumnId,
     readModeId: ColumnId,
@@ -249,24 +247,50 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     List(
       colDef(countId,
              _.getStep.flatMap(getter(_).map(_.exposureCount)),
-             header = _ => <.span(headerCss)(s"$prefix-count"),
+             header = _ => "Counts",
              cell = _.value.map(_.value.toString).orEmpty
       ),
       colDef(
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
-        header = _ => <.span(headerCss)(s"$prefix-Exp (s)"),
+        header = _ => "Exptime",
         cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
       ),
       colDef(readModeId,
              _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
-             header = _ => <.span(headerCss)(s"$prefix-RM"),
+             header = _ => "Readmode",
              cell = _.value.orEmpty
       ),
       colDef(binningId,
              _.getStep.flatMap(getter(_).map(_.binning.name)),
-             header = _ => <.span(headerCss)(s"$prefix-Bin"),
+             header = _ => "Binning",
              cell = _.value.orEmpty
+      )
+    )
+
+  private lazy val ghostBlueGroupCol: colDef.Type =
+    colDef.group(
+      id = SequenceColumns.GhostBlueGroupColumnId,
+      header = _ => <.span(LucumaStyles.GhostBlue)("Blue"),
+      columns = ghostDetectorCols(
+        _.ghostBlue,
+        SequenceColumns.GhostBlueExposureCountColumnId,
+        SequenceColumns.GhostBlueExposureTimeColumnId,
+        SequenceColumns.GhostBlueReadModeColumnId,
+        SequenceColumns.GhostBlueBinningColumnId
+      )
+    )
+
+  private lazy val ghostRedGroupCol: colDef.Type =
+    colDef.group(
+      id = SequenceColumns.GhostRedGroupColumnId,
+      header = _ => <.span(LucumaStyles.GhostRed)("Red"),
+      columns = ghostDetectorCols(
+        _.ghostRed,
+        SequenceColumns.GhostRedExposureCountColumnId,
+        SequenceColumns.GhostRedExposureTimeColumnId,
+        SequenceColumns.GhostRedReadModeColumnId,
+        SequenceColumns.GhostRedBinningColumnId
       )
     )
 
@@ -325,28 +349,11 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       snCol
     )
 
-  lazy val ForGhost: List[colDef.TypeFor[?]] =
-    List(indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
-      ghostDetectorCols(
-        _.ghostBlue,
-        "Blue",
-        LucumaStyles.GhostBlue,
-        SequenceColumns.GhostBlueExposureCountColumnId,
-        SequenceColumns.GhostBlueExposureTimeColumnId,
-        SequenceColumns.GhostBlueReadModeColumnId,
-        SequenceColumns.GhostBlueBinningColumnId
-      ) ++
-      ghostDetectorCols(
-        _.ghostRed,
-        "Red",
-        LucumaStyles.GhostRed,
-        SequenceColumns.GhostRedExposureCountColumnId,
-        SequenceColumns.GhostRedExposureTimeColumnId,
-        SequenceColumns.GhostRedReadModeColumnId,
-        SequenceColumns.GhostRedBinningColumnId
-      )
+  lazy val ForGhost: List[colDef.Type] =
+    List[colDef.Type](indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
+      List(ghostBlueGroupCol, ghostRedGroupCol)
 
-  def apply(instrument: Instrument): List[colDef.TypeFor[?]] =
+  def apply(instrument: Instrument): List[colDef.Type] =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
       case Instrument.Flamingos2                       => ForFlamingos2
@@ -374,6 +381,8 @@ object SequenceColumns:
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
 
+  val GhostBlueGroupColumnId: ColumnId         = ColumnId("ghostBlueGroup")
+  val GhostRedGroupColumnId: ColumnId          = ColumnId("ghostRedGroup")
   val GhostRedExposureCountColumnId: ColumnId  = ColumnId("ghostRedExposureCount")
   val GhostRedExposureTimeColumnId: ColumnId   = ColumnId("ghostRedExposureTime")
   val GhostRedReadModeColumnId: ColumnId       = ColumnId("ghostRedReadMode")
@@ -432,6 +441,8 @@ object SequenceColumns:
 
     val ForGhost: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(
+        GhostBlueGroupColumnId         -> Resizable(287.toPx, min = 240.toPx, max = 410.toPx),
+        GhostRedGroupColumnId          -> Resizable(287.toPx, min = 240.toPx, max = 410.toPx),
         GhostRedExposureCountColumnId  -> Resizable(50.toPx, min = 40.toPx, max = 70.toPx),
         GhostRedExposureTimeColumnId   -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         GhostRedReadModeColumnId       -> FixedSize(80.toPx),

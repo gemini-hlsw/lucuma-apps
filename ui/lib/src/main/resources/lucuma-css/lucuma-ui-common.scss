@@ -74,3 +74,11 @@ a:hover {
 .lucuma-ghost-red {
   color: var(--red-500);
 }
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-ghost-blue) {
+  border-bottom: 2px solid var(--blue-500);
+}
+
+.p-datatable.pl-react-table .p-datatable-thead > tr > th:has(.lucuma-ghost-red) {
+  border-bottom: 2px solid var(--red-500);
+}
