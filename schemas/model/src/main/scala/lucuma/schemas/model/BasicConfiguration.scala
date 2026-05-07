@@ -200,8 +200,6 @@ object BasicConfiguration:
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
-    // val optimalWavelength: Wavelength   = Igrins2CentralWavelength
-
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   case class GhostIfu(
@@ -212,8 +210,6 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.Ghost) derives Eq
 
   object GhostIfu:
-    // val centralWavelength: Wavelength = Wavelength.fromIntNanometers(530).get
-
     given Decoder[ItcGhostDetector] = Decoder.instance:
       c =>
         for
