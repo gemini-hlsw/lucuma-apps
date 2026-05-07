@@ -9,7 +9,7 @@ import explore.model.ScienceRequirements
 import explore.model.SignalToNoiseModeInfo
 import explore.model.TimeAndCountModeInfo
 import lucuma.core.enums.FocalPlane
-import lucuma.core.enums.SpectroscopyCapabilities
+import lucuma.core.enums.SpectroscopyCapability
 import lucuma.core.math.Angle
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
@@ -82,7 +82,7 @@ trait ArbScienceRequirements:
       wavelengthCoverage <- arbitrary[Option[WavelengthDelta]]
       focalPlane         <- arbitrary[Option[FocalPlane]]
       focalPlaneAngle    <- arbitrary[Option[Angle]]
-      capability         <- arbitrary[Option[SpectroscopyCapabilities]]
+      capability         <- arbitrary[Option[SpectroscopyCapability]]
     yield ScienceRequirements.Spectroscopy(
       wavelength,
       resolution,
@@ -100,7 +100,7 @@ trait ArbScienceRequirements:
        Option[WavelengthDelta],
        Option[FocalPlane],
        Option[Angle],
-       Option[SpectroscopyCapabilities]
+       Option[SpectroscopyCapability]
       )
     ].contramap(sr =>
       (sr.wavelength,

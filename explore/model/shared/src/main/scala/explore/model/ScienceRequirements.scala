@@ -15,7 +15,7 @@ import io.circe.refined.given
 import lucuma.core.enums.FilterType
 import lucuma.core.enums.FocalPlane
 import lucuma.core.enums.ScienceMode
-import lucuma.core.enums.SpectroscopyCapabilities
+import lucuma.core.enums.SpectroscopyCapability
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
@@ -57,7 +57,7 @@ object ScienceRequirements:
     wavelengthCoverage: Option[WavelengthDelta],
     focalPlane:         Option[FocalPlane],
     focalPlaneAngle:    Option[Angle],
-    capability:         Option[SpectroscopyCapabilities]
+    capability:         Option[SpectroscopyCapability]
   ) derives Eq
 
   object Spectroscopy:
@@ -70,16 +70,16 @@ object ScienceRequirements:
         cov <- c.downField("wavelengthCoverage").as[Option[WavelengthDelta]]
         fp  <- c.downField("focalPlane").as[Option[FocalPlane]]
         fpa <- c.downField("focalPlaneAngle").as[Option[Angle]]
-        cap <- c.downField("capability").as[Option[SpectroscopyCapabilities]]
+        cap <- c.downField("capability").as[Option[SpectroscopyCapability]]
       } yield Spectroscopy(wl, res, cov, fp, fpa, cap)
 
-    val wavelength: Lens[Spectroscopy, Option[Wavelength]]               = Focus[Spectroscopy](_.wavelength)
-    val resolution: Lens[Spectroscopy, Option[PosInt]]                   = Focus[Spectroscopy](_.resolution)
-    val wavelengthCoverage: Lens[Spectroscopy, Option[WavelengthDelta]]  =
+    val wavelength: Lens[Spectroscopy, Option[Wavelength]]              = Focus[Spectroscopy](_.wavelength)
+    val resolution: Lens[Spectroscopy, Option[PosInt]]                  = Focus[Spectroscopy](_.resolution)
+    val wavelengthCoverage: Lens[Spectroscopy, Option[WavelengthDelta]] =
       Focus[Spectroscopy](_.wavelengthCoverage)
-    val focalPlane: Lens[Spectroscopy, Option[FocalPlane]]               = Focus[Spectroscopy](_.focalPlane)
-    val focalPlaneAngle: Lens[Spectroscopy, Option[Angle]]               = Focus[Spectroscopy](_.focalPlaneAngle)
-    val capability: Lens[Spectroscopy, Option[SpectroscopyCapabilities]] =
+    val focalPlane: Lens[Spectroscopy, Option[FocalPlane]]              = Focus[Spectroscopy](_.focalPlane)
+    val focalPlaneAngle: Lens[Spectroscopy, Option[Angle]]              = Focus[Spectroscopy](_.focalPlaneAngle)
+    val capability: Lens[Spectroscopy, Option[SpectroscopyCapability]]  =
       Focus[Spectroscopy](_.capability)
 
   case class Imaging(

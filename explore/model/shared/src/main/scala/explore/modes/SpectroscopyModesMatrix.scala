@@ -78,7 +78,7 @@ case class SpectroscopyModeRow(
   instrument: ItcInstrumentConfig,
   config:     NonEmptyString,
   focalPlane: FocalPlane,
-  capability: Option[SpectroscopyCapabilities],
+  capability: Option[SpectroscopyCapability],
   ao:         ModeAO,
   λmin:       ModeWavelength,
   λmax:       ModeWavelength,
@@ -252,7 +252,7 @@ object SpectroscopyModeRow {
       fpuLabel       <- c.downField("fpuLabel").as[NonEmptyString]
       filterLabel    <- c.downField("filterLabel").as[Option[NonEmptyString]]
       focalPlane     <- c.downField("focalPlane").as[FocalPlane]
-      capability     <- c.downField("capability").as[Option[SpectroscopyCapabilities]]
+      capability     <- c.downField("capability").as[Option[SpectroscopyCapability]]
       ao             <- c.downField("adaptiveOptics").as[Boolean]
       λmin           <- c.downField("wavelengthMin").as[Wavelength]
       λmax           <- c.downField("wavelengthMax").as[Wavelength]
@@ -341,7 +341,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
 
   def filtered(
     focalPlane:  Option[FocalPlane] = None,
-    capability:  Option[SpectroscopyCapabilities] = None,
+    capability:  Option[SpectroscopyCapability] = None,
     iq:          Option[ImageQuality.Preset] = None,
     wavelength:  Option[Wavelength] = None,
     resolution:  Option[PosInt] = None,
