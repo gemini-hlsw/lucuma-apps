@@ -15,6 +15,8 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
+import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
+import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
@@ -66,10 +68,9 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       CentralWavelength(filter.wavelength).some
     case BasicConfiguration.Igrins2LongSlit                           =>
-      // TODO: What is the right value?
-      CentralWavelength(Wavelength.unsafeFromIntPicometers(1800000)).some
+      CentralWavelength(Igrins2CentralWavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      CentralWavelength(BasicConfiguration.GhostIfu.centralWavelength).some
+      CentralWavelength(GhostCentralWavelength).some
     case _                                                            =>
       none
 
@@ -85,10 +86,9 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
-      // TODO: What is the right value?
-      AGSWavelength(BasicConfiguration.Igrins2LongSlit.optimalWavelength)
+      AGSWavelength(Igrins2CentralWavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      AGSWavelength(BasicConfiguration.GhostIfu.centralWavelength)
+      AGSWavelength(GhostCentralWavelength)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -102,10 +102,9 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
-      // TODO: What is the right value?
-      BasicConfiguration.Igrins2LongSlit.optimalWavelength
+      Igrins2CentralWavelength
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
-      BasicConfiguration.GhostIfu.centralWavelength
+      GhostCentralWavelength
 
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
@@ -201,9 +200,6 @@ object BasicConfiguration:
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
-    // This is the optimal wavelength from the modes query, but we don't have access to that info
-    // here so we'll hardcode it - for now at least.
-    val optimalWavelength: Wavelength   = Wavelength.fromIntNanometers(1975).get
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   case class GhostIfu(
@@ -214,8 +210,6 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.Ghost) derives Eq
 
   object GhostIfu:
-    val centralWavelength: Wavelength = Wavelength.fromIntNanometers(530).get
-
     given Decoder[ItcGhostDetector] = Decoder.instance:
       c =>
         for

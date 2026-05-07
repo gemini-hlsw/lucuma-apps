@@ -19,7 +19,7 @@ import explore.model.itc.ItcTargetProblem
 import explore.modes.*
 import lucuma.core.data.Zipper
 import lucuma.core.enums.FocalPlane
-import lucuma.core.enums.SpectroscopyCapabilities
+import lucuma.core.enums.SpectroscopyCapability
 import lucuma.core.math.BrightnessUnits
 import lucuma.core.math.BrightnessUnits.Brightness
 import lucuma.core.math.BrightnessUnits.FluxDensityContinuum

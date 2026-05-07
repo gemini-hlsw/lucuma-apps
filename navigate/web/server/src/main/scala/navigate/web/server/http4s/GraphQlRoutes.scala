@@ -8,7 +8,6 @@ import cats.syntax.all.*
 import fs2.compression.Compression
 import lucuma.graphql.routes.GraphQLService
 import lucuma.graphql.routes.Routes
-import natchez.Trace
 import navigate.model.config.NavigateConfiguration
 import navigate.server.NavigateEngine
 import org.http4s.HttpRoutes
@@ -17,8 +16,9 @@ import org.http4s.server.middleware.GZip
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 
-class GraphQlRoutes[F[_]: {Async, Trace, Compression}](
+class GraphQlRoutes[F[_]: {Async, Compression}](
   config: NavigateConfiguration,
   eng:    NavigateEngine[F],
   topics: TopicManager[F]

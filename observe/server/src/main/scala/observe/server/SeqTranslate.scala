@@ -31,6 +31,7 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.ModeSignalToNoise
@@ -488,7 +489,7 @@ object SeqTranslate {
       case gn: gmos.DynamicConfig.GmosNorth => gn.centralWavelength
       case gs: gmos.DynamicConfig.GmosSouth => gs.centralWavelength
       case f2: Flamingos2DynamicConfig      => f2.centralWavelength.some
-      case i2: Igrins2DynamicConfig         => Igrins2.CentralWavelength
+      case i2: Igrins2DynamicConfig         => Igrins2CentralWavelength.some
     }
 
     private def getTcs[S, D](

@@ -11,7 +11,6 @@ import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.ObserveClass
-import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
@@ -116,9 +115,6 @@ object Igrins2:
 
     override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName =
       LightSinkName.Igrins2
-
-  // TODO this colud be part of the static config in core
-  val CentralWavelength: Option[Wavelength] = Wavelength.fromIntNanometers(1975)
 
   def build[F[_]: {MonadThrow, Temporal, Logger}](
     controller:      Igrins2Controller[F],

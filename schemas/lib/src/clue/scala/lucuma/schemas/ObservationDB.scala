@@ -178,7 +178,7 @@ trait ObservationDB {
     type Site                                = enums.Site
     type SkyBackground                       = enums.SkyBackground
     type SlewStage                           = enums.SlewStage
-    type SpectroscopyCapabilities            = enums.SpectroscopyCapabilities
+    type SpectroscopyCapabilities            = enums.SpectroscopyCapability
     type SmartGcalType                       = enums.SmartGcalType
     type StellarLibrarySpectrum              = enums.StellarLibrarySpectrum
     type StepExecutionState                  = lucuma.schemas.model.enums.StepExecutionState

@@ -59,11 +59,11 @@ trait DisplayImplicits:
   given Display[Band] =
     Display.by(_.shortName, _.longName)
 
-  given Display[SpectroscopyCapabilities] =
+  given Display[SpectroscopyCapability] =
     Display.byShortName:
-      case SpectroscopyCapabilities.NodAndShuffle => "Nod & Shuffle"
-      case SpectroscopyCapabilities.Polarimetry   => "Polarimetry"
-      case SpectroscopyCapabilities.Coronagraphy  => "Coronagraphy"
+      case SpectroscopyCapability.NodAndShuffle => "Nod & Shuffle"
+      case SpectroscopyCapability.Polarimetry   => "Polarimetry"
+      case SpectroscopyCapability.Coronagraphy  => "Coronagraphy"
 
   given Display[FocalPlane] = Display.byShortName:
     case FocalPlane.SingleSlit   => "Single Slit"
