@@ -14,7 +14,6 @@ import fs2.compression.Compression
 import fs2.io.file.Files
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
-import natchez.Trace.Implicits.noop
 import navigate.model.config.*
 import navigate.server.CaServiceInit
 import navigate.server.NavigateEngine
