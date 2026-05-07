@@ -26,12 +26,12 @@ import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.igrins2.defaultOffsetsFor
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
@@ -172,7 +172,7 @@ object Igrins2LongslitConfigPanel
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               LambdaAndIntervalFormValues(
                 modeData = modeData,
-                centralWavelength = BasicConfiguration.Igrins2LongSlit.optimalWavelength,
+                centralWavelength = Igrins2CentralWavelength,
                 units = props.units
               )
             )
