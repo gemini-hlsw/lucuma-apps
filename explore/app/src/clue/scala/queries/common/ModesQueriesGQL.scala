@@ -24,6 +24,7 @@ object ModesQueriesGQL:
         ) {
           name
           instrument
+          site
           disperserLabel
           fpuLabel
           filterLabel
@@ -83,7 +84,10 @@ object ModesQueriesGQL:
           }
         ) {
           instrument
+          filterLabel
+          site
           adaptiveOptics
+          capability
           fov {
             microarcseconds
           }

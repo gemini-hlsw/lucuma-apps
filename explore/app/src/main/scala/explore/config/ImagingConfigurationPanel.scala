@@ -11,10 +11,12 @@ import explore.model.BroadBand
 import explore.model.Combination
 import explore.model.NarrowBand
 import explore.model.ScienceRequirements
+import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.model.ExposureTimeMode
@@ -29,6 +31,7 @@ case class ImagingConfigurationPanel(
   instrument:       Option[Instrument],
   exposureTimeMode: View[Option[ExposureTimeMode]],
   options:          View[ScienceRequirements.Imaging],
+  capability:       View[Option[ImagingCapability]],
   readonly:         Boolean,
   units:            WavelengthUnits,
   calibrationRole:  Option[CalibrationRole]
@@ -77,6 +80,13 @@ object ImagingConfigurationPanel
           id = "combination-filter".refined,
           value = combination,
           label = "Combination",
+          disabled = p.readonly
+        ),
+        FormEnumDropdownOptionalView(
+          id = "imaging-capability".refined,
+          label = React.Fragment("Capability", HelpIcon("configuration/capability.md".refined)),
+          value = p.capability,
+          placeholder = "Any",
           disabled = p.readonly
         ),
         ExposureTimeModeEditorOptional(

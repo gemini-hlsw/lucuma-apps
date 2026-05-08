@@ -7,8 +7,10 @@ import cats.Eq
 import cats.Order
 import cats.derived.*
 import cats.implicits.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.SupportedInstruments
 import io.circe.Decoder
+import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Declination
@@ -21,7 +23,8 @@ case class ImagingModeRow(
   id:         Option[Int], // we number the modes for the UI
   instrument: ItcInstrumentConfig,
   ao:         ModeAO,
-  fov:        Angle
+  fov:        Angle,
+  capability: Option[ImagingCapability]
 ) extends ModeRow derives Eq:
   val enabled                        = SupportedInstruments.contains_(instrument.instrument)
   val filterType: Option[FilterType] =
@@ -44,6 +47,9 @@ object ImagingModeRow {
 
   val fov: Lens[ImagingModeRow, Angle] = GenLens[ImagingModeRow](_.fov)
 
+  val capability: Lens[ImagingModeRow, Option[ImagingCapability]] =
+    GenLens[ImagingModeRow](_.capability)
+
   val filter: Getter[ImagingModeRow, ItcInstrumentConfig#Filter] =
     instrumentConfig.andThen(ItcInstrumentConfig.filter)
 
@@ -64,27 +70,28 @@ object ImagingModeRow {
 
   given Decoder[ImagingModeRow] = c =>
     for {
-      ao        <- c.downField("adaptiveOptics").as[Boolean]
-      fov       <- c.downField("fov").as[Angle]
-      gmosNorth <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthImaging]]
-      gmosSouth <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthImaging]]
-    } yield gmosNorth
-      .orElse(gmosSouth)
-      .map { i =>
-        ImagingModeRow(
-          none,
-          i,
-          ModeAO(ao),
-          fov
-        )
-      }
-      .getOrElse(sys.error("Instrument not found"))
+      inst        <- c.downField("instrument").as[Instrument]
+      ao          <- c.downField("adaptiveOptics").as[Boolean]
+      fov         <- c.downField("fov").as[Angle]
+      capability  <- c.downField("capability").as[Option[ImagingCapability]]
+      site        <- c.downField("site").as[Site]
+      filterLabel <- c.downField("filterLabel").as[NonEmptyString]
+      gmosNorth   <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthImaging]]
+      gmosSouth   <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthImaging]]
+    } yield {
+      val cfg: ItcInstrumentConfig = gmosNorth
+        .orElse(gmosSouth)
+        // Alopeke and Zorro only have a label field
+        .getOrElse(ItcInstrumentConfig.GenericImaging(inst, filterLabel, site, capability))
+      ImagingModeRow(none, cfg, ModeAO(ao), fov, capability)
+    }
 }
 
 case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
   def filtered(
     minimumFov:  Option[Angle],
     filterTypes: Set[FilterType],
+    capability:  Option[ImagingCapability],
     declination: Option[Declination] = None
   ): List[ImagingModeRow] =
     import explore.model.syntax.all.*
@@ -92,6 +99,7 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
     val filter: ImagingModeRow => Boolean = r =>
       minimumFov.forall(fov => r.fov >= fov) &&
         (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
+        capability.forall(r.capability.contains) &&
         declination.forall(r.instrument.site.inPreferredDeclination)
 
     matrix.filter(filter)

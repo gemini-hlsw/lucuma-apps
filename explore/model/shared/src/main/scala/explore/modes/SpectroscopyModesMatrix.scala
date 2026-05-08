@@ -248,6 +248,7 @@ object SpectroscopyModeRow {
     for {
       name           <- c.downField("name").as[NonEmptyString]
       instrument     <- c.downField("instrument").as[Instrument]
+      site           <- c.downField("site").as[Site]
       disperserLabel <- c.downField("disperserLabel").as[NonEmptyString]
       fpuLabel       <- c.downField("fpuLabel").as[NonEmptyString]
       filterLabel    <- c.downField("filterLabel").as[Option[NonEmptyString]]
@@ -274,6 +275,16 @@ object SpectroscopyModeRow {
       .orElse:
         Option.when(instrument === Instrument.Igrins2):
           ItcInstrumentConfig.Igrins2Spectroscopy(placeholderEtm)
+      .orElse:
+        Option.when(instrument === Instrument.MaroonX):
+          ItcInstrumentConfig.GenericSpectroscopy(
+            instrument,
+            disperserLabel,
+            fpuLabel,
+            filterLabel,
+            site,
+            placeholderEtm
+          )
       .map: i =>
         SpectroscopyModeRow(
           none,

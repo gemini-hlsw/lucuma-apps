@@ -70,7 +70,8 @@ final case class ImagingModesTable(
   baseCoordinates:     Option[Coordinates],
   customSedTimestamps: List[Timestamp],
   units:               WavelengthUnits,
-  targetView:          View[Option[ItcTarget]]
+  targetView:          View[Option[ItcTarget]],
+  capability:          Option[ImagingCapability]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
@@ -163,7 +164,7 @@ object ImagingModesTable extends ModesTableCommon:
     given Order[Angle] = Angle.AngleOrder
 
     List(
-      column(InstrumentColumnId, row => ImagingModeRow.instrument.get(row.entry).longName)
+      column(InstrumentColumnId, row => row.entry.instrument.instrumentLabel)
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
@@ -231,7 +232,8 @@ object ImagingModesTable extends ModesTableCommon:
                             props.imaging.allowedFilterTypes,
                             props.targetView.get,
                             itcResults.get.cache.size,
-                            dec
+                            dec,
+                            props.capability
                           ):
                             (
                               matrix,
@@ -243,10 +245,11 @@ object ImagingModesTable extends ModesTableCommon:
                               fts,
                               selectedTarget,
                               _,
-                              dec
+                              dec,
+                              capability
                             ) =>
                               matrix
-                                .filtered(minimumFov, fts, dec)
+                                .filtered(minimumFov, fts, capability, dec)
                                 .sortBy(!_.enabled)
                                 .map: row =>
                                   // We update the etm here so that we don't have to do it multiple times in

@@ -347,23 +347,57 @@ object ItcInstrumentConfig:
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
-  // Used for Instruments not fully defined
-  case class GenericSpectroscopy(
-    i:                Instrument,
-    grating:          String,
-    filter:           NonEmptyString,
-    exposureTimeMode: ExposureTimeMode
+  // Used for imaging instruments (Alopeke, Zorro)
+  case class GenericImaging(
+    i:           Instrument,
+    filterLabel: NonEmptyString, // not an enum just a label
+    site:        Site,
+    capability:  Option[ImagingCapability]
   ) extends ItcInstrumentConfig derives Eq {
-    type Grating  = String
+    type Grating  = Unit
     type Filter   = NonEmptyString
     type FPU      = Unit
     type Override = Unit
-    val gratingDisplay: Display[Grating] = Display.byShortName(identity)
-    val filterStr: String                = filter.value
-    val fpu                              = ()
+
+    val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
+    val filterStr: String                = filterLabel.value
+    val filter: Filter                   = filterLabel
+    val grating: Grating                 = ()
+    val fpu: FPU                         = ()
     val instrument                       = i
-    val site                             = Site.GN
     val hasFilter                        = true
+    val mode                             = ScienceMode.Imaging
+
+    override def instrumentLabel: String =
+      capability.fold(instrument.longName): c =>
+        val caps = c.label.split(' ').map(_.capitalize).mkString(" ")
+        s"${instrument.longName} - $caps"
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig = this
+
+    val signalToNoiseAt: Wavelength = Wavelength.Min
+  }
+
+  // Used for spectroscopy instruments (MaroonX)
+  case class GenericSpectroscopy(
+    i:                Instrument,
+    disperserLabel:   NonEmptyString,
+    fpuLabel:         NonEmptyString,
+    filterLabel:      Option[NonEmptyString],
+    site:             Site,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = NonEmptyString
+    type Filter   = Option[NonEmptyString]
+    type FPU      = NonEmptyString
+    type Override = Unit
+    val gratingDisplay: Display[Grating] = Display.byShortName(_.value)
+    val filterStr: String                = filterLabel.fold("none")(_.value)
+    val grating: Grating                 = disperserLabel
+    val filter: Filter                   = filterLabel
+    val fpu: FPU                         = fpuLabel
+    val instrument                       = i
+    val hasFilter                        = filterLabel.isDefined
     val mode                             = ScienceMode.Spectroscopy
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
