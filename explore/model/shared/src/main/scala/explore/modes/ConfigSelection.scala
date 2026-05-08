@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
@@ -26,7 +27,9 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   // We can create a configuration if there is at least one selection and all ITCs are successful.
   lazy val canAccept: Boolean =
     nonEmpty &&
-      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess))
+      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess)) &&
+      !configs.exists: // TODO Remove once we support Gnirs Observing Mode
+        _.instrument === Instrument.Gnirs
 
   lazy val hasItcErrors: Boolean =
     configs.exists(_.itcResult.exists(_.isLeft))

@@ -16,7 +16,6 @@ import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosRoi
-import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.math.RadialVelocity
@@ -136,17 +135,6 @@ trait syntax:
             ) =>
           filter.optimalWavelength
             .map: w =>
-              // By default, use shallow for blue camera and deep for red camera.
-              val wellDepth: GnirsWellDepth   = camera match
-                case GnirsCamera.ShortBlue | GnirsCamera.LongBlue => GnirsWellDepth.Shallow
-                case GnirsCamera.ShortRed | GnirsCamera.LongRed   => GnirsWellDepth.Deep
-              val exposureSeconds: BigDecimal = time.toSeconds
-              // https://app.shortcut.com/lucuma/story/8557/set-gnirs-read-mode-based-on-exposure-time
-              val readMode: GnirsReadMode     =
-                if (exposureSeconds < 0.6) GnirsReadMode.VeryBright
-                else if (exposureSeconds <= 20) GnirsReadMode.Bright
-                else if (exposureSeconds <= 60) GnirsReadMode.Faint
-                else GnirsReadMode.VeryFaint
               InstrumentMode
                 .GnirsSpectroscopy(
                   etm,
@@ -156,8 +144,8 @@ trait syntax:
                   prism,
                   grating,
                   camera,
-                  readMode,
-                  wellDepth
+                  GnirsReadMode.forExposureTime(time),
+                  GnirsWellDepth.forCamera(camera)
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
