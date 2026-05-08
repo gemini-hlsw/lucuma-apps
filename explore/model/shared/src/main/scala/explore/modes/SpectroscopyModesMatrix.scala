@@ -360,6 +360,17 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     slitLength:  Option[SlitLength] = None,
     declination: Option[Declination] = None
   ): List[SpectroscopyModeRow] = {
+    // Only allow modes with a long slit FPU.
+    // TODO: Remove when NS and IFU are supported.
+    def isGmosLongslit(r: SpectroscopyModeRow): Boolean =
+      r.instrument match
+        case g: ItcInstrumentConfig.GmosNorthSpectroscopy =>
+          g.fpu.fpuType === GmosFpuType.LongSlit
+        case g: ItcInstrumentConfig.GmosSouthSpectroscopy =>
+          g.fpu.fpuType === GmosFpuType.LongSlit
+        case _                                            => 
+          true
+
     // Criteria to filter the modes
     val filter: SpectroscopyModeRow => Boolean = r =>
       // contains the  range in picometers
@@ -367,6 +378,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
         wavelength.flatMap(r.range(_).map(w => w.upper.pm.value - w.lower.pm.value))
 
       focalPlane.forall(f => r.focalPlane === f) &&
+      isGmosLongslit(r) &&
       r.capability === capability &&
       iq.forall(i => r.ao =!= ModeAO.AO || (i <= ImageQuality.Preset.PointTwo)) &&
       wavelength.forall(w => w >= r.λmin.value && w <= r.λmax.value) &&
