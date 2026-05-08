@@ -239,7 +239,7 @@ export default defineConfig(async ({ mode }) => {
     // TODO Remove this if we get EnvironmentPlugin to work.
     root: 'app/src/main/webapp',
     publicDir: publicDir,
-    envPrefix: ['VITE_', 'CATS_EFFECT_'],
+    envPrefix: ['VITE_', 'CATS_EFFECT_', 'EXPLORE_'],
     resolve: {
       dedupe: ['react-is'],
       alias: [
