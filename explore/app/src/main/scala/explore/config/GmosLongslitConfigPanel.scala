@@ -181,6 +181,7 @@ object GmosLongslitConfigPanel {
     protected val defaultWavelengthDithersLens: Lens[T, NonEmptyList[WavelengthDither]]
     protected val defaultOffsetsLens: Lens[T, NonEmptyList[Offset.Q]]
 
+    protected val excludedFpus: Set[Fpu]
     protected val excludedAcquisitionFilters: Set[Filter]
     protected val defaultAcquisitionFilterLens: Lens[T, Filter]
     protected val defaultAcquisitionRoiLens: Lens[T, GmosLongSlitAcquisitionRoi]
@@ -286,6 +287,7 @@ object GmosLongslitConfigPanel {
                   label = "FPU".some,
                   helpId = Some("configuration/gmos/fpu.md".refined),
                   disabled = disableAdvancedEdit,
+                  exclude = excludedFpus,
                   showCustomization = showCustomization,
                   allowRevertCustomization = allowRevertCustomization
                 ),
@@ -689,6 +691,9 @@ object GmosLongslitConfigPanel {
     override protected val defaultOffsetsLens           =
       ObservingMode.GmosNorthLongSlit.defaultOffsets
 
+    override protected val excludedFpus: Set[GmosNorthFpu]                 =
+      Enumerated[GmosNorthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
+
     override protected val excludedAcquisitionFilters: Set[GmosNorthFilter] =
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
 
@@ -898,6 +903,9 @@ object GmosLongslitConfigPanel {
             GmosSouthLongSlitAcquisitionInput()
           )
         )
+
+    override protected val excludedFpus: Set[GmosSouthFpu]                 =
+      Enumerated[GmosSouthFpu].all.filter(_.fpuType =!= GmosFpuType.LongSlit).toSet
 
     override protected val excludedAcquisitionFilters: Set[GmosSouthFilter] =
       Enumerated[GmosSouthFilter].all.toSet -- GmosSouthFilter.acquisition.toList.toSet
