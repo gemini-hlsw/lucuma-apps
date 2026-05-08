@@ -1102,7 +1102,7 @@ lazy val rootSetupNodePnpmInstall =
   setupPnpmAndNode ++
     List(
       WorkflowStep.Run(
-        List("pnpm install --frozen-lockfile --filter '!lucuma-ui-demo' --prefer-offline"),
+        List("pnpm ci --filter '!lucuma-ui-demo' --prefer-offline"),
         name = Some("pnpm install")
       )
     )
@@ -1111,7 +1111,7 @@ lazy val rootOnlySetupNodePnpmInstall =
   setupPnpmAndNode ++
     List(
       WorkflowStep.Run(
-        List("pnpm install --frozen-lockfile --filter 'lucuma-apps' --prefer-offline"),
+        List("pnpm ci --filter 'lucuma-apps' --prefer-offline"),
         name = Some("pnpm install")
       )
     )
@@ -1119,7 +1119,7 @@ lazy val rootOnlySetupNodePnpmInstall =
 lazy val exploreSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter explore --filter {ui/tests} --prefer-offline"),
+      List("pnpm ci --filter explore --filter {ui/tests} --prefer-offline"),
       name = Some("pnpm install")
     )
   )
@@ -1127,7 +1127,7 @@ lazy val exploreSetupNodePnpmInstall =
 lazy val observeSetupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --filter observe --prefer-offline"),
+      List("pnpm ci --filter observe --prefer-offline"),
       name = Some("pnpm install")
     )
   )
