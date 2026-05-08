@@ -16,7 +16,7 @@ import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.ImagingCapabilities
+import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.model.ExposureTimeMode
@@ -31,7 +31,7 @@ case class ImagingConfigurationPanel(
   instrument:       Option[Instrument],
   exposureTimeMode: View[Option[ExposureTimeMode]],
   options:          View[ScienceRequirements.Imaging],
-  capability:       View[Option[ImagingCapabilities]],
+  capability:       View[Option[ImagingCapability]],
   readonly:         Boolean,
   units:            WavelengthUnits,
   calibrationRole:  Option[CalibrationRole]

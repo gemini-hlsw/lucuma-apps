@@ -154,7 +154,7 @@ trait ObservationDB {
     type GuideState                          = enums.StepGuideState
     type HiiRegionSpectrum                   = enums.HIIRegionSpectrum
     type ImageQualityPreset                  = ImageQuality.Preset
-    type ImagingCapabilities                 = enums.ImagingCapabilities
+    type ImagingCapability                   = enums.ImagingCapability
     type Instrument                          = enums.Instrument
     type LineFluxIntegratedUnits             = Units Of LineFlux[Integrated]
     type LineFluxSurfaceUnits                = Units Of LineFlux[Surface]
@@ -179,7 +179,7 @@ trait ObservationDB {
     type Site                                = enums.Site
     type SkyBackground                       = enums.SkyBackground
     type SlewStage                           = enums.SlewStage
-    type SpectroscopyCapabilities            = enums.SpectroscopyCapability
+    type SpectroscopyCapability              = enums.SpectroscopyCapability
     type SmartGcalType                       = enums.SmartGcalType
     type StellarLibrarySpectrum              = enums.StellarLibrarySpectrum
     type StepExecutionState                  = lucuma.schemas.model.enums.StepExecutionState

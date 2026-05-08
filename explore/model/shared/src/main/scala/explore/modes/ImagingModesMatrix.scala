@@ -24,7 +24,7 @@ case class ImagingModeRow(
   instrument: ItcInstrumentConfig,
   ao:         ModeAO,
   fov:        Angle,
-  capability: Option[ImagingCapabilities]
+  capability: Option[ImagingCapability]
 ) extends ModeRow derives Eq:
   val enabled                        = SupportedInstruments.contains_(instrument.instrument)
   val filterType: Option[FilterType] =
@@ -47,7 +47,7 @@ object ImagingModeRow {
 
   val fov: Lens[ImagingModeRow, Angle] = GenLens[ImagingModeRow](_.fov)
 
-  val capability: Lens[ImagingModeRow, Option[ImagingCapabilities]] =
+  val capability: Lens[ImagingModeRow, Option[ImagingCapability]] =
     GenLens[ImagingModeRow](_.capability)
 
   val filter: Getter[ImagingModeRow, ItcInstrumentConfig#Filter] =
@@ -73,7 +73,7 @@ object ImagingModeRow {
       inst        <- c.downField("instrument").as[Instrument]
       ao          <- c.downField("adaptiveOptics").as[Boolean]
       fov         <- c.downField("fov").as[Angle]
-      capability  <- c.downField("capability").as[Option[ImagingCapabilities]]
+      capability  <- c.downField("capability").as[Option[ImagingCapability]]
       site        <- c.downField("site").as[Site]
       filterLabel <- c.downField("filterLabel").as[NonEmptyString]
       gmosNorth   <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthImaging]]
@@ -91,7 +91,7 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
   def filtered(
     minimumFov:  Option[Angle],
     filterTypes: Set[FilterType],
-    capability:  Option[ImagingCapabilities],
+    capability:  Option[ImagingCapability],
     declination: Option[Declination] = None
   ): List[ImagingModeRow] =
     import explore.model.syntax.all.*

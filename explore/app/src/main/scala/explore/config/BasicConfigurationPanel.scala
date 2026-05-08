@@ -26,7 +26,7 @@ import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.ImagingCapabilities
+import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
@@ -75,7 +75,7 @@ private object BasicConfigurationPanel:
         _               <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
                              scienceModeType.set(modeType)
         creating        <- useStateView(Creating(false))
-        imagingCap      <- useStateView(none[ImagingCapabilities])
+        imagingCap      <- useStateView(none[ImagingCapability])
       yield
         import ctx.given
 

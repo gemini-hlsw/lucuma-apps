@@ -352,7 +352,7 @@ object ItcInstrumentConfig:
     i:           Instrument,
     filterLabel: NonEmptyString, // not an enum just a label
     site:        Site,
-    capability:  Option[ImagingCapabilities]
+    capability:  Option[ImagingCapability]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = Unit
     type Filter   = NonEmptyString

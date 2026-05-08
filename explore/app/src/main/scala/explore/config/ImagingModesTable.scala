@@ -71,7 +71,7 @@ final case class ImagingModesTable(
   customSedTimestamps: List[Timestamp],
   units:               WavelengthUnits,
   targetView:          View[Option[ItcTarget]],
-  capability:          Option[ImagingCapabilities]
+  capability:          Option[ImagingCapability]
 ) extends ReactFnProps(ImagingModesTable.component)
 
 object ImagingModesTable extends ModesTableCommon:
