@@ -34,7 +34,8 @@ trait OdbAsterismApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       WHERE = obsIds.toWhereObservation.assign,
       SET = EditAsterismsPatchInput(ADD = targetIds.assign)
     )
-    UpdateAsterismsMutation[F].execute(input).processErrors.void
+    // Ignore pending calc errors, it is expected in this case
+    UpdateAsterismsMutation[F].execute(input).processErrorsVoid(ignorePendingObsCalc)
 
   def removeTargetsFromAsterisms(
     obsIds:    List[Observation.Id],

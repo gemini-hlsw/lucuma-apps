@@ -27,7 +27,6 @@ import lucuma.core.model.Target
 import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
-import lucuma.odb.data.OdbError
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
@@ -247,7 +246,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             attachments = List.empty.assign // Always clean observation attachments
           ).assign
         )
-      .processErrors
+      .processErrorsIgnoring(ignorePendingObsCalc)
       .map(_.cloneObservation.newObservation)
 
   def deleteObservation(obsId: Observation.Id): F[Unit] =
@@ -382,11 +381,6 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.hasMore,
       _.id
     )
-
-  // While obscalc state is in flight this is returned as an error.
-  // This is very apparent when clonning an observation.
-  private val ignorePendingObsCalc: PartialFunction[OdbError, Unit] =
-    case _: OdbError.SequenceUnavailable =>
 
   def obsCalcSubscription(
     programId: Program.Id
