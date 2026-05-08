@@ -65,8 +65,6 @@ object ItcSpectroscopyTile
       for
         ctx         <- useContext(AppContext.ctx)
         tileState   <- useStateView(ItcTileState.Empty)
-        _           <- useEffect:
-                         Callback.log(s"SELECTED CONFIG: ${props.selectedConfig}")
         graphQuerier =
           ItcGraphQuerier(
             props.observation,
