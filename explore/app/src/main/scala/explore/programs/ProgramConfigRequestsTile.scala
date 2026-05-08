@@ -27,6 +27,7 @@ import lucuma.core.model.User
 import lucuma.core.syntax.all.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.fa.Flip
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tooltip
 import lucuma.react.primereact.tooltip.*
@@ -253,8 +254,9 @@ object ProgramConfigRequestsTile:
               Option.unless(props.readonly):
                 React.Fragment(
                   Button(
-                    icon = Icons.PaperPlaneTop,
-                    label = "Withdraw Requests",
+                    icon = Icons.PaperPlaneTop.withFlip(Flip.Horizontal),
+                    label = "Withdraw",
+                    clazz = ExploreStyles.CompactNowrap,
                     onClick = changeStatus(ConfigurationRequestStatus.Withdrawn),
                     disabled = !allAreThisStatus(ConfigurationRequestStatus.Requested)
                   ).small.compact,
@@ -263,7 +265,8 @@ object ProgramConfigRequestsTile:
                     initialMessages = selectedRequests.value.map(_.justification.foldMap(_.value)),
                     trigger = Button(
                       icon = Icons.PaperPlaneTop,
-                      label = "Resubmit Requests",
+                      label = "Resubmit",
+                      clazz = ExploreStyles.CompactNowrap,
                       disabled = !allAreThisStatus(ConfigurationRequestStatus.Withdrawn)
                     ).small.compact
                   )
