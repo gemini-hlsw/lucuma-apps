@@ -13,7 +13,7 @@ import clue.syntax.*
 import lucuma.odb.data.OdbError
 import org.typelevel.log4cats.Logger
 
-trait OdbApiHelper[F[_]: {Sync, Logger}](
+trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
   resetCache:       String => F[Unit],
   notifyFatalError: String => F[Unit]
 ):
@@ -21,7 +21,7 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
       extends RuntimeException(message, cause)
 
   extension (graphQlError: GraphQLError)
-    private def asOdbError: Option[OdbError] =
+    protected def asOdbError: Option[OdbError] =
       for
         extensions <- graphQlError.extensions
         json       <- extensions(OdbError.Key)
@@ -47,7 +47,7 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
 
   private def logErrorAndResetCache(e: Throwable): F[Unit] =
     val doReset = shouldResetCache(e)
-    Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
+    L.error(e)(s"Error in ODB API call, reset: $doReset") >>
       resetCache(e.getMessage).whenA(doReset) >>
       notifyFatalError(e.getMessage).unlessA(doReset)
 
@@ -83,11 +83,16 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
   }
 
   extension [D](subscription: Resource[F, fs2.Stream[F, GraphQLResponse[D]]])
-    protected def processErrors(logPrefix: String): Resource[F, fs2.Stream[F, D]] =
+    protected def processErrors(
+      logPrefix: String,
+      ignore:    PartialFunction[OdbError, Unit] = PartialFunction.empty
+    ): Resource[F, fs2.Stream[F, D]] =
       subscription.raiseFirstNoDataError
         .handleGraphQLErrors: e =>
-          val re: Throwable = adaptResponseException(e)
-          Logger[F].error(re)(s"[$logPrefix] Error in subscription")
+          if (e.errors.forall(_.asOdbError.exists(ignore.isDefinedAt))) F.unit
+          else
+            val re: Throwable = adaptResponseException(e)
+            L.error(re)(s"[$logPrefix] Error in subscription")
         .map:
           _.onError: e =>
             fs2.Stream.eval(logErrorAndResetCache(e))

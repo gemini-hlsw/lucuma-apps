@@ -27,6 +27,7 @@ import lucuma.core.model.Target
 import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.odb.data.OdbError
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.ObservationDB.Types.*
@@ -366,7 +367,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   ): Resource[F, fs2.Stream[F, ProgramObservationsDelta.Data.ObservationEdit]] =
     ProgramObservationsDelta
       .subscribe[F](programId.toObservationEditInput)
-      .processErrors("ProgramObservationsDelta")
+      .processErrors("ProgramObservationsDelta", ignorePendingObsCalc)
       .map(_.map(_.observationEdit))
 
   def allProgramObservations(programId: Program.Id): F[List[Observation]] =
@@ -382,12 +383,17 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.id
     )
 
+  // While obscalc state is in flight this is returned as an error.
+  // This is very apparent when clonning an observation.
+  private val ignorePendingObsCalc: PartialFunction[OdbError, Unit] =
+    case _: OdbError.SequenceUnavailable =>
+
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]] =
     ObsCalcSubscription
       .subscribe[F](ObscalcUpdateInput(programId.assign))
-      .processErrors("ObsCalcSubscription")
+      .processErrors("ObsCalcSubscription", ignorePendingObsCalc)
       .map(_.map(_.obscalcUpdate))
 
   def setBlindOffsetTarget(
