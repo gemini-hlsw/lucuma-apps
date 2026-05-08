@@ -48,6 +48,9 @@ case class ConfigurationTableColumnBuilder[D, TM, CM, TF](colDef: ColumnDef.Appl
       configurationColumn(DisperserColumnId, _.observingMode.disperser)
         .withSize(110.toPx)
         .sortable,
+      configurationColumn(FilterColumnId, _.observingMode.filter)
+        .withSize(110.toPx)
+        .sortable,
       configurationColumn(ImageQualityColumnId, _.conditions.imageQuality)
         .withCell(_.value.shortName)
         .withSize(80.toPx)
@@ -99,6 +102,7 @@ object ConfigurationTableColumnBuilder {
   private val InstrumentColumnId      = ColumnId("instrument")
   private val FPUColumnId             = ColumnId("fpu")
   private val DisperserColumnId       = ColumnId("disperser")
+  private val FilterColumnId          = ColumnId("filter")
   private val ImageQualityColumnId    = ColumnId("image_quality")
   private val CloudExtinctionColumnId = ColumnId("cloud_extinction")
   private val SkyBackgroundColumnId   = ColumnId("sky_background")
@@ -112,6 +116,7 @@ object ConfigurationTableColumnBuilder {
     InstrumentColumnId      -> "Instrument",
     FPUColumnId             -> "FPU",
     DisperserColumnId       -> "Disperser",
+    FilterColumnId          -> "Filter",
     ImageQualityColumnId    -> "IQ",
     CloudExtinctionColumnId -> "CC",
     SkyBackgroundColumnId   -> "SB",
@@ -134,11 +139,21 @@ object ConfigurationTableColumnBuilder {
       case GmosNorthLongSlit(grating)    => grating.shortName
       case GmosSouthLongSlit(grating)    => grating.shortName
       case Flamingos2LongSlit(disperser) => disperser.shortName
-      case GmosNorthImaging(filters)     => filters.map(_.shortName).mkString(",")
-      case GmosSouthImaging(filters)     => filters.map(_.shortName).mkString(",")
+      case GmosNorthImaging(_)           => ""
+      case GmosSouthImaging(_)           => ""
       case Igrins2LongSlit               => ""
       case GhostIfu                      => ""
       case Visitor(_, _)                 => ""
+
+    def filter: String = mode match
+      case GmosNorthImaging(filters) => filters.map(_.shortName).mkString(",")
+      case GmosSouthImaging(filters) => filters.map(_.shortName).mkString(",")
+      case GmosNorthLongSlit(_)      => ""
+      case GmosSouthLongSlit(_)      => ""
+      case Flamingos2LongSlit(_)     => ""
+      case Igrins2LongSlit           => ""
+      case GhostIfu                  => ""
+      case Visitor(_, _)             => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =
     val targetNames =
