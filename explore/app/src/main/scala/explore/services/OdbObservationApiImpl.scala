@@ -246,7 +246,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             attachments = List.empty.assign // Always clean observation attachments
           ).assign
         )
-      .processErrors
+      .processErrorsIgnoring(ignorePendingObsCalc)
       .map(_.cloneObservation.newObservation)
 
   def deleteObservation(obsId: Observation.Id): F[Unit] =
@@ -366,7 +366,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   ): Resource[F, fs2.Stream[F, ProgramObservationsDelta.Data.ObservationEdit]] =
     ProgramObservationsDelta
       .subscribe[F](programId.toObservationEditInput)
-      .processErrors("ProgramObservationsDelta")
+      .processErrors("ProgramObservationsDelta", ignorePendingObsCalc)
       .map(_.map(_.observationEdit))
 
   def allProgramObservations(programId: Program.Id): F[List[Observation]] =
@@ -387,7 +387,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]] =
     ObsCalcSubscription
       .subscribe[F](ObscalcUpdateInput(programId.assign))
-      .processErrors("ObsCalcSubscription")
+      .processErrors("ObsCalcSubscription", ignorePendingObsCalc)
       .map(_.map(_.obscalcUpdate))
 
   def setBlindOffsetTarget(

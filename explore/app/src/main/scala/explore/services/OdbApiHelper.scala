@@ -13,15 +13,20 @@ import clue.syntax.*
 import lucuma.odb.data.OdbError
 import org.typelevel.log4cats.Logger
 
-trait OdbApiHelper[F[_]: {Sync, Logger}](
+trait OdbApiHelper[F[_]: {Sync as F, Logger as L}](
   resetCache:       String => F[Unit],
   notifyFatalError: String => F[Unit]
 ):
   private case class OdbAdaptedError[D](message: String, cause: ResponseException[D])
       extends RuntimeException(message, cause)
 
+  // In several operations we want to ignore pending obs calc errors. e.g. when clonning ond
+  // applying obs to targets
+  protected val ignorePendingObsCalc: PartialFunction[OdbError, Unit] =
+    case _: OdbError.SequenceUnavailable =>
+
   extension (graphQlError: GraphQLError)
-    private def asOdbError: Option[OdbError] =
+    protected def asOdbError: Option[OdbError] =
       for
         extensions <- graphQlError.extensions
         json       <- extensions(OdbError.Key)
@@ -47,7 +52,7 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
 
   private def logErrorAndResetCache(e: Throwable): F[Unit] =
     val doReset = shouldResetCache(e)
-    Logger[F].error(e)(s"Error in ODB API call, reset: $doReset") >>
+    L.error(e)(s"Error in ODB API call, reset: $doReset") >>
       resetCache(e.getMessage).whenA(doReset) >>
       notifyFatalError(e.getMessage).unlessA(doReset)
 
@@ -65,6 +70,36 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
     protected def processNoDataErrors: F[D] =
       fa.raiseGraphQLErrorsOnNoData.adaptOdbErrors.resetCacheOnError
 
+    protected def processErrorsVoid(
+      ignore: PartialFunction[OdbError, Unit] = PartialFunction.empty
+    ): F[Unit] =
+      fa.flatMap: response =>
+        response.errors match
+          case None                                                                   =>
+            F.unit
+          case Some(errors) if errors.forall(_.asOdbError.exists(ignore.isDefinedAt)) =>
+            F.unit
+          case Some(errors)                                                           =>
+            F.raiseError(ResponseException(errors, response.data))
+              .adaptError(adaptResponseException)
+              .onError(logErrorAndResetCache(_))
+
+    protected def processErrorsIgnoring(
+      ignore: PartialFunction[OdbError, Unit]
+    ): F[D] =
+      fa.flatMap: response =>
+        (response.errors, response.data) match
+          case (None, Some(d))                                                                   =>
+            d.pure
+          case (Some(errors), Some(d)) if errors.forall(_.asOdbError.exists(ignore.isDefinedAt)) =>
+            d.pure
+          case (Some(errors), data)                                                              =>
+            F.raiseError[D](ResponseException(errors, data))
+              .adaptError(adaptResponseException)
+              .onError(logErrorAndResetCache(_))
+          case (None, None)                                                                      =>
+            F.raiseError[D](new RuntimeException("No data and no errors in GraphQL response"))
+
   protected def drain[A, Id, R](
     fetch:      Option[Id] => F[R],
     getList:    R => List[A],
@@ -76,18 +111,22 @@ trait OdbApiHelper[F[_]: {Sync, Logger}](
         val list = getList(result)
         if (getHasMore(result)) go(list.lastOption.map(getId), list)
         // Fetching with offset includes the offset, so .dropRight(1) ensures we don't include it twice.
-        else (accum.dropRight(1) ++ list).pure[F]
+        else (accum.dropRight(1) ++ list).pure
       )
 
     go(none, List.empty)
   }
 
   extension [D](subscription: Resource[F, fs2.Stream[F, GraphQLResponse[D]]])
-    protected def processErrors(logPrefix: String): Resource[F, fs2.Stream[F, D]] =
+    protected def processErrors(
+      logPrefix: String,
+      ignore:    PartialFunction[OdbError, Unit] = PartialFunction.empty
+    ): Resource[F, fs2.Stream[F, D]] =
       subscription.raiseFirstNoDataError
         .handleGraphQLErrors: e =>
           val re: Throwable = adaptResponseException(e)
-          Logger[F].error(re)(s"[$logPrefix] Error in subscription")
+          L.error(re)(s"[$logPrefix] Error in subscription")
+            .unlessA(e.errors.forall(_.asOdbError.exists(ignore.isDefinedAt)))
         .map:
           _.onError: e =>
             fs2.Stream.eval(logErrorAndResetCache(e))
