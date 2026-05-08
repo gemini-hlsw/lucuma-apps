@@ -98,10 +98,10 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
     given Order[Angle]                    = Angle.AngleOrder
     val filter: ImagingModeRow => Boolean = r =>
       minimumFov.forall(fov => r.fov >= fov) &&
-      (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
-      capability.forall(r.capability.contains) &&
-      declination.forall(r.instrumentConfig.site.inPreferredDeclination)
-      matrix.filter(filter)
+        (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
+        capability.forall(r.capability.contains) &&
+        declination.forall(r.instrumentConfig.site.inPreferredDeclination)
+    matrix.filter(filter)
 
 object ImagingModesMatrix {
   val empty: ImagingModesMatrix = ImagingModesMatrix(Nil)

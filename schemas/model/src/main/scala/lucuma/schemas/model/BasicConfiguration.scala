@@ -16,8 +16,8 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
-import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.wavelength.decoder.given

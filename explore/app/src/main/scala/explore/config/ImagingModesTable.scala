@@ -164,7 +164,7 @@ object ImagingModesTable extends ModesTableCommon:
     given Order[Angle] = Angle.AngleOrder
 
     List(
-      column(InstrumentColumnId, row => row.entry.instrument.instrumentLabel)
+      column(InstrumentColumnId, row => row.entry.instrumentConfig.instrumentLabel)
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
