@@ -61,8 +61,8 @@ def usePatrolFieldShapes(
     port:      PortDisposition,
     trackType: Option[TrackType]
   ): Option[SingleProbeAgsParams] =
-    val guideProbe = conf.guideProbe(trackType)
-    val params     = conf match
+    val guideProbe: GuideProbe = conf.guideProbe(trackType)
+    val params                 = conf match
       case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)  =>
         AgsParams.GmosLongSlit(fpu.asLeft, port)
       case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)  =>
@@ -76,6 +76,8 @@ def usePatrolFieldShapes(
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
+      case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
+        AgsParams.Igrins2LongSlit() // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu()
 

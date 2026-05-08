@@ -328,6 +328,8 @@ object ItcInstrumentConfig:
     grating:          GnirsGrating,
     fpu:              GnirsFpuSlit,
     filter:           GnirsFilter,
+    prism:            GnirsPrism,
+    camera:           GnirsCamera,
     exposureTimeMode: ExposureTimeMode
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GnirsGrating

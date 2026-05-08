@@ -125,7 +125,7 @@ object ImagingModesTable extends ModesTableCommon:
     result: Pot[EitherNec[ItcTargetProblem, ItcResult]]
   ) extends TableRowWithResult:
     val rowId: RowId                = RowId(entry.id.orEmpty.toString)
-    val config: ItcInstrumentConfig = entry.instrument
+    val config: ItcInstrumentConfig = entry.instrumentConfig
 
   private val ColDef = ColumnDef[ImagingModeRowWithResult].WithTableMeta[TableMeta]
 
@@ -164,7 +164,7 @@ object ImagingModesTable extends ModesTableCommon:
     given Order[Angle] = Angle.AngleOrder
 
     List(
-      column(InstrumentColumnId, row => row.entry.instrument.instrumentLabel)
+      column(InstrumentColumnId, row => row.entry.instrumentConfig.instrumentLabel)
         .withCell(_.value: String)
         .withColumnSize(Resizable(120.toPx, min = 50.toPx, max = 150.toPx))
         .sortable,
@@ -342,18 +342,18 @@ object ImagingModesTable extends ModesTableCommon:
                             val oldCfgs = props.selectedConfigs.get.configs
                             val newCfgs =
                               oldCfgs
-                                .map(cfg => rs.find(_.entry.instrument === cfg.instrumentConfig))
+                                .map(cfg => rs.find(_.entry.instrumentConfig === cfg.instrumentConfig))
                                 .flattenOption
                                 .map(_.configAndResult)
                             if (oldCfgs =!= newCfgs)
                               props.selectedConfigs.set(ConfigSelection.fromList(newCfgs))
                             else Callback.empty
-      selectedIndices  <- useMemo((sortedRows, props.selectedConfigs.get)):
-                            (sortRows, selectedConfigs) =>
-                              selectedConfigs.configs
-                                .map: c =>
-                                  sortRows.indexWhere(_.entry.instrument === c.instrumentConfig)
-                                .sorted
+      selectedIndices  <-
+        useMemo((sortedRows, props.selectedConfigs.get)): (sortRows, selectedConfigs) =>
+          selectedConfigs.configs
+            .map: c =>
+              sortRows.indexWhere(_.entry.instrumentConfig === c.instrumentConfig)
+            .sorted
       visibleRows      <- useStateView(none[Range.Inclusive])
       atTop            <- useStateView(false)
       virtualizerRef   <- useRef(none[HTMLTableVirtualizer])
@@ -430,7 +430,7 @@ object ImagingModesTable extends ModesTableCommon:
               TagMod(
                 ^.disabled := !row.original.entry.enabled,
                 ExploreStyles.TableRowSelected.when:
-                  props.selectedConfigs.get.contains(row.original.entry.instrument)
+                  props.selectedConfigs.get.contains(row.original.entry.instrumentConfig)
                 ,
                 (^.onClick            ==> clickHandler(row.original)).when(row.original.entry.enabled)
               ),

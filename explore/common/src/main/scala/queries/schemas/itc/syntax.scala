@@ -16,6 +16,8 @@ import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosRoi
+import lucuma.core.enums.GnirsReadMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
@@ -43,15 +45,13 @@ trait syntax:
       ): EitherNec[ItcQueryProblem, InstrumentMode] =
         if (ghost.resolutionMode == GhostResolutionMode.Standard && targetCount > 2)
           ItcQueryProblem
-            .GenericError(
+            .GenericError:
               s"GHOST standard resolution mode supports up to 2 targets, but $targetCount were provided."
-            )
             .leftNec
         else if (ghost.resolutionMode == GhostResolutionMode.High && targetCount > 1)
           ItcQueryProblem
-            .GenericError(
+            .GenericError:
               s"GHOST high resolution mode supports only 1 target, but $targetCount were provided."
-            )
             .leftNec
         else
           val red  = ghost.redDetector.value
@@ -68,9 +68,10 @@ trait syntax:
                   blue.binning
                 )
               InstrumentMode
-                .GhostSpectroscopy(ghost.resolutionMode,
-                                   redDetector = itcRed,
-                                   blueDetector = itcBlue
+                .GhostSpectroscopy(
+                  ghost.resolutionMode,
+                  redDetector = itcRed,
+                  blueDetector = itcBlue
                 )
                 .rightNec
             .getOrElse(
@@ -87,13 +88,14 @@ trait syntax:
             .map(_.centralWavelength.value)
             .map: (cw: Wavelength) =>
               InstrumentMode
-                .GmosNorthSpectroscopy(etm,
-                                       cw,
-                                       grating,
-                                       filter,
-                                       GmosFpu.North(fpu.asRight),
-                                       ccd,
-                                       roi
+                .GmosNorthSpectroscopy(
+                  etm,
+                  cw,
+                  grating,
+                  filter,
+                  GmosFpu.North(fpu.asRight),
+                  ccd,
+                  roi
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
@@ -104,13 +106,14 @@ trait syntax:
             .map(_.centralWavelength.value)
             .map: (cw: Wavelength) =>
               InstrumentMode
-                .GmosSouthSpectroscopy(etm,
-                                       cw,
-                                       grating,
-                                       filter,
-                                       GmosFpu.South(fpu.asRight),
-                                       ccd,
-                                       roi
+                .GmosSouthSpectroscopy(
+                  etm,
+                  cw,
+                  grating,
+                  filter,
+                  GmosFpu.South(fpu.asRight),
+                  ccd,
+                  roi
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
@@ -122,6 +125,30 @@ trait syntax:
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                   =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
+        case ItcInstrumentConfig.GnirsSpectroscopy(
+              grating,
+              fpu,
+              filter,
+              prism,
+              camera,
+              etm @ ExposureTimeMode.TimeAndCountMode(time, _, _)
+            ) =>
+          filter.optimalWavelength
+            .map: w =>
+              InstrumentMode
+                .GnirsSpectroscopy(
+                  etm,
+                  w,
+                  filter,
+                  fpu,
+                  prism,
+                  grating,
+                  camera,
+                  GnirsReadMode.forExposureTime(time),
+                  GnirsWellDepth.forCamera(camera)
+                )
+                .rightNec
+            .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
         case g: ItcInstrumentConfig.GhostIfu                                                     =>
@@ -155,9 +182,8 @@ trait syntax:
       asterism
         .traverse(_.itcTarget)
         .map(_.hashDistinct)
-        .flatMap(
+        .flatMap:
           _.toNel
             .toRightNec(ItcTargetProblem(None, ItcQueryProblem.GenericError(Constants.NoTargets)))
-        )
 
 object syntax extends syntax

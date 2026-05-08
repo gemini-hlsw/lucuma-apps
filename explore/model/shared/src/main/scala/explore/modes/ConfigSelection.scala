@@ -9,7 +9,11 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
+import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.model.BasicConfiguration
 
@@ -23,7 +27,9 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   // We can create a configuration if there is at least one selection and all ITCs are successful.
   lazy val canAccept: Boolean =
     nonEmpty &&
-      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess))
+      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess)) &&
+      !configs.exists: // TODO Remove once we support Gnirs Observing Mode
+        _.instrument === Instrument.Gnirs
 
   lazy val hasItcErrors: Boolean =
     configs.exists(_.itcResult.exists(_.isLeft))
@@ -95,20 +101,34 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm)    =>
+        val gratingWavelength: GnirsGratingWavelength =
+          GnirsGratingWavelength:
+            filter.optimalWavelength.getOrElse(Wavelength.unsafeFromIntPicometers(1_650_000))
+        BasicConfiguration
+          .GnirsLongSlit(
+            filter,
+            fpu,
+            GnirsAcquisitionMirrorMode.Out(prism, grating, gratingWavelength),
+            camera
+          )
+          .some
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
-      case ItcInstrumentConfig.GhostIfu(resolutionMode = res,
-                                        signalToNoiseAt = snAt,
-                                        redDetector = red,
-                                        blueDetector = blue
+      case ItcInstrumentConfig.GhostIfu(
+            resolutionMode = res,
+            signalToNoiseAt = snAt,
+            redDetector = red,
+            blueDetector = blue
           ) =>
         (red.value.timeAndCount, blue.value.timeAndCount).mapN: (redT, blueT) =>
           val redDetector  = ItcGhostDetector(redT, red.value.readMode, red.value.binning)
           val blueDetector = ItcGhostDetector(blueT, blue.value.readMode, blue.value.binning)
-          BasicConfiguration.GhostIfu(resolutionMode = res,
-                                      signalToNoiseAt = snAt,
-                                      red = redDetector,
-                                      blue = blueDetector
+          BasicConfiguration.GhostIfu(
+            resolutionMode = res,
+            signalToNoiseAt = snAt,
+            red = redDetector,
+            blue = blueDetector
           )
       case _                                                                                  => none)
 

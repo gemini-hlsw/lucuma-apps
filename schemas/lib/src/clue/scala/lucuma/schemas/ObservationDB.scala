@@ -147,9 +147,11 @@ trait ObservationDB {
     type GmosSouthStageMode                  = enums.GmosSouthStageMode
     type GmosBinning                         = enums.GmosBinning
     type GmosLongSlitAcquisitionRoi          = enums.GmosLongSlitAcquisitionRoi
+    type GnirsCamera                         = enums.GnirsCamera
     type GnirsFilter                         = enums.GnirsFilter
     type GnirsGrating                        = enums.GnirsGrating
     type GnirsFpuSlit                        = enums.GnirsFpuSlit
+    type GnirsPrism                          = enums.GnirsPrism
     type GuideProbe                          = enums.GuideProbe
     type GuideState                          = enums.StepGuideState
     type HiiRegionSpectrum                   = enums.HIIRegionSpectrum

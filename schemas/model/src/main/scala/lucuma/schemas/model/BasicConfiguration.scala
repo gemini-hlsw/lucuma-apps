@@ -16,8 +16,10 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.itc.ItcGhostDetector
+import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Prism
@@ -43,22 +45,24 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _                                                => none
 
   def siteFor: Site = this match
-    case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
-    case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
-    case _: BasicConfiguration.GmosNorthImaging   => Site.GN
-    case _: BasicConfiguration.GmosSouthImaging   => Site.GS
     case _: BasicConfiguration.Flamingos2LongSlit => Site.GS
-    case BasicConfiguration.Igrins2LongSlit       => Site.GN
     case _: BasicConfiguration.GhostIfu           => Site.GS
+    case _: BasicConfiguration.GmosNorthImaging   => Site.GN
+    case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
+    case _: BasicConfiguration.GmosSouthImaging   => Site.GS
+    case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
+    case _: BasicConfiguration.GnirsLongSlit      => Site.GN
+    case BasicConfiguration.Igrins2LongSlit       => Site.GN
 
   def obsModeType: ObservingModeType = this match
-    case n: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
-    case s: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
-    case n: BasicConfiguration.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
-    case s: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
-    case s: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
-    case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
+    case _: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: BasicConfiguration.GhostIfu           => ObservingModeType.GhostIfu
+    case _: BasicConfiguration.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
+    case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
+    case _: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
+    case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
+    case _: BasicConfiguration.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
+    case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -89,6 +93,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(Igrins2CentralWavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
       AGSWavelength(GhostCentralWavelength)
+    case gnirs: BasicConfiguration.GnirsLongSlit                      =>
+      AGSWavelength(gnirs.centralWavelength)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -105,6 +111,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       Igrins2CentralWavelength
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
       GhostCentralWavelength
+    case gnirs: BasicConfiguration.GnirsLongSlit                      =>
+      gnirs.centralWavelength
 
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
@@ -126,6 +134,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(_, _, _) => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Igrins2LongSlit             => GuideProbe.PWFS2
     case BasicConfiguration.GhostIfu(_, _, _, _)        => GuideProbe.PWFS2
+    case BasicConfiguration.GnirsLongSlit(_, _, _, _)   => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -149,12 +158,16 @@ object BasicConfiguration:
                             c.downField("igrins2LongSlit")
                               .as[Igrins2LongSlit.type]
                               .orElse:
-                                c.downField("ghostIfu")
-                                  .as[GhostIfu]
+                                c.downField("gnirsLongSlit")
+                                  .as[GnirsLongSlit]
                                   .orElse:
-                                    DecodingFailure("Could not decode BasicConfiguration",
-                                                    c.history
-                                    ).asLeft
+                                    c.downField("ghostIfu")
+                                      .as[GhostIfu]
+                                      .orElse:
+                                        DecodingFailure(
+                                          "Could not decode BasicConfiguration",
+                                          c.history
+                                        ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -201,6 +214,21 @@ object BasicConfiguration:
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
+
+  case class GnirsLongSlit(
+    filter:            GnirsFilter,
+    fpu:               GnirsFpuSlit,
+    acquisitionMirror: GnirsAcquisitionMirrorMode,
+    camera:            GnirsCamera
+  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
+    lazy val centralWavelength: Wavelength =
+      acquisitionMirror match
+        // The only case the filter optimalWavelength is none is for XD, which can't happen when the acq mirror is in
+        case GnirsAcquisitionMirrorMode.In                    => filter.optimalWavelength.get
+        case GnirsAcquisitionMirrorMode.Out(_, _, wavelength) => wavelength.value
+
+  object GnirsLongSlit:
+    given Decoder[GnirsLongSlit] = deriveDecoder
 
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,

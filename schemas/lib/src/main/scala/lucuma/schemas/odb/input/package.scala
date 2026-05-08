@@ -703,6 +703,9 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
+    case BasicConfiguration.GnirsLongSlit(_, _, _, _)                                             =>
+      ObservingModeInput.Igrins2LongSlit: // TODO; Gnirs ObservingMode not supported in ODB yet
+        Igrins2LongSlitInput()
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

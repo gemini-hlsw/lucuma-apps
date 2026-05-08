@@ -13,7 +13,7 @@ import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
 
 trait ModeRow:
-  def instrument: ItcInstrumentConfig
+  def instrumentConfig: ItcInstrumentConfig
   def enabled: Boolean
 
 object ModeWavelength extends NewType[Wavelength]

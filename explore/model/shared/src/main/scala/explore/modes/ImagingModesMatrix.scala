@@ -20,15 +20,15 @@ import monocle.Lens
 import monocle.macros.GenLens
 
 case class ImagingModeRow(
-  id:         Option[Int], // we number the modes for the UI
-  instrument: ItcInstrumentConfig,
-  ao:         ModeAO,
-  fov:        Angle,
-  capability: Option[ImagingCapability]
+  id:               Option[Int], // we number the modes for the UI
+  instrumentConfig: ItcInstrumentConfig,
+  ao:               ModeAO,
+  fov:              Angle,
+  capability:       Option[ImagingCapability]
 ) extends ModeRow derives Eq:
-  val enabled                        = SupportedInstruments.contains_(instrument.instrument)
+  val enabled                        = SupportedInstruments.contains_(instrumentConfig.instrument)
   val filterType: Option[FilterType] =
-    instrument match
+    instrumentConfig match
       case ItcInstrumentConfig.GmosNorthImaging(filter, _) => filter.filterType.some
       case ItcInstrumentConfig.GmosSouthImaging(filter, _) => filter.filterType.some
       case _                                               => none
@@ -38,7 +38,7 @@ object ImagingModeRow {
   val id: Lens[ImagingModeRow, Option[Int]] = GenLens[ImagingModeRow](_.id)
 
   val instrumentConfig: Lens[ImagingModeRow, ItcInstrumentConfig] =
-    GenLens[ImagingModeRow](_.instrument)
+    GenLens[ImagingModeRow](_.instrumentConfig)
 
   val instrument: Getter[ImagingModeRow, Instrument] =
     instrumentConfig.andThen(ItcInstrumentConfig.instrument)
@@ -100,8 +100,7 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
       minimumFov.forall(fov => r.fov >= fov) &&
         (filterTypes.isEmpty || r.filterType.exists(filterTypes.contains)) &&
         capability.forall(r.capability.contains) &&
-        declination.forall(r.instrument.site.inPreferredDeclination)
-
+        declination.forall(r.instrumentConfig.site.inPreferredDeclination)
     matrix.filter(filter)
 
 object ImagingModesMatrix {
