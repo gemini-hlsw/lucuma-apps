@@ -13,6 +13,7 @@ object ExploreStyles:
 
   val HideReusability   = Css("hide-reusability")
   val TopMenu           = Css("explore-top-menu")
+  val GuideButton       = Css("explore-guide-button")
   val RecentProgramLink = Css("recent-program-link")
   val RecentProgramId   = Css("recent-program-id")
   val RecentProgramName = Css("recent-program-name")
