@@ -9,13 +9,16 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
-import lucuma.core.enums.Instrument
-import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
+import lucuma.core.enums.ImagingCapability
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.ScienceMode
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.CentralWavelength
 
 // ModeSelection is a collection of InstrumentConfigAndItcResult objects that are consistent with each other
 final case class ConfigSelection private (configs: List[InstrumentConfigAndItcResult]) derives Eq:
@@ -28,7 +31,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   // We also allow visitos without an ITC result
   lazy val canAccept: Boolean =
     nonEmpty &&
-      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess)) &&
+      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isAcceptable)) &&
       !configs.exists: // TODO Remove once we support Gnirs Observing Mode
         _.instrument === Instrument.Gnirs
 
@@ -131,10 +134,38 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             red = redDetector,
             blue = blueDetector
           )
+      // Visitor instruments: no ITC, central wavelength and guide-star min
+      // separation are hardcoded per (instrument, capability) since the modes
+      // query does not provide them.
+      case ItcInstrumentConfig.GenericSpectroscopy(Instrument.MaroonX, _, _, _, _, _)         =>
+        ConfigSelection.visitorBasicConfiguration(VisitorObservingModeType.MaroonX)
+      case ItcInstrumentConfig.GenericImaging(Instrument.Alopeke, _, _, capability)           =>
+        ConfigSelection.visitorBasicConfiguration(
+          capability match
+            case Some(ImagingCapability.WideField) => VisitorObservingModeType.AlopekeWideField
+            case _                                 => VisitorObservingModeType.AlopekeSpeckle
+        )
+      case ItcInstrumentConfig.GenericImaging(Instrument.Zorro, _, _, capability)             =>
+        ConfigSelection.visitorBasicConfiguration(
+          capability match
+            case Some(ImagingCapability.WideField) => VisitorObservingModeType.ZorroWideField
+            case _                                 => VisitorObservingModeType.ZorroSpeckle
+        )
       case _                                                                                  => none)
 
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)
+
+  private def visitorBasicConfiguration(
+    mode: VisitorObservingModeType
+  ): Option[BasicConfiguration] =
+    BasicConfiguration
+      .Visitor(
+        mode,
+        CentralWavelength(BasicConfiguration.Visitor.defaultCentralWavelength(mode)),
+        BasicConfiguration.Visitor.DefaultGuideStarMinSep
+      )
+      .some
 
   def one(config: InstrumentConfigAndItcResult): ConfigSelection =
     ConfigSelection(List(config))

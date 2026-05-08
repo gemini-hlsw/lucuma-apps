@@ -59,7 +59,7 @@ case class ItcResultsCache(
     l: List[Timestamp],
     r: ModeRow
   ): EitherNec[ItcTargetProblem, ItcResult] =
-    if (NoItcInstruments.contains(r.instrument.instrument))
+    if (NoItcInstruments.contains(r.instrumentConfig.instrument))
       ItcResult.NotApplicable.rightNec[ItcTargetProblem]
     else
       (mode(r), targets(a)).parTupled

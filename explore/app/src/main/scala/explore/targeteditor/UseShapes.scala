@@ -64,27 +64,32 @@ def usePatrolFieldShapes(
     val guideProbe: GuideProbe = conf.guideProbe(trackType)
     val params                 = conf match
       case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)  =>
-        AgsParams.GmosLongSlit(fpu.asLeft, port)
+        AgsParams.GmosLongSlit(fpu.asLeft, port).some
       case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)  =>
-        AgsParams.GmosLongSlit(fpu.asRight, port)
+        AgsParams.GmosLongSlit(fpu.asRight, port).some
       case BasicConfiguration.GmosNorthImaging(_)           =>
-        AgsParams.GmosImaging(port)
+        AgsParams.GmosImaging(port).some
       case BasicConfiguration.GmosSouthImaging(_)           =>
-        AgsParams.GmosImaging(port)
+        AgsParams.GmosImaging(port).some
       case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) =>
         AgsParams
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
+          .some
       case BasicConfiguration.Igrins2LongSlit               =>
-        AgsParams.Igrins2LongSlit()
+        AgsParams.Igrins2LongSlit().some
       case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
-        AgsParams.Igrins2LongSlit() // TODO; We don't have a Gnirs geometry yet.
+        AgsParams.Igrins2LongSlit().some // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
-        AgsParams.GhostIfu()
+        AgsParams.GhostIfu().some
+      // No AGS visualization for visitor instruments yet
+      case _: BasicConfiguration.Visitor                    =>
+        none
 
-    guideProbe match
-      case GuideProbe.PWFS1 => params.withPWFS1.some
-      case GuideProbe.PWFS2 => params.withPWFS2.some
-      case _                => params.some
+    params.flatMap: p =>
+      guideProbe match
+        case GuideProbe.PWFS1 => p.withPWFS1.some
+        case GuideProbe.PWFS2 => p.withPWFS2.some
+        case _                => p.some
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match

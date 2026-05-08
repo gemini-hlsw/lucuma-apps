@@ -19,6 +19,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
+import explore.model.NoItcInstruments
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.*
@@ -308,14 +309,19 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           )
 
         val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          (s.wavelength, etm).mapN: (_, _) =>
-            targets.flatMap: asterism =>
-              itcResults.get.forRow(
-                constraints,
-                asterism.some,
-                customSedTimestamps,
-                rowWithEtm
-              )
+          // Visitor instruments have no ITC backend; mark them as
+          // NotApplicable regardless of wavelength / exposure time mode / targets.
+          if NoItcInstruments.contains(rowWithEtm.instrumentConfig.instrument)
+          then ItcResult.NotApplicable.rightNec[ItcTargetProblem].some
+          else
+            (s.wavelength, etm).mapN: (_, _) =>
+              targets.flatMap: asterism =>
+                itcResults.get.forRow(
+                  constraints,
+                  asterism.some,
+                  customSedTimestamps,
+                  rowWithEtm
+                )
 
         SpectroscopyModeRowWithResult(
           rowWithEtm,

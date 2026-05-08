@@ -51,5 +51,10 @@ object BasicConfigurationSubquery
               binning
             }
           }
+          visitor {
+            mode
+            centralWavelength $WavelengthSubquery
+            guideStarMinSep $AngleSubquery
+          }
         }
       """

@@ -20,6 +20,8 @@ import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.VisitorObservingModeType
+import lucuma.core.math.Angle
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
@@ -29,6 +31,7 @@ import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
+import lucuma.schemas.ObservationDB.Types.VisitorInput
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
@@ -75,6 +78,11 @@ enum ObservingModeSummary derives Order:
   case Igrins2LongSlit()                             extends ObservingModeSummary
   // What else is needed for GHOST? Do we want to base this on detector readmode and binning?
   case GhostIfu(resolutionMode: GhostResolutionMode) extends ObservingModeSummary
+  case Visitor(
+    mode:              VisitorObservingModeType,
+    centralWavelength: CentralWavelength,
+    guideStarMinSep:   Angle
+  )                                                  extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
     case GmosNorthLongSlit(_, _, _, _, _, _) => ObservingModeType.GmosNorthLongSlit
@@ -84,6 +92,7 @@ enum ObservingModeSummary derives Order:
     case GmosSouthImaging(_, _, _, _)        => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit()                   => ObservingModeType.Igrins2LongSlit
     case GhostIfu(_)                         => ObservingModeType.GhostIfu
+    case Visitor(mode, _, _)                 => mode
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -145,6 +154,14 @@ enum ObservingModeSummary derives Order:
           resolutionMode = resolutionMode.assign
         )
       )
+    case Visitor(mode, centralWavelength, guideStarMinSep)                            =>
+      ObservingModeInput.Visitor(
+        VisitorInput(
+          mode = mode.assign,
+          centralWavelength = centralWavelength.value.toInput.assign,
+          guideStarMinSep = guideStarMinSep.toInput.assign
+        )
+      )
 
 object ObservingModeSummary:
   def fromObservingMode(observingMode: ObservingMode): ObservingModeSummary =
@@ -177,6 +194,8 @@ object ObservingModeSummary:
         Igrins2LongSlit()
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode)
+      case v: ObservingMode.Visitor            =>
+        Visitor(v.mode, v.centralWavelength, v.guideStarMinSep)
 
   given Display[ObservingModeSummary] = Display.byShortName:
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -200,6 +219,8 @@ object ObservingModeSummary:
     case GhostIfu(resolutionMode)                                                     =>
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
+    case Visitor(mode, _, _)                                                          =>
+      mode.instrument.longName
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =
@@ -208,3 +229,7 @@ object ObservingModeSummary:
   object GmosSouthImaging:
     given Order[GmosSouthImaging] =
       Order.by(x => (x.variant.variantType, x.filters.map(_.filter), x.ampReadMode, x.roi))
+
+  object Visitor:
+    given Order[Visitor] =
+      Order.by(x => (x.mode, x.centralWavelength.value, x.guideStarMinSep.toMicroarcseconds))

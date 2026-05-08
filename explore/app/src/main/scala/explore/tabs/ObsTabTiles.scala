@@ -444,7 +444,9 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              case None => ItcEmptyTile().some
+              // Visitor instruments have no ITC, so render the empty ITC tile.
+              case Some(_: BasicConfiguration.Visitor) => ItcEmptyTile().some
+              case None                                => ItcEmptyTile().some
 
           val obsConf: ObsConfiguration =
             ObsConfiguration(

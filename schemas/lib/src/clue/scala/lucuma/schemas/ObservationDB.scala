@@ -195,5 +195,6 @@ trait ObservationDB {
     type WaterVapor                          = enums.WaterVapor
     type Igrins2OffsetMode                   = enums.Igrins2OffsetMode
     type WavelengthOrder                     = enums.WavelengthOrder
+    type VisitorObservingModeType            = enums.VisitorObservingModeType
   }
 }

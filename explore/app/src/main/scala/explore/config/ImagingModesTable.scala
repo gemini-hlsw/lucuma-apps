@@ -16,6 +16,7 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
+import explore.model.NoItcInstruments
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.display.*
@@ -262,22 +263,27 @@ object ImagingModesTable extends ModesTableCommon:
                                     )
 
                                   val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-                                    // the etm is in the row, but we only want to request results when an etm is set in the UI
-                                    etm.map: _ =>
-                                      targets.flatMap: asterism =>
-                                        // Use selected target if specified, otherwise use full asterism
-                                        val calcAstersim = selectedTarget match
-                                          case Some(target) if asterism.exists(_ === target) =>
-                                            NonEmptyList.of(target)
-                                          case _                                             =>
-                                            asterism
+                                    // Visitor instruments have no ITC backend; mark them as
+                                    // NotApplicable regardless of exposure time mode / targets.
+                                    if NoItcInstruments.contains(rowWithEtm.instrumentConfig.instrument)
+                                    then ItcResult.NotApplicable.rightNec[ItcTargetProblem].some
+                                    else
+                                      // the etm is in the row, but we only want to request results when an etm is set in the UI
+                                      etm.map: _ =>
+                                        targets.flatMap: asterism =>
+                                          // Use selected target if specified, otherwise use full asterism
+                                          val calcAstersim = selectedTarget match
+                                            case Some(target) if asterism.exists(_ === target) =>
+                                              NonEmptyList.of(target)
+                                            case _                                             =>
+                                              asterism
 
-                                        itcResults.get.forRow(
-                                          constraints,
-                                          calcAstersim.some,
-                                          customSedTimestamps,
-                                          rowWithEtm
-                                        )
+                                          itcResults.get.forRow(
+                                            constraints,
+                                            calcAstersim.some,
+                                            customSedTimestamps,
+                                            rowWithEtm
+                                          )
                                   ImagingModeRowWithResult(
                                     rowWithEtm,
                                     Pot.fromOption(result)

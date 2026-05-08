@@ -233,6 +233,7 @@ final case class Observation(
           List(
             ItcInstrumentConfig.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red, blue)
           )
+        case _: ObservingMode.Visitor            => List.empty
 
   lazy val constraintsSummary: String =
     s"${constraints.imageQuality.toImageQuality.label} ${constraints.cloudExtinction.toCloudExtinction.label}" +
