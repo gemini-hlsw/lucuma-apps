@@ -372,12 +372,12 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     // Only allow modes with a long slit FPU.
     // TODO: Remove when NS and IFU are supported.
     def isGmosLongslit(r: SpectroscopyModeRow): Boolean =
-      r.instrument match
+      r.instrumentConfig match
         case g: ItcInstrumentConfig.GmosNorthSpectroscopy =>
           g.fpu.fpuType === GmosFpuType.LongSlit
         case g: ItcInstrumentConfig.GmosSouthSpectroscopy =>
           g.fpu.fpuType === GmosFpuType.LongSlit
-        case _                                            => 
+        case _                                            =>
           true
 
     // Criteria to filter the modes
