@@ -39,45 +39,14 @@ object ITCGraphRequests:
     cache:               Cache[F],
     callback:            EitherNec[ItcQueryProblem, ItcAsterismGraphResults] => F[Unit]
   ): F[Unit] =
-
-    val itcRowsParams = mode match // Only handle known modes
-      case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _, _) =>
-        ItcGraphRequestParams(
-          constraints,
-          targets,
-          customSedTimestamps,
-          m
-        ).some
-      case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _, _) =>
-        ItcGraphRequestParams(
-          constraints,
-          targets,
-          customSedTimestamps,
-          m
-        ).some
-      case m: ItcInstrumentConfig.Flamingos2Spectroscopy                =>
-        ItcGraphRequestParams(
-          constraints,
-          targets,
-          customSedTimestamps,
-          m
-        ).some
-      case m: ItcInstrumentConfig.Igrins2Spectroscopy                   =>
-        ItcGraphRequestParams(
-          constraints,
-          targets,
-          customSedTimestamps,
-          m
-        ).some
-      case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _)                 =>
-        ItcGraphRequestParams(
-          constraints,
-          targets,
-          customSedTimestamps,
-          m
-        ).some
-      case _                                                            =>
-        none
+    val itcRowsParams: Option[ItcGraphRequestParams] =
+      mode match // Only handle known modes
+        case m: (ItcInstrumentConfig.GmosNorthSpectroscopy |
+              ItcInstrumentConfig.GmosSouthSpectroscopy |
+              ItcInstrumentConfig.Flamingos2Spectroscopy | ItcInstrumentConfig.Igrins2Spectroscopy |
+              ItcInstrumentConfig.GnirsSpectroscopy | ItcInstrumentConfig.GhostIfu) =>
+          ItcGraphRequestParams(constraints, targets, customSedTimestamps, m).some
+        case _ => none
 
     def doRequest(
       request: ItcGraphRequestParams
