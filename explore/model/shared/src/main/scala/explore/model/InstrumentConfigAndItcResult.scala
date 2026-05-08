@@ -12,23 +12,12 @@ import explore.modes.ItcInstrumentConfig
 import lucuma.core.enums.Instrument
 import monocle.Focus
 import monocle.Lens
-// import explore.modes.ModeWavelength
 
 case class InstrumentConfigAndItcResult(
   instrumentConfig: ItcInstrumentConfig,
   itcResult:        Option[EitherNec[ItcTargetProblem, ItcResult]]
 ) derives Eq:
   def instrument: Instrument = instrumentConfig.instrument
-
-  // def toBasicConfiguration(λoptimal: ModeWavelength): Option[BasicConfiguration] =
-  //   instrumentConfig match
-  //     case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
-  //       BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-  //     case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
-  //       BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-  //     case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _)           =>
-  //       BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-  //     case _                                                                                  => none
 
 object InstrumentConfigAndItcResult:
   val instrumentConfig: Lens[InstrumentConfigAndItcResult, ItcInstrumentConfig] =

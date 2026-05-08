@@ -77,7 +77,7 @@ def usePatrolFieldShapes(
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
       case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
-        AgsParams.GhostIfu() // TODO
+        AgsParams.Igrins2LongSlit() // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu()
 

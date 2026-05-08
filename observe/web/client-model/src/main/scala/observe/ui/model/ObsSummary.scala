@@ -69,8 +69,9 @@ case class ObsSummary(
         case BasicConfiguration.GhostIfu(resolutionMode, _, _, _)             =>
           resolutionMode.shortName.some
         case BasicConfiguration.GnirsLongSlit(filter, fpu, acqMirror, camera) =>
+          // For Gnirs Spectroscopy we should return this pattern:
           // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>
-          // for example:
+          // For example:
           // GNIRS SB 32 l/mm @ 2.23um 1" slit
           // GNIRS SB 32 l/mm @ 2.23um SXD 0.30" slit
           // GNIRS LB 111 l/mm @ 1.67um LR-IFU AO:NGS
@@ -78,19 +79,18 @@ case class ObsSummary(
           val mirrorSummary: String = acqMirror match
             case GnirsAcquisitionMirrorMode.In                              => ""
             case GnirsAcquisitionMirrorMode.Out(prism, grating, wavelength) =>
-              val prismSummary: String = prism match
+              val prismSummary: String      = prism match
                 case GnirsPrism.Mirror => ""
                 case p                 => s" ${p.shortName}"
               val wavelengthSummary: String =
-                // wavelength.value.toMicrometers.value.formatted("%.2fµm")
                 f"${wavelength.value.toMicrometers.value}%.2fµm"
-              s" ${grating.shortName} @ $wavelengthSummary$prismSummary"
+              s" ${grating.longName} @ $wavelengthSummary$prismSummary"
           s"${camera.shortName}$mirrorSummary ${fpu.shortName} slit".some
-          // For Gnirs Imaging:
+          // For Gnirs Imaging we should return this pattern:
           // s"${filter.shortName} ${fpu.shortName} ${acqMirror.shortName} ${camera.shortName}".some
           // GNIRS Imaging:
           // GNIRS <CAM> <FILTER LIST>-band imaging <IF Altair AO: mode>
-          // for example:
+          // For example:
           // GNIRS SB J/H/K-band imaging
           // GNIRS LB K-band imaging AO:LGS+P1
 
