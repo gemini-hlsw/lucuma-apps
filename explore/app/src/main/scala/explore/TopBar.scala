@@ -75,6 +75,7 @@ object TopBar:
     ScalaFnComponent[Props]: props =>
       for {
         ctx                     <- useContext(AppContext.ctx)
+        helpCtx                 <- useContext(HelpContext.ctx)
         isProgramsOpen          <- useState(IsProgramOpen(false))
         isAboutOpen             <- useStateView(IsAboutOpen(false))
         isUserPropertiesOpen    <- useState(IsUserPropertiesOpen(false))
@@ -263,6 +264,14 @@ object TopBar:
                 )
             ),
             right = React.Fragment(
+              Button(
+                icon = Icons.Info,
+                text = true,
+                severity = Button.Severity.Secondary,
+                tooltip = "Guide",
+                clazz = ExploreStyles.GuideButton,
+                onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
+              ),
               <.span(LayoutStyles.MainUserName)(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),
