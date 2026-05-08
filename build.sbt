@@ -1084,7 +1084,7 @@ ThisBuild / githubWorkflowPermissions := Some(
 
 lazy val setupPnpmAndNode = List(
   WorkflowStep.Use(
-    UseRef.Public("pnpm", "action-setup", "v4"),
+    UseRef.Public("pnpm", "action-setup", "v6"),
     name = Some("Setup pnpm")
   ),
   WorkflowStep.Use(
@@ -1233,7 +1233,7 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
 ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodePnpmInstall
 
 val usePathsFilter: WorkflowStep = WorkflowStep.Use(
-  UseRef.Public("dorny", "paths-filter", "v3"),
+  UseRef.Public("dorny", "paths-filter", "v4"),
   Map(
     "filters" ->
       """projectDef:
