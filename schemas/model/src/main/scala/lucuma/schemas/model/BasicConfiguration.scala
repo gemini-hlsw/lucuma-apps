@@ -223,8 +223,8 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
     lazy val centralWavelength: Wavelength =
       acquisitionMirror match
-        // The only case the filter wavelength is none is for XD, which can't happend when the acq mirror is in
-        case GnirsAcquisitionMirrorMode.In                    => filter.wavelength.get
+        // The only case the filter optimalWavelength is none is for XD, which can't happen when the acq mirror is in
+        case GnirsAcquisitionMirrorMode.In                    => filter.optimalWavelength.get
         case GnirsAcquisitionMirrorMode.Out(_, _, wavelength) => wavelength.value
 
   object GnirsLongSlit:

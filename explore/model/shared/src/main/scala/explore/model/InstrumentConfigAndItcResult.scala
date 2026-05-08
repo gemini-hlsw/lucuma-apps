@@ -6,12 +6,10 @@ package explore.model
 import cats.Eq
 import cats.data.EitherNec
 import cats.derived.*
-// import cats.syntax.all.*
 import explore.model.itc.ItcResult
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.enums.Instrument
-// import lucuma.schemas.model.BasicConfiguration
 import monocle.Focus
 import monocle.Lens
 // import explore.modes.ModeWavelength

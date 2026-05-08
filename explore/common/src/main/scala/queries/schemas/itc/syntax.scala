@@ -17,6 +17,8 @@ import explore.optics.ModelOptics.*
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsReadMode
+import lucuma.core.enums.GnirsWellDepth
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
@@ -27,8 +29,6 @@ import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
 
 import scala.collection.immutable.SortedSet
-import lucuma.core.enums.GnirsReadMode
-import lucuma.core.enums.GnirsWellDepth
 
 trait syntax:
 
@@ -134,7 +134,7 @@ trait syntax:
               camera,
               etm @ ExposureTimeMode.TimeAndCountMode(time, _, _)
             ) =>
-          filter.wavelength
+          filter.optimalWavelength
             .map: w =>
               // By default, use shallow for blue camera and deep for red camera.
               val wellDepth: GnirsWellDepth   = camera match

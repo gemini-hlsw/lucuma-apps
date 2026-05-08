@@ -10,6 +10,7 @@ import explore.events.AgsMessage
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
+import lucuma.ags.AgsAnalysis.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.LoggerFactory

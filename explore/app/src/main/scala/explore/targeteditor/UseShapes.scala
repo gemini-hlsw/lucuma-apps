@@ -76,6 +76,8 @@ def usePatrolFieldShapes(
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit()
+      case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
+        AgsParams.GhostIfu() // TODO
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu()
 
