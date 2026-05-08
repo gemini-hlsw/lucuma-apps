@@ -13,9 +13,7 @@ minimumReleaseAge: 2880
 trustPolicy: no-downgrade
 trustPolicyIgnoreAfter: 20160 # 2 weeks
 
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - esbuild
-
-ignoredBuiltDependencies:
-  - protobufjs
+allowBuilds:
+  '@parcel/watcher': true
+  esbuild: true
+  protobufjs: false
