@@ -223,12 +223,13 @@ object ObsTree:
   )(using OdbObservationApi[IO], OdbGroupApi[IO]): Callback =
     val dropTargetData: Option[Data[Either[Observation, Group]]] =
       payload.location.current.dropTargets.headOption.map(_.data)
-    val edgeOpt: Option[Edge]                                    = dropTargetData.flatMap(_.extractClosestEdge)
+    val instructionOpt: Option[Instruction]                      = dropTargetData.flatMap(_.extractInstruction)
 
-    (dropTargetData.map(_.value), edgeOpt).tupled.foldMap: (dropTarget, edge) =>
+    (dropTargetData.map(_.value), instructionOpt).tupled.foldMap: (dropTarget, instruction) =>
       val draggedNode: Either[Observation, Group]         = payload.source.data.value
       val draggedNodeId: Either[Observation.Id, Group.Id] = draggedNode.bimap(_.id, _.id)
-      val isDragIntoGroupId: Boolean                      = dropTarget.isRight && edge == Edge.Bottom
+      val isDragIntoGroupId: Boolean                      =
+        dropTarget.isRight && instruction.operation == Operation.Combine
       val dropGroupId: Option[Group.Id]                   = dropTarget.fold(
         obs => obs.groupId,
         group => if isDragIntoGroupId then group.id.some else group.parentId
@@ -246,7 +247,7 @@ object ObsTree:
               NonNegShort.unsafeFrom(
                 computeIndexInList[Either[Observation, Group]](
                   _ === dropTarget,
-                  edge
+                  instruction.operation
                 )(dropNodeChildren).getOrElse(0).toShort
               )
 
@@ -312,7 +313,7 @@ object ObsTree:
                 props.expandedGroups
               )(payload).unless_(props.readonly)
           )
-        autoScrollRef <- useAutoScrollRef(getAllowedAxis = _ => Axis.Vertical)
+        autoScrollRef <- useAutoScrollRef(getAllowedAxis = _ => Axes.Vertical)
         // Saved index into the observation tree
         prevGroupInfo <- useRef(props.focusedGroupInfo)
         // refocus if current focus ceases to exist
@@ -365,8 +366,9 @@ object ObsTree:
 
           val badge =
             <.a(
-              ^.id   := s"obs-list-${obs.id.toString}",
-              ^.href := ctx.pageUrl(
+              ^.draggable := false, // Disable native HTML5 drag
+              ^.id        := s"obs-list-${obs.id.toString}",
+              ^.href      := ctx.pageUrl(
                 (AppTab.Observations,
                  props.programId,
                  Focused.singleObs(obs.id, props.focusedTargetId)
@@ -377,7 +379,9 @@ object ObsTree:
               (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)) match
                 case (Some(data), Some(sData))
                     if data.value === obs.asLeft && data.value =!= sData =>
-                  data.extractClosestEdge.map(edge => dragOverStyle(DragGapHeight, edge)).toTagMod
+                  data.extractInstruction
+                    .map(instruction => dragOverStyle(DragGapHeight, instruction.operation))
+                    .toTagMod
                 case _ => TagMod.empty
             )(
               ObsBadge(
@@ -423,7 +427,7 @@ object ObsTree:
           DraggableDropTarget(
             badge,
             getInitialData = _ => Data(obs.asLeft),
-            getData = args => Data(obs.asLeft).attachClosestEdge(args, Axis.Vertical.edges),
+            getData = args => Data(obs.asLeft).attachInstruction(args, Operations.Reorder),
             canDrag = _ => !isSystem,
             canDrop = _ => !isSystem
           )
@@ -436,8 +440,8 @@ object ObsTree:
               (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)) match
                 case (Some(data), Some(sData))
                     if data.value === group.asRight && data.value =!= sData =>
-                  data.extractClosestEdge
-                    .map(edge => dragOverStyle(DragGapHeight, edge).when(edge == Edge.Top))
+                  data.extractInstruction
+                    .map(instruction => dragOverStyle(DragGapHeight, instruction.operation))
                     .toTagMod
                 case _ => TagMod.empty
             )(
@@ -460,7 +464,8 @@ object ObsTree:
           DraggableDropTarget(
             badge,
             getInitialData = _ => Data(group.asRight),
-            getData = args => Data(group.asRight).attachClosestEdge(args, Axis.Vertical.edges),
+            // TODO DISABLE COMBINE AFTER IF EXPANDED
+            getData = args => Data(group.asRight).attachInstruction(args, Operations.All),
             // Telluric calibration groups are rendered as observations, which can be dragged.
             canDrag = _ => !isSystem || group.isTelluricCalibration,
             canDrop = _ => !isSystem && !group.isTelluricCalibration
@@ -582,7 +587,8 @@ object ObsTree:
                         props.parentGroups(dragOverIds) ++ dragOverIds.toOption
                   ),
                   (n, _) => renderItem(n, isSystem = false),
-                  expandedKeys = expandedGroups.get,
+                  expandedKeys = expandedGroups.get --
+                    dndScope.dragging.flatMap(_.value.toOption.map(g => Tree.Id(g.id.toString))),
                   onToggle = expandedGroups.set
                 ),
                 Tree(

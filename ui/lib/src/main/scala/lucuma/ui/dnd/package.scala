@@ -4,27 +4,40 @@
 package lucuma.ui.dnd
 
 import cats.Endo
+import cats.syntax.option.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.react.common.Css
 import lucuma.react.SizePx
 import lucuma.react.pragmaticdnd.facade.Edge
+import lucuma.react.pragmaticdnd.facade.Operation
+import scala.annotation.targetName
 
 private val OpeningColor = "var(--dragging-background-color)"
 
+private def commonStyle(height: SizePx, direction: String): TagMod =
+  TagMod(
+    ^.backgroundImage    := s"linear-gradient(to $direction, $OpeningColor 0px, $OpeningColor ${height.render}, transparent ${height.render})",
+    ^.transitionDuration := "0.2s"
+  )
+
+private def slideDownStyle(height: SizePx): TagMod =
+  TagMod(^.paddingTop := height.render, commonStyle(height, "bottom"))
+
+private def slideUpStyle(height: SizePx): TagMod =
+  TagMod(^.paddingBottom := height.render, commonStyle(height, "top"))
+
 def dragOverStyle(height: SizePx, edge: Edge): TagMod =
   edge match
-    case Edge.Top    =>
-      TagMod(
-        ^.paddingTop         := height.render,
-        ^.transitionDuration := "0.2s",
-        ^.backgroundImage    := s"linear-gradient(to bottom, $OpeningColor 0px, $OpeningColor ${height.render}, transparent ${height.render})"
-      )
-    case Edge.Bottom =>
-      TagMod(
-        ^.paddingBottom      := height.render,
-        ^.transitionDuration := "0.2s",
-        ^.backgroundImage    := s"linear-gradient(to top, $OpeningColor 0px, $OpeningColor ${height.render}, transparent ${height.render})"
-      )
+    case Edge.Top    => slideDownStyle(height)
+    case Edge.Bottom => slideUpStyle(height)
     case _           => TagMod.empty
+
+@targetName("dragOverStyleWithOperation")
+def dragOverStyle(height: SizePx, operation: Operation): TagMod =
+  operation match
+    case Operation.ReorderBefore => slideDownStyle(height)
+    case Operation.ReorderAfter  => slideUpStyle(height)
+    case Operation.Combine       => Css("p-treenode-dragover") // ^.backgroundColor := OpeningColor
 
 def computeIndexInList[A](nextTo: A => Boolean, position: Edge)(list: List[A]): Option[Int] =
   list.zipWithIndex
@@ -33,6 +46,16 @@ def computeIndexInList[A](nextTo: A => Boolean, position: Edge)(list: List[A]): 
       position match
         case Edge.Top | Edge.Left     => idx
         case Edge.Bottom | Edge.Right => idx + 1
+
+@targetName("computeIndexInListWithOperation")
+def computeIndexInList[A](nextTo: A => Boolean, operation: Operation)(list: List[A]): Option[Int] =
+  list.zipWithIndex
+    .collectFirst { case (a, idx) if nextTo(a) => idx }
+    .flatMap: idx =>
+      operation match
+        case Operation.ReorderBefore => idx.some
+        case Operation.ReorderAfter  => (idx + 1).some
+        case Operation.Combine       => none
 
 def insertIntoList[A](elem: A, nextTo: A => Boolean, position: Edge): Endo[List[A]] =
   list =>
