@@ -196,7 +196,9 @@ object ExploreLayout:
         programError         <- useState(none[ProgramError])
         // Reset the program cache when the program changes.
         _                    <- useEffectWithDeps(routingInfo.map(_.programId)): _ =>
-                                  ctx.resetProgramCache(none)
+                                  // reset the summaries to pot.pending when the program id changes
+                                  props.model.programSummaries.throttlerView.set(Pot.pending).toAsync >>
+                                    ctx.resetProgramCache(none)
         // Track recently opened programs and update prefs db
         _                    <- useEffectWithDeps(
                                   (routingInfo.flatMap(_.optProgramId), props.model.userId)
