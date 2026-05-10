@@ -6,10 +6,10 @@ package lucuma.ui.dnd
 import cats.Endo
 import cats.syntax.option.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.react.common.Css
 import lucuma.react.SizePx
 import lucuma.react.pragmaticdnd.facade.Edge
 import lucuma.react.pragmaticdnd.facade.Operation
+
 import scala.annotation.targetName
 
 private val OpeningColor = "var(--dragging-background-color)"
@@ -32,13 +32,6 @@ def dragOverStyle(height: SizePx, edge: Edge): TagMod =
     case Edge.Bottom => slideUpStyle(height)
     case _           => TagMod.empty
 
-@targetName("dragOverStyleWithOperation")
-def dragOverStyle(height: SizePx, operation: Operation): TagMod =
-  operation match
-    case Operation.ReorderBefore => slideDownStyle(height)
-    case Operation.ReorderAfter  => slideUpStyle(height)
-    case Operation.Combine       => Css("p-treenode-dragover") // ^.backgroundColor := OpeningColor
-
 def computeIndexInList[A](nextTo: A => Boolean, position: Edge)(list: List[A]): Option[Int] =
   list.zipWithIndex
     .collectFirst { case (a, idx) if nextTo(a) => idx }
@@ -47,7 +40,7 @@ def computeIndexInList[A](nextTo: A => Boolean, position: Edge)(list: List[A]): 
         case Edge.Top | Edge.Left     => idx
         case Edge.Bottom | Edge.Right => idx + 1
 
-@targetName("computeIndexInListWithOperation")
+@targetName("computeIndexInListByOperation")
 def computeIndexInList[A](nextTo: A => Boolean, operation: Operation)(list: List[A]): Option[Int] =
   list.zipWithIndex
     .collectFirst { case (a, idx) if nextTo(a) => idx }
