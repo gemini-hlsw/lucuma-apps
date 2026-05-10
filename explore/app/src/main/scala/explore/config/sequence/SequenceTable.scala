@@ -45,7 +45,7 @@ private trait SequenceTable[S, D]:
     val allSteps: List[SequenceRow.FutureStep[D]] =
       SequenceRow.FutureStep
         .fromAtoms(sequence, signalToNoise(seqType), seqType)
-    if (currentSeqType.contains_(seqType)) allSteps.tail
+    if (currentSeqType.contains_(seqType)) allSteps.drop(1)
     else allSteps
   end futureSteps
 
