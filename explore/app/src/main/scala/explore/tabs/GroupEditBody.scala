@@ -309,21 +309,21 @@ object GroupEditBody
               React.Fragment(
                 Divider(clazz = ExploreStyles.GroupDivider),
                 <.div(ExploreStyles.GroupPlannedTime)(
-                if timeEstimateRange.maximum === timeEstimateRange.minimum then
-                  React.Fragment(
-                    FormLabel(htmlFor = "plannedTime".refined)("Planned Time"),
-                    TimeSpanView(timeEstimateRange.maximum.value, tooltip = staleTooltip)
-                      .withMods(^.id := "plannedTime", staleClass)
-                  )
-                else
-                  React.Fragment(
-                    FormLabel(htmlFor = "maxPlannedTime".refined)("Maximum Planned Time"),
-                    TimeSpanView(timeEstimateRange.maximum.value, tooltip = staleTooltip)
-                      .withMods(^.id := "maxPlannedTime", staleClass),
-                    FormLabel(htmlFor = "minPlannedTime".refined)("Minimum Planned Time"),
-                    TimeSpanView(timeEstimateRange.minimum.value, tooltip = staleTooltip)
-                      .withMods(^.id := "minPlannedTime", staleClass)
-                  )
+                  if timeEstimateRange.maximum === timeEstimateRange.minimum then
+                    React.Fragment(
+                      FormLabel(htmlFor = "plannedTime".refined)("Planned Time"),
+                      TimeSpanView(timeEstimateRange.maximum.value, tooltip = staleTooltip)
+                        .withMods(^.id := "plannedTime", staleClass)
+                    )
+                  else
+                    React.Fragment(
+                      FormLabel(htmlFor = "maxPlannedTime".refined)("Maximum Planned Time"),
+                      TimeSpanView(timeEstimateRange.maximum.value, tooltip = staleTooltip)
+                        .withMods(^.id := "maxPlannedTime", staleClass),
+                      FormLabel(htmlFor = "minPlannedTime".refined)("Minimum Planned Time"),
+                      TimeSpanView(timeEstimateRange.minimum.value, tooltip = staleTooltip)
+                        .withMods(^.id := "minPlannedTime", staleClass)
+                    )
                 )
               )
 
