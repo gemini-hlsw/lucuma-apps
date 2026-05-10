@@ -26,7 +26,7 @@ object Versions {
   val http4s                 = "0.23.34"
   val http4sDom              = "0.2.12"
   val http4sJdkHttpClient    = "0.10.0"
-  val http4sOtel4s           = "0.17.0"
+  val http4sOtel4s           = "0.18.0"
   val http4sScalaXml         = "0.24.0"
   val javaTimeJs             = "2.6.0"
   val jwt                    = "11.0.4"
