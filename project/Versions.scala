@@ -48,7 +48,7 @@ object Versions {
   val natchez                = "0.3.10"
   val natchezHttp4s          = "0.6.2"
   val otel4s                 = "0.16.0"
-  val otel4sSdk              = "0.18.0"
+  val otel4sSdk              = "0.19.0"
   val pprint                 = "0.9.6"
   val pureConfig             = "0.17.10"
   val sbtBuildInfo           = "0.13.1"
