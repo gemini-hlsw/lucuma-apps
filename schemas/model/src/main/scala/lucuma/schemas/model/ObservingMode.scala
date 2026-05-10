@@ -85,7 +85,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
       )
       BasicConfiguration.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red = red, blue = blue)
     case v: ObservingMode.Visitor                          =>
-      BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.guideStarMinSep)
+      BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.scienceFov)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -854,7 +854,7 @@ object ObservingMode:
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    guideStarMinSep:   Angle
+    scienceFov:   Angle
   ) extends ObservingMode(mode.instrument) derives Eq:
     def isCustomized: Boolean = false
 
@@ -863,7 +863,7 @@ object ObservingMode:
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
-        gsms <- c.downField("guideStarMinSep").as[Angle]
+        gsms <- c.downField("scienceFov").as[Angle]
       yield Visitor(mode, CentralWavelength(cw), gsms)
 
   val visitor: Prism[ObservingMode, Visitor] =

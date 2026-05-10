@@ -694,7 +694,7 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.Visitor] =
     Cogen[(VisitorObservingModeType, Wavelength, Long)]
-      .contramap(o => (o.mode, o.centralWavelength.value, o.guideStarMinSep.toMicroarcseconds))
+      .contramap(o => (o.mode, o.centralWavelength.value, o.scienceFov.toMicroarcseconds))
 
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(

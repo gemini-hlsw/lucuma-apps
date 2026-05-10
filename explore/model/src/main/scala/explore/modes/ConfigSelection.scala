@@ -163,7 +163,7 @@ object ConfigSelection:
       .Visitor(
         mode,
         CentralWavelength(BasicConfiguration.Visitor.defaultCentralWavelength(mode)),
-        BasicConfiguration.Visitor.DefaultGuideStarMinSep
+        BasicConfiguration.Visitor.fov(mode)
       )
       .some
 

@@ -54,7 +54,7 @@ object BasicConfigurationSubquery
           visitor {
             mode
             centralWavelength $WavelengthSubquery
-            guideStarMinSep $AngleSubquery
+            scienceFov $AngleSubquery
           }
         }
       """

@@ -81,7 +81,7 @@ enum ObservingModeSummary derives Order:
   case Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    guideStarMinSep:   Angle
+    scienceFov:   Angle
   )                                                  extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
@@ -154,12 +154,12 @@ enum ObservingModeSummary derives Order:
           resolutionMode = resolutionMode.assign
         )
       )
-    case Visitor(mode, centralWavelength, guideStarMinSep)                            =>
+    case Visitor(mode, centralWavelength, scienceFov)                            =>
       ObservingModeInput.Visitor(
         VisitorInput(
           mode = mode.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
-          guideStarMinSep = guideStarMinSep.toInput.assign
+          scienceFov = scienceFov.toInput.assign
         )
       )
 
@@ -195,7 +195,7 @@ object ObservingModeSummary:
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode)
       case v: ObservingMode.Visitor            =>
-        Visitor(v.mode, v.centralWavelength, v.guideStarMinSep)
+        Visitor(v.mode, v.centralWavelength, v.scienceFov)
 
   given Display[ObservingModeSummary] = Display.byShortName:
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -232,4 +232,4 @@ object ObservingModeSummary:
 
   object Visitor:
     given Order[Visitor] =
-      Order.by(x => (x.mode, x.centralWavelength.value, x.guideStarMinSep.toMicroarcseconds))
+      Order.by(x => (x.mode, x.centralWavelength.value, x.scienceFov.toMicroarcseconds))

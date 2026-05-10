@@ -185,7 +185,7 @@ trait ArbBasicConfiguration {
 
   given Cogen[BasicConfiguration.Visitor] =
     Cogen[(VisitorObservingModeType, Wavelength, Angle)]
-      .contramap(o => (o.mode, o.centralWavelength.value, o.guideStarMinSep))
+      .contramap(o => (o.mode, o.centralWavelength.value, o.scienceFov))
 
   given Cogen[BasicConfiguration] =
     Cogen[Either[

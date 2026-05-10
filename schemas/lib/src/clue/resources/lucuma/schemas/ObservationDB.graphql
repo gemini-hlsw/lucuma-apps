@@ -3976,13 +3976,13 @@ input ObservingModeInput @oneOf {
 input VisitorInput {
   mode: VisitorObservingModeType
   centralWavelength: WavelengthInput
-  guideStarMinSep: AngleInput
+  scienceFov: AngleInput
 }
 
 type Visitor {
   mode: VisitorObservingModeType!
   centralWavelength: Wavelength!
-  guideStarMinSep: Angle!
+  scienceFov: Angle!
 }
 
 """Edit science requirements"""

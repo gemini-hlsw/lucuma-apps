@@ -649,7 +649,7 @@ extension (b: ObservingMode)
         VisitorInput(
           mode = v.mode.assign,
           centralWavelength = v.centralWavelength.value.toInput.assign,
-          guideStarMinSep = v.guideStarMinSep.toInput.assign
+          scienceFov = v.scienceFov.toInput.assign
         )
 
 extension (i: BasicConfiguration)
@@ -713,12 +713,12 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.GnirsLongSlit(_, _, _, _)                                             =>
       ObservingModeInput.Igrins2LongSlit: // TODO; Gnirs ObservingMode not supported in ODB yet
         Igrins2LongSlitInput()
-    case BasicConfiguration.Visitor(mode, centralWavelength, guideStarMinSep)                     =>
+    case BasicConfiguration.Visitor(mode, centralWavelength, scienceFov)                          =>
       ObservingModeInput.Visitor:
         VisitorInput(
           mode = mode.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
-          guideStarMinSep = guideStarMinSep.toInput.assign
+          scienceFov = scienceFov.toInput.assign
         )
 
 extension (er: ElevationRange)

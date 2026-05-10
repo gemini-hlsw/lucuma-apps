@@ -275,13 +275,10 @@ object BasicConfiguration:
         blue           <- c.downField("blue").as[ItcGhostDetector]
       yield GhostIfu(resolutionMode, red.timeAndCount.at, red = red, blue = blue)
 
-  // Visitor instrument observing mode. Central wavelength and guide-star
-  // minimum separation are not produced by ITC for these modes, so they are
-  // hardcoded per (instrument, capability) when assigning the mode.
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    guideStarMinSep:   Angle
+    scienceFov:        Angle
   ) extends BasicConfiguration(mode.instrument) derives Eq:
     def site: Site = mode match
       case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField |
@@ -292,8 +289,17 @@ object BasicConfiguration:
         Site.GS
 
   object Visitor:
-    // Hardcoded default: 20 arcsec
-    val DefaultGuideStarMinSep: Angle = Angle.fromDoubleArcseconds(20.0)
+    // TODO: Move to lucuma-core
+    def fov(mode: VisitorObservingModeType): Angle =
+      mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+          Angle.fromDoubleArcseconds(3.0)
+        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+          Angle.fromDoubleArcseconds(35.0)
+        case VisitorObservingModeType.MaroonX                                                    =>
+          Angle.fromDoubleArcseconds(0.77)
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
+          Angle.fromDoubleArcseconds(0.0)
 
     // Hardcoded central wavelengths for visitor instruments (no ITC backend).
     def defaultCentralWavelength(mode: VisitorObservingModeType): Wavelength =
@@ -311,7 +317,7 @@ object BasicConfiguration:
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
-        gsms <- c.downField("guideStarMinSep").as[Angle]
+        gsms <- c.downField("scienceFov").as[Angle]
       yield Visitor(mode, CentralWavelength(cw), gsms)
 
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
