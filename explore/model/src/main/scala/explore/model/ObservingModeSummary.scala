@@ -220,7 +220,15 @@ object ObservingModeSummary:
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
     case Visitor(mode, _, _)                                                          =>
-      mode.instrument.longName
+      val subMode = mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+          " Speckle"
+        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+          " Wide Field"
+        case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
+            VisitorObservingModeType.VisitorSouth                                                =>
+          ""
+      s"${mode.instrument.longName}$subMode"
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =

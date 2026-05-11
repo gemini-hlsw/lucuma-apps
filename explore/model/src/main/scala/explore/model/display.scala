@@ -325,8 +325,16 @@ trait DisplayImplicits:
       s"GHOST IFU ${rm.shortName}"
     case BasicConfiguration.GnirsLongSlit(filter = filter)               =>
       s"GNIRS Longslit ${filter.shortName}"
-    case a @ BasicConfiguration.Visitor(mode, _, _)                      =>
-      mode.instrument.longName
+    case BasicConfiguration.Visitor(mode, _, _)                          =>
+      val subMode = mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+          " Speckle"
+        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+          " Wide Field"
+        case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
+            VisitorObservingModeType.VisitorSouth                                                =>
+          ""
+      s"${mode.instrument.longName}$subMode"
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 
