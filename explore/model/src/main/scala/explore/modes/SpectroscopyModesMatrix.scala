@@ -296,6 +296,8 @@ object SpectroscopyModeRow {
             placeholderEtm
           )
       .map: i =>
+        val effectiveSlitLength: Angle =
+          if i.instrument === Instrument.MaroonX then slitWidth else slitLength
         SpectroscopyModeRow(
           none,
           i,
@@ -308,7 +310,7 @@ object SpectroscopyModeRow {
           ModeWavelength(λoptimal),
           WavelengthDelta(λcoverage.pm),
           resolution,
-          SlitLength(ModeSlitSize(slitLength)),
+          SlitLength(ModeSlitSize(effectiveSlitLength)),
           SlitWidth(ModeSlitSize(slitWidth))
         )
       .getOrElse:

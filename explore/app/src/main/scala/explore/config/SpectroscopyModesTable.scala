@@ -134,9 +134,12 @@ private object SpectroscopyModesTable extends ModesTableCommon:
 
   private def formatSlitLength(instrument: Instrument, ss: ModeSlitSize): String =
     instrument match
-      case Instrument.Ghost =>
+      case Instrument.MaroonX =>
+        // The fiber is an eight side polygo on slit width
+        formatSlitWidth(ss)
+      case Instrument.Ghost   =>
         f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(1, BigDecimal.RoundingMode.UP)}%3.1f"
-      case _                =>
+      case _                  =>
         f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(0, BigDecimal.RoundingMode.DOWN)}%1.0f"
 
   private def formatFPU(r: FocalPlane): String = r match
