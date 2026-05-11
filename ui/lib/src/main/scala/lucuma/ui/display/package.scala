@@ -65,6 +65,6 @@ given Display[VisitorObservingModeType] = Display.byShortName: mode =>
     case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
       " Wide Field"
     case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
-        VisitorObservingModeType.VisitorSouth                                                =>
+        VisitorObservingModeType.VisitorSouth =>
       ""
   s"${mode.instrument.longName}$subMode"

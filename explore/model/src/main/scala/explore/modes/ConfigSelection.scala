@@ -31,15 +31,12 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   lazy val isVisitor: Boolean =
     configs.exists(!_.instrumentConfig.needsItc)
 
-  // Acceptance rules are per-variant; the collection just aggregates.
+  // Acceptance rules are on the instrument configs
   def canAccept(etm: Option[ExposureTimeMode]): Boolean =
-    nonEmpty && configs.forall { r =>
+    nonEmpty && configs.forall: r =>
       val itcSuccess = r.itcResult.flatMap(_.toOption).exists(_.isSuccess)
       val c          = r.instrumentConfig
-      c.canBeAccepted &&
-      (!c.needsItc || itcSuccess) &&
-      c.acceptsEtm(etm)
-    }
+      c.canBeAccepted && (!c.needsItc || itcSuccess) && c.acceptsEtm(etm)
 
   lazy val hasItcErrors: Boolean =
     configs.exists(_.itcResult.exists(_.isLeft))
@@ -140,19 +137,16 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             red = redDetector,
             blue = blueDetector
           )
-      // Visitor instruments: no ITC, central wavelength and guide-star min
-      // separation are hardcoded per (instrument, capability) since the modes
-      // query does not provide them.
-      case ItcInstrumentConfig.GenericSpectroscopy(Instrument.MaroonX, _, _, _, _, _)         =>
-        ConfigSelection.visitorBasicConfiguration(VisitorObservingModeType.MaroonX)
+      case ItcInstrumentConfig.GenericSpectroscopy(i = Instrument.MaroonX)                    =>
+        ConfigSelection.residentVisitorConfiguration(VisitorObservingModeType.MaroonX)
       case ItcInstrumentConfig.GenericImaging(Instrument.Alopeke, _, _, capability)           =>
-        ConfigSelection.visitorBasicConfiguration(
+        ConfigSelection.residentVisitorConfiguration(
           capability match
             case Some(ImagingCapability.WideField) => VisitorObservingModeType.AlopekeWideField
             case _                                 => VisitorObservingModeType.AlopekeSpeckle
         )
       case ItcInstrumentConfig.GenericImaging(Instrument.Zorro, _, _, capability)             =>
-        ConfigSelection.visitorBasicConfiguration(
+        ConfigSelection.residentVisitorConfiguration(
           capability match
             case Some(ImagingCapability.WideField) => VisitorObservingModeType.ZorroWideField
             case _                                 => VisitorObservingModeType.ZorroSpeckle
@@ -162,7 +156,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)
 
-  private def visitorBasicConfiguration(
+  private def residentVisitorConfiguration(
     mode: VisitorObservingModeType
   ): Option[BasicConfiguration] =
     BasicConfiguration

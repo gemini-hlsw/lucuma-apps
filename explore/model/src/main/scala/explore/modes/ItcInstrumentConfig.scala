@@ -411,7 +411,7 @@ object ItcInstrumentConfig:
     type Filter   = Option[NonEmptyString]
     type FPU      = NonEmptyString
     type Override = Unit
-    val gratingDisplay: Display[Grating] = Display.byShortName(_.value)
+    val gratingDisplay: Display[Grating] = Display.byShortName(_.value.capitalize)
     val filterStr: String                = filterLabel.fold("none")(_.value)
     val grating: Grating                 = disperserLabel
     val filter: Filter                   = filterLabel

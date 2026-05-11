@@ -293,7 +293,6 @@ object BasicConfiguration:
         Site.GS
 
   object Visitor:
-    // TODO: Move to lucuma-core
     def fov(mode: VisitorObservingModeType): Angle =
       mode match
         case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
@@ -315,7 +314,7 @@ object BasicConfiguration:
         case VisitorObservingModeType.MaroonX                                                    =>
           MaroonXCentralWavelength
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
-          // Let's return something, the user will need to specify a value anyway
+          // Let's return something, the user will need to specify a value for an alien visitor.
           Wavelength.unsafeFromIntPicometers(700000) // 700 nm
 
     given Decoder[Visitor] = Decoder.instance: c =>

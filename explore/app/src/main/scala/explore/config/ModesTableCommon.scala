@@ -375,7 +375,7 @@ trait ModesTableCommon:
                             customSedTimestamps,
                             row.config
                           )
-                      case _                                        => true
+                      case _                                         => true
 
               Option
                 .when(modes.nonEmpty):

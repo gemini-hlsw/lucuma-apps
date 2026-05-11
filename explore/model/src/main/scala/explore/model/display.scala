@@ -22,11 +22,11 @@ import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
-import lucuma.ui.display.given
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.ui.display.given
 
 import java.text.DecimalFormat
 

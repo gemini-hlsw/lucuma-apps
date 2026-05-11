@@ -296,6 +296,7 @@ object SpectroscopyModeRow {
             placeholderEtm
           )
       .map: i =>
+        // TODO Maybe a mistake on the phase0 matrix.
         val effectiveSlitLength: Angle =
           if i.instrument === Instrument.MaroonX then slitWidth else slitLength
         SpectroscopyModeRow(
