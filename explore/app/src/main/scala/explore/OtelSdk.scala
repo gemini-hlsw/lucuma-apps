@@ -20,8 +20,8 @@ import org.typelevel.otel4s.sdk.exporter.otlp.trace.OtlpSpanExporter
 import org.typelevel.otel4s.sdk.trace.SdkTracerProvider
 import org.typelevel.otel4s.sdk.trace.context.propagation.W3CTraceContextPropagator
 import org.typelevel.otel4s.sdk.trace.processor.BatchSpanProcessor
+import org.typelevel.otel4s.semconv.attributes.DeploymentAttributes
 import org.typelevel.otel4s.semconv.attributes.ServiceAttributes
-import org.typelevel.otel4s.semconv.experimental.attributes.DeploymentExperimentalAttributes
 import org.typelevel.otel4s.semconv.experimental.attributes.UserExperimentalAttributes
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
@@ -74,7 +74,7 @@ object OtelSdk:
     val base = Attributes(
       Attribute(ServiceAttributes.ServiceName, ServiceName),
       Attribute(ServiceAttributes.ServiceVersion, serviceVersion),
-      Attribute(DeploymentExperimentalAttributes.DeploymentEnvironmentName,
+      Attribute(DeploymentAttributes.DeploymentEnvironmentName,
                 environment.tag.toLowerCase
       )
     )
