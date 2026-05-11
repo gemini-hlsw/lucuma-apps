@@ -19,7 +19,6 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
-import explore.model.NoItcInstruments
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.*
@@ -189,7 +188,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.Time)
+          itcCell(cell.row.original.result, ItcColumns.Time, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
@@ -197,7 +196,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.SN)
+          itcCell(cell.row.original.result, ItcColumns.SN, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         // put undefined last, though this may not be common on TxC mode
         .withSortUndefined(UndefinedPriority.Last)
@@ -312,10 +311,8 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           )
 
         val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          // Visitor instruments have no ITC backend; mark them as
-          // NotApplicable regardless of wavelength / exposure time mode / targets.
-          if NoItcInstruments.contains(rowWithEtm.instrumentConfig.instrument)
-          then ItcResult.NotApplicable.rightNec[ItcTargetProblem].some
+          // Visitors don't need itc, skip the query altogether
+          if !rowWithEtm.instrumentConfig.needsItc then none
           else
             (s.wavelength, etm).mapN: (_, _) =>
               targets.flatMap: asterism =>

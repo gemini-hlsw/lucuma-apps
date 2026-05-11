@@ -16,7 +16,6 @@ import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
-import explore.model.NoItcInstruments
 import explore.model.Progress
 import explore.model.ScienceRequirements
 import explore.model.display.*
@@ -172,7 +171,7 @@ object ImagingModesTable extends ModesTableCommon:
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.Time)
+          itcCell(cell.row.original.result, ItcColumns.Time, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
@@ -180,7 +179,7 @@ object ImagingModesTable extends ModesTableCommon:
       column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.SN)
+          itcCell(cell.row.original.result, ItcColumns.SN, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         .withSortUndefined(UndefinedPriority.Last)
         // put undefined last, though this may not be common on TxC mode
@@ -263,10 +262,8 @@ object ImagingModesTable extends ModesTableCommon:
                                     )
 
                                   val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-                                    // Visitor instruments have no ITC backend; mark them as
-                                    // NotApplicable regardless of exposure time mode / targets.
-                                    if NoItcInstruments.contains(rowWithEtm.instrumentConfig.instrument)
-                                    then ItcResult.NotApplicable.rightNec[ItcTargetProblem].some
+                                    // Visitors don't need ITC; the cell renderer handles presentation
+                                    if !rowWithEtm.instrumentConfig.needsItc then none
                                     else
                                       // the etm is in the row, but we only want to request results when an etm is set in the UI
                                       etm.map: _ =>

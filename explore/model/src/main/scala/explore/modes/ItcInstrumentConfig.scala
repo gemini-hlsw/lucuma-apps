@@ -57,6 +57,14 @@ sealed trait ItcInstrumentConfig derives Eq:
   // but GHOST has to be different
   def signalToNoiseAt: Wavelength
 
+  // Inidactes if this variant requires an ITC result.
+  def needsItc: Boolean = true
+
+  // Whether the requirements etm is compatible with this mode.
+  def acceptsEtm(etm: Option[ExposureTimeMode]): Boolean = true
+
+  def canBeAccepted: Boolean = true
+
 object ItcInstrumentConfig:
   // GMOS suporta a total wavelength range of 360-1030 nm
   // https://www.gemini.edu/instrumentation/gmos
@@ -347,6 +355,9 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
+
+    // TODO Revert when the backend accepts gnirs.
+    override def canBeAccepted: Boolean = false
   }
 
   // Used for imaging instruments (Alopeke, Zorro)
@@ -378,6 +389,13 @@ object ItcInstrumentConfig:
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig = this
 
     val signalToNoiseAt: Wavelength = Wavelength.Min
+
+    override def needsItc: Boolean = false
+
+    override def acceptsEtm(etm: Option[ExposureTimeMode]): Boolean =
+      etm.exists:
+        case _: ExposureTimeMode.TimeAndCountMode => true
+        case _                                    => false
   }
 
   // Used for spectroscopy instruments (MaroonX)
@@ -406,6 +424,13 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
+
+    override def needsItc: Boolean = false
+
+    override def acceptsEtm(etm: Option[ExposureTimeMode]): Boolean =
+      etm.exists:
+        case _: ExposureTimeMode.TimeAndCountMode => true
+        case _                                    => false
   }
 
   val instrument: Getter[ItcInstrumentConfig, Instrument] =

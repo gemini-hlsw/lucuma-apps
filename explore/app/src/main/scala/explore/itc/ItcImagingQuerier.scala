@@ -103,9 +103,8 @@ case class ItcImagingQuerier(
                         .map(target => (target, params, problem.asLeft[ItcResult]))
                     case Right(itcResult) =>
                       itcResult match
-                        // We should never actually have Pending or NotApplicable results here
+                        // We should never actually have Pending results here
                         case ItcResult.Pending                       => List.empty
-                        case ItcResult.NotApplicable                 => List.empty
                         case ItcResult.Result(times, brightestIndex) =>
                           // Split the results into 1 per target, and make a target map for easier access by target.
                           params.asterism.toList

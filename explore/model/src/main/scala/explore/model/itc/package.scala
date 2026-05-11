@@ -71,16 +71,8 @@ sealed trait ItcResult derives Eq:
     case ItcResult.Pending => true
     case _                 => false
 
-  def isNotApplicable: Boolean = this match
-    case ItcResult.NotApplicable => true
-    case _                       => false
-
-  def isAcceptable: Boolean = isSuccess || isNotApplicable
-
 object ItcResult {
-  case object Pending       extends ItcResult
-  // Some modes (Visitors) don't produce ITC results.
-  case object NotApplicable extends ItcResult
+  case object Pending extends ItcResult
   case class Result(
     times:          Zipper[TargetIntegrationTime],
     brightestIndex: Option[Int]

@@ -10,6 +10,7 @@ import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
 import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.enums.ImagingCapability
@@ -27,13 +28,18 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   lazy val isEmpty: Boolean                                 = configs.isEmpty
   lazy val nonEmpty: Boolean                                = configs.nonEmpty
 
-  // We can create a configuration if there is at least one selection and ITCs are successful.
-  // We also allow visitos without an ITC result
-  lazy val canAccept: Boolean =
-    nonEmpty &&
-      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isAcceptable)) &&
-      !configs.exists: // TODO Remove once we support Gnirs Observing Mode
-        _.instrument === Instrument.Gnirs
+  lazy val isVisitor: Boolean =
+    configs.exists(!_.instrumentConfig.needsItc)
+
+  // Acceptance rules are per-variant; the collection just aggregates.
+  def canAccept(etm: Option[ExposureTimeMode]): Boolean =
+    nonEmpty && configs.forall { r =>
+      val itcSuccess = r.itcResult.flatMap(_.toOption).exists(_.isSuccess)
+      val c          = r.instrumentConfig
+      c.canBeAccepted &&
+      (!c.needsItc || itcSuccess) &&
+      c.acceptsEtm(etm)
+    }
 
   lazy val hasItcErrors: Boolean =
     configs.exists(_.itcResult.exists(_.isLeft))
@@ -46,7 +52,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
       .distinct
 
   lazy val isMissingSomeItc: Boolean =
-    configs.exists(_.itcResult.isEmpty)
+    configs.exists(c => c.instrumentConfig.needsItc && c.itcResult.isEmpty)
 
   lazy val hasPendingItc: Boolean =
     configs.exists(_.itcResult.exists(_.toOption.exists(_.isPending)))

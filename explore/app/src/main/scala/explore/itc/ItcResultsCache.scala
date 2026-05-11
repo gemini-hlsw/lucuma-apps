@@ -5,7 +5,6 @@ package explore.model.itc
 
 import cats.data.*
 import cats.syntax.all.*
-import explore.model.NoItcInstruments
 import explore.modes.*
 import explore.optics.ModelOptics.*
 import lucuma.core.model.ConstraintSet
@@ -59,16 +58,13 @@ case class ItcResultsCache(
     l: List[Timestamp],
     r: ModeRow
   ): EitherNec[ItcTargetProblem, ItcResult] =
-    if (NoItcInstruments.contains(r.instrumentConfig.instrument))
-      ItcResult.NotApplicable.rightNec[ItcTargetProblem]
-    else
-      (mode(r), targets(a)).parTupled
-        .leftMap(_.map(ItcTargetProblem(none, _)))
-        .map: (im, a) =>
-          cache
-            .get(ItcRequestParams(c, a, l, im))
-            .getOrElse(ItcResult.Pending.rightNec[ItcTargetProblem])
-        .flatten
+    (mode(r), targets(a)).parTupled
+      .leftMap(_.map(ItcTargetProblem(none, _)))
+      .map: (im, a) =>
+        cache
+          .get(ItcRequestParams(c, a, l, im))
+          .getOrElse(ItcResult.Pending.rightNec[ItcTargetProblem])
+      .flatten
 
   def size: Int = cache.size
 

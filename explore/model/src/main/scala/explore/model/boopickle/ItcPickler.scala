@@ -217,14 +217,12 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcTarget] = generatePickler
 
-  given Pickler[ItcResult.Pending.type]       = generatePickler
-  given Pickler[ItcResult.NotApplicable.type] = generatePickler
-  given Pickler[ItcResult.Result]             = generatePickler
+  given Pickler[ItcResult.Pending.type] = generatePickler
+  given Pickler[ItcResult.Result]       = generatePickler
 
   given Pickler[ItcResult] =
     compositePickler[ItcResult]
       .addConcreteType[ItcResult.Pending.type]
-      .addConcreteType[ItcResult.NotApplicable.type]
       .addConcreteType[ItcResult.Result]
 
   given Pickler[ItcQueryProblem.UnsupportedMode.type]         = generatePickler

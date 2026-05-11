@@ -62,9 +62,9 @@ object TimeAndCountEditor extends ConfigurationFormats:
               label = Constants.SignalToNoiseAtLabel,
               labelClass = props.labelClass,
               groupClass = ExploreStyles.WarningInput.when_(signalToNoiseAt.get.isEmpty),
-              postAddons = signalToNoiseAt.get.foldMap(_ =>
+              postAddons = signalToNoiseAt.get.fold(
                 List(props.calibrationRole.renderRequiredForITCIcon)
-              ),
+              )(_ => Nil),
               value = signalToNoiseAt,
               units = props.units.symbol,
               validFormat = props.units.toInputWedge,
