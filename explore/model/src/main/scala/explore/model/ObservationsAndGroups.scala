@@ -3,15 +3,15 @@
 
 package explore.model
 
-import monocle.Lens
-import monocle.Iso
-import monocle.Focus
-import eu.timepit.refined.types.numeric.NonNegShort
-import eu.timepit.refined.cats.given
-import cats.Order.given
 import cats.Endo
+import cats.Order.given
 import cats.syntax.all.*
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.NonNegShort
 import lucuma.ui.optics.*
+import monocle.Focus
+import monocle.Iso
+import monocle.Lens
 
 final case class ObservationsAndGroups(observations: ObservationList, groups: GroupList):
   private def pullUpObservations(

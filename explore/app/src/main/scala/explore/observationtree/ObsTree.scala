@@ -21,6 +21,7 @@ import explore.model.GroupList
 import explore.model.ObsIdSet
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
@@ -56,7 +57,6 @@ import org.scalajs.dom
 
 import scala.collection.immutable.SortedSet
 import scala.scalajs.js
-import explore.model.ObservationsAndGroups
 
 case class ObsTree(
   programId:             Program.Id,

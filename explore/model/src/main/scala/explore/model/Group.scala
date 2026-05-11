@@ -12,13 +12,13 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
-import lucuma.core.optics.syntax.lens.*
 
 case class Group(
   id:                Group.Id,

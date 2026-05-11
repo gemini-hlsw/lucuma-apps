@@ -13,6 +13,7 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationsAndGroups
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
@@ -22,7 +23,6 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.optics.*
 import lucuma.ui.undo.Action
 import lucuma.ui.undo.AsyncAction
-import explore.model.ObservationsAndGroups
 
 object ObsActions:
   def obsGroupInfo(
