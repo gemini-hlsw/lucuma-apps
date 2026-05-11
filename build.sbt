@@ -389,60 +389,39 @@ lazy val commonModuleTest = Seq(
   Test / scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.CommonJSModule) }
 )
 
-lazy val explore_model = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Full)
+lazy val explore_model = project
   .in(file("explore/model"))
-  .dependsOn(schemas_lib)
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(schemas_lib.js, ui_lib)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
-  .jvmSettings(exploreCommonJvmSettings)
-  .jsSettings(exploreCommonJsLibSettings)
+  .settings(exploreCommonJsLibSettings: _*)
 
-lazy val explore_modelTestkit = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Full)
+lazy val explore_modelTestkit = project
   .in(file("explore/model-testkit"))
-  .dependsOn(explore_model, schemas_testkit)
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(explore_model, schemas_testkit.js)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
   .settings(exploreTestkitLibSettings: _*)
-  .jsSettings(commonModuleTest: _*)
-  .jvmSettings(exploreCommonJvmSettings)
+  .settings(commonModuleTest: _*)
 
-lazy val explore_modelTests = crossProject(JVMPlatform, JSPlatform)
-  .crossType(CrossType.Full)
+lazy val explore_modelTests = project
   .in(file("explore/model-tests"))
+  .enablePlugins(ScalaJSPlugin)
   .dependsOn(explore_modelTestkit)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonLibSettings: _*)
-  .jsSettings(commonModuleTest: _*)
-  .jvmSettings(exploreCommonJvmSettings)
-
-lazy val explore_workers = project
-  .in(file("explore/workers"))
-  .dependsOn(explore_model.js, explore_common)
-  .enablePlugins(ScalaJSPlugin)
-  .settings(exploreCommonSettings: _*)
-  .settings(exploreCommonJsLibSettings: _*)
-  .settings(exploreCommonLibSettings: _*)
-  .settings(esModule: _*)
-  .settings(
-    libraryDependencies ++= LucumaCatalog.value ++
-      Http4sDom.value ++
-      Log4Cats.value,
-    Test / scalaJSLinkerConfig ~= {
-      import org.scalajs.linker.interface.OutputPatterns
-      _.withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
-    }
-  )
+  .settings(commonModuleTest: _*)
 
 lazy val explore_common = project
   .in(file("explore/common"))
   .dependsOn(
-    explore_model.js,
+    explore_model,
     ui_lib,
     schemas_lib.js,
-    explore_modelTestkit.js % Test,
-    ui_testkit              % Test
+    explore_modelTestkit % Test,
+    ui_testkit           % Test
   )
   .enablePlugins(ScalaJSPlugin, BuildInfoPlugin)
   .settings(exploreCommonSettings: _*)
@@ -467,9 +446,27 @@ lazy val explore_common = project
     buildInfoPackage := "explore"
   )
 
+lazy val explore_workers = project
+  .in(file("explore/workers"))
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(explore_model, explore_common)
+  .settings(exploreCommonSettings: _*)
+  .settings(exploreCommonJsLibSettings: _*)
+  .settings(exploreCommonLibSettings: _*)
+  .settings(esModule: _*)
+  .settings(
+    libraryDependencies ++= LucumaCatalog.value ++
+      Http4sDom.value ++
+      Log4Cats.value,
+    Test / scalaJSLinkerConfig ~= {
+      import org.scalajs.linker.interface.OutputPatterns
+      _.withOutputPatterns(OutputPatterns.fromJSFile("%s.mjs"))
+    }
+  )
+
 lazy val explore_app: Project = project
   .in(file("explore/app"))
-  .dependsOn(explore_model.js, explore_common)
+  .dependsOn(explore_model, explore_common)
   .enablePlugins(ScalaJSPlugin, LucumaCssPlugin, CluePlugin)
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
