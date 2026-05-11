@@ -26,6 +26,7 @@ import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
@@ -33,7 +34,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
-import lucuma.core.enums.ImagingCapability
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -109,7 +109,7 @@ private object BasicConfigurationPanel:
           else if (props.selectedConfig.get.isEmpty)
             "To create a configuration, select a table row.".some
           else if (props.selectedConfig.get.isVisitor && isTimeAndCount)
-            "Visitor instruments require a Time and Count exposure time mode.".some
+            "Use Time and Count mode for Visitor instruments.".some
           else none
 
         def switchMode(scienceModeType: ScienceMode): Callback =

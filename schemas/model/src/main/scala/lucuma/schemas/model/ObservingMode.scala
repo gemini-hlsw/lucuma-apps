@@ -854,7 +854,7 @@ object ObservingMode:
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:   Angle
+    scienceFov:        Angle
   ) extends ObservingMode(mode.instrument) derives Eq:
     def isCustomized: Boolean = false
 

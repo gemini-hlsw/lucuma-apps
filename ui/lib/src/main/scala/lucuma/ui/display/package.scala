@@ -57,3 +57,14 @@ given Display[GhostReadMode] = Display.by(_.shortName, _.longName)
 given Display[SequenceType] = Display.byShortName:
   case SequenceType.Acquisition => "Acquisition"
   case SequenceType.Science     => "Science"
+
+given Display[VisitorObservingModeType] = Display.byShortName: mode =>
+  val subMode = mode match
+    case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+      " Speckle"
+    case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+      " Wide Field"
+    case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
+        VisitorObservingModeType.VisitorSouth                                                =>
+      ""
+  s"${mode.instrument.longName}$subMode"

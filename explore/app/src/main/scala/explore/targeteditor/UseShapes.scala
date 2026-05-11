@@ -78,18 +78,18 @@ def usePatrolFieldShapes(
       case BasicConfiguration.Igrins2LongSlit               =>
         AgsParams.Igrins2LongSlit().some
       case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
-        AgsParams.Igrins2LongSlit().some // TODO; We don't have a Gnirs geometry yet.
+        none // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu().some
       // No AGS visualization for visitor instruments yet
       case _: BasicConfiguration.Visitor                    =>
         none
 
-    params.flatMap: p =>
+    params.map: p =>
       guideProbe match
-        case GuideProbe.PWFS1 => p.withPWFS1.some
-        case GuideProbe.PWFS2 => p.withPWFS2.some
-        case _                => p.some
+        case GuideProbe.PWFS1 => p.withPWFS1
+        case GuideProbe.PWFS2 => p.withPWFS2
+        case _                => p
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match

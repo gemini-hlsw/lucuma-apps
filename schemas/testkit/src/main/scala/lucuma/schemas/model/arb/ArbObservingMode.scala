@@ -716,12 +716,13 @@ trait ArbObservingMode {
         ObservingMode.Flamingos2LongSlit,
         Either[
           ObservingMode.GmosNorthLongSlit,
-          Either[ObservingMode.GmosSouthLongSlit,
-                 Either[ObservingMode.GmosNorthImaging,
-                        Either[ObservingMode.GmosSouthImaging,
-                               Either[ObservingMode.GhostIfu, ObservingMode.Visitor]
-                        ]
-                 ]
+          Either[
+            ObservingMode.GmosSouthLongSlit,
+            Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
+                                                          Either[ObservingMode.GhostIfu,
+                                                                 ObservingMode.Visitor
+                                                          ]
+            ]]
           ]
         ]
       ]

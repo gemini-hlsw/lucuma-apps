@@ -22,6 +22,7 @@ import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
+import lucuma.ui.display.given
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
@@ -326,15 +327,7 @@ trait DisplayImplicits:
     case BasicConfiguration.GnirsLongSlit(filter = filter)               =>
       s"GNIRS Longslit ${filter.shortName}"
     case BasicConfiguration.Visitor(mode, _, _)                          =>
-      val subMode = mode match
-        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
-          " Speckle"
-        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
-          " Wide Field"
-        case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
-            VisitorObservingModeType.VisitorSouth                                                =>
-          ""
-      s"${mode.instrument.longName}$subMode"
+      mode.shortName
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 

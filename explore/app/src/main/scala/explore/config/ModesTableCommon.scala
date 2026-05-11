@@ -20,8 +20,8 @@ import explore.components.ui.ExploreStyles
 import explore.events.ItcMessage
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
-import explore.model.Progress
 import explore.model.ItcSupportedInstruments
+import explore.model.Progress
 import explore.model.WorkerClients.ItcClient
 import explore.model.boopickle.*
 import explore.model.boopickle.ItcPicklers.given
@@ -367,7 +367,7 @@ trait ModesTableCommon:
 
                     // The cache returns an error for unsupported instruments
                     row.config.instrument match
-                      case i if ItcSupportedInstruments.contains(i) =>
+                      case i if ItcSupportedInstruments.contains_(i) =>
                         cache.contains:
                           ItcRequestParams(
                             constraints,

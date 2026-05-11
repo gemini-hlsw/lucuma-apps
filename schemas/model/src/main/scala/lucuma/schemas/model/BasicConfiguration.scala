@@ -11,6 +11,7 @@ import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
+import lucuma.core.geom.visitors.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
@@ -20,12 +21,11 @@ import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelen
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
-import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
-import lucuma.core.geom.visitors.*
+import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
 import lucuma.itc.ItcGhostDetector
-import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.angle.decoder.given
+import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Prism
@@ -303,7 +303,8 @@ object BasicConfiguration:
         case VisitorObservingModeType.MaroonX                                                    =>
           MaroonXScienceFov
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
-          Angle.fromDoubleArcseconds(0.0)
+          // Let's return something, the user will need to specify a value for an alien visitor.
+          Angle.Angle0
 
     def defaultCentralWavelength(mode: VisitorObservingModeType): Wavelength =
       mode match

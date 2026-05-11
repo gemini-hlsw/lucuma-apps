@@ -74,9 +74,7 @@ object OtelSdk:
     val base = Attributes(
       Attribute(ServiceAttributes.ServiceName, ServiceName),
       Attribute(ServiceAttributes.ServiceVersion, serviceVersion),
-      Attribute(DeploymentAttributes.DeploymentEnvironmentName,
-                environment.tag.toLowerCase
-      )
+      Attribute(DeploymentAttributes.DeploymentEnvironmentName, environment.tag.toLowerCase)
     )
 
     val userAttrs = vault.foldMap: v =>

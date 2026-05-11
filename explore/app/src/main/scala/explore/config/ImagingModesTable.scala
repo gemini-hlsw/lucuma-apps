@@ -262,7 +262,7 @@ object ImagingModesTable extends ModesTableCommon:
                                     )
 
                                   val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-                                    // Visitors don't need ITC; the cell renderer handles presentation
+                                    // Visitors don't need ITC
                                     if !rowWithEtm.instrumentConfig.needsItc then none
                                     else
                                       // the etm is in the row, but we only want to request results when an etm is set in the UI

@@ -22,6 +22,7 @@ import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
+import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
@@ -36,6 +37,7 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
+import lucuma.ui.display.given
 
 // Observing mode with explicit values merged over defaults. Used for grouping observations by configuration.
 enum ObservingModeSummary derives Order:
@@ -81,7 +83,7 @@ enum ObservingModeSummary derives Order:
   case Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:   Angle
+    scienceFov:        Angle
   )                                                  extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
@@ -154,7 +156,7 @@ enum ObservingModeSummary derives Order:
           resolutionMode = resolutionMode.assign
         )
       )
-    case Visitor(mode, centralWavelength, scienceFov)                            =>
+    case Visitor(mode, centralWavelength, scienceFov)                                 =>
       ObservingModeInput.Visitor(
         VisitorInput(
           mode = mode.assign,
@@ -220,15 +222,7 @@ object ObservingModeSummary:
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
     case Visitor(mode, _, _)                                                          =>
-      val subMode = mode match
-        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
-          " Speckle"
-        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
-          " Wide Field"
-        case VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth |
-            VisitorObservingModeType.VisitorSouth                                                =>
-          ""
-      s"${mode.instrument.longName}$subMode"
+      mode.shortName
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =
