@@ -45,7 +45,6 @@ def computeIndexInList[A](nextTo: A => Boolean, operation: Operation)(list: List
   list.zipWithIndex
     .collectFirst { case (a, idx) if nextTo(a) => idx }
     .flatMap: idx =>
-      println(s"Found element at index: $idx, Operation: $operation") // DEBUG
       operation match
         case Operation.ReorderBefore => idx.some
         case Operation.ReorderAfter  => (idx + 1).some

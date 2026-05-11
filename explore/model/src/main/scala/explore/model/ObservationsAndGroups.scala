@@ -86,50 +86,25 @@ final case class ObservationsAndGroups(observations: ObservationList, groups: Gr
       )(groups)
     )
 
-  private def debug(
-    group: Option[Group.Id]
-  ): List[(Either[Observation.Id, Group.Id], NonNegShort)] =
-    // val items: List[(Either[Observation.Id, Group.Id], NonNegShort)] =
-    (observations.values
-      .filter(_.groupId === group)
-      .toList
-      .map(obs => obs.id.asLeft -> obs.groupIndex) ++
-      groups.values
-        .filter(_.parentId === group)
-        .filterNot(_.system)
-        .toList
-        .map(grp => grp.id.asRight -> grp.parentIndex))
-      .sortBy(_._2.value)
-
-  // println(items)
-
   def relocateObservation(
     obsId:      Observation.Id,
     newGroupId: Option[Group.Id],
     newIndex:   NonNegShort
   ): ObservationsAndGroups =
-    println(s"Relocating observation $obsId to new group $newGroupId at index $newIndex") // DEBUG
-    println(s"Before: ${debug(newGroupId)}")                                              // DEBUG
-    val x = ObservationsAndGroups.observations
+    ObservationsAndGroups.observations
       .andThen(ObservationList.obsWithId(obsId))
       .composeOptionLens(Observation.groupInfo)
       .set((newGroupId, newIndex).some)(adjustItemsFor(newGroupId, newIndex, obsId.asLeft))
-    println(s"After : ${x.debug(newGroupId)}") // DEBUG
-    x
 
   def relocateGroup(
     groupId:    Group.Id,
     newGroupId: Option[Group.Id],
     newIndex:   NonNegShort
   ): ObservationsAndGroups =
-    println(s"Relocating group $groupId to new parent $newGroupId at index $newIndex") // DEBUG
-    println(s"Before: ${debug(newGroupId)}")                                           // DEBUG
-    val x = ObservationsAndGroups.groups
+    ObservationsAndGroups.groups
       .andThen(GroupList.groupWithId(groupId))
       .composeOptionLens(Group.parentInfo)
       .set((newGroupId, newIndex).some)(adjustItemsFor(newGroupId, newIndex, groupId.asRight))
-    println(s"After : ${x.debug(newGroupId)}") // DEBUG
-    x
 
 object ObservationsAndGroups:
   val observations: Lens[ObservationsAndGroups, ObservationList]       =

@@ -250,8 +250,9 @@ object ObsTree:
 
       for
         ctx               <- useContext(AppContext.ctx)
-        expandedGroupsRef <- useShadowRef(props.expandedGroups.get)
+        obsAndGroupsRef   <- useShadowRef(props.observationsAndGroups)
         groupsChildrenRef <- useShadowRef(props.groupsChildren)
+        expandedGroupsRef <- useShadowRef(props.expandedGroups.get)
         dndScope          <- useDragAndDropScope[Either[Observation, Group], Either[Observation, Group]]()
         autoScrollRef     <- useAutoScrollRef(getAllowedAxis = _ => Axes.Vertical)
         // Saved index into the observation tree
@@ -297,14 +298,7 @@ object ObsTree:
                   case Left(_)      => true
                   case Right(group) => !group.system
 
-            println(s"CHILDREN: ${children.map(_.id)}") // DEBUG
-
-            // val dropNodeChildren: List[Either[Observation, Group]] =
-            //   children.filter(_.id =!= draggedNodeId)
-
-            println(s"DropTarget: ${dropTarget.id}, Operation: ${instruction.operation}") // DEBUG
-
-            // Group indices may not be continuous.
+            // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
             val newParentGroupPosIndex: Int =
               if isDragIntoGroupHeader then 0
               else
@@ -312,8 +306,6 @@ object ObsTree:
                   _.id === dropTarget.id,
                   instruction.operation
                 )(children).getOrElse(0)
-
-            println(s"newParentGroupPosIndex: $newParentGroupPosIndex") // DEBUG
 
             val newParentGroupIndex: NonNegShort =
               if newParentGroupPosIndex < children.length then
@@ -324,18 +316,16 @@ object ObsTree:
                   .map(i => NonNegShort.unsafeFrom((i.value + 1).toShort))
                   .getOrElse(NonNegShort.unsafeFrom(0))
 
-            println(s"newParentGroupIndex: $newParentGroupIndex") // DEBUG
-
             draggedNodeId
               .fold(
                 obsId =>
                   ObsActions
                     .obsGroupInfo(obsId)
-                    .set(props.observationsAndGroups)((dropGroupId, newParentGroupIndex).some),
+                    .set(obsAndGroupsRef.get.runNow())((dropGroupId, newParentGroupIndex).some),
                 groupId =>
                   ObsActions
                     .groupParentInfo(groupId)
-                    .set(props.observationsAndGroups)((dropGroupId, newParentGroupIndex).some)
+                    .set(obsAndGroupsRef.get.runNow())((dropGroupId, newParentGroupIndex).some)
               ) >> // Open the group we moved to
               dropGroupId.map(groupId => props.expandedGroups.mod(_ + groupId)).orEmpty
         end onDragDrop
