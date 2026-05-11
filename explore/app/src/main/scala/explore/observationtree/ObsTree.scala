@@ -296,7 +296,7 @@ object ObsTree:
                 .orEmpty
                 .filter:
                   case Left(_)      => true
-                  case Right(group) => !group.system
+                  case Right(group) => !group.system || group.isTelluricCalibration
 
             // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
             val newParentGroupPosIndex: Int =
