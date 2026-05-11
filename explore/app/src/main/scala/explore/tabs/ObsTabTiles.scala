@@ -447,7 +447,7 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              // Visitor instruments have no ITC, hide the itc tile.
+              // hide the itc tile for visitors.
               case Some(_: BasicConfiguration.Visitor) => none
               case None                                => ItcEmptyTile().some
 
