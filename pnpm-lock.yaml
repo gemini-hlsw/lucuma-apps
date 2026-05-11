@@ -38,6 +38,9 @@ importers:
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
         specifier: 2.0.19
         version: 2.0.19(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator':
+        specifier: 3.2.15
+        version: 3.2.15(react@18.3.1)
       '@floating-ui/react':
         specifier: 0.27.19
         version: 0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -362,6 +365,11 @@ packages:
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
+
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15':
+    resolution: {integrity: sha512-D0wyKXsZlmkXcV00IPfFsGfOLVKw6r6vAy4oHn/E0RvHlWHSXxUScXDFKkhN4EDsEEwSxv6xmMNoj3RA8JCKUg==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
 
   '@atlaskit/pragmatic-drag-and-drop@1.8.1':
     resolution: {integrity: sha512-uXWNPpL8n4OmTVbduH7nq8pk8htqGo/prR5cYEE8sVCPJGAUMWn6lzvWTfI+4VCeQvHiDRODVz4YzH06OVAxhw==}
@@ -875,6 +883,11 @@ packages:
   '@capsizecss/unpack@4.0.0':
     resolution: {integrity: sha512-VERIM64vtTP1C4mxQ5thVT9fK0apjPFobqybMtA1UdUujWka24ERHbRHFGmpbbhp73MhV+KSsHQH9C6uOTdEQA==}
     engines: {node: '>=18'}
+
+  '@compiled/react@0.20.0':
+    resolution: {integrity: sha512-mEJuYGFxIDST1H7CpksyE6a3HRVRQmeDal26O+bCHTEZlPp7iKvs5KD1FOmd2palng+S60dPFFG+UuoZDRILwA==}
+    peerDependencies:
+      react: '>=18.0.0'
 
   '@csstools/css-calc@3.2.0':
     resolution: {integrity: sha512-bR9e6o2BDB12jzN/gIbjHa5wLJ4UjD1CB9pM7ehlc0ddk6EBz+yYS1EV2MF55/HUxrHcB/hehAyt5vhsA3hx7w==}
@@ -3721,6 +3734,17 @@ snapshots:
       - '@types/react'
       - supports-color
 
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15(react@18.3.1)':
+    dependencies:
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
+      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
+      '@atlaskit/tokens': 13.0.0(react@18.3.1)
+      '@babel/runtime': 7.28.6
+      '@compiled/react': 0.20.0(react@18.3.1)
+      react: 18.3.1
+    transitivePeerDependencies:
+      - supports-color
+
   '@atlaskit/pragmatic-drag-and-drop@1.8.1':
     dependencies:
       '@babel/runtime': 7.28.6
@@ -4408,6 +4432,11 @@ snapshots:
   '@capsizecss/unpack@4.0.0':
     dependencies:
       fontkitten: 1.0.3
+
+  '@compiled/react@0.20.0(react@18.3.1)':
+    dependencies:
+      csstype: 3.2.3
+      react: 18.3.1
 
   '@csstools/css-calc@3.2.0(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)':
     dependencies:

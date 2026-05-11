@@ -18,6 +18,7 @@ import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Focus
 import monocle.Lens
+import lucuma.core.optics.syntax.lens.*
 
 case class Group(
   id:                Group.Id,
@@ -57,3 +58,6 @@ object Group:
   val parentIndex: Lens[Group, NonNegShort]                                             = Focus[Group](_.parentIndex)
   val timeEstimateRange: Lens[Group, Option[CalculatedValue[Option[ProgramTimeRange]]]] =
     Focus[Group](_.timeEstimateRange)
+
+  val parentInfo: Lens[Group, (Option[Group.Id], NonNegShort)] =
+    (parentId, parentIndex).disjointZip
