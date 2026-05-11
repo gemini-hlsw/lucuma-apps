@@ -418,6 +418,9 @@ object ObsTabTiles:
           val odbOrSelectedConfig: Option[BasicConfiguration] =
             basicConfiguration.orElse(selectedConfig.get.toBasicConfiguration())
 
+          val isVisitorMode: Boolean =
+            basicConfiguration.exists(_.isInstanceOf[BasicConfiguration.Visitor])
+
           val itcTile =
             odbOrSelectedConfig match
               case Some(_: BasicConfiguration.GmosNorthImaging) |
@@ -444,8 +447,8 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              // Visitor instruments have no ITC, so render the empty ITC tile.
-              case Some(_: BasicConfiguration.Visitor) => ItcEmptyTile().some
+              // hide the itc tile for visitors.
+              case Some(_: BasicConfiguration.Visitor) => none
               case None                                => ItcEmptyTile().some
 
           val obsConf: ObsConfiguration =
@@ -682,14 +685,16 @@ object ObsTabTiles:
               section,
               props.backButton.some
             ),
-            TileController(
-              props.vault.userId,
-              props.resize.width.getOrElse(0),
-              ExploreGridLayouts.sectionLayout(GridLayoutSection.ObservationsSequenceLayout),
-              props.userPreferences.get.sequenceTileLayout,
-              List(sequenceTile),
-              GridLayoutSection.ObservationsSequenceLayout,
-              renderBackButton = none,
-              clazz = ExploreStyles.SequenceTileController.some
-            )
+            if isVisitorMode then EmptyVdom // Visitors have no sequences
+            else
+              TileController(
+                props.vault.userId,
+                props.resize.width.getOrElse(0),
+                ExploreGridLayouts.sectionLayout(GridLayoutSection.ObservationsSequenceLayout),
+                props.userPreferences.get.sequenceTileLayout,
+                List(sequenceTile),
+                GridLayoutSection.ObservationsSequenceLayout,
+                renderBackButton = none,
+                clazz = ExploreStyles.SequenceTileController.some
+              )
           )

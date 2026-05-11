@@ -7,7 +7,6 @@ import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
@@ -23,7 +22,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -34,6 +32,8 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import crystal.react.ViewOpt
+import lucuma.core.model.ExposureTimeMode.TimeAndCountMode
 
 final case class VisitorConfigPanel(
   programId:        Program.Id,
@@ -72,28 +72,10 @@ object VisitorConfigPanel
             .zoom(ObservingMode.Visitor.scienceFov, VisitorInput.scienceFov.modify)
             .view(_.toInput.assign)
 
-        val exposureTimeMode: View[Option[ExposureTimeMode]] =
-          props.requirementsView.zoom(ScienceRequirements.exposureTimeMode)
-
-        // Visitors only support Time & Count mode; project the optional ExposureTimeMode
-        // onto a concrete TimeAndCountMode using current central wavelength for `at`.
-        val defaultTimeAndCount: ExposureTimeMode.TimeAndCountMode =
-          ExposureTimeMode.TimeAndCountMode(
-            TimeSpan.unsafeFromMicroseconds(0L),
-            PosInt.unsafeFrom(1),
-            centralWavelengthView.get
-          )
-
-        val timeAndCountView: View[ExposureTimeMode.TimeAndCountMode] =
-          exposureTimeMode.zoom {
-            case Some(t: ExposureTimeMode.TimeAndCountMode) => t
-            case _                                          => defaultTimeAndCount
-          } { f => opt =>
-            val current = opt match
-              case Some(t: ExposureTimeMode.TimeAndCountMode) => t
-              case _                                          => defaultTimeAndCount
-            f(current).some
-          }
+        val exposureTimeMode: ViewOpt[TimeAndCountMode] =
+          props.requirementsView
+            .zoom(ScienceRequirements.exposureTimeMode.some)
+            .zoom(ExposureTimeMode.timeAndCount)
 
         val instrumentLabel: String = mode.instrument.longName
 
@@ -127,15 +109,17 @@ object VisitorConfigPanel
                 disabled = disableEdit
               )(^.autoComplete.off)
             ),
-            <.div(
-              LucumaPrimeStyles.FormColumnCompact,
-              TimeAndCountModeEditor(
-                instrument = mode.instrument.some,
-                value = timeAndCountView,
-                readonly = !props.permissions.isFullEdit,
-                calibrationRole = props.calibrationRole,
-                idPrefix = "visitor".refined,
-                showCount = true
+            exposureTimeMode.asView.map(tcView =>
+              <.div(
+                LucumaPrimeStyles.FormColumnCompact,
+                TimeAndCountModeEditor(
+                  instrument = mode.instrument.some,
+                  value = tcView,
+                  readonly = !props.permissions.isFullEdit,
+                  calibrationRole = props.calibrationRole,
+                  idPrefix = "visitor".refined,
+                  showCount = true
+                )
               )
             )
           ),
