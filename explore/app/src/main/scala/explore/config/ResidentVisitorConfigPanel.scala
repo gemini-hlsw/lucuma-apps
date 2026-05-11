@@ -17,7 +17,6 @@ import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
@@ -33,10 +32,9 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
-final case class ResidentVisitorConfigPanel(
+case class ResidentVisitorConfigPanel(
   programId:        Program.Id,
   obsId:            Observation.Id,
-  calibrationRole:  Option[CalibrationRole],
   observingMode:    Aligner[ObservingMode.Visitor, VisitorInput],
   requirementsView: View[ScienceRequirements],
   revertConfig:     IO[Unit],
@@ -88,10 +86,8 @@ object ResidentVisitorConfigPanel
             scienceFov = scienceFovView,
             timeAndCount = exposureTimeMode.asView,
             instrument = mode.instrument,
-            calibrationRole = props.calibrationRole,
             units = props.units,
             disabled = disableEdit,
-            idPrefix = "visitor".refined,
             timeAndCountReadonly = (!props.permissions.isFullEdit).some
           ),
           <.div(
