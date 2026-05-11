@@ -19,6 +19,9 @@ import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
+import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
+import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
+import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.angle.decoder.given
@@ -301,16 +304,16 @@ object BasicConfiguration:
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
           Angle.fromDoubleArcseconds(0.0)
 
-    // Hardcoded central wavelengths for visitor instruments (no ITC backend).
     def defaultCentralWavelength(mode: VisitorObservingModeType): Wavelength =
       mode match
-        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
-          Wavelength.unsafeFromIntPicometers(832000) // 832 nm
-        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
-          Wavelength.unsafeFromIntPicometers(562000) // 562 nm
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
+          AlopekeCentralWavelength
+        case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
+          ZorroCentralWavelength
         case VisitorObservingModeType.MaroonX                                                    =>
-          Wavelength.unsafeFromIntPicometers(700000) // 700 nm
+          MaroonXCentralWavelength
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
+          // Let's return something, the user will need to specify a value anyway
           Wavelength.unsafeFromIntPicometers(700000) // 700 nm
 
     given Decoder[Visitor] = Decoder.instance: c =>
