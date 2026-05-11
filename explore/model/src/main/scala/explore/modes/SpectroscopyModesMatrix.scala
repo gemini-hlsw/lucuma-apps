@@ -96,7 +96,8 @@ case class SpectroscopyModeRow(
 
   val enabled =
     (focalPlane === FocalPlane.SingleSlit ||
-      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost)) &&
+      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost) ||
+      instrumentConfig.instrument === Instrument.MaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
