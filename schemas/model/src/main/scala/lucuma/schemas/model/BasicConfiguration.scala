@@ -22,6 +22,7 @@ import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWav
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
+import lucuma.core.geom.visitors.*
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.angle.decoder.given
@@ -296,11 +297,11 @@ object BasicConfiguration:
     def fov(mode: VisitorObservingModeType): Angle =
       mode match
         case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
-          Angle.fromDoubleArcseconds(3.0)
+          AlopekeSpeckleScienceFov
         case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
-          Angle.fromDoubleArcseconds(35.0)
+          AlopekeWideFieldScienceFov
         case VisitorObservingModeType.MaroonX                                                    =>
-          Angle.fromDoubleArcseconds(0.77)
+          MaroonXScienceFov
         case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
           Angle.fromDoubleArcseconds(0.0)
 
