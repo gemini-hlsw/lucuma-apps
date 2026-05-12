@@ -18,6 +18,7 @@ import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.display.given
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
@@ -71,17 +72,26 @@ private object BasicConfigurationPanel:
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx             <- useContext(AppContext.ctx)
-        scienceModeType <- useStateView[ScienceMode](ScienceMode.Spectroscopy)
-        _               <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
-                             scienceModeType.set(modeType)
-        creating        <- useStateView(Creating(false))
-        imagingCap      <- useStateView(none[ImagingCapability])
+        ctx                  <- useContext(AppContext.ctx)
+        scienceModeType      <- useStateView[ScienceMode](ScienceMode.Spectroscopy)
+        _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
+                                  scienceModeType.set(modeType)
+        creating             <- useStateView(Creating(false))
+        imagingCap           <- useStateView(none[ImagingCapability])
+        exposureTimeModeType <- useStateView(
+                                  props.requirementsView.get.exposureTimeMode
+                                    .map(ExposureTimeModeType.fromExposureTimeMode)
+                                    .getOrElse(ExposureTimeModeType.SignalToNoise)
+                                )
       yield
         import ctx.given
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
-        val canAccept: Boolean            = props.selectedConfig.get.canAccept(etm)
+        val isVisitor                     = props.selectedConfig.get.isVisitor
+        val visitorEtmOk                  =
+          !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
+        val canAccept: Boolean            =
+          props.selectedConfig.get.canAccept(etm) && visitorEtmOk
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
           .zoom(ScienceRequirements.spectroscopy)
@@ -92,9 +102,8 @@ private object BasicConfigurationPanel:
         val exposureTimeView = props.requirementsView
           .zoom(ScienceRequirements.exposureTimeMode)
 
-        val isTimeAndCount = !etm.exists:
-          case _: ExposureTimeMode.TimeAndCountMode => true
-          case _                                    => false
+        val isNotTimeAndCount =
+          exposureTimeModeType.get =!= ExposureTimeModeType.TimeAndCount
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
         val message: Option[String] =
@@ -108,7 +117,7 @@ private object BasicConfigurationPanel:
             "Waiting for ITC result...".some
           else if (props.selectedConfig.get.isEmpty)
             "To create a configuration, select a table row.".some
-          else if (props.selectedConfig.get.isVisitor && isTimeAndCount)
+          else if (props.selectedConfig.get.isVisitor && isNotTimeAndCount)
             "Use Time and Count mode for Visitor instruments.".some
           else none
 
@@ -139,6 +148,7 @@ private object BasicConfigurationPanel:
               SpectroscopyConfigurationPanel(
                 props.selectedConfig.get.headOption.map(_.instrument),
                 exposureTimeView,
+                exposureTimeModeType,
                 s,
                 props.readonly,
                 props.units,
@@ -148,6 +158,7 @@ private object BasicConfigurationPanel:
               ImagingConfigurationPanel(
                 props.selectedConfig.get.headOption.map(_.instrument),
                 exposureTimeView,
+                exposureTimeModeType,
                 s,
                 imagingCap,
                 props.readonly,

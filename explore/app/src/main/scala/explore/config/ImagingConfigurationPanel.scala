@@ -12,6 +12,7 @@ import explore.model.Combination
 import explore.model.NarrowBand
 import explore.model.ScienceRequirements
 import explore.model.display.given
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -28,13 +29,14 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
 case class ImagingConfigurationPanel(
-  instrument:       Option[Instrument],
-  exposureTimeMode: View[Option[ExposureTimeMode]],
-  options:          View[ScienceRequirements.Imaging],
-  capability:       View[Option[ImagingCapability]],
-  readonly:         Boolean,
-  units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole]
+  instrument:           Option[Instrument],
+  exposureTimeMode:     View[Option[ExposureTimeMode]],
+  exposureTimeModeType: View[ExposureTimeModeType],
+  options:              View[ScienceRequirements.Imaging],
+  capability:           View[Option[ImagingCapability]],
+  readonly:             Boolean,
+  units:                WavelengthUnits,
+  calibrationRole:      Option[CalibrationRole]
 ) extends ReactFnProps(ImagingConfigurationPanel)
 
 object ImagingConfigurationPanel
@@ -93,6 +95,7 @@ object ImagingConfigurationPanel
           p.instrument,
           none,
           p.exposureTimeMode,
+          p.exposureTimeModeType,
           ScienceMode.Imaging,
           p.readonly,
           p.units,
