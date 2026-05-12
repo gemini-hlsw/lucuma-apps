@@ -250,6 +250,7 @@ object ObsTree:
 
       for
         ctx               <- useContext(AppContext.ctx)
+        // We use shadowRefs to avoid capture in the drag-and-drop handlers
         obsAndGroupsRef   <- useShadowRef(props.observationsAndGroups)
         groupsChildrenRef <- useShadowRef(props.groupsChildren)
         expandedGroupsRef <- useShadowRef(props.expandedGroups.get)
@@ -289,45 +290,46 @@ object ObsTree:
               group => if isDragIntoGroupHeader then group.id.some else group.parentId
             )
 
-            val children: List[Either[Observation, Group]] =
-              groupsChildrenRef.get
-                .runNow()
-                .get(dropGroupId)
-                .orEmpty
-                .filter:
-                  case Left(_)      => true
-                  case Right(group) => !group.system || group.isTelluricCalibration
+            groupsChildrenRef.get.flatMap: groupsChildren =>
+              val children: List[Either[Observation, Group]] =
+                groupsChildren
+                  .get(dropGroupId)
+                  .orEmpty
+                  .filter:
+                    case Left(_)      => true
+                    case Right(group) => !group.system || group.isTelluricCalibration
 
-            // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
-            val newParentGroupPosIndex: Int =
-              if isDragIntoGroupHeader then 0
-              else
-                computeIndexInList[Either[Observation, Group]](
-                  _.id === dropTarget.id,
-                  instruction.operation
-                )(children).getOrElse(0)
+              // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
+              val newParentGroupPosIndex: Int =
+                if isDragIntoGroupHeader then 0
+                else
+                  computeIndexInList[Either[Observation, Group]](
+                    _.id === dropTarget.id,
+                    instruction.operation
+                  )(children).getOrElse(0)
 
-            val newParentGroupIndex: NonNegShort =
-              if newParentGroupPosIndex < children.length then
-                children(newParentGroupPosIndex).fold(_.groupIndex, _.parentIndex)
-              else
-                children.lastOption
-                  .map(_.fold(_.groupIndex, _.parentIndex))
-                  .map(i => NonNegShort.unsafeFrom((i.value + 1).toShort))
-                  .getOrElse(NonNegShort.unsafeFrom(0))
+              val newParentGroupIndex: NonNegShort =
+                if newParentGroupPosIndex < children.length then
+                  children(newParentGroupPosIndex).fold(_.groupIndex, _.parentIndex)
+                else
+                  children.lastOption
+                    .map(_.fold(_.groupIndex, _.parentIndex))
+                    .map(i => NonNegShort.unsafeFrom((i.value + 1).toShort))
+                    .getOrElse(NonNegShort.unsafeFrom(0))
 
-            draggedNodeId
-              .fold(
-                obsId =>
-                  ObsActions
-                    .obsGroupInfo(obsId)
-                    .set(obsAndGroupsRef.get.runNow())((dropGroupId, newParentGroupIndex).some),
-                groupId =>
-                  ObsActions
-                    .groupParentInfo(groupId)
-                    .set(obsAndGroupsRef.get.runNow())((dropGroupId, newParentGroupIndex).some)
-              ) >> // Open the group we moved to
-              dropGroupId.map(groupId => props.expandedGroups.mod(_ + groupId)).orEmpty
+              obsAndGroupsRef.get.flatMap: obsAndGroups =>
+                draggedNodeId
+                  .fold(
+                    obsId =>
+                      ObsActions
+                        .obsGroupInfo(obsId)
+                        .set(obsAndGroups)((dropGroupId, newParentGroupIndex).some),
+                    groupId =>
+                      ObsActions
+                        .groupParentInfo(groupId)
+                        .set(obsAndGroups)((dropGroupId, newParentGroupIndex).some)
+                  ) >> // Open the group we moved to
+                  dropGroupId.map(groupId => props.expandedGroups.mod(_ + groupId)).orEmpty
         end onDragDrop
 
         val expandedGroups: View[Set[Tree.Id]] = props.expandedGroups.as(groupTreeIdLens)
@@ -476,7 +478,7 @@ object ObsTree:
             DraggableDropTarget[Either[Observation, Group], Either[Observation, Group]](
               badge,
               getInitialData = _ => Data(group.asRight),
-              getData = args =>
+              getData = args => // TODO Modify facade to use Callback to avoid runNow()
                 Data(group.asRight).attachInstruction(
                   args, // Avoid capture of exandedGroups (getData is invoked repeatedly when dragging)
                   if !expandedGroupsRef.get.runNow().contains(group.id) then Operations.All
