@@ -12,6 +12,7 @@ import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
 import explore.model.ScienceRequirements
 import explore.model.display.given
+import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.feature.ReactFragment
@@ -31,12 +32,13 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
 case class SpectroscopyConfigurationPanel(
-  instrument:       Option[Instrument],
-  exposureTimeMode: View[Option[ExposureTimeMode]],
-  options:          View[ScienceRequirements.Spectroscopy],
-  readonly:         Boolean,
-  units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole]
+  instrument:           Option[Instrument],
+  exposureTimeMode:     View[Option[ExposureTimeMode]],
+  exposureTimeModeType: View[ExposureTimeModeType],
+  options:              View[ScienceRequirements.Spectroscopy],
+  readonly:             Boolean,
+  units:                WavelengthUnits,
+  calibrationRole:      Option[CalibrationRole]
 ) extends ReactFnProps[SpectroscopyConfigurationPanel](SpectroscopyConfigurationPanel.component)
 
 object SpectroscopyConfigurationPanel extends ConfigurationFormats:
@@ -99,6 +101,7 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
             p.instrument,
             wv.get,
             p.exposureTimeMode,
+            p.exposureTimeModeType,
             ScienceMode.Spectroscopy,
             p.readonly,
             p.units,

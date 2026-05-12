@@ -43,16 +43,17 @@ import lucuma.ui.syntax.all.given
  *    labels so they will be hidden from view while still being accessible to screen readers.
  */
 case class ExposureTimeModeEditorOptional(
-  instrument:       Option[Instrument],
-  wavelength:       Option[Wavelength],
-  exposureTimeMode: View[Option[ExposureTimeMode]],
-  scienceMode:      ScienceMode,
-  readonly:         Boolean,
-  units:            WavelengthUnits,
-  calibrationRole:  Option[CalibrationRole],
-  idPrefix:         NonEmptyString,
-  forceCount:       Option[PosInt] = None,
-  forGridRow:       Boolean = false
+  instrument:           Option[Instrument],
+  wavelength:           Option[Wavelength],
+  exposureTimeMode:     View[Option[ExposureTimeMode]],
+  exposureTimeModeType: View[ExposureTimeModeType],
+  scienceMode:          ScienceMode,
+  readonly:             Boolean,
+  units:                WavelengthUnits,
+  calibrationRole:      Option[CalibrationRole],
+  idPrefix:             NonEmptyString,
+  forceCount:           Option[PosInt] = None,
+  forGridRow:           Boolean = false
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
 object ExposureTimeModeEditorOptional:
@@ -61,11 +62,6 @@ object ExposureTimeModeEditorOptional:
   protected val component =
     ScalaFnComponent[Props]: props =>
       for
-        exposureTimeModeView <- useStateView(
-                                  props.exposureTimeMode.get
-                                    .map(_.modeType)
-                                    .getOrElse(ExposureTimeModeType.SignalToNoise)
-                                )
         signalToNoiseView    <- useStateView(
                                   props.exposureTimeMode.get
                                     .flatMap(SignalToNoiseModeInfo.fromModel)
@@ -83,15 +79,15 @@ object ExposureTimeModeEditorOptional:
                                     .map: etm =>
                                       SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
                                         TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
-                                        exposureTimeModeView.set(etm.modeType)
+                                        props.exposureTimeModeType.set(etm.modeType)
                                     .getOrElse:
                                       signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
                                         timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode, force)) *>
-                                        exposureTimeModeView.set(ExposureTimeModeType.SignalToNoise)
+                                        props.exposureTimeModeType.set(ExposureTimeModeType.SignalToNoise)
         _                    <- useEffectWithDeps(props.wavelength):
                                   // Wavelength updated upstream, set `at` if empty
                                   _.map: wv =>
-                                    exposureTimeModeView.get match
+                                    props.exposureTimeModeType.get match
                                       case ExposureTimeModeType.SignalToNoise =>
                                         signalToNoiseView.set(signalToNoiseView.get.withRequirementsWavelength(wv))
                                       case ExposureTimeModeType.TimeAndCount  =>
@@ -124,7 +120,7 @@ object ExposureTimeModeEditorOptional:
         val modeSelector =
           FormEnumDropdownView(
             id = makeId("ExposureMode".refined),
-            value = exposureTimeModeView,
+            value = props.exposureTimeModeType,
             label = ReactFragment(
               "Exposure Mode",
               HelpIcon("configuration/exposure-mode.md".refined)
@@ -153,7 +149,7 @@ object ExposureTimeModeEditorOptional:
 
         React.Fragment(
           controlsWrapper(modeSelector, ExploreStyles.ExposureTimeModeMode),
-          if (exposureTimeModeView.get === ExposureTimeModeType.SignalToNoise)
+          if (props.exposureTimeModeType.get === ExposureTimeModeType.SignalToNoise)
             SignalToNoiseAtEditor(
               snModeView,
               props.scienceMode,

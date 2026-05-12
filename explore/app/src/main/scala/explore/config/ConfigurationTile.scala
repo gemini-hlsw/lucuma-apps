@@ -199,6 +199,8 @@ object ConfigurationTile
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
       val EmptyGhostIfuInput: ObservingModeInput          =
         ObservingModeInput.GhostIfu(GhostIfuInput())
+      val EmptyVisitorInput: ObservingModeInput           =
+        ObservingModeInput.Visitor(VisitorInput())
       val EmptyGmosNorthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
@@ -210,13 +212,13 @@ object ConfigurationTile
       yield
         import ctx.given
 
-        val revertConfig: Callback =
+        val revertConfig: IO[Unit] =
           revertConfiguration(
             props.obsId,
             props.mode,
             props.revertedInstrumentConfig,
             props.selectedConfig
-          ).runAsyncAndForget
+          )
 
         val title =
           <.div(ExploreStyles.TileTitleConfigSelector)(
@@ -227,7 +229,7 @@ object ConfigurationTile
               loading = isChanging.get,
               showClear = true,
               onChange = (om: Option[ObservingModeSummary]) =>
-                om.fold(revertConfig)(m =>
+                om.fold(revertConfig.switching(isChanging.async).runAsync)(m =>
                   updateConfiguration(
                     props.obsId,
                     props.pacAndMode,
@@ -323,6 +325,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.ghostIfu
                   .andThen(ObservingModeInput.GhostIfu.value)
+                  .modify
+            )
+
+        val optVisitorAligner: Option[Aligner[ObservingMode.Visitor, VisitorInput]] =
+          optModeAligner(EmptyVisitorInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.visitor,
+              modInput:
+                ObservingModeInput.visitor
+                  .andThen(ObservingModeInput.Visitor.value)
                   .modify
             )
 
@@ -492,6 +504,19 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ghostAligner,
+                      revertConfig,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    ),
+                  // Resident Visitor (Alopeke / Zorro / maroon-x)
+                  optVisitorAligner.map: visitorAligner =>
+                    VisitorConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      visitorAligner,
+                      requirementsView,
                       revertConfig,
                       props.sequenceChanged,
                       props.permissions,

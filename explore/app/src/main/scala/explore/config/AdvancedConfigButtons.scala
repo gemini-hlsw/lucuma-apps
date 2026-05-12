@@ -3,11 +3,13 @@
 
 package explore.config
 
+import cats.effect.IO
 import cats.syntax.all.*
-import crystal.react.View
+import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
 import explore.components.ui.ExploreStyles
+import explore.model.AppContext
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.ReactFnComponent
@@ -15,11 +17,12 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
+import lucuma.ui.syntax.effect.*
 
 final case class AdvancedConfigButtons(
   editState:            View[ConfigEditState],
   isCustomized:         Boolean,
-  revertConfig:         Callback,
+  revertConfig:         IO[Unit],
   revertCustomizations: Callback,
   sequenceChanged:      Callback,
   readonly:             Boolean,
@@ -29,45 +32,51 @@ final case class AdvancedConfigButtons(
 
 object AdvancedConfigButtons
     extends ReactFnComponent[AdvancedConfigButtons](props =>
-      if (props.readonly) EmptyVdom
-      else
-        <.div(
-          ExploreStyles.AdvancedConfigurationButtons,
-          Button(
-            label = "Revert Configuration",
-            icon = Icons.ListIcon,
-            severity = Button.Severity.Secondary,
-            onClick = props.revertConfig
-          ).compact.small
-            .unless(props.isCustomized),
-          Button(
-            label = "Revert Customizations",
-            icon = Icons.TrashUnstyled,
-            severity = Button.Severity.Danger,
-            onClick = props.sequenceChanged *> props.editState.set(ConfigEditState.View) >>
-              props.revertCustomizations
-          ).compact.small
-            .when(props.isCustomized),
-          Button(
-            label = "Customize",
-            icon = Icons.Edit,
-            severity = Button.Severity.Secondary,
-            onClick = props.editState.set(ConfigEditState.SimpleEdit)
-          ).compact.small
-            .when(props.editState.get === ConfigEditState.View && props.showCustomizeButton),
-          Button(
-            label = "Advanced Customization",
-            icon = Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
-            severity = Button.Severity.Secondary,
-            onClick = props.editState.set(ConfigEditState.AdvancedEdit)
-          ).compact.small
-            .when(props.editState.get === ConfigEditState.SimpleEdit && props.showAdvancedButton)
-        )
+      for
+        ctx       <- useContext(AppContext.ctx)
+        reverting <- useStateView(false)
+      yield
+        import ctx.given
+        if (props.readonly) EmptyVdom
+        else
+          <.div(
+            ExploreStyles.AdvancedConfigurationButtons,
+            Button(
+              label = "Revert Configuration",
+              icon = Icons.ListIcon,
+              severity = Button.Severity.Secondary,
+              loading = reverting.get,
+              onClick = props.revertConfig.switching(reverting.async).runAsync
+            ).compact.small
+              .unless(props.isCustomized),
+            Button(
+              label = "Revert Customizations",
+              icon = Icons.TrashUnstyled,
+              severity = Button.Severity.Danger,
+              onClick = props.sequenceChanged *> props.editState.set(ConfigEditState.View) >>
+                props.revertCustomizations
+            ).compact.small
+              .when(props.isCustomized),
+            Button(
+              label = "Customize",
+              icon = Icons.Edit,
+              severity = Button.Severity.Secondary,
+              onClick = props.editState.set(ConfigEditState.SimpleEdit)
+            ).compact.small
+              .when(props.editState.get === ConfigEditState.View && props.showCustomizeButton),
+            Button(
+              label = "Advanced Customization",
+              icon = Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
+              severity = Button.Severity.Secondary,
+              onClick = props.editState.set(ConfigEditState.AdvancedEdit)
+            ).compact.small
+              .when(props.editState.get === ConfigEditState.SimpleEdit && props.showAdvancedButton)
+          )
     )
 
 // Use this only for testing for new modes
 // gives you an escape hatch to revert the config
-case class RollbackOnlyConfigButtons(revertConfig: Callback)
+case class RollbackOnlyConfigButtons(revertConfig: IO[Unit])
     extends ReactFnProps(RollbackOnlyConfigButtons)
 
 object RollbackOnlyConfigButtons

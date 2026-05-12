@@ -8,6 +8,7 @@ import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.enums.ExposureTimeModeType.modeType
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -36,8 +37,9 @@ final case class ExposureTimeModeEditor(
 object ExposureTimeModeEditor
     extends ReactFnComponent[ExposureTimeModeEditor](props =>
       for
-        oEtm <- useStateView(props.exposureTimeMode.get.some)
-        _    <- useEffectWithDeps(props.exposureTimeMode.get)(etm => oEtm.set(etm.some))
+        oEtm     <- useStateView(props.exposureTimeMode.get.some)
+        modeType <- useStateView(props.exposureTimeMode.get.modeType)
+        _        <- useEffectWithDeps(props.exposureTimeMode.get)(etm => oEtm.set(etm.some))
       yield
         // ExposureTimeModeEditorOptional only ever sets the value, it never updates to None
         val oEtmWithOnMod = oEtm.withOnMod(_.foldMap(props.exposureTimeMode.set))
@@ -45,6 +47,7 @@ object ExposureTimeModeEditor
           props.instrument,
           props.wavelength,
           oEtmWithOnMod,
+          modeType,
           props.scienceMode,
           props.readonly,
           props.units,

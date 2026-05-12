@@ -58,7 +58,7 @@ object GmosLongslitConfigPanel {
     def obsId: Observation.Id
     def calibrationRole: Option[CalibrationRole]
     def observingMode: Aligner[T, Input]
-    def revertConfig: Callback
+    def revertConfig: IO[Unit]
     def confMatrix: SpectroscopyModesMatrix
     def sequenceChanged: Callback
     def permissions: ConfigEditPermissions
@@ -461,7 +461,7 @@ object GmosLongslitConfigPanel {
     obsId:           Observation.Id,
     calibrationRole: Option[CalibrationRole],
     observingMode:   Aligner[ObservingMode.GmosNorthLongSlit, GmosNorthLongSlitInput],
-    revertConfig:    Callback,
+    revertConfig:    IO[Unit],
     confMatrix:      SpectroscopyModesMatrix,
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,
@@ -725,7 +725,7 @@ object GmosLongslitConfigPanel {
     obsId:           Observation.Id,
     calibrationRole: Option[CalibrationRole],
     observingMode:   Aligner[ObservingMode.GmosSouthLongSlit, GmosSouthLongSlitInput],
-    revertConfig:    Callback,
+    revertConfig:    IO[Unit],
     confMatrix:      SpectroscopyModesMatrix,
     sequenceChanged: Callback,
     permissions:     ConfigEditPermissions,

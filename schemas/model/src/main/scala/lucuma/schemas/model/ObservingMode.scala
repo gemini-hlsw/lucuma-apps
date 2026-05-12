@@ -859,6 +859,13 @@ object ObservingMode:
     def isCustomized: Boolean = false
 
   object Visitor:
+    val mode: Lens[Visitor, VisitorObservingModeType]       =
+      Focus[Visitor](_.mode)
+    val centralWavelength: Lens[Visitor, CentralWavelength] =
+      Focus[Visitor](_.centralWavelength)
+    val scienceFov: Lens[Visitor, Angle]                    =
+      Focus[Visitor](_.scienceFov)
+
     given Decoder[Visitor] = Decoder.instance: c =>
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]

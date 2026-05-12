@@ -5,6 +5,7 @@ package explore.config
 
 import cats.Endo
 import cats.Eq
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
@@ -56,7 +57,7 @@ final case class GhostIfuConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.GhostIfu, GhostIfuInput],
-  revertConfig:    Callback,
+  revertConfig:    IO[Unit],
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
   units:           WavelengthUnits
