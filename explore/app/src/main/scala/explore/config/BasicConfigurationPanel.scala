@@ -157,80 +157,89 @@ private object BasicConfigurationPanel:
 
         val isAlienVisitorMode = scienceModeType.get === ConfigurationMode.Visitor
 
-        <.div(ExploreStyles.BasicConfigurationGrid)(
-          <.div(
-            ExploreStyles.BasicConfigurationForm,
-            FormEnumDropdownView(
-              id = "configuration-mode".refined,
-              label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
-              value = scienceModeType.withOnMod(switchMode),
-              disabled = props.readonly
+        val modeDropdown: VdomNode =
+          FormEnumDropdownView(
+            id = "configuration-mode".refined,
+            label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
+            value = scienceModeType.withOnMod(switchMode),
+            disabled = props.readonly
+          )
+
+        <.div(
+          ExploreStyles.BasicConfigurationGrid,
+          ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitorMode)
+        )(
+          if isAlienVisitorMode then
+            <.div(
+              ExploreStyles.VisitorBasicArea,
+              ExploreStyles.BasicConfigurationForm,
+              modeDropdown,
+              AlienVisitorConfigEditor(
+                exposureTimeMode = exposureTimeView,
+                calibrationRole = props.calibrationRole,
+                readonly = props.readonly,
+                units = props.units
+              )
+            )
+          else
+            React.Fragment(
+              <.div(
+                ExploreStyles.BasicConfigurationForm,
+                modeDropdown,
+                spectroscopyView.mapValue: s =>
+                  SpectroscopyConfigurationPanel(
+                    props.selectedConfig.get.headOption.map(_.instrument),
+                    exposureTimeView,
+                    exposureTimeModeType,
+                    s,
+                    props.readonly,
+                    props.units,
+                    props.calibrationRole
+                  ),
+                imagingView.mapValue: s =>
+                  ImagingConfigurationPanel(
+                    props.selectedConfig.get.headOption.map(_.instrument),
+                    exposureTimeView,
+                    exposureTimeModeType,
+                    s,
+                    imagingCap,
+                    props.readonly,
+                    props.units,
+                    props.calibrationRole
+                  )
+              ),
+              spectroscopyView
+                .mapValue(s =>
+                  SpectroscopyModesTable(
+                    props.userId,
+                    props.selectedConfig,
+                    exposureTimeView.get,
+                    s.get,
+                    props.constraints,
+                    props.itcTargets,
+                    props.baseCoordinates,
+                    props.confMatrix.spectroscopy,
+                    props.customSedTimestamps,
+                    props.units
+                  )
+                ),
+              imagingView.mapValue(s =>
+                ImagingModesTable(
+                  props.userId,
+                  props.selectedConfig,
+                  exposureTimeView.get,
+                  s.get,
+                  props.confMatrix.imaging,
+                  props.constraints,
+                  props.itcTargets,
+                  props.baseCoordinates,
+                  props.customSedTimestamps,
+                  props.units,
+                  props.targetView,
+                  imagingCap.get
+                )
+              )
             ),
-            spectroscopyView.mapValue: s =>
-              (if isAlienVisitorMode then EmptyVdom
-               else
-                 SpectroscopyConfigurationPanel(
-                   props.selectedConfig.get.headOption.map(_.instrument),
-                   exposureTimeView,
-                   exposureTimeModeType,
-                   s,
-                   props.readonly,
-                   props.units,
-                   props.calibrationRole
-                 )
-              ): VdomNode,
-            imagingView.mapValue: s =>
-              (if isAlienVisitorMode then EmptyVdom
-               else
-                 ImagingConfigurationPanel(
-                   props.selectedConfig.get.headOption.map(_.instrument),
-                   exposureTimeView,
-                   exposureTimeModeType,
-                   s,
-                   imagingCap,
-                   props.readonly,
-                   props.units,
-                   props.calibrationRole
-                 )
-              ): VdomNode
-          ),
-          spectroscopyView
-            .mapValue(s =>
-              (if isAlienVisitorMode then EmptyVdom
-               else
-                 SpectroscopyModesTable(
-                   props.userId,
-                   props.selectedConfig,
-                   exposureTimeView.get,
-                   s.get,
-                   props.constraints,
-                   props.itcTargets,
-                   props.baseCoordinates,
-                   props.confMatrix.spectroscopy,
-                   props.customSedTimestamps,
-                   props.units
-                 )
-              ): VdomNode
-            ),
-          imagingView.mapValue(s =>
-            (if isAlienVisitorMode then EmptyVdom
-             else
-               ImagingModesTable(
-                 props.userId,
-                 props.selectedConfig,
-                 exposureTimeView.get,
-                 s.get,
-                 props.confMatrix.imaging,
-                 props.constraints,
-                 props.itcTargets,
-                 props.baseCoordinates,
-                 props.customSedTimestamps,
-                 props.units,
-                 props.targetView,
-                 imagingCap.get
-               )
-            ): VdomNode
-          ),
           <.div(ExploreStyles.BasicConfigurationButtons)(
             message.map(Tag(_, severity = Tag.Severity.Success)),
             Button(

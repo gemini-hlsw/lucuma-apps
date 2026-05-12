@@ -509,9 +509,9 @@ object ConfigurationTile
                       props.permissions,
                       props.units
                     ),
-                  // Resident Visitor (Alopeke / Zorro / maroon-x)
+                  // Resident visitors (Alopeke / Zorro / MAROON-X) and alien visitors (generic gs/gn).
                   optVisitorAligner.map: visitorAligner =>
-                    VisitorConfigPanel(
+                    ResidentVisitorConfigPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,
