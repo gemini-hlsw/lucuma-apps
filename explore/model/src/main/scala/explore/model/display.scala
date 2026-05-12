@@ -80,6 +80,11 @@ trait DisplayImplicits:
     case ScienceMode.Imaging      => "Imaging"
     case ScienceMode.Spectroscopy => "Spectroscopy"
 
+  given Display[explore.model.enums.ConfigurationMode] = Display.byShortName:
+    case explore.model.enums.ConfigurationMode.Spectroscopy => "Spectroscopy"
+    case explore.model.enums.ConfigurationMode.Imaging      => "Imaging"
+    case explore.model.enums.ConfigurationMode.Visitor      => "Visitor"
+
   given Display[WavelengthUnits] = Display.byShortName(_.symbol)
 
   given Display[ConstraintSet] = Display.byShortName: cs =>
