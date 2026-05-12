@@ -4,6 +4,7 @@
 package explore.config
 
 import cats.data.NonEmptyList
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
@@ -46,7 +47,7 @@ final case class Flamingos2LongslitConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Flamingos2LongSlit, Flamingos2LongSlitInput],
-  revertConfig:    Callback,
+  revertConfig:    IO[Unit],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,

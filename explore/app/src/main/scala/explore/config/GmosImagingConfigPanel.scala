@@ -69,7 +69,7 @@ object GmosImagingConfigPanel {
     def calibrationRole: Option[CalibrationRole]
     def observingMode: Aligner[T, Input]
     def requirementsExposureTimeMode: Option[ExposureTimeMode]
-    def revertConfig: Callback
+    def revertConfig: IO[Unit]
     def sequenceChanged: Callback
     def readonly: Boolean
     def units: WavelengthUnits
@@ -349,7 +349,7 @@ object GmosImagingConfigPanel {
     calibrationRole:              Option[CalibrationRole],
     observingMode:                Aligner[ObservingMode.GmosNorthImaging, GmosNorthImagingInput],
     requirementsExposureTimeMode: Option[ExposureTimeMode],
-    revertConfig:                 Callback,
+    revertConfig:                 IO[Unit],
     sequenceChanged:              Callback,
     readonly:                     Boolean,
     units:                        WavelengthUnits
@@ -480,7 +480,7 @@ object GmosImagingConfigPanel {
     calibrationRole:              Option[CalibrationRole],
     observingMode:                Aligner[ObservingMode.GmosSouthImaging, GmosSouthImagingInput],
     requirementsExposureTimeMode: Option[ExposureTimeMode],
-    revertConfig:                 Callback,
+    revertConfig:                 IO[Unit],
     sequenceChanged:              Callback,
     readonly:                     Boolean,
     units:                        WavelengthUnits

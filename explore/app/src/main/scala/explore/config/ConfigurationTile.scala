@@ -212,13 +212,13 @@ object ConfigurationTile
       yield
         import ctx.given
 
-        val revertConfig: Callback =
+        val revertConfig: IO[Unit] =
           revertConfiguration(
             props.obsId,
             props.mode,
             props.revertedInstrumentConfig,
             props.selectedConfig
-          ).runAsyncAndForget
+          )
 
         val title =
           <.div(ExploreStyles.TileTitleConfigSelector)(
@@ -229,7 +229,7 @@ object ConfigurationTile
               loading = isChanging.get,
               showClear = true,
               onChange = (om: Option[ObservingModeSummary]) =>
-                om.fold(revertConfig)(m =>
+                om.fold(revertConfig.switching(isChanging.async).runAsync)(m =>
                   updateConfiguration(
                     props.obsId,
                     props.pacAndMode,

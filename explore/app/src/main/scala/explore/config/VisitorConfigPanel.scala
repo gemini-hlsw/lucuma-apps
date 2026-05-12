@@ -3,9 +3,11 @@
 
 package explore.config
 
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
+import crystal.react.ViewOpt
 import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.ui.ExploreStyles
@@ -21,6 +23,7 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.ExposureTimeMode.TimeAndCountMode
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -32,8 +35,6 @@ import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import crystal.react.ViewOpt
-import lucuma.core.model.ExposureTimeMode.TimeAndCountMode
 
 final case class VisitorConfigPanel(
   programId:        Program.Id,
@@ -41,7 +42,7 @@ final case class VisitorConfigPanel(
   calibrationRole:  Option[CalibrationRole],
   observingMode:    Aligner[ObservingMode.Visitor, VisitorInput],
   requirementsView: View[ScienceRequirements],
-  revertConfig:     Callback,
+  revertConfig:     IO[Unit],
   sequenceChanged:  Callback,
   permissions:      ConfigEditPermissions,
   units:            WavelengthUnits

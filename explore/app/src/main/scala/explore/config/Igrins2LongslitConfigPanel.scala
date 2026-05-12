@@ -4,6 +4,7 @@
 package explore.config
 
 import cats.data.NonEmptyList
+import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.Input
 import clue.data.syntax.*
@@ -44,7 +45,7 @@ final case class Igrins2LongslitConfigPanel(
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
   observingMode:   Aligner[ObservingMode.Igrins2LongSlit, Igrins2LongSlitInput],
-  revertConfig:    Callback,
+  revertConfig:    IO[Unit],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
