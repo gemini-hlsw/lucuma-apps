@@ -1888,6 +1888,19 @@ svg.fa-check.explore-success-icon {
     padding: 0.5em;
   }
 
+  .explore-visitor-basic-area {
+    grid-area: visitor;
+    padding: 0.5em;
+    align-self: start;
+  }
+
+  .explore-basic-configuration-grid-visitor {
+    grid-template:
+      'visitor' auto
+      'buttons' auto
+      '.' 1fr / 1fr;
+  }
+
   .explore-ghost-upper-grid {
     display: grid;
     padding: 0.5em;

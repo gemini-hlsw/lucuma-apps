@@ -11,9 +11,7 @@ import crystal.react.ViewOpt
 import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.ui.ExploreStyles
-import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
-import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
@@ -33,10 +31,9 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
-import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-final case class VisitorConfigPanel(
+final case class ResidentVisitorConfigPanel(
   programId:        Program.Id,
   obsId:            Observation.Id,
   calibrationRole:  Option[CalibrationRole],
@@ -46,10 +43,10 @@ final case class VisitorConfigPanel(
   sequenceChanged:  Callback,
   permissions:      ConfigEditPermissions,
   units:            WavelengthUnits
-) extends ReactFnProps(VisitorConfigPanel)
+) extends ReactFnProps(ResidentVisitorConfigPanel)
 
-object VisitorConfigPanel
-    extends ReactFnComponent[VisitorConfigPanel](props =>
+object ResidentVisitorConfigPanel
+    extends ReactFnComponent[ResidentVisitorConfigPanel](props =>
       for
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
@@ -78,51 +75,24 @@ object VisitorConfigPanel
             .zoom(ScienceRequirements.exposureTimeMode.some)
             .zoom(ExposureTimeMode.timeAndCount)
 
-        val instrumentLabel: String = mode.instrument.longName
+        val header: VdomNode =
+          React.Fragment(
+            FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
+            <.div(^.id := "visitor-instrument-name", mode.instrument.longName)
+          )
 
         React.Fragment(
-          <.div(
-            ExploreStyles.VisitorUpperGrid,
-            <.div(
-              ExploreStyles.VisitorHeader,
-              LucumaPrimeStyles.FormColumnCompact,
-              FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
-              <.div(^.id := "visitor-instrument-name", instrumentLabel)
-            ),
-            <.div(
-              LucumaPrimeStyles.FormColumnCompact,
-              FormInputTextView(
-                id = "visitor-central-wavelength".refined,
-                value = centralWavelengthView,
-                label = "Central Wavelength",
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toAuditor,
-                units = props.units.symbol,
-                disabled = disableEdit
-              )(^.autoComplete.off),
-              FormInputTextView(
-                id = "visitor-science-fov".refined,
-                value = scienceFovView,
-                label = "Sci FoV Diameter",
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-                changeAuditor = angleArcsecondsChangeAuditor,
-                units = "arcsec",
-                disabled = disableEdit
-              )(^.autoComplete.off)
-            ),
-            exposureTimeMode.asView.map(tcView =>
-              <.div(
-                LucumaPrimeStyles.FormColumnCompact,
-                TimeAndCountModeEditor(
-                  instrument = mode.instrument.some,
-                  value = tcView,
-                  readonly = !props.permissions.isFullEdit,
-                  calibrationRole = props.calibrationRole,
-                  idPrefix = "visitor".refined,
-                  showCount = true
-                )
-              )
-            )
+          VisitorConfigFields(
+            header = header,
+            centralWavelength = centralWavelengthView,
+            scienceFov = scienceFovView,
+            timeAndCount = exposureTimeMode.asView,
+            instrument = mode.instrument,
+            calibrationRole = props.calibrationRole,
+            units = props.units,
+            disabled = disableEdit,
+            idPrefix = "visitor".refined,
+            timeAndCountReadonly = (!props.permissions.isFullEdit).some
           ),
           <.div(
             ExploreStyles.VisitorLowerGrid,

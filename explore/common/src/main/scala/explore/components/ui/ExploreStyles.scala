@@ -390,6 +390,8 @@ object ExploreStyles:
   val VisitorUpperGrid: Css             = Css("explore-visitor-upper-grid")
   val VisitorLowerGrid: Css             = Css("explore-visitor-lower-grid")
   val VisitorHeader: Css                = Css("explore-visitor-header")
+  val VisitorBasicArea: Css             = Css("explore-visitor-basic-area")
+  val BasicConfigurationGridVisitor: Css = Css("explore-basic-configuration-grid-visitor")
   val GhostDetectorPanel: Css           = Css("explore-ghost-detector-panel")
   val GhostDetectorHeader: Css          = Css("explore-ghost-detector-header")
   val GhostAgitators: Css               = Css("explore-ghost-agitators")
