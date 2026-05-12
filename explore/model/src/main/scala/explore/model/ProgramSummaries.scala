@@ -342,6 +342,9 @@ object ProgramSummaries:
   val calculatedValueOrphans: Lens[ProgramSummaries, CalculatedValueOrphanMap] =
     Focus[ProgramSummaries](_.calculatedValueOrphans)
 
+  val observationsAndGroups: Lens[ProgramSummaries, ObservationsAndGroups] =
+    (observations, groups).disjointZip.andThen(ObservationsAndGroups.tupled.reverse)
+
   val obsAndOrphans: Lens[ProgramSummaries, (ObservationList, CalculatedValueOrphanMap)] =
     (observations, calculatedValueOrphans).disjointZip
 

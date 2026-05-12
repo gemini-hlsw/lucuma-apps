@@ -12,6 +12,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
@@ -57,3 +58,6 @@ object Group:
   val parentIndex: Lens[Group, NonNegShort]                                             = Focus[Group](_.parentIndex)
   val timeEstimateRange: Lens[Group, Option[CalculatedValue[Option[ProgramTimeRange]]]] =
     Focus[Group](_.timeEstimateRange)
+
+  val parentInfo: Lens[Group, (Option[Group.Id], NonNegShort)] =
+    (parentId, parentIndex).disjointZip

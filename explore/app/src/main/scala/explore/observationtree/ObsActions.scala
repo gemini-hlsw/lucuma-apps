@@ -13,29 +13,32 @@ import explore.model.Group
 import explore.model.GroupList
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationsAndGroups
 import explore.services.OdbGroupApi
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
-import lucuma.core.optics.syntax.lens.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.ui.optics.*
 import lucuma.ui.undo.Action
 import lucuma.ui.undo.AsyncAction
-import monocle.Lens
 
 object ObsActions:
-  private val obsGroupInfo: Lens[Observation, (Option[Group.Id], NonNegShort)] =
-    (Observation.groupId, Observation.groupIndex).disjointZip
-
   def obsGroupInfo(
     obsId:  Observation.Id
   )(using
     odbApi: OdbObservationApi[IO]
-  ): Action[ObservationList, Option[(Option[Group.Id], NonNegShort)]] =
+  ): Action[ObservationsAndGroups, Option[(Option[Group.Id], NonNegShort)]] =
     Action(
-      access = obsWithId(obsId).composeOptionLens(obsGroupInfo)
+      getter = ObservationsAndGroups.observations
+        .andThen(ObservationList.obsWithId(obsId))
+        .composeOptionLens(Observation.groupInfo)
+        .get,
+      setter = groupInfo =>
+        observationsAndGroups =>
+          groupInfo.fold(observationsAndGroups): newGroupInfo =>
+            observationsAndGroups.relocateObservation(obsId, newGroupInfo._1, newGroupInfo._2)
     )(
       onSet = (_, groupInfo) =>
         groupInfo
@@ -46,16 +49,20 @@ object ObsActions:
           .orEmpty
     )
 
-  private val groupParentInfo: Lens[Group, (Option[Group.Id], NonNegShort)] =
-    (Group.parentId, Group.parentIndex).disjointZip
-
   def groupParentInfo(
     groupId: Group.Id
   )(using
     odbApi:  OdbGroupApi[IO]
-  ): Action[GroupList, Option[(Option[Group.Id], NonNegShort)]] =
+  ): Action[ObservationsAndGroups, Option[(Option[Group.Id], NonNegShort)]] =
     Action(
-      access = groupWithId(groupId).composeOptionLens(groupParentInfo)
+      getter = ObservationsAndGroups.groups
+        .andThen(GroupList.groupWithId(groupId))
+        .composeOptionLens(Group.parentInfo)
+        .get,
+      setter = parentInfo =>
+        observationsAndGroups =>
+          parentInfo.fold(observationsAndGroups): newParentInfo =>
+            observationsAndGroups.relocateGroup(groupId, newParentInfo._1, newParentInfo._2)
     )(
       onSet = (_, parentInfo) =>
         parentInfo
@@ -68,7 +75,7 @@ object ObsActions:
     odbApi: OdbObservationApi[IO]
   ) = Action(
     // need to also optimistically update the list of valid transistions
-    access = obsWithId(obsId).composeOptionLens(Observation.unlawfulWorkflowState)
+    access = ObservationList.obsWithId(obsId).composeOptionLens(Observation.unlawfulWorkflowState)
   )(
     onSet = (_, state) =>
       state
@@ -79,7 +86,7 @@ object ObsActions:
   def obsEditSubtitle(obsId: Observation.Id)(using
     odbApi: OdbObservationApi[IO]
   ): Action[ObservationList, Option[Option[NonEmptyString]]] = Action(
-    access = obsWithId(obsId).composeOptionLens(Observation.subtitle)
+    access = ObservationList.obsWithId(obsId).composeOptionLens(Observation.subtitle)
   )(onSet =
     (_, subtitleOpt) =>
       odbApi.updateObservations(
@@ -92,7 +99,7 @@ object ObsActions:
     obsId: Observation.Id
   )(using odbApi: OdbObservationApi[IO]): Action[ObservationList, Option[ScienceBand]] =
     Action(
-      access = obsWithId(obsId).composeOptionOptionLens(Observation.scienceBand)
+      access = ObservationList.obsWithId(obsId).composeOptionOptionLens(Observation.scienceBand)
     )(
       onSet = (_, scienceBand) =>
         odbApi.updateObservations(
@@ -108,7 +115,7 @@ object ObsActions:
     odbApi:   OdbGroupApi[IO]
   ): Action[GroupList, Option[Group]] =
     Action(
-      groupWithId(groupId)
+      GroupList.groupWithId(groupId)
     )(
       onSet = (_, groupOpt) =>
         groupOpt.fold {

@@ -24,8 +24,6 @@ import lucuma.ui.primereact.*
 import lucuma.ui.syntax.effect.*
 import lucuma.ui.syntax.toast.*
 import lucuma.ui.undo.UndoSetter
-import monocle.Iso
-import monocle.Lens
 
 def focusObs[F[_]](
   programId: Program.Id,
@@ -60,12 +58,6 @@ def cloneObs(
       postMessage = ToastCtx[IO].showToast(_)
     )(observations)
     .void
-
-private def obsWithId(obsId: Observation.Id): Lens[ObservationList, Option[Observation]] =
-  Iso.id[ObservationList].at(obsId)
-
-private def groupWithId(groupId: Group.Id): Lens[GroupList, Option[Group]] =
-  Iso.id[GroupList].at(groupId)
 
 def obsEditAttachments(
   obsId:         Observation.Id,

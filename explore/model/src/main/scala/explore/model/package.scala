@@ -97,6 +97,14 @@ type CalculatedWorkflowAndDigest =
   (CalculatedValue[ObservationWorkflow], CalculatedValue[Option[ExecutionDigest]])
 type CalculatedValueOrphanMap    = Map[Observation.Id, CalculatedWorkflowAndDigest]
 
+object ObservationList:
+  def obsWithId(obsId: Observation.Id): Lens[ObservationList, Option[Observation]] =
+    Iso.id[ObservationList].at(obsId)
+
+object GroupList:
+  def groupWithId(groupId: Group.Id): Lens[GroupList, Option[Group]] =
+    Iso.id[GroupList].at(groupId)
+
 object ObservationsAndTargets:
   val observations: Lens[ObservationsAndTargets, ObservationList] =
     Focus[ObservationsAndTargets](_._1)

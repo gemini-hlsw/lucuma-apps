@@ -2894,6 +2894,7 @@ input[type='file'].explore-fileupload {
 
   .p-treenode-content {
     width: 100%;
+    position: relative; // Needed for drag and drop indicator.
   }
 
   .obs-item {
@@ -2942,10 +2943,6 @@ input[type='file'].explore-fileupload {
         margin: 0;
       }
     }
-  }
-
-  .p-treenode-content.p-treenode-dragover:not(.undroppable-node) {
-    background-color: var(--explore-group-dragging) !important;
   }
 
   .p-treenode-droppoint {

@@ -111,7 +111,7 @@ object UseTableDragAndDrop:
                 DraggableDropTargetWithHandle[D, D](
                   handleRef => render(Some(handleRef))(tagMod(row, draggingInfo)),
                   getInitialData = _ => Data(rowData),
-                  getData = args => Data(rowData).attachClosestEdge(args, Axis.Vertical.edges),
+                  getData = args => Data(rowData).attachClosestEdge(args, Axes.Vertical.edges),
                   canDrag = canDrag.map(f => args => f(rowData, args)),
                   canDrop = canDrop.map(f => args => f(rowData, args))
                 ).withKey(s"draggable-${row.id.value}").toUnmounted: VdomNode
@@ -148,5 +148,5 @@ object UseTableDragAndDrop:
     for
       tableDnd     <- useTableDragAndDrop(table, handleColId, getData, canDrag, canDrop, onDrop)
       containerRef <-
-        useAutoScrollRef(getAllowedAxis = _ => Axis.Vertical, containerRef = containerRef)
+        useAutoScrollRef(getAllowedAxis = _ => Axes.Vertical, containerRef = containerRef)
     yield UseVirtualizedTableDragAndDrop(tableDnd, containerRef)

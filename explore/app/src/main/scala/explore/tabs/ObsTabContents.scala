@@ -66,19 +66,22 @@ case class ObsTabContents(
   readonly:         Boolean
 ) extends ReactFnProps(ObsTabContents.component)
     with ObsGroupHelper {
-  protected val focusedObsId: Option[Observation.Id]      = focused.obsSet.map(_.head)
-  private val focusedTarget: Option[Target.Id]            = focused.target
-  protected val focusedGroupId: Option[Group.Id]          = focused.group
-  protected val observations: UndoSetter[ObservationList] =
-    programSummaries.zoom(ProgramSummaries.observations)
-  protected val groups: UndoSetter[GroupList]             = programSummaries.zoom(ProgramSummaries.groups)
-  private val targets: UndoSetter[TargetList]             = programSummaries.zoom(ProgramSummaries.targets)
-  private val globalPreferences: View[GlobalPreferences]  =
+  protected val focusedObsId: Option[Observation.Id]                     = focused.obsSet.map(_.head)
+  private val focusedTarget: Option[Target.Id]                           = focused.target
+  protected val focusedGroupId: Option[Group.Id]                         = focused.group
+  protected val observationsAndGroups: UndoSetter[ObservationsAndGroups] =
+    programSummaries.zoom(ProgramSummaries.observationsAndGroups)
+  protected val observations: UndoSetter[ObservationList]                =
+    observationsAndGroups.zoom(ObservationsAndGroups.observations)
+  protected val groups: UndoSetter[GroupList]                            =
+    observationsAndGroups.zoom(ObservationsAndGroups.groups)
+  private val targets: UndoSetter[TargetList]                            = programSummaries.zoom(ProgramSummaries.targets)
+  private val globalPreferences: View[GlobalPreferences]                 =
     userPreferences.zoom(UserPreferences.globalPreferences)
-  private val programType: Option[ProgramType]            = programSummaries.get.programType
+  private val programType: Option[ProgramType]                           = programSummaries.get.programType
   // XXX Workaround for what seems to be a Scala 3.8.2 bug where `ObsGroupHelper` members cannot be otherwise
   // accessed from within the component definition below.
-  override val resolvedActiveGroupId: Option[Group.Id]    = super.resolvedActiveGroupId
+  override val resolvedActiveGroupId: Option[Group.Id]                   = super.resolvedActiveGroupId
 }
 
 object ObsTabContents extends TwoPanels:
@@ -205,8 +208,7 @@ object ObsTabContents extends TwoPanels:
           if (deckShown.get === DeckShown.Shown) {
             ObsTree(
               props.programId,
-              props.observations,
-              props.groups,
+              props.observationsAndGroups,
               props.programSummaries.get.groupsChildren,
               props.programSummaries.get.parentGroups(_),
               props.programSummaries.get.groupWarnings,

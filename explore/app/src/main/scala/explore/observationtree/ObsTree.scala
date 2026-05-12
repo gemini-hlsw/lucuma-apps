@@ -21,11 +21,10 @@ import explore.model.GroupList
 import explore.model.ObsIdSet
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.ObservationsAndGroups
 import explore.model.enums.AppTab
 import explore.model.enums.GroupWarning
 import explore.model.syntax.all.*
-import explore.services.OdbGroupApi
-import explore.services.OdbObservationApi
 import explore.tabs.DeckShown
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.hooks.Hooks.UseRef
@@ -45,7 +44,6 @@ import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.primereact.Tree
 import lucuma.react.primereact.Tree.Node
-import lucuma.react.syntax.*
 import lucuma.ui.dnd.*
 import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
@@ -62,8 +60,7 @@ import scala.scalajs.js
 
 case class ObsTree(
   programId:             Program.Id,
-  observations:          UndoSetter[ObservationList],
-  groups:                UndoSetter[GroupList],
+  observationsAndGroups: UndoSetter[ObservationsAndGroups],
   groupsChildren:        Map[Option[Group.Id], List[Either[Observation, Group]]],
   parentGroups:          Either[Observation.Id, Group.Id] => List[Group.Id],
   groupWarnings:         Map[Group.Id, NonEmptySet[GroupWarning]],
@@ -85,6 +82,11 @@ case class ObsTree(
     with ObsGroupHelper:
   private val selectedObsIdSet: Option[ObsIdSet] =
     focusedObsId.map(ObsIdSet.one(_)).orElse(ObsIdSet.fromList(selectedObsIds))
+
+  protected val observations: UndoSetter[ObservationList] =
+    observationsAndGroups.zoom(ObservationsAndGroups.observations)
+  protected val groups: UndoSetter[GroupList]             =
+    observationsAndGroups.zoom(ObservationsAndGroups.groups)
 
   // XXX Workaround for what seems to be a Scala 3.8.? bug where `ObsGroupHelper` members cannot be otherwise
   // accessed from within the component definition below.
@@ -167,10 +169,7 @@ case class ObsTree(
             .get(group.id.some)
             .map(_.map(createNode(_, dragging, dragOverPath)))
             .orEmpty
-        .orEmpty,
-      clazz = Css("p-treenode-dragover").when_(
-        value.toOption.exists(group => dragOverPath.contains_(group.id))
-      ) |+| Css("dragging").when_(dragging.contains_(value))
+        .orEmpty
     )
 
   // Root elements are already sorted by index
@@ -192,8 +191,6 @@ case class ObsTree(
 object ObsTree:
   private type Props = ObsTree
 
-  private val DragGapHeight = 35.toPx
-
   /**
    * Iso to go between Group.Id and Tree.Id
    */
@@ -213,56 +210,8 @@ object ObsTree:
         }
     }
 
-  private def onDragDrop(
-    observations:   UndoSetter[ObservationList],
-    groups:         UndoSetter[GroupList],
-    groupsChildren: Map[Option[Group.Id], List[Either[Observation, Group]]],
-    expandedGroups: View[Set[Group.Id]]
-  )(
-    payload:        BaseEventPayload[Either[Observation, Group], Either[Observation, Group]]
-  )(using OdbObservationApi[IO], OdbGroupApi[IO]): Callback =
-    val dropTargetData: Option[Data[Either[Observation, Group]]] =
-      payload.location.current.dropTargets.headOption.map(_.data)
-    val edgeOpt: Option[Edge]                                    = dropTargetData.flatMap(_.extractClosestEdge)
-
-    (dropTargetData.map(_.value), edgeOpt).tupled.foldMap: (dropTarget, edge) =>
-      val draggedNode: Either[Observation, Group]         = payload.source.data.value
-      val draggedNodeId: Either[Observation.Id, Group.Id] = draggedNode.bimap(_.id, _.id)
-      val isDragIntoGroupId: Boolean                      = dropTarget.isRight && edge == Edge.Bottom
-      val dropGroupId: Option[Group.Id]                   = dropTarget.fold(
-        obs => obs.groupId,
-        group => if isDragIntoGroupId then group.id.some else group.parentId
-      )
-
-      groupsChildren
-        .get(dropGroupId)
-        .foldMap: children =>
-          val dropNodeChildren: List[Either[Observation, Group]] =
-            children.filter(_.bimap(_.id, _.id) =!= draggedNodeId)
-
-          val newParentGroupIndex: NonNegShort =
-            if isDragIntoGroupId then NonNegShort.unsafeFrom(0)
-            else
-              NonNegShort.unsafeFrom(
-                computeIndexInList[Either[Observation, Group]](
-                  _ === dropTarget,
-                  edge
-                )(dropNodeChildren).getOrElse(0).toShort
-              )
-
-          draggedNodeId
-            .fold(
-              obsId =>
-                ObsActions
-                  .obsGroupInfo(obsId)
-                  .set(observations)((dropGroupId, newParentGroupIndex).some),
-              groupId =>
-                ObsActions
-                  .groupParentInfo(groupId)
-                  .set(groups)((dropGroupId, newParentGroupIndex).some)
-            ) >> // Open the group we moved to
-            dropGroupId.map(id => expandedGroups.mod(_ + id)).getOrEmpty
-  end onDragDrop
+  extension (node: Either[Observation, Group])
+    def id: Either[Observation.Id, Group.Id] = node.bimap(_.id, _.id)
 
   private val component =
     ScalaFnComponent[Props]: props =>
@@ -289,7 +238,7 @@ object ObsTree:
                         prevGroup.flatMap(groupList.get(_).map(_.asRight))
 
                   prevGroupInfo.set:
-                    newElement.flatMap(e => props.groupInfo(e.bimap(_.id, _.id)))
+                    newElement.flatMap(e => props.groupInfo(e.id))
                   >>
                     newElement
                       .fold(focusObs(props.programId, none, ctx)):
@@ -300,35 +249,88 @@ object ObsTree:
                 case _                   => Callback.empty
 
       for
-        ctx           <- useContext(AppContext.ctx)
-        dndScope      <-
-          useDragAndDropScope[Either[Observation, Group], Either[Observation, Group]](onDrop =
-            payload =>
-              import ctx.given
-              onDragDrop(
-                props.observations,
-                props.groups,
-                props.groupsChildren,
-                props.expandedGroups
-              )(payload).unless_(props.readonly)
-          )
-        autoScrollRef <- useAutoScrollRef(getAllowedAxis = _ => Axis.Vertical)
+        ctx               <- useContext(AppContext.ctx)
+        // We use shadowRefs to avoid capture in the drag-and-drop handlers
+        obsAndGroupsRef   <- useShadowRef(props.observationsAndGroups)
+        groupsChildrenRef <- useShadowRef(props.groupsChildren)
+        expandedGroupsRef <- useShadowRef(props.expandedGroups.get)
+        dndScope          <- useDragAndDropScope[Either[Observation, Group], Either[Observation, Group]]()
+        autoScrollRef     <- useAutoScrollRef(getAllowedAxis = _ => Axes.Vertical)
         // Saved index into the observation tree
-        prevGroupInfo <- useRef(props.focusedGroupInfo)
+        prevGroupInfo     <- useRef(props.focusedGroupInfo)
         // refocus if current focus ceases to exist
-        _             <- refocus(prevGroupInfo, ctx)
-        adding        <- useStateView(AddingObservation(false))
+        _                 <- refocus(prevGroupInfo, ctx)
+        adding            <- useStateView(AddingObservation(false))
         // Scroll to newly created/selected observation
-        _             <- useEffectWithDeps(props.focusedObsId): focusedObs =>
-                           focusedObs.map(scrollIfNeeded).getOrEmpty
+        _                 <- useEffectWithDeps(props.focusedObsId): focusedObs =>
+                               focusedObs.map(scrollIfNeeded).getOrEmpty
         // Open the group (and all super-groups) of the focused observation
-        _             <- useEffectWithDeps(props.resolvedActiveGroupId):
-                           _.map: activeGroupId =>
-                             props.expandedGroups.mod:
-                               _ ++ props.parentGroups(activeGroupId.asRight) + activeGroupId
-                           .orEmpty
+        _                 <- useEffectWithDeps(props.resolvedActiveGroupId):
+                               _.map: activeGroupId =>
+                                 props.expandedGroups.mod:
+                                   _ ++ props.parentGroups(activeGroupId.asRight) + activeGroupId
+                               .orEmpty
       yield
         import ctx.given
+
+        def onDragDrop(
+          payload: BaseEventPayload[Either[Observation, Group], Either[Observation, Group]]
+        ): Callback =
+          val dropTargetData: Option[Data[Either[Observation, Group]]] =
+            payload.location.current.dropTargets.headOption.map(_.data)
+          val instructionOpt: Option[Instruction]                      = dropTargetData.flatMap(_.extractInstruction)
+
+          (dropTargetData.map(_.value), instructionOpt).tupled.foldMap: (dropTarget, instruction) =>
+            val draggedNode: Either[Observation, Group]         = payload.source.data.value
+            val draggedNodeId: Either[Observation.Id, Group.Id] = draggedNode.id
+            val isDragIntoGroupHeader: Boolean                  =
+              dropTarget.isRight && instruction.operation == Operation.Combine
+            val dropGroupId: Option[Group.Id]                   = dropTarget.fold(
+              obs => obs.groupId,
+              group => if isDragIntoGroupHeader then group.id.some else group.parentId
+            )
+
+            groupsChildrenRef.get.flatMap: groupsChildren =>
+              val children: List[Either[Observation, Group]] =
+                groupsChildren
+                  .get(dropGroupId)
+                  .orEmpty
+                  .filter:
+                    case Left(_)      => true
+                    case Right(group) => !group.system || group.isTelluricCalibration
+
+              // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
+              val newParentGroupPosIndex: Int =
+                if isDragIntoGroupHeader then 0
+                else
+                  computeIndexInList[Either[Observation, Group]](
+                    _.id === dropTarget.id,
+                    instruction.operation
+                  )(children).getOrElse(0)
+
+              val newParentGroupIndex: NonNegShort =
+                if newParentGroupPosIndex < children.length then
+                  children(newParentGroupPosIndex).fold(_.groupIndex, _.parentIndex)
+                else
+                  children.lastOption
+                    .map(_.fold(_.groupIndex, _.parentIndex))
+                    .map(i => NonNegShort.unsafeFrom((i.value + 1).toShort))
+                    .getOrElse(NonNegShort.unsafeFrom(0))
+
+              obsAndGroupsRef.get.flatMap: obsAndGroups =>
+                draggedNodeId
+                  .fold(
+                    obsId =>
+                      ObsActions
+                        .obsGroupInfo(obsId)
+                        .set(obsAndGroups)((dropGroupId, newParentGroupIndex).some),
+                    groupId =>
+                      ObsActions
+                        .groupParentInfo(groupId)
+                        .set(obsAndGroups)((dropGroupId, newParentGroupIndex).some)
+                  ) >> // Open the group we moved to
+                  dropGroupId.map(groupId => props.expandedGroups.mod(_ + groupId)).orEmpty
+        end onDragDrop
 
         val expandedGroups: View[Set[Tree.Id]] = props.expandedGroups.as(groupTreeIdLens)
 
@@ -356,91 +358,106 @@ object ObsTree:
             .set(props.groups)(none)
             .showToastCB(s"Deleted group ${groupId.shortName}")
 
-        def renderObs(
-          obs:            Observation,
-          isSystem:       Boolean,
-          associatedObss: List[Observation] = List.empty
+        // This can be invoked for a single observation or for a telluric group.
+        def renderObsCard(
+          item:         Either[Observation, Group],
+          inSystemTree: Boolean
         ): VdomNode =
-          val selected: Boolean = props.focusedObsId.contains_(obs.id)
-
-          val badge =
-            <.a(
-              ^.id   := s"obs-list-${obs.id.toString}",
-              ^.href := ctx.pageUrl(
-                (AppTab.Observations,
-                 props.programId,
-                 Focused.singleObs(obs.id, props.focusedTargetId)
-                ).some
-              ),
-              ExploreStyles.ObsItem |+| ExploreStyles.SelectedObsItem.when_(selected),
-              ^.onClick ==> linkOverride(focusObs(props.programId, obs.id.some, ctx)),
-              (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)) match
-                case (Some(data), Some(sData))
-                    if data.value === obs.asLeft && data.value =!= sData =>
-                  data.extractClosestEdge.map(edge => dragOverStyle(DragGapHeight, edge)).toTagMod
-                case _ => TagMod.empty
-            )(
-              ObsBadge(
-                obs,
-                ObsBadge.Layout.ObservationsTab,
-                selected = selected,
-                setStateCB = (
-                  (obsId: Observation.Id) =>
-                    ObsActions
-                      .obsEditState(obsId)
-                      .set(props.observations)
-                      .compose((_: ObservationWorkflowState).some)
-                ).some,
-                setSubtitleCB = ObsActions
-                  .obsEditSubtitle(obs.id)
-                  .set(props.observations)
-                  .compose((_: Option[NonEmptyString]).some)
-                  .some,
-                deleteCB = deleteObsList(List(obs.id)),
-                cloneCB = cloneObs(
-                  props.programId,
-                  List(obs.id),
-                  props.resolveGroupId(obs.groupId), // Clone to the same group
-                  props.observations,
-                  ctx
-                ).switching(adding.async, AddingObservation(_))
-                  .withToastDuring(s"Duplicating obs ${obs.id}")
-                  .runAsync
-                  .some,
-                setScienceBandCB = (
-                  (b: ScienceBand) =>
-                    ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
-                ).some,
-                allocatedScienceBands = props.allocatedScienceBands,
-                associatedObss = associatedObss,
-                programId = props.programId,
-                hasBlindOffset = obs.hasBlindOffset,
-                focusedObs = props.focusedObsId,
-                readonly = props.readonly
-              )
-            )
-
-          DraggableDropTarget(
-            badge,
-            getInitialData = _ => Data(obs.asLeft),
-            getData = args => Data(obs.asLeft).attachClosestEdge(args, Axis.Vertical.edges),
-            canDrag = _ => !isSystem,
-            canDrop = _ => !isSystem
+          val (mainObs, associatedObss): (Option[Observation], List[Observation]) = item.fold(
+            obs => (obs.some, List.empty),
+            group =>
+              val groupObservations: List[Observation] =
+                props.groupsChildren
+                  .get(group.id.some)
+                  .orEmpty
+                  .collect:
+                    case Left(obs) => obs
+              val mainObs: Option[Observation]         = groupObservations.find(_.calibrationRole.isEmpty)
+              val associatedObss: List[Observation]    =
+                groupObservations.filterNot(o => mainObs.exists(_.id === o.id))
+              (mainObs, associatedObss)
           )
-        end renderObs
 
-        def renderGroup(group: Group, isSystem: Boolean): VdomNode =
+          // If we cannot determine the mainObs, render as a regular group.
+          // .toOption.get is safe since it will only happen if we are in a group
+          mainObs.fold(renderGroup(item.toOption.get, inSystemTree)) { obs =>
+            val selected: Boolean = props.focusedObsId.contains_(obs.id)
+
+            val badge =
+              <.a(
+                ^.id   := s"obs-list-${item.id.toString}",
+                ^.href := ctx.pageUrl(
+                  (AppTab.Observations,
+                   props.programId,
+                   Focused.singleObs(obs.id, props.focusedTargetId)
+                  ).some
+                ),
+                ExploreStyles.ObsItem |+| ExploreStyles.SelectedObsItem.when_(selected),
+                ^.onClick ==> linkOverride(focusObs(props.programId, obs.id.some, ctx))
+              )(
+                ObsBadge(
+                  obs,
+                  ObsBadge.Layout.ObservationsTab,
+                  selected = selected,
+                  setStateCB = (
+                    (obsId: Observation.Id) =>
+                      ObsActions
+                        .obsEditState(obsId)
+                        .set(props.observations)
+                        .compose((_: ObservationWorkflowState).some)
+                  ).some,
+                  setSubtitleCB = ObsActions
+                    .obsEditSubtitle(obs.id)
+                    .set(props.observations)
+                    .compose((_: Option[NonEmptyString]).some)
+                    .some,
+                  deleteCB = deleteObsList(List(obs.id)),
+                  cloneCB = cloneObs(
+                    props.programId,
+                    List(obs.id),
+                    props.resolveGroupId(obs.groupId), // Clone to the same group
+                    props.observations,
+                    ctx
+                  ).switching(adding.async, AddingObservation(_))
+                    .withToastDuring(s"Duplicating obs ${obs.id}")
+                    .runAsync
+                    .some,
+                  setScienceBandCB = (
+                    (b: ScienceBand) =>
+                      ObsActions.obsScienceBand(obs.id).set(props.observations)(b.some)
+                  ).some,
+                  allocatedScienceBands = props.allocatedScienceBands,
+                  associatedObss = associatedObss,
+                  programId = props.programId,
+                  hasBlindOffset = obs.hasBlindOffset,
+                  focusedObs = props.focusedObsId,
+                  readonly = props.readonly
+                )
+              )
+
+            React.Fragment(
+              DraggableDropTarget[Either[Observation, Group], Either[Observation, Group]](
+                badge,
+                getInitialData = _ => Data(item),
+                getData = args => Data(item).attachInstruction(args, Operations.Reorder),
+                canDrag = _ => !inSystemTree,
+                canDrop = _ => !inSystemTree,
+                onDropTargetDrop = onDragDrop(_)
+              ),
+              (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)).tupled
+                .filter: (dragOverData, draggingDataValue) =>
+                  dragOverData.value.id === item.id &&
+                    dragOverData.value.id =!= draggingDataValue.id
+                .flatMap(_._1.extractInstruction)
+                .map: instruction =>
+                  ListItemDropIndicator(instruction, lineGap = CssSize("4px"))
+            )
+          }
+        end renderObsCard
+
+        def renderGroup(group: Group, inSystemTree: Boolean): VdomNode =
           val badge =
-            <.span(
-              ^.width := "100%",
-              (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)) match
-                case (Some(data), Some(sData))
-                    if data.value === group.asRight && data.value =!= sData =>
-                  data.extractClosestEdge
-                    .map(edge => dragOverStyle(DragGapHeight, edge).when(edge == Edge.Top))
-                    .toTagMod
-                case _ => TagMod.empty
-            )(
+            <.span(^.width := "100%")(
               GroupBadge(
                 group,
                 props.groupWarnings.get(group.id),
@@ -457,30 +474,37 @@ object ObsTree:
               )
             )
 
-          DraggableDropTarget(
-            badge,
-            getInitialData = _ => Data(group.asRight),
-            getData = args => Data(group.asRight).attachClosestEdge(args, Axis.Vertical.edges),
-            // Telluric calibration groups are rendered as observations, which can be dragged.
-            canDrag = _ => !isSystem || group.isTelluricCalibration,
-            canDrop = _ => !isSystem && !group.isTelluricCalibration
+          React.Fragment(
+            DraggableDropTarget[Either[Observation, Group], Either[Observation, Group]](
+              badge,
+              getInitialData = _ => Data(group.asRight),
+              getData = args => // TODO Modify facade to use Callback to avoid runNow()
+                Data(group.asRight).attachInstruction(
+                  args, // Avoid capture of exandedGroups (getData is invoked repeatedly when dragging)
+                  if !expandedGroupsRef.get.runNow().contains(group.id) then Operations.All
+                  else Operations.ReorderOnExpandedGroup
+                ),
+              // Telluric calibration groups are rendered as observations, which can be dragged.
+              canDrag = _ => !inSystemTree || group.isTelluricCalibration,
+              canDrop = _ => !inSystemTree && !group.isTelluricCalibration,
+              onDropTargetDrop = onDragDrop(_)
+            ),
+            (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)).tupled
+              .filter: (dragOverData, draggingDataValue) =>
+                dragOverData.value.id === group.id.asRight &&
+                  dragOverData.value.id =!= draggingDataValue.id
+              .flatMap(_._1.extractInstruction)
+              .map: instruction =>
+                ListItemDropIndicator(instruction, lineGap = CssSize("4px"))
           )
         end renderGroup
 
-        def renderItem(nodeValue: Either[Observation, Group], isSystem: Boolean): VdomNode =
+        def renderItem(nodeValue: Either[Observation, Group], inSystemTree: Boolean): VdomNode =
           nodeValue match
             case Right(group) if group.isTelluricCalibration =>
-              val observations: List[Observation] =
-                props.groupsChildren
-                  .get(group.id.some)
-                  .orEmpty
-                  .collect:
-                    case Left(obs) => obs
-              val mainObs: Option[Observation]    = observations.find(_.calibrationRole.isEmpty)
-              mainObs.fold(renderGroup(group, isSystem)): obs =>
-                renderObs(obs, isSystem, observations.filterNot(_ === obs))
-            case Right(group)                                => renderGroup(group, isSystem)
-            case Left(obs)                                   => renderObs(obs, isSystem)
+              renderObsCard(group.asRight, inSystemTree)
+            case Right(group)                                => renderGroup(group, inSystemTree)
+            case Left(obs)                                   => renderObsCard(obs.asLeft, inSystemTree)
 
         val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
 
@@ -577,17 +601,18 @@ object ObsTree:
                   props.treeNodes(
                     dndScope.dragging.map(_.value),
                     dndScope.dragOver.headOption
-                      .map(_.data.value.bimap(_.id, _.id))
+                      .map(_.data.value.id)
                       .foldMap: dragOverIds =>
                         props.parentGroups(dragOverIds) ++ dragOverIds.toOption
                   ),
-                  (n, _) => renderItem(n, isSystem = false),
-                  expandedKeys = expandedGroups.get,
+                  (n, _) => renderItem(n, inSystemTree = false),
+                  expandedKeys = expandedGroups.get --
+                    dndScope.dragging.flatMap(_.value.toOption.map(g => Tree.Id(g.id.toString))),
                   onToggle = expandedGroups.set
                 ),
                 Tree(
                   props.systemTreeNodes,
-                  (n, _) => renderItem(n, isSystem = true),
+                  (n, _) => renderItem(n, inSystemTree = true),
                   expandedKeys = expandedGroups.get,
                   onToggle = expandedGroups.set
                 )

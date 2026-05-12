@@ -347,6 +347,9 @@ object Observation:
   val execution                = Focus[Observation](_.execution)
   val digest                   = execution.andThen(Execution.digest)
 
+  val groupInfo: Lens[Observation, (Option[Group.Id], NonNegShort)] =
+    (groupId, groupIndex).disjointZip
+
   val blindOffset: Lens[Observation, BlindOffset]               = Focus[Observation](_.blindOffset)
   val useBlindOffset: Lens[Observation, Boolean]                = blindOffset.andThen(BlindOffset.useBlindOffset)
   val blindOffsetTargetId: Lens[Observation, Option[Target.Id]] =
