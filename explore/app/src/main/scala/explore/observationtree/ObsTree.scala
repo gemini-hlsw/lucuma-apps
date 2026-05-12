@@ -478,12 +478,13 @@ object ObsTree:
             DraggableDropTarget[Either[Observation, Group], Either[Observation, Group]](
               badge,
               getInitialData = _ => Data(group.asRight),
-              getData = args => // TODO Modify facade to use Callback to avoid runNow()
-                Data(group.asRight).attachInstruction(
-                  args, // Avoid capture of exandedGroups (getData is invoked repeatedly when dragging)
-                  if !expandedGroupsRef.get.runNow().contains(group.id) then Operations.All
-                  else Operations.ReorderOnExpandedGroup
-                ),
+              getData = args =>
+                expandedGroupsRef.get.map: expandedGroups =>
+                  Data(group.asRight).attachInstruction(
+                    args, // Avoid capture of exandedGroups (getData is invoked repeatedly when dragging)
+                    if !expandedGroups.contains(group.id) then Operations.All
+                    else Operations.ReorderOnExpandedGroup
+                  ),
               // Telluric calibration groups are rendered as observations, which can be dragged.
               canDrag = _ => !inSystemTree || group.isTelluricCalibration,
               canDrop = _ => !inSystemTree && !group.isTelluricCalibration,
