@@ -4,6 +4,7 @@
 package explore.model
 
 import cats.Order.given
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.api.Refined
 import eu.timepit.refined.api.RefinedTypeOps
@@ -115,15 +116,23 @@ object PosAngleConstraintAndObsMode:
   val observingMode: Lens[PosAngleConstraintAndObsMode, Option[ObservingMode]] =
     Focus[PosAngleConstraintAndObsMode](_._2)
 
-val SupportedInstruments =
-  List(
+val SupportedInstruments: NonEmptyList[Instrument] =
+  NonEmptyList.of(
+    Instrument.Alopeke,
+    Instrument.Flamingos2,
     Instrument.GmosNorth,
     Instrument.GmosSouth,
-    Instrument.Flamingos2,
-    Instrument.Igrins2,
     Instrument.Ghost,
     Instrument.Gnirs,
-    Instrument.Alopeke,
-    Instrument.Zorro,
-    Instrument.MaroonX
+    Instrument.Igrins2,
+    Instrument.MaroonX,
+    Instrument.Zorro
+  )
+
+val InstrumentsWithoutItc: NonEmptyList[Instrument] =
+  NonEmptyList.of(Instrument.Alopeke, Instrument.Zorro, Instrument.MaroonX)
+
+val ItcSupportedInstruments: NonEmptyList[Instrument] =
+  NonEmptyList.fromListUnsafe(
+    SupportedInstruments.filterNot(InstrumentsWithoutItc.contains_)
   )

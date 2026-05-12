@@ -133,9 +133,12 @@ private object SpectroscopyModesTable extends ModesTableCommon:
 
   private def formatSlitLength(instrument: Instrument, ss: ModeSlitSize): String =
     instrument match
-      case Instrument.Ghost =>
+      case Instrument.MaroonX =>
+        // The fiber is an eight side polygo on slit width
+        formatSlitWidth(ss)
+      case Instrument.Ghost   =>
         f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(1, BigDecimal.RoundingMode.UP)}%3.1f"
-      case _                =>
+      case _                  =>
         f"${ModeSlitSize.milliarcseconds.get(ss.value).setScale(0, BigDecimal.RoundingMode.DOWN)}%1.0f"
 
   private def formatFPU(r: FocalPlane): String = r match
@@ -185,7 +188,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       column(TimeColumnId, _.totalItcTime.orUndefined)
         .withHeader(progressingCellHeader("Time"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.Time)
+          itcCell(cell.row.original.result, ItcColumns.Time, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         // put undefined last
         .withSortUndefined(UndefinedPriority.Last)
@@ -193,7 +196,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
       column(SNColumnId, _.totalSN.orUndefined)
         .withHeader(progressingCellHeader("S/N"))
         .withCell: cell =>
-          itcCell(cell.row.original.result, ItcColumns.SN)
+          itcCell(cell.row.original.result, ItcColumns.SN, cell.row.original.config.needsItc)
         .withColumnSize(FixedSize(85.toPx))
         // put undefined last, though this may not be common on TxC mode
         .withSortUndefined(UndefinedPriority.Last)
@@ -308,14 +311,17 @@ private object SpectroscopyModesTable extends ModesTableCommon:
           )
 
         val result: Option[EitherNec[ItcTargetProblem, ItcResult]] =
-          (s.wavelength, etm).mapN: (_, _) =>
-            targets.flatMap: asterism =>
-              itcResults.get.forRow(
-                constraints,
-                asterism.some,
-                customSedTimestamps,
-                rowWithEtm
-              )
+          // Visitors don't need itc, skip the query altogether
+          if !rowWithEtm.instrumentConfig.needsItc then none
+          else
+            (s.wavelength, etm).mapN: (_, _) =>
+              targets.flatMap: asterism =>
+                itcResults.get.forRow(
+                  constraints,
+                  asterism.some,
+                  customSedTimestamps,
+                  rowWithEtm
+                )
 
         SpectroscopyModeRowWithResult(
           rowWithEtm,

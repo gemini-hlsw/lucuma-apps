@@ -68,6 +68,8 @@ case class ObsSummary(
           none
         case BasicConfiguration.GhostIfu(resolutionMode, _, _, _)             =>
           resolutionMode.shortName.some
+        case BasicConfiguration.Visitor(mode, _, _)                           =>
+          mode.instrument.shortName.some
         case BasicConfiguration.GnirsLongSlit(filter, fpu, acqMirror, camera) =>
           // For Gnirs Spectroscopy we should return this pattern:
           // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>

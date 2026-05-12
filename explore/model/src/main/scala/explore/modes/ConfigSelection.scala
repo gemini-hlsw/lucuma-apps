@@ -9,13 +9,17 @@ import cats.derived.*
 import cats.syntax.all.*
 import explore.model.InstrumentConfigAndItcResult
 import explore.model.itc.ItcTargetProblem
+import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Wavelength
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.CentralWavelength
 
 // ModeSelection is a collection of InstrumentConfigAndItcResult objects that are consistent with each other
 final case class ConfigSelection private (configs: List[InstrumentConfigAndItcResult]) derives Eq:
@@ -24,12 +28,15 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   lazy val isEmpty: Boolean                                 = configs.isEmpty
   lazy val nonEmpty: Boolean                                = configs.nonEmpty
 
-  // We can create a configuration if there is at least one selection and all ITCs are successful.
-  lazy val canAccept: Boolean =
-    nonEmpty &&
-      configs.forall(_.itcResult.flatMap(_.toOption).exists(_.isSuccess)) &&
-      !configs.exists: // TODO Remove once we support Gnirs Observing Mode
-        _.instrument === Instrument.Gnirs
+  lazy val isVisitor: Boolean =
+    configs.exists(!_.instrumentConfig.needsItc)
+
+  // Acceptance rules are on the instrument configs
+  def canAccept(etm: Option[ExposureTimeMode]): Boolean =
+    nonEmpty && configs.forall: r =>
+      val itcSuccess = r.itcResult.flatMap(_.toOption).exists(_.isSuccess)
+      val c          = r.instrumentConfig
+      c.canBeAccepted && (!c.needsItc || itcSuccess) && c.acceptsEtm(etm)
 
   lazy val hasItcErrors: Boolean =
     configs.exists(_.itcResult.exists(_.isLeft))
@@ -42,7 +49,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
       .distinct
 
   lazy val isMissingSomeItc: Boolean =
-    configs.exists(_.itcResult.isEmpty)
+    configs.exists(c => c.instrumentConfig.needsItc && c.itcResult.isEmpty)
 
   lazy val hasPendingItc: Boolean =
     configs.exists(_.itcResult.exists(_.toOption.exists(_.isPending)))
@@ -130,10 +137,35 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             red = redDetector,
             blue = blueDetector
           )
+      case ItcInstrumentConfig.GenericSpectroscopy(i = Instrument.MaroonX)                    =>
+        ConfigSelection.residentVisitorConfiguration(VisitorObservingModeType.MaroonX)
+      case ItcInstrumentConfig.GenericImaging(Instrument.Alopeke, _, _, capability)           =>
+        ConfigSelection.residentVisitorConfiguration(
+          capability match
+            case Some(ImagingCapability.WideField) => VisitorObservingModeType.AlopekeWideField
+            case _                                 => VisitorObservingModeType.AlopekeSpeckle
+        )
+      case ItcInstrumentConfig.GenericImaging(Instrument.Zorro, _, _, capability)             =>
+        ConfigSelection.residentVisitorConfiguration(
+          capability match
+            case Some(ImagingCapability.WideField) => VisitorObservingModeType.ZorroWideField
+            case _                                 => VisitorObservingModeType.ZorroSpeckle
+        )
       case _                                                                                  => none)
 
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)
+
+  private def residentVisitorConfiguration(
+    mode: VisitorObservingModeType
+  ): Option[BasicConfiguration] =
+    BasicConfiguration
+      .Visitor(
+        mode,
+        CentralWavelength(BasicConfiguration.Visitor.defaultCentralWavelength(mode)),
+        BasicConfiguration.Visitor.fov(mode)
+      )
+      .some
 
   def one(config: InstrumentConfigAndItcResult): ConfigSelection =
     ConfigSelection(List(config))

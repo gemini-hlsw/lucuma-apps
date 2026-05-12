@@ -644,6 +644,13 @@ extension (b: ObservingMode)
       ObservingModeInput.Igrins2LongSlit(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
+    case v: ObservingMode.Visitor            =>
+      ObservingModeInput.Visitor:
+        VisitorInput(
+          mode = v.mode.assign,
+          centralWavelength = v.centralWavelength.value.toInput.assign,
+          scienceFov = v.scienceFov.toInput.assign
+        )
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -706,6 +713,13 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.GnirsLongSlit(_, _, _, _)                                             =>
       ObservingModeInput.Igrins2LongSlit: // TODO; Gnirs ObservingMode not supported in ODB yet
         Igrins2LongSlitInput()
+    case BasicConfiguration.Visitor(mode, centralWavelength, scienceFov)                          =>
+      ObservingModeInput.Visitor:
+        VisitorInput(
+          mode = mode.assign,
+          centralWavelength = centralWavelength.value.toInput.assign,
+          scienceFov = scienceFov.toInput.assign
+        )
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

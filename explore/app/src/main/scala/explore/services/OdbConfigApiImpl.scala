@@ -30,7 +30,7 @@ trait OdbConfigApiImpl[F[_]: MonadThrow](using
   def scienceModes: F[ScienceModes] =
     ModesQueriesGQL
       .ScienceModes[F]
-      .query(SupportedInstruments)
+      .query(SupportedInstruments.toList)
       .processErrors
       .map: u =>
         val imgModes: List[ImagingModeRow]       =

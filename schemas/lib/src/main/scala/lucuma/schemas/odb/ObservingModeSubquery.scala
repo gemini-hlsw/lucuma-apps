@@ -166,5 +166,10 @@ object ObservingModeSubquery
             defaultIfu2Agitator
             explicitIfu2Agitator
           }
+          visitor {
+            mode
+            centralWavelength $WavelengthSubquery
+            scienceFov $AngleSubquery
+          }
         }
       """

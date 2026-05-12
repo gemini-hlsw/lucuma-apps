@@ -12,6 +12,7 @@ import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
+import lucuma.core.math.arb.ArbAngle
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
@@ -27,6 +28,7 @@ import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
 trait ArbObservingMode {
+  import ArbAngle.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
   import ArbOffset.given
@@ -682,6 +684,18 @@ trait ArbObservingMode {
         )
       )
 
+  given Arbitrary[ObservingMode.Visitor] = Arbitrary[ObservingMode.Visitor](
+    for {
+      mode <- arbitrary[VisitorObservingModeType]
+      cw   <- arbitrary[Wavelength]
+      gsms <- arbitrary[lucuma.core.math.Angle]
+    } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms)
+  )
+
+  given Cogen[ObservingMode.Visitor] =
+    Cogen[(VisitorObservingModeType, Wavelength, Long)]
+      .contramap(o => (o.mode, o.centralWavelength.value, o.scienceFov.toMicroarcseconds))
+
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
@@ -690,7 +704,8 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Igrins2LongSlit],
-      arbitrary[ObservingMode.GhostIfu]
+      arbitrary[ObservingMode.GhostIfu],
+      arbitrary[ObservingMode.Visitor]
     )
   )
 
@@ -701,11 +716,14 @@ trait ArbObservingMode {
         ObservingMode.Flamingos2LongSlit,
         Either[
           ObservingMode.GmosNorthLongSlit,
-          Either[ObservingMode.GmosSouthLongSlit, Either[ObservingMode.GmosNorthImaging,
-                                                         Either[ObservingMode.GmosSouthImaging,
-                                                                ObservingMode.GhostIfu
-                                                         ]
-          ]]
+          Either[
+            ObservingMode.GmosSouthLongSlit,
+            Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
+                                                          Either[ObservingMode.GhostIfu,
+                                                                 ObservingMode.Visitor
+                                                          ]
+            ]]
+          ]
         ]
       ]
     ]]
@@ -716,7 +734,10 @@ trait ArbObservingMode {
         case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
         case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight
         case s: ObservingMode.GmosSouthImaging   => s.asLeft.asRight.asRight.asRight.asRight.asRight
-        case g: ObservingMode.GhostIfu           => g.asRight.asRight.asRight.asRight.asRight.asRight
+        case g: ObservingMode.GhostIfu           =>
+          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
+        case v: ObservingMode.Visitor            =>
+          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

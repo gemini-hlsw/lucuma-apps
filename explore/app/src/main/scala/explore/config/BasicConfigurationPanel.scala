@@ -30,6 +30,7 @@ import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.ScienceMode
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
@@ -79,7 +80,8 @@ private object BasicConfigurationPanel:
       yield
         import ctx.given
 
-        val canAccept: Boolean = props.selectedConfig.get.canAccept
+        val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
+        val canAccept: Boolean            = props.selectedConfig.get.canAccept(etm)
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
           .zoom(ScienceRequirements.spectroscopy)
@@ -89,6 +91,10 @@ private object BasicConfigurationPanel:
 
         val exposureTimeView = props.requirementsView
           .zoom(ScienceRequirements.exposureTimeMode)
+
+        val isTimeAndCount = !etm.exists:
+          case _: ExposureTimeMode.TimeAndCountMode => true
+          case _                                    => false
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
         val message: Option[String] =
@@ -102,6 +108,8 @@ private object BasicConfigurationPanel:
             "Waiting for ITC result...".some
           else if (props.selectedConfig.get.isEmpty)
             "To create a configuration, select a table row.".some
+          else if (props.selectedConfig.get.isVisitor && isTimeAndCount)
+            "Use Time and Count mode for Visitor instruments.".some
           else none
 
         def switchMode(scienceModeType: ScienceMode): Callback =

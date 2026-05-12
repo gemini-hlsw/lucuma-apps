@@ -96,7 +96,8 @@ case class SpectroscopyModeRow(
 
   val enabled =
     (focalPlane === FocalPlane.SingleSlit ||
-      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost)) &&
+      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost) ||
+      instrumentConfig.instrument === Instrument.MaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
@@ -295,6 +296,9 @@ object SpectroscopyModeRow {
             placeholderEtm
           )
       .map: i =>
+        // TODO Maybe a mistake on the phase0 matrix.
+        val effectiveSlitLength: Angle =
+          if i.instrument === Instrument.MaroonX then slitWidth else slitLength
         SpectroscopyModeRow(
           none,
           i,
@@ -307,7 +311,7 @@ object SpectroscopyModeRow {
           ModeWavelength(λoptimal),
           WavelengthDelta(λcoverage.pm),
           resolution,
-          SlitLength(ModeSlitSize(slitLength)),
+          SlitLength(ModeSlitSize(effectiveSlitLength)),
           SlitWidth(ModeSlitSize(slitWidth))
         )
       .getOrElse:

@@ -20,8 +20,8 @@ import explore.components.ui.ExploreStyles
 import explore.events.ItcMessage
 import explore.model.AppContext
 import explore.model.InstrumentConfigAndItcResult
+import explore.model.ItcSupportedInstruments
 import explore.model.Progress
-import explore.model.SupportedInstruments
 import explore.model.WorkerClients.ItcClient
 import explore.model.boopickle.*
 import explore.model.boopickle.ItcPicklers.given
@@ -198,80 +198,92 @@ trait ModesTableCommon:
     }
 
   def itcCell(
-    c:   Pot[EitherNec[ItcTargetProblem, ItcResult]],
-    col: ItcColumns
+    c:        Pot[EitherNec[ItcTargetProblem, ItcResult]],
+    col:      ItcColumns,
+    needsItc: Boolean = true
   ): VdomElement = {
-    val content: TagMod = c.toOption match
-      case Some(Left(errors))               =>
-        if (errors.exists(_.problem === ItcQueryProblem.UnsupportedMode))
-          <.span(Icons.Ban(^.color.red))
-            .withTooltip(tooltip = "Mode not supported", placement = Placement.RightStart)
-        else
-          import ItcQueryProblem.*
-
-          def renderName(name: Option[NonEmptyString]): String =
-            name.fold("")(n => s"$n: ")
-
-          val content: List[TagMod] =
-            errors
-              .collect:
-                case p @ ItcTargetProblem(name, s @ SourceTooBright(_)) =>
-                  <.span(ThemeIcons.SunBright.addClass(ExploreStyles.ItcSourceTooBrightIcon))(
-                    p.format
-                  )
-                case ItcTargetProblem(name, GenericError(e))            =>
-                  e.split("\n")
-                    .map(u => <.span(u))
-                    .mkTagMod(<.span(renderName(name)), <.br, EmptyVdom)
-                case p @ ItcTargetProblem(_, _)                         =>
-                  <.span(p.format)
-              .toList
-              .intersperse(<.br: VdomNode)
-
-          <.span(Icons.TriangleSolid.addClass(ExploreStyles.ItcErrorIcon))
-            .withTooltip(tooltip = <.div(content.mkTagMod(<.span)), placement = Placement.RightEnd)
-      case Some(Right(r: ItcResult.Result)) =>
-        val ccdWarnings =
-          r.ccdWarnings.collect:
-            case a @ (_, v) if v.nonEmpty => a
-
-        val content = col.match
-          case ItcColumns.Exposures =>
-            r.exposures.toString
-          case ItcColumns.Time      =>
-            formatDurationHours(r.duration)
-          case ItcColumns.SN        =>
-            r.snAt.map(_.total.value).foldMap(_.format)
-
-        val (tooltip, placement) = col match
-          case ItcColumns.Exposures =>
-            (none, Placement.RightStart)
-          case ItcColumns.Time      =>
-            val baseText = s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
-            tooltipContent(baseText, ccdWarnings)
-          case ItcColumns.SN        =>
-            val baseText = s"${r.snAt.map(_.single.value).foldMap(_.format)} / exposure"
-            tooltipContent(baseText, ccdWarnings)
-
-        val node =
-          if (ccdWarnings.nonEmpty)
-            <.span(
-              content,
-              Icons.ExclamationTriangle
-                .withClass(ExploreStyles.WarningItcIcon)
-                .withSize(IconSize.XS2)
-            )
-          else <.span(content)
-        tooltip.fold(node)(tt =>
-          node.withTooltip(
-            placement = placement,
-            tooltip = tt
+    val content: TagMod =
+      if (!needsItc)
+        <.span("-")
+          .withTooltip(
+            tooltip = "ITC unavailable for this mode",
+            placement = Placement.RightStart
           )
-        )
-      case Some(Right(ItcResult.Pending))   =>
-        Icons.Spinner.withSpin(true)
-      case _                                =>
-        "-"
+      else
+        c.toOption match
+          case Some(Left(errors))               =>
+            if (errors.exists(_.problem === ItcQueryProblem.UnsupportedMode))
+              <.span(Icons.Ban(^.color.red))
+                .withTooltip(tooltip = "Mode not supported", placement = Placement.RightStart)
+            else
+              import ItcQueryProblem.*
+
+              def renderName(name: Option[NonEmptyString]): String =
+                name.fold("")(n => s"$n: ")
+
+              val content: List[TagMod] =
+                errors
+                  .collect:
+                    case p @ ItcTargetProblem(name, s @ SourceTooBright(_)) =>
+                      <.span(ThemeIcons.SunBright.addClass(ExploreStyles.ItcSourceTooBrightIcon))(
+                        p.format
+                      )
+                    case ItcTargetProblem(name, GenericError(e))            =>
+                      e.split("\n")
+                        .map(u => <.span(u))
+                        .mkTagMod(<.span(renderName(name)), <.br, EmptyVdom)
+                    case p @ ItcTargetProblem(_, _)                         =>
+                      <.span(p.format)
+                  .toList
+                  .intersperse(<.br: VdomNode)
+
+              <.span(Icons.TriangleSolid.addClass(ExploreStyles.ItcErrorIcon))
+                .withTooltip(
+                  tooltip = <.div(content.mkTagMod(<.span)),
+                  placement = Placement.RightEnd
+                )
+          case Some(Right(r: ItcResult.Result)) =>
+            val ccdWarnings =
+              r.ccdWarnings.collect:
+                case a @ (_, v) if v.nonEmpty => a
+
+            val content = col.match
+              case ItcColumns.Exposures =>
+                r.exposures.toString
+              case ItcColumns.Time      =>
+                formatDurationHours(r.duration)
+              case ItcColumns.SN        =>
+                r.snAt.map(_.total.value).foldMap(_.format)
+
+            val (tooltip, placement) = col match
+              case ItcColumns.Exposures =>
+                (none, Placement.RightStart)
+              case ItcColumns.Time      =>
+                val baseText = s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
+                tooltipContent(baseText, ccdWarnings)
+              case ItcColumns.SN        =>
+                val baseText = s"${r.snAt.map(_.single.value).foldMap(_.format)} / exposure"
+                tooltipContent(baseText, ccdWarnings)
+
+            val node =
+              if (ccdWarnings.nonEmpty)
+                <.span(
+                  content,
+                  Icons.ExclamationTriangle
+                    .withClass(ExploreStyles.WarningItcIcon)
+                    .withSize(IconSize.XS2)
+                )
+              else <.span(content)
+            tooltip.fold(node)(tt =>
+              node.withTooltip(
+                placement = placement,
+                tooltip = tt
+              )
+            )
+          case Some(Right(ItcResult.Pending))   =>
+            Icons.Spinner.withSpin(true)
+          case _                                =>
+            "-"
 
     <.div(ExploreStyles.ITCCell, content)
   }
@@ -355,7 +367,7 @@ trait ModesTableCommon:
 
                     // The cache returns an error for unsupported instruments
                     row.config.instrument match
-                      case i if SupportedInstruments.contains(i) =>
+                      case i if ItcSupportedInstruments.contains_(i) =>
                         cache.contains:
                           ItcRequestParams(
                             constraints,
@@ -363,7 +375,7 @@ trait ModesTableCommon:
                             customSedTimestamps,
                             row.config
                           )
-                      case _                                     => true
+                      case _                                         => true
 
               Option
                 .when(modes.nonEmpty):

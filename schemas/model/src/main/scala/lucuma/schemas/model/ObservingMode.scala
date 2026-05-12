@@ -14,11 +14,13 @@ import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
 import lucuma.core.enums.*
+import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.itc.ItcGhostDetector
+import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
@@ -40,6 +42,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
     case _: ObservingMode.GhostIfu           => ObservingModeType.GhostIfu
+    case v: ObservingMode.Visitor            => v.mode
 
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case o: ObservingMode.GmosNorthLongSlit => o.fpu.asLeft.some
@@ -54,6 +57,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
     case _: ObservingMode.Igrins2LongSlit    => Site.GN
     case _: ObservingMode.GhostIfu           => Site.GS
+    case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
 
   def toBasicConfiguration: BasicConfiguration = this match
     case n: ObservingMode.GmosNorthLongSlit                =>
@@ -80,6 +84,8 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
         readMode = g.blue.readMode
       )
       BasicConfiguration.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red = red, blue = blue)
+    case v: ObservingMode.Visitor                          =>
+      BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.scienceFov)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -111,6 +117,8 @@ object ObservingMode:
             c.downField("igrins2LongSlit").as[Igrins2LongSlit]
           .orElse:
             c.downField("ghostIfu").as[GhostIfu]
+          .orElse:
+            c.downField("visitor").as[Visitor]
           .orElse:
             DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
@@ -842,3 +850,21 @@ object ObservingMode:
 
   val ghostIfu: Prism[ObservingMode, GhostIfu] =
     GenPrism[ObservingMode, GhostIfu]
+
+  case class Visitor(
+    mode:              VisitorObservingModeType,
+    centralWavelength: CentralWavelength,
+    scienceFov:        Angle
+  ) extends ObservingMode(mode.instrument) derives Eq:
+    def isCustomized: Boolean = false
+
+  object Visitor:
+    given Decoder[Visitor] = Decoder.instance: c =>
+      for
+        mode <- c.downField("mode").as[VisitorObservingModeType]
+        cw   <- c.downField("centralWavelength").as[Wavelength]
+        gsms <- c.downField("scienceFov").as[Angle]
+      yield Visitor(mode, CentralWavelength(cw), gsms)
+
+  val visitor: Prism[ObservingMode, Visitor] =
+    GenPrism[ObservingMode, Visitor]

@@ -11,6 +11,8 @@ import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
 import lucuma.core.enums.*
+import lucuma.core.geom.visitors.*
+import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
@@ -18,7 +20,11 @@ import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
+import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
+import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
+import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
 import lucuma.itc.ItcGhostDetector
+import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
@@ -53,6 +59,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
     case _: BasicConfiguration.GnirsLongSlit      => Site.GN
     case BasicConfiguration.Igrins2LongSlit       => Site.GN
+    case v: BasicConfiguration.Visitor            => v.site
 
   def obsModeType: ObservingModeType = this match
     case _: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
@@ -63,6 +70,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
     case _: BasicConfiguration.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
+    case v: BasicConfiguration.Visitor            => v.mode
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -75,6 +83,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       CentralWavelength(Igrins2CentralWavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
       CentralWavelength(GhostCentralWavelength).some
+    case v: BasicConfiguration.Visitor                                =>
+      v.centralWavelength.some
     case _                                                            =>
       none
 
@@ -95,6 +105,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(GhostCentralWavelength)
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
       AGSWavelength(gnirs.centralWavelength)
+    case v: BasicConfiguration.Visitor                                =>
+      AGSWavelength(v.centralWavelength.value)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -113,6 +125,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       GhostCentralWavelength
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
       gnirs.centralWavelength
+    case v: BasicConfiguration.Visitor                                =>
+      v.centralWavelength.value
 
   // Let's always return a fallback for viz
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
@@ -135,6 +149,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Igrins2LongSlit             => GuideProbe.PWFS2
     case BasicConfiguration.GhostIfu(_, _, _, _)        => GuideProbe.PWFS2
     case BasicConfiguration.GnirsLongSlit(_, _, _, _)   => GuideProbe.PWFS2
+    case BasicConfiguration.Visitor(_, _, _)            => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -164,10 +179,12 @@ object BasicConfiguration:
                                     c.downField("ghostIfu")
                                       .as[GhostIfu]
                                       .orElse:
-                                        DecodingFailure(
-                                          "Could not decode BasicConfiguration",
-                                          c.history
-                                        ).asLeft
+                                        c.downField("visitor")
+                                          .as[Visitor]
+                                          .orElse:
+                                            DecodingFailure("Could not decode BasicConfiguration",
+                                                            c.history
+                                            ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -262,6 +279,51 @@ object BasicConfiguration:
         blue           <- c.downField("blue").as[ItcGhostDetector]
       yield GhostIfu(resolutionMode, red.timeAndCount.at, red = red, blue = blue)
 
+  case class Visitor(
+    mode:              VisitorObservingModeType,
+    centralWavelength: CentralWavelength,
+    scienceFov:        Angle
+  ) extends BasicConfiguration(mode.instrument) derives Eq:
+    def site: Site = mode match
+      case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField |
+          VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth =>
+        Site.GN
+      case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField |
+          VisitorObservingModeType.VisitorSouth =>
+        Site.GS
+
+  object Visitor:
+    def fov(mode: VisitorObservingModeType): Angle =
+      mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+          AlopekeSpeckleScienceFov
+        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+          AlopekeWideFieldScienceFov
+        case VisitorObservingModeType.MaroonX                                                    =>
+          MaroonXScienceFov
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
+          // Let's return something, the user will need to specify a value for an alien visitor.
+          Angle.Angle0
+
+    def defaultCentralWavelength(mode: VisitorObservingModeType): Wavelength =
+      mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
+          AlopekeCentralWavelength
+        case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
+          ZorroCentralWavelength
+        case VisitorObservingModeType.MaroonX                                                    =>
+          MaroonXCentralWavelength
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
+          // Let's return something, the user will need to specify a value for an alien visitor.
+          Wavelength.unsafeFromIntPicometers(700000) // 700 nm
+
+    given Decoder[Visitor] = Decoder.instance: c =>
+      for
+        mode <- c.downField("mode").as[VisitorObservingModeType]
+        cw   <- c.downField("centralWavelength").as[Wavelength]
+        gsms <- c.downField("scienceFov").as[Angle]
+      yield Visitor(mode, CentralWavelength(cw), gsms)
+
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
     GenPrism[BasicConfiguration, GmosNorthLongSlit]
 
@@ -282,3 +344,6 @@ object BasicConfiguration:
 
   val ghostIfu: Prism[BasicConfiguration, GhostIfu] =
     GenPrism[BasicConfiguration, GhostIfu]
+
+  val visitor: Prism[BasicConfiguration, Visitor] =
+    GenPrism[BasicConfiguration, Visitor]

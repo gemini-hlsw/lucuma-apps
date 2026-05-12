@@ -62,17 +62,14 @@ extension (a: NonEmptyChain[ItcTargetProblem])
         .map(_.format)
         .mkString(prefix, "\n", "")
 
-sealed trait ItcResult derives Eq {
-  def isSuccess: Boolean = this match {
+sealed trait ItcResult derives Eq:
+  def isSuccess: Boolean = this match
     case ItcResult.Result(_, _) => true
     case _                      => false
-  }
 
-  def isPending: Boolean = this match {
+  def isPending: Boolean = this match
     case ItcResult.Pending => true
     case _                 => false
-  }
-}
 
 object ItcResult {
   case object Pending extends ItcResult

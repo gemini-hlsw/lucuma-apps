@@ -26,6 +26,7 @@ import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
 import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.ui.display.given
 
 import java.text.DecimalFormat
 
@@ -325,6 +326,8 @@ trait DisplayImplicits:
       s"GHOST IFU ${rm.shortName}"
     case BasicConfiguration.GnirsLongSlit(filter = filter)               =>
       s"GNIRS Longslit ${filter.shortName}"
+    case BasicConfiguration.Visitor(mode, _, _)                          =>
+      mode.shortName
 
   given Display[GmosImagingVariantType] = Display.byShortName(_.display)
 
