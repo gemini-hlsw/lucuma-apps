@@ -44,7 +44,7 @@ object CatalogServer extends WorkerServer[IO, CatalogMessage.Request] with Catal
       cacheDb   <- idb.traverse(idb => stores.open(IndexedDb(idb)).toF[IO])
       cache     <- Cache.withIDB[IO](idb, "explore-gaia") // only used for blind offsets for now
       rawClient  = FetchClientBuilder[IO].withRequestTimeout(RequestTimeout).create
-      log       <- IO(summon[LoggerFactory[IO]].getLoggerFromName("catalog-server"))
+      log       <- IO(LoggerFactory[IO].getLoggerFromName("catalog-server"))
       httpClient = RequestLogger(
                      logHeaders = true,
                      logBody = false,
