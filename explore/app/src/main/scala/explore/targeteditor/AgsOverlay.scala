@@ -136,7 +136,7 @@ object AgsOverlay:
               case (_, _, _, true)                   =>
                 <.span(errorIcon, Constants.LoadingStars)
               case (false, _, _, _)                  =>
-                <.span(errorIcon, Constants.MissingMode)
+                <.span(errorIcon, Constants.AcceptConfigPrompt)
               case (_, false, _, _)                  =>
                 <.span(errorIcon, Constants.NoDuration)
               case (_, _, false, _)                  =>
