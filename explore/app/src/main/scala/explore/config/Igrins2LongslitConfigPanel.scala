@@ -84,15 +84,15 @@ object Igrins2LongslitConfigPanel
           .view(_.map(_.toList.map(_.toInput)).orUnassign)
 
         // We need to reset the offests when offset mode changes.
-        val offsetModeView: View[Option[Igrins2OffsetMode]] =
+        val offsetModeView: View[Option[SlitOffsetMode]] =
           props.observingMode
             .zoom(
               ObservingMode.Igrins2LongSlit.explicitOffsetMode.get,
-              (f: Option[Igrins2OffsetMode] => Option[Igrins2OffsetMode]) =>
+              (f: Option[SlitOffsetMode] => Option[SlitOffsetMode]) =>
                 ObservingMode.Igrins2LongSlit.explicitOffsetMode
                   .modify(f)
                   .andThen(ObservingMode.Igrins2LongSlit.explicitOffsets.replace(none)),
-              (f: Input[Igrins2OffsetMode] => Input[Igrins2OffsetMode]) =>
+              (f: Input[SlitOffsetMode] => Input[SlitOffsetMode]) =>
                 Igrins2LongSlitInput.explicitOffsetMode
                   .modify(f)
                   .andThen(Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign))
@@ -109,7 +109,7 @@ object Igrins2LongslitConfigPanel
               if nel === defaultOffsets then none else nel.some
             explicitOffsetsView.set(newOffsets)
 
-        val isNodAlongSlit = props.observingMode.get.offsetMode === Igrins2OffsetMode.NodAlongSlit
+        val isNodAlongSlit = props.observingMode.get.offsetMode === SlitOffsetMode.NodAlongSlit
 
         val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
           .zoom(

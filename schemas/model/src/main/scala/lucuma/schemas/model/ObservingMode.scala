@@ -670,14 +670,14 @@ object ObservingMode:
 
   case class Igrins2LongSlit(
     exposureTimeMode:      ExposureTimeMode,
-    defaultOffsetMode:     Igrins2OffsetMode,
-    explicitOffsetMode:    Option[Igrins2OffsetMode],
+    defaultOffsetMode:     SlitOffsetMode,
+    explicitOffsetMode:    Option[SlitOffsetMode],
     defaultSaveSVCImages:  Boolean,
     explicitSaveSVCImages: Option[Boolean],
     defaultOffsets:        NonEmptyList[Offset],
     explicitOffsets:       Option[NonEmptyList[Offset]]
   ) extends ObservingMode(Instrument.Igrins2) derives Eq:
-    val offsetMode: Igrins2OffsetMode = explicitOffsetMode.getOrElse(defaultOffsetMode)
+    val offsetMode: SlitOffsetMode    = explicitOffsetMode.getOrElse(defaultOffsetMode)
     val saveSVCImages: Boolean        = explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
     val offsets: NonEmptyList[Offset] = explicitOffsets.getOrElse(defaultOffsets)
 
@@ -694,9 +694,9 @@ object ObservingMode:
 
     val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]            =
       Focus[Igrins2LongSlit](_.exposureTimeMode)
-    val defaultOffsetMode: Lens[Igrins2LongSlit, Igrins2OffsetMode]          =
+    val defaultOffsetMode: Lens[Igrins2LongSlit, SlitOffsetMode]             =
       Focus[Igrins2LongSlit](_.defaultOffsetMode)
-    val explicitOffsetMode: Lens[Igrins2LongSlit, Option[Igrins2OffsetMode]] =
+    val explicitOffsetMode: Lens[Igrins2LongSlit, Option[SlitOffsetMode]]    =
       Focus[Igrins2LongSlit](_.explicitOffsetMode)
     val defaultSaveSVCImages: Lens[Igrins2LongSlit, Boolean]                 =
       Focus[Igrins2LongSlit](_.defaultSaveSVCImages)
