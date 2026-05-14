@@ -3,15 +3,11 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptyList
 import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
-import cats.syntax.all.*
-import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
-import lucuma.ags.ScienceOffsets
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
@@ -28,38 +24,25 @@ import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
 
-object VisitorGeometry extends WithPwfsGeometry:
+case class VisitorGeometry(mode: VisitorObservingModeType, scienceFov: Angle) extends PwfsGeometry:
 
-  private def fovShape(
-    mode:       VisitorObservingModeType,
-    posAngle:   Angle,
-    offset:     Offset,
-    scienceFov: Angle
-  ): Option[ShapeExpression] =
-    mode match
+  override def shapesForMode(posAngle: Angle, offset: Offset) =
+    val scienceFovShape = mode match
       case VisitorObservingModeType.MaroonX =>
-        maroonXScienceArea.shapeAt(posAngle, offset).some
+        maroonXScienceArea.shapeAt(posAngle, offset)
       case _                                =>
-        visitorScienceArea.shapeAt(posAngle, offset, scienceFov).some
+        visitorScienceArea.shapeAt(posAngle, offset, scienceFov)
+    SortedMap((VisitorScienceFov, scienceFovShape))
 
-  def shapesForMode(
-    posAngle:      Angle,
-    offset:        Offset,
-    configuration: Option[BasicConfiguration]
-  ): SortedMap[Css, ShapeExpression] =
-    configuration match
-      case Some(v: BasicConfiguration.Visitor) =>
-        fovShape(v.mode, posAngle, offset, v.scienceFov)
-          .fold(SortedMap.empty[Css, ShapeExpression]): shape =>
-            SortedMap((VisitorScienceFov, shape))
-      case _                                   =>
-        SortedMap.empty
+  override protected def candidatesAreaCss: Css = VisitorCandidatesArea
 
-  private def agsParamsFor(guideProbe: GuideProbe, scienceFov: Angle): SingleProbeAgsParams =
+  override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
     guideProbe match
       case GuideProbe.PWFS1 => AgsParams.Visitor(scienceFov).withPWFS1
       case GuideProbe.PWFS2 => AgsParams.Visitor(scienceFov).withPWFS2
       case _                => AgsParams.Visitor(scienceFov)
+
+object VisitorGeometry:
 
   def visitorGeometry(
     referenceCoordinates:    Coordinates,
@@ -71,43 +54,18 @@ object VisitorGeometry extends WithPwfsGeometry:
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css
   ): Option[SortedMap[Css, ShapeExpression]] =
-    gs.map(_.posAngle)
-      .orElse(fallbackPosAngle)
-      .map: posAngle =>
-        val candidatesArea: SortedMap[Css, ShapeExpression] =
-          conf.map(_.guideProbe(trackType)) match
-            case Some(GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-              pwfsCandidatesArea(VisitorCandidatesArea, posAngle, candidatesVisibilityCss)
-            case _                                         =>
-              SortedMap.empty
-
-        val baseShapes = shapesForMode(posAngle, Offset.Zero, conf) ++ candidatesArea
-
-        val probe = gs.map: gs =>
-          val gsOffset   = referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
-          val probeShape = conf.map(_.guideProbe(trackType)) match
-            case Some(p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2)) =>
-              pwfsProbeShapes(p, gsOffset, Offset.Zero)
-            case _                                               =>
-              SortedMap.empty[Css, ShapeExpression]
-
-          val positions = Ags.generatePositions(
-            referenceCoordinates.some,
-            blindOffset,
-            NonEmptyList.one(posAngle),
-            none,
-            scienceOffsets.map(ScienceOffsets.apply)
-          )
-
-          val patrolFieldIntersection =
-            conf
-              .collect:
-                case v: BasicConfiguration.Visitor =>
-                  agsParamsFor(v.guideProbe(trackType), v.scienceFov)
-              .map: params =>
-                val calcs = params.posCalculations(positions.value.toNonEmptyList)
-                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
-
-          patrolFieldIntersection.fold(probeShape)(probeShape + _)
-
-        baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])
+    conf
+      .collect:
+        case BasicConfiguration.Visitor(mode = mode, scienceFov = fov) =>
+          new VisitorGeometry(mode, fov)
+      .flatMap:
+        _.instrumentGeometry(
+          referenceCoordinates,
+          blindOffset,
+          scienceOffsets,
+          fallbackPosAngle,
+          conf,
+          trackType,
+          gs,
+          candidatesVisibilityCss
+        )

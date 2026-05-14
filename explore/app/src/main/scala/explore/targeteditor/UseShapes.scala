@@ -81,8 +81,8 @@ def usePatrolFieldShapes(
         none // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu().some
-      case v: BasicConfiguration.Visitor                    =>
-        AgsParams.Visitor(v.scienceFov, port).some
+      case BasicConfiguration.Visitor(scienceFov = fov)     =>
+        AgsParams.Visitor(fov, port).some
 
     params.map: p =>
       guideProbe match

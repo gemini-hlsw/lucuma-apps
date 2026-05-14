@@ -198,9 +198,16 @@
     fill: lightgray;
   }
 
+  .visitor-science-fov {
+    stroke: cyan;
+    stroke-width: 0.8px;
+    fill: none;
+  }
+
   &.igrins2-candidates-area-visible .igrins2-candidates-area,
   &.flamingos2-candidates-area-visible .flamingos2-candidates-area,
   &.ghost-candidates-area-visible .ghost-candidates-area,
+  &.visitor-candidates-area-visible .visitor-candidates-area,
   &.gmos-candidates-area-visible .gmos-candidates-area {
     display: inline;
   }
@@ -208,6 +215,7 @@
   .igrins2-candidates-area,
   .flamingos2-candidates-area,
   .ghost-candidates-area,
+  .visitor-candidates-area,
   .gmos-candidates-area {
     display: none;
     fill-opacity: 0;

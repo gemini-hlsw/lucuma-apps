@@ -133,16 +133,13 @@ object UseAgsCalculation:
       case ObservingModeType.GhostIfu =>
         applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
 
-      case ObservingModeType.GnirsLongSlit                                                     =>
+      case ObservingModeType.GnirsLongSlit =>
         none
-      case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
-        none
-      case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
-        none
-      case VisitorObservingModeType.MaroonX                                                    =>
-        none
-      case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
-        none
+
+      case _: VisitorObservingModeType =>
+        val base = observingMode.collectFirst:
+          case BasicConfiguration.Visitor(scienceFov = fov) => AgsParams.Visitor(fov, port)
+        applyGuideProbe(base, guideProbe)
 
   private def runAgsQuery(
     props:          AgsCalcProps,
@@ -225,7 +222,12 @@ object UseAgsCalculation:
                                   guideStarSelection.set(AgsSelection(none)).toAsync *>
                                     query.orEmpty.unlessA(guideStarSelection.get.isOverride)
 
-                                case _ => IO.unit
+                                case _ =>
+                                  // When reverting config we should reset the results
+                                  constrainedResults
+                                    .setState(Pot.pending[List[AgsAnalysis.Usable]])
+                                    .to[IO] *>
+                                    guideStarSelection.set(AgsSelection(none)).toAsync
       // AGS for uconstrained angles
       _                    <- useEffectWithDeps(
                                 (obsCoords, props, hasConstraint, needsAGS)
@@ -239,5 +241,8 @@ object UseAgsCalculation:
                                     ctx.workerClients.agsUnconstrained
                                   )(ctx)
 
-                                case _ => IO.unit
+                                case _ =>
+                                  unconstrainedResults
+                                    .setState(Pot.pending[List[AgsAnalysis.Usable]])
+                                    .to[IO]
     } yield AgsCalculationResults(constrainedResults.value, unconstrainedResults.value)

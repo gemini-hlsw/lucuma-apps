@@ -49,6 +49,11 @@ $brightness: var(--aladin-image-brightness);
     .flamingos2-candidates-area {
       display: inline;
     }
+
+    .visitor-science-fov,
+    .visitor-candidates-area {
+      display: inline;
+    }
   }
 
   .p-tieredmenu.p-component.explore-aladin-settings-menu {
