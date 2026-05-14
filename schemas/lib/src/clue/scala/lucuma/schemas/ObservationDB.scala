@@ -193,7 +193,7 @@ trait ObservationDB {
     type TimingWindowInclusion               = enums.TimingWindowInclusion
     type ToOActivation                       = enums.ToOActivation
     type WaterVapor                          = enums.WaterVapor
-    type Igrins2OffsetMode                   = enums.Igrins2OffsetMode
+    type SlitOffsetMode                      = enums.SlitOffsetMode
     type WavelengthOrder                     = enums.WavelengthOrder
     type VisitorObservingModeType            = enums.VisitorObservingModeType
   }

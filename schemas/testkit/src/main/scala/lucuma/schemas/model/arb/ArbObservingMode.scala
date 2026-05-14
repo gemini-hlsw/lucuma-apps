@@ -564,8 +564,8 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
       exposureTimeMode      <- arbitrary[ExposureTimeMode]
-      defaultOffsetMode     <- arbitrary[Igrins2OffsetMode]
-      explicitOffsetMode    <- arbitrary[Option[Igrins2OffsetMode]]
+      defaultOffsetMode     <- arbitrary[SlitOffsetMode]
+      explicitOffsetMode    <- arbitrary[Option[SlitOffsetMode]]
       defaultSaveSVCImages  <- arbitrary[Boolean]
       explicitSaveSVCImages <- arbitrary[Option[Boolean]]
       defaultOffsets        <- arbitrary[NonEmptyList[Offset]]
@@ -584,8 +584,8 @@ trait ArbObservingMode {
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
       (ExposureTimeMode,
-       Igrins2OffsetMode,
-       Option[Igrins2OffsetMode],
+       SlitOffsetMode,
+       Option[SlitOffsetMode],
        Boolean,
        Option[Boolean],
        NonEmptyList[Offset],

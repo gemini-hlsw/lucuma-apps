@@ -88,6 +88,7 @@ object UseAgsCalculation:
           case p: AgsParams.Flamingos2LongSlit => p.withPWFS1
           case p: AgsParams.Igrins2LongSlit    => p.withPWFS1
           case p: AgsParams.GhostIfu           => p.withPWFS1
+          case p: AgsParams.Visitor            => p.withPWFS1
       case Some(GuideProbe.PWFS2) =>
         base.map:
           case p: AgsParams.GmosLongSlit       => p.withPWFS2
@@ -95,6 +96,7 @@ object UseAgsCalculation:
           case p: AgsParams.Flamingos2LongSlit => p.withPWFS2
           case p: AgsParams.Igrins2LongSlit    => p.withPWFS2
           case p: AgsParams.GhostIfu           => p.withPWFS2
+          case p: AgsParams.Visitor            => p.withPWFS2
 
       case _ => base
 

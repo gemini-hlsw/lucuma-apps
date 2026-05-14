@@ -6367,7 +6367,7 @@ input Igrins2StaticInput {
   saveSVCImages: Boolean
 
   """Offset mode (defaults to NOD_ALONG_SLIT)"""
-  offsetMode: Igrins2OffsetMode
+  offsetMode: SlitOffsetMode
 }
 
 """Input parameters for creating a new IGRINS-2 Visit"""
@@ -6495,7 +6495,7 @@ type Igrins2Static {
   saveSVCImages: Boolean!
 
   """Offset mode."""
-  offsetMode: Igrins2OffsetMode!
+  offsetMode: SlitOffsetMode!
 }
 
 """IGRINS-2 dynamic step configuration"""
@@ -7240,12 +7240,12 @@ type GhostExecutionConfig {
   science: GhostExecutionSequence
 }
 
-"""IGRINS-2 Offset Mode"""
-enum Igrins2OffsetMode {
-  """Igrins2OffsetMode NodAlongSlit"""
+"""Slit Offset Mode"""
+enum SlitOffsetMode {
+  """SlitOffsetMode NodAlongSlit"""
   NOD_ALONG_SLIT
 
-  """Igrins2OffsetMode NodToSky"""
+  """SlitOffsetMode NodToSky"""
   NOD_TO_SKY
 }
 
@@ -7258,15 +7258,15 @@ type Igrins2LongSlit {
   The offset mode is either explicitly specified in explicitOffsetMode or else
   taken from defaultOffsetMode
   """
-  offsetMode: Igrins2OffsetMode!
+  offsetMode: SlitOffsetMode!
 
   """Default offset mode"""
-  defaultOffsetMode: Igrins2OffsetMode!
+  defaultOffsetMode: SlitOffsetMode!
 
   """
   Optional explicitly specified offset mode. If set it overrides the default.
   """
-  explicitOffsetMode: Igrins2OffsetMode
+  explicitOffsetMode: SlitOffsetMode
 
   """
   Whether to save SVC images, either explicitly specified in
@@ -7317,7 +7317,7 @@ input Igrins2LongSlitInput {
   The offset mode field may be unset by assigning a null value, or ignored by
   skipping it altogether
   """
-  explicitOffsetMode: Igrins2OffsetMode
+  explicitOffsetMode: SlitOffsetMode
 
   """
   The save SVC images field may be unset by assigning a null value, or ignored
@@ -9602,6 +9602,9 @@ enum ExecutionState {
   User marked the observation complete regardless of any remaining steps.
   """
   DECLARED_COMPLETE
+
+  """Staff marked the observation as ongoing (visitor modes only)."""
+  DECLARED_ONGOING
 }
 
 """A configuration target will define either coordinates or a region."""
