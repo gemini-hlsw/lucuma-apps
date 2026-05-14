@@ -534,13 +534,13 @@ object AsterismGroupObsList:
             <.a(
               ExploreStyles.ObsTreeGroup |+| Option
                 .when(groupSelected)(ExploreStyles.SelectedObsTreeGroup)
-                .orElse(
+                .orElse:
                   Option.when(!dragging.value.value)(ExploreStyles.UnselectedObsTreeGroup)
-                )
                 .orEmpty
             )(
+              ^.draggable := false, // Avoid HTML5 drag and drop, we use react-beautiful-dnd
               ^.cursor.pointer,
-              ^.href := ctx.pageUrl((AppTab.Targets, props.programId, clickFocus).some),
+              ^.href      := ctx.pageUrl((AppTab.Targets, props.programId, clickFocus).some),
               ^.onClick ==> { (e: ReactEvent) =>
                 e.preventDefaultCB *> e.stopPropagationCB *> setFocused(clickFocus)
               }
@@ -640,7 +640,8 @@ object AsterismGroupObsList:
                 .map(ag => (ag, getAsterismGroupNames(ag)))
                 .toList
                 .sortBy(_._2)
-                .toTagMod(using t => renderAsterismGroup(t._1, t._2))
+                .map(t => renderAsterismGroup(t._1, t._2))
+                .toTagMod
             )
           )
         )
