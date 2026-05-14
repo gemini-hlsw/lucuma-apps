@@ -30,7 +30,7 @@ object Igrins2Geometry extends PwfsGeometry:
       (Igrins2ScienceSlit, scienceArea.scienceSlitFOV(posAngle, offset))
     )
 
-  override protected def candidatesAreaCss: Css = Flamingos2CandidatesArea
+  override protected def candidatesAreaCss: Css = Igrins2CandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
     guideProbe match

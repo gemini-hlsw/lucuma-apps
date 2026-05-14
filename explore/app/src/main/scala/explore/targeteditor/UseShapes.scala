@@ -81,9 +81,8 @@ def usePatrolFieldShapes(
         none // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.GhostIfu(_, _, _, _)          =>
         AgsParams.GhostIfu().some
-      // No AGS visualization for visitor instruments yet
-      case _: BasicConfiguration.Visitor                    =>
-        none
+      case BasicConfiguration.Visitor(scienceFov = fov)     =>
+        AgsParams.Visitor(fov, port).some
 
     params.map: p =>
       guideProbe match
@@ -205,16 +204,8 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor, ghost.scienceArea.fov)
           case ObservingModeType.GnirsLongSlit                                                 =>
             (Css.Empty, ShapeExpression.Empty)
-          // maybe we can use an isVisitor field
-          case VisitorObservingModeType.AlopekeSpeckle |
-              VisitorObservingModeType.AlopekeWideField =>
-            (Css.Empty, ShapeExpression.Empty)
-          case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField =>
-            (Css.Empty, ShapeExpression.Empty)
-          case VisitorObservingModeType.MaroonX                                                =>
-            (Css.Empty, ShapeExpression.Empty)
-          case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth   =>
-            (Css.Empty, ShapeExpression.Empty)
+          case _: VisitorObservingModeType                                                     =>
+            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
 
       SortedMap.from(anchor :: (individualFields ++ intersections))
   }.map(_.value)
@@ -340,12 +331,23 @@ def useVisualizationShapes(
           )
         case ObservingModeType.GnirsLongSlit                                                     =>
           (Css.Empty, none)
-        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
-          (Css.Empty, none)
-        case VisitorObservingModeType.ZorroSpeckle | VisitorObservingModeType.ZorroWideField     =>
-          (Css.Empty, none)
-        case VisitorObservingModeType.MaroonX                                                    =>
-          (Css.Empty, none)
-        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
-          (Css.Empty, none)
+        case _: VisitorObservingModeType                                                         =>
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _                                               =>
+              Css.Empty
+
+          (probeVisibilityCss,
+           VisitorGeometry.visitorGeometry(
+             baseCoords,
+             blindOffset,
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.map(_.posAngle),
+             vizConf.map(_.configuration),
+             vizConf.flatMap(_.trackType),
+             selectedGS,
+             candidatesVisibilityCss
+           )
+          )
   }.map(_.value)
