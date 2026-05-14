@@ -69,6 +69,7 @@ trait syntax:
                 )
               InstrumentMode
                 .GhostSpectroscopy(
+                  ghost.stepCount,
                   ghost.resolutionMode,
                   redDetector = itcRed,
                   blueDetector = itcBlue

@@ -83,7 +83,12 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
         binning = g.blue.binning,
         readMode = g.blue.readMode
       )
-      BasicConfiguration.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red = red, blue = blue)
+      BasicConfiguration.GhostIfu(g.resolutionMode,
+                                  g.stepCount,
+                                  g.signalToNoiseAt,
+                                  red = red,
+                                  blue = blue
+      )
     case v: ObservingMode.Visitor                          =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.scienceFov)
 
@@ -721,14 +726,12 @@ object ObservingMode:
     val ifu1Agitator: GhostIfu1FiberAgitator = explicitIfu1Agitator.getOrElse(defaultIfu1Agitator)
     val ifu2Agitator: GhostIfu2FiberAgitator = explicitIfu2Agitator.getOrElse(defaultIfu2Agitator)
     def isCustomized: Boolean                =
-      stepCount.value =!= 1 ||
-        explicitIfu1Agitator.exists(_ =!= defaultIfu1Agitator) ||
+      explicitIfu1Agitator.exists(_ =!= defaultIfu1Agitator) ||
         explicitIfu2Agitator.exists(_ =!= defaultIfu2Agitator) ||
         red.isCustomized ||
         blue.isCustomized
     def revertCustomizations: GhostIfu       =
-      this.copy(stepCount = PosInt.unsafeFrom(1),
-                explicitIfu1Agitator = None,
+      this.copy(explicitIfu1Agitator = None,
                 explicitIfu2Agitator = None,
                 red = red.revertCustomizations,
                 blue = blue.revertCustomizations

@@ -66,7 +66,7 @@ case class ObsSummary(
           s"${disperser.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Igrins2LongSlit                               =>
           none
-        case BasicConfiguration.GhostIfu(resolutionMode, _, _, _)             =>
+        case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)          =>
           resolutionMode.shortName.some
         case BasicConfiguration.Visitor(mode, _, _)                           =>
           mode.instrument.shortName.some

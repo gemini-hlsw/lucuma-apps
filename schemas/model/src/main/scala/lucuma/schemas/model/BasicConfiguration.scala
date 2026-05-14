@@ -7,9 +7,12 @@ import cats.Eq
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
+import eu.timepit.refined.cats.*
+import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
+import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.geom.visitors.*
 import lucuma.core.math.Angle
@@ -81,7 +84,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       CentralWavelength(filter.wavelength).some
     case BasicConfiguration.Igrins2LongSlit                           =>
       CentralWavelength(Igrins2CentralWavelength).some
-    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       CentralWavelength(GhostCentralWavelength).some
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.some
@@ -101,7 +104,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
       AGSWavelength(Igrins2CentralWavelength)
-    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       AGSWavelength(GhostCentralWavelength)
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
       AGSWavelength(gnirs.centralWavelength)
@@ -121,7 +124,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
       Igrins2CentralWavelength
-    case BasicConfiguration.GhostIfu(_, _, _, _)                      =>
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       GhostCentralWavelength
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
       gnirs.centralWavelength
@@ -147,7 +150,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       GuideProbe.GmosOIWFS
     case BasicConfiguration.Flamingos2LongSlit(_, _, _) => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Igrins2LongSlit             => GuideProbe.PWFS2
-    case BasicConfiguration.GhostIfu(_, _, _, _)        => GuideProbe.PWFS2
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)     => GuideProbe.PWFS2
     case BasicConfiguration.GnirsLongSlit(_, _, _, _)   => GuideProbe.PWFS2
     case BasicConfiguration.Visitor(_, _, _)            => GuideProbe.PWFS2
 
@@ -249,6 +252,7 @@ object BasicConfiguration:
 
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,
+    stepCount:       PosInt,
     signalToNoiseAt: Wavelength,
     red:             ItcGhostDetector,
     blue:            ItcGhostDetector
@@ -275,9 +279,10 @@ object BasicConfiguration:
     given Decoder[GhostIfu]         = Decoder.instance: c =>
       for
         resolutionMode <- c.downField("resolutionMode").as[GhostResolutionMode]
+        stepCount      <- c.downField("stepCount").as[PosInt]
         red            <- c.downField("red").as[ItcGhostDetector]
         blue           <- c.downField("blue").as[ItcGhostDetector]
-      yield GhostIfu(resolutionMode, red.timeAndCount.at, red = red, blue = blue)
+      yield GhostIfu(resolutionMode, stepCount, red.timeAndCount.at, red = red, blue = blue)
 
   case class Visitor(
     mode:              VisitorObservingModeType,

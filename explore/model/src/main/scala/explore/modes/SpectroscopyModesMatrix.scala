@@ -35,6 +35,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
+import lucuma.refined.*
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import monocle.Getter
@@ -236,7 +237,7 @@ object SpectroscopyModeRow {
     } yield
       val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(binning)
       val blue = ItcInstrumentConfig.GhostIfu.GhostDetector.Blue(binning)
-      ItcInstrumentConfig.GhostIfu(resolutionMode, placeholderEtm.at, red, blue)
+      ItcInstrumentConfig.GhostIfu(resolutionMode, 1.refined, placeholderEtm.at, red, blue)
 
   private given Decoder[ItcInstrumentConfig.GnirsSpectroscopy] = c =>
     for {
