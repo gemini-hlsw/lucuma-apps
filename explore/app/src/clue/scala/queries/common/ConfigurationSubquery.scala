@@ -8,6 +8,7 @@ import clue.annotation.GraphQL
 import lucuma.core.model.Configuration
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.schemas.ObservationDB
+import lucuma.schemas.odb.AngleSubquery
 import lucuma.schemas.odb.DecSubquery
 import lucuma.schemas.odb.RASubquery
 
@@ -57,6 +58,10 @@ object ConfigurationSubquery
         }
         gmosSouthImaging {
           filters
+        }
+        visitor {
+          mode
+          radius $AngleSubquery
         }
       }
     }
