@@ -21,14 +21,12 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
 import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
-import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Prism
@@ -148,11 +146,11 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
         BasicConfiguration.GmosSouthLongSlit(_, _, _, _) | BasicConfiguration.GmosNorthImaging(_) |
         BasicConfiguration.GmosSouthImaging(_) =>
       GuideProbe.GmosOIWFS
-    case BasicConfiguration.Flamingos2LongSlit(_, _, _) => GuideProbe.Flamingos2OIWFS
-    case BasicConfiguration.Igrins2LongSlit             => GuideProbe.PWFS2
-    case BasicConfiguration.GhostIfu(_, _, _, _, _)     => GuideProbe.PWFS2
-    case BasicConfiguration.GnirsLongSlit(_, _, _, _)   => GuideProbe.PWFS2
-    case BasicConfiguration.Visitor(_, _, _)            => GuideProbe.PWFS2
+    case BasicConfiguration.Flamingos2LongSlit(_, _, _)  => GuideProbe.Flamingos2OIWFS
+    case BasicConfiguration.Igrins2LongSlit              => GuideProbe.PWFS2
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)      => GuideProbe.PWFS2
+    case BasicConfiguration.GnirsLongSlit(_, _, _, _, _) => GuideProbe.PWFS2
+    case BasicConfiguration.Visitor(_, _, _)             => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -236,16 +234,15 @@ object BasicConfiguration:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   case class GnirsLongSlit(
-    filter:            GnirsFilter,
-    fpu:               GnirsFpuSlit,
-    acquisitionMirror: GnirsAcquisitionMirrorMode,
-    camera:            GnirsCamera
+    filter:  GnirsFilter,
+    fpu:     GnirsFpuSlit,
+    prism:   GnirsPrism,
+    grating: GnirsGrating,
+    camera:  GnirsCamera
   ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
     lazy val centralWavelength: Wavelength =
-      acquisitionMirror match
-        // The only case the filter optimalWavelength is none is for XD, which can't happen when the acq mirror is in
-        case GnirsAcquisitionMirrorMode.In                    => filter.optimalWavelength.get
-        case GnirsAcquisitionMirrorMode.Out(_, _, wavelength) => wavelength.value
+      // The only case the filter optimalWavelength is none is for XD, where we fix to 1.65um.
+      filter.optimalWavelength.getOrElse(Wavelength.unsafeFromIntPicometers(1_650_000))
 
   object GnirsLongSlit:
     given Decoder[GnirsLongSlit] = deriveDecoder

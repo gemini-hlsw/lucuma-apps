@@ -717,9 +717,15 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsLongSlit(_, _, _, _)                                             =>
-      ObservingModeInput.Igrins2LongSlit: // TODO; Gnirs ObservingMode not supported in ODB yet
-        Igrins2LongSlitInput()
+    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera)                    =>
+      ObservingModeInput.GnirsLongSlit:
+        GnirsLongSlitInput(
+          filter = filter.assign,
+          fpu = fpu.assign,
+          prism = prism.assign,
+          grating = grating.assign,
+          camera = camera.assign
+        )
     case BasicConfiguration.Visitor(mode, centralWavelength, scienceFov)                          =>
       ObservingModeInput.Visitor:
         VisitorInput(

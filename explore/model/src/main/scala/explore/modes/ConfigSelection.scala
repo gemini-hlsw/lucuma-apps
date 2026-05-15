@@ -13,10 +13,7 @@ import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.enums.VisitorObservingModeType
-import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
-import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.itc.ItcGhostDetector
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
@@ -109,18 +106,8 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
-      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm)    =>
-        val gratingWavelength: GnirsGratingWavelength =
-          GnirsGratingWavelength:
-            filter.optimalWavelength.getOrElse(Wavelength.unsafeFromIntPicometers(1_650_000))
-        BasicConfiguration
-          .GnirsLongSlit(
-            filter,
-            fpu,
-            GnirsAcquisitionMirrorMode.Out(prism, grating, gratingWavelength),
-            camera
-          )
-          .some
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _)      =>
+        BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera).some
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
       case ItcInstrumentConfig.GhostIfu(
