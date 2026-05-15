@@ -222,7 +222,7 @@ object ItcInstrumentConfig:
     val instrument                       = Instrument.Ghost
     // This is for the modes table, and binning is always the same for both detectors there.
     override def instrumentLabel: String =
-      s"${instrument.longName} $modeStr"
+      s"${instrument.longName} $modeStr IFU"
     val site                             = Site.GS
     val hasFilter                        = false
     val mode                             = ScienceMode.Spectroscopy
