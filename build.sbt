@@ -167,7 +167,7 @@ lazy val schemas_lib =
 
         val schemasDir                   = (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas"
         val odbSchemaFile: File          = schemasDir / "ObservationDB.graphql"
-        val resourceSchemaFile: File     = schemasDir / "Resource.graphql"
+        val resourceSchemaFile: File     = schemasDir / "resource.graphql"
         val navigateSchemaFile: File     =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
