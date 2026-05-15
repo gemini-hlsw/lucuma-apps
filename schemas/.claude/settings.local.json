@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs -I{} sh -c 'jar tf {} 2>/dev/null | grep -l \"GnirsDecker\" 2>/dev/null | head -1')",
+      "Read(//private/tmp/**)",
+      "Bash(jar xf *)",
+      "Bash(git -C /Users/raul.piaggio/gemini/lucuma-apps log --oneline --all)",
+      "Bash(git -C /Users/raul.piaggio/gemini/lucuma-apps show --stat b5813616c2)",
+      "Bash(git *)",
+      "Bash(sbt -J-Xmx6g \"project explore_app\" \"compile\")",
+      "Bash(sort -t/ -k 11 -r)",
+      "Bash(unzip -p /Users/raul.piaggio/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/edu/gemini/lucuma-core_3/0.199.3/lucuma-core_3-0.199.3-sources.jar lucuma/core/model/sequence/gnirs/GnirsDynamicConfig.scala)",
+      "Bash(unzip -p /Users/raul.piaggio/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/edu/gemini/lucuma-core_3/0.199.3/lucuma-core_3-0.199.3-sources.jar lucuma/core/model/sequence/InstrumentExecutionConfig.scala)",
+      "Bash(unzip -l /Users/raul.piaggio/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/edu/gemini/lucuma-core_3/0.199.3/lucuma-core_3-0.199.3-sources.jar)",
+      "Bash(xargs -I{} basename {})",
+      "Bash(unzip -l /Users/raul.piaggio/Library/Caches/Coursier/v1/https/repo1.maven.org/maven2/edu/gemini/lucuma-odb-schema_sjs1_3/0.70.1/lucuma-odb-schema_sjs1_3-0.70.1-sources.jar)",
+      "Bash(unzip *)",
+      "Bash(rg -B2 -A20 \"type GnirsDynamic\\\\b|GnirsDynamic\\\\s*\\\\{|GnirsDynamic\\\\s*$\" schemas/lib/src/clue/resources/lucuma/schemas/ObservationDB.graphql)"
+    ]
+  }
+}
