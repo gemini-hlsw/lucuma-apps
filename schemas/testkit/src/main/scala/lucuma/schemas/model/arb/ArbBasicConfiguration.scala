@@ -6,6 +6,8 @@ package lucuma.schemas.model.arb
 import cats.data.NonEmptyList
 import cats.laws.discipline.arbitrary.*
 import cats.syntax.all.*
+import eu.timepit.refined.scalacheck.all.given
+import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
@@ -99,10 +101,11 @@ trait ArbBasicConfiguration {
     Arbitrary[BasicConfiguration.GhostIfu](
       for {
         resolutionMode <- arbitrary[GhostResolutionMode]
+        stepCount      <- arbitrary[PosInt]
         snAt           <- arbitrary[Wavelength]
         red            <- arbitrary[ItcGhostDetector]
         blue           <- arbitrary[ItcGhostDetector]
-      } yield BasicConfiguration.GhostIfu(resolutionMode, snAt, red = red, blue = blue)
+      } yield BasicConfiguration.GhostIfu(resolutionMode, stepCount, snAt, red = red, blue = blue)
     )
 
   given Arbitrary[BasicConfiguration.Visitor] =

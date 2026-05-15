@@ -18,6 +18,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.itc.ItcGhostDetector
+import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 
@@ -129,9 +130,13 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             blueDetector = blue
           ) =>
         (red.value.timeAndCount, blue.value.timeAndCount).mapN: (redT, blueT) =>
-          val redDetector  = ItcGhostDetector(redT, red.value.readMode, red.value.binning)
-          val blueDetector = ItcGhostDetector(blueT, blue.value.readMode, blue.value.binning)
+          val redDetector  =
+            ItcGhostDetector(redT.copy(count = 1.refined), red.value.readMode, red.value.binning)
+          val blueDetector =
+            ItcGhostDetector(blueT.copy(count = 1.refined), blue.value.readMode, blue.value.binning)
+          // The count in both the red and blue detectors should be the same at this point...
           BasicConfiguration.GhostIfu(
+            stepCount = redT.count,
             resolutionMode = res,
             signalToNoiseAt = snAt,
             red = redDetector,

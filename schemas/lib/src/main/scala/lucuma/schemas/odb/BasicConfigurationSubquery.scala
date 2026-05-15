@@ -40,6 +40,7 @@ object BasicConfigurationSubquery
           }
           ghostIfu {
             resolutionMode
+            stepCount
             red {
               exposureTimeMode $ExposureTimeModeSubquery
               readMode

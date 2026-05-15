@@ -231,7 +231,12 @@ final case class Observation(
             g.blue.binning
           )
           List(
-            ItcInstrumentConfig.GhostIfu(g.resolutionMode, g.signalToNoiseAt, red, blue)
+            ItcInstrumentConfig.GhostIfu(g.resolutionMode,
+                                         g.stepCount,
+                                         g.signalToNoiseAt,
+                                         red,
+                                         blue
+            )
           )
         case _: ObservingMode.Visitor            => List.empty
 

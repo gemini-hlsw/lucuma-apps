@@ -703,10 +703,15 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.Igrins2LongSlit                                                       =>
       ObservingModeInput.Igrins2LongSlit:
         Igrins2LongSlitInput()
-    case BasicConfiguration.GhostIfu(resolutionMode = res, red = red, blue = blue)                =>
+    case BasicConfiguration.GhostIfu(resolutionMode = res,
+                                     stepCount = sc,
+                                     red = red,
+                                     blue = blue
+        ) =>
       ObservingModeInput.GhostIfu:
         GhostIfuInput(
           resolutionMode = res.assign,
+          stepCount = sc.assign,
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )

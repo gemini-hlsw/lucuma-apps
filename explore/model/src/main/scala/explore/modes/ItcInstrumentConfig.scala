@@ -8,6 +8,7 @@ import cats.derived.*
 import cats.implicits.*
 import eu.timepit.refined.*
 import eu.timepit.refined.cats.*
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.*
 import lucuma.core.enums.*
 import lucuma.core.math.SignalToNoise
@@ -199,6 +200,7 @@ object ItcInstrumentConfig:
 
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,
+    stepCount:       PosInt,
     signalToNoiseAt: Wavelength,
     redDetector:     GhostIfu.GhostDetector.Red,
     blueDetector:    GhostIfu.GhostDetector.Blue
