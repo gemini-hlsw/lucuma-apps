@@ -30,7 +30,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.igrins2.{Igrins2DynamicConfig, Igrins2StaticConfig}
+import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Scalars.Timestamp
 import lucuma.schemas.model.ModeSignalToNoise

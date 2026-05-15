@@ -88,7 +88,7 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       )
     )
   )
-  
+
   def formatDoubleValue(v: Double): String = "%1.6f".formatLocal(Locale.US, v)
 
   test("binning") {

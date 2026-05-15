@@ -84,7 +84,6 @@ private[server] abstract class AbstractGiapiInstrumentController[F[_]: Sync, CFG
     Applicative[F].unit
 }
 
-
 object GiapiInstrumentController {
   extension (c: Configuration) {
     def when(f: Configuration => Boolean): Configuration =

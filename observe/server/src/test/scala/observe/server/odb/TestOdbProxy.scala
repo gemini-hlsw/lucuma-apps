@@ -208,7 +208,7 @@ object TestOdbProxy {
             s <- rf.get
             t <- Async[F]
                    .delay(LocalDateTime.now(ZoneId.of("GMT")))
-                   .map(Timestamp.unsafeFromLocalDateTime)
+                   .map(Timestamp.fromLocalDateTimeTruncatedAndBounded)
           } yield {
             val (i: Instrument, st: SequenceState, staticCfg) =
               s.sequences

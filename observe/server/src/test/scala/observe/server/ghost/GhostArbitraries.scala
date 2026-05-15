@@ -36,7 +36,7 @@ trait GhostArbitraries extends ArbTime {
   given Arbitrary[IFUTargetType.NonsiderealTarget] = Arbitrary {
     arbitrary[GemTarget.Nonsidereal].map(IFUTargetType.NonsiderealTarget.apply)
   }
-  
+
   given Cogen[IFUTargetType.NonsiderealTarget] = Cogen[GemTarget.Nonsidereal].contramap(_.target)
 
   val ghostSRSingleTargetConfigGen: Gen[StandardResolutionMode.SingleTarget] = for {

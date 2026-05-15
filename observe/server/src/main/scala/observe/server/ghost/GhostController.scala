@@ -49,7 +49,7 @@ object GhostController {
 
       override val name = "GHOST"
 
-      private val GuidingState: String = "ghost:sad:dc:ag.command_state"
+      private val GuidingState: String         = "ghost:sad:dc:ag.command_state"
       private def guidingState: F[Option[Int]] = client.giapi.getO[Int](GuidingState)
 
       private def isAGIdle: F[Boolean] =
