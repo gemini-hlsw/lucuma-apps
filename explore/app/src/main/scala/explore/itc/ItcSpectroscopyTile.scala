@@ -198,12 +198,13 @@ object ItcSpectroscopyTile
             graphResult.integrationTime.bandOrLine
               .fold(bandValues(sourceProfile), emissionLineValues(sourceProfile))
 
-          // IGRINS2 has multiple ccd labels
-          // GHOST NOTE: GHOST has lines for each detector, but they overlap so this method of labeling will not work.
+          // IGRINS2 and GHOST have multiple ccd labels
           val ccdLabels: Map[NonNegInt, String] = instrumentConfig match
-            case ItcInstrumentConfig.Igrins2Spectroscopy(_) =>
+            case ItcInstrumentConfig.Igrins2Spectroscopy(_)  =>
               Map(0.refined[NonNegative] -> "H-band", 1.refined[NonNegative] -> "K-band")
-            case _                                          => Map.empty
+            case ItcInstrumentConfig.GhostIfu(_, _, _, _, _) =>
+              Map(0.refined[NonNegative] -> "Blue", 1.refined[NonNegative] -> "Red")
+            case _                                           => Map.empty
 
           <.div(
             ExploreStyles.ItcPlotSection,
