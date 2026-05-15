@@ -165,8 +165,9 @@ lazy val schemas_lib =
       createNpmProject              := {
         val npmDir = target.value / "npm"
 
-        val odbSchemaFile: File          =
-          (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas" / "ObservationDB.graphql"
+        val schemasDir                   = (Compile / clueSourceDirectory).value / "resources" / "lucuma" / "schemas"
+        val odbSchemaFile: File          = schemasDir / "ObservationDB.graphql"
+        val resourceSchemaFile: File     = schemasDir / "Resource.graphql"
         val navigateSchemaFile: File     =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
@@ -181,7 +182,8 @@ lazy val schemas_lib =
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
              |    "./odb": "./${odbSchemaFile.getName}",
-             |    "./navigate": "./${navigateSchemaFile.getName}"
+             |    "./navigate": "./${navigateSchemaFile.getName}",
+             |    "./resource": "./${resourceSchemaFile.getName}"
              |  },
              |  "repository": {
              |    "type": "git",
@@ -192,6 +194,7 @@ lazy val schemas_lib =
         )
 
         IO.copyFile(odbSchemaFile, npmDir / odbSchemaFile.getName)
+        IO.copyFile(resourceSchemaFile, npmDir / resourceSchemaFile.getName)
 
         // Replace the import path to the schema file to match the NPM package structure
         val navigateSchemaContent = IO
