@@ -88,6 +88,7 @@ object ImagingConfigurationPanel
           id = "imaging-capability".refined,
           label = React.Fragment("Capability", HelpIcon("configuration/capability.md".refined)),
           value = p.capability,
+          exclude = Set(ImagingCapability.WideField),
           placeholder = "Any",
           disabled = p.readonly
         ),
