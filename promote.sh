@@ -14,8 +14,8 @@ SKIP_SLACK=false
 DEBUG=false
 DEBUG_CURL=()
 
-all_systems=("Explore" "SSO" "ITC" "ODB")
-docker_systems=("SSO" "ITC" "ODB")
+all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE")
+docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
 
 # Parse optional arguments
 for arg in "$@"; do
@@ -471,6 +471,11 @@ repo["ODB"]="gemini-hlsw/lucuma-odb"
 image_name["ODB"]="lucuma-postgres-odb"
 process_types["ODB"]="web calibration obscalc"
 backup["ODB"]=true
+
+repo["RESOURCE"]="gemini-hlsw/lucuma-odb"
+image_name["RESOURCE"]="lucuma-resource"
+process_types["RESOURCE"]="web"
+backup["RESOURCE"]=false
 
 echo "##### Checking for changes between $SOURCE_ENV and $TARGET_ENV"
 echo
