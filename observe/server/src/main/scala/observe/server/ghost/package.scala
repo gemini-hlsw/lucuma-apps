@@ -40,13 +40,13 @@ object FiberAgitator {
     if (b) On else Off
 
   def fromIfu1FiberAgitator(v: GhostIfu1FiberAgitator) = v match {
-    case enums.GhostIfu1FiberAgitator.Disabled => FiberAgitator.On
-    case enums.GhostIfu1FiberAgitator.Enabled  => FiberAgitator.Off
+    case enums.GhostIfu1FiberAgitator.Disabled => FiberAgitator.Off
+    case enums.GhostIfu1FiberAgitator.Enabled  => FiberAgitator.On
   }
 
   def fromIfu2FiberAgitator(v: GhostIfu2FiberAgitator) = v match {
-    case enums.GhostIfu2FiberAgitator.Disabled => FiberAgitator.On
-    case enums.GhostIfu2FiberAgitator.Enabled  => FiberAgitator.Off
+    case enums.GhostIfu2FiberAgitator.Disabled => FiberAgitator.Off
+    case enums.GhostIfu2FiberAgitator.Enabled  => FiberAgitator.On
   }
 
 }
@@ -172,12 +172,12 @@ extension (sc: StepConfig) {
   def isScience: Boolean = sc.stepType === StepType.Science
 }
 
-given GiapiConfig[GhostIfu1FiberAgitator] = {
-  case GhostIfu1FiberAgitator.Enabled  => "FA_DEMAND_ON"
-  case GhostIfu1FiberAgitator.Disabled => "FA_DEMAND_OFF"
-}
-
-given GiapiConfig[GhostIfu2FiberAgitator] = {
-  case GhostIfu2FiberAgitator.Enabled  => "FA_DEMAND_ON"
-  case GhostIfu2FiberAgitator.Disabled => "FA_DEMAND_OFF"
-}
+//given GiapiConfig[GhostIfu1FiberAgitator] = {
+//  case GhostIfu1FiberAgitator.Enabled  => "FA_DEMAND_ON"
+//  case GhostIfu1FiberAgitator.Disabled => "FA_DEMAND_OFF"
+//}
+//
+//given GiapiConfig[GhostIfu2FiberAgitator] = {
+//  case GhostIfu2FiberAgitator.Enabled  => "FA_DEMAND_ON"
+//  case GhostIfu2FiberAgitator.Disabled => "FA_DEMAND_OFF"
+//}

@@ -12,6 +12,7 @@ import observe.model.CurrentConditions
 import observe.model.enums.ObserveCommandResult
 import observe.server.AbstractGiapiInstrumentController
 import observe.server.GiapiInstrumentController
+import observe.server.GiapiInstrumentController.*
 import observe.server.keywords.GdsClient
 import org.typelevel.log4cats.Logger
 
@@ -48,14 +49,17 @@ object GhostController {
 
       override val name = "GHOST"
 
+      private val GuidingState: String = "ghost:sad:dc:ag.command_state"
+      private def guidingState: F[Option[Int]] = client.giapi.getO[Int](GuidingState)
+
       private def isAGIdle: F[Boolean] =
         // 2 is idle, and 1 is guiding. We have more intermediate states but we'll
         // assume we don't want to move focus
-        client.guidingState.map(_.exists(_ === 2))
+        guidingState.map(_.exists(_ === 2))
 
       def configuration(config: GhostConfig, conds: CurrentConditions): F[Configuration] =
         for {
-          value      <- client.guidingState
+          value      <- guidingState
           idle       <- isAGIdle
           baseConfig  = config.configuration(conds)
           finalConfig = baseConfig |+| config.moveIFUToFocus.when(_ => idle)

@@ -83,3 +83,11 @@ private[server] abstract class AbstractGiapiInstrumentController[F[_]: Sync, CFG
   override def endObserve: F[Unit] =
     Applicative[F].unit
 }
+
+
+object GiapiInstrumentController {
+  extension (c: Configuration) {
+    def when(f: Configuration => Boolean): Configuration =
+      if (f(c)) c else Configuration.Zero
+  }
+}

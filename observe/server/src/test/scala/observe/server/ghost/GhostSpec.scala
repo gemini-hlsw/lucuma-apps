@@ -35,6 +35,7 @@ import lucuma.core.util.TimeSpan
 import observe.model.CurrentConditions
 
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 import scala.collection.immutable.SortedMap
 
 /**
@@ -87,6 +88,8 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       )
     )
   )
+  
+  def formatDoubleValue(v: Double): String = "%1.6f".formatLocal(Locale.US, v)
 
   test("binning") {
     val cfg = StandardResolutionMode.SingleTarget(
@@ -159,10 +162,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       none
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostFiberAgitator1.applyItem),
-                 "FA_DEMAND_ON".some
+                 "FA_DEMAND_NONE".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostFiberAgitator2.applyItem),
-                 "FA_DEMAND_OFF".some
+                 "FA_DEMAND_NONE".some
     )
   }
 
@@ -192,10 +195,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       false
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostFiberAgitator1.applyItem),
-                 "FA_DEMAND_NONE".some
+                 "FA_DEMAND_ON".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostFiberAgitator2.applyItem),
-                 "FA_DEMAND_NONE".some
+                 "FA_DEMAND_OFF".some
     )
   }
 
@@ -231,10 +234,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
                  "IFU_DEMAND_RADEC".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.ra"),
-                 ra.toAngle.toDoubleDegrees.some.map(v => f"$v%1.6f")
+                 ra.toAngle.toDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.dec"),
-                 dec.toAngle.toSignedDoubleDegrees.some.map(v => f"$v%1.6f")
+                 dec.toAngle.toSignedDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.bundle"),
                  "IFU_STDRES".some
@@ -253,7 +256,7 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
   }
 
   test("sru ifu1/2 ra/dec") {
-    val cfg = StandardResolutionMode.TargetPlusSky(
+    val cfg = StandardResolutionMode.DualTarget(
       StepConfig.Science,
       ObserveClass.Science,
       GhostDetector.Blue(
@@ -275,7 +278,7 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       GhostIfu2FiberAgitator.Disabled,
       IFUTargetType.SiderealTarget(target1),
       coord1,
-      IFUTargetType.SkyPosition(target2),
+      IFUTargetType.SiderealTarget(target2),
       coord2,
       List.empty,
       none,
@@ -286,10 +289,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
                  "IFU_DEMAND_RADEC".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.ra"),
-                 ra.toAngle.toDoubleDegrees.some.map(v => f"$v%1.6f")
+                 ra.toAngle.toDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.dec"),
-                 dec.toAngle.toSignedDoubleDegrees.some.map(v => f"$v%1.6f")
+                 dec.toAngle.toSignedDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.bundle"),
                  "IFU_STDRES".some
@@ -308,10 +311,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
                  "IFU_TARGET_OBJECT".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu2.ra"),
-                 ra2.toAngle.toDoubleDegrees.some.map(v => f"$v%1.6f")
+                 ra2.toAngle.toDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu2.dec"),
-                 dec2.toAngle.toSignedDoubleDegrees.some.map(v => f"$v%1.6f")
+                 dec2.toAngle.toSignedDoubleDegrees.some.map(formatDoubleValue)
     )
   }
 
@@ -347,10 +350,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
                  "IFU_DEMAND_RADEC".some
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.ra"),
-                 ra.toAngle.toDoubleDegrees.some.map(v => f"$v%1.6f")
+                 ra.toAngle.toDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.dec"),
-                 dec.toAngle.toSignedDoubleDegrees.some.map(v => f"$v%1.6f")
+                 dec.toAngle.toSignedDoubleDegrees.some.map(formatDoubleValue)
     )
     assertEquals(cfg.configuration(CurrentConditions.Default).value("ghost:cc:cu:ifu1.bundle"),
                  "IFU_STDRES".some
@@ -380,14 +383,14 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Fast
+                      GhostReadMode.Slow
         )
       ),
       GhostDetector.Red(
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Slow
+                      GhostReadMode.Fast
         )
       ),
       none,
@@ -401,10 +404,10 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       TimeSpan.unsafeFromDuration(5, ChronoUnit.SECONDS).some
     )
 
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostSVDuration.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostSVDuration.applyItem),
                  Some("5000")
     )
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostSVRepeat.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostSVRepeat.applyItem),
                  Some("9")
     )
   }
@@ -417,14 +420,14 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Fast
+                      GhostReadMode.Slow
         )
       ),
       GhostDetector.Red(
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Slow
+                      GhostReadMode.Fast
         )
       ),
       none,
@@ -452,14 +455,14 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Fast
+                      GhostReadMode.Slow
         )
       ),
       GhostDetector.Red(
         GhostDetector(TimeSpan.unsafeFromMicroseconds(1000000),
                       PosInt.unsafeFrom(1),
                       GhostBinning.OneByOne,
-                      GhostReadMode.Slow
+                      GhostReadMode.Fast
         )
       ),
       coord1.some,
@@ -472,16 +475,16 @@ final class GhostSpec extends munit.DisciplineSuite with GhostArbitraries {
       none
     )
 
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostIFU1X.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostIFU1X.applyItem),
                  Some("0.000000")
     )
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostIFU1Y.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostIFU1Y.applyItem),
                  Some("0.000000")
     )
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostIFU1Type.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostIFU1Type.applyItem),
                  Some("IFU_DEMAND_XY")
     )
-    assertEquals(cfg.configuration(CurrentConditions.Default).value(GhostIFU2Type.applyItem),
+    assertEquals(cfg.configuration(CurrentConditions.Best).value(GhostIFU2Type.applyItem),
                  Some("IFU_DEMAND_PARK")
     )
 
