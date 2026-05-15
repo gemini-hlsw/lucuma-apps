@@ -4,8 +4,8 @@
   "version": "0.150.0",
   "description": "Schemas for the astronomical observation database",
   "scripts": {
-    "start": "./fetchODBSchema.mjs",
-    "fetch-schema": "./fetchODBSchema.mjs"
+    "start": "./fetchGQLSchema.mjs",
+    "fetch-schema": "./fetchGQLSchema.mjs"
   },
   "license": "BSD-3-Clause",
   "devDependencies": {
