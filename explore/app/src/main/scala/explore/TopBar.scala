@@ -41,6 +41,7 @@ import lucuma.ui.components.LoginStyles
 import lucuma.ui.components.ThemeSubMenu
 import lucuma.ui.enums.Theme
 import lucuma.ui.layout.LayoutStyles
+import lucuma.ui.primereact.*
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
@@ -265,13 +266,13 @@ object TopBar:
             ),
             right = React.Fragment(
               Button(
-                icon = Icons.Info,
-                text = true,
+                icon = Icons.RocketLaunch,
+                label = "Getting Started",
                 severity = Button.Severity.Secondary,
                 tooltip = "Guide",
                 clazz = ExploreStyles.GuideButton,
                 onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
-              ),
+              ).small.compact,
               <.span(LayoutStyles.MainUserName)(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),
