@@ -96,8 +96,7 @@ lazy val root = tlCrossRootProject.aggregate(
   navigate_stateengine,
   navigate_server,
   navigate_web_server,
-  navigate_model,
-  navigate_schema_util
+  navigate_model
 )
 
 // BEGIN SCHEMAS
@@ -820,7 +819,6 @@ lazy val navigate_web_server = project
   .in(file("navigate/web/server"))
   .dependsOn(
     schemas_lib.jvm,
-    navigate_schema_util,
     navigate_server,
     navigate_model % "compile->compile;test->test"
   )
@@ -842,6 +840,7 @@ lazy val navigate_web_server = project
         Log4s.value ++
         Logback.value ++
         LucumaHorizons.value ++
+        LucumaOdbBinding.value ++
         Grackle.value ++
         In(Test)(
           MUnit.value ++
@@ -874,20 +873,6 @@ lazy val navigate_model = project
         LucumaCore.value ++
         Circe.value ++
         In(Test)(MUnit.value ++ Discipline.value)
-  )
-
-lazy val navigate_schema_util = project
-  .in(file("navigate/schema-util"))
-  .settings(navigateCommonSettings: _*)
-  .settings(
-    libraryDependencies ++=
-      CatsEffect.value ++
-        Fs2.value ++
-        Log4Cats.value ++
-        LucumaCore.value ++
-        Http4sClient.value ++
-        Grackle.value ++
-        In(Test)(MUnit.value ++ MUnitCatsEffect.value)
   )
 
 lazy val navigate_server = project

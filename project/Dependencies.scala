@@ -290,6 +290,10 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
   )
 
+  val LucumaOdbBinding = Def.setting(
+    deps("edu.gemini" %%% "lucuma-odb-binding")(lucumaServers)
+  )
+
   val LucumaPrimeStyles = Def.setting(
     deps("edu.gemini" %%% "lucuma-prime-styles")(lucumaPrimeStyles)
   )

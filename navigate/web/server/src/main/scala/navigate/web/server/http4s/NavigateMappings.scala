@@ -6,9 +6,8 @@ package navigate.web.server.http4s
 import cats.data.Validated
 import cats.effect.Sync
 import cats.syntax.all.*
-import edu.gemini.schema.util.SchemaStitcher
-import edu.gemini.schema.util.SourceResolver
 import fs2.Stream
+import fs2.io.file.Path
 import grackle.Env
 import grackle.Query.Binding
 import grackle.QueryCompiler.Elab
@@ -37,8 +36,10 @@ import lucuma.core.model.M2GuideConfig
 import lucuma.core.model.Observation
 import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
-import lucuma.core.util.Gid
 import lucuma.core.util.TimeSpan
+import lucuma.odb.graphql.binding.*
+import lucuma.odb.graphql.schema.SchemaSource
+import lucuma.odb.graphql.schema.SchemaStitcher
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
 import mouse.boolean.given
 import navigate.model.AcMechsState
@@ -101,7 +102,6 @@ import navigate.server.tcs.TelescopeState
 import navigate.web.server.OcsBuildInfo
 import org.typelevel.log4cats.Logger
 
-import java.nio.file.Path as JPath
 import java.time.LocalDate
 import scala.reflect.classTag
 
@@ -672,11 +672,11 @@ class NavigateMappings[F[_]: Sync](
           "slew",
           List(Binding("slewOptions", ObjectValue(so)),
                Binding("config", ObjectValue(cf)),
-               Binding("obsId", StringValue(oi))
+               ObservationIdBinding.Option("obsId", rOi)
           )
         ) =>
       for {
-        _ <- Elab.env("obsId" -> parseObservationIdInput(oi))
+        _ <- Elab.liftR(rOi).flatMap(oi => Elab.env("obsId" -> oi))
         x <-
           Elab.liftR(parseSlewOptionsInput(so).toResult("Could not parse Slew options parameters."))
         _ <- Elab.env("slewOptions" -> x)
@@ -1268,9 +1268,8 @@ class NavigateMappings[F[_]: Sync](
 
 object NavigateMappings extends GrackleParsers {
 
-  def loadSchema[F[_]: Sync]: F[Result[Schema]] = SchemaStitcher
-    .apply[F](JPath.of("navigate.graphql"), SourceResolver.fromResource(getClass.getClassLoader))
-    .build
+  def loadSchema[F[_]: Sync]: F[Result[Schema]] =
+    SchemaStitcher[F](Path("navigate.graphql"), SchemaSource.fromResource).build
 
   def apply[F[_]: {Sync, Logger}](
     config: NavigateConfiguration,
@@ -1278,7 +1277,7 @@ object NavigateMappings extends GrackleParsers {
     topics: TopicManager[F]
   ): F[NavigateMappings[F]] = loadSchema
     .flatMap {
-      case Result.Success(schema)           => schema.pure[F]
+      case Result.Success(schema)           => Logger[F].info("Loaded schema").as(schema)
       case Result.Warning(problems, schema) =>
         Logger[F]
           .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
@@ -1301,9 +1300,6 @@ object NavigateMappings extends GrackleParsers {
         topics
       )(_)
     )
-
-  def parseObservationIdInput(oi: String): Option[Observation.Id] =
-    parseGid[Observation.Id](oi, "Observation Id").toOption
 
   def parseSlewOptionsInput(l: List[(String, Value)]): Option[SlewOptions] = for {
     zct  <-
@@ -1412,9 +1408,6 @@ object NavigateMappings extends GrackleParsers {
                 .flatMap(parseAzElTarget(nm, wv, _))
             )
   } yield bt
-
-  def parseGid[A: Gid](s: String, name: String): Either[String, A] =
-    Gid[A].fromString.getOption(s).toRight(s"'$s' is not a valid $name id")
 
   def parseGuideTargetInput(l: List[(String, Value)]): Option[Target] = for {
     nm <- l.collectFirst { case ("name", StringValue(v)) => v }
