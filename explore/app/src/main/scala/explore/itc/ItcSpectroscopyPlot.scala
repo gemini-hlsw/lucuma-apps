@@ -159,11 +159,16 @@ object ItcSpectroscopyPlot {
       .setSeries:
         graph.series.zipWithIndex
           .map: (series, idx) =>
-            val colorIdx = if (seriesPerCcd > 0) idx % seriesPerCcd else idx
-            val firstCcd = idx < seriesPerCcd
-            val id       = s"series-$colorIdx"
-            val opts     = SeriesLineOptions((), (), line)
-              .setName(series.title)
+            val colorIdx                                        = if (seriesPerCcd > 0) idx % seriesPerCcd else idx
+            val ccdIdx                                          = idx / seriesPerCcd
+            def mkName(seriesName: String, ccdIdx: Int): String =
+              ccdLabels
+                .get(NonNegInt.unsafeFrom(ccdIdx))
+                .map(label => s"$label $seriesName")
+                .getOrElse(seriesName)
+            val id                                              = s"series-$idx"
+            SeriesLineOptions((), (), line)
+              .setName(mkName(series.title, ccdIdx))
               .setYAxis(0)
               .setData(
                 series.data
@@ -174,12 +179,7 @@ object ItcSpectroscopyPlot {
               .setLineWidth(1)
               .setColorIndex(colorIdx.toDouble)
               .setLabel(SeriesLabelOptionsObject().setEnabled(false))
-
-            if (firstCcd) opts.setId(id)
-            else
-              opts
-                .setLinkedTo(id)
-                .setShowInLegend(false)
+              .setId(id)
           .map(_.asInstanceOf[SeriesOptionsType])
           .toJSArray
   }
