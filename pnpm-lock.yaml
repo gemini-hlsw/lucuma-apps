@@ -93,8 +93,8 @@ importers:
         specifier: 7.0.0
         version: 7.0.0
       primereact:
-        specifier: 10.9.7
-        version: 10.9.7(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 10.9.8
+        version: 10.9.8(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       prop-types:
         specifier: 15.8.1
         version: 15.8.1
@@ -217,8 +217,8 @@ importers:
         specifier: 7.0.0
         version: 7.0.0
       primereact:
-        specifier: 10.9.7
-        version: 10.9.7(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 10.9.8
+        version: 10.9.8(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -297,8 +297,8 @@ importers:
         specifier: 7.0.0
         version: 7.0.0
       primereact:
-        specifier: 10.9.7
-        version: 10.9.7(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 10.9.8
+        version: 10.9.8(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: 18.3.1
         version: 18.3.1
@@ -2894,8 +2894,8 @@ packages:
   primeicons@7.0.0:
     resolution: {integrity: sha512-jK3Et9UzwzTsd6tzl2RmwrVY/b8raJ3QZLzoDACj+oTJ0oX7L9Hy+XnVwgo4QVKlKpnP/Ur13SXV/pVh4LzaDw==}
 
-  primereact@10.9.7:
-    resolution: {integrity: sha512-Ap/lg9GGaS8Pq7IIlzguuG3qlaU6PYF6E0cCRo0rnWauRw/SQGvfreSVIIxqEhtR6xqlf7OV759lyvVOvBzmsQ==}
+  primereact@10.9.8:
+    resolution: {integrity: sha512-kX0hOce2WpG24CzRJWlHrRPsvbCsOyBDqsHCC/p4W8okxHIdkOxxIkQBUVO0gRuh0Lxl5o7lmEEtUMzrlicf8g==}
     engines: {node: '>=14.0.0'}
     peerDependencies:
       '@types/react': ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -6542,7 +6542,7 @@ snapshots:
 
   primeicons@7.0.0: {}
 
-  primereact@10.9.7(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
+  primereact@10.9.8(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
     dependencies:
       '@types/react-transition-group': 4.4.12(@types/react@19.2.10)
       react: 18.3.1
