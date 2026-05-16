@@ -36,8 +36,8 @@ importers:
         specifier: 1.1.0
         version: 1.1.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
-        specifier: 2.0.19
-        version: 2.0.19(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 2.1.0
+        version: 2.1.0(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator':
         specifier: 3.2.15
         version: 3.2.15(react@18.3.1)
@@ -360,8 +360,8 @@ packages:
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
     resolution: {integrity: sha512-lo4x9p7DAq3WeCknHXqkCNmzSMvyKfucl1BFF6K22BjdiRd+DavBwt4aGUQBGnIPGwZgNKrjmwAFj9xuYdLZDQ==}
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.19':
-    resolution: {integrity: sha512-4iKxPkooYVWGuphlOY6cjlI0ufNP4XXAFwIXUTpFos1wRj+REVFCIMCvVSQdeiqvuNtqhAJWus9GxnCQMlqXeA==}
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.1.0':
+    resolution: {integrity: sha512-apVQ11VGIgRID5CI6q3k1nb///nta3oCfnjoYAf6qH6Rz4lXl5oFRa4k/tLYQpPQMEUz/QFEAO6CUMhqiX3xqw==}
     peerDependencies:
       react: ^18.2.0
       react-dom: ^18.2.0
@@ -3718,7 +3718,7 @@ snapshots:
       '@babel/runtime': 7.28.6
       css-box-model: 1.2.1
 
-  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.0.19(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.1.0(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
