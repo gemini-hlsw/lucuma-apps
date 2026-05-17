@@ -8,7 +8,7 @@
     "@react-hook/resize-observer": "2.0.2",
     "@tanstack/react-table": "8.21.3",
     "@tanstack/react-virtual": "3.13.24",
-    "@vitejs/plugin-react": "6.0.1",
+    "@vitejs/plugin-react": "6.0.2",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
     "primereact": "10.9.8",
@@ -17,7 +17,7 @@
     "react-grid-layout": "1.5.3",
     "sass": "1.99.0",
     "ua-parser-js": "2.0.9",
-    "vite": "8.0.12"
+    "vite": "8.0.13"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "7.2.0",
