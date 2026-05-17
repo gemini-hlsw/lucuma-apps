@@ -21,7 +21,7 @@ object Versions {
   val fs2Dom                 = "0.3.0-M1"
   val geminiLocales          = "0.12.2"
   val giapiScala             = "0.3.1"
-  val grackle                = "0.26.0"
+  val grackle                = "0.27.0"
   val graphQLRoutes          = "0.13.4"
   val http4s                 = "0.23.34"
   val http4sDom              = "0.2.12"
