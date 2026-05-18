@@ -407,6 +407,17 @@ object ConfigurationTile
                             bc.obsModeType.defaultPosAngleOptions
                           )
                         .orEmpty,
+                      (visitor, tcMode) =>
+                        requirementsView
+                          .zoom(ScienceRequirements.exposureTimeMode)
+                          .set(tcMode.some)
+                          .toAsync >>
+                          updateConfiguration(
+                            props.obsId,
+                            props.pacAndMode,
+                            visitor.toInput,
+                            visitor.obsModeType.defaultPosAngleOptions
+                          ),
                       props.modes,
                       props.customSedTimestamps,
                       !props.permissions.isFullEdit,

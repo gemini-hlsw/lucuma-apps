@@ -5,8 +5,9 @@ package explore.config
 
 import cats.syntax.all.*
 import crystal.react.View
-import crystal.react.hooks.*
-import eu.timepit.refined.types.numeric.PosInt
+import explore.components.ui.ExploreStyles
+import explore.config.ConfigurationFormats.*
+import explore.model.TimeAndCountModeInfo
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
@@ -16,74 +17,80 @@ import lucuma.core.enums.Site
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
-import lucuma.core.model.ExposureTimeMode
-import lucuma.core.util.TimeSpan
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.common.style.Css
 import lucuma.refined.*
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
+import lucuma.ui.syntax.all.given
 
+// The alien-visitor editor is a *preview* of the configuration to be created.
+// All inputs are optional (empty on init) and only persisted on Accept.
 final case class AlienVisitorConfigEditor(
-  exposureTimeMode: View[Option[ExposureTimeMode]],
-  calibrationRole:  Option[CalibrationRole],
-  readonly:         Boolean,
-  units:            WavelengthUnits
+  site:              View[Site],
+  centralWavelength: View[Option[Wavelength]],
+  scienceFov:        View[Option[Angle]],
+  timeAndCount:      View[TimeAndCountModeInfo],
+  calibrationRole:   Option[CalibrationRole],
+  readonly:          Boolean,
+  units:             WavelengthUnits
 ) extends ReactFnProps(AlienVisitorConfigEditor)
 
 object AlienVisitorConfigEditor
     extends ReactFnComponent[AlienVisitorConfigEditor](props =>
-      for
-        site <- useStateView[Site](Site.GN)
-        cw   <- useStateView[Wavelength](
-                  BasicConfiguration.Visitor.defaultCentralWavelength(
-                    VisitorObservingModeType.VisitorNorth
-                  )
-                )
-        fov  <- useStateView[Angle](Angle.Angle0)
-      yield
-        val mode: VisitorObservingModeType = site.get match
-          case Site.GN => VisitorObservingModeType.VisitorNorth
-          case Site.GS => VisitorObservingModeType.VisitorSouth
+      val mode: VisitorObservingModeType = props.site.get match
+        case Site.GN => VisitorObservingModeType.VisitorNorth
+        case Site.GS => VisitorObservingModeType.VisitorSouth
 
-        val defaultTimeAndCount: ExposureTimeMode.TimeAndCountMode =
-          ExposureTimeMode.TimeAndCountMode(
-            TimeSpan.unsafeFromMicroseconds(0L),
-            PosInt.unsafeFrom(1),
-            cw.get
+      <.div(
+        ExploreStyles.VisitorUpperGrid,
+        <.div(
+          ExploreStyles.VisitorHeader,
+          LucumaPrimeStyles.FormColumnCompact,
+          FormLabel(htmlFor = "visitor-basic-site".refined)("Site"),
+          EnumDropdownView(
+            id = "visitor-basic-site".refined,
+            value = props.site,
+            disabled = props.readonly
           )
-
-        val timeAndCountView: View[ExposureTimeMode.TimeAndCountMode] =
-          props.exposureTimeMode.zoom {
-            case Some(t: ExposureTimeMode.TimeAndCountMode) => t
-            case _                                          => defaultTimeAndCount
-          } { f => opt =>
-            val current = opt match
-              case Some(t: ExposureTimeMode.TimeAndCountMode) => t
-              case _                                          => defaultTimeAndCount
-            f(current).some
-          }
-
-        val header: VdomNode =
-          React.Fragment(
-            FormLabel(htmlFor = "visitor-basic-site".refined)("Site"),
-            EnumDropdownView(
-              id = "visitor-basic-site".refined,
-              value = site,
-              disabled = props.readonly
-            )
+        ),
+        <.div(
+          LucumaPrimeStyles.FormColumnCompact,
+          FormInputTextView(
+            id = "visitor-basic-central-wavelength".refined,
+            value = props.centralWavelength,
+            label = "Central Wavelength",
+            groupClass = ExploreStyles.WarningInput.when_(props.centralWavelength.get.isEmpty),
+            validFormat = props.units.toInputWedge,
+            changeAuditor = props.units.toAuditor.optional,
+            units = props.units.symbol,
+            disabled = props.readonly
+          ).clearable(^.autoComplete.off),
+          FormInputTextView(
+            id = "visitor-basic-science-fov".refined,
+            value = props.scienceFov,
+            label = "Sci FoV Diameter",
+            groupClass = ExploreStyles.WarningInput.when_(props.scienceFov.get.isEmpty),
+            validFormat = angleArcsecsFormat,
+            changeAuditor = angleArcsecondsChangeAuditor,
+            units = "arcsec",
+            disabled = props.readonly
+          ).clearable(^.autoComplete.off)
+        ),
+        <.div(
+          LucumaPrimeStyles.FormColumnCompact,
+          TimeAndCountFieldsEditor(
+            instrument = mode.instrument.some,
+            options = props.timeAndCount,
+            readonly = props.readonly,
+            calibrationRole = props.calibrationRole,
+            showCount = true,
+            makeId = base => eu.timepit.refined.types.string.NonEmptyString.unsafeFrom(s"visitor-basic$base"),
+            labelClass = Css.Empty,
+            controlsWrapper = (node, _) => node
           )
-
-        VisitorConfigFields(
-          header = header,
-          centralWavelength = cw,
-          scienceFov = fov,
-          timeAndCount = timeAndCountView.some,
-          instrument = mode.instrument,
-          calibrationRole = props.calibrationRole,
-          units = props.units,
-          disabled = props.readonly,
-          idPrefix = "visitor-basic".refined
         )
+      )
     )

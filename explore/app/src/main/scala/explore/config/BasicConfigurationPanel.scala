@@ -15,6 +15,7 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.ScienceRequirements
+import explore.model.TimeAndCountModeInfo
 import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.display.given
@@ -25,20 +26,23 @@ import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
-import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.ScienceMode
+import lucuma.core.enums.Site
+import lucuma.core.enums.VisitorObservingModeType
+import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
 import lucuma.core.util.NewBoolean
-import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.CentralWavelength
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
@@ -61,6 +65,7 @@ case class BasicConfigurationPanel(
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
   createConfig:        IO[Unit],
+  createVisitorConfig: (BasicConfiguration.Visitor, ExposureTimeMode.TimeAndCountMode) => IO[Unit],
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
@@ -90,15 +95,39 @@ private object BasicConfigurationPanel:
                                     .map(ExposureTimeModeType.fromExposureTimeMode)
                                     .getOrElse(ExposureTimeModeType.SignalToNoise)
                                 )
+        // Local preview state for alien visitor mode; only persisted on Accept.
+        visitorSite          <- useStateView[Site](Site.GN)
+        visitorCw            <- useStateView(none[Wavelength])
+        visitorFov           <- useStateView(none[Angle])
+        visitorTimeAndCount  <- useStateView(TimeAndCountModeInfo(none, none, none))
       yield
         import ctx.given
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
         val isVisitor                     = props.selectedConfig.get.isVisitor
+        val isAlienVisitorMode            = scienceModeType.get === ConfigurationMode.Visitor
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
-        val canAccept: Boolean            =
-          props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+        val visitorMode: VisitorObservingModeType = visitorSite.get match
+          case Site.GN => VisitorObservingModeType.VisitorNorth
+          case Site.GS => VisitorObservingModeType.VisitorSouth
+
+        // Alien-visitor Accept requires all four user-entered fields to be present.
+        val visitorAcceptPayload: Option[(BasicConfiguration.Visitor, ExposureTimeMode.TimeAndCountMode)] =
+          (visitorCw.get, visitorFov.get, visitorTimeAndCount.get.time, visitorTimeAndCount.get.count)
+            .mapN: (cw, fov, time, count) =>
+              val visitor = BasicConfiguration.Visitor(visitorMode, CentralWavelength(cw), fov)
+              val tcMode  = ExposureTimeMode.TimeAndCountMode(time, count, cw)
+              (visitor, tcMode)
+
+        val canAccept: Boolean =
+          if isAlienVisitorMode then visitorAcceptPayload.isDefined
+          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+
+        val acceptAction: IO[Unit] =
+          if isAlienVisitorMode then
+            visitorAcceptPayload.fold(IO.unit)(props.createVisitorConfig.tupled)
+          else props.createConfig
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
           .zoom(ScienceRequirements.spectroscopy)
@@ -113,8 +142,10 @@ private object BasicConfigurationPanel:
           exposureTimeModeType.get =!= ExposureTimeModeType.TimeAndCount
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
+        // The spectroscopy/ITC/table checks don't apply in alien-visitor mode — that flow has its own local fields.
         val message: Option[String] =
-          if (spectroscopyView.get.exists(_.wavelength.isEmpty))
+          if (isAlienVisitorMode) none
+          else if (spectroscopyView.get.exists(_.wavelength.isEmpty))
             "Wavelength is required for creating a configuration.".some
           else if (
             props.selectedConfig.get.hasItcErrors || props.selectedConfig.get.isMissingSomeItc
@@ -139,23 +170,14 @@ private object BasicConfigurationPanel:
                 .zoom(ScienceRequirements.scienceMode)
                 .set(ScienceRequirements.Imaging.Default.asRight)
             case ConfigurationMode.Visitor      =>
-              // Visitor requires Time & Count ETM; install a default if not already.
-              exposureTimeView.mod:
-                case Some(t: ExposureTimeMode.TimeAndCountMode) => t.some
-                case _                                          =>
-                  ExposureTimeMode
-                    .TimeAndCountMode(
-                      TimeSpan.unsafeFromMicroseconds(0L),
-                      PosInt.unsafeFrom(1),
-                      Wavelength.Min
-                    )
-                    .some
+              // Visitor requires Time & Count ETM, but we can't install a placeholder:
+              // the server rejects `time = 0`. Leave the current ETM alone; the user
+              // must enter a positive time in the Visitor editor before accepting.
+              Callback.empty
 
         val buttonIcon: FontAwesomeIcon =
           if (creating.get.value) Icons.Spinner.withSpin(true)
           else LucumaIcons.Gears
-
-        val isAlienVisitorMode = scienceModeType.get === ConfigurationMode.Visitor
 
         val modeDropdown: VdomNode =
           FormEnumDropdownView(
@@ -170,12 +192,13 @@ private object BasicConfigurationPanel:
           ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitorMode)
         )(
           if isAlienVisitorMode then
-            <.div(
-              ExploreStyles.VisitorBasicArea,
-              ExploreStyles.BasicConfigurationForm,
-              modeDropdown,
+            <.div(ExploreStyles.VisitorBasicArea)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(modeDropdown),
               AlienVisitorConfigEditor(
-                exposureTimeMode = exposureTimeView,
+                site = visitorSite,
+                centralWavelength = visitorCw,
+                scienceFov = visitorFov,
+                timeAndCount = visitorTimeAndCount,
                 calibrationRole = props.calibrationRole,
                 readonly = props.readonly,
                 units = props.units
@@ -247,7 +270,7 @@ private object BasicConfigurationPanel:
               icon = buttonIcon,
               disabled = creating.get.value || !canAccept,
               severity = Button.Severity.Primary,
-              onClick = props.createConfig.switching(creating.async, Creating(_)).runAsync
-            ).compact.small.when(canAccept)
+              onClick = acceptAction.switching(creating.async, Creating(_)).runAsync
+            ).compact.small.when(canAccept || isAlienVisitorMode)
           ).unless(props.readonly)
         )
