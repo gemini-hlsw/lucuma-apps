@@ -39,7 +39,9 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.User
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.util.NewBoolean
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
@@ -65,7 +67,12 @@ case class BasicConfigurationPanel(
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
   createConfig:        IO[Unit],
-  createVisitorConfig: (BasicConfiguration.Visitor, ExposureTimeMode.TimeAndCountMode) => IO[Unit],
+  createVisitorConfig: (
+    BasicConfiguration.Visitor,
+    NonEmptyString,
+    TimeSpan,
+    ExposureTimeMode.TimeAndCountMode
+  ) => IO[Unit],
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
@@ -97,8 +104,10 @@ private object BasicConfigurationPanel:
                                 )
         // Local preview state for alien visitor mode; only persisted on Accept.
         visitorSite          <- useStateView(none[Site])
+        visitorName          <- useStateView(none[NonEmptyString])
         visitorCw            <- useStateView(none[Wavelength])
         visitorFov           <- useStateView(none[Angle])
+        visitorTotalTime     <- useStateView(none[TimeSpan])
         visitorTimeAndCount  <- useStateView(TimeAndCountModeInfo(none, none, none))
       yield
         import ctx.given
@@ -112,17 +121,21 @@ private object BasicConfigurationPanel:
           case Site.GN => VisitorObservingModeType.VisitorNorth
           case Site.GS => VisitorObservingModeType.VisitorSouth
 
-        // Alien-visitor Accept requires all five user-entered fields to be present.
-        val visitorAcceptPayload: Option[(BasicConfiguration.Visitor, ExposureTimeMode.TimeAndCountMode)] =
+        // Alien-visitor Accept requires all user-entered fields to be present.
+        val visitorAcceptPayload: Option[
+          (BasicConfiguration.Visitor, NonEmptyString, TimeSpan, ExposureTimeMode.TimeAndCountMode)
+        ] =
           (visitorMode,
+           visitorName.get,
            visitorCw.get,
            visitorFov.get,
+           visitorTotalTime.get,
            visitorTimeAndCount.get.time,
            visitorTimeAndCount.get.count
-          ).mapN: (mode, cw, fov, time, count) =>
+          ).mapN: (mode, name, cw, fov, totalTime, time, count) =>
             val visitor = BasicConfiguration.Visitor(mode, CentralWavelength(cw), fov)
             val tcMode  = ExposureTimeMode.TimeAndCountMode(time, count, cw)
-            (visitor, tcMode)
+            (visitor, name, totalTime, tcMode)
 
         val canAccept: Boolean =
           if isAlienVisitorMode then visitorAcceptPayload.isDefined
@@ -200,8 +213,10 @@ private object BasicConfigurationPanel:
               <.div(LucumaPrimeStyles.FormColumnCompact)(modeDropdown),
               AlienVisitorConfigEditor(
                 site = visitorSite,
+                name = visitorName,
                 centralWavelength = visitorCw,
                 scienceFov = visitorFov,
+                totalRequestTime = visitorTotalTime,
                 timeAndCount = visitorTimeAndCount,
                 calibrationRole = props.calibrationRole,
                 readonly = props.readonly,

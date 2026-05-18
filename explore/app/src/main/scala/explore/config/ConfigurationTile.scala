@@ -407,7 +407,14 @@ object ConfigurationTile
                             bc.obsModeType.defaultPosAngleOptions
                           )
                         .orEmpty,
-                      (visitor, tcMode) =>
+                      (visitor, name, totalTime, tcMode) =>
+                        val visitorInput = VisitorInput(
+                          mode = visitor.mode.assign,
+                          centralWavelength = visitor.centralWavelength.value.toInput.assign,
+                          scienceFov = visitor.scienceFov.toInput.assign,
+                          name = name.assign,
+                          totalRequestTime = totalTime.toInput.assign
+                        )
                         requirementsView
                           .zoom(ScienceRequirements.exposureTimeMode)
                           .set(tcMode.some)
@@ -415,7 +422,7 @@ object ConfigurationTile
                           updateConfiguration(
                             props.obsId,
                             props.pacAndMode,
-                            visitor.toInput,
+                            ObservingModeInput.Visitor(visitorInput),
                             visitor.obsModeType.defaultPosAngleOptions
                           ),
                       props.modes,
