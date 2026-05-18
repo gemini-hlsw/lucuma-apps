@@ -3,7 +3,6 @@
 
 package explore.config
 
-import cats.syntax.all.*
 import crystal.react.View
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
@@ -29,7 +28,7 @@ import lucuma.ui.syntax.all.given
 // The alien-visitor editor is a *preview* of the configuration to be created.
 // All inputs are optional (empty on init) and only persisted on Accept.
 final case class AlienVisitorConfigEditor(
-  site:              View[Site],
+  site:              View[Option[Site]],
   centralWavelength: View[Option[Wavelength]],
   scienceFov:        View[Option[Angle]],
   timeAndCount:      View[TimeAndCountModeInfo],
@@ -40,7 +39,7 @@ final case class AlienVisitorConfigEditor(
 
 object AlienVisitorConfigEditor
     extends ReactFnComponent[AlienVisitorConfigEditor](props =>
-      val mode: VisitorObservingModeType = props.site.get match
+      val mode: Option[VisitorObservingModeType] = props.site.get.map:
         case Site.GN => VisitorObservingModeType.VisitorNorth
         case Site.GS => VisitorObservingModeType.VisitorSouth
 
@@ -50,9 +49,10 @@ object AlienVisitorConfigEditor
           ExploreStyles.VisitorHeader,
           LucumaPrimeStyles.FormColumnCompact,
           FormLabel(htmlFor = "visitor-basic-site".refined)("Site"),
-          EnumDropdownView(
+          EnumDropdownOptionalView(
             id = "visitor-basic-site".refined,
             value = props.site,
+            showClear = true,
             disabled = props.readonly
           )
         ),
@@ -82,7 +82,7 @@ object AlienVisitorConfigEditor
         <.div(
           LucumaPrimeStyles.FormColumnCompact,
           TimeAndCountFieldsEditor(
-            instrument = mode.instrument.some,
+            instrument = mode.map(_.instrument),
             options = props.timeAndCount,
             readonly = props.readonly,
             calibrationRole = props.calibrationRole,
