@@ -96,7 +96,7 @@ private object BasicConfigurationPanel:
                                     .getOrElse(ExposureTimeModeType.SignalToNoise)
                                 )
         // Local preview state for alien visitor mode; only persisted on Accept.
-        visitorSite          <- useStateView[Site](Site.GN)
+        visitorSite          <- useStateView(none[Site])
         visitorCw            <- useStateView(none[Wavelength])
         visitorFov           <- useStateView(none[Angle])
         visitorTimeAndCount  <- useStateView(TimeAndCountModeInfo(none, none, none))
@@ -108,17 +108,21 @@ private object BasicConfigurationPanel:
         val isAlienVisitorMode            = scienceModeType.get === ConfigurationMode.Visitor
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
-        val visitorMode: VisitorObservingModeType = visitorSite.get match
+        val visitorMode: Option[VisitorObservingModeType] = visitorSite.get.map:
           case Site.GN => VisitorObservingModeType.VisitorNorth
           case Site.GS => VisitorObservingModeType.VisitorSouth
 
-        // Alien-visitor Accept requires all four user-entered fields to be present.
+        // Alien-visitor Accept requires all five user-entered fields to be present.
         val visitorAcceptPayload: Option[(BasicConfiguration.Visitor, ExposureTimeMode.TimeAndCountMode)] =
-          (visitorCw.get, visitorFov.get, visitorTimeAndCount.get.time, visitorTimeAndCount.get.count)
-            .mapN: (cw, fov, time, count) =>
-              val visitor = BasicConfiguration.Visitor(visitorMode, CentralWavelength(cw), fov)
-              val tcMode  = ExposureTimeMode.TimeAndCountMode(time, count, cw)
-              (visitor, tcMode)
+          (visitorMode,
+           visitorCw.get,
+           visitorFov.get,
+           visitorTimeAndCount.get.time,
+           visitorTimeAndCount.get.count
+          ).mapN: (mode, cw, fov, time, count) =>
+            val visitor = BasicConfiguration.Visitor(mode, CentralWavelength(cw), fov)
+            val tcMode  = ExposureTimeMode.TimeAndCountMode(time, count, cw)
+            (visitor, tcMode)
 
         val canAccept: Boolean =
           if isAlienVisitorMode then visitorAcceptPayload.isDefined
