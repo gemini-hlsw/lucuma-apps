@@ -1892,6 +1892,10 @@ svg.fa-check.explore-success-icon {
     grid-area: visitor;
     padding: 0.5em;
     align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    width: 100%;
   }
 
   .explore-basic-configuration-grid-visitor {
