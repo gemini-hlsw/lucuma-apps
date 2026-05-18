@@ -39,6 +39,7 @@ import explore.modes.ScienceModes
 import explore.services.OdbObservationApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ExposureTimeMode
@@ -105,6 +106,10 @@ final case class ConfigurationTile(
 
 object ConfigurationTile
     extends TileComponent[ConfigurationTile]({ (props, _) =>
+      def isAlienVisitorMode(m: VisitorObservingModeType): Boolean = m match
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth => true
+        case _                                                                             => false
+
       def pacAndModeAction(
         obsId:  Observation.Id
       )(using
@@ -506,18 +511,33 @@ object ConfigurationTile
                       props.permissions,
                       props.units
                     ),
-                  // Resident visitors (Alopeke / Zorro / MAROON-X) and alien visitors (generic gs/gn).
-                  optVisitorAligner.map: visitorAligner =>
-                    ResidentVisitorConfigPanel(
-                      props.programId,
-                      props.obsId,
-                      visitorAligner,
-                      requirementsView,
-                      revertConfig,
-                      props.sequenceChanged,
-                      props.permissions,
-                      props.units
-                    )
+                  // Resident visitors (Alopeke / Zorro / MAROON-X).
+                  optVisitorAligner
+                    .filterNot(a => isAlienVisitorMode(a.get.mode))
+                    .map: visitorAligner =>
+                      ResidentVisitorConfigPanel(
+                        props.programId,
+                        props.obsId,
+                        visitorAligner,
+                        requirementsView,
+                        revertConfig,
+                        props.sequenceChanged,
+                        props.permissions,
+                        props.units
+                      ),
+                  // Alien visitors (generic gs/gn — VisitorNorth / VisitorSouth).
+                  optVisitorAligner
+                    .filter(a => isAlienVisitorMode(a.get.mode))
+                    .map: visitorAligner =>
+                      AlienVisitorConfigPanel(
+                        props.programId,
+                        props.obsId,
+                        visitorAligner,
+                        revertConfig,
+                        props.sequenceChanged,
+                        props.permissions,
+                        props.units
+                      )
                 )
             )
           )

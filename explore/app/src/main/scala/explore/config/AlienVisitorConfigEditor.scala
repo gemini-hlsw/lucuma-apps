@@ -30,7 +30,6 @@ import lucuma.ui.syntax.all.given
 import monocle.Focus
 import monocle.Lens
 
-// Local state for the alien-visitor configuration editor before submission.
 case class AlienVisitorState(
   site:              Option[Site],
   name:              Option[NonEmptyString],

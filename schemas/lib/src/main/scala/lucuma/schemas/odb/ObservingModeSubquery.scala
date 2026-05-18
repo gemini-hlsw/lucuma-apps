@@ -170,6 +170,8 @@ object ObservingModeSubquery
             mode
             centralWavelength $WavelengthSubquery
             scienceFov $AngleSubquery
+            name
+            totalRequestTime $TimeSpanSubquery
           }
         }
       """

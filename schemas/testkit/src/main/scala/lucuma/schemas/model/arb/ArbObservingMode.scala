@@ -19,6 +19,7 @@ import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.util.arb.ArbEnumerated.given
+import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
@@ -689,7 +690,9 @@ trait ArbObservingMode {
       mode <- arbitrary[VisitorObservingModeType]
       cw   <- arbitrary[Wavelength]
       gsms <- arbitrary[lucuma.core.math.Angle]
-    } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms)
+      name <- arbitrary[Option[eu.timepit.refined.types.string.NonEmptyString]]
+      trt  <- arbitrary[Option[lucuma.core.util.TimeSpan]]
+    } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms, name, trt)
   )
 
   given Cogen[ObservingMode.Visitor] =
