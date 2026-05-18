@@ -397,29 +397,12 @@ object ConfigurationTile
                       props.itcTargets,
                       props.baseCoordinates,
                       props.obsConf.calibrationRole,
-                      props.selectedConfig.get
-                        .toBasicConfiguration()
-                        .map: bc =>
-                          updateConfiguration(
-                            props.obsId,
-                            props.pacAndMode,
-                            bc.toInput,
-                            bc.obsModeType.defaultPosAngleOptions
-                          )
-                        .orEmpty,
-                      (visitor, name, totalTime) =>
-                        val visitorInput = VisitorInput(
-                          mode = visitor.mode.assign,
-                          centralWavelength = visitor.centralWavelength.value.toInput.assign,
-                          scienceFov = visitor.scienceFov.toInput.assign,
-                          name = name.assign,
-                          totalRequestTime = totalTime.toInput.assign
-                        )
+                      (input, posAngleOptions) =>
                         updateConfiguration(
                           props.obsId,
                           props.pacAndMode,
-                          ObservingModeInput.Visitor(visitorInput),
-                          visitor.obsModeType.defaultPosAngleOptions
+                          input,
+                          posAngleOptions
                         ),
                       props.modes,
                       props.customSedTimestamps,
@@ -528,7 +511,6 @@ object ConfigurationTile
                     ResidentVisitorConfigPanel(
                       props.programId,
                       props.obsId,
-                      props.obsConf.calibrationRole,
                       visitorAligner,
                       requirementsView,
                       revertConfig,
