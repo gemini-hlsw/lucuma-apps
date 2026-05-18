@@ -68,7 +68,7 @@ object VisitorConfigFields
           FormInputTextView(
             id = fovId,
             value = props.scienceFov,
-            label = "Sci FoV Diameter",
+            label = "Instrument Diameter",
             validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
             changeAuditor = angleArcsecondsChangeAuditor,
             units = "arcsec",

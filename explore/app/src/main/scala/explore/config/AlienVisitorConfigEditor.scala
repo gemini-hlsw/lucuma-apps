@@ -50,6 +50,7 @@ object AlienVisitorConfigEditor
             id = "visitor-basic-site".refined,
             value = props.site,
             showClear = true,
+            clazz = ExploreStyles.WarningInput.when_(props.site.get.isEmpty),
             disabled = props.readonly
           ),
           FormInputTextView(
@@ -76,7 +77,7 @@ object AlienVisitorConfigEditor
           FormInputTextView(
             id = "visitor-basic-science-fov".refined,
             value = props.scienceFov,
-            label = "Sci FoV Diameter",
+            label = "Instrument Diameter",
             groupClass = ExploreStyles.WarningInput.when_(props.scienceFov.get.isEmpty),
             validFormat = angleArcsecsFormat,
             changeAuditor = angleArcsecondsChangeAuditor,
