@@ -153,6 +153,14 @@ case class ObsTree(
   private val deleteText: Option[String]                             =
     selectedObsIdSet.map(observationsText).orElse(focusedGroupId.map(groupText))
 
+  // For a little way we have an orphan telluric when the group is dissolved
+  private def isOrphanTelluric(g: Group): Boolean =
+    g.isTelluricCalibration &&
+      !groupsChildren.get(g.id.some).orEmpty.exists(_.left.exists(_.calibrationRole.isEmpty))
+
+  private def isVisibleInTree(value: Either[Observation, Group]): Boolean =
+    value.fold(_ => true, g => !isOrphanTelluric(g))
+
   private def createNode(
     value:        Either[Observation, Group],
     dragging:     Option[Either[Observation, Group]],
@@ -167,7 +175,7 @@ case class ObsTree(
         .map: group =>
           groupsChildren
             .get(group.id.some)
-            .map(_.map(createNode(_, dragging, dragOverPath)))
+            .map(_.filter(isVisibleInTree).map(createNode(_, dragging, dragOverPath)))
             .orEmpty
         .orEmpty
     )
@@ -181,6 +189,7 @@ case class ObsTree(
   ): List[Node[Either[Observation, Group]]] =
     rootElements
       .filter(_.fold(_ => true, g => !g.system || g.isTelluricCalibration))
+      .filter(isVisibleInTree)
       .map(createNode(_, dragging, dragOverPath))
 
   private val systemTreeNodes: List[Node[Either[Observation, Group]]] =

@@ -63,7 +63,7 @@ trait CacheModifierUpdaters {
         ifPresentInServerOrLocally(obsUpdate)
       .getOrElse:
         if (observationEdit.editType === EditType.HardDelete)
-          ProgramSummaries.observations.modify(_ - obsId)
+          _.removeObs(obsId)
         else identity
 
   protected def modifyObservationCalculatedValues(
