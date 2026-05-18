@@ -4,11 +4,14 @@
 package explore.config
 
 import crystal.react.View
+import eu.timepit.refined.cats.*
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.TimeAndCountModeInfo
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.model.formats.durationHM
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
@@ -16,6 +19,8 @@ import lucuma.core.enums.Site
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
+import lucuma.core.util.TimeSpan
+import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
@@ -29,8 +34,10 @@ import lucuma.ui.syntax.all.given
 // All inputs are optional (empty on init) and only persisted on Accept.
 final case class AlienVisitorConfigEditor(
   site:              View[Option[Site]],
+  name:              View[Option[NonEmptyString]],
   centralWavelength: View[Option[Wavelength]],
   scienceFov:        View[Option[Angle]],
+  totalRequestTime:  View[Option[TimeSpan]],
   timeAndCount:      View[TimeAndCountModeInfo],
   calibrationRole:   Option[CalibrationRole],
   readonly:          Boolean,
@@ -54,7 +61,15 @@ object AlienVisitorConfigEditor
             value = props.site,
             showClear = true,
             disabled = props.readonly
-          )
+          ),
+          FormInputTextView(
+            id = "visitor-basic-name".refined,
+            value = props.name,
+            label = "Name",
+            groupClass = ExploreStyles.WarningInput.when_(props.name.get.isEmpty),
+            validFormat = InputValidSplitEpi.nonEmptyString.optional,
+            disabled = props.readonly
+          ).clearable(^.autoComplete.off)
         ),
         <.div(
           LucumaPrimeStyles.FormColumnCompact,
@@ -77,6 +92,15 @@ object AlienVisitorConfigEditor
             changeAuditor = angleArcsecondsChangeAuditor,
             units = "arcsec",
             disabled = props.readonly
+          ).clearable(^.autoComplete.off),
+          FormInputTextView(
+            id = "visitor-basic-total-time".refined,
+            value = props.totalRequestTime,
+            label = "Total Req. Time",
+            groupClass = ExploreStyles.WarningInput.when_(props.totalRequestTime.get.isEmpty),
+            validFormat = durationHM.optional,
+            units = "h:mm",
+            disabled = props.readonly
           ).clearable(^.autoComplete.off)
         ),
         <.div(
@@ -87,7 +111,7 @@ object AlienVisitorConfigEditor
             readonly = props.readonly,
             calibrationRole = props.calibrationRole,
             showCount = true,
-            makeId = base => eu.timepit.refined.types.string.NonEmptyString.unsafeFrom(s"visitor-basic$base"),
+            makeId = base => NonEmptyString.unsafeFrom(s"visitor-basic$base"),
             labelClass = Css.Empty,
             controlsWrapper = (node, _) => node
           )
