@@ -9,6 +9,7 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.DecodingFailure
 import io.circe.generic.semiauto.*
@@ -19,9 +20,11 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.offset.decoder.given
+import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
@@ -857,7 +860,9 @@ object ObservingMode:
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:        Angle
+    scienceFov:        Angle,
+    name:              Option[NonEmptyString],
+    totalRequestTime:  Option[TimeSpan]
   ) extends ObservingMode(mode.instrument) derives Eq:
     def isCustomized: Boolean = false
 
@@ -868,13 +873,19 @@ object ObservingMode:
       Focus[Visitor](_.centralWavelength)
     val scienceFov: Lens[Visitor, Angle]                    =
       Focus[Visitor](_.scienceFov)
+    val name: Lens[Visitor, Option[NonEmptyString]]         =
+      Focus[Visitor](_.name)
+    val totalRequestTime: Lens[Visitor, Option[TimeSpan]]   =
+      Focus[Visitor](_.totalRequestTime)
 
     given Decoder[Visitor] = Decoder.instance: c =>
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
         gsms <- c.downField("scienceFov").as[Angle]
-      yield Visitor(mode, CentralWavelength(cw), gsms)
+        name <- c.downField("name").as[Option[NonEmptyString]]
+        trt  <- c.downField("totalRequestTime").as[Option[TimeSpan]]
+      yield Visitor(mode, CentralWavelength(cw), gsms, name, trt)
 
   val visitor: Prism[ObservingMode, Visitor] =
     GenPrism[ObservingMode, Visitor]

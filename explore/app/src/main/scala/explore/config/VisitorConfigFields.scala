@@ -22,7 +22,6 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-// Fields shared by the resident-visitor configuration editor.
 case class VisitorConfigFields(
   header:               VdomNode,
   centralWavelength:    View[Wavelength],
