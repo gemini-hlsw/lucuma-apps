@@ -281,7 +281,7 @@ object SeqTranslate {
       stepInfo
         .map: (step, atomId, seqType) =>
           insStepBuilder
-            .build(OverriddenSystems[F](systemss),
+            .build(overriddenSystems,
                    step.stepConfig.stepType,
                    observation.targetEnvironment,
                    executionConfig.static,

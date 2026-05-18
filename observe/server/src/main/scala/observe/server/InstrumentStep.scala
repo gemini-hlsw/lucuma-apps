@@ -3,6 +3,7 @@
 
 package observe.server
 
+import cats.syntax.all.*
 import coulomb.Quantity
 import coulomb.units.accepted.Millimeter
 import lucuma.core.enums.LightSinkName
@@ -23,7 +24,7 @@ trait InstrumentStep[F[_]] extends InstrumentGuide {
   // The name used for this instrument in the science fold configuration
   def sfName: LightSinkName
 
-  def defocusB: Option[Length] = None
+  def defocusB: Option[Length] = Length.Zero.some
 
   def centralWavelength: Option[Wavelength] // = None
 

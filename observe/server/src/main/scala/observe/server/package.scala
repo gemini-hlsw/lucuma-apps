@@ -95,8 +95,8 @@ opaque type Length = Quantity[Long, Micrometer]
 object Length {
   val Zero: Length                             = fromLongMicrometers(0)
   def fromLongMicrometers(v:   Long): Length   = v.withUnit[Micrometer]
-  def fromDoubleMicrometers(v: Double): Length = v.toLong.withUnit[Micrometer]
-  def fromDoubleMillimeters(v: Double): Length = (v * 1000.0).toLong.withUnit[Micrometer]
+  def fromDoubleMicrometers(v: Double): Length = Math.round(v).withUnit[Micrometer]
+  def fromDoubleMillimeters(v: Double): Length = Math.round(v * 1000.0).withUnit[Micrometer]
 
   extension (d: Length) {
 

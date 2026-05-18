@@ -27,7 +27,7 @@ final case class GhostControllerSim[F[_]: {Async, Logger}] private (
 
   override def abortObserve: F[Unit] = sim.abortObserve
 
-  override def pauseObserve: F[Unit] = sim.abortObserve
+  override def pauseObserve: F[Unit] = sim.pauseObserve
 
   override def resumePaused(expTime: TimeSpan): F[ObserveCommandResult] = sim.resumePaused
 

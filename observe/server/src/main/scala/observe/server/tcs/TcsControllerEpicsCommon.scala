@@ -722,9 +722,12 @@ object TcsControllerEpicsCommon {
       setOiwfs(Iso.id)(subsystems, current.oiwfs.detector, tcs.gds.oiwfs.value.detector),
       setScienceFold(Iso.id)(subsystems, current, tcs.agc.sfPos),
       setHrPickup(Iso.id)(subsystems, current, tcs.agc),
-      setInstrumentDefocus(Iso.id)(subsystems,
-                                   current.defocusB,
-                                   tcs.tc.defocusB.getOrElse(Length.Zero)
+      tcs.tc.defocusB.flatMap(
+        setInstrumentDefocus(Iso.id)(
+          subsystems,
+          current.defocusB,
+          _
+        )
       )
     ).flattenOption
 
