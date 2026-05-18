@@ -407,7 +407,7 @@ object ConfigurationTile
                             bc.obsModeType.defaultPosAngleOptions
                           )
                         .orEmpty,
-                      (visitor, name, totalTime, tcMode) =>
+                      (visitor, name, totalTime) =>
                         val visitorInput = VisitorInput(
                           mode = visitor.mode.assign,
                           centralWavelength = visitor.centralWavelength.value.toInput.assign,
@@ -415,16 +415,12 @@ object ConfigurationTile
                           name = name.assign,
                           totalRequestTime = totalTime.toInput.assign
                         )
-                        requirementsView
-                          .zoom(ScienceRequirements.exposureTimeMode)
-                          .set(tcMode.some)
-                          .toAsync >>
-                          updateConfiguration(
-                            props.obsId,
-                            props.pacAndMode,
-                            ObservingModeInput.Visitor(visitorInput),
-                            visitor.obsModeType.defaultPosAngleOptions
-                          ),
+                        updateConfiguration(
+                          props.obsId,
+                          props.pacAndMode,
+                          ObservingModeInput.Visitor(visitorInput),
+                          visitor.obsModeType.defaultPosAngleOptions
+                        ),
                       props.modes,
                       props.customSedTimestamps,
                       !props.permissions.isFullEdit,

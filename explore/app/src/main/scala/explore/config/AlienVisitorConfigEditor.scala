@@ -8,22 +8,18 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
-import explore.model.TimeAndCountModeInfo
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats.durationHM
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Site
-import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.util.TimeSpan
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.react.common.style.Css
 import lucuma.refined.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.clearable
@@ -38,18 +34,12 @@ final case class AlienVisitorConfigEditor(
   centralWavelength: View[Option[Wavelength]],
   scienceFov:        View[Option[Angle]],
   totalRequestTime:  View[Option[TimeSpan]],
-  timeAndCount:      View[TimeAndCountModeInfo],
-  calibrationRole:   Option[CalibrationRole],
   readonly:          Boolean,
   units:             WavelengthUnits
 ) extends ReactFnProps(AlienVisitorConfigEditor)
 
 object AlienVisitorConfigEditor
     extends ReactFnComponent[AlienVisitorConfigEditor](props =>
-      val mode: Option[VisitorObservingModeType] = props.site.get.map:
-        case Site.GN => VisitorObservingModeType.VisitorNorth
-        case Site.GS => VisitorObservingModeType.VisitorSouth
-
       <.div(
         ExploreStyles.VisitorUpperGrid,
         <.div(
@@ -102,19 +92,6 @@ object AlienVisitorConfigEditor
             units = "h:mm",
             disabled = props.readonly
           ).clearable(^.autoComplete.off)
-        ),
-        <.div(
-          LucumaPrimeStyles.FormColumnCompact,
-          TimeAndCountFieldsEditor(
-            instrument = mode.map(_.instrument),
-            options = props.timeAndCount,
-            readonly = props.readonly,
-            calibrationRole = props.calibrationRole,
-            showCount = true,
-            makeId = base => NonEmptyString.unsafeFrom(s"visitor-basic$base"),
-            labelClass = Css.Empty,
-            controlsWrapper = (node, _) => node
-          )
         )
       )
     )

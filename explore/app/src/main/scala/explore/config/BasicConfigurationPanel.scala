@@ -15,7 +15,6 @@ import explore.components.ui.ExploreStyles
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.ScienceRequirements
-import explore.model.TimeAndCountModeInfo
 import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.display.given
@@ -67,12 +66,7 @@ case class BasicConfigurationPanel(
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
   createConfig:        IO[Unit],
-  createVisitorConfig: (
-    BasicConfiguration.Visitor,
-    NonEmptyString,
-    TimeSpan,
-    ExposureTimeMode.TimeAndCountMode
-  ) => IO[Unit],
+  createVisitorConfig: (BasicConfiguration.Visitor, NonEmptyString, TimeSpan) => IO[Unit],
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
@@ -108,7 +102,6 @@ private object BasicConfigurationPanel:
         visitorCw            <- useStateView(none[Wavelength])
         visitorFov           <- useStateView(none[Angle])
         visitorTotalTime     <- useStateView(none[TimeSpan])
-        visitorTimeAndCount  <- useStateView(TimeAndCountModeInfo(none, none, none))
       yield
         import ctx.given
 
@@ -122,20 +115,15 @@ private object BasicConfigurationPanel:
           case Site.GS => VisitorObservingModeType.VisitorSouth
 
         // Alien-visitor Accept requires all user-entered fields to be present.
-        val visitorAcceptPayload: Option[
-          (BasicConfiguration.Visitor, NonEmptyString, TimeSpan, ExposureTimeMode.TimeAndCountMode)
-        ] =
+        val visitorAcceptPayload: Option[(BasicConfiguration.Visitor, NonEmptyString, TimeSpan)] =
           (visitorMode,
            visitorName.get,
            visitorCw.get,
            visitorFov.get,
-           visitorTotalTime.get,
-           visitorTimeAndCount.get.time,
-           visitorTimeAndCount.get.count
-          ).mapN: (mode, name, cw, fov, totalTime, time, count) =>
+           visitorTotalTime.get
+          ).mapN: (mode, name, cw, fov, totalTime) =>
             val visitor = BasicConfiguration.Visitor(mode, CentralWavelength(cw), fov)
-            val tcMode  = ExposureTimeMode.TimeAndCountMode(time, count, cw)
-            (visitor, name, totalTime, tcMode)
+            (visitor, name, totalTime)
 
         val canAccept: Boolean =
           if isAlienVisitorMode then visitorAcceptPayload.isDefined
@@ -217,8 +205,6 @@ private object BasicConfigurationPanel:
                 centralWavelength = visitorCw,
                 scienceFov = visitorFov,
                 totalRequestTime = visitorTotalTime,
-                timeAndCount = visitorTimeAndCount,
-                calibrationRole = props.calibrationRole,
                 readonly = props.readonly,
                 units = props.units
               )
