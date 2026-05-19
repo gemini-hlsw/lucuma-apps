@@ -7,6 +7,8 @@ import cats.data.NonEmptyList
 import cats.derived.*
 import cats.kernel.Order
 import clue.data.syntax.*
+import eu.timepit.refined.cats.*
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.Flamingos2Fpu
@@ -83,7 +85,8 @@ enum ObservingModeSummary derives Order:
   case Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:        Angle
+    scienceFov:        Angle,
+    name:              Option[NonEmptyString]
   )                                                  extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
@@ -94,7 +97,7 @@ enum ObservingModeSummary derives Order:
     case GmosSouthImaging(_, _, _, _)        => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit()                   => ObservingModeType.Igrins2LongSlit
     case GhostIfu(_)                         => ObservingModeType.GhostIfu
-    case Visitor(mode, _, _)                 => mode
+    case Visitor(mode, _, _, _)              => mode
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -156,12 +159,13 @@ enum ObservingModeSummary derives Order:
           resolutionMode = resolutionMode.assign
         )
       )
-    case Visitor(mode, centralWavelength, scienceFov)                                 =>
+    case Visitor(mode, centralWavelength, scienceFov, name)                           =>
       ObservingModeInput.Visitor(
         VisitorInput(
           mode = mode.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
-          scienceFov = scienceFov.toInput.assign
+          scienceFov = scienceFov.toInput.assign,
+          name = name.orUnassign
         )
       )
 
@@ -197,7 +201,7 @@ object ObservingModeSummary:
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode)
       case v: ObservingMode.Visitor            =>
-        Visitor(v.mode, v.centralWavelength, v.scienceFov)
+        Visitor(v.mode, v.centralWavelength, v.scienceFov, v.name)
 
   given Display[ObservingModeSummary] = Display.byShortName:
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
@@ -221,7 +225,11 @@ object ObservingModeSummary:
     case GhostIfu(resolutionMode)                                                     =>
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
-    case Visitor(mode, _, _)                                                          =>
+    case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))             =>
+      s"Gemini North Visitor: ${name.value}"
+    case Visitor(VisitorObservingModeType.VisitorSouth, _, _, Some(name))             =>
+      s"Gemini South Visitor: ${name.value}"
+    case Visitor(mode, _, _, _)                                                       =>
       mode.shortName
 
   object GmosNorthImaging:
@@ -234,4 +242,4 @@ object ObservingModeSummary:
 
   object Visitor:
     given Order[Visitor] =
-      Order.by(x => (x.mode, x.centralWavelength.value, x.scienceFov.toMicroarcseconds))
+      Order.by(x => (x.mode, x.centralWavelength.value, x.scienceFov.toMicroarcseconds, x.name))
