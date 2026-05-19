@@ -19,7 +19,7 @@ import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.display.given
-import explore.model.enums.ConfigurationKind
+import explore.model.enums.ConfigurationMode
 import explore.model.enums.ExposureTimeModeType
 import explore.model.enums.PosAngleOptions
 import explore.model.enums.WavelengthUnits
@@ -66,7 +66,7 @@ case class BasicConfigurationPanel(
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
-  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[Unit],
+  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[Unit], // Creation of alien visitors is done modally
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
@@ -83,12 +83,12 @@ private object BasicConfigurationPanel:
     ScalaFnComponent[Props]: props =>
       for
         ctx                  <- useContext(AppContext.ctx)
-        scienceModeType      <- useStateView[ConfigurationKind](ConfigurationKind.Spectroscopy)
+        scienceModeType      <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
         _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
                                   scienceModeType.mod: current =>
                                     // There is no visitor science mode.
-                                    if current === ConfigurationKind.Visitor then current
-                                    else ConfigurationKind.fromScienceMode(modeType)
+                                    if current === ConfigurationMode.Visitor then current
+                                    else ConfigurationMode.fromScienceMode(modeType)
         creating             <- useStateView(Creating(false))
         imagingCap           <- useStateView(none[ImagingCapability])
         exposureTimeModeType <- useStateView(
@@ -96,14 +96,14 @@ private object BasicConfigurationPanel:
                                     .map(ExposureTimeModeType.fromExposureTimeMode)
                                     .getOrElse(ExposureTimeModeType.SignalToNoise)
                                 )
-        // Local preview state for alien visitor mode; only persisted on Accept.
+        // Local preview state for alien visitors.
         alienVisitor         <- useStateView(AlienVisitorState.Empty)
       yield
         import ctx.given
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
         val isVisitor                     = props.selectedConfig.get.isVisitor
-        val isAlienVisitor                = scienceModeType.get === ConfigurationKind.Visitor
+        val isAlienVisitor                = scienceModeType.get === ConfigurationMode.Visitor
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
         val alienVisitorState             = alienVisitor.get
@@ -177,17 +177,17 @@ private object BasicConfigurationPanel:
             "Use Time and Count mode for Visitor instruments.".some
           else none
 
-        def switchMode(modeType: ConfigurationKind): Callback =
+        def switchMode(modeType: ConfigurationMode): Callback =
           modeType match
-            case ConfigurationKind.Spectroscopy =>
+            case ConfigurationMode.Spectroscopy =>
               props.requirementsView
                 .zoom(ScienceRequirements.scienceMode)
                 .set(ScienceRequirements.Spectroscopy.Default.asLeft)
-            case ConfigurationKind.Imaging      =>
+            case ConfigurationMode.Imaging      =>
               props.requirementsView
                 .zoom(ScienceRequirements.scienceMode)
                 .set(ScienceRequirements.Imaging.Default.asRight)
-            case ConfigurationKind.Visitor      =>
+            case ConfigurationMode.Visitor      =>
               Callback.empty
 
         val buttonIcon: FontAwesomeIcon =

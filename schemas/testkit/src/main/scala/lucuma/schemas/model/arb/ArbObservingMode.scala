@@ -8,6 +8,7 @@ import cats.laws.discipline.arbitrary.*
 import cats.syntax.all.*
 import eu.timepit.refined.scalacheck.all.given
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
@@ -18,6 +19,7 @@ import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.arb.ArbExposureTimeMode
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.schemas.model.CentralWavelength
@@ -690,8 +692,8 @@ trait ArbObservingMode {
       mode <- arbitrary[VisitorObservingModeType]
       cw   <- arbitrary[Wavelength]
       gsms <- arbitrary[lucuma.core.math.Angle]
-      name <- arbitrary[Option[eu.timepit.refined.types.string.NonEmptyString]]
-      trt  <- arbitrary[Option[lucuma.core.util.TimeSpan]]
+      name <- arbitrary[Option[NonEmptyString]]
+      trt  <- arbitrary[Option[TimeSpan]]
     } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms, name, trt)
   )
 

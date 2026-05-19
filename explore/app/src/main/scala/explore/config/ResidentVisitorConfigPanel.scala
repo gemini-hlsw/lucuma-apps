@@ -11,7 +11,9 @@ import crystal.react.ViewOpt
 import crystal.react.hooks.*
 import explore.common.Aligner
 import explore.components.ui.ExploreStyles
+import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
+import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
@@ -30,6 +32,7 @@ import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
 case class ResidentVisitorConfigPanel(
@@ -38,7 +41,6 @@ case class ResidentVisitorConfigPanel(
   observingMode:    Aligner[ObservingMode.Visitor, VisitorInput],
   requirementsView: View[ScienceRequirements],
   revertConfig:     IO[Unit],
-  sequenceChanged:  Callback,
   permissions:      ConfigEditPermissions,
   units:            WavelengthUnits
 ) extends ReactFnProps(ResidentVisitorConfigPanel)
@@ -73,22 +75,39 @@ object ResidentVisitorConfigPanel
             .zoom(ScienceRequirements.exposureTimeMode.some)
             .zoom(ExposureTimeMode.timeAndCount)
 
-        val header: VdomNode =
-          React.Fragment(
-            FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
-            <.div(^.id := "visitor-instrument-name", mode.instrument.longName)
-          )
-
         React.Fragment(
-          VisitorConfigFields(
-            header = header,
-            centralWavelength = centralWavelengthView,
-            scienceFov = scienceFovView,
-            timeAndCount = exposureTimeMode.asView,
-            instrument = mode.instrument,
-            units = props.units,
-            disabled = disableEdit,
-            timeAndCountReadonly = (!props.permissions.isFullEdit).some
+          <.div(
+            ExploreStyles.VisitorUpperGrid,
+            LucumaPrimeStyles.FormColumnCompact,
+            FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
+            <.div(^.id := "visitor-instrument-name", mode.instrument.longName),
+            FormInputTextView(
+              id = "visitor-central-wavelength".refined,
+              value = centralWavelengthView,
+              label = "Central Wavelength",
+              validFormat = props.units.toInputFormat,
+              changeAuditor = props.units.toAuditor,
+              units = props.units.symbol,
+              disabled = disableEdit
+            )(^.autoComplete.off),
+            FormInputTextView(
+              id = "visitor-science-fov".refined,
+              value = scienceFovView,
+              label = "Instrument Diameter",
+              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              changeAuditor = angleArcsecondsChangeAuditor,
+              units = "arcsec",
+              disabled = disableEdit
+            )(^.autoComplete.off),
+            exposureTimeMode.asView.map: tcView =>
+              TimeAndCountModeEditor(
+                instrument = mode.instrument.some,
+                value = tcView,
+                readonly = !props.permissions.isFullEdit,
+                calibrationRole = none,
+                idPrefix = "visitor".refined,
+                showCount = true
+              )
           ),
           <.div(
             ExploreStyles.VisitorLowerGrid,
@@ -97,7 +116,7 @@ object ResidentVisitorConfigPanel
               isCustomized = mode.isCustomized,
               revertConfig = props.revertConfig,
               revertCustomizations = Callback.empty,
-              sequenceChanged = props.sequenceChanged,
+              sequenceChanged = Callback.empty,
               readonly = !props.permissions.isFullEdit,
               showAdvancedButton = false,
               showCustomizeButton = false

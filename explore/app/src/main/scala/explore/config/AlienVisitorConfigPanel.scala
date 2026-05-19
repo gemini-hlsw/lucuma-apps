@@ -43,13 +43,12 @@ import lucuma.ui.syntax.all.given
 import monocle.Lens
 
 case class AlienVisitorConfigPanel(
-  programId:       Program.Id,
-  obsId:           Observation.Id,
-  observingMode:   Aligner[ObservingMode.Visitor, VisitorInput],
-  revertConfig:    IO[Unit],
-  sequenceChanged: Callback,
-  permissions:     ConfigEditPermissions,
-  units:           WavelengthUnits
+  programId:     Program.Id,
+  obsId:         Observation.Id,
+  observingMode: Aligner[ObservingMode.Visitor, VisitorInput],
+  revertConfig:  IO[Unit],
+  permissions:   ConfigEditPermissions,
+  units:         WavelengthUnits
 ) extends ReactFnProps(AlienVisitorConfigPanel)
 
 object AlienVisitorConfigPanel
@@ -156,7 +155,7 @@ object AlienVisitorConfigPanel
               isCustomized = mode.isCustomized,
               revertConfig = props.revertConfig,
               revertCustomizations = Callback.empty,
-              sequenceChanged = props.sequenceChanged,
+              sequenceChanged = Callback.empty,
               readonly = !props.permissions.isFullEdit,
               showAdvancedButton = false,
               showCustomizeButton = false

@@ -511,7 +511,7 @@ object ConfigurationTile
                       props.permissions,
                       props.units
                     ),
-                  // Resident visitors (Alopeke / Zorro / MAROON-X).
+                  // Resident Visitor (Alopeke / Zorro / maroon-x).
                   optVisitorAligner
                     .filterNot(a => isAlienVisitorMode(a.get.mode))
                     .map: visitorAligner =>
@@ -521,11 +521,10 @@ object ConfigurationTile
                         visitorAligner,
                         requirementsView,
                         revertConfig,
-                        props.sequenceChanged,
                         props.permissions,
                         props.units
                       ),
-                  // Alien visitors (generic gs/gn — VisitorNorth / VisitorSouth).
+                  // Alien visitors (VisitorNorth / VisitorSouth).
                   optVisitorAligner
                     .filter(a => isAlienVisitorMode(a.get.mode))
                     .map: visitorAligner =>
@@ -534,7 +533,6 @@ object ConfigurationTile
                         props.obsId,
                         visitorAligner,
                         revertConfig,
-                        props.sequenceChanged,
                         props.permissions,
                         props.units
                       )
