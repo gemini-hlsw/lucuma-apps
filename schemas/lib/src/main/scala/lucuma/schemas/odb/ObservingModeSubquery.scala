@@ -144,6 +144,42 @@ object ObservingModeSubquery
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
           }
+          gnirsLongSlit {
+            initialGrating
+            initialFilter
+            initialFpu
+            initialPrism
+            initialCamera
+            grating
+            filter
+            fpu
+            prism
+            camera
+            defaultGratingWavelength $WavelengthSubquery
+            explicitGratingWavelength $WavelengthSubquery
+            defaultDecker
+            explicitDecker
+            centralWavelength $WavelengthSubquery
+            defaultReadMode
+            explicitReadMode
+            defaultWellDepth
+            explicitWellDepth
+            defaultOffsetMode
+            explicitOffsetMode
+            defaultTelescopeConfigs $TelescopeConfigSubquery
+            explicitTelescopeConfigs $TelescopeConfigSubquery
+            exposureTimeMode $ExposureTimeModeSubquery
+            coadds
+            acquisition {
+              readMode
+              coadds
+              filter
+              offset $OffsetSubquery
+              exposureTime $TimeSpanSubquery
+              exposureCount
+              exposureAt $WavelengthSubquery
+            }
+          }
           ghostIfu {
             stepCount
             resolutionMode

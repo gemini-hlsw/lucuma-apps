@@ -21,6 +21,11 @@ import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GmosSouthFpu
 import lucuma.core.enums.GmosSouthGrating
+import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFilter
+import lucuma.core.enums.GnirsFpuSlit
+import lucuma.core.enums.GnirsGrating
+import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
@@ -32,6 +37,7 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GnirsLongSlitInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
@@ -80,6 +86,13 @@ enum ObservingModeSummary derives Order:
     roi:         GmosRoi
   )                                                  extends ObservingModeSummary
   case Igrins2LongSlit()                             extends ObservingModeSummary
+  case GnirsLongSlit(
+    filter:  GnirsFilter,
+    fpu:     GnirsFpuSlit,
+    prism:   GnirsPrism,
+    grating: GnirsGrating,
+    camera:  GnirsCamera
+  )                                                  extends ObservingModeSummary
   // What else is needed for GHOST? Do we want to base this on detector readmode and binning?
   case GhostIfu(resolutionMode: GhostResolutionMode) extends ObservingModeSummary
   case Visitor(
@@ -96,6 +109,7 @@ enum ObservingModeSummary derives Order:
     case GmosNorthImaging(_, _, _, _)        => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)        => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit()                   => ObservingModeType.Igrins2LongSlit
+    case GnirsLongSlit(_, _, _, _, _)        => ObservingModeType.GnirsLongSlit
     case GhostIfu(_)                         => ObservingModeType.GhostIfu
     case Visitor(mode, _, _, _)              => mode
 
@@ -153,6 +167,16 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput()
       ) // No configuration for ig2 just yet
+    case GnirsLongSlit(filter, fpu, prism, grating, camera)                           =>
+      ObservingModeInput.GnirsLongSlit(
+        GnirsLongSlitInput(
+          filter = filter.assign,
+          fpu = fpu.assign,
+          prism = prism.assign,
+          grating = grating.assign,
+          camera = camera.assign
+        )
+      )
     case GhostIfu(resolutionMode)                                                     =>
       ObservingModeInput.GhostIfu(
         GhostIfuInput(
@@ -198,6 +222,8 @@ object ObservingModeSummary:
         GmosSouthImaging(s.variant, s.filters, s.ampReadMode, s.roi)
       case _: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit()
+      case g: ObservingMode.GnirsLongSlit      =>
+        GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera)
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode)
       case v: ObservingMode.Visitor            =>
@@ -222,6 +248,8 @@ object ObservingModeSummary:
       s"GMOS-S Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case Igrins2LongSlit()                                                            =>
       s"IGRINS-2 Longslit"
+    case GnirsLongSlit(filter, fpu, prism, grating, camera)                           =>
+      s"GNIRS Longslit ${grating.shortName} ${filter.shortName} ${fpu.shortName}"
     case GhostIfu(resolutionMode)                                                     =>
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"

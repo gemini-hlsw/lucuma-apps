@@ -38,6 +38,13 @@ object BasicConfigurationSubquery
           igrins2LongSlit {
             offsetMode
           }
+          gnirsLongSlit {
+            filter
+            fpu
+            prism
+            grating
+            camera
+          }
           ghostIfu {
             resolutionMode
             stepCount

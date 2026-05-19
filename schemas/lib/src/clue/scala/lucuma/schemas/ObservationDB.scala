@@ -148,6 +148,8 @@ trait ObservationDB {
     type GnirsGrating                        = enums.GnirsGrating
     type GnirsFpuSlit                        = enums.GnirsFpuSlit
     type GnirsPrism                          = enums.GnirsPrism
+    type GnirsReadMode                       = enums.GnirsReadMode
+    type GnirsWellDepth                      = enums.GnirsWellDepth
     type GuideProbe                          = enums.GuideProbe
     type GuideState                          = enums.StepGuideState
     type HiiRegionSpectrum                   = enums.HIIRegionSpectrum
