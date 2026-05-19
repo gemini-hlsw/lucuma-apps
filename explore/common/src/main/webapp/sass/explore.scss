@@ -1868,17 +1868,13 @@ svg.fa-check.explore-success-icon {
   }
 
   .explore-visitor-upper-grid {
-    display: grid;
     padding: 0.5em;
-    gap: 1em;
-    grid-template:
-      'header header' auto
-      'col1 col2' auto
-      / 1fr 1fr;
+    width: 100%;
     border-bottom: 1px solid var(--site-border-color);
 
-    > .explore-visitor-header {
-      grid-area: header;
+    .p-inputtext,
+    .p-dropdown {
+      width: 100%;
     }
   }
 

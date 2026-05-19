@@ -73,57 +73,51 @@ object AlienVisitorConfigEditor
 
       <.div(
         ExploreStyles.VisitorUpperGrid,
-        <.div(
-          ExploreStyles.VisitorHeader,
-          LucumaPrimeStyles.FormColumnCompact,
-          FormLabel(htmlFor = "visitor-basic-site".refined)("Site"),
-          EnumDropdownOptionalView(
-            id = "visitor-basic-site".refined,
-            value = site,
-            showClear = true,
-            clazz = ExploreStyles.WarningInput.when_(site.get.isEmpty),
-            disabled = props.readonly
-          ),
-          FormInputTextView(
-            id = "visitor-basic-name".refined,
-            value = name,
-            label = "Name",
-            groupClass = ExploreStyles.WarningInput.when_(name.get.isEmpty),
-            validFormat = InputValidSplitEpi.nonEmptyString.optional,
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off)
+        LucumaPrimeStyles.FormColumnCompact,
+        FormLabel(htmlFor = "visitor-basic-site".refined)("Site"),
+        EnumDropdownOptionalView(
+          id = "visitor-basic-site".refined,
+          value = site,
+          showClear = true,
+          clazz = ExploreStyles.WarningInput.when_(site.get.isEmpty),
+          disabled = props.readonly
         ),
-        <.div(
-          LucumaPrimeStyles.FormColumnCompact,
-          FormInputTextView(
-            id = "visitor-basic-central-wavelength".refined,
-            value = centralWavelength,
-            label = "Central Wavelength",
-            groupClass = ExploreStyles.WarningInput.when_(centralWavelength.get.isEmpty),
-            validFormat = props.units.toInputWedge,
-            changeAuditor = props.units.toAuditor.optional,
-            units = props.units.symbol,
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off),
-          FormInputTextView(
-            id = "visitor-basic-science-fov".refined,
-            value = scienceFov,
-            label = "Instrument Diameter",
-            groupClass = ExploreStyles.WarningInput.when_(scienceFov.get.isEmpty),
-            validFormat = angleArcsecsFormat,
-            changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
-            units = "arcsec",
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off),
-          FormInputTextView(
-            id = "visitor-basic-total-time".refined,
-            value = totalRequestTime,
-            label = "Total Req. Time",
-            groupClass = ExploreStyles.WarningInput.when_(totalRequestTime.get.isEmpty),
-            validFormat = durationHM.optional,
-            units = "h:mm",
-            disabled = props.readonly
-          ).clearable(^.autoComplete.off)
-        )
+        FormInputTextView(
+          id = "visitor-basic-name".refined,
+          value = name,
+          label = "Name",
+          groupClass = ExploreStyles.WarningInput.when_(name.get.isEmpty),
+          validFormat = InputValidSplitEpi.nonEmptyString.optional,
+          disabled = props.readonly
+        ).clearable(^.autoComplete.off),
+        FormInputTextView(
+          id = "visitor-basic-central-wavelength".refined,
+          value = centralWavelength,
+          label = "Central Wavelength",
+          groupClass = ExploreStyles.WarningInput.when_(centralWavelength.get.isEmpty),
+          validFormat = props.units.toInputWedge,
+          changeAuditor = props.units.toAuditor.optional,
+          units = props.units.symbol,
+          disabled = props.readonly
+        ).clearable(^.autoComplete.off),
+        FormInputTextView(
+          id = "visitor-basic-science-fov".refined,
+          value = scienceFov,
+          label = "Instrument Diameter",
+          groupClass = ExploreStyles.WarningInput.when_(scienceFov.get.isEmpty),
+          validFormat = angleArcsecsFormat,
+          changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
+          units = "arcsec",
+          disabled = props.readonly
+        ).clearable(^.autoComplete.off),
+        FormInputTextView(
+          id = "visitor-basic-total-time".refined,
+          value = totalRequestTime,
+          label = "Total Req. Time",
+          groupClass = ExploreStyles.WarningInput.when_(totalRequestTime.get.isEmpty),
+          validFormat = durationHM.optional,
+          units = "h:mm",
+          disabled = props.readonly
+        ).clearable(^.autoComplete.off)
       )
     )

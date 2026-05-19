@@ -37,43 +37,34 @@ object VisitorConfigFields
     extends ReactFnComponent[VisitorConfigFields](props =>
       <.div(
         ExploreStyles.VisitorUpperGrid,
-        <.div(
-          ExploreStyles.VisitorHeader,
-          LucumaPrimeStyles.FormColumnCompact,
-          props.header
-        ),
-        <.div(
-          LucumaPrimeStyles.FormColumnCompact,
-          FormInputTextView(
-            id = "visitor-central-wavelength".refined,
-            value = props.centralWavelength,
-            label = "Central Wavelength",
-            validFormat = props.units.toInputFormat,
-            changeAuditor = props.units.toAuditor,
-            units = props.units.symbol,
-            disabled = props.disabled
-          )(^.autoComplete.off),
-          FormInputTextView(
-            id = "visitor-science-fov".refined,
-            value = props.scienceFov,
-            label = "Instrument Diameter",
-            validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-            changeAuditor = angleArcsecondsChangeAuditor,
-            units = "arcsec",
-            disabled = props.disabled
-          )(^.autoComplete.off)
-        ),
+        LucumaPrimeStyles.FormColumnCompact,
+        props.header,
+        FormInputTextView(
+          id = "visitor-central-wavelength".refined,
+          value = props.centralWavelength,
+          label = "Central Wavelength",
+          validFormat = props.units.toInputFormat,
+          changeAuditor = props.units.toAuditor,
+          units = props.units.symbol,
+          disabled = props.disabled
+        )(^.autoComplete.off),
+        FormInputTextView(
+          id = "visitor-science-fov".refined,
+          value = props.scienceFov,
+          label = "Instrument Diameter",
+          validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+          changeAuditor = angleArcsecondsChangeAuditor,
+          units = "arcsec",
+          disabled = props.disabled
+        )(^.autoComplete.off),
         props.timeAndCount.map: tcView =>
-          <.div(
-            LucumaPrimeStyles.FormColumnCompact,
-            TimeAndCountModeEditor(
-              instrument = props.instrument.some,
-              value = tcView,
-              readonly = props.timeAndCountReadonly.getOrElse(props.disabled),
-              calibrationRole = none,
-              idPrefix = "visitor".refined,
-              showCount = true
-            )
+          TimeAndCountModeEditor(
+            instrument = props.instrument.some,
+            value = tcView,
+            readonly = props.timeAndCountReadonly.getOrElse(props.disabled),
+            calibrationRole = none,
+            idPrefix = "visitor".refined,
+            showCount = true
           )
       )
     )

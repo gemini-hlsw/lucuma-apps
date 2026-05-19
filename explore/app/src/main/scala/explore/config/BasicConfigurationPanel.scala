@@ -283,6 +283,6 @@ private object BasicConfigurationPanel:
               disabled = creating.get.value || !canAccept,
               severity = Button.Severity.Primary,
               onClick = acceptAction.switching(creating.async, Creating(_)).runAsync
-            ).compact.small.when(canAccept)
+            ).compact.small.when(isAlienVisitor || canAccept)
           ).unless(props.readonly)
         )
