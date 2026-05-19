@@ -20,10 +20,12 @@ import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.offset.decoder.given
+import lucuma.odb.json.stepconfig.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
@@ -44,6 +46,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
+    case _: ObservingMode.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
     case _: ObservingMode.GhostIfu           => ObservingModeType.GhostIfu
     case v: ObservingMode.Visitor            => v.mode
 
@@ -59,6 +62,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthImaging   => Site.GS
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
     case _: ObservingMode.Igrins2LongSlit    => Site.GN
+    case _: ObservingMode.GnirsLongSlit      => Site.GN
     case _: ObservingMode.GhostIfu           => Site.GS
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
 
@@ -75,6 +79,8 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
     case _: ObservingMode.Igrins2LongSlit                  =>
       BasicConfiguration.Igrins2LongSlit
+    case g: ObservingMode.GnirsLongSlit                    =>
+      BasicConfiguration.GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera)
     case g: ObservingMode.GhostIfu                         =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
@@ -123,6 +129,8 @@ object ObservingMode:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
           .orElse:
             c.downField("igrins2LongSlit").as[Igrins2LongSlit]
+          .orElse:
+            c.downField("gnirsLongSlit").as[GnirsLongSlit]
           .orElse:
             c.downField("ghostIfu").as[GhostIfu]
           .orElse:
@@ -715,6 +723,158 @@ object ObservingMode:
     val explicitOffsets: Lens[Igrins2LongSlit, Option[NonEmptyList[Offset]]] =
       Focus[Igrins2LongSlit](_.explicitOffsets)
 
+  case class GnirsLongSlit(
+    initialGrating:            GnirsGrating,
+    grating:                   GnirsGrating,
+    initialFilter:             GnirsFilter,
+    filter:                    GnirsFilter,
+    initialFpu:                GnirsFpuSlit,
+    fpu:                       GnirsFpuSlit,
+    initialPrism:              GnirsPrism,
+    prism:                     GnirsPrism,
+    initialCamera:             GnirsCamera,
+    camera:                    GnirsCamera,
+    defaultGratingWavelength:  Wavelength,
+    explicitGratingWavelength: Option[Wavelength],
+    defaultDecker:             GnirsDecker,
+    explicitDecker:            Option[GnirsDecker],
+    centralWavelength:         Wavelength,
+    defaultReadMode:           GnirsReadMode,
+    explicitReadMode:          Option[GnirsReadMode],
+    defaultWellDepth:          GnirsWellDepth,
+    explicitWellDepth:         Option[GnirsWellDepth],
+    defaultOffsetMode:         SlitOffsetMode,
+    explicitOffsetMode:        Option[SlitOffsetMode],
+    defaultTelescopeConfigs:   List[TelescopeConfig],
+    explicitTelescopeConfigs:  Option[List[TelescopeConfig]],
+    exposureTimeMode:          ExposureTimeMode,
+    coadds:                    PosInt,
+    acquisition:               GnirsLongSlit.Acquisition
+  ) extends ObservingMode(Instrument.Gnirs) derives Eq:
+    val gratingWavelength: Wavelength           =
+      explicitGratingWavelength.getOrElse(defaultGratingWavelength)
+    val decker: GnirsDecker                     =
+      explicitDecker.getOrElse(defaultDecker)
+    val readMode: GnirsReadMode                 =
+      explicitReadMode.getOrElse(defaultReadMode)
+    val wellDepth: GnirsWellDepth               =
+      explicitWellDepth.getOrElse(defaultWellDepth)
+    val offsetMode: SlitOffsetMode              =
+      explicitOffsetMode.getOrElse(defaultOffsetMode)
+    val telescopeConfigs: List[TelescopeConfig] =
+      explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+
+    def isCustomized: Boolean =
+      initialGrating =!= grating ||
+        initialFilter =!= filter ||
+        initialFpu =!= fpu ||
+        initialPrism =!= prism ||
+        initialCamera =!= camera ||
+        explicitGratingWavelength.exists(_ =!= defaultGratingWavelength) ||
+        explicitDecker.exists(_ =!= defaultDecker) ||
+        explicitReadMode.exists(_ =!= defaultReadMode) ||
+        explicitWellDepth.exists(_ =!= defaultWellDepth) ||
+        explicitOffsetMode.exists(_ =!= defaultOffsetMode) ||
+        explicitTelescopeConfigs.isDefined
+
+    def revertCustomizations: GnirsLongSlit =
+      this.copy(
+        grating = this.initialGrating,
+        filter = this.initialFilter,
+        fpu = this.initialFpu,
+        prism = this.initialPrism,
+        camera = this.initialCamera,
+        explicitGratingWavelength = None,
+        explicitDecker = None,
+        explicitReadMode = None,
+        explicitWellDepth = None,
+        explicitOffsetMode = None,
+        explicitTelescopeConfigs = None
+      )
+
+  object GnirsLongSlit:
+    case class Acquisition(
+      readMode:      GnirsReadMode,
+      coadds:        PosInt,
+      filter:        GnirsFilter,
+      offset:        Option[Offset],
+      exposureTime:  TimeSpan,
+      exposureCount: PosInt,
+      exposureAt:    Wavelength
+    ) derives Decoder,
+          Eq
+
+    object Acquisition:
+      val readMode: Lens[Acquisition, GnirsReadMode] =
+        Focus[Acquisition](_.readMode)
+      val coadds: Lens[Acquisition, PosInt]          =
+        Focus[Acquisition](_.coadds)
+      val filter: Lens[Acquisition, GnirsFilter]     =
+        Focus[Acquisition](_.filter)
+      val offset: Lens[Acquisition, Option[Offset]]  =
+        Focus[Acquisition](_.offset)
+      val exposureTime: Lens[Acquisition, TimeSpan]  =
+        Focus[Acquisition](_.exposureTime)
+      val exposureCount: Lens[Acquisition, PosInt]   =
+        Focus[Acquisition](_.exposureCount)
+      val exposureAt: Lens[Acquisition, Wavelength]  =
+        Focus[Acquisition](_.exposureAt)
+
+    given Decoder[GnirsLongSlit] = deriveDecoder
+
+    val initialGrating: Lens[GnirsLongSlit, GnirsGrating]                            =
+      Focus[GnirsLongSlit](_.initialGrating)
+    val grating: Lens[GnirsLongSlit, GnirsGrating]                                   =
+      Focus[GnirsLongSlit](_.grating)
+    val initialFilter: Lens[GnirsLongSlit, GnirsFilter]                              =
+      Focus[GnirsLongSlit](_.initialFilter)
+    val filter: Lens[GnirsLongSlit, GnirsFilter]                                     =
+      Focus[GnirsLongSlit](_.filter)
+    val initialFpu: Lens[GnirsLongSlit, GnirsFpuSlit]                                =
+      Focus[GnirsLongSlit](_.initialFpu)
+    val fpu: Lens[GnirsLongSlit, GnirsFpuSlit]                                       =
+      Focus[GnirsLongSlit](_.fpu)
+    val initialPrism: Lens[GnirsLongSlit, GnirsPrism]                                =
+      Focus[GnirsLongSlit](_.initialPrism)
+    val prism: Lens[GnirsLongSlit, GnirsPrism]                                       =
+      Focus[GnirsLongSlit](_.prism)
+    val initialCamera: Lens[GnirsLongSlit, GnirsCamera]                              =
+      Focus[GnirsLongSlit](_.initialCamera)
+    val camera: Lens[GnirsLongSlit, GnirsCamera]                                     =
+      Focus[GnirsLongSlit](_.camera)
+    val defaultGratingWavelength: Lens[GnirsLongSlit, Wavelength]                    =
+      Focus[GnirsLongSlit](_.defaultGratingWavelength)
+    val explicitGratingWavelength: Lens[GnirsLongSlit, Option[Wavelength]]           =
+      Focus[GnirsLongSlit](_.explicitGratingWavelength)
+    val defaultDecker: Lens[GnirsLongSlit, GnirsDecker]                              =
+      Focus[GnirsLongSlit](_.defaultDecker)
+    val explicitDecker: Lens[GnirsLongSlit, Option[GnirsDecker]]                     =
+      Focus[GnirsLongSlit](_.explicitDecker)
+    val centralWavelength: Lens[GnirsLongSlit, Wavelength]                           =
+      Focus[GnirsLongSlit](_.centralWavelength)
+    val defaultReadMode: Lens[GnirsLongSlit, GnirsReadMode]                          =
+      Focus[GnirsLongSlit](_.defaultReadMode)
+    val explicitReadMode: Lens[GnirsLongSlit, Option[GnirsReadMode]]                 =
+      Focus[GnirsLongSlit](_.explicitReadMode)
+    val defaultWellDepth: Lens[GnirsLongSlit, GnirsWellDepth]                        =
+      Focus[GnirsLongSlit](_.defaultWellDepth)
+    val explicitWellDepth: Lens[GnirsLongSlit, Option[GnirsWellDepth]]               =
+      Focus[GnirsLongSlit](_.explicitWellDepth)
+    val defaultOffsetMode: Lens[GnirsLongSlit, SlitOffsetMode]                       =
+      Focus[GnirsLongSlit](_.defaultOffsetMode)
+    val explicitOffsetMode: Lens[GnirsLongSlit, Option[SlitOffsetMode]]              =
+      Focus[GnirsLongSlit](_.explicitOffsetMode)
+    val defaultTelescopeConfigs: Lens[GnirsLongSlit, List[TelescopeConfig]]          =
+      Focus[GnirsLongSlit](_.defaultTelescopeConfigs)
+    val explicitTelescopeConfigs: Lens[GnirsLongSlit, Option[List[TelescopeConfig]]] =
+      Focus[GnirsLongSlit](_.explicitTelescopeConfigs)
+    val exposureTimeMode: Lens[GnirsLongSlit, ExposureTimeMode]                      =
+      Focus[GnirsLongSlit](_.exposureTimeMode)
+    val coadds: Lens[GnirsLongSlit, PosInt]                                          =
+      Focus[GnirsLongSlit](_.coadds)
+    val acquisition: Lens[GnirsLongSlit, GnirsLongSlit.Acquisition]                  =
+      Focus[GnirsLongSlit](_.acquisition)
+
   case class GhostIfu(
     resolutionMode:       GhostResolutionMode,
     signalToNoiseAt:      Wavelength,
@@ -853,6 +1013,9 @@ object ObservingMode:
 
   val igrins2LongSlit: Prism[ObservingMode, Igrins2LongSlit] =
     GenPrism[ObservingMode, Igrins2LongSlit]
+
+  val gnirsLongSlit: Prism[ObservingMode, GnirsLongSlit] =
+    GenPrism[ObservingMode, GnirsLongSlit]
 
   val ghostIfu: Prism[ObservingMode, GhostIfu] =
     GenPrism[ObservingMode, GhostIfu]

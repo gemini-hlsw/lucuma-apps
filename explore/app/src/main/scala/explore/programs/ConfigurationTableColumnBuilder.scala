@@ -127,8 +127,8 @@ object ConfigurationTableColumnBuilder {
       case GmosNorthImaging(_)    => "Imaging"
       case GmosSouthImaging(_)    => "Imaging"
       case Igrins2LongSlit        => "LongSlit"
-      case GhostIfu               => "IFU"
       case GnirsLongSlit(_, _, _) => "LongSlit"
+      case GhostIfu               => "IFU"
       case Visitor(_, _)          => ""
 
     def disperser: String = mode match
@@ -138,6 +138,7 @@ object ConfigurationTableColumnBuilder {
       case GmosNorthImaging(_)           => ""
       case GmosSouthImaging(_)           => ""
       case Igrins2LongSlit               => ""
+      case GnirsLongSlit(grating, _, _)  => grating.shortName
       case GhostIfu                      => ""
       case GnirsLongSlit(_, _, _)        => ""
       case Visitor(_, _)                 => ""

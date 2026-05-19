@@ -202,6 +202,8 @@ object ConfigurationTile
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
+      val EmptyGnirsLongSlitInput: ObservingModeInput     =
+        ObservingModeInput.GnirsLongSlit(GnirsLongSlitInput())
       val EmptyGhostIfuInput: ObservingModeInput          =
         ObservingModeInput.GhostIfu(GhostIfuInput())
       val EmptyVisitorInput: ObservingModeInput           =
@@ -320,6 +322,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.igrins2LongSlit
                   .andThen(ObservingModeInput.Igrins2LongSlit.value)
+                  .modify
+            )
+
+        val optGnirsLongSlitAligner: Option[Aligner[GnirsLongSlit, GnirsLongSlitInput]] =
+          optModeAligner(EmptyGnirsLongSlitInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gnirsLongSlit,
+              modInput:
+                ObservingModeInput.gnirsLongSlit
+                  .andThen(ObservingModeInput.GnirsLongSlit.value)
                   .modify
             )
 
@@ -493,6 +505,19 @@ object ConfigurationTile
                       props.obsId,
                       props.obsConf.calibrationRole,
                       ig2Aligner,
+                      revertConfig,
+                      props.modes.spectroscopy,
+                      props.sequenceChanged,
+                      props.permissions,
+                      props.units
+                    ),
+                  // GNIRS Long Slit
+                  optGnirsLongSlitAligner.map: gnirsAligner =>
+                    GnirsLongslitConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      gnirsAligner,
                       revertConfig,
                       props.modes.spectroscopy,
                       props.sequenceChanged,

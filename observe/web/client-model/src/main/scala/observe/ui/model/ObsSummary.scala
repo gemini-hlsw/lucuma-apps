@@ -49,6 +49,8 @@ case class ObsSummary(
   obsReference:       Option[ObservationReference],
   workflowState:      ObservationWorkflowState
 ) derives Eq:
+  // TODO This code seems to be duplicated between observe an explore, we should unify.
+  // See explore/model/src/main/scala/explore/model/display.scala
   lazy val configurationSummary: Option[String] =
     observingMode
       .map(_.toBasicConfiguration)
