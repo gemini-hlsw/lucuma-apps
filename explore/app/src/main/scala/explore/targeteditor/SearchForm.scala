@@ -135,6 +135,7 @@ object SearchForm
             "Replace Target Data",
             searchPopupState,
             props.targetSources,
+            List.empty,
             "",
             Icons.Ban,
             "Fetch",
