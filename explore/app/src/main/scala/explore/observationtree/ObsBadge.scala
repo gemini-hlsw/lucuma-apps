@@ -207,8 +207,8 @@ object ObsBadge:
             meta,
             <.div(ExploreStyles.ObsBadgeDescription)(
               <.span(ExploreStyles.ObsBadgeDescriptionTitles)(
-                obs.basicConfiguration
-                  .map(conf => <.div(conf.shortName))
+                obs.observingModeSummary
+                  .map(s => <.div(s.shortName))
                   .whenDefined
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary).when(layout.showConstraints)

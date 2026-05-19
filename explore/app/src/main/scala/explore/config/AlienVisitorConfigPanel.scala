@@ -16,11 +16,11 @@ import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
+import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.model.formats.durationHM
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import explore.model.display.given
 import lucuma.core.enums.Site
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
@@ -35,12 +35,12 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import monocle.Lens
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
+import monocle.Lens
 
 case class AlienVisitorConfigPanel(
   programId:       Program.Id,
