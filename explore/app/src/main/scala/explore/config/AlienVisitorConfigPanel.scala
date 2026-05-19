@@ -20,6 +20,9 @@ import explore.model.enums.WavelengthUnits
 import explore.model.formats.durationHM
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import explore.model.display.given
+import lucuma.core.enums.Site
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Program
@@ -60,28 +63,45 @@ object AlienVisitorConfigPanel
         val disableEdit =
           editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
 
-        val centralWavelengthView: View[Wavelength] =
-          props.observingMode
-            .zoom(
-              ObservingMode.Visitor.centralWavelength.andThen(CentralWavelength.Value),
-              VisitorInput.centralWavelength.modify
+        // Send all fields on every update (mode/site, centralWavelength,
+        val visitorView: View[ObservingMode.Visitor] =
+          props.observingMode.view: m =>
+            VisitorInput(
+              mode = m.mode.assign,
+              centralWavelength = m.centralWavelength.value.toInput.assign,
+              scienceFov = m.scienceFov.toInput.assign,
+              name = m.name.orUnassign,
+              totalRequestTime = m.totalRequestTime.map(_.toInput).orUnassign
             )
-            .view(_.toInput.assign)
+
+        val centralWavelengthView: View[Wavelength] =
+          visitorView.zoom(
+            ObservingMode.Visitor.centralWavelength.andThen(CentralWavelength.Value)
+          )
 
         val scienceFovView: View[Angle] =
-          props.observingMode
-            .zoom(ObservingMode.Visitor.scienceFov, VisitorInput.scienceFov.modify)
-            .view(_.toInput.assign)
+          visitorView.zoom(ObservingMode.Visitor.scienceFov)
+
+        // Site is encoded as the alien-visitor mode discriminator (VisitorNorth = GN, VisitorSouth = GS).
+        val siteView: View[Site] =
+          visitorView
+            .zoom(ObservingMode.Visitor.mode)
+            .zoom[Site] {
+              case VisitorObservingModeType.VisitorNorth => Site.GN
+              case VisitorObservingModeType.VisitorSouth => Site.GS
+              case _                                     => Site.GN
+            }(site =>
+              _ =>
+                site match
+                  case Site.GN => VisitorObservingModeType.VisitorNorth
+                  case Site.GS => VisitorObservingModeType.VisitorSouth
+            )
 
         val nameView: View[Option[NonEmptyString]] =
-          props.observingMode
-            .zoom(ObservingMode.Visitor.name, VisitorInput.name.modify)
-            .view(_.orUnassign)
+          visitorView.zoom(ObservingMode.Visitor.name)
 
         val totalRequestTimeView: View[Option[TimeSpan]] =
-          props.observingMode
-            .zoom(ObservingMode.Visitor.totalRequestTime, VisitorInput.totalRequestTime.modify)
-            .view(_.map(_.toInput).orUnassign)
+          visitorView.zoom(ObservingMode.Visitor.totalRequestTime)
 
         React.Fragment(
           <.div(
@@ -89,8 +109,12 @@ object AlienVisitorConfigPanel
             <.div(
               ExploreStyles.VisitorHeader,
               LucumaPrimeStyles.FormColumnCompact,
-              FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
-              <.div(^.id       := "visitor-instrument-name", mode.instrument.longName),
+              FormLabel(htmlFor = "visitor-site".refined)("Site"),
+              EnumDropdownView(
+                id = "visitor-site".refined,
+                value = siteView,
+                disabled = disableEdit
+              ),
               FormInputTextView(
                 id = "visitor-name".refined,
                 value = nameView,
