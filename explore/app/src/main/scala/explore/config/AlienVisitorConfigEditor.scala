@@ -7,6 +7,7 @@ import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.display.given
@@ -113,7 +114,10 @@ object AlienVisitorConfigEditor
         FormInputTextView(
           id = "visitor-basic-total-time".refined,
           value = totalRequestTime,
-          label = "Total Req. Time",
+          label = React.Fragment(
+            "Total Requested Time",
+            HelpIcon("configuration/visitor/total-request-time.md".refined)
+          ),
           groupClass = ExploreStyles.WarningInput.when_(totalRequestTime.get.isEmpty),
           validFormat = durationHM.optional,
           units = "h:mm",
