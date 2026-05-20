@@ -32,6 +32,7 @@ final case class FormEnumDropdownView[V[_], A](
   valueTemplate:   js.UndefOr[SelectItem[A] => VdomNode] = js.undefined,
   onChangeE:       js.UndefOr[(Option[A], ReactEvent) => Callback] =
     js.undefined, // called after the view is set
+  useLongName:     Boolean = false,
   modifiers:       Seq[TagMod] = Seq.empty
 )(using
   val enumerated:  Enumerated[A],
@@ -67,6 +68,7 @@ object FormEnumDropdownView {
         itemTemplate = props.itemTemplate,
         valueTemplate = props.valueTemplate,
         onChangeE = props.onChangeE,
+        useLongName = props.useLongName,
         modifiers = props.modifiers
       )
     )

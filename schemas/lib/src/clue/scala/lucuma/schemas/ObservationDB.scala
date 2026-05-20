@@ -142,6 +142,7 @@ trait ObservationDB {
     type GmosSouthStageMode                  = enums.GmosSouthStageMode
     type GmosBinning                         = enums.GmosBinning
     type GmosLongSlitAcquisitionRoi          = enums.GmosLongSlitAcquisitionRoi
+    type GnirsAcquisitionMirror              = enums.GnirsAcquisitionMirror
     type GnirsCamera                         = enums.GnirsCamera
     type GnirsDecker                         = enums.GnirsDecker
     type GnirsFilter                         = enums.GnirsFilter

@@ -35,7 +35,8 @@ final case class CustomizableEnumSelect[A](
   allowRevertCustomization: Boolean,
   exclude:                  Set[A] = Set.empty[A],
   label:                    Option[String] = None,
-  helpId:                   Option[Help.Id] = None
+  helpId:                   Option[Help.Id] = None,
+  useLongName:              Boolean = false
 )(using val display: Display[A], val enumerated: Enumerated[A])
     extends ReactFnProps(CustomizableEnumSelect.component)
 
@@ -43,7 +44,8 @@ object CustomizableEnumSelect:
   private def buildComponent[A] = ScalaFnComponent[CustomizableEnumSelect[A]](props =>
     import props.given
 
-    val originalText = props.defaultValue.shortName
+    val originalText: String =
+      if (props.useLongName) props.defaultValue.longName else props.defaultValue.shortName
 
     React.Fragment(
       props.label.map(label => FormLabel(htmlFor = props.id)(label, props.helpId.map(HelpIcon(_)))),
@@ -54,13 +56,15 @@ object CustomizableEnumSelect:
           id = props.id,
           value = props.view,
           exclude = props.exclude,
-          disabled = props.disabled
+          disabled = props.disabled,
+          useLongName = props.useLongName
         ),
-        <.span(PrimeStyles.InputGroupAddon,
-               CustomizedGroupAddon(originalText,
-                                    props.view.set(props.defaultValue),
-                                    props.allowRevertCustomization
-               )
+        <.span(PrimeStyles.InputGroupAddon)(
+          CustomizedGroupAddon(
+            originalText,
+            props.view.set(props.defaultValue),
+            props.allowRevertCustomization
+          )
         ).when(props.showCustomization && props.view.get =!= props.defaultValue)
       )
     )
