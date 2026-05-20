@@ -83,9 +83,9 @@ private object BasicConfigurationPanel:
     ScalaFnComponent[Props]: props =>
       for
         ctx                  <- useContext(AppContext.ctx)
-        scienceModeType      <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
+        configModeType       <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
         _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
-                                  scienceModeType.mod: current =>
+                                  configModeType.mod: current =>
                                     // There is no visitor science mode.
                                     if current === ConfigurationMode.Visitor then current
                                     else ConfigurationMode.fromScienceMode(modeType)
@@ -103,7 +103,7 @@ private object BasicConfigurationPanel:
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
         val isVisitor                     = props.selectedConfig.get.isVisitor
-        val isAlienVisitor                = scienceModeType.get === ConfigurationMode.Visitor
+        val isAlienVisitor                = configModeType.get === ConfigurationMode.Visitor
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
         val alienVisitorState             = alienVisitor.get
@@ -198,7 +198,7 @@ private object BasicConfigurationPanel:
           FormEnumDropdownView(
             id = "configuration-mode".refined,
             label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
-            value = scienceModeType.withOnMod(switchMode),
+            value = configModeType.withOnMod(switchMode),
             disabled = props.readonly
           )
 
