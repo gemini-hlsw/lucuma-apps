@@ -240,9 +240,7 @@ object BasicConfiguration:
     grating: GnirsGrating,
     camera:  GnirsCamera
   ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
-    lazy val centralWavelength: Wavelength =
-      // The only case the filter optimalWavelength is none is for XD, where we fix to 1.65um.
-      filter.optimalWavelength.getOrElse(Wavelength.unsafeFromIntPicometers(1_650_000))
+    lazy val centralWavelength: Wavelength = filter.centralWavelength
 
   object GnirsLongSlit:
     given Decoder[GnirsLongSlit] = deriveDecoder
