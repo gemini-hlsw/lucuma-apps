@@ -1724,6 +1724,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     } yield r
   }
 
+  protected def takeHrOut(cmds: TcsCommands[F]): TcsCommands[F] = cmds.hrwfsCommands.park.mark
+
   private def setLightPath(
     from:  LightSource,
     to:    LightSinkName,
@@ -1745,8 +1747,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         case (LightSinkName.Hr, AgMechPosition.In) | (LightSinkName.Ac, AgMechPosition.In) => s
         case (LightSinkName.Hr, _) | (LightSinkName.Ac, _)                                 =>
           s.hrwfsCommands.move.setPosition(HrwfsPickupPosition.In)
-        case (_, AgMechPosition.Parked)                                                    => s
-        case _ if port === 1                                                               => s.hrwfsCommands.park.mark
+        case (_, AgMechPosition.Parked) | (_, AgMechPosition.Out)                          => s
+        case _ if port === 1                                                               => takeHrOut(s)
         case _                                                                             => s
       }
     val reqPos      = ScienceFold.Position(from, to, port)

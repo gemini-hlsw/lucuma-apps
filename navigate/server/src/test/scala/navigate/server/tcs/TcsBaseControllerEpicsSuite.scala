@@ -1778,7 +1778,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
 
   test("SC-7053 Don't park HR pickoff mirror unless light goes to instrument in bottom port") {
     for {
-      x        <- createController(site = Site.GN)
+      x        <- createController(site = Site.GS)
       (st, ctr) = x
       _        <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
       _        <- st.ags.update(

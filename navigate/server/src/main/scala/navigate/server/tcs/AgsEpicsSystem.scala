@@ -154,10 +154,19 @@ object AgsEpicsSystem {
             .readChannel(channels.telltale, channels.aoName)
             .map(_.map(Enumerated[AgMechPosition].fromTag(_).getOrElse(AgMechPosition.Unknown)))
 
+        // Workaround for position readout at GN. When the pickoff mirror is parked, position is Unknown, and when it is
+        // sent to OUT position, readout is "park-pos."
         override def hwName: VerifiedEpics[F, F, AgMechPosition] =
           VerifiedEpics
             .readChannel(channels.telltale, channels.hwName)
-            .map(_.map(Enumerated[AgMechPosition].fromTag(_).getOrElse(AgMechPosition.Unknown)))
+            .map(
+              _.map(pos =>
+                if (site === Site.GS)
+                  Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
+                else if (pos === "park-pos.") AgMechPosition.Out
+                else Enumerated[AgMechPosition].fromTag(pos).getOrElse(AgMechPosition.Unknown)
+              )
+            )
 
         override def sfName: VerifiedEpics[F, F, ScienceFold] =
           VerifiedEpics.readChannel(channels.telltale, channels.sfName).map(_.map(_.decode))
