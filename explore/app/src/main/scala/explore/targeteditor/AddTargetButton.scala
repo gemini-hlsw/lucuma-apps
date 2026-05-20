@@ -38,6 +38,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.LayeredIcon
 import lucuma.react.fa.Transform
 import lucuma.react.primereact.Button
+import lucuma.react.primereact.Icon
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupMenu
 import lucuma.react.primereact.SplitButton
@@ -118,18 +119,34 @@ object AddTargetButton
               blindOffset.set(BlindOffset(true, id.some, BlindOffsetType.Manual))).toAsync
           )
 
+      case class Action(
+        label:    String,
+        icon:     Icon,
+        command:  Callback,
+        disabled: Boolean = false
+      ):
+        def toMenuItem: MenuItem                       =
+          MenuItem.Item(label, icon = icon, command = command, disabled = disabled)
+        def toButton(initialOnClick: Callback): Button =
+          Button(label,
+                 icon = icon,
+                 onClick = initialOnClick >> command,
+                 disabled = disabled
+          ).tiny.compact
+
       for
-        ctx        <- useContext(AppContext.ctx)
-        popupState <- useStateView(PopupState.Closed)
-        onSelected <- useStateView((_: TargetWithOptId) => Callback.empty)
-        sources    <- useStateView:
-                        // we'll always set this before opening the popup
-                        NonEmptyMap.one(
-                          TargetType.Sidereal,
-                          NonEmptyList.one[TargetSource[IO]]:
-                            TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
-                        )
-        blindRef   <- usePopupMenuRef
+        ctx           <- useContext(AppContext.ctx)
+        popupState    <- useStateView(PopupState.Closed)
+        onSelected    <- useStateView((_: TargetWithOptId) => Callback.empty)
+        sources       <- useStateView:
+                           // we'll always set this before opening the popup
+                           NonEmptyMap.one(
+                             TargetType.Sidereal,
+                             NonEmptyList.one[TargetSource[IO]]:
+                               TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
+                           )
+        actionButtons <- useStateView(List.empty[Button]) // we'll always set this, too
+        blindRef      <- usePopupMenuRef
       yield
         import ctx.given
 
@@ -185,14 +202,8 @@ object AddTargetButton
         val hasTargetOfOpportunity: Boolean =
           observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
 
-        val programsAndSimbad =
-          NonEmptyMap.one(
-            TargetType.Sidereal,
-            NonEmptyList.of(
-              TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets),
-              TargetSource.FromSimbad[IO](ctx.simbadClient)
-            )
-          )
+        val programSource =
+          TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets)
 
         val simbad =
           NonEmptyMap.one(
@@ -203,71 +214,68 @@ object AddTargetButton
         val all =
           NonEmptyMap.of(
             TargetType.Sidereal    ->
-              NonEmptyList.one(TargetSource.FromSimbad[IO](ctx.simbadClient)),
+              NonEmptyList.of(programSource, TargetSource.FromSimbad[IO](ctx.simbadClient)),
             TargetType.Nonsidereal ->
-              NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
+              NonEmptyList.of(programSource, TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
-        val blindOffsetItems: List[MenuItem] =
+        val blindOffsetActions: List[Action] =
           props.blindOffsetInfo
             .fold(List.empty)((obsId, blindOffset) =>
               List(
                 Option.unless(blindOffset.get.isAutomatic)(
-                  MenuItem.Item(
+                  Action(
                     "Automatic Blind Offset",
-                    icon = Icons.LocationDot,
-                    command = initializeAutomaticBlindOffsetCB(obsId, blindOffset)
+                    Icons.LocationDot,
+                    initializeAutomaticBlindOffsetCB(obsId, blindOffset)
                   )
                 ),
-                MenuItem
-                  .Item(
-                    "Blind Offset Search",
-                    icon = Icons.LocationDot,
-                    command = onSelected.set(insertManualBlindOffsetCB(obsId, blindOffset)) >>
-                      sources.set(simbad) >> popupState.set(PopupState.Open)
+                Action(
+                  "Blind Offset Search",
+                  Icons.LocationDot,
+                  onSelected.set(insertManualBlindOffsetCB(obsId, blindOffset)) >>
+                    sources.set(simbad) >> popupState.set(PopupState.Open)
+                ).some,
+                Action(
+                  "Empty Blind Offset",
+                  Icons.LocationDot,
+                  insertManualBlindOffsetCB(obsId, blindOffset)(
+                    TargetWithOptId(None, EmptySiderealTarget, TargetDisposition.BlindOffset, None)
                   )
-                  .some,
-                MenuItem
-                  .Item(
-                    "Empty Blind Offset",
-                    icon = Icons.LocationDot,
-                    command = insertManualBlindOffsetCB(obsId, blindOffset)(
-                      TargetWithOptId(None,
-                                      EmptySiderealTarget,
-                                      TargetDisposition.BlindOffset,
-                                      None
-                      )
-                    )
-                  )
-                  .some
+                ).some
               ).flattenOption
             )
-        val showBlindOffsetButton            =
-          props.readOnly && props.allowBlindOffset && blindOffsetItems.nonEmpty
 
-        val menuItems = List(
-          MenuItem.Item(
+        val showBlindOffsetButton =
+          props.readOnly && props.allowBlindOffset && blindOffsetActions.nonEmpty
+
+        val actionItems: List[Action] = List(
+          Action(
             "Target Search",
             icon = LayeredIcon()(
               Icons.Star.withTransform(Transform(x = -6, y = -4, size = 15)),
               Icons.PlanetRinged.withTransform(Transform(x = 6, y = 5, size = 15))
             ),
             command = onSelected.set(insertTargetCB) >>
-              sources.set(all) >> popupState.set(PopupState.Open)
+              sources.set(all) >> actionButtons.set(List.empty) >> popupState.set(PopupState.Open)
           ),
-          MenuItem.Item(
+          Action(
             "Empty Sidereal Target",
             icon = Icons.Star,
             command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
           ),
-          MenuItem.Item(
+          Action(
             "Target of Opportunity",
             icon = Icons.HourglassClock,
             command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
             disabled = hasTargets
           )
         ) ++
-          blindOffsetItems
+          blindOffsetActions
+
+        val closePopup = popupState.set(PopupState.Closed)
+
+        val buttonList: List[Button] = actionItems.tail.map(_.toButton(closePopup))
 
         // In order for the title bar to look right, we need to have exactly one button in the DOM,
         // although it doesn't need to be visible.
@@ -283,8 +291,9 @@ object AddTargetButton
             ).tiny.compact
           else
             SplitButton(
-              model = menuItems,
-              onClick = onSelected.set(insertTargetCB) >> sources.set(programsAndSimbad) >>
+              model = actionItems.map(_.toMenuItem),
+              onClick = onSelected.set(insertTargetCB) >> sources.set(all) >>
+                actionButtons.set(buttonList) >>
                 popupState.set(PopupState.Open),
               severity = Button.Severity.Success,
               icon = Icons.New,
@@ -300,12 +309,13 @@ object AddTargetButton
             "Add Target",
             popupState,
             sources.get,
+            actionButtons.get,
             selectExistingLabel = "Link",
             selectExistingIcon = Icons.Link,
             selectNewLabel = "Add",
             selectNewIcon = Icons.New,
             onSelected = onSelected.get
           ),
-          PopupMenu(model = blindOffsetItems).withRef(blindRef.ref)
+          PopupMenu(model = blindOffsetActions.map(_.toMenuItem)).withRef(blindRef.ref)
         )
     )

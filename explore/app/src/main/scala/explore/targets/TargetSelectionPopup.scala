@@ -51,6 +51,7 @@ case class TargetSelectionPopup(
   title:               String,
   popupState:          View[PopupState],
   targetSources:       NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]],
+  actionButtons:       List[Button],
   selectExistingLabel: String,
   selectExistingIcon:  FontAwesomeIcon,
   selectNewLabel:      String,
@@ -214,7 +215,8 @@ object TargetSelectionPopup:
             icon = Icons.Close,
             severity = Button.Severity.Danger,
             onClick = cancel
-          ).small
+          ).small,
+          <.div(props.actionButtons.toTagMod)
         ),
         position = DialogPosition.Top,
         visible = props.popupState.get.value,
