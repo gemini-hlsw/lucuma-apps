@@ -62,37 +62,37 @@ object ExposureTimeModeEditorOptional:
   protected val component =
     ScalaFnComponent[Props]: props =>
       for
-        signalToNoiseView    <- useStateView(
-                                  props.exposureTimeMode.get
-                                    .flatMap(SignalToNoiseModeInfo.fromModel)
-                                    .getOrElse(SignalToNoiseModeInfo.default(props.scienceMode))
-                                )
-        timeAndCountView     <-
+        signalToNoiseView <- useStateView(
+                               props.exposureTimeMode.get
+                                 .flatMap(SignalToNoiseModeInfo.fromModel)
+                                 .getOrElse(SignalToNoiseModeInfo.default(props.scienceMode))
+                             )
+        timeAndCountView  <-
           useStateView(
             props.exposureTimeMode.get
               .flatMap(TimeAndCountModeInfo.fromModel)
               .getOrElse(TimeAndCountModeInfo.default(props.scienceMode, props.forceCount))
           )
-        _                    <- useEffectWithDeps((props.exposureTimeMode.get, props.forceCount)): (exp, force) =>
-                                  // Exposure time mode updated upstream
-                                  exp
-                                    .map: etm =>
-                                      SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
-                                        TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
-                                        props.exposureTimeModeType.set(etm.modeType)
-                                    .getOrElse:
-                                      signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
-                                        timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode, force)) *>
-                                        props.exposureTimeModeType.set(ExposureTimeModeType.SignalToNoise)
-        _                    <- useEffectWithDeps(props.wavelength):
-                                  // Wavelength updated upstream, set `at` if empty
-                                  _.map: wv =>
-                                    props.exposureTimeModeType.get match
-                                      case ExposureTimeModeType.SignalToNoise =>
-                                        signalToNoiseView.set(signalToNoiseView.get.withRequirementsWavelength(wv))
-                                      case ExposureTimeModeType.TimeAndCount  =>
-                                        timeAndCountView.set(timeAndCountView.get.withRequirementsWavelength(wv))
-                                  .getOrEmpty
+        _                 <- useEffectWithDeps((props.exposureTimeMode.get, props.forceCount)): (exp, force) =>
+                               // Exposure time mode updated upstream
+                               exp
+                                 .map: etm =>
+                                   SignalToNoiseModeInfo.fromModel(etm).traverse(signalToNoiseView.set) *>
+                                     TimeAndCountModeInfo.fromModel(etm).traverse(timeAndCountView.set) *>
+                                     props.exposureTimeModeType.set(etm.modeType)
+                                 .getOrElse:
+                                   signalToNoiseView.set(SignalToNoiseModeInfo.default(props.scienceMode)) *>
+                                     timeAndCountView.set(TimeAndCountModeInfo.default(props.scienceMode, force)) *>
+                                     props.exposureTimeModeType.set(ExposureTimeModeType.SignalToNoise)
+        _                 <- useEffectWithDeps(props.wavelength):
+                               // Wavelength updated upstream, set `at` if empty
+                               _.map: wv =>
+                                 props.exposureTimeModeType.get match
+                                   case ExposureTimeModeType.SignalToNoise =>
+                                     signalToNoiseView.set(signalToNoiseView.get.withRequirementsWavelength(wv))
+                                   case ExposureTimeModeType.TimeAndCount  =>
+                                     timeAndCountView.set(timeAndCountView.get.withRequirementsWavelength(wv))
+                               .getOrEmpty
       yield
 
         def makeId(base: NonEmptyString): NonEmptyString =

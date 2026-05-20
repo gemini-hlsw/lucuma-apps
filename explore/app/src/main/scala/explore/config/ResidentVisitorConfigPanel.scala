@@ -19,7 +19,6 @@ import explore.model.ScienceRequirements
 import explore.model.enums.WavelengthUnits
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.CalibrationRole
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
@@ -36,20 +35,18 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-final case class VisitorConfigPanel(
+case class ResidentVisitorConfigPanel(
   programId:        Program.Id,
   obsId:            Observation.Id,
-  calibrationRole:  Option[CalibrationRole],
   observingMode:    Aligner[ObservingMode.Visitor, VisitorInput],
   requirementsView: View[ScienceRequirements],
   revertConfig:     IO[Unit],
-  sequenceChanged:  Callback,
   permissions:      ConfigEditPermissions,
   units:            WavelengthUnits
-) extends ReactFnProps(VisitorConfigPanel)
+) extends ReactFnProps(ResidentVisitorConfigPanel)
 
-object VisitorConfigPanel
-    extends ReactFnComponent[VisitorConfigPanel](props =>
+object ResidentVisitorConfigPanel
+    extends ReactFnComponent[ResidentVisitorConfigPanel](props =>
       for
         ctx       <- useContext(AppContext.ctx)
         editState <- useStateView(ConfigEditState.View)
@@ -78,51 +75,39 @@ object VisitorConfigPanel
             .zoom(ScienceRequirements.exposureTimeMode.some)
             .zoom(ExposureTimeMode.timeAndCount)
 
-        val instrumentLabel: String = mode.instrument.longName
-
         React.Fragment(
           <.div(
             ExploreStyles.VisitorUpperGrid,
-            <.div(
-              ExploreStyles.VisitorHeader,
-              LucumaPrimeStyles.FormColumnCompact,
-              FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
-              <.div(^.id := "visitor-instrument-name", instrumentLabel)
-            ),
-            <.div(
-              LucumaPrimeStyles.FormColumnCompact,
-              FormInputTextView(
-                id = "visitor-central-wavelength".refined,
-                value = centralWavelengthView,
-                label = "Central Wavelength",
-                validFormat = props.units.toInputFormat,
-                changeAuditor = props.units.toAuditor,
-                units = props.units.symbol,
-                disabled = disableEdit
-              )(^.autoComplete.off),
-              FormInputTextView(
-                id = "visitor-science-fov".refined,
-                value = scienceFovView,
-                label = "Sci FoV Diameter",
-                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-                changeAuditor = angleArcsecondsChangeAuditor,
-                units = "arcsec",
-                disabled = disableEdit
-              )(^.autoComplete.off)
-            ),
-            exposureTimeMode.asView.map(tcView =>
-              <.div(
-                LucumaPrimeStyles.FormColumnCompact,
-                TimeAndCountModeEditor(
-                  instrument = mode.instrument.some,
-                  value = tcView,
-                  readonly = !props.permissions.isFullEdit,
-                  calibrationRole = props.calibrationRole,
-                  idPrefix = "visitor".refined,
-                  showCount = true
-                )
+            LucumaPrimeStyles.FormColumnCompact,
+            FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
+            <.div(^.id := "visitor-instrument-name", mode.instrument.longName),
+            FormInputTextView(
+              id = "visitor-central-wavelength".refined,
+              value = centralWavelengthView,
+              label = "Central Wavelength",
+              validFormat = props.units.toInputFormat,
+              changeAuditor = props.units.toAuditor,
+              units = props.units.symbol,
+              disabled = disableEdit
+            )(^.autoComplete.off),
+            FormInputTextView(
+              id = "visitor-science-fov".refined,
+              value = scienceFovView,
+              label = "Instrument Diameter",
+              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              changeAuditor = angleArcsecondsChangeAuditor,
+              units = "arcsec",
+              disabled = disableEdit
+            )(^.autoComplete.off),
+            exposureTimeMode.asView.map: tcView =>
+              TimeAndCountModeEditor(
+                instrument = mode.instrument.some,
+                value = tcView,
+                readonly = !props.permissions.isFullEdit,
+                calibrationRole = none,
+                idPrefix = "visitor".refined,
+                showCount = true
               )
-            )
           ),
           <.div(
             ExploreStyles.VisitorLowerGrid,
@@ -131,7 +116,7 @@ object VisitorConfigPanel
               isCustomized = mode.isCustomized,
               revertConfig = props.revertConfig,
               revertCustomizations = Callback.empty,
-              sequenceChanged = props.sequenceChanged,
+              sequenceChanged = Callback.empty,
               readonly = !props.permissions.isFullEdit,
               showAdvancedButton = false,
               showCustomizeButton = false

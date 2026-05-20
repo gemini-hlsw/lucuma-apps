@@ -5,6 +5,7 @@ package explore.model
 
 import cats.syntax.all.*
 import eu.timepit.refined.cats.*
+import explore.model.enums.ConfigurationMode
 import explore.model.enums.WavelengthUnits
 import explore.modes.ItcInstrumentConfig
 import lucuma.core.enums.*
@@ -79,6 +80,11 @@ trait DisplayImplicits:
   given Display[ScienceMode] = Display.byShortName:
     case ScienceMode.Imaging      => "Imaging"
     case ScienceMode.Spectroscopy => "Spectroscopy"
+
+  given Display[ConfigurationMode] = Display.byShortName:
+    case ConfigurationMode.Spectroscopy => "Spectroscopy"
+    case ConfigurationMode.Imaging      => "Imaging"
+    case ConfigurationMode.Visitor      => "Visitor"
 
   given Display[WavelengthUnits] = Display.byShortName(_.symbol)
 

@@ -7,6 +7,7 @@ import cats.data.EitherNec
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.data.syntax.*
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
@@ -18,10 +19,13 @@ import explore.model.ScienceRequirements
 import explore.model.ScienceRequirements.Imaging
 import explore.model.ScienceRequirements.Spectroscopy
 import explore.model.display.given
+import explore.model.enums.ConfigurationMode
 import explore.model.enums.ExposureTimeModeType
+import explore.model.enums.PosAngleOptions
 import explore.model.enums.WavelengthUnits
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
+import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
 import explore.modes.ScienceModes
 import japgolly.scalajs.react.*
@@ -29,6 +33,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ImagingCapability
 import lucuma.core.enums.ScienceMode
+import lucuma.core.enums.Site
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ExposureTimeMode
@@ -40,6 +46,10 @@ import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Tag
 import lucuma.refined.*
+import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.odb.input.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -56,7 +66,7 @@ case class BasicConfigurationPanel(
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
-  createConfig:        IO[Unit],
+  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[Unit], // Creation of alien visitors is done modally
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,
@@ -73,9 +83,12 @@ private object BasicConfigurationPanel:
     ScalaFnComponent[Props]: props =>
       for
         ctx                  <- useContext(AppContext.ctx)
-        scienceModeType      <- useStateView[ScienceMode](ScienceMode.Spectroscopy)
+        configModeType       <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
         _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
-                                  scienceModeType.set(modeType)
+                                  configModeType.mod: current =>
+                                    // There is no visitor science mode.
+                                    if current === ConfigurationMode.Visitor then current
+                                    else ConfigurationMode.fromScienceMode(modeType)
         creating             <- useStateView(Creating(false))
         imagingCap           <- useStateView(none[ImagingCapability])
         exposureTimeModeType <- useStateView(
@@ -83,15 +96,57 @@ private object BasicConfigurationPanel:
                                     .map(ExposureTimeModeType.fromExposureTimeMode)
                                     .getOrElse(ExposureTimeModeType.SignalToNoise)
                                 )
+        // Local preview state for alien visitors.
+        alienVisitor         <- useStateView(AlienVisitorState.Empty)
       yield
         import ctx.given
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
         val isVisitor                     = props.selectedConfig.get.isVisitor
+        val isAlienVisitor                = configModeType.get === ConfigurationMode.Visitor
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
-        val canAccept: Boolean            =
-          props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+        val alienVisitorState             = alienVisitor.get
+
+        val visitorMode: Option[VisitorObservingModeType] = alienVisitorState.site.map:
+          case Site.GN => VisitorObservingModeType.VisitorNorth
+          case Site.GS => VisitorObservingModeType.VisitorSouth
+
+        // for alien visitors mode we get the config from a temporary state until saved.
+        val alienVisitorConfig: Option[BasicConfiguration.Visitor] =
+          (visitorMode, alienVisitorState.centralWavelength, alienVisitorState.scienceFov).mapN:
+            (mode, cw, fov) => BasicConfiguration.Visitor(mode, CentralWavelength(cw), fov)
+
+        val alienInput: Option[ObservingModeInput] =
+          (alienVisitorConfig, alienVisitorState.name, alienVisitorState.totalRequestTime).mapN:
+            (visitor, name, totalTime) =>
+              ObservingModeInput.Visitor:
+                VisitorInput(
+                  mode = visitor.mode.assign,
+                  centralWavelength = visitor.centralWavelength.value.toInput.assign,
+                  scienceFov = visitor.scienceFov.toInput.assign,
+                  name = name.assign,
+                  totalRequestTime = totalTime.toInput.assign
+                )
+
+        // For spec/imaging, the configuration comes from the table selection.
+        val selectedBasicConfig: Option[BasicConfiguration] =
+          props.selectedConfig.get.toBasicConfiguration()
+
+        val canAccept: Boolean =
+          if isAlienVisitor then alienInput.isDefined
+          else props.selectedConfig.get.canAccept(etm) && visitorEtmOk
+
+        val acceptAction: IO[Unit] =
+          if isAlienVisitor then
+            (alienInput, alienVisitorConfig)
+              .mapN: (input, bc) =>
+                props.createConfig(input, bc.obsModeType.defaultPosAngleOptions)
+              .getOrElse(IO.unit)
+          else
+            selectedBasicConfig
+              .map(bc => props.createConfig(bc.toInput, bc.obsModeType.defaultPosAngleOptions))
+              .getOrElse(IO.unit)
 
         val spectroscopyView: ViewOpt[Spectroscopy] = props.requirementsView
           .zoom(ScienceRequirements.spectroscopy)
@@ -107,7 +162,8 @@ private object BasicConfigurationPanel:
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
         val message: Option[String] =
-          if (spectroscopyView.get.exists(_.wavelength.isEmpty))
+          if (isAlienVisitor) none
+          else if (spectroscopyView.get.exists(_.wavelength.isEmpty))
             "Wavelength is required for creating a configuration.".some
           else if (
             props.selectedConfig.get.hasItcErrors || props.selectedConfig.get.isMissingSomeItc
@@ -121,82 +177,104 @@ private object BasicConfigurationPanel:
             "Use Time and Count mode for Visitor instruments.".some
           else none
 
-        def switchMode(scienceModeType: ScienceMode): Callback =
-          val newScienceMode = scienceModeType match
-            case ScienceMode.Spectroscopy => ScienceRequirements.Spectroscopy.Default.asLeft
-            case ScienceMode.Imaging      => ScienceRequirements.Imaging.Default.asRight
-          props.requirementsView
-            .zoom(ScienceRequirements.scienceMode)
-            .set(
-              newScienceMode
-            )
+        def switchMode(modeType: ConfigurationMode): Callback =
+          modeType match
+            case ConfigurationMode.Spectroscopy =>
+              props.requirementsView
+                .zoom(ScienceRequirements.scienceMode)
+                .set(ScienceRequirements.Spectroscopy.Default.asLeft)
+            case ConfigurationMode.Imaging      =>
+              props.requirementsView
+                .zoom(ScienceRequirements.scienceMode)
+                .set(ScienceRequirements.Imaging.Default.asRight)
+            case ConfigurationMode.Visitor      =>
+              Callback.empty
 
         val buttonIcon: FontAwesomeIcon =
           if (creating.get.value) Icons.Spinner.withSpin(true)
           else LucumaIcons.Gears
 
-        <.div(ExploreStyles.BasicConfigurationGrid)(
-          <.div(
-            ExploreStyles.BasicConfigurationForm,
-            FormEnumDropdownView(
-              id = "configuration-mode".refined,
-              label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
-              value = scienceModeType.withOnMod(switchMode),
-              disabled = props.readonly
-            ),
-            spectroscopyView.mapValue: s =>
-              SpectroscopyConfigurationPanel(
-                props.selectedConfig.get.headOption.map(_.instrument),
-                exposureTimeView,
-                exposureTimeModeType,
-                s,
-                props.readonly,
-                props.units,
-                props.calibrationRole
-              ),
-            imagingView.mapValue: s =>
-              ImagingConfigurationPanel(
-                props.selectedConfig.get.headOption.map(_.instrument),
-                exposureTimeView,
-                exposureTimeModeType,
-                s,
-                imagingCap,
-                props.readonly,
-                props.units,
-                props.calibrationRole
+        val modeDropdown: VdomNode =
+          FormEnumDropdownView(
+            id = "configuration-mode".refined,
+            label = React.Fragment("Mode", HelpIcon("configuration/mode.md".refined)),
+            value = configModeType.withOnMod(switchMode),
+            disabled = props.readonly
+          )
+
+        <.div(
+          ExploreStyles.BasicConfigurationGrid,
+          ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitor)
+        )(
+          if isAlienVisitor then
+            <.div(ExploreStyles.VisitorBasicArea)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(modeDropdown),
+              AlienVisitorConfigEditor(
+                state = alienVisitor,
+                readonly = props.readonly,
+                units = props.units
               )
-          ),
-          spectroscopyView
-            .mapValue(s =>
-              SpectroscopyModesTable(
-                props.userId,
-                props.selectedConfig,
-                exposureTimeView.get,
-                s.get,
-                props.constraints,
-                props.itcTargets,
-                props.baseCoordinates,
-                props.confMatrix.spectroscopy,
-                props.customSedTimestamps,
-                props.units
-              )
-            ),
-          imagingView.mapValue(s =>
-            ImagingModesTable(
-              props.userId,
-              props.selectedConfig,
-              exposureTimeView.get,
-              s.get,
-              props.confMatrix.imaging,
-              props.constraints,
-              props.itcTargets,
-              props.baseCoordinates,
-              props.customSedTimestamps,
-              props.units,
-              props.targetView,
-              imagingCap.get
             )
-          ),
+          else
+            React.Fragment(
+              <.div(
+                ExploreStyles.BasicConfigurationForm,
+                modeDropdown,
+                spectroscopyView.mapValue: s =>
+                  SpectroscopyConfigurationPanel(
+                    props.selectedConfig.get.headOption.map(_.instrument),
+                    exposureTimeView,
+                    exposureTimeModeType,
+                    s,
+                    props.readonly,
+                    props.units,
+                    props.calibrationRole
+                  ),
+                imagingView.mapValue: s =>
+                  ImagingConfigurationPanel(
+                    props.selectedConfig.get.headOption.map(_.instrument),
+                    exposureTimeView,
+                    exposureTimeModeType,
+                    s,
+                    imagingCap,
+                    props.readonly,
+                    props.units,
+                    props.calibrationRole
+                  )
+              ),
+              spectroscopyView
+                .mapValue(s =>
+                  SpectroscopyModesTable(
+                    props.userId,
+                    props.selectedConfig,
+                    exposureTimeView.get,
+                    s.get,
+                    props.constraints,
+                    props.itcTargets,
+                    props.baseCoordinates,
+                    props.confMatrix.spectroscopy,
+                    props.customSedTimestamps,
+                    props.units
+                  )
+                ),
+              imagingView.mapValue(s =>
+                ImagingModesTable(
+                  props.userId,
+                  props.selectedConfig,
+                  exposureTimeView.get,
+                  s.get,
+                  props.confMatrix.imaging,
+                  props.constraints,
+                  props.itcTargets,
+                  props.baseCoordinates,
+                  props.customSedTimestamps,
+                  props.units,
+                  props.targetView,
+                  imagingCap.get
+                )
+              )
+            )
+          ,
           <.div(ExploreStyles.BasicConfigurationButtons)(
             message.map(Tag(_, severity = Tag.Severity.Success)),
             Button(
@@ -204,7 +282,7 @@ private object BasicConfigurationPanel:
               icon = buttonIcon,
               disabled = creating.get.value || !canAccept,
               severity = Button.Severity.Primary,
-              onClick = props.createConfig.switching(creating.async, Creating(_)).runAsync
-            ).compact.small.when(canAccept)
+              onClick = acceptAction.switching(creating.async, Creating(_)).runAsync
+            ).compact.small.when(isAlienVisitor || canAccept)
           ).unless(props.readonly)
         )

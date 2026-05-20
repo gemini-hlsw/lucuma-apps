@@ -3,5 +3,15 @@
 
 package explore.model.enums
 
-enum ConfigurationMode:
-  case Imaging, Spectroscopy
+import lucuma.core.enums.ScienceMode
+import lucuma.core.util.Enumerated
+
+enum ConfigurationMode(val tag: String) derives Enumerated:
+  case Spectroscopy extends ConfigurationMode("spectroscopy")
+  case Imaging      extends ConfigurationMode("imaging")
+  case Visitor      extends ConfigurationMode("visitor")
+
+object ConfigurationMode:
+  def fromScienceMode(m: ScienceMode): ConfigurationMode = m match
+    case ScienceMode.Spectroscopy => ConfigurationMode.Spectroscopy
+    case ScienceMode.Imaging      => ConfigurationMode.Imaging

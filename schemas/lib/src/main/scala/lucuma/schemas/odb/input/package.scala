@@ -649,7 +649,9 @@ extension (b: ObservingMode)
         VisitorInput(
           mode = v.mode.assign,
           centralWavelength = v.centralWavelength.value.toInput.assign,
-          scienceFov = v.scienceFov.toInput.assign
+          scienceFov = v.scienceFov.toInput.assign,
+          name = v.name.orUnassign,
+          totalRequestTime = v.totalRequestTime.map(_.toInput).orUnassign
         )
 
 extension (i: BasicConfiguration)
