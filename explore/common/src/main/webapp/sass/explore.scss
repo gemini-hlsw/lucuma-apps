@@ -1867,6 +1867,25 @@ svg.fa-check.explore-success-icon {
       / auto;
   }
 
+  .explore-gnirs-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'col1 col2' auto
+      / 1fr 1fr;
+    border-bottom: 1px solid var(--site-border-color);
+  }
+
+  .explore-gnirs-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'buttons' auto
+      / auto;
+  }
+
   .explore-visitor-upper-grid {
     padding: 0.5em;
     width: 100%;
@@ -2043,6 +2062,13 @@ svg.fa-check.explore-success-icon {
         'col1' auto
         'col2' auto
         'col3' auto
+        / auto;
+    }
+
+    .explore-gnirs-upper-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
         / auto;
     }
 
@@ -4171,7 +4197,7 @@ span.explore-offsets-count {
   opacity: 0.2;
 }
 
-.offset-remove-offset-first-icon {
+.offset-remove-offset-hidden {
   opacity: 0;
 }
 

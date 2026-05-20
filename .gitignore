@@ -113,6 +113,12 @@ local.conf.json*
 apps-keys.txt
 .config/
 
-# Claude
+# Claude plans
+PLAN.md
 PLAN*.md
-.claude
+*_PLAN.md
+TODO.md
+TASK.md
+TASK_*.md
+*_TASK.md
+.claude/

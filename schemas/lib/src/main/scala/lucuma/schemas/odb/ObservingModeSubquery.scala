@@ -155,6 +155,8 @@ object ObservingModeSubquery
             fpu
             prism
             camera
+            defaultAcquisitionMirror
+            explicitAcquisitionMirror
             defaultGratingWavelength $WavelengthSubquery
             explicitGratingWavelength $WavelengthSubquery
             defaultDecker

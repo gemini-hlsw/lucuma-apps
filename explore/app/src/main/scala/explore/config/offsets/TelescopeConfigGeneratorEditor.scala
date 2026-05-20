@@ -11,21 +11,15 @@ import explore.Icons
 import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.StepGuideState
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.PrimeStyles
-import lucuma.react.primereact.ToggleButton
 import lucuma.refined.*
 import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
-import lucuma.ui.sequence.SequenceIcons
-import lucuma.ui.sequence.SequenceStyles
-import lucuma.ui.utils.*
 
 final case class TelescopeConfigGeneratorEditor(
   id:          NonEmptyString,
@@ -59,11 +53,6 @@ object TelescopeConfigGeneratorEditor
       val uniformOpt: Option[View[OffsetGenerator.Uniform]] =
         offsetGeneratorOpt.flatMap(_.zoom(OffsetGenerator.uniform).toOptionView)
 
-      extension (sgs: StepGuideState.type)
-        def fromBoolean: Boolean => StepGuideState =
-          case false => StepGuideState.Disabled
-          case true  => StepGuideState.Enabled
-
       React.Fragment(
         FormEnumDropdown[TelescopeConfigGeneratorType](
           id = "grid-type".refined,
@@ -72,54 +61,9 @@ object TelescopeConfigGeneratorEditor
           onChange = gt => props.value.set(gt.init),
           disabled = props.readonly
         ),
-        explicitOpt.map { explicit =>
+        explicitOpt.map: explicit =>
           React.Fragment(
-            explicit.toNelOfViews.zipWithIndex
-              .map: (telescopeConfig, idx) =>
-                val offset: View[Offset]          = telescopeConfig.zoom(TelescopeConfig.offset)
-                val guiding: View[StepGuideState] = telescopeConfig.zoom(TelescopeConfig.guiding)
-                React.Fragment.withKey(s"explicit-offsets-row-$idx")(
-                  <.label(^.htmlFor := s"explicit-offsets-$idx", s"Offset ${idx + 1} (arcsec):"),
-                  <.div(OffsetGeneratorEditorStyles.ExplicitRow)(
-                    OffsetInput(
-                      id = NonEmptyString.unsafeFrom(s"explicit-offsets-$idx"),
-                      offset = offset,
-                      readonly = props.readonly,
-                      inputClass = LucumaPrimeStyles.FormField
-                    ),
-                    ToggleButton(
-                      onIcon = SequenceIcons.Crosshairs.addClass(SequenceStyles.StepGuided),
-                      offIcon = SequenceIcons.Crosshairs.addClass(
-                        OffsetGeneratorEditorStyles.ExplicitUnguided
-                      ),
-                      onLabel = "",
-                      offLabel = "",
-                      tooltip = "Toggle Guiding",
-                      disabled = props.readonly,
-                      text = true,
-                      clazz = LucumaPrimeStyles.FormField |+| PrimeStyles.ButtonIconOnly |+|
-                        OffsetGeneratorEditorStyles.ToggleButton,
-                      checked = guiding.get === StepGuideState.Enabled,
-                      onChange = b => guiding.set(StepGuideState.fromBoolean(b))
-                    ).mini.compact,
-                    Button(
-                      icon = Icons.Trash.addClass(
-                        OffsetGeneratorEditorStyles.RemoveOffsetFirstIcon.when_(idx === 0)
-                      ),
-                      tooltip = "Remove Offset",
-                      disabled = props.readonly || idx === 0,
-                      text = true,
-                      clazz = LucumaPrimeStyles.FormField,
-                      onClick = explicit.mod: offsets =>
-                        NonEmptyList
-                          .fromList:
-                            offsets.take(idx) ++ offsets.toList.drop(idx + 1)
-                          .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
-                    ).mini.compact
-                  )
-                )
-              .toList
-              .toVdomArray,
+            TelescopeConfigsEditor(telescopeConfigs = explicit, readonly = props.readonly),
             Button(
               icon = Icons.ThinPlus,
               severity = Button.Severity.Success,
@@ -130,8 +74,7 @@ object TelescopeConfigGeneratorEditor
               onClick = explicit.mod: offsets =>
                 offsets.append(TelescopeConfig.Default)
             ).mini.compact
-          )
-        },
+          ),
         randomOpt.map { random =>
           React.Fragment(
             FormInputTextView(

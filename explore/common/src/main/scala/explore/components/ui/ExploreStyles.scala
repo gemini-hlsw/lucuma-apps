@@ -385,6 +385,8 @@ object ExploreStyles:
   val Flamingos2LowerGrid: Css           = Css("explore-flamingos2-lower-grid")
   val Igrins2UpperGrid: Css              = Css("explore-igrins2-upper-grid")
   val Igrins2LowerGrid: Css              = Css("explore-igrins2-lower-grid")
+  val GnirsUpperGrid: Css                = Css("explore-gnirs-upper-grid")
+  val GnirsLowerGrid: Css                = Css("explore-gnirs-lower-grid")
   val GhostUpperGrid: Css                = Css("explore-ghost-upper-grid")
   val GhostLowerGrid: Css                = Css("explore-ghost-lower-grid")
   val VisitorUpperGrid: Css              = Css("explore-visitor-upper-grid")

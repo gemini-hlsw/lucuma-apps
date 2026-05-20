@@ -19,8 +19,8 @@ import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.arb.ArbExposureTimeMode
-import lucuma.core.util.TimeSpan
 import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.schemas.model.CentralWavelength
