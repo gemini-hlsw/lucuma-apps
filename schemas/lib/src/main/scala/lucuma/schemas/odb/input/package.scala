@@ -22,6 +22,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.TelescopeConfigAlongSlit
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -617,6 +618,14 @@ extension (a: ObservingMode.GnirsLongSlit.Acquisition)
     ).assign
   )
 
+extension (a: SlitTelescopeConfigs)
+  def toInput: SlitTelescopeConfigsInput =
+    a match
+      case SlitTelescopeConfigs.AlongSlit(value) =>
+        SlitTelescopeConfigsInput(alongSlit = value.toList.map(_.toInput).assign)
+      case SlitTelescopeConfigs.ToSky(value)     =>
+        SlitTelescopeConfigsInput(toSky = value.toList.map(_.toInput).assign)
+
 extension (a: ObservingMode.GnirsLongSlit)
   def toInput: GnirsLongSlitInput = GnirsLongSlitInput(
     grating = a.grating.assign,
@@ -629,9 +638,7 @@ extension (a: ObservingMode.GnirsLongSlit)
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
-    telescopeConfigs = a.explicitTelescopeConfigs
-      .map(configs => SlitTelescopeConfigsInput(onSky = configs.map(_.toInput).assign))
-      .orUnassign,
+    telescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
     coadds = a.coadds.assign,
     acquisition = a.acquisition.toInput.assign
@@ -993,6 +1000,10 @@ extension (sc: StepConfig)
 extension (tc: TelescopeConfig)
   def toInput: TelescopeConfigInput =
     TelescopeConfigInput(offset = tc.offset.toInput.assign, guiding = tc.guiding.assign)
+
+extension (tc: TelescopeConfigAlongSlit)
+  def toInput: TelescopeConfigAlongSlitInput =
+    TelescopeConfigAlongSlitInput(q = tc.offset.toInput, guiding = tc.guiding)
 
 extension (step: Step[gmos.DynamicConfig.GmosNorth])
   def toInput: GmosNorthStepInput =

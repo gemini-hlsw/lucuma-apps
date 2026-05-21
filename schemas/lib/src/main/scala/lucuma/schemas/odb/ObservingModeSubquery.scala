@@ -155,8 +155,6 @@ object ObservingModeSubquery
             fpu
             prism
             camera
-            defaultAcquisitionMirror
-            explicitAcquisitionMirror
             defaultGratingWavelength $WavelengthSubquery
             explicitGratingWavelength $WavelengthSubquery
             defaultDecker
@@ -166,10 +164,8 @@ object ObservingModeSubquery
             explicitReadMode
             defaultWellDepth
             explicitWellDepth
-            defaultOffsetMode
-            explicitOffsetMode
-            defaultTelescopeConfigs $TelescopeConfigSubquery
-            explicitTelescopeConfigs $TelescopeConfigSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             coadds
             acquisition {
