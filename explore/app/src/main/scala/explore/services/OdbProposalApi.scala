@@ -5,10 +5,10 @@ package explore.services
 
 import explore.model.CallForProposal
 import explore.model.Proposal
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.ProposalReference
 import lucuma.schemas.ObservationDB.Types.UpdateProposalInput
-import lucuma.core.enums.ProposalStatus
 
 trait OdbProposalApi[F[_]]:
   def openCfps(): F[List[CallForProposal]]

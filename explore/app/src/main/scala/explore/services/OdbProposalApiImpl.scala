@@ -11,13 +11,13 @@ import clue.syntax.*
 import explore.common.ProposalOdbExtensions.*
 import explore.model.CallForProposal
 import explore.model.Proposal
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.ProposalReference
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.CreateProposalInput
 import lucuma.schemas.ObservationDB.Types.SetProposalStatusInput
 import lucuma.schemas.ObservationDB.Types.UpdateProposalInput
-import lucuma.core.enums.ProposalStatus
 import queries.common.CallsQueriesGQL.*
 import queries.common.ProgramQueriesGQL.ResolveProposalReference
 import queries.common.ProposalQueriesGQL.*

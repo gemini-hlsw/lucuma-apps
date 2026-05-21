@@ -14,6 +14,7 @@ import explore.model.syntax.all.*
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Configuration
 import lucuma.core.model.ConfigurationRequest
@@ -28,7 +29,6 @@ import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
-import lucuma.core.enums.ProposalStatus
 import lucuma.schemas.model.TargetWithId
 import monocle.Focus
 import monocle.Lens
