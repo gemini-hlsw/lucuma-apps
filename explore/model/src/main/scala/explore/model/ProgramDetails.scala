@@ -18,7 +18,7 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.DateInterval
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional

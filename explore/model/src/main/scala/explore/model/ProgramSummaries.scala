@@ -28,7 +28,7 @@ import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import lucuma.schemas.model.TargetWithId
 import monocle.Focus
 import monocle.Lens

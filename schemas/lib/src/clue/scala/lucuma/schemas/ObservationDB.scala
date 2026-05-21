@@ -69,11 +69,6 @@ trait ObservationDB {
     type Semester                  = lucuma.core.model.Semester
     type SignalToNoise             = lucuma.core.math.SignalToNoise
     type Timestamp                 = lucuma.core.util.Timestamp
-    // Enum Meta
-    // These mappings cannot be used, because the decoder is for the
-    // Enumerated instances, but this prevents a spurious codec from being generated.
-    type ProposalStatusMeta        = lucuma.schemas.enums.ProposalStatus
-
     type Date = java.time.LocalDate
   }
 
@@ -172,7 +167,7 @@ trait ObservationDB {
     type PlanetaryNebulaSpectrum             = enums.PlanetaryNebulaSpectrum
     type ProgramType                         = enums.ProgramType
     type ProgramUserRole                     = enums.ProgramUserRole
-    type ProposalStatus                      = lucuma.schemas.enums.ProposalStatus
+    type ProposalStatus                      = enums.ProposalStatus
     type QuasarSpectrum                      = enums.QuasarSpectrum
     type ScienceBand                         = enums.ScienceBand
     type ScienceMode                         = enums.ScienceMode

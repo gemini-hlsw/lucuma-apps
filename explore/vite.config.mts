@@ -61,7 +61,6 @@ const metadataCache = (pathEnding: string, cacheName: string): RuntimeCaching =>
   },
 });
 
-const enumMetadataCache = () => metadataCache('/export/enumMetadata', 'enum-metadata');
 const environmentsCache = () => metadataCache('/environments.conf.json', 'environments-config');
 
 /**
@@ -75,78 +74,6 @@ const pathExists = async (path: PathLike) => {
     return false;
   }
 };
-
-/**
- * Vite plugin to cache enum metadata from ODB with 1-hour TTL
- */
-const enumMetadataPlugin = (publicDirDev: string): PluginOption => ({
-  name: 'enum-metadata-cache',
-  configureServer(server) {
-    let cachedMetadata: { data: string; timestamp: number } | null = null;
-    const CACHE_TTL = 60 * 60 * 1000; // 1 hour in milliseconds
-
-    const isCacheValid = () => cachedMetadata && Date.now() - cachedMetadata.timestamp < CACHE_TTL;
-
-    // get environments and enumMetadata and cache locally
-    const fetchEnumMetadata = async (host: string) => {
-      try {
-        const configPath = path.resolve(publicDirDev, 'environments.conf.json');
-        const configText = await fs.readFile(configPath, 'utf-8');
-        const environments = JSON.parse(configText);
-
-        const getODBRestURL = (h: string) =>
-          environments.find((e: any) => e.hostName === h)?.odbRestURI ??
-          environments.find((e: any) => e.hostName === '*')?.odbRestURI;
-
-        const url = getODBRestURL(host);
-
-        if (!url) {
-          throw new Error(`No ODB URL found`);
-        }
-
-        const response = await fetch(`${url}/export/enumMetadata`);
-
-        const module = await response.text();
-        cachedMetadata = { data: module, timestamp: Date.now() };
-
-        return module;
-      } catch (error) {
-        console.error('[enum-metadata-cache] Failed to fetch:', error);
-        throw error;
-      }
-    };
-
-    server.middlewares.use(async (req, res, next) => {
-      if (req.url?.startsWith('/api/enumMetadata')) {
-        try {
-          let metadata: string;
-
-          if (isCacheValid()) {
-            metadata = cachedMetadata!.data;
-          } else {
-            metadata = await fetchEnumMetadata('local.lucuma.xyz');
-          }
-
-          res.setHeader('Content-Type', 'application/javascript');
-          res.setHeader('Cache-Control', 'no-cache');
-          res.end(metadata);
-        } catch (error) {
-          res.statusCode = 500;
-          res.end('Failed to fetch enum metadata');
-        }
-      } else {
-        next();
-      }
-    });
-
-    // @ts-ignore
-    server.__enumMetadataCache = {
-      clear: () => {
-        cachedMetadata = null;
-      },
-    };
-  },
-});
 
 /**
  * Vite plugin to reload the page when environment configuration changes
@@ -174,12 +101,6 @@ const reloadEnvPlugin = (publicDirProd: string, publicDirDev: string): PluginOpt
             (await pathExists(localConf)) ? localConf : devConf,
             path.resolve(publicDirDev, 'environments.conf.json'),
           );
-          // Clear enum metadata cache since ODB URL might have changed
-          // @ts-ignore
-          if (server.__enumMetadataCache) {
-            // @ts-ignore
-            server.__enumMetadataCache.clear();
-          }
           console.log('Configuration updated, triggering reload...');
           ws.send({ type: 'full-reload' });
         } catch (error) {
@@ -331,7 +252,6 @@ export default defineConfig(async ({ mode }) => {
       format: 'es', // We need this for workers to be able to do dynamic imports.
     },
     plugins: [
-      enumMetadataPlugin(publicDirDev),
       reloadEnvPlugin(publicDirProd, publicDirDev),
       mkcert({ hosts: ['localhost', 'local.lucuma.xyz', 'local.gemini.edu'] }),
       fontImport,
@@ -345,7 +265,6 @@ export default defineConfig(async ({ mode }) => {
           navigateFallbackDenylist: [/\/uninstall\.html$/],
           // Cache aladin images
           runtimeCaching: [
-            enumMetadataCache(),
             environmentsCache(),
             imageCache({
               pattern: /^https:\/\/simbad.u-strasbg.fr\/simbad\/sim-id/,

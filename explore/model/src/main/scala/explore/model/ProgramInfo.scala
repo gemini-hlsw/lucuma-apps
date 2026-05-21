@@ -19,7 +19,7 @@ import lucuma.core.model.ProgramReference
 import lucuma.core.model.ProposalReference
 import lucuma.core.model.Semester
 import lucuma.schemas.ObservationDB.Enums.Existence
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import monocle.Focus
 import monocle.Lens
 

@@ -24,7 +24,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Toolbar
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.ToastCtx

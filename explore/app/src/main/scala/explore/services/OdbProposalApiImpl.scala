@@ -17,7 +17,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.CreateProposalInput
 import lucuma.schemas.ObservationDB.Types.SetProposalStatusInput
 import lucuma.schemas.ObservationDB.Types.UpdateProposalInput
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import queries.common.CallsQueriesGQL.*
 import queries.common.ProgramQueriesGQL.ResolveProposalReference
 import queries.common.ProposalQueriesGQL.*

@@ -28,7 +28,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Image
 import lucuma.react.primereact.Message
-import lucuma.schemas.enums.ProposalStatus
+import lucuma.core.enums.ProposalStatus
 import lucuma.ui.LucumaStyles
 import lucuma.ui.Resources
 import lucuma.ui.components.LoginStyles
