@@ -121,14 +121,15 @@ object ConfigurationTableColumnBuilder {
 
   extension (mode: Configuration.ObservingMode)
     def fpu: String = mode match
-      case GmosNorthLongSlit(_)  => "LongSlit"
-      case GmosSouthLongSlit(_)  => "LongSlit"
-      case Flamingos2LongSlit(_) => "LongSlit"
-      case GmosNorthImaging(_)   => "Imaging"
-      case GmosSouthImaging(_)   => "Imaging"
-      case Igrins2LongSlit       => "LongSlit"
-      case GhostIfu              => "IFU"
-      case Visitor(_, _)         => ""
+      case GmosNorthLongSlit(_)   => "LongSlit"
+      case GmosSouthLongSlit(_)   => "LongSlit"
+      case Flamingos2LongSlit(_)  => "LongSlit"
+      case GmosNorthImaging(_)    => "Imaging"
+      case GmosSouthImaging(_)    => "Imaging"
+      case Igrins2LongSlit        => "LongSlit"
+      case GhostIfu               => "IFU"
+      case GnirsLongSlit(_, _, _) => "LongSlit"
+      case Visitor(_, _)          => ""
 
     def disperser: String = mode match
       case GmosNorthLongSlit(grating)    => grating.shortName
@@ -138,6 +139,7 @@ object ConfigurationTableColumnBuilder {
       case GmosSouthImaging(_)           => ""
       case Igrins2LongSlit               => ""
       case GhostIfu                      => ""
+      case GnirsLongSlit(_, _, _)        => ""
       case Visitor(_, _)                 => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =

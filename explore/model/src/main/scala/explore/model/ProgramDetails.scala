@@ -12,13 +12,13 @@ import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.PartnerLink
 import lucuma.core.model.ProgramReference
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.DateInterval
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
-import lucuma.schemas.enums.ProposalStatus
 import monocle.Focus
 import monocle.Lens
 import monocle.Optional

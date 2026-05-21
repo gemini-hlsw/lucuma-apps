@@ -34,6 +34,7 @@ import japgolly.scalajs.react.extra.router.ResolutionWithProps
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.ProposalReference
 import lucuma.core.model.User
 import lucuma.core.util.Display
@@ -47,7 +48,6 @@ import lucuma.react.primereact.Message
 import lucuma.react.primereact.Sidebar
 import lucuma.react.primereact.ToastRef
 import lucuma.refined.*
-import lucuma.schemas.enums.ProposalStatus
 import lucuma.ui.components.SideTabs
 import lucuma.ui.components.state.IfLogged
 import lucuma.ui.enums.Theme

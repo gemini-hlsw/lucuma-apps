@@ -14,6 +14,7 @@ import explore.syntax.ui.*
 import fs2.Stream
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.Timestamp
@@ -24,7 +25,6 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.Tag
 import lucuma.react.primereact.Toolbar
-import lucuma.schemas.enums.ProposalStatus
 import lucuma.ui.format.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.ToastCtx

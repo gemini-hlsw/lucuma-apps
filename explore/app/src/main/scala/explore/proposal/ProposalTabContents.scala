@@ -21,6 +21,7 @@ import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.StandardUser
 import lucuma.core.util.Timestamp
@@ -28,7 +29,6 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Image
 import lucuma.react.primereact.Message
-import lucuma.schemas.enums.ProposalStatus
 import lucuma.ui.LucumaStyles
 import lucuma.ui.Resources
 import lucuma.ui.components.LoginStyles

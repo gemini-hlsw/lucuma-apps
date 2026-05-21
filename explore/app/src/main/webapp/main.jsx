@@ -26,60 +26,41 @@ import { Explore, ExplorePWA } from '@sjs/explore.js';
 
 import { registerSW } from 'virtual:pwa-register';
 
-// Get dynamic enums static data from ODB rest point and into a global variable.
-// ODB rest URL is resolved from environments.conf.json.
 fetch('/environments.conf.json').then((response) => {
   response.json().then((environments) => {
-    const getODBRestURLForHost = (host) => {
-      const filtered = environments.filter((e) => e.hostName === host);
-      return filtered.length ? filtered[0].odbRestURI : null;
-    };
+    // Setup the Service Worker, before Explore is started
+    if (
+      'serviceWorker' in navigator &&
+      !/local.lucuma.xyz/.test(window.location) &&
+      !/local.gemini.edu/.test(window.location)
+    ) {
+      ExplorePWA.runServiceWorker();
+    }
 
-    const specificHostURL = getODBRestURLForHost(window.location.host);
-    const url = specificHostURL ? specificHostURL : getODBRestURLForHost('*');
-
-    // In dev mode, from Vite server; in prod, fetch from ODB
-    const enumUrl = import.meta.env.DEV ? '/api/enumMetadata' : `${url}/export/enumMetadata`;
-
-    // Suppress vite warning about dynamic imports it can't handle.
-    import(/* @vite-ignore */ enumUrl).then((enumMetadataModule) => {
-      // Set it globally so it can be read in Scala code.
-      window.enumMetadataString = enumMetadataModule.enumMetadata;
-
-      // Setup the Service Worker, after Explore is started
-      if (
-        'serviceWorker' in navigator &&
-        !/local.lucuma.xyz/.test(window.location) &&
-        !/local.gemini.edu/.test(window.location)
-      ) {
-        ExplorePWA.runServiceWorker();
+    // Allow override of environments via environment variables
+    // It only makes sense for local dev
+    if (/local.lucuma.xyz/.test(window.location) || /local.gemini.edu/.test(window.location)) {
+      // Override the dev env, it is just a json object we can update in place
+      const dev = environments.find((e) => e.hostName === '*');
+      if (dev) {
+        if (import.meta.env.EXPLORE_ODB_URI) dev.odbURI = import.meta.env.EXPLORE_ODB_URI;
+        if (import.meta.env.EXPLORE_ODB_REST_URI)
+          dev.odbRestURI = import.meta.env.EXPLORE_ODB_REST_URI;
+        if (import.meta.env.EXPLORE_ITC_URI) dev.itcURI = import.meta.env.EXPLORE_ITC_URI;
+        if (import.meta.env.EXPLORE_PREFS_URI)
+          dev.preferencesDBURI = import.meta.env.EXPLORE_PREFS_URI;
+        if (import.meta.env.EXPLORE_SSO_URI)
+          dev.sso = { ...dev.sso, uri: import.meta.env.EXPLORE_SSO_URI };
       }
+    }
 
-      // Allow override of environments via environment variables
-      // It only makes sense for local dev
-      if (/local.lucuma.xyz/.test(window.location) || /local.gemini.edu/.test(window.location)) {
-        // Override the dev env, it is just a json object we can update in place
-        const dev = environments.find((e) => e.hostName === '*');
-        if (dev) {
-          if (import.meta.env.EXPLORE_ODB_URI) dev.odbURI = import.meta.env.EXPLORE_ODB_URI;
-          if (import.meta.env.EXPLORE_ODB_REST_URI)
-            dev.odbRestURI = import.meta.env.EXPLORE_ODB_REST_URI;
-          if (import.meta.env.EXPLORE_ITC_URI) dev.itcURI = import.meta.env.EXPLORE_ITC_URI;
-          if (import.meta.env.EXPLORE_PREFS_URI)
-            dev.preferencesDBURI = import.meta.env.EXPLORE_PREFS_URI;
-          if (import.meta.env.EXPLORE_SSO_URI)
-            dev.sso = { ...dev.sso, uri: import.meta.env.EXPLORE_SSO_URI };
-        }
-      }
+    // IMPORTANT: Start explore **after** the PWA service worker
+    // Otherwise, errors on load may swallow the service worker
+    // And leave the user unable to upgrade forever
+    Explore.runIOApp(JSON.stringify(environments));
 
-      // IMPORTANT: Start explore **after** the PWA service worker
-      // Otherwise, errors on load may swallow the service worker
-      // And leave the user unable to upgrade forever
-      Explore.runIOApp(JSON.stringify(environments));
-
-      if (import.meta.hot) {
-        import.meta.hot.accept();
-      }
-    });
+    if (import.meta.hot) {
+      import.meta.hot.accept();
+    }
   });
 });

@@ -14,12 +14,12 @@ import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProgramUserRole
+import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.ProgramReference
 import lucuma.core.model.ProposalReference
 import lucuma.core.model.Semester
 import lucuma.schemas.ObservationDB.Enums.Existence
-import lucuma.schemas.enums.ProposalStatus
 import monocle.Focus
 import monocle.Lens
 
