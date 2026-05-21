@@ -18,8 +18,9 @@ import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
-import lucuma.core.model.sequence.arb.ArbTelescopeConfig.given
+import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs.given
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbTimeSpan.given
@@ -614,7 +615,7 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
     Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
       for {
-        readMode      <- arbitrary[GnirsReadMode]
+        readMode      <- arbitrary[GnirsObsReadMode]
         coadds        <- arbitrary[PosInt]
         filter        <- arbitrary[GnirsFilter]
         offset        <- arbitrary[Option[Offset]]
@@ -635,7 +636,7 @@ trait ArbObservingMode {
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
     Cogen[
-      (GnirsReadMode, PosInt, GnirsFilter, Option[Offset], Wavelength)
+      (GnirsObsReadMode, PosInt, GnirsFilter, Option[Offset], Wavelength)
     ]
       .contramap(a => (a.readMode, a.coadds, a.filter, a.offset, a.exposureAt))
 
@@ -657,15 +658,12 @@ trait ArbObservingMode {
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
         centralWavelength         <- arbitrary[Wavelength]
-        defaultReadMode           <- arbitrary[GnirsReadMode]
-        explicitReadMode          <- arbitrary[Option[GnirsReadMode]]
+        defaultReadMode           <- arbitrary[GnirsObsReadMode]
+        explicitReadMode          <- arbitrary[Option[GnirsObsReadMode]]
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
         explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
-        defaultOffsetMode         <- arbitrary[SlitOffsetMode]
-        explicitOffsetMode        <- arbitrary[Option[SlitOffsetMode]]
-        defaultTelescopeConfigs   <- arbitrary[List[lucuma.core.model.sequence.TelescopeConfig]]
-        explicitTelescopeConfigs  <-
-          arbitrary[Option[List[lucuma.core.model.sequence.TelescopeConfig]]]
+        defaultTelescopeConfigs   <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs  <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
         coadds                    <- arbitrary[PosInt]
         acquisition               <- arbitrary[ObservingMode.GnirsLongSlit.Acquisition]
@@ -689,8 +687,6 @@ trait ArbObservingMode {
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
-        defaultOffsetMode,
-        explicitOffsetMode,
         defaultTelescopeConfigs,
         explicitTelescopeConfigs,
         exposureTimeMode,
@@ -710,9 +706,9 @@ trait ArbObservingMode {
        (Wavelength, Option[Wavelength]),
        (GnirsDecker, Option[GnirsDecker]),
        Wavelength,
-       (GnirsReadMode, Option[GnirsReadMode]),
+       (GnirsObsReadMode, Option[GnirsObsReadMode]),
        (GnirsWellDepth, Option[GnirsWellDepth]),
-       (SlitOffsetMode, Option[SlitOffsetMode]),
+       (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
        ExposureTimeMode,
        (PosInt, ObservingMode.GnirsLongSlit.Acquisition)
       )
@@ -729,7 +725,7 @@ trait ArbObservingMode {
           o.centralWavelength,
           (o.defaultReadMode, o.explicitReadMode),
           (o.defaultWellDepth, o.explicitWellDepth),
-          (o.defaultOffsetMode, o.explicitOffsetMode),
+          (o.defaultTelescopeConfigs, o.explicitTelescopeConfigs),
           o.exposureTimeMode,
           (o.coadds, o.acquisition)
         )

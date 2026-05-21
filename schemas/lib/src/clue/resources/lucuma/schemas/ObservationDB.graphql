@@ -7546,6 +7546,24 @@ type SlitTelescopeConfigs {
   toSky: [TelescopeConfig!]
 }
 
+"""
+Telescope configuration along the slit: a single `q` offset plus guide state.
+"""
+type TelescopeConfigAlongSlit {
+  q: OffsetQ!
+  guiding: GuideState!
+}
+
+"""
+A list of telescope configurations associated with a slit. The discriminant
+`offsetMode` selects which of `alongSlit` or `toSky` is populated.
+"""
+type SlitTelescopeConfigs {
+  offsetMode: SlitOffsetMode!
+  alongSlit: [TelescopeConfigAlongSlit!]
+  toSky: [TelescopeConfig!]
+}
+
 input TelescopeConfigAlongSlitInput {
   q: OffsetComponentInput!
   guiding: GuideState!

@@ -21,7 +21,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
-import lucuma.core.enums.GnirsReadMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
@@ -111,7 +110,7 @@ object GnirsLongslitConfigPanel
           )
           .view(_.assign)
 
-        val readModeView: View[Option[GnirsReadMode]] = props.observingMode
+        val readModeView: View[Option[GnirsObsReadMode]] = props.observingMode
           .zoom(
             ObservingMode.GnirsLongSlit.explicitReadMode,
             GnirsLongSlitInput.explicitReadMode.modify
@@ -132,9 +131,9 @@ object GnirsLongslitConfigPanel
           )
           .view(_.toInput.assign)
 
-        val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
-        val defaultReadMode: GnirsReadMode   = props.observingMode.get.defaultReadMode
-        val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
+        val defaultDecker: GnirsDecker        = props.observingMode.get.defaultDecker
+        val defaultReadMode: GnirsObsReadMode = props.observingMode.get.defaultReadMode
+        val defaultWellDepth: GnirsWellDepth  = props.observingMode.get.defaultWellDepth
 
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
@@ -246,6 +245,8 @@ object GnirsLongslitConfigPanel
                 centralWavelength = props.observingMode.get.centralWavelength,
                 units = props.units
               )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact)(
             )
           ),
           <.div(
