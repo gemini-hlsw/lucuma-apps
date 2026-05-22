@@ -66,7 +66,9 @@ case class BasicConfigurationPanel(
   itcTargets:          EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]],
   baseCoordinates:     Option[Coordinates],
   calibrationRole:     Option[CalibrationRole],
-  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[Unit], // Creation of alien visitors is done modally
+  createConfig:        (ObservingModeInput, PosAngleOptions) => IO[
+    Unit
+  ], // Creation of alien visitors is done modally
   confMatrix:          ScienceModes,
   customSedTimestamps: List[Timestamp],
   readonly:            Boolean,

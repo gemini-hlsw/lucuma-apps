@@ -195,6 +195,22 @@
   --patrol-field-intersection-color: hsl(330deg 100% 50%);
   --patrol-field-no-zones-color: hsl(30deg 100% 50%);
 
+  // Reachable patrol-field region
+  --reachable-patrol-stroke-color: lightgreen;
+  --reachable-patrol-stroke-width: 0.4px;
+  --reachable-patrol-fill-color: cyan;
+  --reachable-patrol-fill-opacity: 0.05;
+
+  // Visitor science FOV shading
+  --visitor-science-fov-fill-color: cyan;
+  --visitor-science-fov-fill-opacity: 0.05;
+
+  // Extended vignetting area, maroon-x
+  --extended-vignetting-area-stroke-color: orange;
+  --extended-vignetting-area-stroke-width: 0.6px;
+  --extended-vignetting-area-fill-color: orange;
+  --extended-vignetting-area-fill-opacity: 0.05;
+
   // Tooltip colors
   --tooltip-background-color: var(--color-background-light-3);
   --tooltip-viz-background-color: var(--color-background-light-3-a);

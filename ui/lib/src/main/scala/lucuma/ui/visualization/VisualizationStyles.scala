@@ -66,10 +66,12 @@ object VisualizationStyles:
   val Igrins2CandidatesAreaVisible: Css = Css("igrins2-candidates-area-visible")
 
   // Visitor-specific styles
-  val VisitorScienceFov: Css            = Css("visitor-science-fov")
-  val VisitorScienceFovVisible: Css     = Css("visitor-science-fov-visible")
-  val VisitorCandidatesArea: Css        = Css("visitor-candidates-area")
-  val VisitorCandidatesAreaVisible: Css = Css("visitor-candidates-area-visible")
+  val VisitorScienceFov: Css             = Css("visitor-science-fov")
+  val VisitorScienceFovVisible: Css      = Css("visitor-science-fov-visible")
+  val VisitorCandidatesArea: Css         = Css("visitor-candidates-area")
+  val VisitorCandidatesAreaVisible: Css  = Css("visitor-candidates-area-visible")
+  val ExtendedVignettingArea: Css        = Css("extended-vignetting-area")
+  val ExtendedVignettingAreaVisible: Css = Css("extended-vignetting-area-visible")
 
   // GHOST-specific styles
   val GhostScienceArea: Css           = Css("ghost-science-area")

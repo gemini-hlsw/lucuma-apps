@@ -89,6 +89,7 @@ object UseAgsCalculation:
           case p: AgsParams.Igrins2LongSlit    => p.withPWFS1
           case p: AgsParams.GhostIfu           => p.withPWFS1
           case p: AgsParams.Visitor            => p.withPWFS1
+          case p: AgsParams.MaroonX            => p.withPWFS1
       case Some(GuideProbe.PWFS2) =>
         base.map:
           case p: AgsParams.GmosLongSlit       => p.withPWFS2
@@ -97,6 +98,7 @@ object UseAgsCalculation:
           case p: AgsParams.Igrins2LongSlit    => p.withPWFS2
           case p: AgsParams.GhostIfu           => p.withPWFS2
           case p: AgsParams.Visitor            => p.withPWFS2
+          case p: AgsParams.MaroonX            => p.withPWFS2
 
       case _ => base
 
@@ -138,7 +140,10 @@ object UseAgsCalculation:
 
       case _: VisitorObservingModeType =>
         val base = observingMode.collectFirst:
-          case BasicConfiguration.Visitor(scienceFov = fov) => AgsParams.Visitor(fov, port)
+          case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
+            AgsParams.MaroonX(port)
+          case BasicConfiguration.Visitor(scienceFov = fov)                        =>
+            AgsParams.Visitor(fov, port)
         applyGuideProbe(base, guideProbe)
 
   private def runAgsQuery(

@@ -63,25 +63,27 @@ def usePatrolFieldShapes(
   ): Option[SingleProbeAgsParams] =
     val guideProbe: GuideProbe = conf.guideProbe(trackType)
     val params                 = conf match
-      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)  =>
+      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                     =>
         AgsParams.GmosLongSlit(fpu.asLeft, port).some
-      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)  =>
+      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                     =>
         AgsParams.GmosLongSlit(fpu.asRight, port).some
-      case BasicConfiguration.GmosNorthImaging(_)           =>
+      case BasicConfiguration.GmosNorthImaging(_)                              =>
         AgsParams.GmosImaging(port).some
-      case BasicConfiguration.GmosSouthImaging(_)           =>
+      case BasicConfiguration.GmosSouthImaging(_)                              =>
         AgsParams.GmosImaging(port).some
-      case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) =>
+      case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                    =>
         AgsParams
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
           .some
-      case BasicConfiguration.Igrins2LongSlit               =>
+      case BasicConfiguration.Igrins2LongSlit                                  =>
         AgsParams.Igrins2LongSlit().some
-      case BasicConfiguration.GnirsLongSlit(_, _, _, _)     =>
+      case BasicConfiguration.GnirsLongSlit(_, _, _, _)                        =>
         none // TODO; We don't have a Gnirs geometry yet.
-      case BasicConfiguration.GhostIfu(_, _, _, _, _)       =>
+      case BasicConfiguration.GhostIfu(_, _, _, _, _)                          =>
         AgsParams.GhostIfu().some
-      case BasicConfiguration.Visitor(scienceFov = fov)     =>
+      case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
+        AgsParams.MaroonX(port).some
+      case BasicConfiguration.Visitor(scienceFov = fov)                        =>
         AgsParams.Visitor(fov, port).some
 
     params.map: p =>
