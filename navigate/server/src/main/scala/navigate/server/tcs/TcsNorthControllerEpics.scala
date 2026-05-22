@@ -11,8 +11,10 @@ import cats.syntax.all.*
 import fs2.Stream
 import navigate.epics.given
 import navigate.model.WfsConfiguration
+import navigate.model.enums.HrwfsPickupPosition
 import navigate.server.ApplyCommandResult
 import navigate.server.ConnectionTimeout
+import navigate.server.tcs.TcsEpicsSystem.TcsCommands
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.FiniteDuration
@@ -63,6 +65,10 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
     wfsConfigStream(sys.oiwfs, sys.oiwfs)
+
+  // At GN, pickoff mirror is moved to Out position instead of parked
+  override def takeHrOut(cmds: TcsCommands[F]): TcsCommands[F] =
+    cmds.hrwfsCommands.move.setPosition(HrwfsPickupPosition.Out)
 }
 
 object TcsNorthControllerEpics {
