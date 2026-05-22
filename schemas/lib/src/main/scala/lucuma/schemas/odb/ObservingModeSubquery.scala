@@ -159,7 +159,6 @@ object ObservingModeSubquery
             explicitGratingWavelength $WavelengthSubquery
             defaultDecker
             explicitDecker
-            centralWavelength $WavelengthSubquery
             defaultReadMode
             explicitReadMode
             defaultWellDepth
@@ -170,12 +169,10 @@ object ObservingModeSubquery
             coadds
             acquisition {
               readMode
-              coadds
               filter
               offset $OffsetSubquery
-              exposureTime $TimeSpanSubquery
-              exposureCount
-              exposureAt $WavelengthSubquery
+              exposureTimeMode $ExposureTimeModeSubquery
+              coadds
             }
           }
           ghostIfu {

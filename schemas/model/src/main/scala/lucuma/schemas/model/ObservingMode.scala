@@ -737,7 +737,6 @@ object ObservingMode:
     explicitGratingWavelength: Option[Wavelength],
     defaultDecker:             GnirsDecker,
     explicitDecker:            Option[GnirsDecker],
-    centralWavelength:         Wavelength,
     defaultReadMode:           GnirsObsReadMode,
     explicitReadMode:          Option[GnirsObsReadMode],
     defaultWellDepth:          GnirsWellDepth,
@@ -787,31 +786,25 @@ object ObservingMode:
 
   object GnirsLongSlit:
     case class Acquisition(
-      readMode:      GnirsObsReadMode,
-      coadds:        PosInt,
-      filter:        GnirsFilter,
-      offset:        Option[Offset],
-      exposureTime:  TimeSpan,
-      exposureCount: PosInt,
-      exposureAt:    Wavelength
+      readMode:         GnirsObsReadMode,
+      coadds:           PosInt,
+      filter:           GnirsFilter,
+      offset:           Option[Offset],
+      exposureTimeMode: ExposureTimeMode
     ) derives Decoder,
           Eq
 
     object Acquisition:
-      val readMode: Lens[Acquisition, GnirsObsReadMode] =
+      val readMode: Lens[Acquisition, GnirsObsReadMode]         =
         Focus[Acquisition](_.readMode)
-      val coadds: Lens[Acquisition, PosInt]             =
+      val coadds: Lens[Acquisition, PosInt]                     =
         Focus[Acquisition](_.coadds)
-      val filter: Lens[Acquisition, GnirsFilter]        =
+      val filter: Lens[Acquisition, GnirsFilter]                =
         Focus[Acquisition](_.filter)
-      val offset: Lens[Acquisition, Option[Offset]]     =
+      val offset: Lens[Acquisition, Option[Offset]]             =
         Focus[Acquisition](_.offset)
-      val exposureTime: Lens[Acquisition, TimeSpan]     =
-        Focus[Acquisition](_.exposureTime)
-      val exposureCount: Lens[Acquisition, PosInt]      =
-        Focus[Acquisition](_.exposureCount)
-      val exposureAt: Lens[Acquisition, Wavelength]     =
-        Focus[Acquisition](_.exposureAt)
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode] =
+        Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[GnirsLongSlit] = deriveDecoder
     given Eq[GnirsLongSlit]      = Eq.by: x => // We use tuples since there are too many fields.
@@ -823,7 +816,6 @@ object ObservingMode:
         (x.initialCamera, x.camera),
         (x.defaultGratingWavelength, x.explicitGratingWavelength),
         (x.defaultDecker, x.explicitDecker),
-        x.centralWavelength,
         (x.defaultReadMode, x.explicitReadMode),
         (x.defaultWellDepth, x.explicitWellDepth),
         (x.defaultTelescopeConfigs, x.explicitTelescopeConfigs),
@@ -860,8 +852,6 @@ object ObservingMode:
       Focus[GnirsLongSlit](_.defaultDecker)
     val explicitDecker: Lens[GnirsLongSlit, Option[GnirsDecker]]                    =
       Focus[GnirsLongSlit](_.explicitDecker)
-    val centralWavelength: Lens[GnirsLongSlit, Wavelength]                          =
-      Focus[GnirsLongSlit](_.centralWavelength)
     val defaultReadMode: Lens[GnirsLongSlit, GnirsObsReadMode]                      =
       Focus[GnirsLongSlit](_.defaultReadMode)
     val explicitReadMode: Lens[GnirsLongSlit, Option[GnirsObsReadMode]]             =
