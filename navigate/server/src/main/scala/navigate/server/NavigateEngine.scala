@@ -619,11 +619,11 @@ object NavigateEngine {
           case Instrument.Gpi          => x.gpiPort
           case Instrument.Gsaoi        => x.gsaoiPort
           case Instrument.Igrins2      => x.igrins2Port
-          case Instrument.MaroonX      => 0
+          case Instrument.MaroonX      => (site === Site.GN).fold(x.visitorPort, 0)
           case Instrument.Niri         => x.niriPort
           case Instrument.Scorpio      => 0
-          case Instrument.VisitorNorth => 0
-          case Instrument.VisitorSouth => 0
+          case Instrument.VisitorNorth => (site === Site.GN).fold(x.visitorPort, 0)
+          case Instrument.VisitorSouth => (site === Site.GS).fold(0, x.visitorPort)
           case Instrument.Zorro        => (site === Site.GS).fold(2, 0)
         }
         (a =!= 0).option(a)

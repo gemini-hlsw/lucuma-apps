@@ -12,5 +12,6 @@ case class InstrumentPorts(
   gsaoiPort:      Int,
   igrins2Port:    Int,
   nifsPort:       Int,
-  niriPort:       Int
+  niriPort:       Int,
+  visitorPort:    Int
 )
