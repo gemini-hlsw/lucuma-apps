@@ -611,11 +611,7 @@ extension (a: ObservingMode.GnirsLongSlit.Acquisition)
     readMode = a.readMode.assign,
     coadds = a.coadds.assign,
     offset = a.offset.map(_.toInput).orUnassign,
-    exposureTimeMode = TimeAndCountExposureTimeModeInput(
-      count = a.exposureCount,
-      time = a.exposureTime.toInput,
-      at = a.exposureAt.toInput
-    ).assign
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
 
 extension (a: SlitTelescopeConfigs)
@@ -638,7 +634,7 @@ extension (a: ObservingMode.GnirsLongSlit)
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
-    telescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    explicitTelescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
     coadds = a.coadds.assign,
     acquisition = a.acquisition.toInput.assign

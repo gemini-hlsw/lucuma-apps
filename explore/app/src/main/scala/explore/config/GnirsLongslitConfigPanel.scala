@@ -239,11 +239,6 @@ object GnirsLongslitConfigPanel
                 props.units,
                 props.calibrationRole,
                 "gnirsLongSlit".refined
-              ),
-              LambdaAndIntervalFormValues(
-                modeData = modeData,
-                centralWavelength = props.observingMode.get.centralWavelength,
-                units = props.units
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
