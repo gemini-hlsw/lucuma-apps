@@ -327,7 +327,7 @@ trait DisplayImplicits:
     case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)        =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
     case BasicConfiguration.Igrins2LongSlit                              =>
-      s"IGRINS2"
+      s"IGRINS-2"
     case BasicConfiguration.GhostIfu(resolutionMode = rm)                =>
       s"GHOST IFU ${rm.shortName}"
     case BasicConfiguration.GnirsLongSlit(filter = filter)               =>
