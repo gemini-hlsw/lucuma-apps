@@ -57,6 +57,12 @@ object SequenceQueriesGql:
               }
               science { ...igrins2SequenceFields }
             }
+            gnirs {
+              static {
+                wellDepth
+              }
+              science { ...gnirsSequenceFields }
+            }
             ghost {
               static {
                 resolutionMode
@@ -96,6 +102,12 @@ object SequenceQueriesGql:
         fragment igrins2SequenceFields on Igrins2ExecutionSequence {
           nextAtom $Igrins2AtomSubquery
           possibleFuture $Igrins2AtomSubquery
+          hasMore
+        }
+
+        fragment gnirsSequenceFields on GnirsExecutionSequence {
+          nextAtom $GnirsAtomSubquery
+          possibleFuture $GnirsAtomSubquery
           hasMore
         }
 

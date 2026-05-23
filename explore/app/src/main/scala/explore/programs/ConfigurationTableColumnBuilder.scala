@@ -140,7 +140,6 @@ object ConfigurationTableColumnBuilder {
       case Igrins2LongSlit               => ""
       case GnirsLongSlit(grating, _, _)  => grating.shortName
       case GhostIfu                      => ""
-      case GnirsLongSlit(_, _, _)        => ""
       case Visitor(_, _)                 => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =
