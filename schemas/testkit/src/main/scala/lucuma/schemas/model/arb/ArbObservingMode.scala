@@ -615,30 +615,26 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
     Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
       for {
-        readMode      <- arbitrary[GnirsObsReadMode]
-        coadds        <- arbitrary[PosInt]
-        filter        <- arbitrary[GnirsFilter]
-        offset        <- arbitrary[Option[Offset]]
-        exposureTime  <- arbitrary[lucuma.core.util.TimeSpan]
-        exposureCount <- arbitrary[PosInt]
-        exposureAt    <- arbitrary[Wavelength]
+        readMode         <- arbitrary[GnirsObsReadMode]
+        coadds           <- arbitrary[PosInt]
+        filter           <- arbitrary[GnirsFilter]
+        offset           <- arbitrary[Option[Offset]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
       } yield ObservingMode.GnirsLongSlit.Acquisition(
         readMode,
         coadds,
         filter,
         offset,
-        exposureTime,
-        exposureCount,
-        exposureAt
+        exposureTimeMode
       )
     )
 
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
     Cogen[
-      (GnirsObsReadMode, PosInt, GnirsFilter, Option[Offset], Wavelength)
+      (GnirsObsReadMode, PosInt, GnirsFilter, Option[Offset], ExposureTimeMode)
     ]
-      .contramap(a => (a.readMode, a.coadds, a.filter, a.offset, a.exposureAt))
+      .contramap(a => (a.readMode, a.coadds, a.filter, a.offset, a.exposureTimeMode))
 
   given Arbitrary[ObservingMode.GnirsLongSlit] =
     Arbitrary[ObservingMode.GnirsLongSlit](
@@ -657,7 +653,6 @@ trait ArbObservingMode {
         explicitGratingWavelength <- arbitrary[Option[Wavelength]]
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
-        centralWavelength         <- arbitrary[Wavelength]
         defaultReadMode           <- arbitrary[GnirsObsReadMode]
         explicitReadMode          <- arbitrary[Option[GnirsObsReadMode]]
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
@@ -682,7 +677,6 @@ trait ArbObservingMode {
         explicitGratingWavelength,
         defaultDecker,
         explicitDecker,
-        centralWavelength,
         defaultReadMode,
         explicitReadMode,
         defaultWellDepth,
@@ -705,7 +699,6 @@ trait ArbObservingMode {
        (GnirsCamera, GnirsCamera),
        (Wavelength, Option[Wavelength]),
        (GnirsDecker, Option[GnirsDecker]),
-       Wavelength,
        (GnirsObsReadMode, Option[GnirsObsReadMode]),
        (GnirsWellDepth, Option[GnirsWellDepth]),
        (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
@@ -722,7 +715,6 @@ trait ArbObservingMode {
           (o.initialCamera, o.camera),
           (o.defaultGratingWavelength, o.explicitGratingWavelength),
           (o.defaultDecker, o.explicitDecker),
-          o.centralWavelength,
           (o.defaultReadMode, o.explicitReadMode),
           (o.defaultWellDepth, o.explicitWellDepth),
           (o.defaultTelescopeConfigs, o.explicitTelescopeConfigs),

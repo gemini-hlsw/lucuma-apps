@@ -12,6 +12,7 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
@@ -210,6 +211,7 @@ object GnirsLongslitConfigPanel
                 useLongName = true
               ),
               // TODO: Focus (explicitFocusMotorSteps) not yet in model
+              // !!!!!!
               CustomizableEnumSelectOptional(
                 id = "read-mode".refined,
                 view = readModeView.withDefault(defaultReadMode),
@@ -242,6 +244,15 @@ object GnirsLongslitConfigPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
+              // SlitTelescopeConfigsEditor(
+              //   slitTelescopeConfigs = props.observingMode
+              //     .zoom(
+              //       ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
+              //       GnirsLongSlitInput.explicitTelescopeConfigs.modify
+              //     )
+              //     .view(_ .orUnassign),
+              //   readonly = disableSimpleEdit
+              // )
             )
           ),
           <.div(
