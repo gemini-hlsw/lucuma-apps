@@ -22,12 +22,14 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.odb.json.flamingos2.given
 import lucuma.odb.json.ghost.given
 import lucuma.odb.json.gmos.given
+import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.igrins2.given
 import lucuma.odb.json.stepconfig.given
 import lucuma.odb.json.time.decoder.given
@@ -115,6 +117,9 @@ trait VisitDecoders:
   given Decoder[StepRecord.Ghost] =
     stepRecordDecoder[GhostDynamicConfig, StepRecord.Ghost]("ghost", StepRecord.Ghost.apply)
 
+  given Decoder[StepRecord.Gnirs] =
+    stepRecordDecoder[GnirsDynamicConfig, StepRecord.Gnirs]("gnirs", StepRecord.Gnirs.apply)
+
   // Generic atom decoder builder.
   private def atomRecordDecoder[S: Decoder, R](
     buildAtom: (Atom.Id, AtomExecutionState, Option[TimestampInterval], SequenceType, List[S]) => R
@@ -140,6 +145,8 @@ trait VisitDecoders:
     atomRecordDecoder(AtomRecord.Igrins2.apply)
   given decoderAtomGhost: Decoder[AtomRecord.Ghost]           =
     atomRecordDecoder(AtomRecord.Ghost.apply)
+  given decoderAtomGnirs: Decoder[AtomRecord.Gnirs]           =
+    atomRecordDecoder(AtomRecord.Gnirs.apply)
 
   private def visitDecoder[A: Decoder, R](
     expected:   Instrument,
@@ -170,6 +177,8 @@ trait VisitDecoders:
     visitDecoder(Instrument.Igrins2, Visit.Igrins2.apply)
   given decoderVisitGhost: Decoder[Visit.Ghost]           =
     visitDecoder(Instrument.Ghost, Visit.Ghost.apply)
+  given decoderVisitGnirs: Decoder[Visit.Gnirs]           =
+    visitDecoder(Instrument.Gnirs, Visit.Gnirs.apply)
 
   private def executionVisitsDecoder[V: Decoder, R](
     build: NonEmptyList[V] => R
@@ -186,6 +195,8 @@ trait VisitDecoders:
     executionVisitsDecoder(ExecutionVisits.Igrins2.apply)
   given decoderExecutionVisitsGhost: Decoder[ExecutionVisits.Ghost]           =
     executionVisitsDecoder(ExecutionVisits.Ghost.apply)
+  given decoderExecutionVisitsGnirs: Decoder[ExecutionVisits.Gnirs]           =
+    executionVisitsDecoder(ExecutionVisits.Gnirs.apply)
 
   val decoderNoVisits: Decoder[Option[ExecutionVisits]] = Decoder.instance: c =>
     c.downField("visits")
@@ -200,6 +211,7 @@ trait VisitDecoders:
       Decoder[ExecutionVisits.GmosNorth].widen,
       Decoder[ExecutionVisits.GmosSouth].widen,
       Decoder[ExecutionVisits.Flamingos2].widen,
+      Decoder[ExecutionVisits.Gnirs].widen,
       Decoder[ExecutionVisits.Igrins2].widen,
       Decoder[ExecutionVisits.Ghost].widen
     ).reduceLeft(_ or _)

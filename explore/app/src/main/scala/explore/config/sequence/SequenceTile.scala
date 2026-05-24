@@ -341,6 +341,24 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)
                             )
+                      case SequenceData(InstrumentExecutionConfig.Gnirs(config), _) =>
+                        sequnceView
+                          .zoom(
+                            SequenceData.config
+                              .andThen(InstrumentExecutionConfig.gnirs)
+                              .andThen(InstrumentExecutionConfig.Gnirs.executionConfig)
+                          )
+                          .toOptionView
+                          .map: gnirsExecutionView =>
+                            GnirsSequenceTable(
+                              visitsViewOpt,
+                              config.static,
+                              gnirsExecutionView.flatScience,
+                              props.isEditingAcquisition,
+                              props.isEditingScience,
+                              props.isUserStaffOrAdmin,
+                              _ => atoms => IO(atoms)
+                            )
                       case _                                                        => mismatchError.some
                   }
                   .getOrElse:
