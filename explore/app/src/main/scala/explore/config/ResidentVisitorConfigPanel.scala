@@ -53,9 +53,7 @@ object ResidentVisitorConfigPanel
       yield
         import ctx.given
 
-        val mode        = props.observingMode.get
-        val disableEdit =
-          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
+        val mode = props.observingMode.get
 
         val centralWavelengthView: View[Wavelength] =
           props.observingMode
@@ -88,7 +86,7 @@ object ResidentVisitorConfigPanel
               validFormat = props.units.toInputFormat,
               changeAuditor = props.units.toAuditor,
               units = props.units.symbol,
-              disabled = disableEdit
+              disabled = true // the mode defines the central wavelength, so it can't be edited
             )(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-science-fov".refined,
@@ -97,7 +95,7 @@ object ResidentVisitorConfigPanel
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = angleArcsecondsChangeAuditor,
               units = "arcsec",
-              disabled = disableEdit
+              disabled = true // the mode defines the science FOV, so it can't be edited
             )(^.autoComplete.off),
             exposureTimeMode.asView.map: tcView =>
               TimeAndCountModeEditor(
