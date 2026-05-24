@@ -13,6 +13,7 @@ import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.model.enums.StepExecutionState
@@ -89,6 +90,18 @@ enum StepRecord[+D]:
     qaState:          Option[DatasetQaState],
     datasets:         List[Dataset]
   ) extends StepRecord[GhostDynamicConfig]
+
+  case Gnirs(
+    id:               Step.Id,
+    executionState:   StepExecutionState,
+    interval:         Option[TimestampInterval],
+    instrumentConfig: GnirsDynamicConfig,
+    stepConfig:       StepConfig,
+    telescopeConfig:  TelescopeConfig,
+    observeClass:     ObserveClass,
+    qaState:          Option[DatasetQaState],
+    datasets:         List[Dataset]
+  ) extends StepRecord[GnirsDynamicConfig]
 
 object StepRecord:
   given [A]: Eq[StepRecord[A]] = Eq.derived
@@ -242,3 +255,33 @@ object StepRecord:
 
     val datasets: Lens[Ghost, List[Dataset]] =
       Focus[Ghost](_.datasets)
+
+  object Gnirs:
+    given Eq[Gnirs] = Eq.derived
+
+    val id: Lens[Gnirs, Step.Id] =
+      Focus[Gnirs](_.id)
+
+    val executionState: Lens[Gnirs, StepExecutionState] =
+      Focus[Gnirs](_.executionState)
+
+    val interval: Lens[Gnirs, Option[TimestampInterval]] =
+      Focus[Gnirs](_.interval)
+
+    val instrumentConfig: Lens[Gnirs, GnirsDynamicConfig] =
+      Focus[Gnirs](_.instrumentConfig)
+
+    val stepConfig: Lens[Gnirs, StepConfig] =
+      Focus[Gnirs](_.stepConfig)
+
+    val telescopeConfig: Lens[Gnirs, TelescopeConfig] =
+      Focus[Gnirs](_.telescopeConfig)
+
+    val observeClass: Lens[Gnirs, ObserveClass] =
+      Focus[Gnirs](_.observeClass)
+
+    val qaState: Lens[Gnirs, Option[DatasetQaState]] =
+      Focus[Gnirs](_.qaState)
+
+    val datasets: Lens[Gnirs, List[Dataset]] =
+      Focus[Gnirs](_.datasets)

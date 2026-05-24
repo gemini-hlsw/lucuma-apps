@@ -353,10 +353,25 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     List[colDef.Type](indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
       List(ghostBlueGroupCol, ghostRedGroupCol)
 
+  lazy val ForGnirs: List[colDef.TypeFor[?]] =
+    List(
+      indexAndTypeCol,
+      exposureCol,
+      guideStateCol,
+      pOffsetCol,
+      qOffsetCol,
+      wavelengthCol,
+      fpuCol,
+      filterCol,
+      readModeCol,
+      snCol
+    )
+
   def apply(instrument: Instrument): List[colDef.Type] =
     instrument match
       case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
       case Instrument.Flamingos2                       => ForFlamingos2
+      case Instrument.Gnirs                            => ForGnirs
       case Instrument.Igrins2                          => ForIgrins2
       case Instrument.Ghost                            => ForGhost
       case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
@@ -453,11 +468,17 @@ object SequenceColumns:
         GhostBlueBinningColumnId       -> FixedSize(80.toPx)
       )
 
+    val ForGnirs: Map[ColumnId, ColumnSize] =
+      CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
+        ReadModeColumnId -> Resizable(90.toPx, min = 90.toPx)
+      )
+
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
       val instrumentCols =
         instrument match
           case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
           case Instrument.Flamingos2                       => ForFlamingos2
+          case Instrument.Gnirs                            => ForGnirs
           case Instrument.Igrins2                          => ForIgrins2
           case Instrument.Ghost                            => ForGhost
           case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
@@ -507,10 +528,21 @@ object SequenceColumns:
       GuideColumnId
     ).reverse
 
+    val ForGnirs: List[ColumnId] = List(
+      PColumnId,
+      QColumnId,
+      GuideColumnId,
+      ExposureColumnId,
+      SNColumnId,
+      FilterColumnId,
+      FPUColumnId
+    ).reverse
+
     def apply(instrument: Instrument): List[ColumnId] =
       instrument match
         case Instrument.GmosNorth | Instrument.GmosSouth => ForGmos
         case Instrument.Flamingos2                       => ForFlamingos2
+        case Instrument.Gnirs                            => ForGnirs
         case Instrument.Igrins2                          => ForIgrins2
         case Instrument.Ghost                            => ForGhost
         case _                                           => throw new Exception(s"Unimplemented instrument: $instrument")
