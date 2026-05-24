@@ -39,8 +39,8 @@ importers:
         specifier: 2.1.1
         version: 2.1.1(@types/react@19.2.10)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator':
-        specifier: 3.2.15
-        version: 3.2.15(react@18.3.1)
+        specifier: 3.2.16
+        version: 3.2.16(react@18.3.1)
       '@floating-ui/react':
         specifier: 0.27.19
         version: 0.27.19(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -366,8 +366,8 @@ packages:
       react: ^18.2.0
       react-dom: ^18.2.0
 
-  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15':
-    resolution: {integrity: sha512-D0wyKXsZlmkXcV00IPfFsGfOLVKw6r6vAy4oHn/E0RvHlWHSXxUScXDFKkhN4EDsEEwSxv6xmMNoj3RA8JCKUg==}
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.16':
+    resolution: {integrity: sha512-A2rcb6cqBFlGFR0cVwAwZKcSqUaYviNLskfBLI6wvDUFD2/dYI7GN56SOC895YC7EMoG/tPHkDB5vZiLa/iyQA==}
     peerDependencies:
       react: ^18.2.0 || ^19.0.0
 
@@ -3740,7 +3740,7 @@ snapshots:
       - '@types/react'
       - supports-color
 
-  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.15(react@18.3.1)':
+  '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.16(react@18.3.1)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
