@@ -13,7 +13,7 @@ import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
 
 class Igrins2ControllerDisabled[F[_]: Logger: Applicative] extends Igrins2Controller[F]:
-  private val name = "IGRINS2"
+  private val name = "IGRINS-2"
 
   override def exposureProgress: F[Stream[F, Int]] =
     Stream.emit[F, Int](0).pure[F]

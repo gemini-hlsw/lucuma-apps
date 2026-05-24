@@ -27,20 +27,29 @@ import scala.collection.immutable.SortedMap
 case class VisitorGeometry(mode: VisitorObservingModeType, scienceFov: Angle) extends PwfsGeometry:
 
   override def shapesForMode(posAngle: Angle, offset: Offset) =
-    val scienceFovShape = mode match
+    mode match
       case VisitorObservingModeType.MaroonX =>
-        maroonXScienceArea.shapeAt(posAngle, offset)
+        SortedMap(
+          (VisitorScienceFov, maroonXScienceArea.shapeAt(posAngle, offset)),
+          (ExtendedVignettingArea, maroonXScienceArea.extendedVignettingAreaAt(posAngle, offset))
+        )
       case _                                =>
-        visitorScienceArea.shapeAt(posAngle, offset, scienceFov)
-    SortedMap((VisitorScienceFov, scienceFovShape))
+        SortedMap((VisitorScienceFov, visitorScienceArea.shapeAt(posAngle, offset, scienceFov)))
 
   override protected def candidatesAreaCss: Css = VisitorCandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
-    guideProbe match
-      case GuideProbe.PWFS1 => AgsParams.Visitor(scienceFov).withPWFS1
-      case GuideProbe.PWFS2 => AgsParams.Visitor(scienceFov).withPWFS2
-      case _                => AgsParams.Visitor(scienceFov)
+    mode match
+      case VisitorObservingModeType.MaroonX =>
+        guideProbe match
+          case GuideProbe.PWFS1 => AgsParams.MaroonX().withPWFS1
+          case GuideProbe.PWFS2 => AgsParams.MaroonX().withPWFS2
+          case _                => AgsParams.MaroonX()
+      case _                                =>
+        guideProbe match
+          case GuideProbe.PWFS1 => AgsParams.Visitor(scienceFov).withPWFS1
+          case GuideProbe.PWFS2 => AgsParams.Visitor(scienceFov).withPWFS2
+          case _                => AgsParams.Visitor(scienceFov)
 
 object VisitorGeometry:
 

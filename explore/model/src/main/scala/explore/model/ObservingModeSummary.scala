@@ -221,7 +221,7 @@ object ObservingModeSummary:
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"GMOS-S Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case Igrins2LongSlit()                                                            =>
-      s"IGRINS2 Longslit"
+      s"IGRINS-2 Longslit"
     case GhostIfu(resolutionMode)                                                     =>
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"

@@ -106,9 +106,11 @@
   }
 
   .patrol-field-intersection {
-    stroke: hsl(120deg 100% 50%);
-    stroke-width: 1.5px;
-    stroke-dasharray: 3;
+    stroke: var(--reachable-patrol-stroke-color);
+    stroke-width: var(--reachable-patrol-stroke-width);
+    stroke-dasharray: 1.5;
+    fill: var(--reachable-patrol-fill-color);
+    fill-opacity: var(--reachable-patrol-fill-opacity);
   }
 
   // Individual patrol fields - colored by position type
@@ -201,7 +203,16 @@
   .visitor-science-fov {
     stroke: cyan;
     stroke-width: 0.8px;
-    fill: none;
+    fill: var(--visitor-science-fov-fill-color);
+    fill-opacity: var(--visitor-science-fov-fill-opacity);
+  }
+
+  .extended-vignetting-area {
+    stroke: var(--extended-vignetting-area-stroke-color);
+    stroke-width: var(--extended-vignetting-area-stroke-width);
+    stroke-dasharray: 2;
+    fill: var(--extended-vignetting-area-fill-color);
+    fill-opacity: var(--extended-vignetting-area-fill-opacity);
   }
 
   &.igrins2-candidates-area-visible .igrins2-candidates-area,
