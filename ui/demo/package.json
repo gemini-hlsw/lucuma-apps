@@ -16,7 +16,7 @@
     "react-dom": "18.3.1",
     "react-grid-layout": "1.5.3",
     "sass": "1.99.0",
-    "ua-parser-js": "2.0.9",
+    "ua-parser-js": "2.0.10",
     "vite": "8.0.14"
   },
   "dependencies": {
