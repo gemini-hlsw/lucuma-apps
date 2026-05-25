@@ -49,7 +49,7 @@ object TelescopeConfigsEditor
           disabled = props.readonly || props.telescopeConfigs.get.length >= props.maxOffsets,
           tooltip = "Add Offset",
           text = true,
-          clazz = LucumaPrimeStyles.FormField |+| OffsetGeneratorEditorStyles.AddOffset,
+          clazz = LucumaPrimeStyles.FormField |+| TelescopeConfigEditorStyles.AddOffset,
           onClick = props.telescopeConfigs.mod(_.append(TelescopeConfig.Default))
         ).mini.compact
       )
