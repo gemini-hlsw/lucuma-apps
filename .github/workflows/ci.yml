@@ -80,8 +80,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: pnpm
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -225,8 +228,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: pnpm
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
@@ -304,8 +310,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: pnpm
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter observe --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
@@ -402,8 +411,11 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: pnpm
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter 'lucuma-apps' --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Import CSS files
         run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss

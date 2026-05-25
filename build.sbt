@@ -1098,36 +1098,15 @@ lazy val setupPnpmAndNode = List(
   )
 )
 
-lazy val rootSetupNodePnpmInstall =
-  setupPnpmAndNode ++
-    List(
-      WorkflowStep.Run(
-        List("pnpm ci --filter '!lucuma-ui-demo' --prefer-offline"),
-        name = Some("pnpm install")
-      )
-    )
-
-lazy val rootOnlySetupNodePnpmInstall =
-  setupPnpmAndNode ++
-    List(
-      WorkflowStep.Run(
-        List("pnpm ci --filter 'lucuma-apps' --prefer-offline"),
-        name = Some("pnpm install")
-      )
-    )
-
-lazy val exploreSetupNodePnpmInstall =
+// `pnpm fetch` pre-populates the store for all subprojects.
+lazy val setupNodePnpmInstall =
   setupPnpmAndNode ++ List(
     WorkflowStep.Run(
-      List("pnpm ci --filter explore --filter {ui/tests} --prefer-offline"),
-      name = Some("pnpm install")
-    )
-  )
-
-lazy val observeSetupNodePnpmInstall =
-  setupPnpmAndNode ++ List(
+      List("pnpm fetch"),
+      name = Some("Populate pnpm store")
+    ),
     WorkflowStep.Run(
-      List("pnpm ci --filter observe --prefer-offline"),
+      List("pnpm install --frozen-lockfile --offline"),
       name = Some("pnpm install")
     )
   )
@@ -1230,7 +1209,7 @@ lazy val recordDeploymentMetadata = WorkflowStep.Run(
   cond = Some(allConds(mainCond, exploreChangedCond))
 )
 
-ThisBuild / githubWorkflowBuildPreamble ++= exploreSetupNodePnpmInstall
+ThisBuild / githubWorkflowBuildPreamble ++= setupNodePnpmInstall
 
 val usePathsFilter: WorkflowStep = WorkflowStep.Use(
   UseRef.Public("dorny", "paths-filter", "v4"),
@@ -1259,7 +1238,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "Build and deploy Explore",
     githubWorkflowJobSetup.value.toList :::
       usePathsFilter ::
-      exploreSetupNodePnpmInstall :::
+      setupNodePnpmInstall :::
       exploreSbtLink ::
       exploreNpmBuild ::
       overrideCiCommit ::
@@ -1280,7 +1259,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "observe-deploy",
     "Build and publish Observe Docker image / Deploy to Heroku",
     githubWorkflowJobSetup.value.toList :::
-      observeSetupNodePnpmInstall :::
+      setupNodePnpmInstall :::
       dockerHubLogin ::
       sbtDockerPublishObserve ::
       herokuRelease ::
@@ -1315,7 +1294,7 @@ ThisBuild / githubWorkflowAddedJobs +=
     "lint",
     "Run linters",
     githubWorkflowJobSetup.value.toList :::
-      rootOnlySetupNodePnpmInstall :::
+      setupNodePnpmInstall :::
       lucumaCssStep ::
       lintAllStep ::
       Nil,
