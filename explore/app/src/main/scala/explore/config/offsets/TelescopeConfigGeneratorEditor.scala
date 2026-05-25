@@ -6,6 +6,7 @@ package explore.config.offsets
 import cats.data.NonEmptyList
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.components.ui.ExploreStyles
 import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -58,75 +59,79 @@ object TelescopeConfigGeneratorEditor
           onChange = gt => props.value.set(gt.init),
           disabled = props.readonly
         ),
-        explicitOpt.map: explicit =>
-          TelescopeConfigsEditor(
-            telescopeConfigs = explicit,
-            maxOffsets = props.maxExplicit,
-            readonly = props.readonly
-          ),
-        randomOpt.map { random =>
-          React.Fragment(
-            FormInputTextView(
-              id = "random-size".refined,
-              label = "Size (arcsec):",
-              value = random.zoom(OffsetGenerator.Random.size),
-              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-              disabled = props.readonly,
-              placeholder = "0.0"
+        <.div(ExploreStyles.TelescopeConfigGeneratorOffsets)(
+          explicitOpt.map: explicit =>
+            TelescopeConfigsEditor(
+              telescopeConfigs = explicit,
+              maxOffsets = props.maxExplicit,
+              readonly = props.readonly
             ),
-            if props.showCenter then
-              React.Fragment(
-                <.label(^.htmlFor := "random-size", "Center (arcsec):"),
-                OffsetInput(
-                  id = "random-center".refined,
-                  offset = random.zoom(OffsetGenerator.Random.center),
-                  readonly = props.readonly,
-                  inputClass = LucumaPrimeStyles.FormField
+          randomOpt.map { random =>
+            React.Fragment(
+              FormInputTextView(
+                id = "random-size".refined,
+                label = "Size:",
+                units = "\"",
+                value = random.zoom(OffsetGenerator.Random.size),
+                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+                disabled = props.readonly,
+                placeholder = "0.0"
+              ),
+              if props.showCenter then
+                React.Fragment(
+                  <.label(^.htmlFor := "random-size", "Center:"),
+                  OffsetInput(
+                    id = "random-center".refined,
+                    offset = random.zoom(OffsetGenerator.Random.center),
+                    readonly = props.readonly,
+                    inputClass = LucumaPrimeStyles.FormField
+                  )
                 )
-              )
-            else EmptyVdom
-          )
-        },
-        spiralOpt.map { spiral =>
-          React.Fragment(
-            FormInputTextView(
-              id = "spiral-size".refined,
-              label = "Size (arcsec):",
-              value = spiral.zoom(OffsetGenerator.Spiral.size),
-              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
-              disabled = props.readonly,
-              placeholder = "0.0"
-            ),
-            if props.showCenter then
-              React.Fragment(
-                <.label(^.htmlFor := "spiral-center", "Center (arcsec):"),
-                OffsetInput(
-                  id = "spiral-center".refined,
-                  offset = spiral.zoom(OffsetGenerator.Spiral.center),
-                  readonly = props.readonly,
-                  inputClass = LucumaPrimeStyles.FormField
-                )
-              )
-            else EmptyVdom
-          )
-        },
-        uniformOpt.map { uniform =>
-          React.Fragment(
-            <.label(^.htmlFor := "uniform-corner-a", "Corner A (arcsec):"),
-            OffsetInput(
-              id = "uniform-corner-a".refined,
-              offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
-              readonly = props.readonly,
-              inputClass = LucumaPrimeStyles.FormField
-            ),
-            <.label(^.htmlFor := "uniform-corner-b", "Corner B (arcsec):"),
-            OffsetInput(
-              id = "uniform-corner-b".refined,
-              offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
-              readonly = props.readonly,
-              inputClass = LucumaPrimeStyles.FormField
+              else EmptyVdom
             )
-          )
-        }
+          },
+          spiralOpt.map { spiral =>
+            React.Fragment(
+              FormInputTextView(
+                id = "spiral-size".refined,
+                label = "Size:",
+                units = "\"",
+                value = spiral.zoom(OffsetGenerator.Spiral.size),
+                validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+                disabled = props.readonly,
+                placeholder = "0.0"
+              ),
+              if props.showCenter then
+                React.Fragment(
+                  <.label(^.htmlFor := "spiral-center", "Center:"),
+                  OffsetInput(
+                    id = "spiral-center".refined,
+                    offset = spiral.zoom(OffsetGenerator.Spiral.center),
+                    readonly = props.readonly,
+                    inputClass = LucumaPrimeStyles.FormField
+                  )
+                )
+              else EmptyVdom
+            )
+          },
+          uniformOpt.map { uniform =>
+            React.Fragment(
+              <.label(^.htmlFor := "uniform-corner-a", "Corner A:"),
+              OffsetInput(
+                id = "uniform-corner-a".refined,
+                offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
+                readonly = props.readonly,
+                inputClass = LucumaPrimeStyles.FormField
+              ),
+              <.label(^.htmlFor := "uniform-corner-b", "Corner B:"),
+              OffsetInput(
+                id = "uniform-corner-b".refined,
+                offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
+                readonly = props.readonly,
+                inputClass = LucumaPrimeStyles.FormField
+              )
+            )
+          }
+        )
       )
     })

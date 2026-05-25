@@ -405,6 +405,7 @@ object ExploreStyles:
   val GmosImagingFilterGrid: Css           = Css("explore-gmos-imaging-filter-grid")
   val GmosImagingFilterGridHeader: Css     = Css("explore-gmos-imaging-filter-grid-header")
   val GmosImagingFilterGridAction: Css     = Css("explore-gmos-imaging-filter-grid-action")
+  val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
   val AdvancedConfigurationButtons: Css    = Css("explore-advanced-configuration-buttons")
   val GmosLongSlitBinning: Css             = Css("explore-gmos-longslit-binning")

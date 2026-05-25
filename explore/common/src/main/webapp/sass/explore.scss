@@ -4217,3 +4217,11 @@ span.explore-offsets-count {
     align-items: center;
   }
 }
+
+.explore-telescope-config-generator-offsets {
+  grid-column: 1 / span 2;
+  align-items: center;
+  display: grid;
+  grid-template-columns: [label] auto [field] 1fr;
+  column-gap: 1em;
+}
