@@ -1872,8 +1872,8 @@ svg.fa-check.explore-success-icon {
     padding: 0.5em;
     gap: 1em;
     grid-template:
-      'col1 col2' auto
-      / 1fr 1fr;
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
     border-bottom: 1px solid var(--site-border-color);
   }
 
@@ -4204,4 +4204,16 @@ span.explore-offsets-count {
 .offset-add-offset-button.pl-form-field.p-button {
   justify-self: end;
   padding-right: 2px;
+}
+
+.pl-form-column.explore-slit-telescope-config-editor {
+  grid-template-areas: 'header header' 'labels values';
+
+  .explore-slit-telescope-config-editor-header {
+    grid-area: header;
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+  }
 }

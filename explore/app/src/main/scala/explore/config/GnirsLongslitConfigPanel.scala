@@ -253,7 +253,7 @@ object GnirsLongslitConfigPanel
                 "gnirsLongSlit".refined
               )
             ),
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
+            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               SlitTelescopeConfigsEditor(
                 explicitValue = slitTelescopeConfigsView,
                 defaultValue = props.observingMode.get.defaultTelescopeConfigs,
