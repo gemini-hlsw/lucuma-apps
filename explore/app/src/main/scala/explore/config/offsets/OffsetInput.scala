@@ -36,6 +36,7 @@ object OffsetInput
         FormInputTextView(
           id = props.pId,
           label = "p:",
+          units = "\"",
           value = props.offset.zoom(Offset.pAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),
@@ -47,6 +48,7 @@ object OffsetInput
         FormInputTextView(
           id = props.qId,
           label = "q:",
+          units = "\"",
           value = props.offset.zoom(Offset.qAngle),
           validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
           changeAuditor = ChangeAuditor.bigDecimal(3.refined, 2.refined),

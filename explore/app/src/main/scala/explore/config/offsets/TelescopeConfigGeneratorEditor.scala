@@ -4,10 +4,8 @@
 package explore.config.offsets
 
 import cats.data.NonEmptyList
-import cats.syntax.all.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.Icons
 import explore.model.ExploreModelValidators
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -15,7 +13,6 @@ import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.react.common.*
-import lucuma.react.primereact.Button
 import lucuma.refined.*
 import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
