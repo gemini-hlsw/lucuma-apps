@@ -361,5 +361,5 @@ package object keywords {
       Applicative[F].unit
   }
 
-  val USLocale: Locale = new Locale("en", "US")
+  val USLocale: Locale = Locale.US
 }
