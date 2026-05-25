@@ -8,8 +8,6 @@ import cats.syntax.all.*
 import fs2.compression.Compression
 import lucuma.graphql.routes.GraphQLService
 import lucuma.graphql.routes.Routes
-import navigate.model.config.NavigateConfiguration
-import navigate.server.NavigateEngine
 import org.http4s.HttpRoutes
 import org.http4s.dsl.Http4sDsl
 import org.http4s.server.middleware.GZip
@@ -19,30 +17,18 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 import org.typelevel.otel4s.trace.Tracer.Implicits.noop
 
 class GraphQlRoutes[F[_]: {Async, Compression}](
-  config: NavigateConfiguration,
-  eng:    NavigateEngine[F],
-  topics: TopicManager[F]
+  mappings: NavigateMappings[F]
 ) extends Http4sDsl[F] {
 
   private given Logger[F] =
     Slf4jLogger.getLoggerFromName[F]("navigate.web.server.http4s.GraphQlRoutes")
 
-  private def commandServices(wsb: WebSocketBuilder2[F]): HttpRoutes[F] = GZip(
-    Routes.forService(
-      _ =>
-        NavigateMappings(
-          config,
-          eng,
-          topics
-        )
-          .map(
-            GraphQLService[F](_).some
-          ),
-      wsb
-    )
-  )
-
   def service(wsb: WebSocketBuilder2[F]): HttpRoutes[F] =
-    GZip(commandServices(wsb))
+    GZip(
+      Routes.forService(
+        _ => GraphQLService[F](mappings).some.pure[F],
+        wsb
+      )
+    )
 
 }

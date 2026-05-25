@@ -81,41 +81,44 @@ object WebServerLauncher extends IOApp with LogInitialization {
     )
 
   /** Resource that yields the running web server */
-  def webServer[F[_]: {Async, Files, Compression, Network}](
+  def webServer[F[_]: {Async, Files, Logger, Compression, Network}](
     conf:   NavigateConfiguration,
     topics: TopicManager[F],
     se:     NavigateEngine[F]
   ): Resource[F, Server] = {
     val ssl: F[Option[TLSContext[F]]] = conf.webServer.tls.traverse(makeContext[F])
 
-    def router(wsBuilder: WebSocketBuilder2[F], proxyService: HttpRoutes[F]) = Router[F](
+    def router(
+      wsBuilder:    WebSocketBuilder2[F],
+      proxyService: HttpRoutes[F],
+      mappings:     NavigateMappings[F]
+    )                 = Router[F](
       "/"                 -> new StaticRoutes().service,
-      "/navigate"         -> new GraphQlRoutes(
-        conf,
-        se,
-        topics
-      )
-        .service(wsBuilder),
+      "/navigate"         -> new GraphQlRoutes(mappings).service(wsBuilder),
       ProxyRoute.toString -> proxyService
     )
 
-    def loggedRoutes(wsBuilder: WebSocketBuilder2[F], proxyService: HttpRoutes[F]) =
+    def loggedRoutes(
+      wsBuilder:    WebSocketBuilder2[F],
+      proxyService: HttpRoutes[F],
+      mappings:     NavigateMappings[F]
+    ) =
       Http4sLogger.httpRoutes(logHeaders = false, logBody = false)(
-        router(wsBuilder, proxyService)
+        router(wsBuilder, proxyService, mappings)
       )
 
-    def builder(proxyService: HttpRoutes[F]) =
+    def builder(proxyService: HttpRoutes[F], mappings: NavigateMappings[F]) =
       EmberServerBuilder
         .default[F]
         .withHost(conf.webServer.host)
         .withPort(conf.webServer.port)
-        .withHttpWebSocketApp(wsb => loggedRoutes(wsb, proxyService).orNotFound)
+        .withHttpWebSocketApp(wsb => loggedRoutes(wsb, proxyService, mappings).orNotFound)
 
     for
       proxyService <- ProxyBuilder.buildService[F](conf.webServer.proxyBaseUri, ProxyRoute)
-      server       <-
-        ssl.toResource
-          .flatMap(_.fold(builder(proxyService))(builder(proxyService).withTLS(_)).build)
+      mappings     <- NavigateMappings[F](conf, se, topics).toResource
+      build         = builder(proxyService, mappings)
+      server       <- ssl.toResource.flatMap(_.fold(build)(build.withTLS(_)).build)
     yield server
   }
 
