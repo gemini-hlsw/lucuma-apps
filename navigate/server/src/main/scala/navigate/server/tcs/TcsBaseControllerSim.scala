@@ -224,7 +224,8 @@ abstract class TcsBaseControllerSim[F[_]: Async](
       gsaoiPort = 5,
       igrins2Port = 0,
       nifsPort = 0,
-      niriPort = 0
+      niriPort = 0,
+      visitorPort = 0
     ).pure[F]
 
   override def lightPath(from: LightSource, to: LightSinkName): F[ApplyCommandResult] =

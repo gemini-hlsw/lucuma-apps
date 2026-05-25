@@ -1801,7 +1801,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       case LightSinkName.Hr                                                        => 1
       case LightSinkName.Nifs                                                      => instrumentPorts.nifsPort
       case LightSinkName.Gnirs                                                     => instrumentPorts.gnirsPort
-      case LightSinkName.Visitor                                                   => 0
+      case LightSinkName.Visitor                                                   => instrumentPorts.visitorPort
       case LightSinkName.Flamingos2                                                => instrumentPorts.flamingos2Port
       case LightSinkName.Gsaoi                                                     => instrumentPorts.gsaoiPort
       case LightSinkName.Gpi                                                       => instrumentPorts.gpiPort

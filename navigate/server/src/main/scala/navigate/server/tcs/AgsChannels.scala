@@ -23,6 +23,7 @@ case class AgsChannels[F[_]](
   oiParked:        Channel[F, Int],
   oiFollow:        Channel[F, String],
   instrumentPorts: AgsChannels.InstrumentPortChannels[F],
+  ports:           AgsChannels.PortChannels[F],
   aoName:          Channel[F, String],
   hwName:          Channel[F, String],
   sfName:          Channel[F, String],
@@ -45,7 +46,8 @@ object AgsChannels {
     gnirs:   Channel[F, Int],
     nifs:    Channel[F, Int],
     ghost:   Channel[F, Int],
-    igrins2: Channel[F, Int]
+    igrins2: Channel[F, Int],
+    visitor: Channel[F, Int]
   )
 
   object InstrumentPortChannels {
@@ -67,6 +69,7 @@ object AgsChannels {
         nf <- buildPortCh("nifs")
         gh <- buildPortCh("ghost")
         ig <- buildPortCh("igrins2")
+        vs <- buildPortCh("visitor")
       } yield InstrumentPortChannels(
         gm,
         gs,
@@ -76,10 +79,38 @@ object AgsChannels {
         gn,
         nf,
         gh,
-        ig
+        ig,
+        vs
       )
     }
 
+  }
+
+  case class PortChannels[F[_]](
+    port1: Channel[F, String],
+    port2: Channel[F, String],
+    port3: Channel[F, String],
+    port4: Channel[F, String],
+    port5: Channel[F, String]
+  )
+
+  object PortChannels {
+    def build[F[_]](
+      service: EpicsService[F],
+      top:     NonEmptyString
+    ): Resource[F, PortChannels[F]] = for {
+      p1 <- service.getChannel[String](top, "port:port1.VAL")
+      p2 <- service.getChannel[String](top, "port:port2.VAL")
+      p3 <- service.getChannel[String](top, "port:port3.VAL")
+      p4 <- service.getChannel[String](top, "port:port4.VAL")
+      p5 <- service.getChannel[String](top, "port:port5.VAL")
+    } yield PortChannels(
+      port1 = p1,
+      port2 = p2,
+      port3 = p3,
+      port4 = p4,
+      port5 = p5
+    )
   }
 
   case class PwfsAnglesChannels[F[_]](
@@ -129,7 +160,8 @@ object AgsChannels {
     p2Follow  <- service.getChannel[String](top, "p2:followS.VAL")
     oiParked  <- service.getChannel[Int](top, "oi:probeParked.VAL")
     oiFollow  <- service.getChannel[String](top, "oi:followS.VAL")
-    ports     <- InstrumentPortChannels.build(service, top)
+    insPorts  <- InstrumentPortChannels.build(service, top)
+    ports     <- PortChannels.build(service, top)
     aoName    <- service.getChannel[String](top, "aoName.VAL")
     hwName    <- service.getChannel[String](top, "hwName.VAL")
     sfName    <- service.getChannel[String](top, "sfName.VAL")
@@ -150,6 +182,7 @@ object AgsChannels {
     p2Follow,
     oiParked,
     oiFollow,
+    insPorts,
     ports,
     aoName,
     hwName,

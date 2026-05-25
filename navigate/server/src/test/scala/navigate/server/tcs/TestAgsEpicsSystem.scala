@@ -11,6 +11,7 @@ import monocle.Focus
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.TestChannel
 import navigate.server.tcs.AgsChannels.InstrumentPortChannels
+import navigate.server.tcs.AgsChannels.PortChannels
 
 object TestAgsEpicsSystem {
 
@@ -35,6 +36,12 @@ object TestAgsEpicsSystem {
     igrins2Port:  TestChannel.State[Int],
     nifsPort:     TestChannel.State[Int],
     niriPort:     TestChannel.State[Int],
+    visitorPort:  TestChannel.State[Int],
+    port1Label:   TestChannel.State[String],
+    port2Label:   TestChannel.State[String],
+    port3Label:   TestChannel.State[String],
+    port4Label:   TestChannel.State[String],
+    port5Label:   TestChannel.State[String],
     aoName:       TestChannel.State[String],
     hwName:       TestChannel.State[String],
     sfName:       TestChannel.State[String],
@@ -70,6 +77,12 @@ object TestAgsEpicsSystem {
     TestChannel.State.of(0),
     TestChannel.State.of(0),
     TestChannel.State.of(0),
+    TestChannel.State.of(0),
+    TestChannel.State.of(""),
+    TestChannel.State.of(""),
+    TestChannel.State.of(""),
+    TestChannel.State.of(""),
+    TestChannel.State.of(""),
     TestChannel.State.of(""),
     TestChannel.State.of(""),
     TestChannel.State.of(""),
@@ -108,7 +121,15 @@ object TestAgsEpicsSystem {
       gnirs = new TestChannel[F, State, Int](s, Focus[State](_.gnirsPort)),
       nifs = new TestChannel[F, State, Int](s, Focus[State](_.nifsPort)),
       ghost = new TestChannel[F, State, Int](s, Focus[State](_.ghostPort)),
-      igrins2 = new TestChannel[F, State, Int](s, Focus[State](_.igrins2Port))
+      igrins2 = new TestChannel[F, State, Int](s, Focus[State](_.igrins2Port)),
+      visitor = new TestChannel[F, State, Int](s, Focus[State](_.visitorPort))
+    ),
+    ports = PortChannels[F](
+      port1 = new TestChannel[F, State, String](s, Focus[State](_.port1Label)),
+      port2 = new TestChannel[F, State, String](s, Focus[State](_.port2Label)),
+      port3 = new TestChannel[F, State, String](s, Focus[State](_.port3Label)),
+      port4 = new TestChannel[F, State, String](s, Focus[State](_.port4Label)),
+      port5 = new TestChannel[F, State, String](s, Focus[State](_.port5Label))
     ),
     aoName = new TestChannel[F, State, String](s, Focus[State](_.aoName)),
     hwName = new TestChannel[F, State, String](s, Focus[State](_.hwName)),

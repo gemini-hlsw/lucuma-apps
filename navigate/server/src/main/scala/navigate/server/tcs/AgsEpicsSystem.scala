@@ -57,6 +57,8 @@ object AgsEpicsSystem {
     def igrins2Port: VerifiedEpics[F, F, Int]
     def nifsPort: VerifiedEpics[F, F, Int]
     def niriPort: VerifiedEpics[F, F, Int]
+    def visitorPort: VerifiedEpics[F, F, Int]
+    def portLabel(port: Int): VerifiedEpics[F, F, String]
     def aoName: VerifiedEpics[F, F, AgMechPosition]
     def hwName: VerifiedEpics[F, F, AgMechPosition]
     def sfName: VerifiedEpics[F, F, ScienceFold]
@@ -148,6 +150,19 @@ object AgsEpicsSystem {
 
         override def niriPort: VerifiedEpics[F, F, Int] =
           VerifiedEpics.readChannel(channels.telltale, channels.instrumentPorts.niri)
+
+        override def visitorPort: VerifiedEpics[F, F, Int] =
+          VerifiedEpics.readChannel(channels.telltale, channels.instrumentPorts.visitor)
+
+        override def portLabel(port: Int): VerifiedEpics[F, F, String] =
+          (port match {
+            case 1 => channels.ports.port1.some
+            case 2 => channels.ports.port2.some
+            case 3 => channels.ports.port3.some
+            case 4 => channels.ports.port4.some
+            case 5 => channels.ports.port5.some
+            case _ => none
+          }).map(VerifiedEpics.readChannel(channels.telltale, _)).getOrElse(VerifiedEpics.pureF(""))
 
         override def aoName: VerifiedEpics[F, F, AgMechPosition] =
           VerifiedEpics

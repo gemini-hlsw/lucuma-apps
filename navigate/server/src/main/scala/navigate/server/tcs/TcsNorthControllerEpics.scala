@@ -33,19 +33,23 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
     with TcsNorthController[F] {
 
   override def getInstrumentPorts: F[InstrumentPorts] = (for {
-    gmF <- sys.ags.status.gmosPort
-    gnF <- sys.ags.status.gnirsPort
-    gpF <- sys.ags.status.gpiPort
-    igF <- sys.ags.status.igrins2Port
-    nfF <- sys.ags.status.nifsPort
-    nrF <- sys.ags.status.niriPort
+    gmF    <- sys.ags.status.gmosPort
+    gnF    <- sys.ags.status.gnirsPort
+    gpF    <- sys.ags.status.gpiPort
+    igF    <- sys.ags.status.igrins2Port
+    nfF    <- sys.ags.status.nifsPort
+    nrF    <- sys.ags.status.niriPort
+    vsF    <- sys.ags.status.visitorPort
+    port1F <- sys.ags.status.portLabel(1)
   } yield for {
-    gm <- gmF
-    gn <- gnF
-    gp <- gpF
-    ig <- igF
-    nf <- nfF
-    nr <- nrF
+    gm    <- gmF
+    gn    <- gnF
+    gp    <- gpF
+    ig    <- igF
+    nf    <- nfF
+    nr    <- nrF
+    vs    <- vsF
+    port1 <- port1F
   } yield InstrumentPorts(
     flamingos2Port = 0,
     ghostPort = 0,
@@ -55,7 +59,8 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
     gsaoiPort = 0,
     igrins2Port = ig,
     nifsPort = nf,
-    niriPort = nr
+    niriPort = nr,
+    visitorPort = vs
   )).verifiedRun(ConnectionTimeout)
 
   override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] =
@@ -69,6 +74,7 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
   // At GN, pickoff mirror is moved to Out position instead of parked
   override def takeHrOut(cmds: TcsCommands[F]): TcsCommands[F] =
     cmds.hrwfsCommands.move.setPosition(HrwfsPickupPosition.Out)
+
 }
 
 object TcsNorthControllerEpics {

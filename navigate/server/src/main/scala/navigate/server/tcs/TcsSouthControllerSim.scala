@@ -48,7 +48,8 @@ class TcsSouthControllerSim[F[_]: Async](
       gsaoiPort = 0,
       igrins2Port = 0,
       nifsPort = 0,
-      niriPort = 0
+      niriPort = 0,
+      visitorPort = 0
     ).pure[F]
 
 }

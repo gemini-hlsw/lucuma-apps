@@ -42,11 +42,13 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     ghF <- sys.ags.status.ghostPort
     gmF <- sys.ags.status.gmosPort
     gsF <- sys.ags.status.gsaoiPort
+    vsF <- sys.ags.status.visitorPort
   } yield for {
     f2 <- f2F
     gh <- ghF
     gm <- gmF
     gs <- gsF
+    vs <- vsF
   } yield InstrumentPorts(
     flamingos2Port = f2,
     ghostPort = gh,
@@ -56,7 +58,8 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     gsaoiPort = gs,
     igrins2Port = 0,
     nifsPort = 0,
-    niriPort = 0
+    niriPort = 0,
+    visitorPort = vs
   )).verifiedRun(ConnectionTimeout)
 
   override def oiwfsDaytimeGains: VerifiedEpics[F, F, ApplyCommandResult] = sys.oiwfs
