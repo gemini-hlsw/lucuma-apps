@@ -4178,30 +4178,30 @@ span.explore-offsets-count {
   gap: 0.5em;
 }
 
-.offset-generator-separator {
+.telescope-config-separator {
   grid-column: span 2;
   width: 100%;
 }
 
-.offset-explicit-row {
+.telescope-config-row {
   display: flex;
   align-items: center;
 }
 
-.offset-toggle-button.pl-form-field {
+.telescope-config-toggle-button.pl-form-field {
   height: 22px;
   margin-left: 2px;
 }
 
-.offset-explicit-unguided {
+.telescope-config-unguided {
   opacity: 0.2;
 }
 
-.offset-remove-offset-hidden {
+.telescope-config-remove-offset-hidden {
   opacity: 0;
 }
 
-.offset-add-offset-button.pl-form-field.p-button {
+.telescope-config-add-offset-button.pl-form-field.p-button {
   justify-self: end;
   padding-right: 2px;
 }

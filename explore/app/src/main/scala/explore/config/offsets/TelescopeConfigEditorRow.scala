@@ -40,7 +40,7 @@ object TelescopeConfigEditorRow
           case true  => StepGuideState.Enabled
 
       // maybe rename style
-      <.div(OffsetGeneratorEditorStyles.ExplicitRow)(
+      <.div(TelescopeConfigEditorStyles.EditorRow)(
         OffsetInput(
           id = NonEmptyString.unsafeFrom(s"explicit-offsets-${props.idx}"),
           offset = offset,
@@ -51,7 +51,7 @@ object TelescopeConfigEditorRow
         ToggleButton(
           onIcon = SequenceIcons.Crosshairs.addClass(SequenceStyles.StepGuided),
           offIcon = SequenceIcons.Crosshairs.addClass(
-            OffsetGeneratorEditorStyles.ExplicitUnguided
+            TelescopeConfigEditorStyles.Unguided
           ),
           onLabel = "",
           offLabel = "",
@@ -59,13 +59,13 @@ object TelescopeConfigEditorRow
           disabled = props.readonly,
           text = true,
           clazz = LucumaPrimeStyles.FormField |+| PrimeStyles.ButtonIconOnly |+|
-            OffsetGeneratorEditorStyles.ToggleButton,
+            TelescopeConfigEditorStyles.ToggleButton,
           checked = guiding.get === StepGuideState.Enabled,
           onChange = b => guiding.set(StepGuideState.fromBoolean(b))
         ).mini.compact,
         Button(
           icon = Icons.Trash.addClass(
-            OffsetGeneratorEditorStyles.RemoveOffsetHidden.when_(props.isRemoveHidden)
+            TelescopeConfigEditorStyles.RemoveOffsetHidden.when_(props.isRemoveHidden)
           ),
           tooltip = "Remove Offset",
           disabled = props.readonly || props.isRemoveHidden,

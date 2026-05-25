@@ -32,7 +32,7 @@ final case class OffsetInput(
 
 object OffsetInput
     extends ReactFnComponent[OffsetInput](props =>
-      <.div(OffsetGeneratorEditorStyles.OffsetsInput |+| props.clazz)(
+      <.div(TelescopeConfigEditorStyles.OffsetsInput |+| props.clazz)(
         FormInputTextView(
           id = props.pId,
           label = "p:",
