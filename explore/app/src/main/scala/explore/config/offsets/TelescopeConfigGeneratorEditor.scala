@@ -62,18 +62,10 @@ object TelescopeConfigGeneratorEditor
           disabled = props.readonly
         ),
         explicitOpt.map: explicit =>
-          React.Fragment(
-            TelescopeConfigsEditor(telescopeConfigs = explicit, readonly = props.readonly),
-            Button(
-              icon = Icons.ThinPlus,
-              severity = Button.Severity.Success,
-              disabled = props.readonly || explicit.get.length >= props.maxExplicit,
-              tooltip = "Add Offset",
-              text = true,
-              clazz = LucumaPrimeStyles.FormField |+| OffsetGeneratorEditorStyles.AddOffset,
-              onClick = explicit.mod: offsets =>
-                offsets.append(TelescopeConfig.Default)
-            ).mini.compact
+          TelescopeConfigsEditor(
+            telescopeConfigs = explicit,
+            maxOffsets = props.maxExplicit,
+            readonly = props.readonly
           ),
         randomOpt.map { random =>
           React.Fragment(
