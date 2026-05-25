@@ -6,6 +6,7 @@ package explore.config.offsets
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
+import explore.components.CustomizedGroupAddon
 import explore.components.ui.ExploreStyles
 import explore.model.display.given
 import explore.syntax.ui.*
@@ -49,8 +50,6 @@ object SlitTelescopeConfigsEditor
           .zoom(SlitTelescopeConfigs.toSky.andThen(SlitTelescopeConfigs.ToSky.value))
           .toOptionView
 
-      // TODO REVERT TO DEFAULT
-
       React.Fragment(
         <.span(ExploreStyles.SlitTelescopeConfigEditorHeader)(
           FormDropdown(
@@ -60,7 +59,12 @@ object SlitTelescopeConfigsEditor
             label = "Spatial Offsets".some,
             onChange = mode => value.set(props.defaultForMode(mode)),
             disabled = props.readonly
-          )
+          ),
+          CustomizedGroupAddon(
+            "default offsets",
+            props.explicitValue.set(none),
+            allowRevert = true
+          ).when(props.explicitValue.get.exists(_ =!= props.defaultValue))
         ),
         alongSlitView.map: alongSlitTelescopeConfigs =>
           TelescopeConfigsEditor(
