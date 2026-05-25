@@ -20,10 +20,12 @@ import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
-import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs.given
+import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.arb.ArbEnumerated.given
-import lucuma.core.util.arb.ArbTimeSpan.given
+import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.util.arb.ArbNewType
+import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
@@ -36,9 +38,13 @@ import scala.annotation.targetName
 
 trait ArbObservingMode {
   import ArbAngle.given
+  import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
+
   import ArbOffset.given
+  import ArbSlitTelescopeConfigs.given
+  import ArbTimeSpan.given
   import ArbWavelength.given
   import ArbWavelengthDither.given
 
@@ -51,11 +57,12 @@ trait ArbObservingMode {
         defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
         explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
         etm            <- arbitrary[ExposureTimeMode]
-      yield ObservingMode.GmosNorthLongSlit.Acquisition(defaultFilter,
-                                                        explicitFilter,
-                                                        defaultRoi,
-                                                        explicitRoi,
-                                                        etm
+      yield ObservingMode.GmosNorthLongSlit.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        etm
       )
     )
 
@@ -82,11 +89,12 @@ trait ArbObservingMode {
         defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
         explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
         etm            <- arbitrary[ExposureTimeMode]
-      yield ObservingMode.GmosSouthLongSlit.Acquisition(defaultFilter,
-                                                        explicitFilter,
-                                                        defaultRoi,
-                                                        explicitRoi,
-                                                        etm
+      yield ObservingMode.GmosSouthLongSlit.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        etm
       )
     )
 
@@ -637,6 +645,7 @@ trait ArbObservingMode {
       .contramap(a => (a.readMode, a.coadds, a.filter, a.offset, a.exposureTimeMode))
 
   given Arbitrary[ObservingMode.GnirsLongSlit] =
+    import ArbNewType.given
     Arbitrary[ObservingMode.GnirsLongSlit](
       for {
         initialGrating            <- arbitrary[GnirsGrating]
@@ -649,8 +658,8 @@ trait ArbObservingMode {
         prism                     <- arbitrary[GnirsPrism]
         initialCamera             <- arbitrary[GnirsCamera]
         camera                    <- arbitrary[GnirsCamera]
-        defaultGratingWavelength  <- arbitrary[Wavelength]
-        explicitGratingWavelength <- arbitrary[Option[Wavelength]]
+        defaultGratingWavelength  <- arbitrary[GnirsGratingWavelength]
+        explicitGratingWavelength <- arbitrary[Option[GnirsGratingWavelength]]
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
         defaultReadMode           <- arbitrary[GnirsObsReadMode]
@@ -691,13 +700,14 @@ trait ArbObservingMode {
 
   // We exceed the max number of fields for contramap, so we use tuples.
   given Cogen[ObservingMode.GnirsLongSlit] =
+    import ArbNewType.given
     Cogen[
       ((GnirsGrating, GnirsGrating),
        (GnirsFilter, GnirsFilter),
        (GnirsFpuSlit, GnirsFpuSlit),
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
-       (Wavelength, Option[Wavelength]),
+       (GnirsGratingWavelength, Option[GnirsGratingWavelength]),
        (GnirsDecker, Option[GnirsDecker]),
        (GnirsObsReadMode, Option[GnirsObsReadMode]),
        (GnirsWellDepth, Option[GnirsWellDepth]),

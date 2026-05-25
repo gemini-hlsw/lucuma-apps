@@ -25,6 +25,9 @@ import lucuma.core.enums.GnirsDecker
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
+import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -97,12 +100,12 @@ object GnirsLongslitConfigPanel
           )
           .view(_.assign)
 
-        val gratingWavelengthView: View[Option[Wavelength]] = props.observingMode
+        val gratingWavelengthView: View[Option[GnirsGratingWavelength]] = props.observingMode
           .zoom(
             ObservingMode.GnirsLongSlit.explicitGratingWavelength,
             GnirsLongSlitInput.explicitGratingWavelength.modify
           )
-          .view(_.map(_.toInput).orUnassign)
+          .view(_.map(_.value.toInput).orUnassign)
 
         val cameraView: View[GnirsCamera] = props.observingMode
           .zoom(
@@ -131,6 +134,13 @@ object GnirsLongslitConfigPanel
             GnirsLongSlitInput.exposureTimeMode.modify
           )
           .view(_.toInput.assign)
+
+        val slitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
+          .zoom(
+            ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
+            GnirsLongSlitInput.explicitTelescopeConfigs.modify
+          )
+          .view(_.map(_.toInput).orUnassign)
 
         val defaultDecker: GnirsDecker        = props.observingMode.get.defaultDecker
         val defaultReadMode: GnirsObsReadMode = props.observingMode.get.defaultReadMode
@@ -190,8 +200,8 @@ object GnirsLongslitConfigPanel
               ),
               CustomizableInputTextOptional(
                 id = "grating-wavelength".refined,
-                value = gratingWavelengthView,
-                defaultValue = props.observingMode.get.defaultGratingWavelength,
+                value = gratingWavelengthView.as(GnirsGratingWavelength.Value.mapping[Option]),
+                defaultValue = props.observingMode.get.defaultGratingWavelength.value,
                 label = "Wavelength",
                 units = props.units.symbol.some,
                 validFormat = props.units.toInputWedge,
@@ -244,15 +254,18 @@ object GnirsLongslitConfigPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
-              // SlitTelescopeConfigsEditor(
-              //   slitTelescopeConfigs = props.observingMode
-              //     .zoom(
-              //       ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
-              //       GnirsLongSlitInput.explicitTelescopeConfigs.modify
-              //     )
-              //     .view(_ .orUnassign),
-              //   readonly = disableSimpleEdit
-              // )
+              SlitTelescopeConfigsEditor(
+                explicitValue = slitTelescopeConfigsView,
+                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
+                defaultForMode = defaultSlitTelescopeConfigs(
+                  _,
+                  prismView.get,
+                  cameraView.get,
+                  gratingWavelengthView.get
+                    .getOrElse(props.observingMode.get.defaultGratingWavelength)
+                ),
+                readonly = disableSimpleEdit
+              )
             )
           ),
           <.div(

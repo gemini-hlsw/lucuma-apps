@@ -629,7 +629,7 @@ extension (a: ObservingMode.GnirsLongSlit)
     fpu = a.fpu.assign,
     prism = a.prism.assign,
     camera = a.camera.assign,
-    explicitGratingWavelength = a.explicitGratingWavelength.map(_.toInput).orUnassign,
+    explicitGratingWavelength = a.explicitGratingWavelength.map(_.value.toInput).orUnassign,
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,

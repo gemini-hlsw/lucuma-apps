@@ -23,6 +23,7 @@ import lucuma.ui.sequence.SequenceStyles
 final case class TelescopeConfigEditorRow(
   telescopeConfig: View[TelescopeConfig],
   idx:             Int,
+  pEnabled:        Boolean,
   remove:          Callback,
   readonly:        Boolean
 ) extends ReactFnProps(TelescopeConfigEditorRow):
@@ -38,12 +39,12 @@ object TelescopeConfigEditorRow
           case false => StepGuideState.Disabled
           case true  => StepGuideState.Enabled
 
-      <.div(
-        OffsetGeneratorEditorStyles.ExplicitRow
-      )( // maybe rename
+      // maybe rename style
+      <.div(OffsetGeneratorEditorStyles.ExplicitRow)(
         OffsetInput(
           id = NonEmptyString.unsafeFrom(s"explicit-offsets-${props.idx}"),
           offset = offset,
+          pEnabled = props.pEnabled,
           readonly = props.readonly,
           inputClass = LucumaPrimeStyles.FormField
         ),
