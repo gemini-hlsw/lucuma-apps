@@ -83,59 +83,7 @@ object GmosSouth {
         Getter[D, Option[Wavelength]](_.centralWavelength)
     }
 
-//  def build[F[_]: {Temporal, Logger}](
-//    controller:        GmosController[F, GmosSite.South.type],
-//    dhsClientProvider: DhsClientProvider[F],
-//    nsCmdR:            Ref[F, Option[NSObserveCommand]],
-//    stepType:          StepType,
-//    staticCfg:         StaticConfig.GmosSouth,
-//    dynamicCfg:        DynamicConfig.GmosSouth
-//  ): GmosSouth[F] = GmosSouth(
-//    controller,
-//    dhsClientProvider,
-//    nsCmdR,
-//    Gmos.buildConfig[F, GmosSite.South.type](
-//      stepType,
-//      staticCfg,
-//      dynamicCfg
-//    )
-//  )
-//
-//  def obsKeywordsReader[F[_]: MonadThrow](
-//    staticConfig:  StaticConfig.GmosSouth,
-//    dynamicConfig: DynamicConfig.GmosSouth
-//  )(using
-//    getters:       Gmos.ParamGetters[GmosSite.South.type]
-//  ): GmosObsKeywordsReader[F, GmosSite.South.type] = GmosObsKeywordsReader(staticConfig, dynamicConfig)
-//
-//  object specifics extends InstrumentStep[StaticConfig.GmosSouth, DynamicConfig.GmosSouth] {
-//    override val instrument: Instrument = Instrument.GmosSouth
-//
-//    override def calcStepType(
-//      stepConfig:   StepConfig,
-//      staticConfig: StaticConfig.GmosSouth,
-//      instConfig:   DynamicConfig.GmosSouth,
-//      obsClass:     ObserveClass
-//    ): Either[ObserveFailure, StepType] =
-//      Gmos.calcStepType(instrument,
-//                        stepConfig,
-//                        staticConfig,
-//                        obsClass,
-//                        gsParamGetters.nodAndShuffle
-//      )
-//
-//    override def sfName(config: DynamicConfig.GmosSouth): LightSinkName = LightSinkName.Gmos
-//
-//    // TODO Use different value if using electronic offsets
-//    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-//      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
-//  }
   object staticInfo extends InstrumentStaticInfo {
-    //    override def sfName: LightSinkName = LightSinkName.Gmos
-    //
-    //    // TODO Use different value if using electronic offsets
-    //    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-    //      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
     override val instrument: Instrument = Instrument.GmosSouth
   }
 

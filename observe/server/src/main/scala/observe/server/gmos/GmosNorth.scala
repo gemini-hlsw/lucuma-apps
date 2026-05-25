@@ -81,19 +81,7 @@ object GmosNorth {
         Getter[D, Option[Wavelength]](_.centralWavelength)
     }
 
-//  def obsKeywordsReader[F[_]: MonadThrow](
-//    staticConfig:  StaticConfig.GmosNorth,
-//    dynamicConfig: DynamicConfig.GmosNorth
-//  )(using
-//    getters:       Gmos.ParamGetters[GmosSite.North.type]
-//  ): GmosObsKeywordsReader[F, GmosSite.North.type] = GmosObsKeywordsReader(staticConfig, dynamicConfig)
-
   object staticInfo extends InstrumentStaticInfo {
-//    override def sfName: LightSinkName = LightSinkName.Gmos
-//
-//    // TODO Use different value if using electronic offsets
-//    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-//      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
     override val instrument: Instrument = Instrument.GmosNorth
   }
 
@@ -109,45 +97,5 @@ object GmosNorth {
         (systemOverrides: SystemOverrides) =>
           new GmosNorth[F](syss.gmosNorth(systemOverrides), syss.dhs(systemOverrides), r, config)
     )
-//    Ref
-//      .of[F, Option[NSObserveCommand]](none)
-//      .map(r =>
-//        new InstrumentStepBuilder[F, StaticConfig.GmosNorth, DynamicConfig.GmosNorth] {
-//          override def build(systems: Systems.OverriddenSystems[F], coreStepType: CoreStepType, targetEnvironment: Observation.TargetEnvironment, staticConfig: StaticConfig.GmosNorth, odbStep: Step[DynamicConfig.GmosNorth]): Either[ObserveFailure, InstrumentStep[F]] = {
-//            Gmos.calcStepType[StaticConfig.GmosNorth](
-//              staticInfo.instrument,
-//              odbStep.stepConfig,
-//              staticConfig,
-//              odbStep.observeClass,
-//              gnParamGetters.nodAndShuffle
-//            ).map { stType =>
-//              val config: GmosController.GmosConfig[GmosSite.North.type] = Gmos.buildConfig[F, GmosSite.North.type](
-//                stType,
-//                staticConfig,
-//                odbStep.instrumentConfig
-//              )
-//              new InstrumentStep[F] {
-//                override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
-//
-//                override def stepType: StepType = stType
-//
-//                override def sfName: LightSinkName = LightSinkName.Gmos
-//
-//                override def calcObserveTime: TimeSpan = config.dc.t /| config.ns.exposureDivider.value
-//
-//                override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] = new GmosNorth[F](systems.gmosNorth(sysOverrides), r, config)
-//
-//                override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] = GmosHeader.header[F, GmosSite.North.type](
-//                  kwClient,
-//                  GmosObsKeywordsReader(staticConfig, odbStep.instrumentConfig),
-//                  systems.systems.gmosKeywordReader,
-//                  systems.systems.tcsKeywordReader
-//                )
-//
-//                override def instrument: Instrument = staticInfo.instrument
-//              }
-//            }
-//          }
-//        }
-//      )
+
 }

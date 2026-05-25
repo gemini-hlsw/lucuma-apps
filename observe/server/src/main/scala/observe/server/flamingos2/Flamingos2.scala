@@ -7,6 +7,10 @@ import cats.data.Kleisli
 import cats.effect.Async
 import cats.effect.Sync
 import cats.syntax.all.*
+import coulomb.Quantity
+import coulomb.syntax.*
+import coulomb.units.accepted.ArcSecond
+import coulomb.units.accepted.Millimeter
 import fs2.Stream
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Fpu
@@ -32,6 +36,8 @@ import observe.server.keywords.DhsClientProvider
 import observe.server.keywords.DhsInstrument
 import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
+import observe.server.tcs.FOCAL_PLANE_SCALE
+import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 final case class Flamingos2[F[_]: {Async, Logger}](
@@ -150,28 +156,6 @@ object Flamingos2 {
       dcConfigFromSequenceConfig(dynamicConfig)
     )
 
-  //  def build[F[_]: {Async, Logger}](
-  //    controller:        Flamingos2Controller[F],
-  //    dhsClientProvider: DhsClientProvider[F],
-  //    stepType:          CoreStepType,
-  //    dynamicConfig:     Flamingos2DynamicConfig
-  //  ): Flamingos2[F] = Flamingos2(
-  //    controller,
-  //    dhsClientProvider,
-  //    fromSequenceConfig(dynamicConfig, stepType)
-  //  )
-
-  //  object specifics extends InstrumentSpecifics[Flamingos2StaticConfig, Flamingos2DynamicConfig] {
-  //    override val instrument: Instrument = Instrument.Flamingos2
-  //
-  //    // TODO Use different value if using electronic offsets
-  //    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-  //      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
-  //
-  //    // The name used for this instrument in the science fold configuration
-  //    override def sfName(config: Flamingos2DynamicConfig): LightSinkName = LightSinkName.Flamingos2
-  //  }
-
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig]] = (
     new InstrumentStepBuilder[F, Flamingos2StaticConfig, Flamingos2DynamicConfig] {
@@ -213,6 +197,11 @@ object Flamingos2 {
 
               override def centralWavelength: Option[Wavelength] =
                 step.instrumentConfig.centralWavelength.some
+
+              // TODO Use different value if using electronic offsets
+              override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+                (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+
             }
         }
     }

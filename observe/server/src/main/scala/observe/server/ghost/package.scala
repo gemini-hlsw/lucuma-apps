@@ -110,9 +110,9 @@ sealed abstract class IFUTargetType(val targetType: String) extends Product with
   def name: Option[String] = this match {
     case IFUTargetType.NoTarget                  => none
     case IFUTargetType.TargetXY                  => none
-    case IFUTargetType.SkyPosition(sky)          => sky.name.toString.some
-    case IFUTargetType.SiderealTarget(target)    => target.name.toString.some
-    case IFUTargetType.NonsiderealTarget(target) => target.name.toString.some
+    case IFUTargetType.SkyPosition(sky)          => sky.name.value.some
+    case IFUTargetType.SiderealTarget(target)    => target.name.value.some
+    case IFUTargetType.NonsiderealTarget(target) => target.name.value.some
   }
 }
 
@@ -171,13 +171,3 @@ extension (b: GhostBinning) {
 extension (sc: StepConfig) {
   def isScience: Boolean = sc.stepType === StepType.Science
 }
-
-//given GiapiConfig[GhostIfu1FiberAgitator] = {
-//  case GhostIfu1FiberAgitator.Enabled  => "FA_DEMAND_ON"
-//  case GhostIfu1FiberAgitator.Disabled => "FA_DEMAND_OFF"
-//}
-//
-//given GiapiConfig[GhostIfu2FiberAgitator] = {
-//  case GhostIfu2FiberAgitator.Enabled  => "FA_DEMAND_ON"
-//  case GhostIfu2FiberAgitator.Disabled => "FA_DEMAND_OFF"
-//}

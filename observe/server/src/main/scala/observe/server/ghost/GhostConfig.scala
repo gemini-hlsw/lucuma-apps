@@ -724,24 +724,6 @@ sealed trait StandardResolutionMode extends GhostConfig {
 
   override val resolutionMode: GhostResolutionMode = GhostResolutionMode.Standard
 
-  //  override def ifu1TargetType: IFUTargetType =
-//    this match {
-//      case s: SingleTarget      => IFUTargetType.Target(s.ifu1TargetName)
-//      case d: DualTarget        => IFUTargetType.Target(d.ifu1TargetName)
-//      case ts: TargetPlusSky    => IFUTargetType.Target(ts.ifu1TargetName)
-//      case _: SkyPlusTarget     => IFUTargetType.SkyPosition
-//      case n: NonSiderealTarget => IFUTargetType.Target(n.targetName)
-//    }
-//
-//  override def ifu2TargetType: IFUTargetType =
-//    this match {
-//      case _: SingleTarget      => IFUTargetType.NoTarget
-//      case d: DualTarget        => IFUTargetType.Target(d.ifu2TargetName)
-//      case st: SkyPlusTarget    => IFUTargetType.Target(st.ifu2TargetName)
-//      case _: TargetPlusSky     => IFUTargetType.SkyPosition
-//      case _: NonSiderealTarget => IFUTargetType.NoTarget
-//    }
-
   override def ifu1BundleType: BundleConfig =
     this match {
       case _: SingleTarget | _: DualTarget | _: TargetPlusSky => BundleConfig.Standard
