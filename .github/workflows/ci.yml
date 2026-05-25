@@ -83,8 +83,11 @@ jobs:
       - name: Configure FontAwesome registry auth
         run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -234,8 +237,11 @@ jobs:
       - name: Configure FontAwesome registry auth
         run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
@@ -316,8 +322,11 @@ jobs:
       - name: Configure FontAwesome registry auth
         run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter observe --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
@@ -417,8 +426,11 @@ jobs:
       - name: Configure FontAwesome registry auth
         run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
+      - name: Populate pnpm store
+        run: pnpm fetch
+
       - name: pnpm install
-        run: pnpm ci --filter 'lucuma-apps' --prefer-offline
+        run: pnpm install --frozen-lockfile --offline
 
       - name: Import CSS files
         run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss
