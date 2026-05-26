@@ -28,7 +28,7 @@ object TelescopeConfigsEditor
         props.telescopeConfigs.toNelOfViews.zipWithIndex
           .map: (telescopeConfig, idx) =>
             React.Fragment.withKey(s"explicit-offsets-row-$idx")(
-              <.label(^.htmlFor := s"explicit-offsets-$idx", s"${idx + 1}:"),
+              <.label(^.htmlFor := s"explicit-offsets-$idx-p", s"${idx + 1}:"),
               TelescopeConfigEditorRow(
                 telescopeConfig = telescopeConfig,
                 idx = idx,

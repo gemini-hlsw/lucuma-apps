@@ -79,7 +79,7 @@ object TelescopeConfigGeneratorEditor
               ),
               if props.showCenter then
                 React.Fragment(
-                  <.label(^.htmlFor := "random-size", "Center:"),
+                  <.label(^.htmlFor := "random-center-p", "Center:"),
                   OffsetInput(
                     id = "random-center".refined,
                     offset = random.zoom(OffsetGenerator.Random.center),
@@ -103,7 +103,7 @@ object TelescopeConfigGeneratorEditor
               ),
               if props.showCenter then
                 React.Fragment(
-                  <.label(^.htmlFor := "spiral-center", "Center:"),
+                  <.label(^.htmlFor := "spiral-center-p", "Center:"),
                   OffsetInput(
                     id = "spiral-center".refined,
                     offset = spiral.zoom(OffsetGenerator.Spiral.center),
@@ -116,14 +116,14 @@ object TelescopeConfigGeneratorEditor
           },
           uniformOpt.map { uniform =>
             React.Fragment(
-              <.label(^.htmlFor := "uniform-corner-a", "Corner A:"),
+              <.label(^.htmlFor := "uniform-corner-a-p", "Corner A:"),
               OffsetInput(
                 id = "uniform-corner-a".refined,
                 offset = uniform.zoom(OffsetGenerator.Uniform.cornerA),
                 readonly = props.readonly,
                 inputClass = LucumaPrimeStyles.FormField
               ),
-              <.label(^.htmlFor := "uniform-corner-b", "Corner B:"),
+              <.label(^.htmlFor := "uniform-corner-b-p", "Corner B:"),
               OffsetInput(
                 id = "uniform-corner-b".refined,
                 offset = uniform.zoom(OffsetGenerator.Uniform.cornerB),
