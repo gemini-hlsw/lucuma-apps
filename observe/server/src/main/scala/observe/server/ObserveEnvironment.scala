@@ -16,7 +16,7 @@ import odb.OdbProxy
 final case class ObserveEnvironment[F[_]](
   odb:         OdbProxy[F],
   dhs:         DhsClientProvider[F],
-  stepType:    StepType,
+  stepType:    StepKind,
   obsId:       Observation.Id,
   inst:        InstrumentSystem[F],
   otherSys:    List[System[F]],

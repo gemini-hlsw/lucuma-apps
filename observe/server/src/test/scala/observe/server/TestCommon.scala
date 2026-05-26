@@ -25,6 +25,8 @@ import lucuma.core.enums.GmosNorthGrating
 import lucuma.core.enums.GmosNorthStageMode
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GmosSouthDetector
+import lucuma.core.enums.GmosSouthFpu
+import lucuma.core.enums.GmosSouthGrating
 import lucuma.core.enums.GmosSouthStageMode
 import lucuma.core.enums.GmosXBinning
 import lucuma.core.enums.GmosYBinning
@@ -62,7 +64,7 @@ import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.
 import observe.common.test.*
 import observe.model.ActionType
 import observe.model.ClientId
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Observation
 import observe.model.SequenceStatus
 import observe.model.Subsystem
@@ -102,7 +104,7 @@ trait TestCommon extends munit.CatsEffectSuite {
   def bothEngines(systems: IO[Systems[IO]] = defaultSystems): IO[(Engine[IO], ObserveEngine[IO])] =
     for
       systems <- systems
-      rc      <- Ref.of[IO, Conditions](Conditions.Default)
+      rc      <- Ref.of[IO, CurrentConditions](CurrentConditions.Default)
       tr      <- ObserveEngine.createTranslator(Site.GS, systems, rc, ExecutionEnvironment.Development)
       eng     <- Engine.build[IO](ObserveEngine.onStepComplete[IO](systems.odb, tr))
     yield (eng, new ObserveEngineImpl[IO](eng, systems, defaultSettings, tr, rc))
@@ -315,6 +317,28 @@ object TestCommon {
     GmosFpuMask.Builtin[GmosNorthFpu](GmosNorthFpu.LongSlit_0_50).some
   )
 
+  val dynamicCfg2: DynamicConfig.GmosSouth = DynamicConfig.GmosSouth(
+    TimeSpan.unsafeFromMicroseconds(5000000000L),
+    GmosCcdMode(
+      GmosXBinning.Two,
+      GmosYBinning.Two,
+      GmosAmpCount.Three,
+      GmosAmpGain.High,
+      GmosAmpReadMode.Fast
+    ),
+    GmosDtax.Two,
+    GmosRoi.CentralSpectrum,
+    GmosGratingConfig
+      .South(
+        GmosSouthGrating.B1200_G5321,
+        GmosGratingOrder.One,
+        Wavelength.unsafeFromIntPicometers(400000)
+      )
+      .some,
+    None,
+    GmosFpuMask.Builtin[GmosSouthFpu](GmosSouthFpu.LongSlit_0_50).some
+  )
+
   val stepCfg1: StepConfig = StepConfig.Science
 
   val telescopeCfg1: CoreTelescopeConfig =
@@ -324,12 +348,13 @@ object TestCommon {
     ODBObservation(
       id = id,
       title = "Test Observation".refined,
+      none,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      TargetEnvironment(None, GuideEnvironment(List.empty)),
+      TargetEnvironment(List.empty, None, GuideEnvironment(List.empty)),
       ConstraintSet(
         ImageQuality.Preset.PointOne,
         CloudExtinction.Preset.PointOne,
@@ -429,7 +454,7 @@ object TestCommon {
     odbObsData: OdbObservationData,
     systems:    Systems[F]
   ): F[Option[StepGen[F]]] = for {
-    c  <- Ref.of[F, Conditions](Conditions.Default)
+    c  <- Ref.of[F, CurrentConditions](CurrentConditions.Default)
     st <- SeqTranslate(Site.GS, systems, c, ExecutionEnvironment.Development)
   } yield st.nextStep(odbObsData, SequenceType.Acquisition.asLeft)._2
 

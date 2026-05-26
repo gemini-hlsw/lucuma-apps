@@ -6,7 +6,6 @@ package observe.server.gmos
 import cats.effect.Sync
 import cats.syntax.all.*
 import lucuma.core.enums.ExecutionEnvironment
-import lucuma.core.model.sequence.gmos
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation.Id
 import observe.model.dhs.ImageFileId
@@ -17,9 +16,9 @@ import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
 object GmosHeader {
-  def header[F[_]: {Sync, Logger}, T <: GmosSite, S <: gmos.StaticConfig, D <: gmos.DynamicConfig](
+  def header[F[_]: {Sync, Logger}, T <: GmosSite](
     kwClient:          KeywordsClient[F],
-    gmosObsReader:     GmosObsKeywordsReader[F, T, S, D],
+    gmosObsReader:     GmosObsKeywordsReader[F, T],
     gmosReader:        GmosKeywordReader[F],
     tcsKeywordsReader: TcsKeywordsReader[F]
   ): Header[F] =

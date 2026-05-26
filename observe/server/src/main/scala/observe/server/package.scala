@@ -3,15 +3,22 @@
 
 package observe.server
 
+import cats.Eq
 import cats.MonadError
 import cats.MonadThrow
 import cats.effect.IO
 import cats.effect.std.Queue
 import cats.syntax.all.*
+import coulomb.*
+import coulomb.Quantity
+import coulomb.syntax.*
+import coulomb.units.accepted.Meter
+import coulomb.units.accepted.Millimeter
 import fs2.Stream
 import lucuma.core.enums.Breakpoint
+import lucuma.core.math.units.Micrometer
 import lucuma.core.util.TimeSpan
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Observer
 import observe.model.Operator
 import observe.model.QueueId
@@ -26,21 +33,22 @@ import org.typelevel.log4cats.slf4j.Slf4jLogger
 case class Selected[F[_]](
   gmosSouth:  Option[SequenceData[F]],
   gmosNorth:  Option[SequenceData[F]],
+  ghost:      Option[SequenceData[F]],
   flamingos2: Option[SequenceData[F]],
   igrins2:    Option[SequenceData[F]]
 )
 
 object Selected:
-  def none[F[_]]: Selected[F] = Selected(None, None, None, None)
+  def none[F[_]]: Selected[F] = Selected(None, None, None, None, None)
 
 case class HeaderExtraData(
-  conditions: Conditions,
+  conditions: CurrentConditions,
   operator:   Option[Operator],
   observer:   Option[Observer]
 )
 
 object HeaderExtraData:
-  val Default: HeaderExtraData = HeaderExtraData(Conditions.Default, None, None)
+  val Default: HeaderExtraData = HeaderExtraData(CurrentConditions.Default, None, None)
 
 case class ObserveContext[F[_]](
   resumePaused: TimeSpan => Stream[F, Result],
@@ -81,3 +89,28 @@ def catchObsErrors[F[_]](t: Throwable)(using L: Logger[F]): Stream[F, Result] = 
 
 def overrideLogMessage[F[_]: Logger](systemName: String, op: String): F[Unit] =
   Logger[F].info(s"System $systemName overridden. Operation $op skipped.")
+
+opaque type Length = Quantity[Long, Micrometer]
+
+object Length {
+  val Zero: Length                             = fromLongMicrometers(0)
+  def fromLongMicrometers(v:   Long): Length   = v.withUnit[Micrometer]
+  def fromDoubleMicrometers(v: Double): Length = Math.round(v).withUnit[Micrometer]
+  def fromDoubleMillimeters(v: Double): Length = Math.round(v * 1000.0).withUnit[Micrometer]
+
+  extension (d: Length) {
+
+    private def to[U](scale: Int): Quantity[BigDecimal, U] =
+      BigDecimal(d.value, scale).withUnit[U]
+
+    def toMicrometers: Quantity[Long, Micrometer] = d
+    def µm: Quantity[Long, Micrometer]            = toMicrometers
+
+    def toMillimeters: Quantity[BigDecimal, Millimeter] = to[Millimeter](3)
+    def toMeter: Quantity[BigDecimal, Meter]            = to[Meter](6)
+
+  }
+
+  given (using eq: Eq[Quantity[Long, Micrometer]]): Eq[Length] = eq
+
+}

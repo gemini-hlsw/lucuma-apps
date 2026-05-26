@@ -12,6 +12,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import observe.model.Subsystem
@@ -138,3 +139,19 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Igrins2DynamicConfig
+
+  case class Ghost[F[_]](
+    atomId:          Atom.Id,
+    sequenceType:    SequenceType,
+    id:              Step.Id,
+    dataId:          DataId,
+    resources:       Set[Subsystem],
+    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    generator:       StepActionsGen[F],
+    instConfig:      GhostDynamicConfig,
+    config:          StepConfig,
+    telescopeConfig: CoreTelescopeConfig,
+    signalToNoise:   Option[SignalToNoise],
+    breakpoint:      Breakpoint
+  ) extends StepGen[F]:
+    type D = GhostDynamicConfig

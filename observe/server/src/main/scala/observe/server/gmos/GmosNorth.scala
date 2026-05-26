@@ -3,142 +3,99 @@
 
 package observe.server.gmos
 
-import cats.MonadThrow
+import cats.effect.Async
 import cats.effect.Ref
 import cats.effect.Temporal
 import cats.syntax.all.*
-import coulomb.Quantity
-import coulomb.syntax.*
-import coulomb.units.accepted.ArcSecond
-import coulomb.units.accepted.Millimeter
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MosPreImaging
-import lucuma.core.enums.ObserveClass
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.util.TimeSpan
 import monocle.Getter
-import observe.server.InstrumentSpecifics
-import observe.server.ObserveFailure
-import observe.server.StepType
+import observe.model.SystemOverrides
+import observe.server.InstrumentStaticInfo
+import observe.server.InstrumentStepBuilder
+import observe.server.Systems
 import observe.server.gmos.GmosController.Config.DTAX
 import observe.server.gmos.GmosController.Config.GratingOrder
+import observe.server.gmos.GmosController.GmosConfig
 import observe.server.gmos.GmosController.GmosSite
 import observe.server.gmos.GmosController.GmosSite.FPU
 import observe.server.gmos.GmosController.GmosSite.Filter
 import observe.server.gmos.GmosController.GmosSite.Grating
 import observe.server.gmos.GmosController.GmosSite.StageMode
-import observe.server.keywords.DhsClient
 import observe.server.keywords.DhsClientProvider
-import observe.server.tcs.*
-import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 final case class GmosNorth[F[_]: {Temporal, Logger}] private (
-  c:                 GmosNorthController[F],
+  c:                 GmosController[F, GmosSite.North.type],
   dhsClientProvider: DhsClientProvider[F],
   nsCmdR:            Ref[F, Option[NSObserveCommand]],
   cfg:               GmosController.GmosConfig[GmosSite.North.type]
 ) extends Gmos[F, GmosSite.North.type](
       c,
+      dhsClientProvider,
       nsCmdR,
       cfg
     ) {
   override val resource: Instrument      = Instrument.GmosNorth
   override val dhsInstrumentName: String = "GMOS-N"
-  override val dhsClient: DhsClient[F]   = dhsClientProvider.dhsClient(dhsInstrumentName)
-
 }
 
 object GmosNorth {
 
-  given gnParamGetters
-    : Gmos.ParamGetters[GmosSite.North.type, StaticConfig.GmosNorth, DynamicConfig.GmosNorth] =
-    new Gmos.ParamGetters[GmosSite.North.type, StaticConfig.GmosNorth, DynamicConfig.GmosNorth] {
-      override val exposure: Getter[DynamicConfig.GmosNorth, TimeSpan]                            =
+  given gnParamGetters: Gmos.ParamGetters[GmosSite.North.type] =
+    new Gmos.ParamGetters[GmosSite.North.type] {
+      override val exposure: Getter[D, TimeSpan]                            =
         DynamicConfig.GmosNorth.exposure.asGetter
-      override val filter: Getter[DynamicConfig.GmosNorth, Option[Filter[GmosSite.North.type]]]   =
+      override val filter: Getter[D, Option[Filter[GmosSite.North.type]]]   =
         DynamicConfig.GmosNorth.filter.asGetter
-      override val grating: Getter[DynamicConfig.GmosNorth, Option[Grating[GmosSite.North.type]]] =
+      override val grating: Getter[D, Option[Grating[GmosSite.North.type]]] =
         DynamicConfig.GmosNorth.gratingConfig.asGetter.map(_.map(_.grating))
-      override val order: Getter[DynamicConfig.GmosNorth, Option[GratingOrder]]                   =
+      override val order: Getter[D, Option[GratingOrder]]                   =
         DynamicConfig.GmosNorth.gratingConfig.asGetter.map(_.map(_.order))
-      override val wavelength: Getter[DynamicConfig.GmosNorth, Option[Wavelength]]                =
+      override val wavelength: Getter[D, Option[Wavelength]]                =
         DynamicConfig.GmosNorth.gratingConfig.asGetter.map(_.map(_.wavelength))
-      override val builtinFpu: Getter[DynamicConfig.GmosNorth, Option[FPU[GmosSite.North.type]]]  =
+      override val builtinFpu: Getter[D, Option[FPU[GmosSite.North.type]]]  =
         DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.builtinFpu))
-      override val customFpu: Getter[DynamicConfig.GmosNorth, Option[String]]                     =
+      override val customFpu: Getter[D, Option[String]]                     =
         DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.customFilename.map(_.toString)))
-      override val dtax: Getter[DynamicConfig.GmosNorth, DTAX]                                    =
+      override val dtax: Getter[D, DTAX]                                    =
         DynamicConfig.GmosNorth.dtax.asGetter
-      override val stageMode: Getter[StaticConfig.GmosNorth, StageMode[GmosSite.North.type]]      =
+      override val stageMode: Getter[S, StageMode[GmosSite.North.type]]     =
         StaticConfig.GmosNorth.stageMode.asGetter
-      override val nodAndShuffle: Getter[StaticConfig.GmosNorth, Option[GmosNodAndShuffle]]       =
+      override val nodAndShuffle: Getter[S, Option[GmosNodAndShuffle]]      =
         StaticConfig.GmosNorth.nodAndShuffle.asGetter
-      override val roi: Getter[DynamicConfig.GmosNorth, GmosRoi]                                  =
+      override val roi: Getter[D, GmosRoi]                                  =
         DynamicConfig.GmosNorth.roi.asGetter
-      override val readout: Getter[DynamicConfig.GmosNorth, GmosCcdMode]                          =
+      override val readout: Getter[D, GmosCcdMode]                          =
         DynamicConfig.GmosNorth.readout.asGetter
-      override val isMosPreimaging: Getter[StaticConfig.GmosNorth, MosPreImaging]                 =
+      override val isMosPreimaging: Getter[S, MosPreImaging]                =
         StaticConfig.GmosNorth.mosPreImaging.asGetter
+      override val centralWavelength: Getter[D, Option[Wavelength]]         =
+        Getter[D, Option[Wavelength]](_.centralWavelength)
     }
 
-  def build[F[_]: {Temporal, Logger}](
-    controller:        GmosController[F, GmosSite.North.type],
-    dhsClientProvider: DhsClientProvider[F],
-    nsCmdR:            Ref[F, Option[NSObserveCommand]],
-    stepType:          StepType,
-    staticCfg:         StaticConfig.GmosNorth,
-    dynamicCfg:        DynamicConfig.GmosNorth
-  ): GmosNorth[F] = GmosNorth(
-    controller,
-    dhsClientProvider,
-    nsCmdR,
-    Gmos.buildConfig[F, GmosSite.North.type, StaticConfig.GmosNorth, DynamicConfig.GmosNorth](
-      stepType,
-      staticCfg,
-      dynamicCfg
-    )
-  )
-
-  def obsKeywordsReader[F[_]: MonadThrow](
-    staticConfig:  StaticConfig.GmosNorth,
-    dynamicConfig: DynamicConfig.GmosNorth
-  )(using
-    getters:       Gmos.ParamGetters[GmosSite.North.type, StaticConfig.GmosNorth, DynamicConfig.GmosNorth]
-  ): GmosObsKeywordsReader[F,
-                           GmosSite.North.type,
-                           StaticConfig.GmosNorth,
-                           DynamicConfig.GmosNorth
-  ] =
-    GmosObsKeywordsReader(staticConfig, dynamicConfig)
-
-  object specifics extends InstrumentSpecifics[StaticConfig.GmosNorth, DynamicConfig.GmosNorth] {
+  object staticInfo extends InstrumentStaticInfo {
     override val instrument: Instrument = Instrument.GmosNorth
-
-    override def calcStepType(
-      stepConfig:   StepConfig,
-      staticConfig: StaticConfig.GmosNorth,
-      instConfig:   DynamicConfig.GmosNorth,
-      obsClass:     ObserveClass
-    ): Either[ObserveFailure, StepType] =
-      Gmos.calcStepType(instrument,
-                        stepConfig,
-                        staticConfig,
-                        obsClass,
-                        gnParamGetters.nodAndShuffle
-      )
-
-    override def sfName(config: DynamicConfig.GmosNorth): LightSinkName = LightSinkName.Gmos
-
-    // TODO Use different value if using electronic offsets
-    override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
-      (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
   }
+
+  def build[F[_]: {Async, Logger}]
+    : F[InstrumentStepBuilder[F, StaticConfig.GmosNorth, DynamicConfig.GmosNorth]] =
+    Gmos.instrumentStepBuilder[F, GmosSite.North.type](
+      staticInfo.instrument,
+      (
+        syss:   Systems.OverriddenSystems[F],
+        r:      Ref[F, Option[NSObserveCommand]],
+        config: GmosConfig[GmosSite.North.type]
+      ) =>
+        (systemOverrides: SystemOverrides) =>
+          new GmosNorth[F](syss.gmosNorth(systemOverrides), syss.dhs(systemOverrides), r, config)
+    )
+
 }

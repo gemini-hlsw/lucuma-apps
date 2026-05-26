@@ -17,7 +17,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.Enumerated
 import observe.model.ClientConfig
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
@@ -51,7 +51,7 @@ object ClientEvent:
 
   case class ObserveState(
     sequenceExecution:  Map[Observation.Id, ExecutionState],
-    conditions:         Conditions,
+    conditions:         CurrentConditions,
     operator:           Option[Operator],
     currentRecordedIds: ObsRecordedIds
   ) extends AllClientEvent derives Eq

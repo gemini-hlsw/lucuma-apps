@@ -27,6 +27,7 @@ import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.Resource
 import observe.server.ConfigResult
 import observe.server.InstrumentGuide
+import observe.server.Length
 import observe.server.ObserveFailure
 import observe.server.gems.Gems
 import observe.server.tcs.TcsController.*
@@ -84,7 +85,7 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
   def buildBasicTcsConfig(gc: GuideConfig): F[TcsSouthConfig] =
     (BasicTcsConfig(
       gc.tcsGuide,
-      TelescopeConfig(config.offsetA, config.wavelA),
+      TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
       BasicGuidersConfig(
         P1Config(
           calcGuiderConfig(calcGuiderInUse(gc.tcsGuide, TipTiltSource.PWFS1, M1Source.PWFS1),
@@ -130,7 +131,7 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
       .map { aog =>
         AoTcsConfig[Site.GS.type](
           gc.tcsGuide,
-          TelescopeConfig(config.offsetA, config.wavelA),
+          TelescopeConfig(config.offsetA, config.wavelA, config.instrumentDefocus),
           AoGuidersConfig[GemsGuiders](
             P1Config(
               calcGuiderConfig(
@@ -198,20 +199,21 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
 
 object TcsSouth {
   final case class TcsSeqConfig(
-    guideWithP1:    Option[StepGuideState],
-    guideWithP2:    Option[StepGuideState],
-    guideWithOI:    Option[StepGuideState],
-    guideWithCWFS1: Option[StepGuideState],
-    guideWithCWFS2: Option[StepGuideState],
-    guideWithCWFS3: Option[StepGuideState],
-    guideWithODGW1: Option[StepGuideState],
-    guideWithODGW2: Option[StepGuideState],
-    guideWithODGW3: Option[StepGuideState],
-    guideWithODGW4: Option[StepGuideState],
-    offsetA:        Option[InstrumentOffset],
-    wavelA:         Option[Wavelength],
-    lightPath:      LightPath,
-    instrument:     InstrumentGuide
+    guideWithP1:       Option[StepGuideState],
+    guideWithP2:       Option[StepGuideState],
+    guideWithOI:       Option[StepGuideState],
+    guideWithCWFS1:    Option[StepGuideState],
+    guideWithCWFS2:    Option[StepGuideState],
+    guideWithCWFS3:    Option[StepGuideState],
+    guideWithODGW1:    Option[StepGuideState],
+    guideWithODGW2:    Option[StepGuideState],
+    guideWithODGW3:    Option[StepGuideState],
+    guideWithODGW4:    Option[StepGuideState],
+    offsetA:           Option[InstrumentOffset],
+    wavelA:            Option[Wavelength],
+    instrumentDefocus: Option[Length],
+    lightPath:         LightPath,
+    instrument:        InstrumentGuide
   )
 
   private[tcs] def config(
@@ -219,7 +221,8 @@ object TcsSouth {
     targets:             TargetEnvironment,
     telescopeConfig:     CoreTelescopeConfig,
     lightPath:           LightPath,
-    observingWavelength: Option[Wavelength]
+    observingWavelength: Option[Wavelength],
+    instrumentDefocus:   Option[Length]
   ): TcsSeqConfig = {
 
     val p: Offset.P = telescopeConfig.offset.p
@@ -262,6 +265,7 @@ object TcsSouth {
       gwod4,
       offset,
       observingWavelength,
+      instrumentDefocus,
       lightPath,
       instrument
     )
@@ -277,10 +281,11 @@ object TcsSouth {
     targets:             TargetEnvironment,
     telescopeConfig:     CoreTelescopeConfig,
     lightPath:           LightPath,
-    observingWavelength: Option[Wavelength]
+    observingWavelength: Option[Wavelength],
+    defocus:             Option[Length]
   ): TcsSouth[F] =
     new TcsSouth(controller, subsystems, gaos, guideConfigDb)(
-      config(instrument, targets, telescopeConfig, lightPath, observingWavelength)
+      config(instrument, targets, telescopeConfig, lightPath, observingWavelength, defocus)
     )
 
 }

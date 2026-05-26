@@ -8,29 +8,29 @@ import cats.syntax.all.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.StepConfig
 
-sealed trait StepType extends Product with Serializable {
+sealed trait StepKind extends Product with Serializable {
   def instrument: Instrument
 }
 
-object StepType {
-  final case class CelestialObject(override val instrument: Instrument)     extends StepType
-  final case class NodAndShuffle(override val instrument: Instrument)       extends StepType
-  final case class Gems(override val instrument: Instrument)                extends StepType
-  final case class AltairObs(override val instrument: Instrument)           extends StepType
+object StepKind {
+  final case class CelestialObject(override val instrument: Instrument)     extends StepKind
+  final case class NodAndShuffle(override val instrument: Instrument)       extends StepKind
+  final case class Gems(override val instrument: Instrument)                extends StepKind
+  final case class AltairObs(override val instrument: Instrument)           extends StepKind
   // Flats or Arcs that can be taken without caring about OI guiding
   final case class FlatOrArc(override val instrument: Instrument, gcalCfg: StepConfig.Gcal)
-      extends StepType
+      extends StepKind
   // Flats or Arcs that must care about OI guiding
   final case class NightFlatOrArc(override val instrument: Instrument, gcalCfg: StepConfig.Gcal)
-      extends StepType
-  final case class DarkOrBias(override val instrument: Instrument)          extends StepType
-  final case class DarkOrBiasNS(override val instrument: Instrument)        extends StepType
-  final case class ExclusiveDarkOrBias(override val instrument: Instrument) extends StepType
+      extends StepKind
+  final case class DarkOrBias(override val instrument: Instrument)          extends StepKind
+  final case class DarkOrBiasNS(override val instrument: Instrument)        extends StepKind
+  final case class ExclusiveDarkOrBias(override val instrument: Instrument) extends StepKind
 //  case object AlignAndCalib                                                 extends StepType {
 //    override val instrument: Instrument = Instrument.Gpi
 //  }
 
-  given Eq[StepType] = Eq.instance {
+  given Eq[StepKind] = Eq.instance {
     case (CelestialObject(i), CelestialObject(j))         => i === j
     case (NodAndShuffle(i), NodAndShuffle(j))             => i === j
     case (Gems(i), Gems(j))                               => i === j

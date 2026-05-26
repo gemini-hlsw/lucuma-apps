@@ -9,7 +9,7 @@ import fs2.Stream
 import lucuma.core.util.TimeSpan
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
-import observe.server.InstrumentSystem
+import observe.server.InstrumentSystem.ElapsedTime
 import observe.server.Progress
 import observe.server.overrideLogMessage
 import org.typelevel.log4cats.Logger
@@ -42,7 +42,7 @@ class GmosControllerDisabled[F[_]: {Logger, Applicative}, T <: GmosController.Gm
 
   override def observeProgress(
     total:   TimeSpan,
-    elapsed: InstrumentSystem.ElapsedTime
+    elapsed: ElapsedTime
   ): Stream[F, Progress] = Stream.empty
 
   override def nsCount: F[Int] = 0.pure[F]

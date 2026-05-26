@@ -109,7 +109,7 @@ class TestObserveEngine[F[_]: Sync](sys: Systems[F]) extends ObserveEngine[F] {
 
   override def resetConditions: F[Unit] = Applicative[F].unit
 
-  override def setConditions(conditions: Conditions, user: User): F[Unit] =
+  override def setConditions(conditions: CurrentConditions, user: User): F[Unit] =
     Applicative[F].unit
 
   override def setImageQuality(iq: ImageQuality, user: User, clientId: ClientId): F[Unit] =

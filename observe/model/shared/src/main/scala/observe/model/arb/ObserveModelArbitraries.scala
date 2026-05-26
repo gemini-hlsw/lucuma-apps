@@ -34,13 +34,13 @@ import scala.collection.immutable.SortedMap
 trait ObserveModelArbitraries {
   private val maxListSize = 2
 
-  given Arbitrary[Conditions] = Arbitrary[Conditions] {
+  given Arbitrary[CurrentConditions] = Arbitrary[CurrentConditions] {
     for {
       ce <- arbitrary[Option[CloudExtinction]]
       iq <- arbitrary[Option[ImageQuality]]
       sb <- arbitrary[Option[SkyBackground]]
       wv <- arbitrary[Option[WaterVapor]]
-    } yield Conditions(ce, iq, sb, wv)
+    } yield CurrentConditions(ce, iq, sb, wv)
   }
 
   // N.B. We don't want to auto derive this to limit the size of the lists for performance reasons
@@ -48,7 +48,7 @@ trait ObserveModelArbitraries {
     Arbitrary {
       for {
         b <- Gen.listOfN[A](maxListSize, arb.arbitrary)
-        c <- arbitrary[Conditions]
+        c <- arbitrary[CurrentConditions]
         o <- arbitrary[Option[Operator]]
         // We are already testing serialization of conditions and Strings
         // Let's reduce the test space by only testing the list of items
@@ -157,13 +157,13 @@ trait ObserveModelArbitraries {
         )
       )
 
-  given Cogen[Conditions] =
+  given Cogen[CurrentConditions] =
     Cogen[
       (Option[CloudExtinction], Option[ImageQuality], Option[SkyBackground], Option[WaterVapor])
     ].contramap(c => (c.ce, c.iq, c.sb, c.wv))
 
   given [A: Cogen]: Cogen[SequencesQueue[A]] =
-    Cogen[(Conditions, Option[Operator], List[A])].contramap(s =>
+    Cogen[(CurrentConditions, Option[Operator], List[A])].contramap(s =>
       (s.conditions, s.operator, s.sessionQueue)
     )
 

@@ -3,6 +3,7 @@
 
 package observe.server.keywords
 
+import cats.FlatMap
 import cats.Monad
 import cats.data.Nested
 import cats.effect.Sync
@@ -11,6 +12,7 @@ import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
 import lucuma.core.enums.StepGuideState
 import lucuma.core.model.ElevationRange
+import lucuma.core.model.sequence.StepConfig
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.model.Observation.Id
 import observe.model.Observer
@@ -303,4 +305,17 @@ class StandardHeader[F[_]: {Sync, Logger}](
       buildString(obsReader.releaseDate, KeywordName.RELEASE)
     )
   )
+}
+
+object StandardHeader {
+
+  def obsObject[F[_]: FlatMap](stepCfg: StepConfig, objectNameF: F[String]): F[String] =
+    objectNameF.map { tcsObject =>
+      val obsType   = ObsKeywordReader.obsType(stepCfg)
+      val obsObject = ObsKeywordReader.obsObject(stepCfg)
+
+      if (obsType === "OBJECT" && obsObject =!= "Twilight" && obsObject =!= "Domeflat") tcsObject
+      else obsObject
+    }
+
 }

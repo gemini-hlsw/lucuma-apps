@@ -167,6 +167,14 @@
             <record>aoFlatten</record>
             <description>Flatten AO light path</description>
         </command>
+        <command name="instrumentDefocus">
+            <description>Instrument defocus</description>
+            <parameter name="dtelFocus">
+                <channel>dtelFocus.B</channel>
+                <type>DOUBLE</type>
+                <description>Defocus offset B in mm</description>
+            </parameter>
+        </command>
         <command name="aoFollow">
             <description>GAOS probe following</description>
             <parameter name="followState">

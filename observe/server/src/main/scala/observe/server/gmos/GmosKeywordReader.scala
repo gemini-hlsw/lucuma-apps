@@ -10,8 +10,6 @@ import cats.syntax.all.*
 import lucuma.core.enums.MosPreImaging
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
-import lucuma.core.model.sequence.gmos
-import lucuma.core.model.sequence.gmos.StaticConfig
 import monocle.Focus
 import monocle.Getter
 import observe.model.enums.NodAndShuffleStage
@@ -24,12 +22,10 @@ import observe.server.keywords.*
 
 final case class RoiValues(xStart: Int, xSize: Int, yStart: Int, ySize: Int)
 
-final case class GmosObsKeywordsReader[F[
-  _
-]: MonadThrow, T <: GmosSite, S <: gmos.StaticConfig, D <: gmos.DynamicConfig](
-  staticConfig:  S,
-  dynamicConfig: D
-)(using getters: Gmos.ParamGetters[T, S, D]) {
+final case class GmosObsKeywordsReader[F[_]: MonadThrow, T <: GmosSite](
+  staticConfig:  GmosSite.StaticConfig[T],
+  dynamicConfig: GmosSite.DynamicConfig[T]
+)(using getters: Gmos.ParamGetters[T]) {
   def preimage: F[Boolean] =
     (getters.isMosPreimaging.get(staticConfig) === MosPreImaging.IsMosPreImaging).pure[F]
 

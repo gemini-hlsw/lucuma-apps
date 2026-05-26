@@ -9,7 +9,7 @@ import cats.syntax.all.*
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.server.tcs.TcsEpics
 
 import ConditionOps.*
@@ -38,7 +38,7 @@ trait ConditionSetReader[F[_]] {
 
 object ConditionSetReaderEpics {
   def apply[F[_]: Monad](site: Site, tcsEpics: TcsEpics[F])(
-    conditions: Conditions
+    conditions: CurrentConditions
   ): ConditionSetReader[F] = new ConditionSetReader[F]:
     override def imageQualityStr: F[String] = for {
       wv <- tcsEpics.sourceATarget.centralWavelengthAngstroms
@@ -77,7 +77,7 @@ object ConditionSetReaderEpics {
 }
 
 object DummyConditionSetReader {
-  def apply[F[_]: Applicative](site: Site)(conditions: Conditions): ConditionSetReader[F] =
+  def apply[F[_]: Applicative](site: Site)(conditions: CurrentConditions): ConditionSetReader[F] =
     new ConditionSetReader[F] {
 
       override def imageQualityStr: F[String] = DefaultHeaderValue[String].default.pure[F]

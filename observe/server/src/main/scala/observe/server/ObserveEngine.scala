@@ -134,7 +134,7 @@ trait ObserveEngine[F[_]] {
 
   def resetConditions: F[Unit]
 
-  def setConditions(conditions: Conditions, user: User): F[Unit]
+  def setConditions(conditions: CurrentConditions, user: User): F[Unit]
 
   def setImageQuality(iq: ImageQuality, user: User, clientId: ClientId): F[Unit]
 
@@ -228,7 +228,7 @@ object ObserveEngine {
   def createTranslator[F[_]: {Async, Logger}](
     site:          Site,
     systems:       Systems[F],
-    conditionsRef: Ref[F, Conditions],
+    conditionsRef: Ref[F, CurrentConditions],
     environment:   ExecutionEnvironment
   ): F[SeqTranslate[F]] =
     SeqTranslate(site, systems, conditionsRef, environment)
@@ -557,7 +557,7 @@ object ObserveEngine {
     environment: ExecutionEnvironment
   ): F[ObserveEngine[F]] =
     for
-      rc  <- Ref.of[F, Conditions](Conditions.Default)
+      rc  <- Ref.of[F, CurrentConditions](CurrentConditions.Default)
       tr  <- createTranslator(site, systems, rc, environment)
       eng <- Engine.build[F](onStepComplete[F](systems.odb, tr))
     yield new ObserveEngineImpl[F](eng, systems, conf, tr, rc)

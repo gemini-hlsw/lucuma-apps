@@ -14,7 +14,7 @@ import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
 import lucuma.core.util.arb.ArbUid.given
 import observe.model.ClientConfig
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Notification
@@ -46,14 +46,14 @@ trait ArbClientEvent:
   given Arbitrary[ClientEvent.ObserveState] = Arbitrary:
     for
       s    <- arbitrary[SequencesQueue[SequenceView]]
-      c    <- arbitrary[Conditions]
+      c    <- arbitrary[CurrentConditions]
       o    <- arbitrary[Option[Operator]]
       rids <- arbitrary[ObsRecordedIds]
     yield ClientEvent.ObserveState(s.sequencesState, c, o, rids)
 
   given Cogen[ClientEvent.ObserveState] =
-    Cogen[(List[(Observation.Id, ExecutionState)], Conditions, ObsRecordedIds)].contramap(x =>
-      (x.sequenceExecution.toList, x.conditions, x.currentRecordedIds)
+    Cogen[(List[(Observation.Id, ExecutionState)], CurrentConditions, ObsRecordedIds)].contramap(
+      x => (x.sequenceExecution.toList, x.conditions, x.currentRecordedIds)
     )
 
   given Arbitrary[ClientEvent.ObsLoaded] = Arbitrary:

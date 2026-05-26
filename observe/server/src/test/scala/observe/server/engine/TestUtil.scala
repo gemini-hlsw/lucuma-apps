@@ -5,7 +5,7 @@ package observe.server.engine
 
 import cats.effect.IO
 import cats.syntax.option.*
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Observation
 import observe.model.SystemOverrides
 import observe.server.EngineState
@@ -35,10 +35,11 @@ object TestUtil {
           )
           .some,
         gmosSouth = none,
+        ghost = none,
         flamingos2 = none,
         igrins2 = none
       ),
-      conditions = Conditions.Default,
+      conditions = CurrentConditions.Default,
       operator = None
     )
 }

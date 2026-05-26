@@ -15,18 +15,13 @@ import observe.server.keywords.KeywordsClient
 import java.time.temporal.ChronoUnit
 
 trait InstrumentSystem[F[_]] extends System[F] {
-  val resource: Instrument
+  override val resource: Instrument
 
   val contributorName: String
 
   def observeControl: InstrumentSystem.ObserveControl[F]
 
   def observe: Kleisli[F, ImageFileId, ObserveCommandResult]
-
-  // Expected total observe lapse, used to calculate timeout
-  def calcObserveTime: TimeSpan
-
-  def observeTimeout: TimeSpan = TimeSpan.unsafeFromDuration(1, ChronoUnit.MINUTES)
 
   def keywordsClient: KeywordsClient[F]
 
@@ -37,10 +32,12 @@ trait InstrumentSystem[F[_]] extends System[F] {
 
   def instrumentActions: InstrumentActions[F]
 
+  def calcObserveTime: TimeSpan
+
 }
 
 object InstrumentSystem {
-  val ObserveOperationsTimeout = TimeSpan.unsafeFromDuration(1, ChronoUnit.MINUTES)
+  val ObserveOperationsTimeout: TimeSpan = TimeSpan.unsafeFromDuration(1, ChronoUnit.MINUTES)
 
   final case class StopObserveCmd[+F[_]](self: Boolean => F[Unit])
   final case class AbortObserveCmd[+F[_]](self: F[Unit])

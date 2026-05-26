@@ -22,18 +22,24 @@ object ObsQueriesGql:
         observation(observationId: $$obsId) {
           id
           title
+          observationTime
           program {
             id
             name
             goa { proprietaryMonths }
           }
           targetEnvironment {
+            asterism $TargetWithIdSubquery
             firstScienceTarget {
               targetId: id
               targetName: name
             }
             guideEnvironment {
               guideTargets { probe }
+            }
+            explicitBase {
+              ra $RASubquery
+              dec $DecSubquery
             }
           }
           constraintSet $ConstraintSetSubquery
@@ -78,6 +84,13 @@ object ObsQueriesGql:
             }
             science { ...igrins2SequenceFields }
           }
+          ghost {
+            static {
+              resolutionMode
+              slitViewingCameraExposureTime
+            }
+            science { ...ghostSequenceFields }
+          }
         }
       }
 
@@ -112,12 +125,21 @@ object ObsQueriesGql:
         possibleFuture $Igrins2AtomSubquery
         hasMore
       }
+
+      fragment ghostSequenceFields on GhostExecutionSequence {
+        nextAtom $GhostAtomSubquery
+        possibleFuture $GhostAtomSubquery
+        hasMore
+      }
     """
 
     object Data:
       object Observation:
         type ConstraintSet = model.ConstraintSet
         type TimingWindows = model.TimingWindow
+        object TargetEnvironment {
+          type ExplicitBase = lucuma.core.math.Coordinates
+        }  
       type ExecutionConfig = InstrumentExecutionConfig
 
   @GraphQL

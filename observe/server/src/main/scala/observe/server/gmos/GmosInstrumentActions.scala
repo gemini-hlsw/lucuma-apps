@@ -31,7 +31,8 @@ import org.typelevel.log4cats.Logger
  * Gmos needs different actions for N&S
  */
 class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSite](
-  inst: Gmos[F, A]
+  inst:       Gmos[F, A],
+  controller: GmosController[F, A]
 ) extends InstrumentActions[F] {
   override def observationProgressStream(
     env: ObserveEnvironment[F]
@@ -94,7 +95,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
   ): F[Result] =
     // the last step completes the observations doing an observeTail
     (for {
-      ret <- inst.controller.resumePaused(inst.calcObserveTime)
+      ret <- controller.resumePaused(inst.calcObserveTime)
       t   <- observeTail(fileId, stepId, env, nsCfg)(ret)
     } yield t).safeResult
 
@@ -118,23 +119,23 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
         observeTail(fileId, stepId, env, nsCfg)(obsResult)
 
       case (Some(StopImmediately), ObserveCommandResult.Paused) =>
-        inst.controller.stopPaused
+        controller.stopPaused
           .flatMap(observeTail(fileId, stepId, env, nsCfg))
 
       // Stop if this was the last subexposure of a cycle
       case (Some(StopGracefully), ObserveCommandResult.Paused)
           if subExp.stageIndex.value === NsSequence.length - 1 =>
-        inst.controller.stopPaused
+        controller.stopPaused
           .flatMap(observeTail(fileId, stepId, env, nsCfg))
 
       case (Some(AbortImmediately), ObserveCommandResult.Paused) =>
-        inst.controller.abortPaused
+        controller.abortPaused
           .flatMap(observeTail(fileId, stepId, env, nsCfg))
 
       // Abort if this was the last subexposure of a cycle
       case (Some(AbortGracefully), ObserveCommandResult.Paused)
           if subExp.stageIndex.value === NsSequence.length - 1 =>
-        inst.controller.abortPaused
+        controller.abortPaused
           .flatMap(observeTail(fileId, stepId, env, nsCfg))
 
       // We reach here only if the result was Paused and no command made it stop/pause/abort
@@ -151,7 +152,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
     nsObsCmdRef: Ref[F, Option[NSObserveCommand]]
   ): F[Result] = (
     for {
-      r     <- inst.controller.resumePaused(inst.calcObserveTime)
+      r     <- controller.resumePaused(inst.calcObserveTime)
       nsCmd <- nsObsCmdRef.get
       x     <- continueResult(fileId, stepId, env, nsCfg, subExp, nsCmd)(r)
     } yield x
@@ -249,7 +250,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
         .lastOption
         .getOrElse(NsSubexposure.Zero)
 
-    Stream.eval(inst.nsCount).flatMap { cnt =>
+    Stream.eval(controller.nsCount).flatMap { cnt =>
       Stream.eval(inst.nsCmdRef.set(none)) *>
         NsSubexposure
           .subexposures(nsConfig.cycles.value)
@@ -269,7 +270,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
     env:    ObserveEnvironment[F],
     nsCfg:  NsConfig.NodAndShuffle
   ): Stream[F, Result] = Stream.eval(
-    inst.controller.stopPaused.flatMap(observeTail(fileId, stepId, env, nsCfg))
+    controller.stopPaused.flatMap(observeTail(fileId, stepId, env, nsCfg))
   )
 
   def abortPausedObserve(
@@ -278,7 +279,7 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
     env:    ObserveEnvironment[F],
     nsCfg:  NsConfig.NodAndShuffle
   ): Stream[F, Result] = Stream.eval(
-    inst.controller.abortPaused.flatMap(observeTail(fileId, stepId, env, nsCfg))
+    controller.abortPaused.flatMap(observeTail(fileId, stepId, env, nsCfg))
   )
 
   def launchObserve(
@@ -296,15 +297,15 @@ class GmosInstrumentActions[F[_]: {Temporal, Logger}, A <: GmosController.GmosSi
     env:    ObserveEnvironment[F]
   ): List[ParallelActions[F]] =
     env.stepType match
-      case StepType.NodAndShuffle(i) if i === inst.resource =>
+      case StepKind.NodAndShuffle(i) if i === inst.resource =>
         defaultObserveActions(launchObserve(stepId, env))
-      case StepType.DarkOrBiasNS(i) if i === inst.resource  =>
+      case StepKind.DarkOrBiasNS(i) if i === inst.resource  =>
         defaultObserveActions(launchObserve(stepId, env))
 
       case _ =>
         // Regular GMOS observations behave as any instrument
         defaultInstrumentActions[F].observeActions(stepId, env)
 
-  def runInitialAction(stepType: StepType): Boolean = true
+  def runInitialAction(stepType: StepKind): Boolean = true
 
 }

@@ -19,6 +19,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.TelescopeGuideConfig
 import mouse.boolean.*
 import observe.server.EpicsCodex.decode
+import observe.server.Length
 import observe.server.ObserveFailure
 import observe.server.ObserveFailure.NullEpicsError
 import observe.server.gems.Gems.*
@@ -78,6 +79,8 @@ object TcsConfigRetriever {
     private def getAoFold: F[AoFold] = epicsSys.aoFoldPosition.map(decode[String, AoFold])
 
     private def decodeNodChopOption(s: Int): Boolean = s =!= 0
+
+    private def getDefocusB: F[Length] = epicsSys.defocusB.map(Length.fromDoubleMillimeters)
 
     private def getNodChopTrackingConfig(
       g: TcsEpics.ProbeGuideConfig[F]
@@ -314,6 +317,7 @@ object TcsConfigRetriever {
         offX   <- getOffsetX
         offY   <- getOffsetY
         wl     <- getWavelength
+        df     <- getDefocusB
         p1     <- getPwfs1
         p2     <- getPwfs2
         oi     <- getOiwfs
@@ -328,6 +332,7 @@ object TcsConfigRetriever {
         iaa,
         FocalPlaneOffset(OffsetX(offX), OffsetY(offY)),
         wl,
+        df,
         p1,
         p2,
         oi,

@@ -17,12 +17,14 @@ import clue.http4s.Http4sWebSocketBackend
 import clue.http4s.Http4sWebSocketClient
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
+import giapi.client.ghost.GhostClient
 import giapi.client.igrins2.Igrins2Client
 import io.circe.syntax.*
 import lucuma.core.enums.Site
 import lucuma.schemas.ObservationDB
 import mouse.boolean.*
-import observe.model.Conditions
+import observe.model.CurrentConditions
+import observe.model.SystemOverrides
 import observe.model.config.*
 import observe.model.enums.ControlStrategy
 import observe.model.odb.ObsRecordedIds
@@ -30,7 +32,9 @@ import observe.server.altair.*
 import observe.server.flamingos2.*
 import observe.server.gcal.*
 import observe.server.gems.*
+import observe.server.ghost.*
 import observe.server.gmos.*
+import observe.server.gmos.GmosController.GmosSite
 import observe.server.gsaoi.*
 import observe.server.gws.*
 import observe.server.igrins2.Igrins2Controller
@@ -62,24 +66,22 @@ case class Systems[F[_]] private[server] (
   flamingos2:          Flamingos2Controller[F],
   gmosSouth:           GmosSouthController[F],
   gmosNorth:           GmosNorthController[F],
-  igrins2:             Igrins2Controller[F],
-  /*  gnirs:               GnirsController[F],
-  gsaoi:               GsaoiController[F],
-  gpi:                 GpiController[F],
   ghost:               GhostController[F],
-  niri:                NiriController[F],
-  nifs:                NifsController[F], */
+  igrins2:             Igrins2Controller[F],
+  //  gnirs:               GnirsController[F],
+  //  gpi:                 GpiController[F],
+  //  niri:                NiriController[F],
+  //  nifs:                NifsController[F],
   altair:              AltairController[F],
   gems:                GemsController[F],
   guideDb:             GuideConfigDb[F],
   tcsKeywordReader:    TcsKeywordsReader[F],
-  conditionSetReader:  Conditions => ConditionSetReader[F],
+  conditionSetReader:  CurrentConditions => ConditionSetReader[F],
   gcalKeywordReader:   GcalKeywordReader[F],
   gmosKeywordReader:   GmosKeywordReader[F],
   /*  gnirsKeywordReader:  GnirsKeywordReader[F],
-  niriKeywordReader:   NiriKeywordReader[F],
-  nifsKeywordReader:   NifsKeywordReader[F],
-  gsaoiKeywordReader:  GsaoiKeywordReader[F],*/
+                                           niriKeywordReader:   NiriKeywordReader[F],
+                                           nifsKeywordReader:   NifsKeywordReader[F],*/
   altairKeywordReader: AltairKeywordReader[F],
   gemsKeywordsReader:  GemsKeywordReader[F],
   gwsKeywordReader:    GwsKeywordReader[F]
@@ -217,7 +219,7 @@ object Systems {
         TcsKeywordsReader[IO],
         AltairController[IO],
         AltairKeywordReader[IO],
-        Conditions => ConditionSetReader[IO]
+        CurrentConditions => ConditionSetReader[IO]
       )
     ] =
       for {
@@ -373,11 +375,12 @@ object Systems {
       else Flamingos2ControllerSim[IO]
     //
     //    def gpi[F[_]: {Async, Logger}](
-    //      httpClient: Client[F]
+    //      httpClient: Client[F],
+    //      instancename: String
     //    ): Resource[F, GpiController[F]] = {
     //      def gpiClient: Resource[F, GpiClient[F]] =
     //        if (settings.systemControl.gpi.command)
-    //          GpiClient.gpiClient[F](settings.gpiUrl.renderString, GpiStatusApply.statusesToMonitor)
+    //          GpiClient.gpiClient[F](s"gpi-observe-$instanceName", settings.gpiUrl.value.renderString, GpiStatusApply.statusesToMonitor)
     //        else GpiClient.simulatedGpiClient[F]
     //
     //      def gpiGDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
@@ -391,27 +394,28 @@ object Systems {
     //      (gpiClient, gpiGDS(httpClient)).mapN(GpiController(_, _))
     //    }
     //
-    //    def ghost[F[_]: {Async, Logger}](
-    //      httpClient: Client[F]
-    //    ): Resource[F, GhostController[F]] = {
-    //      def ghostClient: Resource[F, GhostClient[F]] =
-    //        if (settings.systemControl.ghost.command)
-    //          GhostClient.ghostClient[F](settings.ghostUrl.renderString)
-    //        else GhostClient.simulatedGhostClient
-    //
-    //      def ghostGDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
-    //        Resource.pure[F, GdsClient[F]](
-    //          GdsClient(if (settings.systemControl.ghostGds.command) httpClient
-    //                    else GdsClient.alwaysOkClient[F],
-    //                    settings.ghostGDS
-    //          )
-    //        )
-    //
-    //      (ghostClient, ghostGDS(httpClient)).mapN(GhostController(_, _))
-    //    }
-    //
+    def ghost[F[_]: {Async, Logger}](
+      httpClient:   Client[F],
+      instanceName: String
+    ): Resource[F, GhostController[F]] =
+      if (settings.systemControl.ghost.command) {
+        def ghostClient: Resource[F, GhostClient[F]] =
+          GhostClient
+            .ghostClient[F](s"ghost-observe-$instanceName", settings.ghostUrl.value.renderString)
 
-    def igrins2[F[_]: Async: Logger](
+        def ghostGDS: Resource[F, GdsClient[F]] =
+          Resource.pure[F, GdsClient[F]](
+            GdsClient.json(if (settings.systemControl.ghost.command) httpClient
+                           else GdsClient.alwaysOkClient[F],
+                           settings.ghostGds.value
+            )
+          )
+
+        (ghostClient, ghostGDS).mapN(GhostController(_, _))
+      } else
+        Resource.eval(GhostControllerSim[F])
+
+    def igrins2[F[_]: {Async, Logger}](
       httpClient:   Client[F],
       instanceName: String
     ): Resource[F, Igrins2Controller[F]] =
@@ -457,8 +461,8 @@ object Systems {
         //        (nifsCtr, nifsKR)                          <- Resource.eval(nifs)
         gms                                               <- Resource.eval(gmosObjects(site))
         (gmosSouthCtr, gmosNorthCtr, gmosKR)               = gms
-        //        gpiController                              <- gpi[IO](httpClient)
-        //        ghostController                            <- ghost[IO](httpClient)
+        //        gpiController                              <- gpi[IO](httpClient, instanceName)
+        ghostController                                   <- ghost[IO](httpClient, instanceName)
         gwsKR                                             <- Resource.eval(gws)
       } yield Systems[IO](
         odbProxy,
@@ -472,7 +476,7 @@ object Systems {
         //        gnirsCtr,
         //        gsaoiCtr,
         //        gpiController,
-        //        ghostController,
+        ghostController,
         //        niriCtr,
         //        nifsCtr,
         igrins2Ctr,
@@ -524,6 +528,7 @@ object Systems {
           Flamingos2ControllerDisabled[F],
           GmosControllerDisabled[F, GmosController.GmosSite.South.type]("south"),
           GmosControllerDisabled[F, GmosController.GmosSite.North.type]("north"),
+          GhostControllerDisabled[F],
           Igrins2ControllerDisabled[F],
           AltairControllerSim[F],
           GemsControllerSim[F],
@@ -537,4 +542,91 @@ object Systems {
           GwsKeywordsReaderDummy[F]
         )
       )
+
+  class OverriddenSystems[F[_]: {Async, Logger}](val systems: Systems[F]) {
+
+    private val tcsSouthDisabled: TcsSouthController[F]     = new TcsSouthControllerDisabled[F]
+    private val tcsNorthDisabled: TcsNorthController[F]     = new TcsNorthControllerDisabled[F]
+    private val gemsDisabled: GemsController[F]             = new GemsControllerDisabled[F]
+    private val altairDisabled: AltairController[F]         = new AltairControllerDisabled[F]
+    private val dhsDisabled: DhsClientProvider[F]           = (_: String) => new DhsClientDisabled[F]
+    private val gcalDisabled: GcalController[F]             = new GcalControllerDisabled[F]
+    private val flamingos2Disabled: Flamingos2Controller[F] = new Flamingos2ControllerDisabled[F]
+    private val igrins2Disabled: Igrins2Controller[F]       = new Igrins2ControllerDisabled[F]
+    private val gmosSouthDisabled: GmosSouthController[F]   =
+      new GmosControllerDisabled[F, GmosSite.South.type]("GMOS-S")
+    private val gmosNorthDisabled: GmosNorthController[F]   =
+      new GmosControllerDisabled[F, GmosSite.North.type]("GMOS-N")
+    //    private val gsaoiDisabled: GsaoiController[F]           = new GsaoiControllerDisabled[F]
+    //    private val gpiDisabled: GpiController[F]               = new GpiControllerDisabled[F](systems.gpi.statusDb)
+    private val ghostDisabled: GhostController[F]           = new GhostControllerDisabled[F]
+    //    private val nifsDisabled: NifsController[F]             = new NifsControllerDisabled[F]
+    //    private val niriDisabled: NiriController[F]             = new NiriControllerDisabled[F]
+    //    private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
+
+    def tcsSouth(overrides: SystemOverrides): TcsSouthController[F] =
+      if (overrides.isTcsEnabled.value) systems.tcsSouth
+      else tcsSouthDisabled
+
+    def tcsNorth(overrides: SystemOverrides): TcsNorthController[F] =
+      if (overrides.isTcsEnabled.value) systems.tcsNorth
+      else tcsNorthDisabled
+
+    def gems(overrides: SystemOverrides): GemsController[F] =
+      if (overrides.isTcsEnabled.value) systems.gems
+      else gemsDisabled
+
+    def altair(overrides: SystemOverrides): AltairController[F] =
+      if (overrides.isTcsEnabled.value) systems.altair
+      else altairDisabled
+
+    def dhs(overrides: SystemOverrides): DhsClientProvider[F] =
+      if (overrides.isDhsEnabled.value) systems.dhs
+      else dhsDisabled
+
+    def gcal(overrides: SystemOverrides): GcalController[F] =
+      if (overrides.isGcalEnabled.value) systems.gcal
+      else gcalDisabled
+
+    def flamingos2(overrides: SystemOverrides): Flamingos2Controller[F] =
+      if (overrides.isInstrumentEnabled) systems.flamingos2
+      else flamingos2Disabled
+
+    def gmosNorth(overrides: SystemOverrides): GmosNorthController[F] =
+      if (overrides.isInstrumentEnabled.value) systems.gmosNorth
+      else gmosNorthDisabled
+
+    def gmosSouth(overrides: SystemOverrides): GmosSouthController[F] =
+      if (overrides.isInstrumentEnabled.value) systems.gmosSouth
+      else gmosSouthDisabled
+
+    def igrins2(overrides: SystemOverrides): Igrins2Controller[F] =
+      if (overrides.isInstrumentEnabled.value) systems.igrins2
+      else igrins2Disabled
+
+    //    def gsaoi(overrides: SystemOverrides): GsaoiController[F] =
+    //      if (overrides.isInstrumentEnabled) systems.gsaoi
+    //      else gsaoiDisabled
+    //
+    //    def gpi(overrides: SystemOverrides): GpiController[F] =
+    //      if (overrides.isInstrumentEnabled) systems.gpi
+    //      else gpiDisabled
+    //
+    def ghost(overrides: SystemOverrides): GhostController[F] =
+      if (overrides.isInstrumentEnabled) systems.ghost
+      else ghostDisabled
+    //
+    //    def nifs(overrides: SystemOverrides): NifsController[F] =
+    //      if (overrides.isInstrumentEnabled) systems.nifs
+    //      else nifsDisabled
+    //
+    //    def niri(overrides: SystemOverrides): NiriController[F] =
+    //      if (overrides.isInstrumentEnabled) systems.niri
+    //      else niriDisabled
+    //
+    //    def gnirs(overrides: SystemOverrides): GnirsController[F] =
+    //      if (overrides.isInstrumentEnabled) systems.gnirs
+    //      else gnirsDisabled
+
+  }
 }

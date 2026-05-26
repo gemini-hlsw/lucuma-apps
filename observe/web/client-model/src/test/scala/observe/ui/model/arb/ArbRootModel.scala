@@ -20,7 +20,7 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.sso.arb.ArbUserVault.given
 import observe.common.FixedLengthBuffer
 import observe.common.arb.ArbFixedLengthBuffer.given
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Observer
@@ -61,7 +61,7 @@ trait ArbRootModel:
       sp    <- arbitrary[Map[Observation.Id, StepProgress]]
       usr   <- arbitrary[Map[Observation.Id, SelectedRowId]]
       or    <- arbitrary[Map[Observation.Id, ObservationRequests]]
-      cs    <- arbitrary[Conditions]
+      cs    <- arbitrary[CurrentConditions]
       obs   <- arbitrary[Option[Observer]]
       op    <- arbitrary[Option[Operator]]
       usm   <- arbitrary[Option[NonEmptyString]]
@@ -99,7 +99,7 @@ trait ArbRootModel:
       Map[Observation.Id, StepProgress],
       Map[Observation.Id, SelectedRowId],
       Map[Observation.Id, ObservationRequests],
-      Conditions,
+      CurrentConditions,
       Option[Observer],
       Option[Operator],
       Option[NonEmptyString],

@@ -19,7 +19,7 @@ import lucuma.core.refined.given
 import monocle.Focus
 import monocle.Lens
 
-case class Conditions(
+case class CurrentConditions(
   ce: Option[CloudExtinction],
   iq: Option[ImageQuality],
   sb: Option[SkyBackground],
@@ -28,34 +28,34 @@ case class Conditions(
       Encoder.AsObject,
       Decoder
 
-object Conditions:
+object CurrentConditions:
 
-  val Unknown: Conditions =
-    Conditions(
+  val Unknown: CurrentConditions =
+    CurrentConditions(
       none,
       none,
       none,
       none
     )
 
-  val Worst: Conditions =
-    Conditions(
+  val Worst: CurrentConditions =
+    CurrentConditions(
       CloudExtinction.Preset.ThreePointZero.toCloudExtinction.some,
       ImageQuality.Preset.TwoPointZero.toImageQuality.some,
       SkyBackground.Bright.some,
       WaterVapor.Wet.some
     )
 
-  val Nominal: Conditions =
-    Conditions(
+  val Nominal: CurrentConditions =
+    CurrentConditions(
       CloudExtinction.Preset.OnePointZero.toCloudExtinction.some,
       ImageQuality.Preset.OnePointZero.toImageQuality.some,
       SkyBackground.Gray.some,
       WaterVapor.Wet.some
     )
 
-  val Best: Conditions =
-    Conditions(
+  val Best: CurrentConditions =
+    CurrentConditions(
       // In the ODB model it's 20% but that value it's marked as obsolete
       // so I took the non-obsolete lowest value.
       CloudExtinction.Preset.PointOne.toCloudExtinction.some,
@@ -64,10 +64,10 @@ object Conditions:
       WaterVapor.VeryDry.some
     )
 
-  val Default: Conditions =
+  val Default: CurrentConditions =
     Unknown // Taken from ODB
 
-  val ce: Lens[Conditions, Option[CloudExtinction]] = Focus[Conditions](_.ce)
-  val iq: Lens[Conditions, Option[ImageQuality]]    = Focus[Conditions](_.iq)
-  val sb: Lens[Conditions, Option[SkyBackground]]   = Focus[Conditions](_.sb)
-  val wv: Lens[Conditions, Option[WaterVapor]]      = Focus[Conditions](_.wv)
+  val ce: Lens[CurrentConditions, Option[CloudExtinction]] = Focus[CurrentConditions](_.ce)
+  val iq: Lens[CurrentConditions, Option[ImageQuality]]    = Focus[CurrentConditions](_.iq)
+  val sb: Lens[CurrentConditions, Option[SkyBackground]]   = Focus[CurrentConditions](_.sb)
+  val wv: Lens[CurrentConditions, Option[WaterVapor]]      = Focus[CurrentConditions](_.wv)

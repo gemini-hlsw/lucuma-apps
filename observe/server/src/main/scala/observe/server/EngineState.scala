@@ -12,7 +12,7 @@ import monocle.Optional
 import monocle.syntax.all.*
 import observe.model.CalibrationQueueId
 import observe.model.CalibrationQueueName
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.Observation
 import observe.model.Operator
 import observe.server.engine.Engine
@@ -21,7 +21,7 @@ import observe.server.engine.SequenceState
 case class EngineState[F[_]](
   queues:     ExecutionQueues,
   selected:   Selected[F],
-  conditions: Conditions,
+  conditions: CurrentConditions,
   operator:   Option[Operator]
 ) {
   lazy val sequences: Map[Observation.Id, SequenceData[F]] =
@@ -52,6 +52,9 @@ object EngineState {
   private def selectedGmosNorth[F[_]]: Lens[EngineState[F], Option[SequenceData[F]]] =
     Focus[EngineState[F]](_.selected.gmosNorth)
 
+  private def selectedGhost[F[_]]: Lens[EngineState[F], Option[SequenceData[F]]] =
+    Focus[EngineState[F]](_.selected.ghost)
+
   private def selectedFlamingos2[F[_]]: Lens[EngineState[F], Option[SequenceData[F]]] =
     Focus[EngineState[F]](_.selected.flamingos2)
 
@@ -62,7 +65,7 @@ object EngineState {
     EngineState[F](
       Map(CalibrationQueueId -> ExecutionQueue.init(CalibrationQueueName)),
       Selected.none,
-      Conditions.Default,
+      CurrentConditions.Default,
       None
     )
 
@@ -71,6 +74,7 @@ object EngineState {
   ): Lens[EngineState[F], Option[SequenceData[F]]] = instrument match {
     case Instrument.GmosSouth  => EngineState.selectedGmosSouth
     case Instrument.GmosNorth  => EngineState.selectedGmosNorth
+    case Instrument.Ghost      => EngineState.selectedGhost
     case Instrument.Flamingos2 => EngineState.selectedFlamingos2
     case Instrument.Igrins2    => EngineState.selectedIgrins2
     case i                     => sys.error(s"Unexpected instrument $i")
@@ -161,7 +165,8 @@ object EngineState {
 
   def selected[F[_]]: Lens[EngineState[F], Selected[F]] = Focus[EngineState[F]](_.selected)
 
-  def conditions[F[_]]: Lens[EngineState[F], Conditions] = Focus[EngineState[F]](_.conditions)
+  def conditions[F[_]]: Lens[EngineState[F], CurrentConditions] =
+    Focus[EngineState[F]](_.conditions)
 
   def operator[F[_]]: Lens[EngineState[F], Option[Operator]] = Focus[EngineState[F]](_.operator)
 }

@@ -19,7 +19,7 @@ import monocle.Focus
 import monocle.Lens
 import observe.common.FixedLengthBuffer
 import observe.model.ClientConfig
-import observe.model.Conditions
+import observe.model.CurrentConditions
 import observe.model.ExecutionState
 import observe.model.LogMessage
 import observe.model.Observer
@@ -37,7 +37,7 @@ case class RootModelData(
   obsProgress:          Map[Observation.Id, StepProgress],
   userSelectedRow:      Map[Observation.Id, SelectedRowId],
   obsRequests:          Map[Observation.Id, ObservationRequests],
-  conditions:           Conditions,
+  conditions:           CurrentConditions,
   observer:             Option[Observer],
   operator:             Option[Operator],
   userSelectionMessage: Option[NonEmptyString],
@@ -121,7 +121,7 @@ object RootModelData:
       obsProgress = Map.empty,
       obsRequests = Map.empty,
       userSelectedRow = Map.empty,
-      conditions = Conditions.Default,
+      conditions = CurrentConditions.Default,
       observer = none,
       operator = none,
       userSelectionMessage = none,
@@ -145,7 +145,7 @@ object RootModelData:
     Focus[RootModelData](_.userSelectedRow)
   val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
     Focus[RootModelData](_.obsRequests)
-  val conditions: Lens[RootModelData, Conditions]                                = Focus[RootModelData](_.conditions)
+  val conditions: Lens[RootModelData, CurrentConditions]                         = Focus[RootModelData](_.conditions)
   val observer: Lens[RootModelData, Option[Observer]]                            = Focus[RootModelData](_.observer)
   val operator: Lens[RootModelData, Option[Operator]]                            = Focus[RootModelData](_.operator)
   val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]          =

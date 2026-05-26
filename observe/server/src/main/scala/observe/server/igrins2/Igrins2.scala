@@ -10,19 +10,22 @@ import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
-import lucuma.core.enums.ObserveClass
-import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.enums.StepType as OcsStepType
+import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.ObserveStage
+import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
-import observe.server.ConfigResult
-import observe.server.InstrumentSystem
 import observe.server.keywords.GdsClient
 import observe.server.keywords.GdsInstrument
+import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.syntax.*
@@ -31,7 +34,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
   controller: Igrins2Controller[F],
   config:     Igrins2Config
 ) extends GdsInstrument[F]
-    with InstrumentSystem[F] {
+    with InstrumentSystem[F] { self =>
 
   override val gdsClient: GdsClient[F] = controller.gdsClient
 
@@ -65,7 +68,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
     trace"Apply config ${config.configuration.toGiapi}" *>
       controller
         .applyConfig(config)
-        .as(ConfigResult[F](this))
+        .as(ConfigResult[F](self))
 
   override def notifyObserveEnd: F[Unit] =
     controller.endObserve
@@ -108,18 +111,55 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 }
 
 object Igrins2:
-  object specifics extends InstrumentSpecifics[Igrins2StaticConfig, Igrins2DynamicConfig]:
+//  object specifics:
+//
+////    override def instrument: Instrument =
+////      Instrument.Igrins2
+//
+//    override def sfName: LightSinkName =
+//      LightSinkName.Igrins2
 
-    override def instrument: Instrument =
-      Instrument.Igrins2
+  // TODO this could be part of the static config in core
+  val CentralWavelength: Option[Wavelength] = Wavelength.fromIntNanometers(1975)
 
-    override def sfName(instConfig: Igrins2DynamicConfig): LightSinkName =
-      LightSinkName.Igrins2
+//  def build[F[_]: {MonadThrow, Temporal, Logger}](
+//    controller:      Igrins2Controller[F],
+//    dynamicConfig:   Igrins2DynamicConfig,
+//    telescopeConfig: TelescopeConfig,
+//    observeClass:    ObserveClass
+//  ): Igrins2[F] =
+//    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig, observeClass))
 
-  def build[F[_]: {MonadThrow, Temporal, Logger}](
-    controller:      Igrins2Controller[F],
-    dynamicConfig:   Igrins2DynamicConfig,
-    telescopeConfig: TelescopeConfig,
-    observeClass:    ObserveClass
-  ): Igrins2[F] =
-    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig, observeClass))
+  def build[F[_]: {MonadThrow, Temporal, Logger}]
+    : F[InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig]] =
+    new InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig] {
+      override def build(
+        systems:           Systems.OverriddenSystems[F],
+        stepType:          OcsStepType,
+        targetEnvironment: TargetEnvironment,
+        staticConf:        Igrins2StaticConfig,
+        step:              Step[Igrins2DynamicConfig],
+        observingTime:     Timestamp
+      ): Either[ObserveFailure, InstrumentStep[F]] =
+        SeqTranslate.calcStepType(Instrument.Igrins2, step.stepConfig, step.observeClass).map {
+          stepKind =>
+            val config: Igrins2Config =
+              Igrins2Config(step.instrumentConfig, step.telescopeConfig, step.observeClass)
+            new InstrumentStep[F] {
+              override def stepType: StepKind = stepKind
+
+              override def sfName: LightSinkName = LightSinkName.Igrins2
+
+              override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
+                Igrins2(systems.igrins2(sysOverrides), config)
+
+              override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
+                Igrins2Header.header(client, systems.systems.tcsKeywordReader)
+
+              override def instrument: Instrument = Instrument.Igrins2
+
+              override def centralWavelength: Option[Wavelength] = Igrins2.CentralWavelength
+            }
+
+        }
+    }.pure[F]

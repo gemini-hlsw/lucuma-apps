@@ -9,15 +9,16 @@ import lucuma.core.util.Enumerated
 
 enum StepType(val tag: String, val label: String) derives Enumerated {
 
-  case Object            extends StepType("Object", "OBJECT")
-  case Arc               extends StepType("Arc", "ARC")
-  case Flat              extends StepType("Flat", "FLAT")
-  case Bias              extends StepType("Bias", "BIAS")
-  case Dark              extends StepType("Dark", "DARK")
-  case Calibration       extends StepType("Calibration", "CAL")
-  case AlignAndCalib     extends StepType("AlignAndCalib", "A & C")
-  case NodAndShuffle     extends StepType("NodAndShuffle", "N & S")
-  case NodAndShuffleDark extends StepType("NodAndShuffleDark", "N&S DARK")
+  case Object extends StepType("Object", "OBJECT")
+  case Arc    extends StepType("Arc", "ARC")
+  case Flat   extends StepType("Flat", "FLAT")
+  case Bias   extends StepType("Bias", "BIAS")
+  case Dark   extends StepType("Dark", "DARK")
+// Will the following ones still be valid in GPP ?
+//  case Calibration       extends StepType("Calibration", "CAL")
+//  case AlignAndCalib     extends StepType("AlignAndCalib", "A & C")
+//  case NodAndShuffle     extends StepType("NodAndShuffle", "N & S")
+//  case NodAndShuffleDark extends StepType("NodAndShuffleDark", "N&S DARK")
 }
 
 object StepType {

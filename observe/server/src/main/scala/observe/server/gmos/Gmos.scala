@@ -5,48 +5,63 @@ package observe.server.gmos
 
 import cats.*
 import cats.data.Kleisli
+import cats.effect.Async
 import cats.effect.Ref
 import cats.effect.Temporal
 import cats.syntax.all.*
+import coulomb.Quantity
+import coulomb.syntax.*
+import coulomb.units.accepted.ArcSecond
+import coulomb.units.accepted.Millimeter
 import eu.timepit.refined.api.Refined.*
 import lucuma.core.enums.GmosAdc
 import lucuma.core.enums.GmosEOffsetting
 import lucuma.core.enums.GmosGratingOrder
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MosPreImaging
 import lucuma.core.enums.ObserveClass
+import lucuma.core.enums.StepType as CoreStepType
 import lucuma.core.math.Wavelength
-import lucuma.core.model.sequence
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
-import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
 import monocle.Getter
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.GmosParameters.*
+import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.Guiding
 import observe.model.enums.NodAndShuffleStage
 import observe.model.enums.NodAndShuffleStage.*
 import observe.model.enums.ObserveCommandResult
 import observe.server.*
-import observe.server.StepType.ExclusiveDarkOrBias
+import observe.server.StepKind.ExclusiveDarkOrBias
 import observe.server.gmos.GmosController.Config
 import observe.server.gmos.GmosController.Config.*
 import observe.server.gmos.GmosController.GmosSite
 import observe.server.gmos.NSObserveCommand
+import observe.server.keywords.DhsClient
+import observe.server.keywords.DhsClientProvider
 import observe.server.keywords.DhsInstrument
+import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
+import observe.server.tcs.FOCAL_PLANE_SCALE
+import observe.server.tcs.FocalPlaneScale.*
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
 
 abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
-  val controller: GmosController[F, T],
-  nsCmdR:         Ref[F, Option[NSObserveCommand]],
-  val config:     GmosController.GmosConfig[T]
+  val controller:    GmosController[F, T],
+  dhsClientProvider: DhsClientProvider[F],
+  nsCmdR:            Ref[F, Option[NSObserveCommand]],
+  val config:        GmosController.GmosConfig[T]
 ) extends DhsInstrument[F]
     with InstrumentSystem[F] {
 
@@ -59,9 +74,6 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
   val nsCmdRef: Ref[F, Option[NSObserveCommand]] = nsCmdR
 
   val nsCount: F[Int] = controller.nsCount
-
-  override def observeTimeout: TimeSpan =
-    TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
 
   override def observeControl: InstrumentSystem.CompleteControl[F] =
     if (isNodAndShuffle)
@@ -104,7 +116,7 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
     }
 
   override def instrumentActions: InstrumentActions[F] =
-    new GmosInstrumentActions(this)
+    new GmosInstrumentActions(this, controller)
 
   override def notifyObserveEnd: F[Unit] =
     controller.endObserve
@@ -126,6 +138,7 @@ abstract class Gmos[F[_]: {Temporal, Logger}, T <: GmosSite](
     case NsConfig.NoNodAndShuffle => false
     case _                        => true
 
+  override val dhsClient: DhsClient[F] = dhsClientProvider.dhsClient(dhsInstrumentName)
 }
 
 object Gmos {
@@ -134,10 +147,10 @@ object Gmos {
     if (stage === StageA) 0 else rows.value
 
   trait ParamGetters[
-    T <: GmosSite,
-    S <: sequence.gmos.StaticConfig,
-    D <: sequence.gmos.DynamicConfig
+    T <: GmosSite
   ] {
+    type S = GmosSite.StaticConfig[T]
+    type D = GmosSite.DynamicConfig[T]
     val exposure: Getter[D, TimeSpan]
     val filter: Getter[D, Option[GmosController.GmosSite.Filter[T]]]
     val grating: Getter[D, Option[GmosController.GmosSite.Grating[T]]]
@@ -151,6 +164,7 @@ object Gmos {
     val roi: Getter[D, GmosRoi]
     val readout: Getter[D, GmosCcdMode]
     val isMosPreimaging: Getter[S, MosPreImaging]
+    val centralWavelength: Getter[D, Option[Wavelength]]
   }
 
   def calcDisperser[T <: GmosSite](
@@ -182,8 +196,8 @@ object Gmos {
     nsConfig: NsConfig
   ): TimeSpan = exp /| nsConfig.exposureDivider.value
 
-  def shutterStateObserveType(obsType: StepType): ShutterState = obsType match {
-    case StepType.DarkOrBias(_) | StepType.ExclusiveDarkOrBias(_) | StepType.DarkOrBiasNS(_) =>
+  def shutterStateObserveType(obsType: StepKind): ShutterState = obsType match {
+    case StepKind.DarkOrBias(_) | StepKind.ExclusiveDarkOrBias(_) | StepKind.DarkOrBiasNS(_) =>
       ShutterState.CloseShutter
     case _                                                                                   => ShutterState.OpenShutter
   }
@@ -194,22 +208,20 @@ object Gmos {
 
   def buildConfig[
     F[_],
-    T <: GmosSite,
-    S <: sequence.gmos.StaticConfig,
-    D <: sequence.gmos.DynamicConfig
+    T <: GmosSite
   ](
-    stepType:   StepType,
-    staticCfg:  S,
-    dynamicCfg: D
+    stepType:   StepKind,
+    staticCfg:  GmosSite.StaticConfig[T],
+    dynamicCfg: GmosSite.DynamicConfig[T]
   )(using
-    getters:    ParamGetters[T, S, D]
+    getters:    ParamGetters[T]
   ): GmosController.GmosConfig[T] = {
 
     def ccConfigFromSequenceConfig: Config.CCConfig[T] = {
       val isDarkOrBias: Boolean = stepType match {
-        case StepType.DarkOrBias(_)          => true
-        case StepType.DarkOrBiasNS(_)        => true
-        case StepType.ExclusiveDarkOrBias(_) => true
+        case StepKind.DarkOrBias(_)          => true
+        case StepKind.DarkOrBiasNS(_)        => true
+        case StepKind.ExclusiveDarkOrBias(_) => true
         case _                               => false
       }
 
@@ -284,20 +296,92 @@ object Gmos {
     staticCfg:  S,
     obsClass:   ObserveClass,
     l:          Getter[S, Option[GmosNodAndShuffle]]
-  ): Either[ObserveFailure, StepType] = {
+  ): Either[ObserveFailure, StepKind] = {
     val stdType = SeqTranslate.calcStepType(instrument, stepCfg, obsClass)
     if (Gmos.isNodAndShuffle(staticCfg, l)) {
       stdType.flatMap {
-        case StepType.DarkOrBias(_)      => StepType.DarkOrBiasNS(instrument).asRight
-        case StepType.CelestialObject(_) => StepType.NodAndShuffle(instrument).asRight
+        case StepKind.DarkOrBias(_)      => StepKind.DarkOrBiasNS(instrument).asRight
+        case StepKind.CelestialObject(_) => StepKind.NodAndShuffle(instrument).asRight
         case st                          => ObserveFailure.Unexpected(s"N&S is not supported for steps of type $st").asLeft
       }
     } else {
       stdType.map {
-        case StepType.DarkOrBias(inst) => StepType.ExclusiveDarkOrBias(instrument)
+        case StepKind.DarkOrBias(inst) => StepKind.ExclusiveDarkOrBias(instrument)
         case x                         => x
       }
     }
+  }
+
+  def instrumentStepBuilder[F[_]: {Async, Logger}, T <: GmosSite](
+    gmosInstrument: Instrument,
+    sysBuilder:     (
+      Systems.OverriddenSystems[F],
+      Ref[F, Option[NSObserveCommand]],
+      GmosController.GmosConfig[T]
+    ) => SystemOverrides => Gmos[F, T]
+  )(using
+    getters:        ParamGetters[T]
+  ): F[InstrumentStepBuilder[F, GmosSite.StaticConfig[T], GmosSite.DynamicConfig[T]]] = {
+    type S = GmosSite.StaticConfig[T]
+    type D = GmosSite.DynamicConfig[T]
+
+    Ref
+      .of[F, Option[NSObserveCommand]](none)
+      .map(r =>
+        new InstrumentStepBuilder[F, S, D] {
+          override def build(
+            systems:           Systems.OverriddenSystems[F],
+            coreStepType:      CoreStepType,
+            targetEnvironment: TargetEnvironment,
+            staticConfig:      S,
+            odbStep:           Step[D],
+            observingTime:     Timestamp
+          ): Either[ObserveFailure, InstrumentStep[F]] =
+            Gmos
+              .calcStepType[S](
+                gmosInstrument,
+                odbStep.stepConfig,
+                staticConfig,
+                odbStep.observeClass,
+                getters.nodAndShuffle
+              )
+              .map { stType =>
+                val config: GmosController.GmosConfig[T] = Gmos.buildConfig[F, T](
+                  stType,
+                  staticConfig,
+                  odbStep.instrumentConfig
+                )
+                new InstrumentStep[F] {
+                  override val oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] =
+                    (0.01.withUnit[ArcSecond] :\ FOCAL_PLANE_SCALE).some
+
+                  override def stepType: StepKind = stType
+
+                  override def sfName: LightSinkName = LightSinkName.Gmos
+
+                  override def instrumentSystem(
+                    sysOverrides: SystemOverrides
+                  ): InstrumentSystem[F] = sysBuilder(systems, r, config)(sysOverrides)
+
+                  override def instrumentHeader(kwClient: KeywordsClient[F]): Header[F] =
+                    GmosHeader.header[F, T](
+                      kwClient,
+                      GmosObsKeywordsReader(staticConfig, odbStep.instrumentConfig),
+                      systems.systems.gmosKeywordReader,
+                      systems.systems.tcsKeywordReader
+                    )
+
+                  override def instrument: Instrument = gmosInstrument
+
+                  override def observeTimeout: TimeSpan =
+                    TimeSpan.unsafeFromDuration(110, ChronoUnit.SECONDS)
+
+                  override def centralWavelength: Option[Wavelength] =
+                    getters.centralWavelength.get(odbStep.instrumentConfig)
+                }
+              }
+        }
+      )
   }
 
 }

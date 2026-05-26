@@ -5,12 +5,15 @@ package observe.server.tcs
 
 import algebra.instances.all.*
 import cats.*
+import cats.Eq
 import cats.data.*
 import cats.effect.Async
 import cats.effect.Sync
 import cats.syntax.all.*
+import cats.syntax.eq.*
 import coulomb.*
 import coulomb.conversion.implicits.given
+import coulomb.integrations.cats.all.given
 import coulomb.syntax.*
 import coulomb.units.accepted.Millimeter
 import lucuma.core.enums.ComaOption
@@ -34,6 +37,8 @@ import monocle.syntax.all.focus
 import mouse.boolean.*
 import observe.server.EpicsCodex.encode
 import observe.server.EpicsCommand
+import observe.server.Length
+import observe.server.Length.given
 import observe.server.ObserveFailure
 import observe.server.tcs.TcsController.*
 import org.typelevel.log4cats.Logger
@@ -102,6 +107,12 @@ sealed trait TcsControllerEpicsCommon[F[_], S <: Site] {
     subsystems: NonEmptySet[Subsystem],
     current:    C,
     d:          AGConfig
+  ): Option[WithDebug[C => F[C]]]
+
+  def setInstrumentDefocus[C](l: Lens[C, BaseEpicsTcsConfig])(
+    subsystems: NonEmptySet[Subsystem],
+    current:    Length,
+    d:          Length
   ): Option[WithDebug[C => F[C]]]
 
   def setTelescopeOffset(c: FocalPlaneOffset): F[Unit]
@@ -450,6 +461,23 @@ object TcsControllerEpicsCommon {
       }
     }
 
+    override def setInstrumentDefocus[C](
+      l:          Lens[C, BaseEpicsTcsConfig]
+    )(
+      subsystems: NonEmptySet[Subsystem],
+      current:    Length,
+      d:          Length
+    ): Option[WithDebug[C => F[C]]] =
+      applyParam(
+        subsystems.contains(Subsystem.M2),
+        current,
+        d,
+        (x: Length) =>
+          Logger[F].debug(s"Set defocus to $x") *>
+            epicsSys.instrumentDefocusCmd.setDefocus(x),
+        l.andThen(BaseEpicsTcsConfig.defocusB)
+      )("defocus")
+
     /**
      * Positions Parked and OUT are equivalent for practical purposes. Therefore, if the current
      * position is Parked and requested position is OUT (or the other way around), then it is not
@@ -693,7 +721,14 @@ object TcsControllerEpicsCommon {
       setPwfs2(Iso.id)(subsystems, current.pwfs2.detector, tcs.gds.pwfs2.value.detector),
       setOiwfs(Iso.id)(subsystems, current.oiwfs.detector, tcs.gds.oiwfs.value.detector),
       setScienceFold(Iso.id)(subsystems, current, tcs.agc.sfPos),
-      setHrPickup(Iso.id)(subsystems, current, tcs.agc)
+      setHrPickup(Iso.id)(subsystems, current, tcs.agc),
+      tcs.tc.defocusB.flatMap(
+        setInstrumentDefocus(Iso.id)(
+          subsystems,
+          current.defocusB,
+          _
+        )
+      )
     ).flattenOption
 
     def guideOn(

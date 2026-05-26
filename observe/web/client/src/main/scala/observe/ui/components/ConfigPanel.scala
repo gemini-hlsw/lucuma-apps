@@ -33,7 +33,7 @@ case class ConfigPanel(
   obsId:      Option[Observation.Id],
   observer:   View[Option[Observer]],
   operator:   View[Option[Operator]],
-  conditions: View[Conditions]
+  conditions: View[CurrentConditions]
 ) extends ReactFnProps(ConfigPanel)
 
 object ConfigPanel
@@ -46,22 +46,22 @@ object ConfigPanel
 
         val iq: View[Option[ImageQuality]] =
           props.conditions
-            .zoom(Conditions.iq)
+            .zoom(CurrentConditions.iq)
             .withOnMod(_.map(configApi.setImageQuality).orEmpty.runAsync)
 
         val ce: View[Option[CloudExtinction]] =
           props.conditions
-            .zoom(Conditions.ce)
+            .zoom(CurrentConditions.ce)
             .withOnMod(_.map(configApi.setCloudExtinction).orEmpty.runAsync)
 
         val wv: View[Option[WaterVapor]] =
           props.conditions
-            .zoom(Conditions.wv)
+            .zoom(CurrentConditions.wv)
             .withOnMod(_.map(configApi.setWaterVapor).orEmpty.runAsync)
 
         val sb: View[Option[SkyBackground]] =
           props.conditions
-            .zoom(Conditions.sb)
+            .zoom(CurrentConditions.sb)
             .withOnMod(_.map(configApi.setSkyBackground).orEmpty.runAsync)
 
         val op: View[Option[Operator]] =
