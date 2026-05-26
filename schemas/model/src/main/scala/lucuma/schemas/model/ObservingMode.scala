@@ -787,7 +787,7 @@ object ObservingMode:
 
   object GnirsLongSlit:
     case class Acquisition(
-      readMode:         GnirsObsReadMode,
+      acquisitionType:  GnirsObsReadMode,
       coadds:           PosInt,
       filter:           GnirsFilter,
       offset:           Option[Offset],
@@ -796,8 +796,8 @@ object ObservingMode:
           Eq
 
     object Acquisition:
-      val readMode: Lens[Acquisition, GnirsObsReadMode]         =
-        Focus[Acquisition](_.readMode)
+      val acquisitionType: Lens[Acquisition, GnirsObsReadMode]  =
+        Focus[Acquisition](_.acquisitionType)
       val coadds: Lens[Acquisition, PosInt]                     =
         Focus[Acquisition](_.coadds)
       val filter: Lens[Acquisition, GnirsFilter]                =

@@ -168,7 +168,7 @@ object ObservingModeSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             coadds
             acquisition {
-              readMode
+              acquisitionType
               filter
               offset $OffsetSubquery
               exposureTimeMode $ExposureTimeModeSubquery
