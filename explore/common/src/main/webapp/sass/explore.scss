@@ -4206,6 +4206,10 @@ span.explore-offsets-count {
   padding-right: 2px;
 }
 
+.pl-form-column.explore-gnirs-config-editor {
+  grid-template-columns: [label] 0.6fr [field] 1fr;
+}
+
 .pl-form-column.explore-slit-telescope-config-editor {
   grid-template-areas: 'header header' 'labels values';
 

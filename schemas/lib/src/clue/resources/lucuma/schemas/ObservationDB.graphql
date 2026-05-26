@@ -7569,7 +7569,7 @@ input GnirsLongSlitInput {
   explicitGratingWavelength: WavelengthInput
   explicitGrating: GnirsGrating
   explicitPrism: GnirsPrism
-  explicitFocus: Int
+  explicitFocusMotorSteps: Int
   explicitReadMode: GnirsObsReadMode
   explicitWellDepth: GnirsWellDepth
   explicitTelescopeConfigs: SlitTelescopeConfigsInput

@@ -21,6 +21,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
@@ -666,6 +667,7 @@ trait ArbObservingMode {
         explicitReadMode          <- arbitrary[Option[GnirsObsReadMode]]
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
         explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
+        explicitFocusMotorSteps   <- arbitrary[Option[GnirsFocusMotorStepsValue]]
         defaultTelescopeConfigs   <- arbitrary[SlitTelescopeConfigs]
         explicitTelescopeConfigs  <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode          <- arbitrary[ExposureTimeMode]
@@ -690,6 +692,7 @@ trait ArbObservingMode {
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
+        explicitFocusMotorSteps,
         defaultTelescopeConfigs,
         explicitTelescopeConfigs,
         exposureTimeMode,
@@ -711,6 +714,7 @@ trait ArbObservingMode {
        (GnirsDecker, Option[GnirsDecker]),
        (GnirsObsReadMode, Option[GnirsObsReadMode]),
        (GnirsWellDepth, Option[GnirsWellDepth]),
+       Option[GnirsFocusMotorStepsValue],
        (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
        ExposureTimeMode,
        (PosInt, ObservingMode.GnirsLongSlit.Acquisition)
@@ -727,6 +731,7 @@ trait ArbObservingMode {
           (o.defaultDecker, o.explicitDecker),
           (o.defaultReadMode, o.explicitReadMode),
           (o.defaultWellDepth, o.explicitWellDepth),
+          o.explicitFocusMotorSteps,
           (o.defaultTelescopeConfigs, o.explicitTelescopeConfigs),
           o.exposureTimeMode,
           (o.coadds, o.acquisition)
