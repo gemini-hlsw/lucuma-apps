@@ -13,3 +13,4 @@ package object decoders
     with TimingWindowDecoders
     with GmosImagingVariantDecoders
     with ModeSignalToNoiseDecoders
+    with SlitTelescopeConfigsDecoders

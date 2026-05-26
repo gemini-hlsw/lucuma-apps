@@ -13,8 +13,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbAngle
 import lucuma.core.math.arb.ArbWavelength
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
-import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMirrorMode.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.itc.ItcGhostDetector
 import lucuma.itc.arb.ArbItcGhostDetector.given
@@ -90,11 +88,12 @@ trait ArbBasicConfiguration {
   given Arbitrary[BasicConfiguration.GnirsLongSlit] =
     Arbitrary[BasicConfiguration.GnirsLongSlit](
       for {
-        filter    <- arbitrary[GnirsFilter]
-        fpu       <- arbitrary[GnirsFpuSlit]
-        acqMirror <- arbitrary[GnirsAcquisitionMirrorMode]
-        camera    <- arbitrary[GnirsCamera]
-      } yield BasicConfiguration.GnirsLongSlit(filter, fpu, acqMirror, camera)
+        filter  <- arbitrary[GnirsFilter]
+        fpu     <- arbitrary[GnirsFpuSlit]
+        prism   <- arbitrary[GnirsPrism]
+        grating <- arbitrary[GnirsGrating]
+        camera  <- arbitrary[GnirsCamera]
+      } yield BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera)
     )
 
   given Arbitrary[BasicConfiguration.GhostIfu] =
@@ -171,8 +170,8 @@ trait ArbBasicConfiguration {
     Cogen[Unit].contramap(_ => ())
 
   given Cogen[BasicConfiguration.GnirsLongSlit] =
-    Cogen[(GnirsFilter, GnirsFpuSlit, GnirsAcquisitionMirrorMode, GnirsCamera)]
-      .contramap(o => (o.filter, o.fpu, o.acquisitionMirror, o.camera))
+    Cogen[(GnirsFilter, GnirsFpuSlit, GnirsPrism, GnirsGrating, GnirsCamera)]
+      .contramap(o => (o.filter, o.fpu, o.prism, o.grating, o.camera))
 
   given Cogen[BasicConfiguration.GmosNorthImaging] =
     Cogen[NonEmptyList[GmosNorthFilter]]

@@ -10,8 +10,8 @@ import eu.timepit.refined.api.Refined
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
 import explore.components.HelpIcon
-import explore.config.offsets.OffsetGeneratorEditorStyles
 import explore.config.offsets.OffsetInput
+import explore.config.offsets.TelescopeConfigEditorStyles
 import explore.config.offsets.TelescopeConfigGeneratorEditor
 import explore.model.display.given
 import japgolly.scalajs.react.*
@@ -121,7 +121,7 @@ object GmosImagingVariantEditor
             showCenter = false,
             readonly = props.readonly
           ),
-          <.hr(OffsetGeneratorEditorStyles.Separator),
+          <.hr(TelescopeConfigEditorStyles.Separator),
           FormInputTextView(
             id = "grouped-sky-count".refined,
             label = React.Fragment(

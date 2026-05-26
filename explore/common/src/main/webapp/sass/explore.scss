@@ -1867,6 +1867,25 @@ svg.fa-check.explore-success-icon {
       / auto;
   }
 
+  .explore-gnirs-upper-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'col1 col2 col3' auto
+      / 1fr 1fr 1fr;
+    border-bottom: 1px solid var(--site-border-color);
+  }
+
+  .explore-gnirs-lower-grid {
+    display: grid;
+    padding: 0.5em;
+    gap: 1em;
+    grid-template:
+      'buttons' auto
+      / auto;
+  }
+
   .explore-visitor-upper-grid {
     padding: 0.5em;
     width: 100%;
@@ -2043,6 +2062,13 @@ svg.fa-check.explore-success-icon {
         'col1' auto
         'col2' auto
         'col3' auto
+        / auto;
+    }
+
+    .explore-gnirs-upper-grid {
+      grid-template:
+        'col1' auto
+        'col2' auto
         / auto;
     }
 
@@ -4152,30 +4178,50 @@ span.explore-offsets-count {
   gap: 0.5em;
 }
 
-.offset-generator-separator {
+.telescope-config-separator {
   grid-column: span 2;
   width: 100%;
 }
 
-.offset-explicit-row {
+.telescope-config-row {
   display: flex;
   align-items: center;
 }
 
-.offset-toggle-button.pl-form-field {
+.telescope-config-toggle-button.pl-form-field {
   height: 22px;
   margin-left: 2px;
 }
 
-.offset-explicit-unguided {
+.telescope-config-unguided {
   opacity: 0.2;
 }
 
-.offset-remove-offset-first-icon {
+.telescope-config-remove-offset-hidden {
   opacity: 0;
 }
 
-.offset-add-offset-button.pl-form-field.p-button {
+.telescope-config-add-offset-button.pl-form-field.p-button {
   justify-self: end;
   padding-right: 2px;
+}
+
+.pl-form-column.explore-slit-telescope-config-editor {
+  grid-template-areas: 'header header' 'labels values';
+
+  .explore-slit-telescope-config-editor-header {
+    grid-area: header;
+    width: 100%;
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+  }
+}
+
+.explore-telescope-config-generator-offsets {
+  grid-column: 1 / span 2;
+  align-items: center;
+  display: grid;
+  grid-template-columns: [label] auto [field] 1fr;
+  column-gap: 1em;
 }

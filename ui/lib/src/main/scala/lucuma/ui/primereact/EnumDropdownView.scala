@@ -31,6 +31,7 @@ final case class EnumDropdownView[V[_], A](
   valueTemplate:   js.UndefOr[SelectItem[A] => VdomNode] = js.undefined,
   onChangeE:       js.UndefOr[(Option[A], ReactEvent) => Callback] =
     js.undefined, // called after the view is set
+  useLongName:     Boolean = false,
   modifiers:       Seq[TagMod] = Seq.empty
 )(using
   val enumerated:  Enumerated[A],
@@ -55,7 +56,8 @@ object EnumDropdownView {
         .filter(v => !props.exclude.contains(v))
         .map(e =>
           SelectItem(
-            label = props.display.shortName(e),
+            label =
+              if props.useLongName then props.display.longName(e) else props.display.shortName(e),
             value = e,
             disabled = props.disabledItems.contains(e)
           )

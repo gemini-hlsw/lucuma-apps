@@ -66,9 +66,10 @@ case class LoadedObservation private (
 
   lazy val lastVisitId: Option[Visit.Id] =
     visits.toOption.flatten.map:
+      case ExecutionVisits.Flamingos2(visits) => visits.last.id
       case ExecutionVisits.GmosNorth(visits)  => visits.last.id
       case ExecutionVisits.GmosSouth(visits)  => visits.last.id
-      case ExecutionVisits.Flamingos2(visits) => visits.last.id
+      case ExecutionVisits.Gnirs(visits)      => visits.last.id
       case ExecutionVisits.Igrins2(visits)    => visits.last.id
       case ExecutionVisits.Ghost(visits)      => visits.last.id
 

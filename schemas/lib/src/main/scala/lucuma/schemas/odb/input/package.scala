@@ -22,6 +22,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.TelescopeConfigAlongSlit
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
@@ -604,6 +605,40 @@ extension (o: ObservingMode.Igrins2LongSlit)
     explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
   )
 
+extension (a: ObservingMode.GnirsLongSlit.Acquisition)
+  def toInput: GnirsLongSlitAcquisitionInput = GnirsLongSlitAcquisitionInput(
+    filter = a.filter.assign,
+    readMode = a.readMode.assign,
+    coadds = a.coadds.assign,
+    offset = a.offset.map(_.toInput).orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign
+  )
+
+extension (a: SlitTelescopeConfigs)
+  def toInput: SlitTelescopeConfigsInput =
+    a match
+      case SlitTelescopeConfigs.AlongSlit(value) =>
+        SlitTelescopeConfigsInput(alongSlit = value.toList.map(_.toInput).assign)
+      case SlitTelescopeConfigs.ToSky(value)     =>
+        SlitTelescopeConfigsInput(toSky = value.toList.map(_.toInput).assign)
+
+extension (a: ObservingMode.GnirsLongSlit)
+  def toInput: GnirsLongSlitInput = GnirsLongSlitInput(
+    grating = a.grating.assign,
+    filter = a.filter.assign,
+    fpu = a.fpu.assign,
+    prism = a.prism.assign,
+    camera = a.camera.assign,
+    explicitGratingWavelength = a.explicitGratingWavelength.map(_.value.toInput).orUnassign,
+    explicitDecker = a.explicitDecker.orUnassign,
+    explicitReadMode = a.explicitReadMode.orUnassign,
+    explicitWellDepth = a.explicitWellDepth.orUnassign,
+    explicitTelescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    exposureTimeMode = a.exposureTimeMode.toInput.assign,
+    coadds = a.coadds.assign,
+    acquisition = a.acquisition.toInput.assign
+  )
+
 extension (d: ObservingMode.GhostIfu.GhostDetector)
   def toInput: GhostDetectorConfigInput = GhostDetectorConfigInput(
     exposureTimeMode = d.timeAndCount.toInput.assign,
@@ -642,6 +677,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
+    case o: ObservingMode.GnirsLongSlit      =>
+      ObservingModeInput.GnirsLongSlit(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
     case v: ObservingMode.Visitor            =>
@@ -717,9 +754,15 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsLongSlit(_, _, _, _)                                             =>
-      ObservingModeInput.Igrins2LongSlit: // TODO; Gnirs ObservingMode not supported in ODB yet
-        Igrins2LongSlitInput()
+    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera)                    =>
+      ObservingModeInput.GnirsLongSlit:
+        GnirsLongSlitInput(
+          filter = filter.assign,
+          fpu = fpu.assign,
+          prism = prism.assign,
+          grating = grating.assign,
+          camera = camera.assign
+        )
     case BasicConfiguration.Visitor(mode, centralWavelength, scienceFov)                          =>
       ObservingModeInput.Visitor:
         VisitorInput(
@@ -952,6 +995,10 @@ extension (sc: StepConfig)
 extension (tc: TelescopeConfig)
   def toInput: TelescopeConfigInput =
     TelescopeConfigInput(offset = tc.offset.toInput.assign, guiding = tc.guiding.assign)
+
+extension (tc: TelescopeConfigAlongSlit)
+  def toInput: TelescopeConfigAlongSlitInput =
+    TelescopeConfigAlongSlitInput(q = tc.offset.toInput, guiding = tc.guiding)
 
 extension (step: Step[gmos.DynamicConfig.GmosNorth])
   def toInput: GmosNorthStepInput =

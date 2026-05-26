@@ -10,6 +10,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.model.enums.AtomExecutionState
@@ -62,6 +63,14 @@ enum AtomRecord[+D]:
     sequenceType:   SequenceType,
     steps:          List[StepRecord.Ghost]
   ) extends AtomRecord[GhostDynamicConfig]
+
+  case Gnirs protected[schemas] (
+    id:             Atom.Id,
+    executionState: AtomExecutionState,
+    interval:       Option[TimestampInterval],
+    sequenceType:   SequenceType,
+    steps:          List[StepRecord.Gnirs]
+  ) extends AtomRecord[GnirsDynamicConfig]
 
 object AtomRecord:
   given [A]: Eq[AtomRecord[A]] = Eq.derived
@@ -152,3 +161,21 @@ object AtomRecord:
 
     val steps: Lens[Ghost, List[StepRecord.Ghost]] =
       Focus[Ghost](_.steps)
+
+  object Gnirs:
+    given Eq[Gnirs] = Eq.derived
+
+    val id: Lens[Gnirs, Atom.Id] =
+      Focus[Gnirs](_.id)
+
+    val executionState: Lens[Gnirs, AtomExecutionState] =
+      Focus[Gnirs](_.executionState)
+
+    val interval: Lens[Gnirs, Option[TimestampInterval]] =
+      Focus[Gnirs](_.interval)
+
+    val sequenceType: Lens[Gnirs, SequenceType] =
+      Focus[Gnirs](_.sequenceType)
+
+    val steps: Lens[Gnirs, List[StepRecord.Gnirs]] =
+      Focus[Gnirs](_.steps)

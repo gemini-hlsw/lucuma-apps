@@ -18,10 +18,14 @@ import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
+import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.util.TimeSpan
-import lucuma.core.util.arb.ArbEnumerated.given
-import lucuma.core.util.arb.ArbTimeSpan.given
+import lucuma.core.util.arb.ArbEnumerated
+import lucuma.core.util.arb.ArbNewType
+import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
@@ -30,11 +34,17 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
 import org.scalacheck.Gen
 
+import scala.annotation.targetName
+
 trait ArbObservingMode {
   import ArbAngle.given
+  import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
+
   import ArbOffset.given
+  import ArbSlitTelescopeConfigs.given
+  import ArbTimeSpan.given
   import ArbWavelength.given
   import ArbWavelengthDither.given
 
@@ -47,11 +57,12 @@ trait ArbObservingMode {
         defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
         explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
         etm            <- arbitrary[ExposureTimeMode]
-      yield ObservingMode.GmosNorthLongSlit.Acquisition(defaultFilter,
-                                                        explicitFilter,
-                                                        defaultRoi,
-                                                        explicitRoi,
-                                                        etm
+      yield ObservingMode.GmosNorthLongSlit.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        etm
       )
     )
 
@@ -78,11 +89,12 @@ trait ArbObservingMode {
         defaultRoi     <- arbitrary[GmosLongSlitAcquisitionRoi]
         explicitRoi    <- arbitrary[Option[GmosLongSlitAcquisitionRoi]]
         etm            <- arbitrary[ExposureTimeMode]
-      yield ObservingMode.GmosSouthLongSlit.Acquisition(defaultFilter,
-                                                        explicitFilter,
-                                                        defaultRoi,
-                                                        explicitRoi,
-                                                        etm
+      yield ObservingMode.GmosSouthLongSlit.Acquisition(
+        defaultFilter,
+        explicitFilter,
+        defaultRoi,
+        explicitRoi,
+        etm
       )
     )
 
@@ -607,6 +619,119 @@ trait ArbObservingMode {
         )
       )
 
+  @targetName("gnirsLongSlitAcquisitionArbitrary")
+  given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
+    Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
+      for {
+        readMode         <- arbitrary[GnirsObsReadMode]
+        coadds           <- arbitrary[PosInt]
+        filter           <- arbitrary[GnirsFilter]
+        offset           <- arbitrary[Option[Offset]]
+        exposureTimeMode <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GnirsLongSlit.Acquisition(
+        readMode,
+        coadds,
+        filter,
+        offset,
+        exposureTimeMode
+      )
+    )
+
+  @targetName("gnirsLongSlitAcquisitionCogen")
+  given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
+    Cogen[
+      (GnirsObsReadMode, PosInt, GnirsFilter, Option[Offset], ExposureTimeMode)
+    ]
+      .contramap(a => (a.readMode, a.coadds, a.filter, a.offset, a.exposureTimeMode))
+
+  given Arbitrary[ObservingMode.GnirsLongSlit] =
+    import ArbNewType.given
+    Arbitrary[ObservingMode.GnirsLongSlit](
+      for {
+        initialGrating            <- arbitrary[GnirsGrating]
+        grating                   <- arbitrary[GnirsGrating]
+        initialFilter             <- arbitrary[GnirsFilter]
+        filter                    <- arbitrary[GnirsFilter]
+        initialFpu                <- arbitrary[GnirsFpuSlit]
+        fpu                       <- arbitrary[GnirsFpuSlit]
+        initialPrism              <- arbitrary[GnirsPrism]
+        prism                     <- arbitrary[GnirsPrism]
+        initialCamera             <- arbitrary[GnirsCamera]
+        camera                    <- arbitrary[GnirsCamera]
+        defaultGratingWavelength  <- arbitrary[GnirsGratingWavelength]
+        explicitGratingWavelength <- arbitrary[Option[GnirsGratingWavelength]]
+        defaultDecker             <- arbitrary[GnirsDecker]
+        explicitDecker            <- arbitrary[Option[GnirsDecker]]
+        defaultReadMode           <- arbitrary[GnirsObsReadMode]
+        explicitReadMode          <- arbitrary[Option[GnirsObsReadMode]]
+        defaultWellDepth          <- arbitrary[GnirsWellDepth]
+        explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
+        defaultTelescopeConfigs   <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs  <- arbitrary[Option[SlitTelescopeConfigs]]
+        exposureTimeMode          <- arbitrary[ExposureTimeMode]
+        coadds                    <- arbitrary[PosInt]
+        acquisition               <- arbitrary[ObservingMode.GnirsLongSlit.Acquisition]
+      } yield ObservingMode.GnirsLongSlit(
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialFpu,
+        fpu,
+        initialPrism,
+        prism,
+        initialCamera,
+        camera,
+        defaultGratingWavelength,
+        explicitGratingWavelength,
+        defaultDecker,
+        explicitDecker,
+        defaultReadMode,
+        explicitReadMode,
+        defaultWellDepth,
+        explicitWellDepth,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
+        exposureTimeMode,
+        coadds,
+        acquisition
+      )
+    )
+
+  // We exceed the max number of fields for contramap, so we use tuples.
+  given Cogen[ObservingMode.GnirsLongSlit] =
+    import ArbNewType.given
+    Cogen[
+      ((GnirsGrating, GnirsGrating),
+       (GnirsFilter, GnirsFilter),
+       (GnirsFpuSlit, GnirsFpuSlit),
+       (GnirsPrism, GnirsPrism),
+       (GnirsCamera, GnirsCamera),
+       (GnirsGratingWavelength, Option[GnirsGratingWavelength]),
+       (GnirsDecker, Option[GnirsDecker]),
+       (GnirsObsReadMode, Option[GnirsObsReadMode]),
+       (GnirsWellDepth, Option[GnirsWellDepth]),
+       (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
+       ExposureTimeMode,
+       (PosInt, ObservingMode.GnirsLongSlit.Acquisition)
+      )
+    ]
+      .contramap: o =>
+        (
+          (o.initialGrating, o.grating),
+          (o.initialFilter, o.filter),
+          (o.initialFpu, o.fpu),
+          (o.initialPrism, o.prism),
+          (o.initialCamera, o.camera),
+          (o.defaultGratingWavelength, o.explicitGratingWavelength),
+          (o.defaultDecker, o.explicitDecker),
+          (o.defaultReadMode, o.explicitReadMode),
+          (o.defaultWellDepth, o.explicitWellDepth),
+          (o.defaultTelescopeConfigs, o.explicitTelescopeConfigs),
+          o.exposureTimeMode,
+          (o.coadds, o.acquisition)
+        )
+
   given Arbitrary[ObservingMode.GhostIfu.GhostDetector] =
     Arbitrary[ObservingMode.GhostIfu.GhostDetector](
       for {
@@ -709,6 +834,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Igrins2LongSlit],
+      arbitrary[ObservingMode.GnirsLongSlit],
       arbitrary[ObservingMode.GhostIfu],
       arbitrary[ObservingMode.Visitor]
     )
@@ -716,33 +842,38 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode] =
     Cogen[Either[
-      ObservingMode.Igrins2LongSlit,
+      ObservingMode.GnirsLongSlit,
       Either[
-        ObservingMode.Flamingos2LongSlit,
+        ObservingMode.Igrins2LongSlit,
         Either[
-          ObservingMode.GmosNorthLongSlit,
+          ObservingMode.Flamingos2LongSlit,
           Either[
-            ObservingMode.GmosSouthLongSlit,
-            Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
-                                                          Either[ObservingMode.GhostIfu,
-                                                                 ObservingMode.Visitor
-                                                          ]
-            ]]
+            ObservingMode.GmosNorthLongSlit,
+            Either[
+              ObservingMode.GmosSouthLongSlit,
+              Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
+                                                            Either[ObservingMode.GhostIfu,
+                                                                   ObservingMode.Visitor
+                                                            ]
+              ]]
+            ]
           ]
         ]
       ]
     ]]
       .contramap {
-        case i: ObservingMode.Igrins2LongSlit    => i.asLeft
-        case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight
-        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight
-        case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
-        case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight
-        case s: ObservingMode.GmosSouthImaging   => s.asLeft.asRight.asRight.asRight.asRight.asRight
+        case g: ObservingMode.GnirsLongSlit      => g.asLeft
+        case i: ObservingMode.Igrins2LongSlit    => i.asLeft.asRight
+        case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight.asRight
+        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthImaging   =>
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
         case g: ObservingMode.GhostIfu           =>
-          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
+          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: ObservingMode.Visitor            =>
-          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

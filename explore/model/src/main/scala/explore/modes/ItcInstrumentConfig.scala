@@ -357,9 +357,6 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
-
-    // TODO Revert when the backend accepts gnirs.
-    override def canBeAccepted: Boolean = false
   }
 
   // Used for imaging instruments (Alopeke, Zorro)

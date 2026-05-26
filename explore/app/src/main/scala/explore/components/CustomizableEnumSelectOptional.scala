@@ -38,6 +38,7 @@ final case class CustomizableEnumSelectOptional[A](
   exclude:                  Set[A] = Set.empty[A],
   showClear:                Boolean = false,
   resetToOriginal:          Boolean = false, // resets to `none` on false
+  useLongName:              Boolean = false,
   dropdownMods:             TagMod = TagMod.empty
 )(using val display: Display[A], val enumerated: Enumerated[A])
     extends ReactFnProps(CustomizableEnumSelectOptional.component)
@@ -58,7 +59,8 @@ object CustomizableEnumSelectOptional:
           value = props.view,
           exclude = props.exclude,
           disabled = props.disabled,
-          showClear = props.showClear
+          showClear = props.showClear,
+          useLongName = props.useLongName
         )(props.dropdownMods),
         <.span(
           PrimeStyles.InputGroupAddon,
