@@ -21,6 +21,7 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos.GmosFpuMask
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.TimeSpan
@@ -104,8 +105,7 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
     case Flamingos2DynamicConfig(_, disperser, _, _, _, _, _, _, _) =>
       disperser.map(_.shortName)
-    case GnirsDynamicConfig(_, _, _, _, _, _, acqMirror, _, _, _) =>
-      import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+    case GnirsDynamicConfig(_, _, _, _, _, _, acqMirror, _, _, _)   =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
 
   // There's no unified FPU type, so we return a string.

@@ -55,28 +55,23 @@ case class ObsSummary(
     observingMode
       .map(_.toBasicConfiguration)
       .flatMap:
-        case BasicConfiguration.GmosNorthLongSlit(grating, _, fpu, _) =>
+        case BasicConfiguration.GmosNorthLongSlit(grating, _, fpu, _)                         =>
           s"${grating.shortName} ${fpu.shortName}".some
-        case BasicConfiguration.GmosSouthLongSlit(grating, _, fpu, _) =>
+        case BasicConfiguration.GmosSouthLongSlit(grating, _, fpu, _)                         =>
           s"${grating.shortName} ${fpu.shortName}".some
-        case BasicConfiguration.GmosNorthImaging(filters)             =>
+        case BasicConfiguration.GmosNorthImaging(filters)                                     =>
           filters.map(_.shortName).toList.mkString(", ").some
-        case BasicConfiguration.GmosSouthImaging(filters)             =>
+        case BasicConfiguration.GmosSouthImaging(filters)                                     =>
           filters.map(_.shortName).toList.mkString(", ").some
-        case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu) =>
+        case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)                         =>
           s"${disperser.shortName} ${fpu.shortName}".some
-        case BasicConfiguration.Igrins2LongSlit                       =>
+        case BasicConfiguration.Igrins2LongSlit                                               =>
           none
-        case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)  =>
+        case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)                          =>
           resolutionMode.shortName.some
-        case BasicConfiguration.Visitor(mode, _, _)                   =>
+        case BasicConfiguration.Visitor(mode, _, _)                                           =>
           mode.instrument.shortName.some
-        case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(filter,
-                                                              fpu,
-                                                              prism,
-                                                              grating,
-                                                              camera
-            ) =>
+        case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(_, fpu, prism, grating, camera) =>
           // For Gnirs Spectroscopy we should return this pattern:
           // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>
           // For example:

@@ -229,6 +229,8 @@ object ObservingModeSummary:
       case v: ObservingMode.Visitor            =>
         Visitor(v.mode, v.centralWavelength, v.scienceFov, v.name)
 
+  // TODO Can we unify this logic with the one in explore/model/src/main/scala/explore/model/display.scala
+  // and/or observe/web/client-model/src/main/scala/observe/ui/model/ObsSummary.scala?
   given Display[ObservingModeSummary] = Display.byShortName:
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi) =>
       val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
@@ -249,7 +251,12 @@ object ObservingModeSummary:
     case Igrins2LongSlit()                                                            =>
       s"IGRINS-2 Longslit"
     case GnirsLongSlit(filter, fpu, prism, grating, camera)                           =>
-      s"GNIRS Longslit ${grating.shortName} ${filter.shortName} ${fpu.shortName}"
+      val prismSummary: String      = prism match
+        case GnirsPrism.Mirror => ""
+        case p                 => s" ${p.shortName}"
+      val wavelengthSummary: String =
+        f"${filter.centralWavelength.toMicrometers.value}%.2fµm"
+      s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
     case GhostIfu(resolutionMode)                                                     =>
       // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
