@@ -24,7 +24,7 @@ import observe.ui.components.sequence.SequenceTableBuilder
 import observe.ui.model.ObservationRequests
 import observe.ui.model.enums.ClientMode
 
-final case class GhostSequenceTable(
+case class GhostSequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Ghost,
