@@ -87,7 +87,7 @@ object ObsQueriesGql:
           ghost {
             static {
               resolutionMode
-              slitViewingCameraExposureTime
+              slitViewingCameraExposureTime $TimeSpanSubquery
             }
             science { ...ghostSequenceFields }
           }
@@ -139,7 +139,7 @@ object ObsQueriesGql:
         type TimingWindows = model.TimingWindow
         object TargetEnvironment {
           type ExplicitBase = lucuma.core.math.Coordinates
-        }  
+        }
       type ExecutionConfig = InstrumentExecutionConfig
 
   @GraphQL
