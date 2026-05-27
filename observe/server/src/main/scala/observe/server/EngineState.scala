@@ -29,7 +29,8 @@ case class EngineState[F[_]](
       selected.gmosNorth,
       selected.gmosSouth,
       selected.flamingos2,
-      selected.igrins2
+      selected.igrins2,
+      selected.ghost
     ).flattenOption
       .map(x => x.obsId -> x)
       .toMap
@@ -39,7 +40,8 @@ case class EngineState[F[_]](
       selected.gmosNorth,
       selected.gmosSouth,
       selected.flamingos2,
-      selected.igrins2
+      selected.igrins2,
+      selected.ghost
     ).flattenOption
       .map(x => x.instrument -> x)
       .toMap
@@ -89,6 +91,7 @@ object EngineState {
             .orElse(s.gmosSouth.find(_.obsId === sid))
             .orElse(s.flamingos2.find(_.obsId === sid))
             .orElse(s.igrins2.find(_.obsId === sid))
+            .orElse(s.ghost.find(_.obsId === sid))
         } { d => s =>
           if (s.gmosNorth.exists(_.obsId === sid))
             s.focus(_.gmosNorth).replace(d.some)
@@ -98,6 +101,8 @@ object EngineState {
             s.focus(_.flamingos2).replace(d.some)
           else if (s.igrins2.exists(_.obsId === sid))
             s.focus(_.igrins2).replace(d.some)
+          else if (s.ghost.exists(_.obsId === sid))
+            s.focus(_.ghost).replace(d.some)
           else s
         }
       )
@@ -130,6 +135,13 @@ object EngineState {
       s.focus(_.selected.igrins2).replace(d.some)
     }
 
+  def ghostSequence[F[_]]: Optional[EngineState[F], SequenceData[F]] =
+    Optional[EngineState[F], SequenceData[F]] {
+      _.selected.ghost
+    } { d => s =>
+      s.focus(_.selected.ghost).replace(d.some)
+    }
+
   def sequenceDataAt[F[_]](obsId: Observation.Id): Optional[EngineState[F], SequenceData[F]] =
     Optional[EngineState[F], SequenceData[F]](s =>
       s.selected.gmosSouth
@@ -137,6 +149,7 @@ object EngineState {
         .orElse(s.selected.gmosNorth.filter(_.obsId === obsId))
         .orElse(s.selected.flamingos2.filter(_.obsId === obsId))
         .orElse(s.selected.igrins2.filter(_.obsId === obsId))
+        .orElse(s.selected.ghost.filter(_.obsId === obsId))
     )(sd =>
       es =>
         if (es.selected.gmosSouth.exists(_.obsId === obsId))
@@ -147,6 +160,8 @@ object EngineState {
           es.copy(selected = es.selected.copy(flamingos2 = sd.some))
         else if (es.selected.igrins2.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(igrins2 = sd.some))
+        else if (es.selected.ghost.exists(_.obsId === obsId))
+          es.copy(selected = es.selected.copy(ghost = sd.some))
         else es
     )
 
