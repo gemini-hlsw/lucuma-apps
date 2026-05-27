@@ -624,7 +624,7 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
     Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
       for {
-        acquisitionType  <- arbitrary[GnirsObsReadMode]
+        acquisitionType  <- arbitrary[GnirsAcquisitionType]
         coadds           <- arbitrary[PosInt]
         filter           <- arbitrary[GnirsFilter]
         offset           <- arbitrary[Option[Offset]]
@@ -641,9 +641,8 @@ trait ArbObservingMode {
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
     Cogen[
-      (GnirsObsReadMode, PosInt, GnirsFilter, Option[Offset], ExposureTimeMode)
-    ]
-      .contramap(a => (a.acquisitionType, a.coadds, a.filter, a.offset, a.exposureTimeMode))
+      (GnirsAcquisitionType, PosInt, GnirsFilter, Option[Offset], ExposureTimeMode)
+    ].contramap(a => (a.acquisitionType, a.coadds, a.filter, a.offset, a.exposureTimeMode))
 
   given Arbitrary[ObservingMode.GnirsLongSlit] =
     import ArbNewType.given

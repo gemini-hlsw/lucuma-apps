@@ -69,7 +69,7 @@ trait ObservationDB {
     type Semester                  = lucuma.core.model.Semester
     type SignalToNoise             = lucuma.core.math.SignalToNoise
     type Timestamp                 = lucuma.core.util.Timestamp
-    type Date = java.time.LocalDate
+    type Date                      = java.time.LocalDate
   }
 
   object Enums {
@@ -143,6 +143,7 @@ trait ObservationDB {
     type GmosBinning                         = enums.GmosBinning
     type GmosLongSlitAcquisitionRoi          = enums.GmosLongSlitAcquisitionRoi
     type GnirsAcquisitionMirror              = enums.GnirsAcquisitionMirror
+    type GnirsAcquisitionType                = enums.GnirsAcquisitionType
     type GnirsCamera                         = enums.GnirsCamera
     type GnirsDecker                         = enums.GnirsDecker
     type GnirsFilter                         = enums.GnirsFilter

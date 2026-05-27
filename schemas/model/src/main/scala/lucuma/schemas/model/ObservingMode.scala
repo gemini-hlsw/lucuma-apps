@@ -791,7 +791,7 @@ object ObservingMode:
 
   object GnirsLongSlit:
     case class Acquisition(
-      acquisitionType:  GnirsObsReadMode,
+      acquisitionType:  GnirsAcquisitionType,
       coadds:           PosInt,
       filter:           GnirsFilter,
       offset:           Option[Offset],
@@ -800,15 +800,15 @@ object ObservingMode:
           Eq
 
     object Acquisition:
-      val acquisitionType: Lens[Acquisition, GnirsObsReadMode]  =
+      val acquisitionType: Lens[Acquisition, GnirsAcquisitionType] =
         Focus[Acquisition](_.acquisitionType)
-      val coadds: Lens[Acquisition, PosInt]                     =
+      val coadds: Lens[Acquisition, PosInt]                        =
         Focus[Acquisition](_.coadds)
-      val filter: Lens[Acquisition, GnirsFilter]                =
+      val filter: Lens[Acquisition, GnirsFilter]                   =
         Focus[Acquisition](_.filter)
-      val offset: Lens[Acquisition, Option[Offset]]             =
+      val offset: Lens[Acquisition, Option[Offset]]                =
         Focus[Acquisition](_.offset)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode] =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]    =
         Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[GnirsLongSlit] = deriveDecoder
