@@ -8,12 +8,14 @@ import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
+import eu.timepit.refined.cats.given
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
+import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
@@ -26,6 +28,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
 import lucuma.react.common.ReactFnComponent
@@ -35,6 +38,7 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
+import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
 final case class GnirsLongslitConfigPanel(
@@ -46,6 +50,7 @@ final case class GnirsLongslitConfigPanel(
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
   permissions:     ConfigEditPermissions,
+  isStaffOrAdmin:  Boolean,
   units:           WavelengthUnits
 ) extends ReactFnProps(GnirsLongslitConfigPanel)
 
@@ -142,13 +147,28 @@ object GnirsLongslitConfigPanel
           )
           .view(_.map(_.toInput).orUnassign)
 
+        val focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] = props.observingMode
+          .zoom(
+            ObservingMode.GnirsLongSlit.explicitFocusMotorSteps,
+            GnirsLongSlitInput.explicitFocusMotorSteps.modify
+          )
+          .view(_.map(_.value.value).orUnassign)
+
+        val focusModeView: View[GnirsFocusMode] =
+          focusMotorStepsView.zoom(GnirsFocusMode.fromMotorSteps(_))(mod =>
+            steps => mod(GnirsFocusMode.fromMotorSteps(steps)).toMotorSteps
+          )
+
+        val focusMotorStepsViewOpt: Option[View[GnirsFocusMotorStepsValue]] =
+          focusMotorStepsView.toOptionView
+
         val defaultDecker: GnirsDecker        = props.observingMode.get.defaultDecker
         val defaultReadMode: GnirsObsReadMode = props.observingMode.get.defaultReadMode
         val defaultWellDepth: GnirsWellDepth  = props.observingMode.get.defaultWellDepth
 
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
+            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
               CustomizableEnumSelect(
                 id = "filter".refined,
                 view = filterView,
@@ -220,8 +240,23 @@ object GnirsLongslitConfigPanel
                 allowRevertCustomization = allowRevertCustomization,
                 useLongName = true
               ),
-              // TODO: Focus (explicitFocusMotorSteps) not yet in model
-              // !!!!!!
+              CustomizableEnumSelect(
+                id = "focus-mode".refined,
+                view = focusModeView,
+                defaultValue = GnirsFocusMode.Best,
+                label = "Focus".some,
+                disabled = disableSimpleEdit || !props.isStaffOrAdmin,
+                showCustomization = showCustomization,
+                allowRevertCustomization = allowRevertCustomization
+              ),
+              focusMotorStepsViewOpt.map: focusMotorStepsView =>
+                FormInputTextView(
+                  id = "focus-motor-steps".refined,
+                  value = focusMotorStepsView.as(GnirsFocusMotorStepsValue.Value),
+                  label = "Focus Motor Steps".some,
+                  validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
+                  disabled = disableSimpleEdit || !props.isStaffOrAdmin
+                ),
               CustomizableEnumSelectOptional(
                 id = "read-mode".refined,
                 view = readModeView.withDefault(defaultReadMode),

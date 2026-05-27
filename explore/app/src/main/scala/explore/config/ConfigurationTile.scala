@@ -522,6 +522,7 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
+                      props.isStaffOrAdmin,
                       props.units
                     ),
                   // Ghost IFU

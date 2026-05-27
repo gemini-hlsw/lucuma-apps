@@ -163,6 +163,7 @@ object ObservingModeSubquery
             explicitReadMode
             defaultWellDepth
             explicitWellDepth
+            explicitFocusMotorSteps
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery

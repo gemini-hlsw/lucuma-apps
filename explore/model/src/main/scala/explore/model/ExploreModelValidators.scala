@@ -25,6 +25,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.math.WavelengthDither
 import lucuma.core.math.validation.MathValidators
+import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepRefinement
 import lucuma.core.optics.Format
 import lucuma.core.optics.ValidFilter
 import lucuma.core.optics.ValidSplitEpi
@@ -214,3 +215,9 @@ object ExploreModelValidators:
   val MailValidator: InputValidSplitEpi[EmailAddress] =
     // Scala doesn't like type aliases with refined types?
     InputValidSplitEpi.refinedString[EmailPred].asInstanceOf[InputValidSplitEpi[EmailAddress]]
+
+  val GnirsFocusMotorStepsValidSplitEpi
+    : InputValidSplitEpi[Int Refined GnirsFocusMotorStepRefinement] =
+    InputValidSplitEpi
+      .refinedInt[GnirsFocusMotorStepRefinement]
+      .withErrorMessage(_ => "Must be between -179999, 180000".refined)
