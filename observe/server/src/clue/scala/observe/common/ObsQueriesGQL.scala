@@ -87,7 +87,7 @@ object ObsQueriesGql:
           ghost {
             static {
               resolutionMode
-              slitViewingCameraExposureTime
+              slitViewingCameraExposureTime $TimeSpanSubquery
             }
             science { ...ghostSequenceFields }
           }
