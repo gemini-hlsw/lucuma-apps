@@ -7478,7 +7478,7 @@ input Igrins2LongSlitInput {
 }
 
 type GnirsLongSlitAcquisition {
-  readMode: GnirsObsReadMode!
+  acquisitionType: GnirsAcquisitionType!
   coadds: PosInt!
   filter: GnirsFilter!
   offset: Offset
@@ -7522,7 +7522,7 @@ type GnirsLongSlit {
 
 input GnirsLongSlitAcquisitionInput {
   filter: GnirsFilter
-  readMode: GnirsObsReadMode
+  acquisitionType: GnirsAcquisitionType
   coadds: PosInt
   offset: OffsetInput
   exposureTimeMode: ExposureTimeModeInput
@@ -9375,6 +9375,16 @@ enum GnirsObsReadMode {
 enum GnirsWellDepth {
   SHALLOW
   DEEP
+}
+
+"""
+GNIRS acquisition target brightness classification, derived from the
+acquisition exposure time (VeryBright < 1 s, Bright ≤ 10 s, Faint > 10 s).
+"""
+enum GnirsAcquisitionType {
+  VERY_BRIGHT
+  BRIGHT
+  FAINT
 }
 
 enum GnirsDecker {
