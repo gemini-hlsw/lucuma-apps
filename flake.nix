@@ -28,11 +28,11 @@
         devShell = pkgs.devshell.mkShell {
           imports = [ typelevel-nix.typelevelShell ];
           packages = [
-            pkgs.nodePackages.typescript-language-server
-            pkgs.nodePackages.vscode-langservers-extracted
-            pkgs.nodePackages.prettier
-            pkgs.nodePackages.typescript
-            pkgs.nodePackages.graphqurl
+            pkgs.typescript-language-server
+            pkgs.vscode-langservers-extracted
+            pkgs.prettier
+            pkgs.typescript
+            pkgs.graphqurl
             pkgs.hasura-cli
             pkgs.pnpm
             pkgs.sops
