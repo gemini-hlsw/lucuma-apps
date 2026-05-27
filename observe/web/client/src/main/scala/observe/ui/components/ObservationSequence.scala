@@ -3,6 +3,7 @@
 
 package observe.ui.components
 
+import cats.syntax.option.*
 import crystal.react.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
@@ -175,6 +176,23 @@ object ObservationSequence
               config,
               acquisitionSN,
               scienceSN,
+              props.visits,
+              props.executionState.get,
+              props.currentRecordedVisit,
+              props.progress,
+              props.selectedRowId,
+              props.setSelectedRowId,
+              props.requests,
+              isPreview = false,
+              onBreakpointFlip
+            )
+          case SequenceData(InstrumentExecutionConfig.Ghost(config), _) =>
+            GhostSequenceTable(
+              props.clientMode,
+              props.obsId,
+              config,
+              none,
+              none,
               props.visits,
               props.executionState.get,
               props.currentRecordedVisit,

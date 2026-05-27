@@ -109,15 +109,14 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     DynTable.ColState(
       resized = ColumnSizing(),
       visibility = ColumnVisibility(
-        CameraColumnId                       -> Visibility.Hidden,
-        DeckerColumnId                       -> Visibility.Hidden,
-        ReadModeColumnId                     -> Visibility.Hidden,
-        ImagingMirrorColumnId                -> Visibility.Hidden,
-        // TODO Switch next 2 to column collapse mechanism when observe supports sequence editing
-        SequenceColumns.DragHandleColumnId   -> Visibility.Hidden,
-        SequenceColumns.EditControlsColumnId -> Visibility.Hidden
+        CameraColumnId        -> Visibility.Hidden,
+        DeckerColumnId        -> Visibility.Hidden,
+        ReadModeColumnId      -> Visibility.Hidden,
+        ImagingMirrorColumnId -> Visibility.Hidden
       )
-    )
+    ),
+    collapsibleCols = Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
+      .filter(_ => instrument.isSequenceEditable)
   )
 
 // [T, A, TM, CM, TF, CF, FM]
