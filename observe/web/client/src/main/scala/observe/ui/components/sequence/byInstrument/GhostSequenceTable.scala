@@ -46,6 +46,4 @@ case class GhostSequenceTable(
     case ExecutionVisits.Ghost(visits) => visits
 
 object GhostSequenceTable
-    extends SequenceTableBuilder[GhostStaticConfig, GhostDynamicConfig](
-      Instrument.Ghost
-    )
+    extends SequenceTableBuilder[GhostStaticConfig, GhostDynamicConfig](Instrument.Ghost)

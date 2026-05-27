@@ -46,10 +46,11 @@ case class SubsystemControls(
   sequenceStatus:    SequenceStatus,
   systemOverrides:   SystemOverrides,
   clientMode:        ClientMode,
-  isLoadedStep:      Boolean
+  isLoadedStep:      Boolean,
+  forceDisabled:     Boolean = false
 ) extends ReactFnProps(SubsystemControls):
   private val canOperate: Boolean =
-    clientMode.canOperate && sequenceStatus.isIdle
+    clientMode.canOperate && sequenceStatus.isIdle && !forceDisabled
 
   private def subsystemState(subsystem: Subsystem): (ActionStatus, OperationRequest) =
     (subsystemStatus.getOrElse(subsystem, ActionStatus.Pending),
@@ -118,7 +119,7 @@ object SubsystemControls
                 Button(
                   size = Button.Size.Small,
                   severity = severity,
-                  disabled = disabled,
+                  disabled = disabled || props.forceDisabled,
                   clazz = ObserveStyles.ConfigButton |+|
                     ObserveStyles.DefaultCursor.unless_(props.canOperate),
                   onClickE = e =>
