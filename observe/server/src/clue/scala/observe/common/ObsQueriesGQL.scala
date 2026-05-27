@@ -139,7 +139,7 @@ object ObsQueriesGql:
         type TimingWindows = model.TimingWindow
         object TargetEnvironment {
           type ExplicitBase = lucuma.core.math.Coordinates
-        }  
+        }
       type ExecutionConfig = InstrumentExecutionConfig
 
   @GraphQL

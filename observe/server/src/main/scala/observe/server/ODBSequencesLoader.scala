@@ -93,7 +93,17 @@ object ODBSequencesLoader {
           pendingObsCmd = none,
           visitStartDone = false
         )
-      case InstrumentExecutionConfig.Ghost(_)       => ???
+      case InstrumentExecutionConfig.Ghost(ec)      =>
+        SequenceData.Ghost(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          targetEnvironment = odbData.observation.targetEnvironment,
+          constraintSet = odbData.observation.constraintSet,
+          staticCfg = ec.static,
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false
+        )
       case InstrumentExecutionConfig.Gnirs(_)       => ???
       case InstrumentExecutionConfig.Visitor(_)     => ???
 

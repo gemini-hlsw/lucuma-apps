@@ -325,6 +325,14 @@ body {
         padding: 0.5em 0.75em;
         border: 1px solid var(--surface-border);
       }
+
+      tr > th:has(.lucuma-ghost-blue) {
+        border-bottom: 2px solid var(--blue-500);
+      }
+
+      tr > th:has(.lucuma-ghost-red) {
+        border-bottom: 2px solid var(--red-500);
+      }
     }
 
     tr > td {
