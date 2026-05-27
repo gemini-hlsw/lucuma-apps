@@ -9,7 +9,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Offset
-import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.util.TimeSpan
@@ -221,12 +220,17 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     cell = _.value.orEmpty
   )
 
-  private lazy val snCol: colDef.TypeFor[Option[SignalToNoise]] =
+  private lazy val snCol: colDef.TypeFor[Option[SignalToNoiseValue]] =
     colDef(
       SequenceColumns.SNColumnId,
       _.getStep.flatMap(_.signalToNoise),
       header = "S/N",
-      cell = _.value.map(formatSN).orEmpty
+      cell = _.value
+        .map[VdomNode]:
+          case SignalToNoiseValue.Value(sn) => formatSN(sn)
+          case SignalToNoiseValue.Saturated =>
+            <.span(LucumaStyles.IndicatorFail |+| SequenceStyles.SaturatedCell)("Saturated")
+        .getOrElse(EmptyVdom)
     )
 
   private lazy val readModeCol: colDef.TypeFor[Option[String]] =

@@ -51,7 +51,7 @@ sealed trait SequenceRow[+D]:
   def telescopeConfig: Option[TelescopeConfig]
   def isFinished: Boolean
   def stepEstimate: Option[StepEstimate]
-  def signalToNoise: Option[SignalToNoise]
+  def signalToNoise: Option[SignalToNoiseValue]
   def sequenceType: Option[SequenceType]
 
   lazy val rowId: RowId = RowId:
@@ -173,7 +173,7 @@ object SequenceRow:
     step:          Step[D],
     atomId:        Atom.Id,
     firstOf:       Option[Int],
-    signalToNoise: Option[SignalToNoise],
+    signalToNoise: Option[SignalToNoiseValue],
     seqType:       SequenceType
   ) extends SequenceRow[D]:
     val id               = Ior.right(step.id)
@@ -230,7 +230,7 @@ object SequenceRow:
   object Executed:
     case class ExecutedVisit[+D](
       visit:         Visit[D],
-      signalToNoise: Option[SignalToNoise]
+      signalToNoise: Option[SignalToNoiseValue]
     ) extends Executed[D]:
       val id               = Ior.left(visit.id)
       val instrumentConfig = none
@@ -245,7 +245,7 @@ object SequenceRow:
     case class ExecutedStep[+D](
       visitId:       Visit.Id,
       stepRecord:    StepRecord[D],
-      signalToNoise: Option[SignalToNoise]
+      signalToNoise: Option[SignalToNoiseValue]
     ) extends Executed[D]:
       val id               = Ior.both(visitId, stepRecord.id)
       val instrumentConfig = stepRecord.instrumentConfig.some
