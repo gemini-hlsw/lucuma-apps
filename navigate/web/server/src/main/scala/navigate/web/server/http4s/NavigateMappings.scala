@@ -1268,32 +1268,36 @@ class NavigateMappings[F[_]: Sync](
 
 object NavigateMappings extends GrackleParsers {
 
-  def loadSchema[F[_]: Sync]: F[Result[Schema]] =
-    SchemaStitcher[F](Path("navigate.graphql"), SchemaSource.fromResource).build
+  def loadSchema: Result[Schema] =
+    SchemaStitcher(
+      Path("navigate.graphql"),
+      SchemaSource.fromResource(this.getClass.getClassLoader)
+    ).build
 
   def apply[F[_]: {Sync, Logger}](
     config: NavigateConfiguration,
     server: NavigateEngine[F],
     topics: TopicManager[F]
-  ): F[NavigateMappings[F]] = loadSchema
-    .flatMap {
-      case Result.Success(schema)           => Logger[F].info("Loaded schema").as(schema)
-      case Result.Warning(problems, schema) =>
-        Logger[F]
-          .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
-          .as(schema)
-      case Result.Failure(problems)         =>
-        Sync[F].raiseError[Schema](
-          new Throwable(
-            s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+  ): F[NavigateMappings[F]] =
+    val schema: F[Schema] =
+      loadSchema match {
+        case Result.Success(schema)           => Logger[F].info("Loaded schema").as(schema)
+        case Result.Warning(problems, schema) =>
+          Logger[F]
+            .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
+            .as(schema)
+        case Result.Failure(problems)         =>
+          Sync[F].raiseError[Schema](
+            new Throwable(
+              s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
+            )
           )
-        )
-      case Result.InternalError(error)      =>
-        Sync[F].raiseError[Schema](
-          new Throwable(s"Unable to load schema because: ${error.getMessage}")
-        )
-    }
-    .map(
+        case Result.InternalError(error)      =>
+          Sync[F].raiseError[Schema](
+            new Throwable(s"Unable to load schema because: ${error.getMessage}")
+          )
+      }
+    schema.map(
       new NavigateMappings[F](
         config,
         server,
