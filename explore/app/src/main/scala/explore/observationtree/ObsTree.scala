@@ -459,7 +459,7 @@ object ObsTree:
                     dragOverData.value.id =!= draggingDataValue.id
                 .flatMap(_._1.extractInstruction)
                 .map: instruction =>
-                  ListItemDropIndicator(instruction, lineGap = CssSize("4px"))
+                  ListItemDropIndicator(instruction, gap = CssSize("4px"))
             )
           }
         end renderObsCard
@@ -505,7 +505,7 @@ object ObsTree:
                   dragOverData.value.id =!= draggingDataValue.id
               .flatMap(_._1.extractInstruction)
               .map: instruction =>
-                ListItemDropIndicator(instruction, lineGap = CssSize("4px"))
+                ListItemDropIndicator(instruction, gap = CssSize("4px"))
           )
         end renderGroup
 
