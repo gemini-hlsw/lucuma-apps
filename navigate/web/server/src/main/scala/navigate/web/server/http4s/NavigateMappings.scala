@@ -37,7 +37,7 @@ import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import lucuma.odb.graphql.binding.*
-import lucuma.odb.graphql.schema.SchemaSource
+import lucuma.odb.graphql.schema.SchemaStitcher
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
 import mouse.boolean.given
 import navigate.model.AcMechsState
