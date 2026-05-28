@@ -10,6 +10,7 @@ import lucuma.schemas.ObservationDB
 // gql: import lucuma.odb.json.gmos.given
 // gql: import lucuma.odb.json.flamingos2.given
 // gql: import lucuma.odb.json.igrins2.given
+// gql: import lucuma.odb.json.gnirs.given
 
 object SequenceEditQueriesGql:
   @GraphQL
@@ -48,6 +49,16 @@ object SequenceEditQueriesGql:
       mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [Igrins2AtomInput!]!) {
         replaceIgrins2Sequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
           sequence $Igrins2AtomSubquery
+        }
+      }
+    """
+
+  @GraphQL
+  trait ReplaceGnirsSequence extends GraphQLOperation[ObservationDB]:
+    val document = s"""
+      mutation($$obsId: ObservationId!, $$sequenceType: SequenceType!, $$sequence: [GnirsAtomInput!]!) {
+        replaceGnirsSequence(input: {observationId: $$obsId, sequenceType: $$sequenceType, sequence: $$sequence}) {
+          sequence $GnirsAtomSubquery
         }
       }
     """

@@ -24,6 +24,7 @@ final case class GnirsSequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         GnirsStaticConfig,
   science:              View[List[Atom[GnirsDynamicConfig]]],
+  isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
   isUserStaffOrAdmin:   Boolean,
@@ -37,8 +38,6 @@ final case class GnirsSequenceTable(
   override val acquisition  = View(List.empty, (_, _) => Callback.empty)
   override val acquisitonSN = none
   override val scienceSN    = none
-
-  override val isEditEnabled = IsEditEnabled.False
 
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
