@@ -64,6 +64,7 @@ object ProgramQueriesGQL:
         groupEdit(input: $$input) {
           value $GroupSubQuery
           meta:value { existence }
+          groupId
           editType
         }
       }
