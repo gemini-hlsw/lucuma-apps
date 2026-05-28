@@ -5,7 +5,6 @@ package explore.cache
 
 import cats.Order.given
 import cats.syntax.all.*
-import explore.givens.given
 import explore.model.Attachment
 import explore.model.GroupList
 import explore.model.Observation
@@ -79,7 +78,7 @@ trait CacheModifierUpdaters {
       }
 
   protected def modifyGroups(groupEdit: GroupEdit): ProgramSummaries => ProgramSummaries =
-    groupEdit.value // We ignore updates on deleted groups.
+    groupEdit.value
       // 24 October 2024 - scalafix failing to parse with fewer braces
       .map { group =>
         val groupId: Group.Id          = group.id
@@ -108,7 +107,14 @@ trait CacheModifierUpdaters {
             mod(groupList)
 
         ifPresentInServerOrLocally(updateGroup)
-      }.orEmpty
+      }
+      .getOrElse:
+        // HardDelete contains a null value but we have the groupId
+        groupEdit match
+          case GroupEdit(groupId = Some(gid), editType = EditType.HardDelete) =>
+            ProgramSummaries.groups.modify(_ - gid)
+          case _                                                              =>
+            identity
 
   protected def modifyAttachments(
     attachments: List[Attachment]
