@@ -20,6 +20,7 @@ import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
+import explore.utils.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
@@ -31,6 +32,8 @@ import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
+import lucuma.core.util.Display
+import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -119,12 +122,17 @@ object GnirsLongslitConfigPanel
           )
           .view(_.assign)
 
-        val readModeView: View[Option[GnirsObsReadMode]] = props.observingMode
+        val readModeView: View[Option[GnirsReadMode]] = props.observingMode
           .zoom(
             ObservingMode.GnirsLongSlit.explicitReadMode,
             GnirsLongSlitInput.explicitReadMode.modify
           )
           .view(_.orUnassign)
+
+        given Enumerated[Option[GnirsReadMode]] =
+          deriveOptionalEnumerated[GnirsReadMode]("Auto")
+        given Display[Option[GnirsReadMode]]    =
+          deriveOptionalDisplay[GnirsReadMode]("Auto")
 
         val wellDepthView: View[Option[GnirsWellDepth]] = props.observingMode
           .zoom(
@@ -162,9 +170,8 @@ object GnirsLongslitConfigPanel
         val focusMotorStepsViewOpt: Option[View[GnirsFocusMotorStepsValue]] =
           focusMotorStepsView.toOptionView
 
-        val defaultDecker: GnirsDecker        = props.observingMode.get.defaultDecker
-        val defaultReadMode: GnirsObsReadMode = props.observingMode.get.defaultReadMode
-        val defaultWellDepth: GnirsWellDepth  = props.observingMode.get.defaultWellDepth
+        val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
+        val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
 
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
@@ -257,10 +264,10 @@ object GnirsLongslitConfigPanel
                   validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
                   disabled = disableSimpleEdit || !props.isStaffOrAdmin
                 ),
-              CustomizableEnumSelectOptional(
+              CustomizableEnumSelect(
                 id = "read-mode".refined,
-                view = readModeView.withDefault(defaultReadMode),
-                defaultValue = defaultReadMode.some,
+                view = readModeView,
+                defaultValue = None,
                 label = "Read Mode".some,
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
