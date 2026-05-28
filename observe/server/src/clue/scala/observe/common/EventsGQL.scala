@@ -25,7 +25,7 @@ object EventsGQL:
   trait AddStepEventMutation extends GraphQLOperation[ObservationDB]:
     val document = """
       mutation($stepId: StepId!, $visitId: VisitId!, $stg: StepStage!, $idempotencyKey: IdempotencyKey!)  {
-        addStepEvent(input: { stepId: $stepId, visitId: $visitId stepStage: $stg, idempotencyKey: $idempotencyKey } ) {
+        addStepEvent(input: { stepId: $stepId, visitId: $visitId, stepStage: $stg, idempotencyKey: $idempotencyKey } ) {
           event { id }
         }
       }
