@@ -7,7 +7,6 @@ import cats.data.Validated
 import cats.effect.Sync
 import cats.syntax.all.*
 import fs2.Stream
-import fs2.io.file.Path
 import grackle.Env
 import grackle.Query.Binding
 import grackle.QueryCompiler.Elab
@@ -38,7 +37,6 @@ import lucuma.core.model.ProbeGuide
 import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import lucuma.odb.graphql.binding.*
-import lucuma.odb.graphql.schema.SchemaSource
 import lucuma.odb.graphql.schema.SchemaStitcher
 import lucuma.schemas.ObservationDB.Enums.EphemerisKeyType
 import mouse.boolean.given
@@ -1268,38 +1266,20 @@ class NavigateMappings[F[_]: Sync](
 
 object NavigateMappings extends GrackleParsers {
 
-  def loadSchema[F[_]: Sync]: F[Result[Schema]] =
-    SchemaStitcher[F](Path("navigate.graphql"), SchemaSource.fromResource).build
-
   def apply[F[_]: {Sync, Logger}](
     config: NavigateConfiguration,
     server: NavigateEngine[F],
     topics: TopicManager[F]
-  ): F[NavigateMappings[F]] = loadSchema
-    .flatMap {
-      case Result.Success(schema)           => Logger[F].info("Loaded schema").as(schema)
-      case Result.Warning(problems, schema) =>
-        Logger[F]
-          .warn(s"Loaded schema with problems: ${problems.map(_.message).toList.mkString(",")}")
-          .as(schema)
-      case Result.Failure(problems)         =>
-        Sync[F].raiseError[Schema](
-          new Throwable(
-            s"Unable to load schema because: ${problems.map(_.message).toList.mkString(",")}"
-          )
-        )
-      case Result.InternalError(error)      =>
-        Sync[F].raiseError[Schema](
-          new Throwable(s"Unable to load schema because: ${error.getMessage}")
-        )
-    }
-    .map(
-      new NavigateMappings[F](
-        config,
-        server,
-        topics
-      )(_)
-    )
+  ): F[NavigateMappings[F]] =
+    SchemaStitcher
+      .load("navigate.graphql")
+      .map(
+        new NavigateMappings[F](
+          config,
+          server,
+          topics
+        )(_)
+      )
 
   def parseSlewOptionsInput(l: List[(String, Value)]): Option[SlewOptions] = for {
     zct  <-
