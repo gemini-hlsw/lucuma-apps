@@ -610,8 +610,8 @@ extension (o: ObservingMode.Igrins2LongSlit)
 
 extension (a: ObservingMode.GnirsLongSlit.Acquisition)
   def toInput: GnirsLongSlitAcquisitionInput = GnirsLongSlitAcquisitionInput(
-    filter = a.filter.assign,
-    explicitAcquisitionType = a.acquisitionType.assign,
+    explicitFilter = a.explicitFilter.orUnassign,
+    explicitAcquisitionType = a.explicitAcquisitionType.orUnassign,
     coadds = a.coadds.assign,
     skyOffset = a.offset.map(_.toInput).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign

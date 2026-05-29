@@ -769,7 +769,8 @@ object ObservingMode:
         explicitReadMode.isDefined ||
         explicitWellDepth.exists(_ =!= defaultWellDepth) ||
         explicitFocusMotorSteps.isDefined ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        acquisition.isCustomized
 
     def revertCustomizations: GnirsLongSlit =
       this.copy(
@@ -783,29 +784,42 @@ object ObservingMode:
         explicitReadMode = None,
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
-        explicitTelescopeConfigs = None
+        explicitTelescopeConfigs = None,
+        acquisition = acquisition.revertCustomizations
       )
 
   object GnirsLongSlit:
     case class Acquisition(
-      acquisitionType:  GnirsAcquisitionType,
-      coadds:           PosInt,
-      filter:           GnirsFilter,
-      offset:           Option[Offset],
-      exposureTimeMode: ExposureTimeMode
+      explicitAcquisitionType: Option[GnirsAcquisitionType],
+      coadds:                  PosInt,
+      defaultFilter:           GnirsFilter,
+      explicitFilter:          Option[GnirsFilter],
+      offset:                  Option[Offset],
+      exposureTimeMode:        ExposureTimeMode
     ) derives Decoder,
-          Eq
+          Eq:
+      val filter: GnirsFilter = explicitFilter.getOrElse(defaultFilter)
+
+      def isCustomized: Boolean =
+        explicitAcquisitionType.isDefined ||
+          explicitFilter.exists(_ =!= defaultFilter) ||
+          offset.isDefined
+
+      def revertCustomizations: Acquisition =
+        this.copy(explicitAcquisitionType = none, explicitFilter = none, offset = none)
 
     object Acquisition:
-      val acquisitionType: Lens[Acquisition, GnirsAcquisitionType] =
-        Focus[Acquisition](_.acquisitionType)
-      val coadds: Lens[Acquisition, PosInt]                        =
+      val explicitAcquisitionType: Lens[Acquisition, Option[GnirsAcquisitionType]] =
+        Focus[Acquisition](_.explicitAcquisitionType)
+      val coadds: Lens[Acquisition, PosInt]                                        =
         Focus[Acquisition](_.coadds)
-      val filter: Lens[Acquisition, GnirsFilter]                   =
-        Focus[Acquisition](_.filter)
-      val offset: Lens[Acquisition, Option[Offset]]                =
+      val defaultFilter: Lens[Acquisition, GnirsFilter]                            =
+        Focus[Acquisition](_.defaultFilter)
+      val explicitFilter: Lens[Acquisition, Option[GnirsFilter]]                   =
+        Focus[Acquisition](_.explicitFilter)
+      val offset: Lens[Acquisition, Option[Offset]]                                =
         Focus[Acquisition](_.offset)
-      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]    =
+      val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
         Focus[Acquisition](_.exposureTimeMode)
 
     given Decoder[GnirsLongSlit] = deriveDecoder
