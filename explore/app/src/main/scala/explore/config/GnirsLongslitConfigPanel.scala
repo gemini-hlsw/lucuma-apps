@@ -40,6 +40,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
@@ -216,7 +217,7 @@ object GnirsLongslitConfigPanel
             )
             .view(_.orUnassign)
 
-        val acquisitionOffsetOptView: View[Option[Offset]] =
+        val acquisitionOptOffsetView: View[Option[Offset]] =
           acquisition
             .zoom(
               ObservingMode.GnirsLongSlit.Acquisition.offset,
@@ -224,8 +225,8 @@ object GnirsLongslitConfigPanel
             )
             .view(_.map(_.toInput).orUnassign)
 
-        val acquisitionOffsetView: View[Offset] =
-          acquisitionOffsetOptView.removeOptionality(Offset.Zero)
+        val acquisitionOffsetViewOpt: Option[View[Offset]] =
+          acquisitionOptOffsetView.toOptionView
 
         val acquisitionExposureTimeView: View[ExposureTimeMode] =
           acquisition
@@ -383,10 +384,8 @@ object GnirsLongslitConfigPanel
               toggleable = true,
               collapsed = true
             )(
-              <.div(
-                ExploreStyles.AcquisitionCustomizationGrid,
-                <.div(
-                  LucumaPrimeStyles.FormColumnCompact,
+              <.div(ExploreStyles.AcquisitionCustomizationGrid)(
+                <.div(LucumaPrimeStyles.FormColumnCompact)(
                   FormEnumDropdownView(
                     id = "gnirs-acq-type".refined,
                     value = acquisitionTypeView,
@@ -402,12 +401,25 @@ object GnirsLongslitConfigPanel
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   ),
-                  <.span("Sky Offset"),
-                  OffsetInput(
-                    id = "gnirs-acq-offset".refined,
-                    offset = acquisitionOffsetView,
-                    readonly = disableAdvancedAcqEdit,
-                    clazz = LucumaPrimeStyles.FormField
+                  <.label(^.htmlFor := "acq-offset")("Sky Offset"),
+                  <.span(ExploreStyles.GnirsAcqSkyOffsetEditor)(
+                    Checkbox(
+                      id = "acq-offset",
+                      checked = acquisitionOptOffsetView.get.isDefined,
+                      // variant = Checkbox.Variant.Filled,
+                      // clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
+                      disabled = disableAdvancedAcqEdit,
+                      onChange = // Default value is Zero when enabling the offset
+                        case true  => acquisitionOptOffsetView.set(Offset.Zero.some)
+                        case false => acquisitionOptOffsetView.set(none)
+                    ),
+                    acquisitionOffsetViewOpt.map: acquisitionOffsetView =>
+                      OffsetInput(
+                        id = "gnirs-acq-offset".refined,
+                        offset = acquisitionOffsetView,
+                        readonly = disableAdvancedAcqEdit,
+                        clazz = LucumaPrimeStyles.FormField
+                      )
                   )
                 ),
                 <.div(LucumaPrimeStyles.FormColumnCompact)(

@@ -434,6 +434,7 @@ object ExploreStyles:
   val OffsetEditorButton: Css              = Css("explore-offsets-button")
   val OffsetRegenerate: Css                = Css("explore-offsets-regenerate")
   val GnirsConfigEditor: Css               = Css("explore-gnirs-config-editor")
+  val GnirsAcqSkyOffsetEditor: Css         = Css("explore-gnirs-acq-sky-offset-editor")
   val SlitTelescopeConfigEditor: Css       = Css("explore-slit-telescope-config-editor")
   val SlitTelescopeConfigEditorHeader: Css = Css("explore-slit-telescope-config-editor-header")
 

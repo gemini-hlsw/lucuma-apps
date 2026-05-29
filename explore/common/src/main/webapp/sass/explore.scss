@@ -1838,7 +1838,8 @@ svg.fa-check.explore-success-icon {
   // ------
   .explore-gmos-longslit-upper-grid,
   .explore-gmos-imaging-upper-grid,
-  .explore-flamingos2-upper-grid {
+  .explore-flamingos2-upper-grid,
+  .explore-gnirs-upper-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -1859,25 +1860,6 @@ svg.fa-check.explore-success-icon {
   }
 
   .explore-igrins2-lower-grid {
-    display: grid;
-    padding: 0.5em;
-    gap: 1em;
-    grid-template:
-      'buttons' auto
-      / auto;
-  }
-
-  .explore-gnirs-upper-grid {
-    display: grid;
-    padding: 0.5em;
-    gap: 1em;
-    grid-template:
-      'col1 col2 col3' auto
-      / 1fr 1fr 1fr;
-    border-bottom: 1px solid var(--site-border-color);
-  }
-
-  .explore-gnirs-lower-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -1960,7 +1942,8 @@ svg.fa-check.explore-success-icon {
   }
 
   .explore-gmos-longslit-lower-grid,
-  .explore-flamingos2-lower-grid {
+  .explore-flamingos2-lower-grid,
+  .explore-gnirs-lower-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -4208,6 +4191,13 @@ span.explore-offsets-count {
 
 .pl-form-column.explore-gnirs-config-editor {
   grid-template-columns: [label] 0.6fr [field] 1fr;
+}
+
+.explore-gnirs-acq-sky-offset-editor {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  align-self: center;
 }
 
 .pl-form-column.explore-slit-telescope-config-editor {
