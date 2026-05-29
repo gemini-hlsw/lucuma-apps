@@ -159,7 +159,6 @@ object ObservingModeSubquery
             explicitGratingWavelength $WavelengthSubquery
             defaultDecker
             explicitDecker
-            defaultReadMode
             explicitReadMode
             defaultWellDepth
             explicitWellDepth

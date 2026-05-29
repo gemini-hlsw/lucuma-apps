@@ -499,7 +499,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -509,7 +509,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -2595,6 +2595,13 @@ type Mutation {
   replaceIgrins2Sequence(input: ReplaceIgrins2SequenceInput!): ReplaceIgrins2SequenceResult!
 
   """
+  Replaces the remaining steps in an execution sequence with the provided
+  sequence.  Previously executed (or even partially executed) steps are not
+  deleted.  Any ongoing steps are abandoned.
+  """
+  replaceGnirsSequence(input: ReplaceGnirsSequenceInput!): ReplaceGnirsSequenceResult!
+
+  """
   Resets the acquisition sequence to start from the initial step regardless of
   which acquisition steps may have been executed.  Requires staff (or better)
   access.
@@ -3177,7 +3184,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3187,7 +3194,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-
+  
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -5589,6 +5596,12 @@ enum CloudExtinctionPreset {
 
 """ObservingMode"""
 enum ObservingModeType {
+  """ObservingModeType AlopekeSpeckle"""
+  ALOPEKE_SPECKLE
+
+  """ObservingModeType AlopekeWideField"""
+  ALOPEKE_WIDE_FIELD
+
   """ObservingModeType Flamingos2LongSlit"""
   FLAMINGOS_2_LONG_SLIT
 
@@ -5612,6 +5625,21 @@ enum ObservingModeType {
 
   """ObservingModeType Igrins2LongSlit"""
   IGRINS_2_LONG_SLIT
+
+  """ObservingModeType MaroonX"""
+  MAROON_X
+
+  """ObservingModeType VisitorNorth"""
+  VISITOR_NORTH
+
+  """ObservingModeType VisitorSouth"""
+  VISITOR_SOUTH
+
+  """ObservingModeType ZorroSpeckle"""
+  ZORRO_SPECKLE
+
+  """ObservingModeType ZorroWideField"""
+  ZORRO_WIDE_FIELD
 }
 
 """VisitorObservingModeType"""
@@ -7513,9 +7541,7 @@ type GnirsLongSlit {
   decker: GnirsDecker!
   explicitDecker: GnirsDecker
   defaultDecker: GnirsDecker!
-  readMode: GnirsObsReadMode!
-  explicitReadMode: GnirsObsReadMode
-  defaultReadMode: GnirsObsReadMode!
+  explicitReadMode: GnirsReadMode
   wellDepth: GnirsWellDepth!
   explicitWellDepth: GnirsWellDepth
   defaultWellDepth: GnirsWellDepth!
@@ -7576,7 +7602,7 @@ input GnirsLongSlitInput {
   explicitGrating: GnirsGrating
   explicitPrism: GnirsPrism
   explicitFocusMotorSteps: Int
-  explicitReadMode: GnirsObsReadMode
+  explicitReadMode: GnirsReadMode
   explicitWellDepth: GnirsWellDepth
   explicitTelescopeConfigs: SlitTelescopeConfigsInput
   acquisition: GnirsLongSlitAcquisitionInput
@@ -9365,19 +9391,6 @@ enum GnirsReadMode {
   VERY_FAINT
 }
 
-"""
-GNIRS observation-level read mode. Use `AUTOMATIC` to let the read mode be
-resolved per step from the step exposure time; otherwise fix the read mode
-for all steps.
-"""
-enum GnirsObsReadMode {
-  AUTOMATIC
-  VERY_BRIGHT
-  BRIGHT
-  FAINT
-  VERY_FAINT
-}
-
 enum GnirsWellDepth {
   SHALLOW
   DEEP
@@ -10643,7 +10656,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-
+  
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -12095,6 +12108,12 @@ type StepRecord {
   unless the `instrument` discriminator is "IGRINS2".
   """
   igrins2: Igrins2Dynamic
+
+  """
+  GNIRS instrument configuration for this step, if any.  This will be null
+  unless the `instrument` discriminator is "GNIRS".
+  """
+  gnirs: GnirsDynamic
 }
 
 """StepRecord query results, limited to a maximum of 1000 entries."""
@@ -12843,6 +12862,13 @@ type Visit {
   `IGRINS2`.
   """
   igrins2: Igrins2Static
+
+  """
+  GNIRS static instrument configuration, for GNIRS visits.  See the
+  `instrument` discriminator.  This will be null unless the instrument is
+  `GNIRS`.
+  """
+  gnirs: GnirsStatic
 }
 
 """Matching visit results, limited to a maximum of 1000 entries."""
@@ -15376,6 +15402,51 @@ input Igrins2AtomInput {
 }
 
 """
+Spectroscopy configuration that travels with a GNIRS step when the acquisition
+mirror is out of the beam.
+"""
+input GnirsAcquisitionMirrorOutInput {
+  prism: GnirsPrism!
+  grating: GnirsGrating!
+  wavelength: WavelengthInput!
+}
+
+"""
+GNIRS dynamic step configuration input.
+
+Exactly one of `fpuSlit` / `fpuOther` must be provided.  `acquisitionMirrorOut`
+is provided when the acquisition mirror is "out" (spectroscopy mode); its
+absence indicates the mirror is "in".  `focusMotorSteps` is omitted when focus
+is "Best" (instrument-chosen).
+"""
+input GnirsDynamicInput {
+  exposure: TimeSpanInput!
+  coadds: PosInt!
+  centralWavelength: WavelengthInput!
+  filter: GnirsFilter!
+  decker: GnirsDecker!
+  fpuSlit: GnirsFpuSlit
+  fpuOther: GnirsFpuOther
+  acquisitionMirrorOut: GnirsAcquisitionMirrorOutInput
+  camera: GnirsCamera!
+  focusMotorSteps: Int
+  readMode: GnirsReadMode!
+}
+
+input GnirsStepInput {
+  instrumentConfig: GnirsDynamicInput!
+  breakpoint: Breakpoint
+  stepConfig: StepConfigInput!
+  telescopeConfig: TelescopeConfigInput
+  observeClass: ObserveClass!
+}
+
+input GnirsAtomInput {
+  description: NonEmptyString
+  steps: [GnirsStepInput!]!
+}
+
+"""
 Replace Flamingos 2 sequence input.  Select the observation using one of the
 observation ID or the observation reference.  If both are provided, they must
 refer to the same observation.
@@ -15485,4 +15556,32 @@ sequence.
 """
 type ReplaceIgrins2SequenceResult {
   sequence: [Igrins2Atom!]!
+}
+
+"""
+Replace GNIRS sequence input.  Select the observation using one of the
+observation ID or the observation reference.  If both are provided, they must
+refer to the same observation.
+"""
+input ReplaceGnirsSequenceInput {
+  observationId: ObservationId
+  observationReference: ObservationReferenceLabel
+
+  """Specifies which sequence should be replaced."""
+  sequenceType: SequenceType!
+
+  """
+  The new sequence.  Any unexecuted steps are deleted and replaced with the
+  provided sequence.  Steps that were previously executed, or for which at least
+  one execution event was received, are preserved.
+  """
+  sequence: [GnirsAtomInput!]
+}
+
+"""
+The result of a replace sequence mutation, consisting of the newly inserted
+sequence.
+"""
+type ReplaceGnirsSequenceResult {
+  sequence: [GnirsAtom!]!
 }

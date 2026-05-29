@@ -739,8 +739,7 @@ object ObservingMode:
     explicitGratingWavelength: Option[GnirsGratingWavelength],
     defaultDecker:             GnirsDecker,
     explicitDecker:            Option[GnirsDecker],
-    defaultReadMode:           GnirsObsReadMode,
-    explicitReadMode:          Option[GnirsObsReadMode],
+    explicitReadMode:          Option[GnirsReadMode],
     defaultWellDepth:          GnirsWellDepth,
     explicitWellDepth:         Option[GnirsWellDepth],
     explicitFocusMotorSteps:   Option[GnirsFocusMotorStepsValue],
@@ -754,8 +753,6 @@ object ObservingMode:
       explicitGratingWavelength.getOrElse(defaultGratingWavelength)
     val decker: GnirsDecker                       =
       explicitDecker.getOrElse(defaultDecker)
-    val readMode: GnirsObsReadMode                =
-      explicitReadMode.getOrElse(defaultReadMode)
     val wellDepth: GnirsWellDepth                 =
       explicitWellDepth.getOrElse(defaultWellDepth)
     val telescopeConfigs: SlitTelescopeConfigs    =
@@ -769,7 +766,7 @@ object ObservingMode:
         initialCamera =!= camera ||
         explicitGratingWavelength.exists(_ =!= defaultGratingWavelength) ||
         explicitDecker.exists(_ =!= defaultDecker) ||
-        explicitReadMode.exists(_ =!= defaultReadMode) ||
+        explicitReadMode.isDefined ||
         explicitWellDepth.exists(_ =!= defaultWellDepth) ||
         explicitFocusMotorSteps.isDefined ||
         explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
@@ -821,7 +818,7 @@ object ObservingMode:
         (x.initialCamera, x.camera),
         (x.defaultGratingWavelength, x.explicitGratingWavelength),
         (x.defaultDecker, x.explicitDecker),
-        (x.defaultReadMode, x.explicitReadMode),
+        x.explicitReadMode,
         (x.defaultWellDepth, x.explicitWellDepth),
         (x.defaultTelescopeConfigs, x.explicitTelescopeConfigs),
         x.exposureTimeMode,
@@ -857,9 +854,7 @@ object ObservingMode:
       Focus[GnirsLongSlit](_.defaultDecker)
     val explicitDecker: Lens[GnirsLongSlit, Option[GnirsDecker]]                        =
       Focus[GnirsLongSlit](_.explicitDecker)
-    val defaultReadMode: Lens[GnirsLongSlit, GnirsObsReadMode]                          =
-      Focus[GnirsLongSlit](_.defaultReadMode)
-    val explicitReadMode: Lens[GnirsLongSlit, Option[GnirsObsReadMode]]                 =
+    val explicitReadMode: Lens[GnirsLongSlit, Option[GnirsReadMode]]                    =
       Focus[GnirsLongSlit](_.explicitReadMode)
     val defaultWellDepth: Lens[GnirsLongSlit, GnirsWellDepth]                           =
       Focus[GnirsLongSlit](_.defaultWellDepth)

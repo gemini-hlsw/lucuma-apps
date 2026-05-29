@@ -662,8 +662,7 @@ trait ArbObservingMode {
         explicitGratingWavelength <- arbitrary[Option[GnirsGratingWavelength]]
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
-        defaultReadMode           <- arbitrary[GnirsObsReadMode]
-        explicitReadMode          <- arbitrary[Option[GnirsObsReadMode]]
+        explicitReadMode          <- arbitrary[Option[GnirsReadMode]]
         defaultWellDepth          <- arbitrary[GnirsWellDepth]
         explicitWellDepth         <- arbitrary[Option[GnirsWellDepth]]
         explicitFocusMotorSteps   <- arbitrary[Option[GnirsFocusMotorStepsValue]]
@@ -687,7 +686,6 @@ trait ArbObservingMode {
         explicitGratingWavelength,
         defaultDecker,
         explicitDecker,
-        defaultReadMode,
         explicitReadMode,
         defaultWellDepth,
         explicitWellDepth,
@@ -711,7 +709,7 @@ trait ArbObservingMode {
        (GnirsCamera, GnirsCamera),
        (GnirsGratingWavelength, Option[GnirsGratingWavelength]),
        (GnirsDecker, Option[GnirsDecker]),
-       (GnirsObsReadMode, Option[GnirsObsReadMode]),
+       Option[GnirsReadMode],
        (GnirsWellDepth, Option[GnirsWellDepth]),
        Option[GnirsFocusMotorStepsValue],
        (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
@@ -728,7 +726,7 @@ trait ArbObservingMode {
           (o.initialCamera, o.camera),
           (o.defaultGratingWavelength, o.explicitGratingWavelength),
           (o.defaultDecker, o.explicitDecker),
-          (o.defaultReadMode, o.explicitReadMode),
+          o.explicitReadMode,
           (o.defaultWellDepth, o.explicitWellDepth),
           o.explicitFocusMotorSteps,
           (o.defaultTelescopeConfigs, o.explicitTelescopeConfigs),
