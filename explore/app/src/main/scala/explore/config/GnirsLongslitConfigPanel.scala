@@ -9,10 +9,12 @@ import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.OffsetInput
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
@@ -20,11 +22,12 @@ import explore.model.Observation
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
-import explore.utils.*
+import explore.utils.forceAssign
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
 import lucuma.core.enums.GnirsDecker
+import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
@@ -34,12 +37,15 @@ import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
+import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
+import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
+import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -70,6 +76,8 @@ object GnirsLongslitConfigPanel
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
         val disableSimpleEdit: Boolean        =
           disableAdvancedEdit && editState.get =!= ConfigEditState.SimpleEdit
+        val disableAdvancedAcqEdit: Boolean   =
+          disableAdvancedEdit && !props.permissions.isOnlyForOngoing
         val showCustomization: Boolean        = props.calibrationRole.isEmpty
         val allowRevertCustomization: Boolean = props.permissions.isFullEdit
 
@@ -172,6 +180,53 @@ object GnirsLongslitConfigPanel
 
         val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
         val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
+
+        val acquisition
+          : Aligner[ObservingMode.GnirsLongSlit.Acquisition, GnirsLongSlitAcquisitionInput] =
+          props.observingMode.zoom(
+            ObservingMode.GnirsLongSlit.acquisition,
+            forceAssign(GnirsLongSlitInput.acquisition.modify)(
+              GnirsLongSlitAcquisitionInput()
+            )
+          )
+
+        val acquisitionTypeView: View[GnirsAcquisitionType] =
+          acquisition
+            .zoom(ObservingMode.GnirsLongSlit.Acquisition.acquisitionType,
+                  GnirsLongSlitAcquisitionInput.acquisitionType.modify
+            )
+            .view(_.assign)
+
+        val acquisitionCoaddsView: View[PosInt] =
+          acquisition
+            .zoom(ObservingMode.GnirsLongSlit.Acquisition.coadds,
+                  GnirsLongSlitAcquisitionInput.coadds.modify
+            )
+            .view(_.assign)
+
+        val acquisitionFilterView: View[GnirsFilter] =
+          acquisition
+            .zoom(ObservingMode.GnirsLongSlit.Acquisition.filter,
+                  GnirsLongSlitAcquisitionInput.filter.modify
+            )
+            .view(_.assign)
+
+        val acquisitionOffsetOptView: View[Option[Offset]] =
+          acquisition
+            .zoom(ObservingMode.GnirsLongSlit.Acquisition.offset,
+                  GnirsLongSlitAcquisitionInput.offset.modify
+            )
+            .view(_.map(_.toInput).orUnassign)
+
+        val acquisitionOffsetView: View[Offset] =
+          acquisitionOffsetOptView.removeOptionality(Offset.Zero)
+
+        val acquisitionExposureTimeView: View[ExposureTimeMode] =
+          acquisition
+            .zoom(ObservingMode.GnirsLongSlit.Acquisition.exposureTimeMode,
+                  GnirsLongSlitAcquisitionInput.exposureTimeMode.modify
+            )
+            .view(_.toInput.assign)
 
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
@@ -310,8 +365,60 @@ object GnirsLongslitConfigPanel
               )
             )
           ),
-          <.div(
-            ExploreStyles.GnirsLowerGrid,
+          <.div(ExploreStyles.GnirsLowerGrid)(
+            Panel(
+              header = <.span("Acquisition"),
+              toggleable = true,
+              collapsed = true
+            )(
+              <.div(
+                ExploreStyles.AcquisitionCustomizationGrid,
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  FormEnumDropdownView(
+                    id = "gnirs-acq-type".refined,
+                    value = acquisitionTypeView,
+                    label = "Type",
+                    disabled = disableAdvancedAcqEdit
+                  ),
+                  FormEnumDropdownView(
+                    id = "gnirs-acq-filter".refined,
+                    value = acquisitionFilterView,
+                    label = "Filter",
+                    disabled = disableAdvancedAcqEdit
+                  ),
+                  FormInputTextView(
+                    id = "gnirs-acq-coadds".refined,
+                    value = acquisitionCoaddsView,
+                    label = "Coadds",
+                    validFormat = InputValidSplitEpi.posInt,
+                    changeAuditor = ChangeAuditor.int,
+                    disabled = disableAdvancedAcqEdit
+                  )(^.autoComplete.off),
+                  <.span("Offset"),
+                  OffsetInput(
+                    id = "gnirs-acq-offset".refined,
+                    offset = acquisitionOffsetView,
+                    readonly = disableAdvancedAcqEdit,
+                    clazz = LucumaPrimeStyles.FormField
+                  )
+                ),
+                <.div(
+                  LucumaPrimeStyles.FormColumnCompact,
+                  ExposureTimeModeEditor(
+                    props.observingMode.get.instrument.some,
+                    none,
+                    acquisitionExposureTimeView,
+                    ScienceMode.Imaging,
+                    props.permissions.isReadonly,
+                    props.units,
+                    props.calibrationRole,
+                    "gnirsAcq".refined,
+                    forceCount = Some(1.refined)
+                  )
+                )
+              )
+            ),
             AdvancedConfigButtons(
               editState = editState,
               isCustomized = props.observingMode.get.isCustomized,
