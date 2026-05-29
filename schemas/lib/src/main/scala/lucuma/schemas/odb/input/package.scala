@@ -611,9 +611,9 @@ extension (o: ObservingMode.Igrins2LongSlit)
 extension (a: ObservingMode.GnirsLongSlit.Acquisition)
   def toInput: GnirsLongSlitAcquisitionInput = GnirsLongSlitAcquisitionInput(
     filter = a.filter.assign,
-    acquisitionType = a.acquisitionType.assign,
+    explicitAcquisitionType = a.acquisitionType.assign,
     coadds = a.coadds.assign,
-    offset = a.offset.map(_.toInput).orUnassign,
+    skyOffset = a.offset.map(_.toInput).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
 
@@ -1063,7 +1063,7 @@ extension (atom: Atom[Igrins2DynamicConfig])
 extension (gnirsAcqMirror: GnirsAcquisitionMirrorMode)
   def toInput: Input[GnirsAcquisitionMirrorOutInput] =
     gnirsAcqMirror match
-      case GnirsAcquisitionMirrorMode.In                                =>
+      case GnirsAcquisitionMirrorMode.In                              =>
         Input.unassign
       case GnirsAcquisitionMirrorMode.Out(prism, grating, wavelength) =>
         GnirsAcquisitionMirrorOutInput(
@@ -1076,7 +1076,6 @@ extension (gnirsDynamic: GnirsDynamicConfig)
   def toInput: GnirsDynamicInput = GnirsDynamicInput(
     exposure = gnirsDynamic.exposure.toInput,
     coadds = gnirsDynamic.coadds,
-    centralWavelength = gnirsDynamic.centralWavelength.toInput,
     filter = gnirsDynamic.filter,
     decker = gnirsDynamic.decker,
     fpuSlit = gnirsDynamic.fpu.left.toOption.orUnassign,
