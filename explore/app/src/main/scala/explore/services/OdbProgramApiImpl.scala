@@ -149,6 +149,9 @@ trait OdbProgramApiImpl[F[_]: MonadThrow](using StreamingClient[F, ObservationDB
   def updateUserHasDataAccess(programUserId: ProgramUser.Id, hda: Boolean): F[Unit] =
     updateProgramUsers(programUserId, ProgramUserPropertiesInput(hasDataAccess = hda.assign))
 
+  def updateUserClassicalVisitor(programUserId: ProgramUser.Id, co: Boolean): F[Unit] =
+    updateProgramUsers(programUserId, ProgramUserPropertiesInput(classicalVisitor = co.assign))
+
   def updateUserGender(programUserId: ProgramUser.Id, g: Option[Gender]): F[Unit] =
     updateProgramUsers(programUserId, ProgramUserPropertiesInput(gender = g.orUnassign))
 

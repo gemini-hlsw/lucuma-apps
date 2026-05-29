@@ -55,11 +55,10 @@ case class Proposal(
         case PartnerLink.HasUnspecifiedPartner => none
       val band3Error    = Option.when(
         proposalType.exists:
-          case ProposalType.Classical(considerForBand3 = considerForBand3) =>
+          case ProposalType.Queue(considerForBand3 = considerForBand3) =>
             considerForBand3 === ConsiderForBand3.Unset
-          case ProposalType.Queue(considerForBand3 = considerForBand3)     =>
-            considerForBand3 === ConsiderForBand3.Unset
-          case _                                                           => false
+          case _                                                       =>
+            false
       )("Band 3 consideration must be specified before the proposal can be submitted.")
       List(partnerError, band3Error).flattenOption
     )

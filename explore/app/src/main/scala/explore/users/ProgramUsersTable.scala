@@ -65,7 +65,7 @@ case class ProgramUsersTable(
   import ProgramUsersTable.Mode
 
   private val filterRoles: NonEmptySet[ProgramUserRole] = mode match
-    case Mode.CoIs(_, _, _)    =>
+    case Mode.CoIs(_, _, _, _) =>
       NonEmptySet.of(ProgramUserRole.Pi, ProgramUserRole.Coi, ProgramUserRole.CoiRO)
     case Mode.SupportPrimary   => NonEmptySet.of(ProgramUserRole.SupportPrimary)
     case Mode.SupportSecondary => NonEmptySet.of(ProgramUserRole.SupportSecondary)
@@ -77,10 +77,11 @@ case class ProgramUsersTable(
       )
 
   private val hiddenColumns: Set[ProgramUsersTable.Column] = mode match
-    case Mode.CoIs(_, proposalIsRo, userIsRoCoi)     =>
+    case Mode.CoIs(_, proposalIsRo, userIsRoCoi, isClassical) =>
       Set(Column.DataAccess) ++
+        (if (isClassical) Set.empty else Set(Column.Visitor)) ++
         (if (proposalIsRo || userIsRoCoi) Set(Column.Actions) else Set.empty)
-    case Mode.SupportPrimary | Mode.SupportSecondary =>
+    case Mode.SupportPrimary | Mode.SupportSecondary          =>
       Set(
         Column.Partner,
         Column.EducationalStatus,
@@ -91,20 +92,27 @@ case class ProgramUsersTable(
         Column.OrcidId,
         Column.Status,
         Column.DataAccess,
+        Column.Visitor,
         Column.Actions
       )
-    case Mode.DataSharing(_)                         =>
+    case Mode.DataSharing(_)                                  =>
       Set(
         Column.Partner,
         Column.EducationalStatus,
         Column.Thesis,
         Column.Gender,
-        Column.Affiliation
+        Column.Affiliation,
+        Column.Visitor
       )
 
 object ProgramUsersTable:
   enum Mode:
-    case CoIs(vault: UserVault, proposalIsReadonly: Boolean, userIsReadonlyCoi: Boolean)
+    case CoIs(
+      vault:              UserVault,
+      proposalIsReadonly: Boolean,
+      userIsReadonlyCoi:  Boolean,
+      userIsVisitor:      Boolean
+    )
     case SupportPrimary
     case SupportSecondary
     case DataSharing(vault: UserVault)
@@ -118,7 +126,7 @@ object ProgramUsersTable:
     currentProgUser:    View[Option[View[ProgramUser]]]
   ):
     val userId: Option[User.Id] = mode match
-      case Mode.CoIs(vault, _, _)                      => vault.user.id.some
+      case Mode.CoIs(vault, _, _, _)                   => vault.user.id.some
       case Mode.SupportPrimary | Mode.SupportSecondary => none
       case Mode.DataSharing(vault)                     => vault.user.id.some
 
@@ -128,7 +136,7 @@ object ProgramUsersTable:
 
     // if they can invite, revoke and delete this program user
     def canManageUser(pu: ProgramUser): Boolean = mode match
-      case Mode.CoIs(_, proposalIsRo, userIsRoCoi)     =>
+      case Mode.CoIs(_, proposalIsRo, userIsRoCoi, _)  =>
         !proposalIsRo && !userIsRoCoi && pu.role =!= ProgramUserRole.Pi
       case Mode.SupportPrimary | Mode.SupportSecondary => false
       case Mode.DataSharing(_)                         => userIsPi && pu.role === ProgramUserRole.External
@@ -138,19 +146,19 @@ object ProgramUsersTable:
 
     // for the user specific fields - readonly COIs can edit their own.
     def canEditUserFields(pu: ProgramUser): Boolean = mode match
-      case Mode.CoIs(_, proposalIsRo, userIsRoCoi)     =>
+      case Mode.CoIs(_, proposalIsRo, userIsRoCoi, _)  =>
         !proposalIsRo && (!userIsRoCoi || isCurrentUser(pu))
       case Mode.SupportPrimary | Mode.SupportSecondary => false
       case Mode.DataSharing(_)                         => userIsPi && pu.role === ProgramUserRole.External
 
     val userCanChangeCoiAccess: Boolean = mode match
-      case Mode.CoIs(vault, proposalIsRo, userIsRoCoi) =>
+      case Mode.CoIs(vault, proposalIsRo, userIsRoCoi, _) =>
         !proposalIsRo && (vault.isStaff || userIsPi)
-      case Mode.SupportPrimary | Mode.SupportSecondary => false
-      case Mode.DataSharing(_)                         => false
+      case Mode.SupportPrimary | Mode.SupportSecondary    => false
+      case Mode.DataSharing(_)                            => false
 
     val canChangeDataAccess: Boolean = mode match
-      case Mode.CoIs(_, _, _)                          => false
+      case Mode.CoIs(_, _, _, _)                       => false
       case Mode.SupportPrimary | Mode.SupportSecondary => false
       case Mode.DataSharing(_)                         => userIsPi
 
@@ -181,6 +189,7 @@ object ProgramUsersTable:
     case OrcidId           extends Column("orcid-id", "ORCID")
     case Role              extends Column("role", "Role")
     case DataAccess        extends Column("data-access", "Data Access")
+    case Visitor           extends Column("visitor", "Visitor")
     case Status            extends Column("status", "Status")
     case Actions           extends Column("actions", "")
 
@@ -524,6 +533,26 @@ object ProgramUsersTable:
               id = s"$programUserId-has-data-access",
               checked = view.get,
               disabled = !meta.canChangeDataAccess || meta.isActive.get.value,
+              onChange = r => view.set(r)
+            )
+      ).sortableBy(_.get),
+      ColDef(
+        Column.Visitor.id,
+        _.zoom(ProgramUser.classicalVisitor),
+        Column.Visitor.header,
+        cell = c =>
+          val cell                          = c.row.original
+          val programUserId: ProgramUser.Id = cell.get.id
+
+          c.table.options.meta.map: meta =>
+            val view    = c.value
+              .withOnMod(co => ctx.odbApi.updateUserClassicalVisitor(programUserId, co).runAsync)
+            val canEdit = meta.canEditUserFields(cell.get)
+
+            Checkbox(
+              id = s"$programUserId-classical-observer",
+              checked = view.get,
+              disabled = !canEdit || meta.isActive.get.value,
               onChange = r => view.set(r)
             )
       ).sortableBy(_.get),

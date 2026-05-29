@@ -26,7 +26,6 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
           aeonMultiFacility
           jwstSynergy
           usLongTerm
-          considerForBand3
         }
         ... on DirectorsTime {
           toOActivation

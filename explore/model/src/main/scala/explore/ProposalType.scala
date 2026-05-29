@@ -32,14 +32,23 @@ object ProposalType:
   def toScienceSubtype(s: ScienceSubtype): ProposalType => ProposalType =
     s match
       case ScienceSubtype.Classical => {
-        case Queue(_, _, minTime, splits, aeon, jwst, lt, cfb3) =>
-          Classical(ScienceSubtype.Classical, minTime, splits, aeon, jwst, lt, cfb3)
-        case i                                                  => i
+        case Queue(_, _, minTime, splits, aeon, jwst, lt, _) =>
+          Classical(ScienceSubtype.Classical, minTime, splits, aeon, jwst, lt)
+        case i                                               => i
       }
       case ScienceSubtype.Queue     => {
-        case Classical(_, minTime, splits, aeon, jwst, lt, cfb3) =>
-          Queue(ScienceSubtype.Queue, ToOActivation.None, minTime, splits, aeon, jwst, lt, cfb3)
-        case i                                                   => i
+        case Classical(_, minTime, splits, aeon, jwst, lt) =>
+          // On conversion consider for band 3 gets unset.
+          Queue(ScienceSubtype.Queue,
+                ToOActivation.None,
+                minTime,
+                splits,
+                aeon,
+                jwst,
+                lt,
+                ConsiderForBand3.Unset
+          )
+        case i                                             => i
       }
       case _                        => identity
 
@@ -150,13 +159,11 @@ object ProposalType:
 
   val considerForBand3: Optional[ProposalType, ConsiderForBand3] =
     Optional[ProposalType, ConsiderForBand3] {
-      case c: Classical => c.considerForBand3.some
-      case q: Queue     => q.considerForBand3.some
-      case _            => none
+      case q: Queue => q.considerForBand3.some
+      case _        => none
     }(a => {
-      case c: Classical => c.copy(considerForBand3 = a)
-      case q: Queue     => q.copy(considerForBand3 = a)
-      case i            => i
+      case q: Queue => q.copy(considerForBand3 = a)
+      case i        => i
     })
 
   // Define the Classical case class implementing ProposalType
@@ -166,26 +173,17 @@ object ProposalType:
     partnerSplits:     List[PartnerSplit],
     aeonMultiFacility: Boolean,
     jwstSynergy:       Boolean,
-    usLongTerm:        Boolean,
-    considerForBand3:  ConsiderForBand3
+    usLongTerm:        Boolean
   ) extends ProposalType derives Eq
 
   object Classical {
-    val minPercentTime: Lens[Classical, IntPercent]         = Focus[Classical](_.minPercentTime)
-    val aeonMultiFacility: Lens[Classical, Boolean]         = Focus[Classical](_.aeonMultiFacility)
-    val jwstSynergy: Lens[Classical, Boolean]               = Focus[Classical](_.jwstSynergy)
-    val usLongTerm: Lens[Classical, Boolean]                = Focus[Classical](_.usLongTerm)
-    val considerForBand3: Lens[Classical, ConsiderForBand3] = Focus[Classical](_.considerForBand3)
+    val minPercentTime: Lens[Classical, IntPercent] = Focus[Classical](_.minPercentTime)
+    val aeonMultiFacility: Lens[Classical, Boolean] = Focus[Classical](_.aeonMultiFacility)
+    val jwstSynergy: Lens[Classical, Boolean]       = Focus[Classical](_.jwstSynergy)
+    val usLongTerm: Lens[Classical, Boolean]        = Focus[Classical](_.usLongTerm)
 
     val Default: Classical =
-      Classical(ScienceSubtype.Classical,
-                100.refined,
-                List.empty,
-                false,
-                false,
-                false,
-                ConsiderForBand3.Unset
-      )
+      Classical(ScienceSubtype.Classical, 100.refined, List.empty, false, false, false)
   }
 
   // Define the DemoScience case class implementing ProposalType
@@ -352,14 +350,12 @@ object ProposalType:
             aeonMultiFacility <- c.downField("aeonMultiFacility").as[Boolean]
             jwstSynergy       <- c.downField("jwstSynergy").as[Boolean]
             usLongTerm        <- c.downField("usLongTerm").as[Boolean]
-            considerForBand3  <- c.downField("considerForBand3").as[ConsiderForBand3]
           } yield Classical(tpe,
                             minPercentTime,
                             partnerSplits,
                             aeonMultiFacility,
                             jwstSynergy,
-                            usLongTerm,
-                            considerForBand3
+                            usLongTerm
           )
         case ScienceSubtype.DemoScience        =>
           for {

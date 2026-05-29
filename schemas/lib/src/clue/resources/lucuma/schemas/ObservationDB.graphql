@@ -3247,6 +3247,12 @@ input ProgramUserPropertiesInput {
   update is ignored.
   """
   hasDataAccess: Boolean
+
+  """
+  Whether this investigator will visit to carry out the observations.
+  This property is only meaningful for classical proposals.
+  """
+  classicalVisitor: Boolean
 }
 
 """The role a user a plays when assigned to a program."""
@@ -3313,6 +3319,12 @@ type ProgramUser {
   hasDataAccess: Boolean!
 
   """
+  Whether this investigator will visit to carry out the observations.
+  This property is only meaningful for classical proposals.
+  """
+  classicalVisitor: Boolean!
+
+  """
   Name created preferentially from the fields of the preferred profile, falling back
   to the Orcid profile if the preferred fields are not set.
   """
@@ -3370,13 +3382,6 @@ type Classical implements ProposalType {
 
   """Whether this is a US Long Term proposal."""
   usLongTerm: Boolean!
-
-  """
-  Whether this proposal should be considered for Band 3. Defaults to UNSET
-  on creation; must be CONSIDER or DO_NOT_CONSIDER before the proposal can
-  be submitted.
-  """
-  considerForBand3: ConsiderForBand3!
 }
 
 """Proposal properties for Demo Science CallForProposals."""
@@ -3577,9 +3582,6 @@ input ClassicalInput {
 
   """Whether this is a US Long Term proposal."""
   usLongTerm: Boolean
-
-  """Whether this proposal should be considered for Band 3."""
-  considerForBand3: ConsiderForBand3
 }
 
 input DemoScienceInput {
