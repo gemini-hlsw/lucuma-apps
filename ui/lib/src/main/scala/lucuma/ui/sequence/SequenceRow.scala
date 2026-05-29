@@ -7,6 +7,7 @@ import cats.Eq
 import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
+import eu.timepit.refined.types.numeric.PosInt
 import lucuma.core.enums.Igrins2FowlerSamples
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
@@ -99,6 +100,10 @@ sealed trait SequenceRow[+D]:
     case g @ GhostDynamicConfig(_, _, _, _)                        => g.totalExposureTime.some
     case _                                                         => none
 
+  lazy val coadds: Option[PosInt] = instrumentConfig.flatMap:
+    case GnirsDynamicConfig(_, coadds, _, _, _, _, _, _, _, _) => coadds.some
+    case _                                                     => none
+
   // There's no unified grating type, so we return a string.
   lazy val gratingName: Option[String] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
@@ -129,6 +134,11 @@ sealed trait SequenceRow[+D]:
       fpu.fold(slit => slit.longName.some, other => other.longName.some)
     case _                                                    =>
       none
+
+  lazy val deckerName: Option[String] = instrumentConfig.flatMap:
+    case Flamingos2DynamicConfig(_, _, _, _, _, _, decker, _, _) => decker.shortName.some
+    case GnirsDynamicConfig(_, _, _, _, decker, _, _, _, _, _)   => decker.shortName.some
+    case _                                                       => none
 
   // There's no unified filter type, so we return a string.
   lazy val filterName: Option[String] = instrumentConfig.flatMap:

@@ -132,6 +132,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
             else FormatExposureTime(i)(v).value
     )
 
+  private lazy val coaddsCol: colDef.TypeFor[Option[PosInt]] =
+    colDef(
+      SequenceColumns.CoaddsColumnId,
+      _.getStep.flatMap(_.coadds),
+      header = _ => "Coadds",
+      cell = _.value.map(_.value.toString).orEmpty
+    )
+
   private lazy val guideStateCol: colDef.TypeFor[Option[Boolean]] =
     colDef(
       SequenceColumns.GuideColumnId,
@@ -171,6 +179,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       SequenceColumns.FPUColumnId,
       _.getStep.flatMap(_.fpuName),
       header = _ => "FPU",
+      cell = _.value.orEmpty
+    )
+
+  private lazy val deckerCol: colDef.TypeFor[Option[String]] =
+    colDef(
+      SequenceColumns.DeckerColumnId,
+      _.getStep.flatMap(_.deckerName),
+      header = _ => "Decker",
       cell = _.value.orEmpty
     )
 
@@ -363,11 +379,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       editControlsCol,
       indexAndTypeCol,
       exposureCol,
+      coaddsCol,
       guideStateCol,
       pOffsetCol,
       qOffsetCol,
       wavelengthCol,
       fpuCol,
+      deckerCol,
+      gratingCol,
       filterCol,
       readModeCol,
       snCol
@@ -388,11 +407,13 @@ object SequenceColumns:
   val EditControlsColumnId: ColumnId  = ColumnId("editControls")
   val IndexAndTypeColumnId: ColumnId  = ColumnId("stepType")
   val ExposureColumnId: ColumnId      = ColumnId("exposure")
+  val CoaddsColumnId: ColumnId        = ColumnId("coadds")
   val GuideColumnId: ColumnId         = ColumnId("guide")
   val PColumnId: ColumnId             = ColumnId("p")
   val QColumnId: ColumnId             = ColumnId("q")
   val WavelengthColumnId: ColumnId    = ColumnId("lambda")
   val FPUColumnId: ColumnId           = ColumnId("fpu")
+  val DeckerColumnId: ColumnId        = ColumnId("decker")
   val GratingColumnId: ColumnId       = ColumnId("grating")
   val FilterColumnId: ColumnId        = ColumnId("filter")
   val XBinColumnId: ColumnId          = ColumnId("xbin")
@@ -460,6 +481,18 @@ object SequenceColumns:
         SNColumnId            -> Resizable(75.toPx, min = 75.toPx)
       )
 
+    val ForGnirs: Map[ColumnId, ColumnSize] =
+      CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
+        ExposureColumnId -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
+        CoaddsColumnId   -> Resizable(60.toPx, min = 50.toPx, max = 70.toPx),
+        FPUColumnId      -> Resizable(130.toPx, min = 130.toPx, max = 170.toPx),
+        DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx, max = 150.toPx),
+        GratingColumnId  -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
+        FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
+        ReadModeColumnId -> Resizable(90.toPx, min = 75.toPx, max = 120.toPx),
+        SNColumnId       -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
+      )
+
     val ForGhost: Map[ColumnId, ColumnSize] =
       CommonColumnSizes ++ Map(
         GhostBlueGroupColumnId         -> Resizable(287.toPx, min = 240.toPx, max = 410.toPx),
@@ -472,11 +505,6 @@ object SequenceColumns:
         GhostBlueExposureTimeColumnId  -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         GhostBlueReadModeColumnId      -> FixedSize(80.toPx),
         GhostBlueBinningColumnId       -> FixedSize(80.toPx)
-      )
-
-    val ForGnirs: Map[ColumnId, ColumnSize] =
-      CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
-        ReadModeColumnId -> Resizable(90.toPx, min = 90.toPx)
       )
 
     def apply(instrument: Instrument): Map[ColumnId, ColumnSize] =
