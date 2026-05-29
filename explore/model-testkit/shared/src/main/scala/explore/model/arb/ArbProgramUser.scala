@@ -38,6 +38,7 @@ trait ArbProgramUser:
         preferredProfile  <- arbitrary[UserProfile]
         invitations       <- arbitrary[List[UserInvitation]]
         hasDataAccess     <- arbitrary[Boolean]
+        classicalObserver <- arbitrary[Boolean]
       } yield ProgramUser(id,
                           user,
                           partnerLink,
@@ -48,7 +49,8 @@ trait ArbProgramUser:
                           affiliation,
                           preferredProfile,
                           invitations,
-                          hasDataAccess
+                          hasDataAccess,
+                          classicalObserver
       )
     }
 
@@ -65,6 +67,7 @@ trait ArbProgramUser:
         Option[String],
         UserProfile,
         List[UserInvitation],
+        Boolean,
         Boolean
       )
     ].contramap(u =>
@@ -78,7 +81,8 @@ trait ArbProgramUser:
        u.affiliation.map(_.value),
        u.preferredProfile,
        u.invitations,
-       u.hasDataAccess
+       u.hasDataAccess,
+       u.classicalObserver
       )
     )
 

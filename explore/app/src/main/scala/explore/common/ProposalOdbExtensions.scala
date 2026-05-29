@@ -80,8 +80,7 @@ trait ProposalOdbExtensions:
               partnerSplits,
               aeonMultiFacility,
               jwstSynergy,
-              usLongTerm,
-              considerForBand3
+              usLongTerm
             ) =>
           ProposalTypeInput.Classical(
             ClassicalInput(
@@ -90,8 +89,7 @@ trait ProposalOdbExtensions:
                 if (partnerSplits.nonEmpty) partnerSplits.map(_.toInput).assign else Unassign,
               aeonMultiFacility = aeonMultiFacility.assign,
               jwstSynergy = jwstSynergy.assign,
-              usLongTerm = usLongTerm.assign,
-              considerForBand3 = considerForBand3.assign
+              usLongTerm = usLongTerm.assign
             )
           )
         case ProposalType.Queue(
