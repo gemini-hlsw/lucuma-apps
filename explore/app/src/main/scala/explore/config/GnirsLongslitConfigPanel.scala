@@ -406,8 +406,6 @@ object GnirsLongslitConfigPanel
                     Checkbox(
                       id = "acq-offset",
                       checked = acquisitionOptOffsetView.get.isDefined,
-                      // variant = Checkbox.Variant.Filled,
-                      // clazz = ExploreStyles.ObsBadgeAssociatedObsCheckbox,
                       disabled = disableAdvancedAcqEdit,
                       onChange = // Default value is Zero when enabling the offset
                         case true  => acquisitionOptOffsetView.set(Offset.Zero.some)
