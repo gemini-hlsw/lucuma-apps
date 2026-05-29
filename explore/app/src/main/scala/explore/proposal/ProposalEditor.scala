@@ -137,6 +137,10 @@ object ProposalEditor
               .toOptionView
               .flatMap(_.zoom(ProposalType.fastTurnaround).toOptionView)
 
+          val classicalView: ViewOpt[ProposalType.Classical] =
+            props.proposal.model
+              .zoom(Proposal.proposalType.some.andThen(ProposalType.classical))
+
           def reviewerMentorRemoteUpdate(
             reviewer: Input[ProgramUser.Id],
             mentor:   Input[ProgramUser.Id]
@@ -262,7 +266,8 @@ object ProposalEditor
                   ProgramUsersTable.Mode.CoIs(
                     userVault,
                     props.proposalIsReadonly,
-                    props.userIsReadonlyCoi
+                    props.userIsReadonlyCoi,
+                    classicalView.get.isDefined
                   )
                 )
               )
