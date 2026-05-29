@@ -7512,10 +7512,10 @@ input Igrins2LongSlitInput {
 }
 
 type GnirsLongSlitAcquisition {
-  acquisitionType: GnirsAcquisitionType!
+  explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt!
   filter: GnirsFilter!
-  offset: Offset
+  skyOffset: Offset
   exposureTimeMode: ExposureTimeMode!
 }
 
@@ -7554,9 +7554,9 @@ type GnirsLongSlit {
 
 input GnirsLongSlitAcquisitionInput {
   filter: GnirsFilter
-  acquisitionType: GnirsAcquisitionType
+  explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt
-  offset: OffsetInput
+  skyOffset: OffsetInput
   exposureTimeMode: ExposureTimeModeInput
 }
 
@@ -15422,7 +15422,6 @@ is "Best" (instrument-chosen).
 input GnirsDynamicInput {
   exposure: TimeSpanInput!
   coadds: PosInt!
-  centralWavelength: WavelengthInput!
   filter: GnirsFilter!
   decker: GnirsDecker!
   fpuSlit: GnirsFpuSlit

@@ -168,9 +168,9 @@ object ObservingModeSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             coadds
             acquisition {
-              acquisitionType
+              explicitAcquisitionType
               filter
-              offset $OffsetSubquery
+              skyOffset $OffsetSubquery
               exposureTimeMode $ExposureTimeModeSubquery
               coadds
             }
