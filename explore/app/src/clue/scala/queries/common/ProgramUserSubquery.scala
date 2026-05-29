@@ -28,6 +28,6 @@ object ProgramUserSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramU
       preferredProfile $UserProfileSubquery
       invitations $UserInvitationSubquery
       hasDataAccess
-      classicalObserver
+      classicalVisitor
     }
   """

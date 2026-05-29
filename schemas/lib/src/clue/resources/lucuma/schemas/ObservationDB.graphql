@@ -3252,7 +3252,7 @@ input ProgramUserPropertiesInput {
   Whether this investigator will visit to carry out the observations.
   This property is only meaningful for classical proposals.
   """
-  classicalObserver: Boolean
+  classicalVisitor: Boolean
 }
 
 """The role a user a plays when assigned to a program."""
@@ -3322,7 +3322,7 @@ type ProgramUser {
   Whether this investigator will visit to carry out the observations.
   This property is only meaningful for classical proposals.
   """
-  classicalObserver: Boolean!
+  classicalVisitor: Boolean!
 
   """
   Name created preferentially from the fields of the preferred profile, falling back

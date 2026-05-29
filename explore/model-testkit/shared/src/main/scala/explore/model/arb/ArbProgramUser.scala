@@ -38,7 +38,7 @@ trait ArbProgramUser:
         preferredProfile  <- arbitrary[UserProfile]
         invitations       <- arbitrary[List[UserInvitation]]
         hasDataAccess     <- arbitrary[Boolean]
-        classicalObserver <- arbitrary[Boolean]
+        classicalVisitor  <- arbitrary[Boolean]
       } yield ProgramUser(id,
                           user,
                           partnerLink,
@@ -50,7 +50,7 @@ trait ArbProgramUser:
                           preferredProfile,
                           invitations,
                           hasDataAccess,
-                          classicalObserver
+                          classicalVisitor
       )
     }
 
@@ -82,7 +82,7 @@ trait ArbProgramUser:
        u.preferredProfile,
        u.invitations,
        u.hasDataAccess,
-       u.classicalObserver
+       u.classicalVisitor
       )
     )
 

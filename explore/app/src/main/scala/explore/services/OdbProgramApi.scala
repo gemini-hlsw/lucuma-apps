@@ -58,7 +58,7 @@ trait OdbProgramApi[F[_]]:
   def updateUserHasDataAccess(programUserId: ProgramUser.Id, hda: Boolean): F[Unit]
 
   // Updates the user too be a classical observer
-  def updateUserClassicalObserver(programUserId: ProgramUser.Id, co: Boolean): F[Unit]
+  def updateUserClassicalVisitor(programUserId: ProgramUser.Id, co: Boolean): F[Unit]
 
   def updateUserGender(programUserId: ProgramUser.Id, g: Option[Gender]): F[Unit]
 

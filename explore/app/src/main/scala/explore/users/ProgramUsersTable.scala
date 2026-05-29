@@ -538,7 +538,7 @@ object ProgramUsersTable:
       ).sortableBy(_.get),
       ColDef(
         Column.Visitor.id,
-        _.zoom(ProgramUser.classicalObserver),
+        _.zoom(ProgramUser.classicalVisitor),
         Column.Visitor.header,
         cell = c =>
           val cell                          = c.row.original
@@ -546,7 +546,7 @@ object ProgramUsersTable:
 
           c.table.options.meta.map: meta =>
             val view    = c.value
-              .withOnMod(co => ctx.odbApi.updateUserClassicalObserver(programUserId, co).runAsync)
+              .withOnMod(co => ctx.odbApi.updateUserClassicalVisitor(programUserId, co).runAsync)
             val canEdit = meta.canEditUserFields(cell.get)
 
             Checkbox(

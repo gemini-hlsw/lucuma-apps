@@ -33,7 +33,7 @@ case class ProgramUser(
   preferredProfile:  UserProfile,
   invitations:       List[UserInvitation],
   hasDataAccess:     Boolean,
-  classicalObserver: Boolean
+  classicalVisitor:  Boolean
 ) derives Eq:
   val name: String          =
     preferredProfile.displayName.orElse(user.map(_.name)).orEmpty
@@ -104,8 +104,8 @@ object ProgramUser:
   val hasDataAccess: Lens[ProgramUser, Boolean] =
     Focus[ProgramUser](_.hasDataAccess)
 
-  val classicalObserver: Lens[ProgramUser, Boolean] =
-    Focus[ProgramUser](_.classicalObserver)
+  val classicalVisitor: Lens[ProgramUser, Boolean] =
+    Focus[ProgramUser](_.classicalVisitor)
 
   private val profileCreditNameNES: Lens[UserProfile, Option[NonEmptyString]] =
     Lens[UserProfile, Option[NonEmptyString]](
@@ -136,5 +136,5 @@ object ProgramUser:
       pref <- c.downField("preferredProfile").as[UserProfile]
       in   <- c.downField("invitations").as[List[UserInvitation]]
       da   <- c.downField("hasDataAccess").as[Boolean]
-      co   <- c.downField("classicalObserver").as[Boolean]
+      co   <- c.downField("classicalVisitor").as[Boolean]
     } yield ProgramUser(id, u, pl, role, es, th, g, aff, pref, in, da, co)
