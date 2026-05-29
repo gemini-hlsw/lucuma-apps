@@ -354,10 +354,11 @@ object SequenceTile
                               visitsViewOpt,
                               config.static,
                               gnirsExecutionView.flatScience,
+                              isEditEnabled,
                               props.isEditingAcquisition,
                               props.isEditingScience,
                               props.isUserStaffOrAdmin,
-                              _ => atoms => IO(atoms)
+                              seqType => ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                             )
                       case _                                                        => mismatchError.some
                   }

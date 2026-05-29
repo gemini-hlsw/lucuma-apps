@@ -11,6 +11,7 @@ import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.react.pragmaticdnd.Edge
 import lucuma.ui.dnd.insertIntoList
@@ -43,6 +44,12 @@ trait SequenceEditOptics[D]:
       case _                         => None
     }(_.asInstanceOf[D])
 
+  protected val gnirsDynamicConfig: Prism[D, GnirsDynamicConfig] =
+    Prism[D, GnirsDynamicConfig] {
+      case gn: GnirsDynamicConfig => Some(gn)
+      case _                      => None
+    }(_.asInstanceOf[D])
+
   protected val ghostDynamicConfig: Prism[D, GhostDynamicConfig] =
     Prism[D, GhostDynamicConfig] {
       case gh: GhostDynamicConfig => Some(gh)
@@ -60,6 +67,9 @@ trait SequenceEditOptics[D]:
 
   protected val igrins2: Optional[Step[D], Igrins2DynamicConfig] =
     Step.instrumentConfig.andThen(igrins2DynamicConfig)
+
+  protected val gnirs: Optional[Step[D], GnirsDynamicConfig] =
+    Step.instrumentConfig.andThen(gnirsDynamicConfig)
 
   protected val ghost: Optional[Step[D], GhostDynamicConfig] =
     Step.instrumentConfig.andThen(ghostDynamicConfig)

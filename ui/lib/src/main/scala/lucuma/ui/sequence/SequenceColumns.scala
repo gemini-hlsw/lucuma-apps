@@ -359,6 +359,8 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
 
   lazy val ForGnirs: List[colDef.TypeFor[?]] =
     List(
+      dragHandleCol,
+      editControlsCol,
       indexAndTypeCol,
       exposureCol,
       guideStateCol,

@@ -8,6 +8,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.ui.sequence.SequenceData
 
@@ -37,3 +38,9 @@ trait OdbSequenceApi[F[_]]:
     sequenceType: SequenceType,
     atoms:        List[Atom[Igrins2DynamicConfig]]
   ): F[List[Atom[Igrins2DynamicConfig]]]
+
+  def replaceGnirsSequence(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    atoms:        List[Atom[GnirsDynamicConfig]]
+  ): F[List[Atom[GnirsDynamicConfig]]]

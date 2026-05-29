@@ -31,6 +31,9 @@ import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsFocus
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
@@ -1056,3 +1059,46 @@ extension (step: Step[Igrins2DynamicConfig])
 extension (atom: Atom[Igrins2DynamicConfig])
   def toInput: Igrins2AtomInput =
     Igrins2AtomInput(steps = atom.steps.map(_.toInput).toList)
+
+extension (gnirsAcqMirror: GnirsAcquisitionMirrorMode)
+  def toInput: Input[GnirsAcquisitionMirrorOutInput] =
+    gnirsAcqMirror match
+      case GnirsAcquisitionMirrorMode.In                                =>
+        Input.unassign
+      case GnirsAcquisitionMirrorMode.Out(prism, grating, wavelength) =>
+        GnirsAcquisitionMirrorOutInput(
+          prism = prism,
+          grating = grating,
+          wavelength = wavelength.value.toInput
+        ).assign
+
+extension (gnirsDynamic: GnirsDynamicConfig)
+  def toInput: GnirsDynamicInput = GnirsDynamicInput(
+    exposure = gnirsDynamic.exposure.toInput,
+    coadds = gnirsDynamic.coadds,
+    centralWavelength = gnirsDynamic.centralWavelength.toInput,
+    filter = gnirsDynamic.filter,
+    decker = gnirsDynamic.decker,
+    fpuSlit = gnirsDynamic.fpu.left.toOption.orUnassign,
+    fpuOther = gnirsDynamic.fpu.toOption.orUnassign,
+    acquisitionMirrorOut = gnirsDynamic.acquisitionMirror.toInput,
+    camera = gnirsDynamic.camera,
+    focusMotorSteps = (gnirsDynamic.focus match
+      case GnirsFocus.Best          => none
+      case GnirsFocus.Custom(value) => value.value.value.value.some
+    ).orUnassign,
+    readMode = gnirsDynamic.readMode
+  )
+
+extension (step: Step[GnirsDynamicConfig])
+  def toInput: GnirsStepInput =
+    GnirsStepInput(
+      instrumentConfig = step.instrumentConfig.toInput,
+      stepConfig = step.stepConfig.toInput,
+      observeClass = step.observeClass,
+      telescopeConfig = step.telescopeConfig.toInput.assign
+    )
+
+extension (atom: Atom[GnirsDynamicConfig])
+  def toInput: GnirsAtomInput =
+    GnirsAtomInput(steps = atom.steps.map(_.toInput).toList)
