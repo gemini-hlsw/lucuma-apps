@@ -22,6 +22,17 @@ trait BoopicklePlatform:
     bytes
   }
 
+  // Use this function to boopickle econde keys avoiding the deduplication bug.
+  def asKeyBytes[A: Pickler](value: A): Array[Byte] = {
+    // For the key disable deduplication or we hit cases where equal values serialize to different
+    // byte arrays.
+    val state      = new boopickle.PickleState(new boopickle.EncoderSize, false, false)
+    val byteBuffer = Pickle.intoBytes(value)(using state, summon[Pickler[A]])
+    val bytes      = new Array[Byte](byteBuffer.limit)
+    byteBuffer.get(bytes, 0, byteBuffer.limit)
+    bytes
+  }
+
   def asTypedArray[A: Pickler](value: A): Int8Array =
     asBytes(value).toTypedArray
 

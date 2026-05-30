@@ -93,7 +93,7 @@ case class IDBCache[F[_]](
     version: CacheVersion,
     key:     I
   ): F[Option[O]] = {
-    val pickledKey: Pickled = Pickled(asBytes((name.value, version.value, key)))
+    val pickledKey: Pickled = Pickled(asKeyBytes((name.value, version.value, key)))
 
     cacheDB
       .get(store)(pickledKey)
@@ -109,7 +109,7 @@ case class IDBCache[F[_]](
 
   override def eval[I: Pickler, O: Pickler](computation: Cacheable[F, I, O]): I => F[O] = { input =>
     val pickledInput: Pickled = Pickled(
-      asBytes((computation.name.value, computation.version.value, input))
+      asKeyBytes((computation.name.value, computation.version.value, input))
     )
 
     cacheDB
