@@ -7322,9 +7322,63 @@ type GhostIfu {
   explicitIfu2Agitator: GhostIfu2FiberAgitator
 }
 
+enum GhostIfuMappingType {
+  NONSIDEREAL
+  SINGLE_TARGET
+  TARGET_PLUS_SKY
+  SKY_PLUS_TARGET
+  DUAL_TARGET
+}
+
+"""
+Describes how the target(s) and sky position (if any) are mapped to the GHOST
+IFUs.  If the `mappingType` is `NONSIDEREAL` then all other fields will be
+`null`.  Otherwise, there will be a single non-null field that corresponds to
+the `mappingType`.
+"""
+type GhostIfuMapping {
+  mappingType: GhostIfuMappingType!
+  singleTarget: GhostSingleTarget
+  targetPlusSky: GhostTargetPlusSky
+  skyPlusTarget: GhostSkyPlusTarget
+  dualTarget: GhostDualTarget
+}
+
+"""In the GhostSingleTarget mapping, IFU1 is assigned the target."""
+type GhostSingleTarget {
+  ifu1: Sidereal!
+}
+
+"""
+In the GhostTargetPlusSky mapping, IFU1 is assigned the target and IFU2 the sky
+position.
+"""
+type GhostTargetPlusSky {
+  ifu1: Sidereal!
+  ifu2: Coordinates!
+}
+
+"""
+In the GhostSkyPlusTarget mapping, IFU1 is assigned the sky position and IFU2
+the target.
+"""
+type GhostSkyPlusTarget {
+  ifu1: Coordinates!
+  ifu2: Sidereal!
+}
+
+"""
+In the GhostDualTarget mapping, IFU1 is assigned target1 and IFU2 target2.
+"""
+type GhostDualTarget {
+  ifu1: Sidereal!
+  ifu2: Sidereal!
+}
+
 """GHOST configuration that applies across all steps."""
 type GhostStatic {
   resolutionMode: GhostResolutionMode!
+  ifuMapping: GhostIfuMapping!
   slitViewingCameraExposureTime: TimeSpan
 }
 
@@ -7516,7 +7570,21 @@ input Igrins2LongSlitInput {
 type GnirsLongSlitAcquisition {
   explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt!
+
+  """
+  The acquisition filter that will be used: the explicitFilter if specified, otherwise the defaultFilter.
+  """
   filter: GnirsFilter!
+
+  """
+  The acquisition filter used by default (closest acquisition filter to the science wavelength) when no explicit filter is specified.
+  """
+  defaultFilter: GnirsFilter!
+
+  """
+  An explicitly specified acquisition filter to use instead of the default (if any).
+  """
+  explicitFilter: GnirsFilter
   skyOffset: Offset
   exposureTimeMode: ExposureTimeMode!
 }
@@ -7555,7 +7623,7 @@ type GnirsLongSlit {
 }
 
 input GnirsLongSlitAcquisitionInput {
-  filter: GnirsFilter
+  explicitFilter: GnirsFilter
   explicitAcquisitionType: GnirsAcquisitionType
   coadds: PosInt
   skyOffset: OffsetInput
