@@ -119,7 +119,7 @@ extension [D](instrumentConfig: D)
       case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, None)                       => true
       case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, None)                       => true
       case Flamingos2DynamicConfig(_, _, Flamingos2FpuMask.Imaging, _, _, _, _, _, _) => true
-      case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _, _)                           => false
+      case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)                              => false
       case Igrins2DynamicConfig(_)                                                    => false
       case GhostDynamicConfig(_, _, _, _)                                             => false
       case _                                                                          => false

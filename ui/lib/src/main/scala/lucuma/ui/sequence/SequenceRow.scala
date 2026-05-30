@@ -70,7 +70,7 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => Instrument.GmosNorth
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => Instrument.GmosSouth
     case Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => Instrument.Flamingos2
-    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _, _)   => Instrument.Gnirs
+    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)      => Instrument.Gnirs
     case Igrins2DynamicConfig(_)                            => Instrument.Igrins2
     case GhostDynamicConfig(_, _, _, _)                     => Instrument.Ghost
 
@@ -86,7 +86,7 @@ sealed trait SequenceRow[+D]:
     case gn @ gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, _)  => gn.centralWavelength
     case gs @ gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, _)  => gs.centralWavelength
     case f2 @ Flamingos2DynamicConfig(_, _, _, _, _, _, _, _, _) => f2.centralWavelength.some
-    case GnirsDynamicConfig(_, _, cw, _, _, _, _, _, _, _)       => cw.some
+    case g @ GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)       => g.centralWavelength.some
     case Igrins2DynamicConfig(_)                                 => none
     case GhostDynamicConfig(_, _, _, _)                          => none
 
@@ -94,15 +94,15 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosNorth(exposure, _, _, _, _, _, _)  => exposure.some
     case gmos.DynamicConfig.GmosSouth(exposure, _, _, _, _, _, _)  => exposure.some
     case Flamingos2DynamicConfig(exposure, _, _, _, _, _, _, _, _) => exposure.some
-    case GnirsDynamicConfig(exposure, _, _, _, _, _, _, _, _, _)   => exposure.some
+    case GnirsDynamicConfig(exposure, _, _, _, _, _, _, _, _)      => exposure.some
     case Igrins2DynamicConfig(exposure)                            => exposure.some
     // We pick the longest time from both sensors
     case g @ GhostDynamicConfig(_, _, _, _)                        => g.totalExposureTime.some
     case _                                                         => none
 
   lazy val coadds: Option[PosInt] = instrumentConfig.flatMap:
-    case GnirsDynamicConfig(_, coadds, _, _, _, _, _, _, _, _) => coadds.some
-    case _                                                     => none
+    case GnirsDynamicConfig(_, coadds, _, _, _, _, _, _, _) => coadds.some
+    case _                                                  => none
 
   // There's no unified grating type, so we return a string.
   lazy val gratingName: Option[String] = instrumentConfig.flatMap:
@@ -110,7 +110,7 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
     case Flamingos2DynamicConfig(_, disperser, _, _, _, _, _, _, _) =>
       disperser.map(_.shortName)
-    case GnirsDynamicConfig(_, _, _, _, _, _, acqMirror, _, _, _)   =>
+    case GnirsDynamicConfig(_, _, _, _, _, acqMirror, _, _, _)      =>
       GnirsAcquisitionMirrorMode.out.getOption(acqMirror).map(_.grating.shortName)
 
   // There's no unified FPU type, so we return a string.
@@ -130,14 +130,14 @@ sealed trait SequenceRow[+D]:
         case Flamingos2FpuMask.Builtin(builtin)     => builtin.longName.some
         case Flamingos2FpuMask.Custom(_, slitWidth) => slitWidth.longName.some
         case Flamingos2FpuMask.Imaging              => "Imaging".some
-    case GnirsDynamicConfig(_, _, _, _, _, fpu, _, _, _, _)   =>
-      fpu.fold(slit => slit.longName.some, other => other.longName.some)
+    case GnirsDynamicConfig(_, _, _, _, fpu, _, _, _, _)      =>
+      fpu.fold(slit => slit.longName.some, other => other.shortName.some)
     case _                                                    =>
       none
 
   lazy val deckerName: Option[String] = instrumentConfig.flatMap:
     case Flamingos2DynamicConfig(_, _, _, _, _, _, decker, _, _) => decker.shortName.some
-    case GnirsDynamicConfig(_, _, _, _, decker, _, _, _, _, _)   => decker.shortName.some
+    case GnirsDynamicConfig(_, _, _, decker, _, _, _, _, _)      => decker.shortName.some
     case _                                                       => none
 
   // There's no unified filter type, so we return a string.
@@ -145,7 +145,7 @@ sealed trait SequenceRow[+D]:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, filter, _)  => filter.map(_.shortName)
     case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, filter, _)  => filter.map(_.shortName)
     case Flamingos2DynamicConfig(_, _, filter, _, _, _, _, _, _) => filter.shortName.some
-    case GnirsDynamicConfig(_, _, _, filter, _, _, _, _, _, _)   => filter.shortName.some
+    case GnirsDynamicConfig(_, _, filter, _, _, _, _, _, _)      => filter.shortName.some
 
   lazy val readoutXBin: Option[String] = instrumentConfig.collect:
     case gmos.DynamicConfig.GmosNorth(_, readout, _, _, _, _, _) => readout.xBin.shortName
@@ -157,7 +157,7 @@ sealed trait SequenceRow[+D]:
 
   lazy val readMode: Option[String] = instrumentConfig.collect:
     case Flamingos2DynamicConfig(_, _, _, readMode, _, _, _, _, _) => readMode.shortName
-    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _, readMode)   => readMode.shortName
+    case GnirsDynamicConfig(_, _, _, _, _, _, _, _, readMode)      => readMode.shortName
 
   lazy val fowlerSamples: Option[String] = instrumentConfig.collect:
     case ig2: Igrins2DynamicConfig =>
