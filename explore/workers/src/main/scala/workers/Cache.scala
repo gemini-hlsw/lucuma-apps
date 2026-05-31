@@ -7,6 +7,7 @@ import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.effect.kernel.Async
 import cats.effect.kernel.Sync
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import explore.model.boopickle.Boopickle.*
 import japgolly.scalajs.react.callback.*
@@ -122,11 +123,14 @@ case class IDBCache[F[_]](
           computation
             .invoke(input)
             .flatTap(output =>
+              // Store the value in the background returning the result right away
               cacheDB
                 .put(store)(pickledInput, Pickled(asBytes(output)))
                 .toF
                 .whenA(computation.doStore(input, output))
                 .handleError(_ => ()) // Ignore errors
+                .start
+                .void
             )
         )(pickledOutput => F.pure(fromBytes[O](pickledOutput.value)).rethrow)
       )
