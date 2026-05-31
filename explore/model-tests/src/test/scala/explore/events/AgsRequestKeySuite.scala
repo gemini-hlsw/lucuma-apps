@@ -28,8 +28,8 @@ import org.scalacheck.Prop.forAll
 
 import java.time.Instant
 
-// Regression test for the duplicated AGS worker cache-key bug fix
-// ever revert to identity-sensitive key derivation.
+// Regression test for the duplicated AGS worker cache-key bug fix.
+// Don't ever revert to identity-sensitive key derivation.
 class AgsRequestKeySuite extends ScalaCheckSuite, CatalogPicklers:
 
   def agsRequest(
