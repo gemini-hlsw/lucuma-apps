@@ -104,6 +104,11 @@ def usePatrolFieldShapes(
       case GeometryType.AgsVignetting     => VisualizationStyles.DebugScienceVignetting
       case GeometryType.NoZone            => VisualizationStyles.PatrolFieldNoZones
 
+  val isVisible: Boolean =
+    pfVisibility.showBase.value || pfVisibility.showBlindOffset.value ||
+      pfVisibility.showAcquisitionOffset.value || pfVisibility.showScienceOffset.value ||
+      pfVisibility.showIntersection.value || pfVisibility.showNoZones.value
+
   useMemo(
     (vizConf,
      selectedGS,
@@ -127,7 +132,7 @@ def usePatrolFieldShapes(
           .orElse(fallbackPA)
 
     for
-      conf       <- vizConf.map(_.configuration)
+      conf       <- vizConf.map(_.configuration).filter(_ => isVisible)
       agsParams  <- createAgsParams(conf, PortDisposition.Side, vizConf.flatMap(_.trackType))
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
