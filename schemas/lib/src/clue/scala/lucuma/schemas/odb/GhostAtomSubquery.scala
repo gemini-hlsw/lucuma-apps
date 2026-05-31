@@ -7,7 +7,7 @@ import clue.annotation.GraphQL
 import clue.GraphQLSubquery
 import lucuma.schemas.ObservationDB
 import lucuma.odb.json.sequence.given
-import lucuma.odb.json.ghost.given
+import lucuma.odb.json.ghost.decoder.given
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 

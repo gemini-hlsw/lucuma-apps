@@ -6,7 +6,7 @@ package lucuma.schemas.odb
 import clue.GraphQLSubquery
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
-import lucuma.odb.json.ghost.given
+import lucuma.odb.json.ghost.decoder.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL

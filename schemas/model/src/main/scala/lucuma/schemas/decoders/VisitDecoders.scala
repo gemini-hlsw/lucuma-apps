@@ -27,7 +27,7 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.util.Timestamp
 import lucuma.core.util.TimestampInterval
 import lucuma.odb.json.flamingos2.given
-import lucuma.odb.json.ghost.given
+import lucuma.odb.json.ghost.decoder.given
 import lucuma.odb.json.gmos.given
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.igrins2.given
