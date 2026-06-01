@@ -3,7 +3,8 @@
 
 package navigate.server.tcs
 
-import cats.*
+import cats.Eq
+import cats.derived.*
 import cats.syntax.all.*
 import lucuma.core.enums.LightSinkName
 import navigate.model.enums.LightSource
@@ -13,6 +14,7 @@ sealed trait ScienceFold extends Product with Serializable
 object ScienceFold {
   case object Parked                                                             extends ScienceFold
   final case class Position(source: LightSource, sink: LightSinkName, port: Int) extends ScienceFold
+      derives Eq
   final case class Generic(name: String)                                         extends ScienceFold
 
   given Eq[Position] = Eq.by(x => (x.source, x.sink, x.port))
@@ -20,6 +22,7 @@ object ScienceFold {
   given Eq[ScienceFold] = Eq.instance {
     case (Parked, Parked)           => true
     case (a: Position, b: Position) => a === b
+    case (Generic(a), Generic(b))   => a === b
     case _                          => false
   }
 }

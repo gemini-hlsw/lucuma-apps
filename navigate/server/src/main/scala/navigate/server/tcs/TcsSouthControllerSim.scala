@@ -7,6 +7,8 @@ import cats.effect.Async
 import cats.effect.Ref
 import cats.syntax.all.*
 import fs2.concurrent.SignallingRef
+import lucuma.core.enums
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
@@ -38,19 +40,17 @@ class TcsSouthControllerSim[F[_]: Async](
   override val acValidNdFilters: List[AcNdFilter] =
     List(AcNdFilter.Open, AcNdFilter.Nd3, AcNdFilter.Nd2, AcNdFilter.Nd1)
 
-  override def getInstrumentPorts: F[InstrumentPorts] =
-    InstrumentPorts(
-      flamingos2Port = 5,
-      ghostPort = 1,
-      gmosPort = 3,
-      gnirsPort = 0,
-      gpiPort = 0,
-      gsaoiPort = 0,
-      igrins2Port = 0,
-      nifsPort = 0,
-      niriPort = 0,
-      visitorPort = 0
-    ).pure[F]
+  override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
+    case enums.Instrument.AcqCamSouth  => 2
+    case enums.Instrument.Flamingos2   => 5
+    case enums.Instrument.Ghost        => 1
+    case enums.Instrument.GmosSouth    => 3
+    case enums.Instrument.Gsaoi        => 0
+    case enums.Instrument.Scorpio      => 0
+    case enums.Instrument.VisitorSouth => 0
+    case enums.Instrument.Zorro        => 2
+    case _                             => 0
+  }).some.filter(_ =!= 0).pure[F]
 
 }
 

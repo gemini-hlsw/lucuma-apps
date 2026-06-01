@@ -12,7 +12,8 @@ import cats.effect.kernel.Async
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.SignallingRef
-import lucuma.core.enums.LightSinkName
+import lucuma.core.enums
+import lucuma.core.enums.Instrument
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
@@ -49,6 +50,7 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -214,21 +216,41 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override def getInstrumentPorts: F[InstrumentPorts] =
-    InstrumentPorts(
-      flamingos2Port = 1,
-      ghostPort = 0,
-      gmosPort = 3,
-      gnirsPort = 0,
-      gpiPort = 0,
-      gsaoiPort = 5,
-      igrins2Port = 0,
-      nifsPort = 0,
-      niriPort = 0,
-      visitorPort = 0
-    ).pure[F]
+//  override def getInstrumentPorts: F[InstrumentPorts] =
+//    InstrumentPorts(
+//      flamingos2Port = 1,
+//      ghostPort = 0,
+//      gmosPort = 3,
+//      gnirsPort = 0,
+//      gpiPort = 0,
+//      gsaoiPort = 5,
+//      igrins2Port = 0,
+//      nifsPort = 0,
+//      niriPort = 0,
+//      visitorPort = 0
+//    ).pure[F]
 
-  override def lightPath(from: LightSource, to: LightSinkName): F[ApplyCommandResult] =
+  override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
+    case enums.Instrument.AcqCamNorth  => 1
+    case enums.Instrument.AcqCamSouth  => 1
+    case enums.Instrument.Alopeke      => 2
+    case enums.Instrument.Flamingos2   => 1
+    case enums.Instrument.Ghost        => 0
+    case enums.Instrument.GmosNorth    => 5
+    case enums.Instrument.GmosSouth    => 3
+    case enums.Instrument.Gnirs        => 0
+    case enums.Instrument.Gpi          => 0
+    case enums.Instrument.Gsaoi        => 0
+    case enums.Instrument.Igrins2      => 0
+    case enums.Instrument.MaroonX      => 0
+    case enums.Instrument.Niri         => 0
+    case enums.Instrument.Scorpio      => 0
+    case enums.Instrument.VisitorNorth => 0
+    case enums.Instrument.VisitorSouth => 0
+    case enums.Instrument.Zorro        => 2
+  }).some.filter(_ =!= 0).pure[F]
+
+  override def lightPath(from: LightSource, to: LightSink): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
   override def restoreTarget(config: TcsConfig): F[ApplyCommandResult] =
@@ -471,5 +493,4 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
     Resource.pure(oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
-
 }

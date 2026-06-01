@@ -10,6 +10,7 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.Site
 import lucuma.core.util.TimeSpan
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.epics.given
@@ -37,30 +38,29 @@ class TcsSouthControllerEpics[F[_]: {Async, Parallel, Logger}](
     )
     with TcsSouthController[F] {
 
-  override def getInstrumentPorts: F[InstrumentPorts] = (for {
-    f2F <- sys.ags.status.flamingos2Port
-    ghF <- sys.ags.status.ghostPort
-    gmF <- sys.ags.status.gmosPort
-    gsF <- sys.ags.status.gsaoiPort
-    vsF <- sys.ags.status.visitorPort
-  } yield for {
-    f2 <- f2F
-    gh <- ghF
-    gm <- gmF
-    gs <- gsF
-    vs <- vsF
-  } yield InstrumentPorts(
-    flamingos2Port = f2,
-    ghostPort = gh,
-    gmosPort = gm,
-    gnirsPort = 0,
-    gpiPort = 0,
-    gsaoiPort = gs,
-    igrins2Port = 0,
-    nifsPort = 0,
-    niriPort = 0,
-    visitorPort = vs
-  )).verifiedRun(ConnectionTimeout)
+  override val acInstrument: Instrument = Instrument.AcqCamSouth
+
+  override val site: Site = Site.GS
+
+  override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
+    case Instrument.AcqCamNorth  => 0.pure[F]
+    case Instrument.AcqCamSouth  => 1.pure[F]
+    case Instrument.Alopeke      => 0.pure[F]
+    case Instrument.Flamingos2   => sys.ags.status.flamingos2Port.verifiedRun(ConnectionTimeout)
+    case Instrument.Ghost        => sys.ags.status.ghostPort.verifiedRun(ConnectionTimeout)
+    case Instrument.GmosNorth    => 0.pure[F]
+    case Instrument.GmosSouth    => sys.ags.status.gmosPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Gnirs        => 0.pure[F]
+    case Instrument.Gpi          => 0.pure[F]
+    case Instrument.Gsaoi        => sys.ags.status.gsaoiPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Igrins2      => 0.pure[F]
+    case Instrument.MaroonX      => 1.pure[F]
+    case Instrument.Niri         => 0.pure[F]
+    case Instrument.Scorpio      => 0.pure[F]
+    case Instrument.VisitorNorth => 0.pure[F]
+    case Instrument.VisitorSouth => sys.ags.status.visitorPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Zorro        => 2.pure[F]
+  }).map(_.some.filter(_ =!= 0))
 
   override def oiwfsDaytimeGains: VerifiedEpics[F, F, ApplyCommandResult] = sys.oiwfs
     .startGainCommand(timeout)

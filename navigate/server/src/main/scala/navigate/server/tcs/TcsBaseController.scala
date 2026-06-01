@@ -5,7 +5,7 @@ package navigate.server.tcs
 
 import cats.effect.Resource
 import fs2.Stream
-import lucuma.core.enums.LightSinkName
+import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.GuideConfig
@@ -33,6 +33,7 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -97,7 +98,7 @@ trait TcsBaseController[F[_]] {
     deployable: DeployableBafflePosition
   ): F[ApplyCommandResult]
   def scsFollow(enable:                 Boolean): F[ApplyCommandResult]
-  def lightPath(from:                   LightSource, to:        LightSinkName): F[ApplyCommandResult]
+  def lightPath(from:                   LightSource, to:        LightSink): F[ApplyCommandResult]
   def m1Park: F[ApplyCommandResult]
   def m1Unpark: F[ApplyCommandResult]
   def m1UpdateOn: F[ApplyCommandResult]
@@ -136,7 +137,7 @@ trait TcsBaseController[F[_]] {
   def getGuideState: F[GuideState]
   def getGuideQuality: F[GuidersQualityValues]
   def getTelescopeState: F[TelescopeState]
-  def getInstrumentPorts: F[InstrumentPorts]
+  def getInstrumentPort(instrument: Instrument): F[Option[Int]]
   def getTargetAdjustments: F[TargetOffsets]
   def getPointingCorrections: F[PointingCorrections]
   def getOriginOffset: F[FocalPlaneOffset]

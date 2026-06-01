@@ -22,7 +22,6 @@ import io.circe.Json
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.M1Source
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.Site
@@ -73,6 +72,7 @@ import navigate.model.enums.AcquisitionAdjustmentCommand
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -1494,7 +1494,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
           |mutation { lightpathConfig (
           |  from: SKY,
-          |  to: GMOS
+          |  instrument: GMOS_SOUTH
+          |  lightSinkVariant: GMOS_IFU
           |) {
           |  result
           |} }
@@ -1504,7 +1505,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
           |mutation { lightpathConfig (
           |  from: AO,
-          |  to: GMOS
+          |  instrument: GMOS_SOUTH
           |) {
           |  result
           |} }
@@ -1514,7 +1515,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
           |mutation { lightpathConfig (
           |  from: GCAL,
-          |  to: GMOS
+          |  instrument: GMOS_SOUTH
           |) {
           |  result
           |} }
@@ -1524,7 +1525,7 @@ class NavigateMappingsSuite extends CatsEffectSuite {
               """
           |mutation { lightpathConfig (
           |  from: SKY,
-          |  to: AC
+          |  instrument: ACQ_CAM_NORTH
           |) {
           |  result
           |} }
@@ -2752,7 +2753,7 @@ object NavigateMappingsTest {
 
     override def m1LoadNonAoFigure: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def lightpathConfig(from: LightSource, to: LightSinkName): IO[CommandResult] =
+    override def lightPathConfig(from: LightSource, to: LightSink): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
     override def getInstrumentPort(instrument: Instrument): IO[Option[Int]] = (instrument match

@@ -112,6 +112,7 @@ input TcsConfigInput {
     oiwfs: GuiderConfig
     rotator: RotatorTrackingInput!
     instrument: Instrument!
+    lightSinkVariant: LightSinkVariant
     baffles: BaffleConfigInput
 }
 
@@ -238,21 +239,11 @@ enum LightSource {
     GCAL
 }
 
-enum LightSink {
-    GMOS
+enum LightSinkVariant {
     NIRI_F6
     NIRI_F14
     NIRI_F32
-    AC
-    HR
     GMOS_IFU
-    GNIRS
-    VISITOR
-    F2
-    GSAOI
-    GPI
-    GHOST
-    IGRINS2
 }
 
 enum AcquistionAdjustmentCommand {
@@ -529,7 +520,7 @@ type Mutation {
     m1ZeroFigure: OperationOutcome!
     m1LoadAoFigure: OperationOutcome!
     m1LoadNonAoFigure: OperationOutcome!
-    lightpathConfig(from: LightSource, to: LightSink): OperationOutcome!
+    lightpathConfig(from: LightSource, instrument: Instrument!, lightSinkVariant: LightSinkVariant): OperationOutcome!
     acquisitionAdjustment(adjustment: AcquisitionAdjustmentInput!): OperationOutcome!
     wfsSky(wfs: GuideProbe!, period: TimeSpanInput!): OperationOutcome!
     adjustTarget(target: AdjustTarget!, offset: HandsetAdjustmentInput!, openLoops: Boolean!): OperationOutcome!

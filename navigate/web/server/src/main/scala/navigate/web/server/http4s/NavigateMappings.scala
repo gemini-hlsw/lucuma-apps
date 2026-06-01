@@ -22,7 +22,6 @@ import io.circe.syntax.*
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.M1Source
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.TipTiltSource
@@ -88,6 +87,8 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.AcquisitionAdjustmentCommand
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
+import navigate.model.enums.LightSink
+import navigate.model.enums.LightSinkVariant
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -443,9 +444,11 @@ class NavigateMappings[F[_]: Sync](
 
   def lightpathConfig(env: Env): F[Result[OperationOutcome]] = (for {
     from <- env.get[LightSource]("from")
-    to   <- env.get[LightSinkName]("to")
+    ins  <- env.get[Instrument]("instrument")
+    lsv  <- env.get[Option[LightSinkVariant]]("lightSinkVariant")
+    ls   <- LightSink.fromInstrumentAndVariant(ins, lsv)
   } yield server
-    .lightpathConfig(from, to)
+    .lightPathConfig(from, ls)
     .attempt
     .map(convertResult))
     .getOrElse(Result.failure[OperationOutcome]("Slew parameters could not be parsed.").pure[F])
@@ -753,21 +756,53 @@ class NavigateMappings[F[_]: Sync](
       } yield ()
     case (MutationType,
           "lightpathConfig",
-          List(Binding("from", EnumValue(f)), Binding("to", EnumValue(t)))
+          List(Binding("from", EnumValue(f)),
+               Binding("instrument", EnumValue(t)),
+               Binding("lightSinkVariant", AbsentValue | NullValue)
+          )
         ) =>
       for {
-        from <- Elab.liftR(
-                  parseEnumerated[LightSource](f).toResult(
-                    s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
-                  )
-                )
-        to   <- Elab.liftR(
-                  parseEnumerated[LightSinkName](t).toResult(
-                    s"Could not parse lightpathConfig parameter \"to\" \"${t}\""
-                  )
-                )
-        _    <- Elab.env("from" -> from)
-        _    <- Elab.env("to" -> to)
+        from       <- Elab.liftR(
+                        parseEnumerated[LightSource](f).toResult(
+                          s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
+                        )
+                      )
+        instrument <- Elab.liftR(
+                        parseEnumerated[Instrument](t).toResult(
+                          s"Could not parse lightpathConfig parameter \"instrument\" \"${t}\""
+                        )
+                      )
+        _          <- Elab.env("from" -> from)
+        _          <- Elab.env("instrument" -> instrument)
+        _          <- Elab.env("lightSinkVariant" -> none)
+      } yield ()
+    case (MutationType,
+          "lightpathConfig",
+          List(Binding("from", EnumValue(f)),
+               Binding("instrument", EnumValue(t)),
+               Binding("lightSinkVariant", EnumValue(lsv))
+          )
+        ) =>
+      for {
+        from             <- Elab.liftR(
+                              parseEnumerated[LightSource](f).toResult(
+                                s"Could not parse lightpathConfig parameter \"from\" \"${f}\""
+                              )
+                            )
+        instrument       <- Elab.liftR(
+                              parseEnumerated[Instrument](t).toResult(
+                                s"Could not parse lightpathConfig parameter \"instrument\" \"${t}\""
+                              )
+                            )
+        lightSinkVariant <-
+          Elab.liftR(
+            parseEnumerated[LightSinkVariant](lsv).toResult(
+              s"Could not parse lightpathConfig parameter \"lightSinkVariant\" \"${lsv}\""
+            )
+          )
+        _                <- Elab.env("from" -> from)
+        _                <- Elab.env("instrument" -> instrument)
+        _                <- Elab.env("lightSinkVariant" -> lightSinkVariant.some)
       } yield ()
     case (MutationType, "acquisitionAdjustment", List(Binding("adjustment", ObjectValue(adj))))   =>
       Elab
@@ -1480,12 +1515,21 @@ object NavigateMappings extends GrackleParsers {
     ins <- l.collectFirst { case ("instrument", EnumValue(v)) =>
              parseEnumerated[Instrument](v)
            }.flatten
+    lsv <-
+      l.collectFirst { case ("lightSinkVariant", EnumValue(v)) =>
+        parseEnumerated[LightSinkVariant](v)
+      } match {
+        case Some(None) => None
+        case None       => Some(None)
+        case x          => x
+      }
     bfs <- l.collectFirst { case ("baffles", ObjectValue(v)) => v } match {
              case Some(x) =>
                if (x.forall(_._2 == Value.AbsentValue)) Some(None) else parseBaffles(x).map(_.some)
              case None    => Some(None)
            }
-  } yield TcsConfig(t, inp, p1, p2, oi, rc, ins, bfs)
+    ls  <- LightSink.fromInstrumentAndVariant(ins, lsv)
+  } yield TcsConfig(t, inp, p1, p2, oi, rc, ls, bfs)
 
   def parseSwapConfigInput(l: List[(String, Value)]): Option[SwapConfig] = for {
     t   <- l.collectFirst { case ("guideTarget", ObjectValue(v)) => parseTargetInput(v) }.flatten

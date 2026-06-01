@@ -5,21 +5,24 @@ package navigate.model
 
 import cats.Show
 import cats.derived.*
-import lucuma.core.enums.Instrument
+import cats.syntax.all.*
+import mouse.boolean.given
+import lucuma.core.enums.Site
+import navigate.model.enums.LightSink
 
 case class SwapConfig(
   guideTarget:        Target,
   acSpecifics:        InstrumentSpecifics,
   rotatorTrackConfig: RotatorTrackConfig
 ) derives Show {
-  lazy val toTcsConfig: TcsConfig = TcsConfig(
+  def toTcsConfig(site: Site): TcsConfig = TcsConfig(
     guideTarget,
     acSpecifics,
     None,
     None,
     None,
     rotatorTrackConfig,
-    Instrument.AcqCamSouth,
+    (site === Site.GS).fold(LightSink.AcqCamSouth, LightSink.AcqCamNorth),
     None
   )
 }
