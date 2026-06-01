@@ -111,8 +111,8 @@ importers:
         specifier: 19.2.6
         version: 19.2.6(react@19.2.6)
       react-draggable:
-        specifier: 4.5.0
-        version: 4.5.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        specifier: 4.6.0
+        version: 4.6.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react-grid-layout:
         specifier: 1.5.3
         version: 1.5.3(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
@@ -2954,6 +2954,12 @@ packages:
 
   react-draggable@4.5.0:
     resolution: {integrity: sha512-VC+HBLEZ0XJxnOxVAZsdRi8rD04Iz3SiiKOoYzamjylUcju/hP9np/aZdLHf/7WOD268WMoNJMvYfB5yAK45cw==}
+    peerDependencies:
+      react: '>= 16.3.0'
+      react-dom: '>= 16.3.0'
+
+  react-draggable@4.6.0:
+    resolution: {integrity: sha512-g4vqY53xhmPrBnZvGP+1YQV0eYnB3o0VLzoi6q2IpwnQrxIZ34tYRKpVtsWIXPg4D/pvLn+oYCW5gOK2cWIrgA==}
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
@@ -6600,6 +6606,13 @@ snapshots:
       scheduler: 0.27.0
 
   react-draggable@4.5.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      clsx: 2.1.1
+      prop-types: 15.8.1
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+
+  react-draggable@4.6.0(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
     dependencies:
       clsx: 2.1.1
       prop-types: 15.8.1
