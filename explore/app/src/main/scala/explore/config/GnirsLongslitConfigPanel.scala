@@ -241,6 +241,9 @@ object GnirsLongslitConfigPanel
         val defaultAcquisitionFilter: GnirsFilter =
           props.observingMode.get.acquisition.defaultFilter
 
+        val acquisitionFilterEnum: Enumerated[GnirsFilter] =
+          Enumerated.fromNEL(GnirsFilter.acquisition).withTag(_.tag)
+
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
@@ -400,7 +403,7 @@ object GnirsLongslitConfigPanel
                     disabled = disableSimpleEdit,
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
-                  ),
+                  )(using enumerated = acquisitionFilterEnum),
                   <.label(^.htmlFor := "acq-offset")("Sky Offset"),
                   <.span(ExploreStyles.GnirsAcqSkyOffsetEditor)(
                     Checkbox(
