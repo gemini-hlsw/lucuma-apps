@@ -50,6 +50,9 @@ import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
 import org.typelevel.log4cats.extras.LogLevel.logLevelOrder
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
+
 import scala.scalajs.LinkingInfo
 
 case class TopBar(
@@ -134,7 +137,7 @@ object TopBar:
             List(
               MenuItem.SubMenu(
                 label = "Recent Progs",
-                icon = Icons.ListRadio
+                icon = Icons.ListRadioSolid
               )(x*)
             )
 
@@ -187,7 +190,7 @@ object TopBar:
                  MenuItem
                    .SubMenu(
                      label = "Log Level",
-                     icon = Icons.BarCodeRead,
+                     icon = Icons.BarCodeReadSolid,
                      visible =
                        ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
                    )(
@@ -207,7 +210,7 @@ object TopBar:
                        label = "Trace",
                        command = setLogLevel(LogLevel.Trace),
                        disabled = level === LogLevel.Trace,
-                       icon = Icons.Pencil
+                       icon = Icons.PencilSolid
                      )
                    )
                    .some,
@@ -244,10 +247,23 @@ object TopBar:
                 MenuItem
                   .Item(
                     label = "Help Desk",
-                    icon = Icons.ArrowUpRightFromSquare,
+                    icon = Icons.ArrowUpRightFromSquareSolid,
                     command = Callback(
                       window.open("https://noirlab.atlassian.net/servicedesk/customer/portal/12",
                                   "_blank"
+                      )
+                    )
+                  ),
+                MenuItem
+                  .Item(
+                    label = "Feedback",
+                    icon = Icons.MessageLines,
+                    command = Callback(
+                      // entry.315019327 is a field we prepopulate with the sw version
+                      window.open(
+                        "https://docs.google.com/forms/d/e/1FAIpQLSfZMCjT2SvOG2bICKbUaZuCTp67glt_Z7n_J03nS-O-2b-_NQ/viewform?usp=pp_url&entry.315019327=" +
+                          URLEncoder.encode(ctx.version.value, StandardCharsets.UTF_8),
+                        "_blank"
                       )
                     )
                   )
