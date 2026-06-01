@@ -128,7 +128,8 @@ case class IDBCache[F[_]](
                 .put(store)(pickledInput, Pickled(asBytes(output)))
                 .toF
                 .whenA(computation.doStore(input, output))
-                .handleError(_ => ()) // Ignore errors
+                // Ignore errors, even though they are async thus won't break the main computation
+                .handleError(_ => ())
                 .start
                 .void
             )

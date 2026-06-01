@@ -22,7 +22,16 @@ trait BoopicklePlatform:
     bytes
   }
 
-  // Use this function to boopickle econde keys avoiding the deduplication bug.
+  // Use this function to encode keys with boopickle avoiding the deduplication bug.
+  //
+  // Boopickle has a deduplication mechanism that reduces the size of the serialized data by 
+  // replacing repeated values with references.
+  //
+  // However, this can lead to cases where equal values serialize to different byte arrays, which
+  // is problematic when using the serialized data as keys in a map or for IndexedDb.
+  //
+  // By disabling deduplication for keys, we ensure that equal values will always serialize to the 
+  // same byte array, making them suitable for use as keys.
   def asKeyBytes[A: Pickler](value: A): Array[Byte] = {
     // For the key disable deduplication or we hit cases where equal values serialize to different
     // byte arrays.

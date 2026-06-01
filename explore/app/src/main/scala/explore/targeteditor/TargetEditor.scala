@@ -176,7 +176,7 @@ object TargetEditor:
         obsToCloneTo        <- useStateView(none[ObsIdSet]) // obs ids to clone to.
         // flag for readonly based on the execution status of the observation(s)
         readonlyForStatuses <- useStateView(false)
-        // If obsTime is not set, change it to now at the start of the day.
+        // If obsTime is not set, change it to now at the start of the day in UTC.
         obsTime             <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
                                  IO(obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS)))
         // select the aligner to use based on whether a clone will be created or not.
