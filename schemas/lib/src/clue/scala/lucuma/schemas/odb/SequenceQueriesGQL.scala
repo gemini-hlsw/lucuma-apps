@@ -61,6 +61,7 @@ object SequenceQueriesGql:
               static {
                 wellDepth
               }
+              acquisition { ...gnirsSequenceFields }
               science { ...gnirsSequenceFields }
             }
             ghost {

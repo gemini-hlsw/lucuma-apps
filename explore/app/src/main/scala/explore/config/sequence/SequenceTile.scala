@@ -353,6 +353,7 @@ object SequenceTile
                             GnirsSequenceTable(
                               visitsViewOpt,
                               config.static,
+                              gnirsExecutionView.flatAcquisition,
                               gnirsExecutionView.flatScience,
                               isEditEnabled,
                               props.isEditingAcquisition,

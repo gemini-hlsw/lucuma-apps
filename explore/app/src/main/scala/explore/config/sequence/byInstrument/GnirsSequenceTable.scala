@@ -8,7 +8,6 @@ import cats.syntax.option.*
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
-import japgolly.scalajs.react.callback.Callback
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
@@ -23,6 +22,7 @@ import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 final case class GnirsSequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         GnirsStaticConfig,
+  acquisition:          View[List[Atom[GnirsDynamicConfig]]],
   science:              View[List[Atom[GnirsDynamicConfig]]],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
@@ -35,7 +35,6 @@ final case class GnirsSequenceTable(
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with SpectroscopySequenceTable[GnirsDynamicConfig]:
 
-  override val acquisition  = View(List.empty, (_, _) => Callback.empty)
   override val acquisitonSN = none
   override val scienceSN    = none
 
