@@ -120,6 +120,9 @@ object UseAgsCalculation:
             )
         applyGuideProbe(base, guideProbe)
 
+      case ObservingModeType.Flamingos2Imaging =>
+        none
+
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val base = observingMode
           .flatMap(_.gmosFpuAlternative)

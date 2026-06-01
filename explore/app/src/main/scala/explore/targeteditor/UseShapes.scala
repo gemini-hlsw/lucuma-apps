@@ -201,6 +201,8 @@ def usePatrolFieldShapes(
             (VisualizationStyles.Anchor,
              flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
             )
+          case ObservingModeType.Flamingos2Imaging                                       =>
+            (Css.Empty, ShapeExpression.Empty)
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
@@ -254,6 +256,8 @@ def useVisualizationShapes(
              candidatesVisibilityCss
            )
           )
+        case ObservingModeType.Flamingos2Imaging                                       =>
+          (Css.Empty, none)
         case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>

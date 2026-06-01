@@ -1808,6 +1808,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       case LightSinkName.Ghost                                                     => instrumentPorts.ghostPort
       case LightSinkName.Igrins2                                                   => instrumentPorts.igrins2Port
       case LightSinkName.Phoenix                                                   => 0
+      case LightSinkName.Scorpio                                                   => 0
     }
 
     (p > 0).option(p)
