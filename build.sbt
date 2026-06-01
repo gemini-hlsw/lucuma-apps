@@ -996,11 +996,6 @@ lintFix := {
 }
 
 addCommandAlias(
-  "quickTest",
-  "explore_modelTestsJVM/test"
-)
-
-addCommandAlias(
   "fixImports",
   "; scalafix OrganizeImports; Test/scalafix OrganizeImports"
 )

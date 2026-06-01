@@ -7,6 +7,7 @@ import boopickle.DefaultBasic.*
 import boopickle.Pickler
 import cats.effect.kernel.Async
 import cats.effect.kernel.Sync
+import cats.effect.syntax.all.*
 import cats.syntax.all.*
 import explore.model.boopickle.Boopickle.*
 import japgolly.scalajs.react.callback.*
@@ -93,7 +94,7 @@ case class IDBCache[F[_]](
     version: CacheVersion,
     key:     I
   ): F[Option[O]] = {
-    val pickledKey: Pickled = Pickled(asBytes((name.value, version.value, key)))
+    val pickledKey: Pickled = Pickled(asKeyBytes((name.value, version.value, key)))
 
     cacheDB
       .get(store)(pickledKey)
@@ -109,7 +110,7 @@ case class IDBCache[F[_]](
 
   override def eval[I: Pickler, O: Pickler](computation: Cacheable[F, I, O]): I => F[O] = { input =>
     val pickledInput: Pickled = Pickled(
-      asBytes((computation.name.value, computation.version.value, input))
+      asKeyBytes((computation.name.value, computation.version.value, input))
     )
 
     cacheDB
@@ -122,11 +123,15 @@ case class IDBCache[F[_]](
           computation
             .invoke(input)
             .flatTap(output =>
+              // Store the value in the background returning the result right away
               cacheDB
                 .put(store)(pickledInput, Pickled(asBytes(output)))
                 .toF
                 .whenA(computation.doStore(input, output))
-                .handleError(_ => ()) // Ignore errors
+                // Ignore errors, even though they are async thus won't break the main computation
+                .handleError(_ => ())
+                .start
+                .void
             )
         )(pickledOutput => F.pure(fromBytes[O](pickledOutput.value)).rethrow)
       )

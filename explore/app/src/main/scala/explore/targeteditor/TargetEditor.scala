@@ -71,6 +71,7 @@ import monocle.Prism
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 
 case class TargetEditor(
   programId:           Program.Id,
@@ -175,9 +176,9 @@ object TargetEditor:
         obsToCloneTo        <- useStateView(none[ObsIdSet]) // obs ids to clone to.
         // flag for readonly based on the execution status of the observation(s)
         readonlyForStatuses <- useStateView(false)
-        // If obsTime is not set, change it to now
+        // If obsTime is not set, change it to now at the start of the day in UTC.
         obsTime             <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
-                                 IO(obsTime.getOrElse(Instant.now()))
+                                 IO(obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS)))
         // select the aligner to use based on whether a clone will be created or not.
         targetAligner       <-
           useMemo(
