@@ -550,7 +550,7 @@ object TcsControllerEpicsCommon {
         case Gsaoi                         => ports.gsaoiPort
         case Igrins2                       => ports.igrins2Port
         case Ac | Hr                       => BottomPort
-        case Phoenix | Visitor             => InvalidPort
+        case Scorpio | Phoenix | Visitor   => InvalidPort
       }
       (port =!= InvalidPort).option(port)
     }
