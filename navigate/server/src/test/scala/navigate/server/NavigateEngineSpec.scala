@@ -11,7 +11,6 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.enums.ComaOption
-import lucuma.core.enums.Instrument
 import lucuma.core.enums.M1Source
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.Site
@@ -33,6 +32,7 @@ import navigate.model.Target.SiderealTarget
 import navigate.model.config.NavigateEngineConfiguration
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
+import navigate.model.enums.LightSink
 import navigate.server.tcs.TcsNorthControllerSim
 import navigate.server.tcs.TcsSouthControllerSim
 import org.http4s.Response
@@ -156,7 +156,7 @@ class NavigateEngineSpec extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth,
+                       LightSink.GmosNorth,
                        BafflesConfig
                          .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
                          .some
@@ -191,7 +191,7 @@ class NavigateEngineSpec extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth,
+                       LightSink.GmosNorth,
                        BafflesConfig
                          .ManualConfig(CentralBafflePosition.Open, DeployableBafflePosition.Visible)
                          .some

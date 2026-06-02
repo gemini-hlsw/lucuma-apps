@@ -3,10 +3,10 @@
 
 package navigate.server.tcs
 
-import lucuma.core.enums.LightSinkName
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 
 case class LightPath(
-  form: LightSource,
-  to:   LightSinkName
+  from: LightSource,
+  to:   LightSink
 )

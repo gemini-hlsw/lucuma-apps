@@ -11,7 +11,6 @@ import lucuma.core.enums
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.M1Source
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.Site
@@ -85,6 +84,7 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.OiwfsWavelength
 import navigate.model.enums.PwfsFieldStop
@@ -331,7 +331,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                        GuiderConfig(pwfs2Target, wfsTracking).some,
                        GuiderConfig(oiwfsTarget, wfsTracking).some,
                        RotatorTrackConfig(Angle.Angle90, RotatorTrackingMode.Tracking),
-                       Instrument.GmosNorth,
+                       LightSink.GmosNorth,
                        m2Baffles.some
                      )
                    )
@@ -1579,7 +1579,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       x        <- createController(site = Site.GS)
       (st, ctr) = x
-      _        <- ctr.getInstrumentPorts
+      _        <- Instrument.values.toList.map(ctr.getInstrumentPort).sequence
       r0       <- st.ags.get
     } yield {
       assert(r0.f2Port.connected)
@@ -1588,8 +1588,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(r0.gsaoiPort.connected)
       assert(!r0.gnirsPort.connected)
       assert(!r0.gpiPort.connected)
-      assert(!r0.nifsPort.connected)
+      assert(!r0.igrins2Port.connected)
       assert(!r0.niriPort.connected)
+      assert(r0.visitorPort.connected)
     }
   }
 
@@ -1597,7 +1598,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     for {
       x        <- createController(site = Site.GN)
       (st, ctr) = x
-      _        <- ctr.getInstrumentPorts
+      _        <- Instrument.values.toList.map(ctr.getInstrumentPort).sequence
       r0       <- st.ags.get
     } yield {
       assert(!r0.f2Port.connected)
@@ -1606,8 +1607,9 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(!r0.gsaoiPort.connected)
       assert(r0.gnirsPort.connected)
       assert(r0.gpiPort.connected)
-      assert(r0.nifsPort.connected)
+      assert(r0.igrins2Port.connected)
       assert(r0.niriPort.connected)
+      assert(r0.visitorPort.connected)
     }
   }
 
@@ -1628,7 +1630,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfParked.value)
                       .replace(1.some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.GmosNorth)
       r0       <- st.tcs.get
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
@@ -1640,7 +1642,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfParked.value)
                       .replace(0.some)
                   )
-      _        <- ctr.lightPath(LightSource.AO, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.AO, LightSink.GmosNorth)
       r1       <- st.tcs.get
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
@@ -1655,7 +1657,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .replace(0.some)
                   )
       _        <- st.tcs.update(_.focus(_.aoFoldMech.parkDir.value).replace(CadDirective.CLEAR.some))
-      _        <- ctr.lightPath(LightSource.GCAL, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.GCAL, LightSink.GmosNorth)
       r2       <- st.tcs.get
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
@@ -1667,7 +1669,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfParked.value)
                       .replace(0.some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Ac)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.AcqCamNorth)
       r3       <- st.tcs.get
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
@@ -1677,7 +1679,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfParked.value)
                       .replace(0.some)
                   )
-      _        <- ctr.lightPath(LightSource.AO, LightSinkName.Ac)
+      _        <- ctr.lightPath(LightSource.AO, LightSink.AcqCamNorth)
       r4       <- st.tcs.get
     } yield {
       assert(r0.aoFoldMech.parkDir.connected)
@@ -1712,7 +1714,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfName.value)
                       .replace("gmos3".some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.GmosSouth)
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
                       .replace(0.some)
@@ -1725,7 +1727,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfName.value)
                       .replace("ao2gmos3".some)
                   )
-      _        <- ctr.lightPath(LightSource.AO, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.AO, LightSink.GmosSouth)
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
                       .replace(0.some)
@@ -1738,7 +1740,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfName.value)
                       .replace("gcal2gmos3".some)
                   )
-      _        <- ctr.lightPath(LightSource.GCAL, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.GCAL, LightSink.GmosSouth)
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
                       .replace(1.some)
@@ -1749,7 +1751,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfParked.value)
                       .replace(1.some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Ac)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.AcqCamSouth)
       _        <- st.ags.update(
                     _.focus(_.aoParked.value)
                       .replace(0.some)
@@ -1764,7 +1766,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.sfName.value)
                       .replace("ao2ac".some)
                   )
-      _        <- ctr.lightPath(LightSource.AO, LightSinkName.Ac)
+      _        <- ctr.lightPath(LightSource.AO, LightSink.AcqCamSouth)
       r0       <- st.tcs.get
     } yield {
       assert(!r0.scienceFoldMech.position.connected)
@@ -1773,6 +1775,53 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(!r0.hrwfsMech.parkDir.connected)
       assert(!r0.aoFoldMech.position.connected)
       assert(!r0.aoFoldMech.parkDir.connected)
+    }
+  }
+
+  test("Light path special cases for Alopeke and Maroonx at GN") {
+    for {
+      x        <- createController(site = Site.GN)
+      (st, ctr) = x
+      _        <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
+      _        <- st.ags.update(
+                    _.focus(_.hwParked.value)
+                      .replace(0.some)
+                      .focus(_.hwName.value)
+                      .replace("IN".some)
+                      .focus(_.sfParked.value)
+                      .replace(0.some)
+                  )
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.Alopeke)
+      r0       <- st.tcs.get
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.MaroonX)
+      r1       <- st.tcs.get
+    } yield {
+      assert(r0.scienceFoldMech.position.connected)
+      assertEquals(r0.scienceFoldMech.position.value, "visitor2".some)
+      assert(r1.scienceFoldMech.parkDir.connected)
+      assert(r1.hrwfsMech.position.connected)
+      assertEquals(r1.hrwfsMech.position.value, "OUT".some)
+    }
+  }
+
+  test("Light path special cases for Zorro at GS") {
+    for {
+      x        <- createController(site = Site.GS)
+      (st, ctr) = x
+      _        <- st.ags.update(_.focus(_.gmosPort.value).replace(3.some))
+      _        <- st.ags.update(
+                    _.focus(_.hwParked.value)
+                      .replace(0.some)
+                      .focus(_.hwName.value)
+                      .replace("IN".some)
+                      .focus(_.sfParked.value)
+                      .replace(0.some)
+                  )
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.Zorro)
+      r0       <- st.tcs.get
+    } yield {
+      assert(r0.scienceFoldMech.position.connected)
+      assertEquals(r0.scienceFoldMech.position.value, "visitor2".some)
     }
   }
 
@@ -1787,7 +1836,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.hwName.value)
                       .replace("IN".some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.GmosSouth)
       r0       <- st.tcs.get
       _        <- st.ags.update(_.focus(_.gmosPort.value).replace(1.some))
       _        <- st.ags.update(
@@ -1796,7 +1845,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
                       .focus(_.hwName.value)
                       .replace("IN".some)
                   )
-      _        <- ctr.lightPath(LightSource.Sky, LightSinkName.Gmos)
+      _        <- ctr.lightPath(LightSource.Sky, LightSink.GmosSouth)
       r1       <- st.tcs.get
     } yield {
       assert(!r0.hrwfsMech.parkDir.connected)

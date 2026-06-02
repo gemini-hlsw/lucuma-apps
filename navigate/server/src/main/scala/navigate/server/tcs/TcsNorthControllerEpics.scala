@@ -9,6 +9,8 @@ import cats.effect.Ref
 import cats.effect.Resource
 import cats.syntax.all.*
 import fs2.Stream
+import lucuma.core.enums.Instrument
+import lucuma.core.enums.Site
 import navigate.epics.given
 import navigate.model.WfsConfiguration
 import navigate.model.enums.HrwfsPickupPosition
@@ -32,36 +34,29 @@ class TcsNorthControllerEpics[F[_]: {Async, Parallel, Logger}](
     )
     with TcsNorthController[F] {
 
-  override def getInstrumentPorts: F[InstrumentPorts] = (for {
-    gmF    <- sys.ags.status.gmosPort
-    gnF    <- sys.ags.status.gnirsPort
-    gpF    <- sys.ags.status.gpiPort
-    igF    <- sys.ags.status.igrins2Port
-    nfF    <- sys.ags.status.nifsPort
-    nrF    <- sys.ags.status.niriPort
-    vsF    <- sys.ags.status.visitorPort
-    port1F <- sys.ags.status.portLabel(1)
-  } yield for {
-    gm    <- gmF
-    gn    <- gnF
-    gp    <- gpF
-    ig    <- igF
-    nf    <- nfF
-    nr    <- nrF
-    vs    <- vsF
-    port1 <- port1F
-  } yield InstrumentPorts(
-    flamingos2Port = 0,
-    ghostPort = 0,
-    gmosPort = gm,
-    gnirsPort = gn,
-    gpiPort = gp,
-    gsaoiPort = 0,
-    igrins2Port = ig,
-    nifsPort = nf,
-    niriPort = nr,
-    visitorPort = vs
-  )).verifiedRun(ConnectionTimeout)
+  override val acInstrument: Instrument = Instrument.AcqCamNorth
+
+  override val site: Site = Site.GN
+
+  override def getInstrumentPort(instrument: Instrument): F[Option[Int]] = (instrument match {
+    case Instrument.AcqCamNorth  => 1.pure[F]
+    case Instrument.AcqCamSouth  => 0.pure[F]
+    case Instrument.Alopeke      => 2.pure[F]
+    case Instrument.Flamingos2   => 0.pure[F]
+    case Instrument.Ghost        => 0.pure[F]
+    case Instrument.GmosNorth    => sys.ags.status.gmosPort.verifiedRun(ConnectionTimeout)
+    case Instrument.GmosSouth    => 0.pure[F]
+    case Instrument.Gnirs        => sys.ags.status.gnirsPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Gpi          => sys.ags.status.gpiPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Gsaoi        => 0.pure[F]
+    case Instrument.Igrins2      => sys.ags.status.igrins2Port.verifiedRun(ConnectionTimeout)
+    case Instrument.MaroonX      => 1.pure[F]
+    case Instrument.Niri         => sys.ags.status.niriPort.verifiedRun(ConnectionTimeout)
+    case Instrument.Scorpio      => 0.pure[F]
+    case Instrument.VisitorNorth => sys.ags.status.visitorPort.verifiedRun(ConnectionTimeout)
+    case Instrument.VisitorSouth => 0.pure[F]
+    case Instrument.Zorro        => 0.pure[F]
+  }).map(_.some.filter(_ =!= 0))
 
   override def oiwfsCircularBuffer(enable: Boolean): F[ApplyCommandResult] =
     wfsCircularBuffer(sys.oiwfs, enable)

@@ -7,7 +7,6 @@ import cats.Show
 import cats.kernel.Eq
 import cats.syntax.all.*
 import lucuma.core.enums.GuideProbe
-import lucuma.core.enums.LightSinkName
 import lucuma.core.math.Angle
 import lucuma.core.math.Offset
 import lucuma.core.model.Observation
@@ -15,7 +14,7 @@ import lucuma.core.model.TelescopeGuideConfig
 import lucuma.core.util.TimeSpan
 import navigate.model.HandsetAdjustment.given
 import navigate.model.RotatorAngle.*
-import navigate.model.enums.AcFilter
+import navigate.model.enums.{AcFilter, LightSink}
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.DomeMode
@@ -54,7 +53,7 @@ object NavigateCommand {
   case class EcsVentGatesMove(gateEast: Double, gateWest: Double)            extends NavigateCommand
   case class EnableGuide(config: TelescopeGuideConfig)                       extends NavigateCommand
   case class InstSpecifics(instrumentSpecificsParams: InstrumentSpecifics)   extends NavigateCommand
-  case class LightPathConfig(from: LightSource, to: LightSinkName)           extends NavigateCommand
+  case class LightPathConfig(from: LightSource, to: LightSink)           extends NavigateCommand
   case class McsFollow(enable: Boolean)                                      extends NavigateCommand
   case class Odgw1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Odgw2Follow(enable: Boolean)                                    extends NavigateCommand

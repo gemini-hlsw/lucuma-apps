@@ -17,7 +17,6 @@ import io.circe.syntax.*
 import lucuma.core.enums
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.MountGuideOption
 import lucuma.core.enums.Site
 import lucuma.core.enums.SlewStage
@@ -33,7 +32,6 @@ import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
 import monocle.Lens
 import monocle.syntax.all.focus
-import mouse.all.*
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
@@ -62,6 +60,7 @@ import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter
 import navigate.model.enums.DomeMode
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
@@ -157,7 +156,7 @@ trait NavigateEngine[F[_]] {
   def m1ZeroFigure: F[CommandResult]
   def m1LoadAoFigure: F[CommandResult]
   def m1LoadNonAoFigure: F[CommandResult]
-  def lightpathConfig(from:                          LightSource, to:              LightSinkName): F[CommandResult]
+  def lightPathConfig(from:                          LightSource, to:              LightSink): F[CommandResult]
   def acquisitionAdj(offset:                         Offset, iaa:                  Option[Angle], ipa: Option[Angle]): F[CommandResult]
   def wfsSky(wfs:                                    GuideProbe, period:           TimeSpan): F[CommandResult]
   def targetAdjust(
@@ -598,7 +597,7 @@ object NavigateEngine {
       systems.tcsCommon.m1LoadNonAoFigure
     )
 
-    override def lightpathConfig(from: LightSource, to: LightSinkName): F[CommandResult] =
+    override def lightPathConfig(from: LightSource, to: LightSink): F[CommandResult] =
       simpleCommand(
         engine,
         LightPathConfig(from, to),
@@ -606,28 +605,7 @@ object NavigateEngine {
       )
 
     override def getInstrumentPort(instrument: Instrument): F[Option[Int]] =
-      systems.tcsCommon.getInstrumentPorts.map { x =>
-        val a = instrument match {
-          case Instrument.AcqCamSouth  => 1
-          case Instrument.AcqCamNorth  => 1
-          case Instrument.Alopeke      => (site === Site.GN).fold(2, 0)
-          case Instrument.Flamingos2   => x.flamingos2Port
-          case Instrument.Ghost        => x.ghostPort
-          case Instrument.GmosNorth    => x.gmosPort
-          case Instrument.GmosSouth    => x.gmosPort
-          case Instrument.Gnirs        => x.gnirsPort
-          case Instrument.Gpi          => x.gpiPort
-          case Instrument.Gsaoi        => x.gsaoiPort
-          case Instrument.Igrins2      => x.igrins2Port
-          case Instrument.MaroonX      => (site === Site.GN).fold(x.visitorPort, 0)
-          case Instrument.Niri         => x.niriPort
-          case Instrument.Scorpio      => 0
-          case Instrument.VisitorNorth => (site === Site.GN).fold(x.visitorPort, 0)
-          case Instrument.VisitorSouth => (site === Site.GS).fold(0, x.visitorPort)
-          case Instrument.Zorro        => (site === Site.GS).fold(2, 0)
-        }
-        (a =!= 0).option(a)
-      }
+      systems.tcsCommon.getInstrumentPort(instrument)
 
     override def acquisitionAdj(
       offset: Offset,

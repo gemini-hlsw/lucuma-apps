@@ -12,13 +12,12 @@ import cats.syntax.all.*
 import coulomb.*
 import coulomb.units.accepted.ArcSecond
 import fs2.Stream
-import lucuma.core.enums
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.Instrument
-import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.M1Source
 import lucuma.core.enums.MountGuideOption
+import lucuma.core.enums.Site
 import lucuma.core.enums.TipTiltSource
 import lucuma.core.math.Angle
 import lucuma.core.math.HourAngle
@@ -90,6 +89,7 @@ import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
 import navigate.model.enums.HrwfsPickupPosition
+import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.OiwfsWavelength
 import navigate.model.enums.PwfsFieldStop
@@ -128,6 +128,7 @@ import TcsBaseController.{
   PwfsMechanismCommands,
   SystemDefault
 }
+import ScienceFoldPositionCodex.*
 
 /* This class implements the common TCS commands */
 abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
@@ -139,6 +140,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   import TcsBaseControllerEpics.*
 
   private val McsParkTimeout = FiniteDuration(60, SECONDS)
+
+  protected val acInstrument: Instrument
+
+  protected val site: Site
 
   override def mcsPark: F[ApplyCommandResult] =
     sys.tcsEpics
@@ -455,7 +460,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                       o.target
             )
               .compose[TcsCommands[F]](x =>
-                x.oiwfsWavel.wavelength(getOiwfsWavelegth(config.instrument))
+                x.oiwfsWavel.wavelength(getOiwfsWavelegth(config.instrumentVariant.instrument))
               )
               .compose(
                 setProbeTracking(Getter[TcsCommands[F], ProbeTrackingCommand[F, TcsCommands[F]]](
@@ -477,7 +482,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       .compose(
         (config.baffles, config.sourceATarget.wavelength)
           .mapN { case (b, w) =>
-            setBaffles(b.central(w, config.instrument), b.deployable(w, config.instrument))
+            setBaffles(b.central(w, config.instrumentVariant.instrument),
+                       b.deployable(w, config.instrumentVariant.instrument)
+            )
           }
           .getOrElse(identity)
       )
@@ -566,7 +573,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                  .post
            ).verifiedRun(ConnectionTimeout)
     // TODO: Consider case AO -> Instrument
-    _   <- lightPath(LightSource.Sky, tcsConfig.instrument.toLightSink)
+    _   <- lightPath(LightSource.Sky, tcsConfig.instrumentVariant)
   } yield r
 
   private val defaultChopType: String       = "2posn"
@@ -1409,7 +1416,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   private def selectOiwfsT(tcsConfig: TcsConfig)(c: TcsCommands[F]): TcsCommands[F] =
     c.oiwfsSelectCommand
-      .oiwfsName(TcsBaseControllerEpics.encodeOiwfsSelect(tcsConfig.oiwfs, tcsConfig.instrument))
+      .oiwfsName(
+        TcsBaseControllerEpics.encodeOiwfsSelect(tcsConfig.oiwfs,
+                                                 tcsConfig.instrumentVariant.instrument
+        )
+      )
       .oiwfsSelectCommand
       .output("WFS")
 
@@ -1689,11 +1700,12 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def swapTarget(swapConfig: SwapConfig): F[ApplyCommandResult] =
     disableGuide *>
-      lightPath(LightSource.Sky, LightSinkName.Ac) *>
+      lightPath(LightSource.Sky, swapConfig.toTcsConfig(site).instrumentVariant) *>
       sys.hrwfs.status.filter.verifiedRun(ConnectionTimeout).flatMap { x =>
         (resetAllTracking *>
           applyPointToGuideConfig(
-            swapConfig.toTcsConfig
+            swapConfig
+              .toTcsConfig(site)
               .focus(_.sourceATarget)
               .andThen(Target.wavelength)
               .replace(x.getOrElse(AcFilter.Neutral).toWavelength.some)
@@ -1720,7 +1732,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                VerifiedEpics.liftF(Temporal[F].sleep(OiwfsSelectionDelay)) *>
                applyTcsConfig(config, p1f, p2f)(sys.tcsEpics.startCommand(TcsConfigTimeout)).post)
                .verifiedRun(ConnectionTimeout)
-      _   <- lightPath(source, config.instrument.toLightSink)
+      _   <- lightPath(source, config.instrumentVariant)
     } yield r
   }
 
@@ -1728,7 +1740,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   private def setLightPath(
     from:  LightSource,
-    to:    LightSinkName,
+    to:    LightSink,
     port:  Int,
     aoPos: AgMechPosition,
     hwPos: AgMechPosition,
@@ -1743,15 +1755,17 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         case _                                   => s.aoFoldCommands.park.mark
       }
     val hrwfsPickup = (s: TcsCommands[F]) =>
-      (to, hwPos) match {
-        case (LightSinkName.Hr, AgMechPosition.In) | (LightSinkName.Ac, AgMechPosition.In) => s
-        case (LightSinkName.Hr, _) | (LightSinkName.Ac, _)                                 =>
+      (to.instrument, hwPos) match {
+        case (Instrument.AcqCamSouth, AgMechPosition.In) |
+            (Instrument.AcqCamNorth, AgMechPosition.In) =>
+          s
+        case (Instrument.AcqCamSouth, _) | (Instrument.AcqCamNorth, _) =>
           s.hrwfsCommands.move.setPosition(HrwfsPickupPosition.In)
-        case (_, AgMechPosition.Parked) | (_, AgMechPosition.Out)                          => s
-        case _ if port === 1                                                               => takeHrOut(s)
-        case _                                                                             => s
+        case (_, AgMechPosition.Parked) | (_, AgMechPosition.Out)      => s
+        case _ if port === 1                                           => takeHrOut(s)
+        case _                                                         => s
       }
-    val reqPos      = ScienceFold.Position(from, to, port)
+    val reqPos      = ScienceFold.Position(from, to.toLightSinkName, port)
     val scienceFold = (s: TcsCommands[F]) =>
       (port, from, sfPos) match {
         case (1, LightSource.Sky, ScienceFold.Parked)        => s
@@ -1765,7 +1779,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   private val LightPathTimeout = FiniteDuration(30, SECONDS)
 
-  override def lightPath(from: LightSource, to: LightSinkName): F[ApplyCommandResult] = for {
+  override def lightPath(from: LightSource, to: LightSink): F[ApplyCommandResult] = for {
     p2Parked <- sys.ags.status.p2Parked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
     aoParked <- sys.ags.status.aoParked.verifiedRun(ConnectionTimeout).map(_ === ParkStatus.Parked)
     aoPos    <- aoParked.fold(AgMechPosition.Parked.pure[F],
@@ -1779,40 +1793,20 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sfPos    <- sfParked.fold(ScienceFold.Parked.pure[F],
                               sys.ags.status.sfName.verifiedRun(ConnectionTimeout)
                 )
-    ports    <- getInstrumentPorts
+    // ports    <- getInstrumentPorts
     _        <- pwfs2Park.whenA(!p2Parked && from === LightSource.AO)
     ret      <-
-      getPort(ports, to)
-        .map { p =>
-          setLightPath(from, to, p, aoPos, hwPos, sfPos)(
-            sys.tcsEpics.startCommand(LightPathTimeout)
-          ).post
-            .verifiedRun(ConnectionTimeout)
+      getInstrumentPort(to.instrument)
+        .flatMap {
+          _.map { p =>
+            setLightPath(from, to, p, aoPos, hwPos, sfPos)(
+              sys.tcsEpics.startCommand(LightPathTimeout)
+            ).post
+              .verifiedRun(ConnectionTimeout)
+          }
+            .getOrElse(ApplyCommandResult.Completed.pure[F])
         }
-        .getOrElse(ApplyCommandResult.Completed.pure[F])
   } yield ret
-
-  def getPort(instrumentPorts: InstrumentPorts, lightSinkName: LightSinkName): Option[Int] = {
-    val p = lightSinkName match {
-      case LightSinkName.Gmos | LightSinkName.Gmos_Ifu                             => instrumentPorts.gmosPort
-      case LightSinkName.Niri_f6 | LightSinkName.Niri_f14 | LightSinkName.Niri_f32 =>
-        instrumentPorts.niriPort
-      case LightSinkName.Ac                                                        => 1
-      case LightSinkName.Hr                                                        => 1
-      case LightSinkName.Nifs                                                      => instrumentPorts.nifsPort
-      case LightSinkName.Gnirs                                                     => instrumentPorts.gnirsPort
-      case LightSinkName.Visitor                                                   => instrumentPorts.visitorPort
-      case LightSinkName.Flamingos2                                                => instrumentPorts.flamingos2Port
-      case LightSinkName.Gsaoi                                                     => instrumentPorts.gsaoiPort
-      case LightSinkName.Gpi                                                       => instrumentPorts.gpiPort
-      case LightSinkName.Ghost                                                     => instrumentPorts.ghostPort
-      case LightSinkName.Igrins2                                                   => instrumentPorts.igrins2Port
-      case LightSinkName.Phoenix                                                   => 0
-      case LightSinkName.Scorpio                                                   => 0
-    }
-
-    (p > 0).option(p)
-  }
 
   private val hrwfsStream: String = "hrwfsScience"
 

@@ -5,7 +5,7 @@ package navigate.model
 
 import cats.Show
 import cats.derived.*
-import lucuma.core.enums.Instrument
+import navigate.model.enums.LightSink
 
 case class TcsConfig(
   sourceATarget:       Target,
@@ -14,6 +14,6 @@ case class TcsConfig(
   pwfs2:               Option[GuiderConfig],
   oiwfs:               Option[GuiderConfig],
   rotatorTrackConfig:  RotatorTrackConfig,
-  instrument:          Instrument,
+  instrumentVariant:   LightSink,
   baffles:             Option[BafflesConfig]
 ) derives Show
