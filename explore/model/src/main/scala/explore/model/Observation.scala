@@ -98,6 +98,9 @@ final case class Observation(
   lazy val hasBlindOffset: Boolean =
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
 
+  val hasMaterializedSequence: Boolean =
+    execution.acquisitionSequenceIsMaterialized || execution.scienceSequenceIsMaterialized
+
   private def profiles(targets: TargetList): Option[NonEmptyList[SourceProfile]] =
     NonEmptyList.fromList:
       scienceTargetIds.toList.map(targets.get).flattenOption.map(_.target.sourceProfile)

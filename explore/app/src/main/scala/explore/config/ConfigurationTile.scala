@@ -19,6 +19,7 @@ import explore.common.ScienceQueries.UpdateScienceRequirements
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.model.AppContext
+import explore.model.IsActive
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSetEditInfo
 import explore.model.ObsTabTileIds
@@ -37,6 +38,7 @@ import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import explore.modes.ScienceModes
 import explore.services.OdbObservationApi
+import explore.services.OdbSequenceApi
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.VisitorObservingModeType
@@ -59,6 +61,7 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.*
 import monocle.Iso
+import org.typelevel.log4cats.Logger
 import queries.schemas.itc.syntax.*
 
 import scala.collection.immutable.SortedSet
@@ -83,7 +86,8 @@ final case class ConfigurationTile(
   obsIdSetEditInfo:         ObsIdSetEditInfo,          // for determining edit permissions
   units:                    WavelengthUnits,
   isStaffOrAdmin:           Boolean,
-  targetView:               View[Option[ItcTarget]]
+  targetView:               View[Option[ItcTarget]],
+  hasMaterializedSequence:  Boolean
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -149,43 +153,89 @@ object ConfigurationTile
             )
         )
 
+      def checkAndDeleteSequenceIfNeeded(
+        obsId:                   Observation.Id,
+        hasMaterializedSequence: Boolean,
+        action:                  IO[Unit],
+        isChanging:              View[IsActive],
+        header:                  String
+      )(using
+        seqApi:                  OdbSequenceApi[IO],
+        logger:                  Logger[IO]
+      ): IO[Unit] =
+        if hasMaterializedSequence
+        then
+          deleteConfirmation(
+            msg =
+              "This will delete the customized sequence, which cannot be undone. Do you want to proceed?",
+            header = header,
+            acceptLabel = "Yes, continue",
+            action = seqApi.deleteSequence(obsId) >> action,
+            active = isChanging
+          ).to[IO]
+        else action.switching(isChanging.async, IsActive(_))
+
       def updateConfiguration(
         obsId:                    Observation.Id,
+        hasMaterializedSequence:  Boolean,
         pacAndMode:               UndoSetter[PosAngleConstraintAndObsMode],
         input:                    ObservingModeInput,
-        defaultPosAngleConstrait: PosAngleOptions
-      )(using odbApi: OdbObservationApi[IO]): IO[Unit] =
+        defaultPosAngleConstrait: PosAngleOptions,
+        isChanging:               View[IsActive]
+      )(using
+        obsApi:                   OdbObservationApi[IO],
+        seqApi:                   OdbSequenceApi[IO],
+        logger:                   Logger[IO]
+      ): IO[Unit] =
         val currentPac = pacAndMode.get._1
-        if (defaultPosAngleConstrait != currentPac.toPosAngleOptions)
+        val update     = if (defaultPosAngleConstrait != currentPac.toPosAngleOptions)
           val angle  =
             PosAngleConstraint.angle.getOption(currentPac).getOrElse(Angle.Angle0)
           val newPac = defaultPosAngleConstrait.toPosAngle(angle)
-          odbApi
+          obsApi
             .updateConfiguration(obsId, input.assign, newPac.toInput.assign)
             .flatMap: om =>
               pacAndModeAction(obsId)
                 .set(pacAndMode)((newPac, om))
                 .toAsync
         else
-          odbApi
+          obsApi
             .updateConfiguration(obsId, input.assign)
             .flatMap: om =>
               modeAction(obsId)
                 .set(pacAndMode.zoom(PosAngleConstraintAndObsMode.observingMode))(om)
                 .toAsync
+        checkAndDeleteSequenceIfNeeded(obsId,
+                                       hasMaterializedSequence,
+                                       update,
+                                       isChanging,
+                                       "Select Configuration"
+        )
 
       def revertConfiguration(
         obsId:                    Observation.Id,
+        hasMaterializedSequence:  Boolean,
         mode:                     UndoSetter[Option[ObservingMode]],
         revertedInstrumentConfig: List[ItcInstrumentConfig],
-        selectedConfig:           View[ConfigSelection]
-      )(using odbApi: OdbObservationApi[IO]): IO[Unit] =
-        odbApi
+        selectedConfig:           View[ConfigSelection],
+        isChanging:               View[IsActive]
+      )(using
+        odbApi:                   OdbObservationApi[IO],
+        seqApi:                   OdbSequenceApi[IO],
+        logger:                   Logger[IO]
+      ): IO[Unit] =
+        val revert = odbApi
           .updateConfiguration(obsId, Input.unassign) >>
           (modeAction(obsId).set(mode)(none) >>
             selectedConfig.set(
               ConfigSelection.fromInstrumentConfigs(revertedInstrumentConfig)
             )).toAsync
+        checkAndDeleteSequenceIfNeeded(obsId,
+                                       hasMaterializedSequence,
+                                       revert,
+                                       isChanging,
+                                       "Revert Configuration"
+        )
 
       /**
        * Handles the case where `A.Input[B]` not have an assigned value, but it needs to be created
@@ -215,16 +265,18 @@ object ConfigurationTile
 
       for
         ctx        <- useContext(AppContext.ctx)
-        isChanging <- useStateView(false)
+        isChanging <- useStateView(IsActive(false))
       yield
         import ctx.given
 
         val revertConfig: IO[Unit] =
           revertConfiguration(
             props.obsId,
+            props.hasMaterializedSequence,
             props.mode,
             props.revertedInstrumentConfig,
-            props.selectedConfig
+            props.selectedConfig,
+            isChanging
           )
 
         val title =
@@ -236,13 +288,15 @@ object ConfigurationTile
               loading = isChanging.get,
               showClear = true,
               onChange = (om: Option[ObservingModeSummary]) =>
-                om.fold(revertConfig.switching(isChanging.async).runAsync)(m =>
+                om.fold(revertConfig.runAsync)(m =>
                   updateConfiguration(
                     props.obsId,
+                    props.hasMaterializedSequence,
                     props.pacAndMode,
                     m.toInput,
-                    m.obsModeType.defaultPosAngleOptions
-                  ).switching(isChanging.async).runAsync
+                    m.obsModeType.defaultPosAngleOptions,
+                    isChanging
+                  ).runAsync
                 ),
               options = props.observingModeGroups.values.toList.sorted
                 .map:
@@ -417,9 +471,11 @@ object ConfigurationTile
                       (input, posAngleOptions) =>
                         updateConfiguration(
                           props.obsId,
+                          props.hasMaterializedSequence,
                           props.pacAndMode,
                           input,
-                          posAngleOptions
+                          posAngleOptions,
+                          isChanging
                         ),
                       props.modes,
                       props.customSedTimestamps,

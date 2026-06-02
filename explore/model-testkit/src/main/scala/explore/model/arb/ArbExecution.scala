@@ -19,9 +19,11 @@ trait ArbExecution:
 
   given Arbitrary[Execution] = Arbitrary(
     for {
-      digest     <- arbitrary[CalculatedValue[Option[ExecutionDigest]]]
-      timeCharge <- arbitrary[TimeSpan]
-    } yield Execution(digest, ProgramTime(timeCharge))
+      digest          <- arbitrary[CalculatedValue[Option[ExecutionDigest]]]
+      timeCharge      <- arbitrary[TimeSpan]
+      acqMaterialized <- arbitrary[Boolean]
+      sciMaterialized <- arbitrary[Boolean]
+    } yield Execution(digest, ProgramTime(timeCharge), acqMaterialized, sciMaterialized)
   )
 
   given Cogen[Execution] = Cogen[

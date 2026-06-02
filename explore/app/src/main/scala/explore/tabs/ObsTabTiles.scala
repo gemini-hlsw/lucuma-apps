@@ -655,7 +655,8 @@ object ObsTabTiles:
               ObsIdSetEditInfo.of(props.observation.get),
               globalPreferences.get.wavelengthUnits,
               props.isStaffOrAdminUser,
-              selectedItcTarget
+              selectedItcTarget,
+              props.observation.get.hasMaterializedSequence
             )
 
           val alltiles: List[Tile[?]] =
