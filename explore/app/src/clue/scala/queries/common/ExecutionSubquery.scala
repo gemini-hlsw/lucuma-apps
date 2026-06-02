@@ -14,6 +14,8 @@ object ExecutionSubquery extends GraphQLSubquery.Typed[ObservationDB, Execution]
     {
       digest $CalculatedDigestSubquery
       timeCharge $ProgramTimeSubquery
+      acquisitionSequenceIsMaterialized
+      scienceSequenceIsMaterialized
     }
   """
 }

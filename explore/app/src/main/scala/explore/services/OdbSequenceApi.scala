@@ -44,3 +44,5 @@ trait OdbSequenceApi[F[_]]:
     sequenceType: SequenceType,
     atoms:        List[Atom[GnirsDynamicConfig]]
   ): F[List[Atom[GnirsDynamicConfig]]]
+
+  def deleteSequence(obsId: Observation.Id): F[Unit]

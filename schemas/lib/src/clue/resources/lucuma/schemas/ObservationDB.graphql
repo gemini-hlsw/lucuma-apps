@@ -2525,6 +2525,9 @@ type Mutation {
   """Deletes the given program's proposal, if any."""
   deleteProposal(input: DeleteProposalInput!): DeleteProposalResult!
 
+  """Deletes a materialized sequence, if any."""
+  deleteSequence(input: DeleteSequenceInput!): DeleteSequenceResult!
+
   """
   Ties a specific user to an existing ProgramUser, which must not already be
   associated with any user.
@@ -3668,6 +3671,21 @@ input LargeProgramInput {
 
   """Whether this proposal has JWST synergy."""
   jwstSynergy: Boolean
+}
+
+"""
+Input parameters for deleting a materialized sequence.
+Select one of `observationId` or `observationReference`.
+"""
+input DeleteSequenceInput {
+  observationId: ObservationId
+  observationReference: ObservationReferenceLabel
+}
+
+"""The result of deleting a materialized sequence."""
+type DeleteSequenceResult {
+  """The observation whose sequence was deleted."""
+  observation: Observation!
 }
 
 """
@@ -5604,6 +5622,9 @@ enum ObservingModeType {
   """ObservingModeType AlopekeWideField"""
   ALOPEKE_WIDE_FIELD
 
+  """ObservingModeType Flamingos2Imaging"""
+  FLAMINGOS_2_IMAGING
+
   """ObservingModeType Flamingos2LongSlit"""
   FLAMINGOS_2_LONG_SLIT
 
@@ -6194,6 +6215,18 @@ type Execution {
 
   """Time accounting calculation for this observation."""
   timeCharge: CategorizedTime!
+
+  """
+  Whether the science sequence has been materialized.
+  This will happen when the sequence is executed or if it is manually edited.
+  """
+  scienceSequenceIsMaterialized: Boolean!
+
+  """
+  Whether the acquisition sequence has been materialized.
+  This will happen when the sequence is executed or if it is manually edited.
+  """
+  acquisitionSequenceIsMaterialized: Boolean!
 }
 
 """
@@ -7322,9 +7355,63 @@ type GhostIfu {
   explicitIfu2Agitator: GhostIfu2FiberAgitator
 }
 
+enum GhostIfuMappingType {
+  NONSIDEREAL
+  SINGLE_TARGET
+  TARGET_PLUS_SKY
+  SKY_PLUS_TARGET
+  DUAL_TARGET
+}
+
+"""
+Describes how the target(s) and sky position (if any) are mapped to the GHOST
+IFUs.  If the `mappingType` is `NONSIDEREAL` then all other fields will be
+`null`.  Otherwise, there will be a single non-null field that corresponds to
+the `mappingType`.
+"""
+type GhostIfuMapping {
+  mappingType: GhostIfuMappingType!
+  singleTarget: GhostSingleTarget
+  targetPlusSky: GhostTargetPlusSky
+  skyPlusTarget: GhostSkyPlusTarget
+  dualTarget: GhostDualTarget
+}
+
+"""In the GhostSingleTarget mapping, IFU1 is assigned the target."""
+type GhostSingleTarget {
+  ifu1: Sidereal!
+}
+
+"""
+In the GhostTargetPlusSky mapping, IFU1 is assigned the target and IFU2 the sky
+position.
+"""
+type GhostTargetPlusSky {
+  ifu1: Sidereal!
+  ifu2: Coordinates!
+}
+
+"""
+In the GhostSkyPlusTarget mapping, IFU1 is assigned the sky position and IFU2
+the target.
+"""
+type GhostSkyPlusTarget {
+  ifu1: Coordinates!
+  ifu2: Sidereal!
+}
+
+"""
+In the GhostDualTarget mapping, IFU1 is assigned target1 and IFU2 target2.
+"""
+type GhostDualTarget {
+  ifu1: Sidereal!
+  ifu2: Sidereal!
+}
+
 """GHOST configuration that applies across all steps."""
 type GhostStatic {
   resolutionMode: GhostResolutionMode!
+  ifuMapping: GhostIfuMapping!
   slitViewingCameraExposureTime: TimeSpan
 }
 

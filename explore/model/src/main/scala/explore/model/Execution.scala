@@ -24,8 +24,10 @@ import monocle.Optional
 import scala.collection.immutable.SortedSet
 
 final case class Execution(
-  digest:            CalculatedValue[Option[ExecutionDigest]],
-  programTimeCharge: ProgramTime
+  digest:                            CalculatedValue[Option[ExecutionDigest]],
+  programTimeCharge:                 ProgramTime,
+  acquisitionSequenceIsMaterialized: Boolean,
+  scienceSequenceIsMaterialized:     Boolean
 ) derives Eq:
   lazy val acqOffset: SortedSet[Offset] =
     digest.value.foldMap(_.acquisition.telescopeConfigs.map(_.offset))
@@ -53,4 +55,6 @@ object Execution:
     for
       d  <- c.get[CalculatedValue[Option[ExecutionDigest]]]("digest")
       pt <- c.get[ProgramTime]("timeCharge")
-    yield Execution(d, pt)
+      a  <- c.get[Boolean]("acquisitionSequenceIsMaterialized")
+      s  <- c.get[Boolean]("scienceSequenceIsMaterialized")
+    yield Execution(d, pt, a, s)
