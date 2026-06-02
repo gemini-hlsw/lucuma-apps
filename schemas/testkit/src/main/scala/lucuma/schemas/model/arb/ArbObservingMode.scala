@@ -21,8 +21,10 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
+import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionSkyOffset
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbNewType
@@ -42,6 +44,7 @@ trait ArbObservingMode {
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
+  import ArbGnirsAcquisitionSkyOffset.given
 
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
@@ -628,14 +631,14 @@ trait ArbObservingMode {
         coadds                  <- arbitrary[PosInt]
         defaultFilter           <- arbitrary[GnirsFilter]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
-        offset                  <- arbitrary[Option[Offset]]
+        skyOffset               <- arbitrary[Option[GnirsAcquisitionSkyOffset]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
       } yield ObservingMode.GnirsLongSlit.Acquisition(
         explicitAcquisitionType,
         coadds,
         defaultFilter,
         explicitFilter,
-        offset,
+        skyOffset,
         exposureTimeMode
       )
     )
@@ -647,7 +650,7 @@ trait ArbObservingMode {
        PosInt,
        GnirsFilter,
        Option[GnirsFilter],
-       Option[Offset],
+       Option[GnirsAcquisitionSkyOffset],
        ExposureTimeMode
       )
     ].contramap(a =>
@@ -655,7 +658,7 @@ trait ArbObservingMode {
        a.coadds,
        a.defaultFilter,
        a.explicitFilter,
-       a.offset,
+       a.skyOffset,
        a.exposureTimeMode
       )
     )

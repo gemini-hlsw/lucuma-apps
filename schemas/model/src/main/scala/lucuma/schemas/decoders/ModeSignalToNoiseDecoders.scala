@@ -71,5 +71,4 @@ trait ModeSignalToNoiseDecoders:
           case Itc.Type.GmosNorthImaging    => c.as[ModeSignalToNoise.GmosNorthImaging]
           case Itc.Type.GmosSouthImaging    => c.as[ModeSignalToNoise.GmosSouthImaging]
           case Itc.Type.Igrins2Spectroscopy => c.as[ModeSignalToNoise.Spectroscopy]
-          case Itc.Type.GnirsSpectroscopy   => c.as[ModeSignalToNoise.Spectroscopy]
           case Itc.Type.GhostIfu            => c.as[ModeSignalToNoise.GhostIfu]

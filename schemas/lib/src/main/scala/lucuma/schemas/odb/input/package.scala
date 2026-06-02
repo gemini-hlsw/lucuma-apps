@@ -32,6 +32,7 @@ import lucuma.core.model.sequence.gmos.GmosFpuMask
 import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.GmosNodAndShuffle
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
@@ -608,12 +609,20 @@ extension (o: ObservingMode.Igrins2LongSlit)
     explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
   )
 
+extension (o: GnirsAcquisitionSkyOffset)
+  def toInput: GnirsAcquisitionSkyOffsetInput =
+    o match
+      case GnirsAcquisitionSkyOffset.Disabled        =>
+        GnirsAcquisitionSkyOffsetInput(enabled = false)
+      case GnirsAcquisitionSkyOffset.Enabled(offset) =>
+        GnirsAcquisitionSkyOffsetInput(enabled = true, offset = offset.toInput.assign)
+
 extension (a: ObservingMode.GnirsLongSlit.Acquisition)
   def toInput: GnirsLongSlitAcquisitionInput = GnirsLongSlitAcquisitionInput(
     explicitFilter = a.explicitFilter.orUnassign,
     explicitAcquisitionType = a.explicitAcquisitionType.orUnassign,
     coadds = a.coadds.assign,
-    skyOffset = a.offset.map(_.toInput).orUnassign,
+    skyOffset = a.skyOffset.map(_.toInput).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign
   )
 

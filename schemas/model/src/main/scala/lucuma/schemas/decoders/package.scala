@@ -14,3 +14,4 @@ package object decoders
     with GmosImagingVariantDecoders
     with ModeSignalToNoiseDecoders
     with SlitTelescopeConfigsDecoders
+    with GnirsDecoders

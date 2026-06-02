@@ -32,6 +32,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
@@ -40,7 +41,6 @@ import lucuma.core.util.Enumerated
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
@@ -91,6 +91,26 @@ object GnirsLongslitConfigPanel
           deriveOptionalEnumerated[GnirsAcquisitionType]("Auto")
         given acquisitionTypeDisplay: Display[Option[GnirsAcquisitionType]] =
           deriveOptionalDisplay[GnirsAcquisitionType]("Auto")
+
+        // The sky offset is tristate: None (the default, reverted to via the customization addon) /
+        // Disabled / Enabled (with offset). The Enumerated/Display tag by case, ignoring the offset
+        // value, so the dropdown offers Disabled and Enabled as choices.
+        given skyOffsetEnum: Enumerated[Option[GnirsAcquisitionSkyOffset]] =
+          Enumerated
+            .from(
+              none,
+              GnirsAcquisitionSkyOffset.Disabled.some,
+              GnirsAcquisitionSkyOffset.Enabled.Default.some
+            )
+            .withTag:
+              case None                                       => "auto"
+              case Some(GnirsAcquisitionSkyOffset.Disabled)   => "disabled"
+              case Some(GnirsAcquisitionSkyOffset.Enabled(_)) => "enabled"
+        given skyOffsetDisplay: Display[Option[GnirsAcquisitionSkyOffset]] =
+          Display.byShortName:
+            case None                                       => "Auto"
+            case Some(GnirsAcquisitionSkyOffset.Disabled)   => "Disabled"
+            case Some(GnirsAcquisitionSkyOffset.Enabled(_)) => "Enabled"
 
         val filterView: View[GnirsFilter] = props.observingMode
           .zoom(
@@ -217,16 +237,18 @@ object GnirsLongslitConfigPanel
             )
             .view(_.orUnassign)
 
-        val acquisitionOptOffsetView: View[Option[Offset]] =
+        val acquisitionSkyOffsetView: View[Option[GnirsAcquisitionSkyOffset]] =
           acquisition
             .zoom(
-              ObservingMode.GnirsLongSlit.Acquisition.offset,
+              ObservingMode.GnirsLongSlit.Acquisition.skyOffset,
               GnirsLongSlitAcquisitionInput.skyOffset.modify
             )
             .view(_.map(_.toInput).orUnassign)
 
+        // Focuses the offset of the Enabled case, so the input is only present when enabled.
         val acquisitionOffsetViewOpt: Option[View[Offset]] =
-          acquisitionOptOffsetView.toOptionView
+          acquisitionSkyOffsetView.toOptionView.flatMap:
+            _.zoom(GnirsAcquisitionSkyOffset.offset).toOptionView
 
         val acquisitionExposureTimeView: View[ExposureTimeMode] =
           acquisition
@@ -389,11 +411,14 @@ object GnirsLongslitConfigPanel
             )(
               <.div(ExploreStyles.AcquisitionCustomizationGrid)(
                 <.div(LucumaPrimeStyles.FormColumnCompact)(
-                  FormEnumDropdownView(
-                    id = "gnirs-acq-type".refined,
-                    value = acquisitionTypeView,
-                    label = "Type",
-                    disabled = disableAdvancedAcqEdit
+                  CustomizableEnumSelect(
+                    id = "acq-type".refined,
+                    view = acquisitionTypeView,
+                    defaultValue = None,
+                    label = "Type".some,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization
                   ),
                   CustomizableEnumSelectOptional(
                     id = "acq-filter".refined,
@@ -404,24 +429,22 @@ object GnirsLongslitConfigPanel
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
                   )(using enumerated = acquisitionFilterEnum),
-                  <.label(^.htmlFor := "acq-offset")("Sky Offset"),
-                  <.span(ExploreStyles.GnirsAcqSkyOffsetEditor)(
-                    Checkbox(
-                      id = "acq-offset",
-                      checked = acquisitionOptOffsetView.get.isDefined,
-                      disabled = disableAdvancedAcqEdit,
-                      onChange = // Default value is Zero when enabling the offset
-                        case true  => acquisitionOptOffsetView.set(Offset.Zero.some)
-                        case false => acquisitionOptOffsetView.set(none)
-                    ),
-                    acquisitionOffsetViewOpt.map: acquisitionOffsetView =>
-                      OffsetInput(
-                        id = "gnirs-acq-offset".refined,
-                        offset = acquisitionOffsetView,
-                        readonly = disableAdvancedAcqEdit,
-                        clazz = LucumaPrimeStyles.FormField
-                      )
-                  )
+                  CustomizableEnumSelect(
+                    id = "acq-sky-offset".refined,
+                    view = acquisitionSkyOffsetView,
+                    defaultValue = None,
+                    label = "Sky Offset".some,
+                    disabled = disableAdvancedAcqEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization
+                  ),
+                  acquisitionOffsetViewOpt.map: acquisitionOffsetView =>
+                    OffsetInput(
+                      id = "acq-offset".refined,
+                      offset = acquisitionOffsetView,
+                      readonly = disableAdvancedAcqEdit,
+                      clazz = LucumaPrimeStyles.FormField
+                    )
                 ),
                 <.div(LucumaPrimeStyles.FormColumnCompact)(
                   ExposureTimeModeEditor(

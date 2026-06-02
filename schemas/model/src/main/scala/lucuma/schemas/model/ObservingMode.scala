@@ -21,6 +21,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.util.TimeSpan
@@ -794,7 +795,7 @@ object ObservingMode:
       coadds:                  PosInt,
       defaultFilter:           GnirsFilter,
       explicitFilter:          Option[GnirsFilter],
-      offset:                  Option[Offset],
+      skyOffset:               Option[GnirsAcquisitionSkyOffset],
       exposureTimeMode:        ExposureTimeMode
     ) derives Decoder,
           Eq:
@@ -803,10 +804,10 @@ object ObservingMode:
       def isCustomized: Boolean =
         explicitAcquisitionType.isDefined ||
           explicitFilter.exists(_ =!= defaultFilter) ||
-          offset.isDefined
+          skyOffset.isDefined
 
       def revertCustomizations: Acquisition =
-        this.copy(explicitAcquisitionType = none, explicitFilter = none, offset = none)
+        this.copy(explicitAcquisitionType = none, explicitFilter = none, skyOffset = none)
 
     object Acquisition:
       val explicitAcquisitionType: Lens[Acquisition, Option[GnirsAcquisitionType]] =
@@ -817,8 +818,8 @@ object ObservingMode:
         Focus[Acquisition](_.defaultFilter)
       val explicitFilter: Lens[Acquisition, Option[GnirsFilter]]                   =
         Focus[Acquisition](_.explicitFilter)
-      val offset: Lens[Acquisition, Option[Offset]]                                =
-        Focus[Acquisition](_.offset)
+      val skyOffset: Lens[Acquisition, Option[GnirsAcquisitionSkyOffset]]          =
+        Focus[Acquisition](_.skyOffset)
       val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
         Focus[Acquisition](_.exposureTimeMode)
 
