@@ -160,6 +160,26 @@ object UserPreferencesQueriesGQL {
   }
 
   @GraphQL
+  trait AsterismPreferencesUpdates extends GraphQLOperation[UserPreferencesDB] {
+    val document = """
+    subscription asterismPreferences($userId: String!) {
+      exploreAsterismPreferences(where: {userId: {_eq: $userId}}) {
+        id
+        brightness
+        saturation
+        fovRA
+        fovDec
+        viewOffsetP
+        viewOffsetQ
+        lucumaAsterisms {
+          targetId
+        }
+      }
+    }
+    """
+  }
+
+  @GraphQL
   trait AsterismUpsert extends GraphQLOperation[UserPreferencesDB] {
     val document = """
       mutation asterismUpsert($object: ExploreAsterismPreferencesInsertInput!, $updateColumns: [ExploreAsterismPreferencesUpdateColumn!]!) {

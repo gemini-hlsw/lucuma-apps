@@ -23,6 +23,8 @@ import explore.model.ColorsInverted
 import explore.model.GlobalPreferences
 import explore.model.Observation
 import explore.model.Transformation
+import explore.model.UserPreferences
+import explore.model.UserPreferences.AsterismKey
 import explore.model.enums.GridBreakpointName
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.LineOfSightMotion
@@ -49,7 +51,6 @@ import lucuma.ui.table.hooks.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.extras.LogLevel
 import queries.common.UserPreferencesQueriesGQL.*
-import queries.common.UserPreferencesQueriesGQL.AsterismPreferencesQuery.Data.ExploreAsterismPreferences
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates.Data.LucumaGridLayoutPositions
 import queries.schemas.UserPreferencesDB
 import queries.schemas.UserPreferencesDB.Enums.*
@@ -242,72 +243,84 @@ object UserPreferencesQueries:
   end GridLayouts
 
   object AsterismPreferences:
-    // Gets the asterism properties, if not foun use the default
-    def queryWithDefault[F[_]: MonadThrow](
-      uid:        User.Id,
-      tids:       NonEmptyList[Target.Id],
-      defaultFov: Angle
-    )(using
-      FetchClient[F, UserPreferencesDB]
-    ): F[AsterismVisualOptions] = {
-      val targetIds = tids.toList.map(_.show)
+    private def toEntry(
+      id:          Int,
+      fovRA:       Option[Long],
+      fovDec:      Option[Long],
+      viewOffsetP: Option[Long],
+      viewOffsetQ: Option[Long],
+      saturation:  Option[Int],
+      brightness:  Option[Int],
+      targetIds:   List[String]
+    ): Option[(AsterismKey, AsterismVisualOptions)] =
+      targetIds
+        .traverse(Target.Id.parse)
+        .flatMap(NonEmptyList.fromList)
+        .map: tids =>
+          val key = AsterismKey.fromTargetIds(tids)
+
+          val fovRAAngle  =
+            fovRA.map(Angle.fromMicroarcseconds).getOrElse(AsterismVisualOptions.Default.fovRA)
+          val fovDecAngle =
+            fovDec.map(Angle.fromMicroarcseconds).getOrElse(AsterismVisualOptions.Default.fovDec)
+
+          val offset =
+            (viewOffsetP.map(Angle.fromMicroarcseconds(_).p),
+             viewOffsetQ.map(Angle.fromMicroarcseconds(_).q)
+            ).mapN(Offset.apply).getOrElse(Offset.Zero)
+
+          def rangeProp(range: Option[Int]) =
+            range.flatMap(refineV[Interval.Closed[0, 100]](_).toOption)
+              .getOrElse(AsterismVisualOptions.Default.saturation)
+
+          key -> AsterismVisualOptions(id.some,
+                                       fovRAAngle,
+                                       fovDecAngle,
+                                       offset,
+                                       rangeProp(saturation),
+                                       rangeProp(brightness)
+          )
+
+    def queryAsterism[F[_]: MonadThrow](
+      uid:  User.Id,
+      tids: NonEmptyList[Target.Id]
+    )(using FetchClient[F, UserPreferencesDB]): F[Option[AsterismVisualOptions]] =
+      val requestedKey = AsterismKey.fromTargetIds(tids)
       AsterismPreferencesQuery[F]
-        .query(uid.show, targetIds.assign)
+        .query(uid.show, tids.toList.map(_.show).assign)
         .raiseGraphQLErrors
-        .flatMap { r =>
-          val asterismPrefsResult = r.exploreAsterismPreferences
+        .map(
+          _.exploreAsterismPreferences
+            .flatMap: r =>
+              toEntry(r.id,
+                      r.fovRA,
+                      r.fovDec,
+                      r.viewOffsetP,
+                      r.viewOffsetQ,
+                      r.saturation,
+                      r.brightness,
+                      r.lucumaAsterisms.map(_.targetId)
+              )
+            .collectFirst:
+              case (key, opts) if key === requestedKey => opts
+        )
+        .handleError(_ => none)
 
-          asterismPrefsResult
-            .filter {
-              // Unfortunately we can't use the DB to filter by targetId,
-              // instead we have to do it here by hand
-              _.lucumaAsterisms.map(_.targetId).forall(i => targetIds.exists(_ === i))
-            }
-            .headOption
-            .map { result =>
-
-              val fovRA =
-                result.fovRA
-                  .map(Angle.fromMicroarcseconds)
-                  .getOrElse(defaultFov)
-
-              val fovDec =
-                result.fovDec
-                  .map(Angle.fromMicroarcseconds)
-                  .getOrElse(defaultFov)
-
-              val offset =
-                (result.viewOffsetP.map(Angle.fromMicroarcseconds(_).p),
-                 result.viewOffsetQ.map(Angle.fromMicroarcseconds(_).q)
-                )
-                  .mapN(Offset.apply)
-                  .getOrElse(Offset.Zero)
-
-              def rangeProp(op: ExploreAsterismPreferences => Option[Int]) =
-                op(result)
-                  .flatMap(refineV[Interval.Closed[0, 100]](_).toOption)
-                  .getOrElse(AsterismVisualOptions.Default.saturation)
-
-              val saturation = rangeProp(_.saturation)
-              val brightness = rangeProp(_.brightness)
-
-              AsterismVisualOptions(result.id.some, fovRA, fovDec, offset, saturation, brightness)
-                .pure[F]
-            }
-            .getOrElse {
-              updateAladinPreferences[F](
-                None,
-                uid,
-                tids,
-                fovRA = defaultFov.some,
-                fovDec = defaultFov.some
-              ).map(i => AsterismVisualOptions.Default.copy(i))
-            }
-        }
-        .handleError { _ =>
-          AsterismVisualOptions.Default
-        }
-    }
+    def updateAsterismPreferences(
+      data: List[AsterismPreferencesUpdates.Data.ExploreAsterismPreferences]
+    ): UserPreferences => UserPreferences =
+      prefs =>
+        data.foldLeft(prefs): (acc, r) =>
+          toEntry(r.id,
+                  r.fovRA,
+                  r.fovDec,
+                  r.viewOffsetP,
+                  r.viewOffsetQ,
+                  r.saturation,
+                  r.brightness,
+                  r.lucumaAsterisms.map(_.targetId)
+          ).fold(acc): (key, opts) =>
+            UserPreferences.asterismPreferences.modify(_ + (key -> opts))(acc)
 
     def updateAladinPreferences[F[_]: MonadThrow](
       prefsId:    Option[Int],

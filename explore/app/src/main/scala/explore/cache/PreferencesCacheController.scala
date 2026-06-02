@@ -8,6 +8,7 @@ import cats.effect.kernel.Resource
 import cats.syntax.all.*
 import clue.StreamingClient
 import crystal.Pot
+import explore.common.UserPreferencesQueries.AsterismPreferences
 import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.common.UserPreferencesQueries.GridLayouts
 import explore.model.ExploreGridLayouts
@@ -26,6 +27,7 @@ import lucuma.core.model.User
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import org.typelevel.log4cats.extras.LogLevel
+import queries.common.UserPreferencesQueriesGQL.AsterismPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.ObservationPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.TargetPreferencesUpdates
 import queries.common.UserPreferencesQueriesGQL.UserGridLayoutUpdates
@@ -80,7 +82,7 @@ object PreferencesCacheController
       g    <- grids
       p    <- userPrefs
       _    <- setLogLevel(p)
-      prefs = UserPreferences(g, p, Map.empty)
+      prefs = UserPreferences(g, p)
     } yield (prefs, fs2.Stream.empty)
 
   override protected val updateStream: PreferencesCacheController => Resource[
@@ -144,9 +146,19 @@ object PreferencesCacheController
                     .modify(prefs => prefs - obsId)
                 case _                             => acc
 
+    val updateAsterismPreferences
+      : Resource[IO, fs2.Stream[IO, UserPreferences => UserPreferences]] =
+      AsterismPreferencesUpdates
+        .subscribe[IO](props.userId.show)
+        .ignoreGraphQLErrors
+        .map:
+          _.throttle(5.seconds).map: data =>
+            AsterismPreferences.updateAsterismPreferences(data.exploreAsterismPreferences)
+
     List(
       updateLayouts,
       updateGlobalPreferences,
       updateTargetPreferences,
-      updateObsPreferences
+      updateObsPreferences,
+      updateAsterismPreferences
     ).sequence.map(_.reduceLeft(_.merge(_)))

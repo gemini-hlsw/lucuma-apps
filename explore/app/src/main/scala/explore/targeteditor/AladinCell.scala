@@ -148,7 +148,8 @@ object AladinCell extends ModelOptics with AladinCommon:
   private def offsetViews(
     uid:       User.Id,
     targetIds: NonEmptyList[Target.Id],
-    options:   View[Pot[AsterismVisualOptions]]
+    options:   View[Pot[AsterismVisualOptions]],
+    storeId:   Option[Int] => Callback = _ => Callback.empty
   )(ctx: AppContext[IO]): (Offset => Callback, ViewOpt[Offset]) = {
     import ctx.given
 
@@ -175,6 +176,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             targetIds,
             offset = newOffset.some
           )
+          .flatMap(id => storeId(id).to[IO])
           .unlessA(ignore)
           .runAsync
           .rateLimit(1.seconds, 1)
@@ -191,6 +193,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             targetIds,
             offset = o
           )
+          .flatMap(id => storeId(id).to[IO])
           .void
           .runAsync
       case _           => Callback.empty
@@ -298,18 +301,38 @@ object AladinCell extends ModelOptics with AladinCommon:
                                case _ => none
       // Reference to root
       root                <- useMemo(())(_ => domRoot)
-      // target options, will be read from the user preferences
-      options             <- useStateView(pending[AsterismVisualOptions])
-      // Load target preferences
-      targetPreferences   <- useEffectWithDeps((props.uid, props.obsTargets.ids)): (uid, tids) =>
+      // target options, will be read from the user preferences cache
+      options             <- useStateView(
+                               props.userPreferences.get.asterismPreferences
+                                 .get(UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids))
+                                 .fold(pending[AsterismVisualOptions])(_.ready)
+                             )
+      _                   <- useEffectWithDeps((props.uid, props.obsTargets.ids)): (uid, tids) =>
                                import ctx.given
 
-                               AsterismPreferences
-                                 .queryWithDefault[IO](uid, tids, Constants.InitialFov)
-                                 .flatMap: tp =>
-                                   (options.set(tp.ready) *>
-                                     setVariable(root, "saturation", tp.saturation) *>
-                                     setVariable(root, "brightness", tp.brightness)).toAsync
+                               val key = UserPreferences.AsterismKey.fromTargetIds(tids)
+
+                               def applyOptions(o: AsterismVisualOptions): Callback =
+                                 options.set(o.ready) *>
+                                   setVariable(root, "saturation", o.saturation) *>
+                                   setVariable(root, "brightness", o.brightness)
+
+                               props.userPreferences.get.asterismPreferences.get(key) match
+                                 case Some(o) =>
+                                   applyOptions(o)
+                                 case None    =>
+                                   options.set(pending[AsterismVisualOptions]) *>
+                                     AsterismPreferences
+                                       .queryAsterism[IO](uid, tids)
+                                       .runAsyncAndThen:
+                                         case Right(Some(o)) =>
+                                           // try to read it from the db and send to cache
+                                           props.userPreferences
+                                             .zoom(UserPreferences.asterismVisualOptions(key))
+                                             .set(o.some) *> applyOptions(o)
+                                         case _              =>
+                                           // if not found in db, use default and send to cache
+                                           applyOptions(AsterismVisualOptions.Default)
       mouseCoords         <- useState[Option[Coordinates]](none)
       _                   <- useEffectWithDeps(
                                obsTargetsCoordsPot.value.toOption.flatMap(_.toOption).flatMap(_.baseOrBlindCoords)
@@ -367,6 +390,16 @@ object AladinCell extends ModelOptics with AladinCommon:
       val coordinatesSetter =
         ((c: Coordinates) => mouseCoords.setState(c.some)).reuseAlways
 
+      val asterismKey = UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids)
+
+      def storePrefsId(newId: Option[Int]): Callback =
+        options.get.toOption.foldMap: o =>
+          val withId = o.copy(id = newId)
+          options.set(withId.ready) *>
+            props.userPreferences
+              .zoom(UserPreferences.asterismVisualOptions(asterismKey))
+              .set(withId.some)
+
       val fovSetter = (newFov: Fov) => {
         val ignore = options.get.fold(
           true,
@@ -386,6 +419,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                 newFov.x.some,
                 newFov.y.some
               )
+              .flatMap(id => storePrefsId(id).to[IO])
               .unlessA(ignore)
               .runAsync
               .rateLimit(1.seconds, 1)
@@ -394,7 +428,7 @@ object AladinCell extends ModelOptics with AladinCommon:
       }
 
       val (offsetChangeInAladin, offsetOnCenter) =
-        offsetViews(props.uid, props.obsTargets.ids, options)(ctx)
+        offsetViews(props.uid, props.obsTargets.ids, options, storePrefsId)(ctx)
 
       val guideStar = props.guideStarSelection.get.analysis
 

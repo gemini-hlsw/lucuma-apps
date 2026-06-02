@@ -4,6 +4,8 @@
 package explore.model
 
 import cats.Eq
+import cats.data.NonEmptyList
+import cats.data.NonEmptySet
 import cats.derived.*
 import cats.implicits.*
 import explore.model.enums.GridLayoutSection
@@ -11,6 +13,7 @@ import explore.model.enums.LineOfSightMotion
 import explore.model.layout.LayoutsMap
 import lucuma.core.model.Observation
 import lucuma.core.model.Target
+import lucuma.core.util.NewType
 import monocle.Focus
 import monocle.Lens
 import monocle.function.At.*
@@ -20,7 +23,8 @@ case class UserPreferences(
   private val gridLayouts: Map[GridLayoutSection, LayoutsMap],
   globalPreferences:       GlobalPreferences,
   targetPreferences:       Map[Target.Id, LineOfSightMotion] = Map.empty,
-  observationPreferences:  Map[Observation.Id, Target.Id] = Map.empty
+  observationPreferences:  Map[Observation.Id, Target.Id] = Map.empty,
+  asterismPreferences:     Map[UserPreferences.AsterismKey, AsterismVisualOptions] = Map.empty
 ) derives Eq {
   private def tabLayout(l: GridLayoutSection) =
     gridLayouts.getOrElse(l, ExploreGridLayouts.sectionLayout(l))
@@ -63,9 +67,15 @@ case class UserPreferences(
 }
 
 object UserPreferences:
+  object AsterismKey extends NewType[NonEmptySet[Target.Id]]:
+    def fromTargetIds(tids: NonEmptyList[Target.Id]): AsterismKey =
+      AsterismKey(tids.toNes)
+  type AsterismKey = AsterismKey.Type
+
   val Default =
     UserPreferences(ExploreGridLayouts.DefaultLayouts,
                     GlobalPreferences.Default,
+                    Map.empty,
                     Map.empty,
                     Map.empty
     )
@@ -74,6 +84,15 @@ object UserPreferences:
   val globalPreferences      = Focus[UserPreferences](_.globalPreferences)
   val targetPreferences      = Focus[UserPreferences](_.targetPreferences)
   val observationPreferences = Focus[UserPreferences](_.observationPreferences)
+  val asterismPreferences    = Focus[UserPreferences](_.asterismPreferences)
+
+  def asterismVisualOptions(
+    key: AsterismKey
+  ): Lens[UserPreferences, Option[AsterismVisualOptions]] =
+    UserPreferences.asterismPreferences
+      .andThen(
+        at[Map[AsterismKey, AsterismVisualOptions], AsterismKey, Option[AsterismVisualOptions]](key)
+      )
 
   def targetLineOfSightMotion(tid: Target.Id): Lens[UserPreferences, Option[LineOfSightMotion]] =
     UserPreferences.targetPreferences
