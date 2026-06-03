@@ -46,6 +46,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
     case _: ObservingMode.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
     case _: ObservingMode.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
+    case _: ObservingMode.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
     case _: ObservingMode.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
@@ -62,6 +63,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.GmosSouthLongSlit  => Site.GS
     case _: ObservingMode.GmosNorthImaging   => Site.GN
     case _: ObservingMode.GmosSouthImaging   => Site.GS
+    case _: ObservingMode.Flamingos2Imaging  => Site.GS
     case _: ObservingMode.Flamingos2LongSlit => Site.GS
     case _: ObservingMode.Igrins2LongSlit    => Site.GN
     case _: ObservingMode.GnirsLongSlit      => Site.GN
@@ -77,6 +79,8 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
       BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
     case ObservingMode.GmosSouthImaging(filters = filters) =>
       BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
+    case ObservingMode.Flamingos2Imaging(filters = filters) =>
+      BasicConfiguration.Flamingos2Imaging(filters.map(_.filter))
     case f: ObservingMode.Flamingos2LongSlit               =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
     case _: ObservingMode.Igrins2LongSlit                  =>
@@ -127,6 +131,8 @@ object ObservingMode:
             c.downField("gmosNorthImaging").as[GmosNorthImaging]
           .orElse:
             c.downField("gmosSouthImaging").as[GmosSouthImaging]
+          .orElse:
+            c.downField("flamingos2Imaging").as[Flamingos2Imaging]
           .orElse:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
           .orElse:
@@ -686,6 +692,86 @@ object ObservingMode:
     val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]        =
       Focus[Flamingos2LongSlit](_.acquisition)
 
+  case class Flamingos2Imaging(
+    initialFilters:         NonEmptyList[Flamingos2Imaging.ImagingFilter],
+    filters:                NonEmptyList[Flamingos2Imaging.ImagingFilter],
+    defaultReadMode:        Flamingos2ReadMode,
+    explicitReadMode:       Option[Flamingos2ReadMode],
+    defaultReads:           Flamingos2Reads,
+    explicitReads:          Option[Flamingos2Reads],
+    defaultDecker:          Flamingos2Decker,
+    explicitDecker:         Option[Flamingos2Decker],
+    defaultReadoutMode:     Flamingos2ReadoutMode,
+    explicitReadoutMode:    Option[Flamingos2ReadoutMode],
+    defaultSpatialOffsets:  NonEmptyList[Offset],
+    explicitSpatialOffsets: Option[NonEmptyList[Offset]]
+  ) extends ObservingMode(Instrument.Flamingos2) derives Eq:
+    val readMode: Flamingos2ReadMode         =
+      explicitReadMode.getOrElse(defaultReadMode)
+    val reads: Flamingos2Reads               =
+      explicitReads.getOrElse(defaultReads)
+    val decker: Flamingos2Decker             =
+      explicitDecker.getOrElse(defaultDecker)
+    val readoutMode: Flamingos2ReadoutMode   =
+      explicitReadoutMode.getOrElse(defaultReadoutMode)
+    val spatialOffsets: NonEmptyList[Offset] =
+      explicitSpatialOffsets.getOrElse(defaultSpatialOffsets)
+
+    def isCustomized: Boolean =
+      initialFilters =!= filters ||
+        explicitReadMode.exists(_ =!= defaultReadMode) ||
+        explicitReads.exists(_ =!= defaultReads) ||
+        explicitDecker.exists(_ =!= defaultDecker) ||
+        explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
+        explicitSpatialOffsets.exists(_ =!= defaultSpatialOffsets)
+
+    def revertCustomizations: Flamingos2Imaging =
+      this.copy(
+        filters = this.initialFilters,
+        explicitReadMode = None,
+        explicitReads = None,
+        explicitDecker = None,
+        explicitReadoutMode = None,
+        explicitSpatialOffsets = None
+      )
+
+  object Flamingos2Imaging:
+    case class ImagingFilter(filter: Flamingos2Filter, exposureTimeMode: ExposureTimeMode)
+        derives Decoder,
+          Eq
+
+    object ImagingFilter:
+      val filter: Lens[ImagingFilter, Flamingos2Filter]           = Focus[ImagingFilter](_.filter)
+      val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
+        Focus[ImagingFilter](_.exposureTimeMode)
+
+    given Decoder[Flamingos2Imaging] = deriveDecoder
+
+    val initialFilters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]           =
+      Focus[Flamingos2Imaging](_.initialFilters)
+    val filters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]                  =
+      Focus[Flamingos2Imaging](_.filters)
+    val defaultReadMode: Lens[Flamingos2Imaging, Flamingos2ReadMode]                   =
+      Focus[Flamingos2Imaging](_.defaultReadMode)
+    val explicitReadMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadMode]]          =
+      Focus[Flamingos2Imaging](_.explicitReadMode)
+    val defaultReads: Lens[Flamingos2Imaging, Flamingos2Reads]                         =
+      Focus[Flamingos2Imaging](_.defaultReads)
+    val explicitReads: Lens[Flamingos2Imaging, Option[Flamingos2Reads]]               =
+      Focus[Flamingos2Imaging](_.explicitReads)
+    val defaultDecker: Lens[Flamingos2Imaging, Flamingos2Decker]                       =
+      Focus[Flamingos2Imaging](_.defaultDecker)
+    val explicitDecker: Lens[Flamingos2Imaging, Option[Flamingos2Decker]]             =
+      Focus[Flamingos2Imaging](_.explicitDecker)
+    val defaultReadoutMode: Lens[Flamingos2Imaging, Flamingos2ReadoutMode]             =
+      Focus[Flamingos2Imaging](_.defaultReadoutMode)
+    val explicitReadoutMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadoutMode]]   =
+      Focus[Flamingos2Imaging](_.explicitReadoutMode)
+    val defaultSpatialOffsets: Lens[Flamingos2Imaging, NonEmptyList[Offset]]           =
+      Focus[Flamingos2Imaging](_.defaultSpatialOffsets)
+    val explicitSpatialOffsets: Lens[Flamingos2Imaging, Option[NonEmptyList[Offset]]] =
+      Focus[Flamingos2Imaging](_.explicitSpatialOffsets)
+
   case class Igrins2LongSlit(
     exposureTimeMode:      ExposureTimeMode,
     defaultOffsetMode:     SlitOffsetMode,
@@ -1032,6 +1118,9 @@ object ObservingMode:
 
   val flamingos2LongSlit: Prism[ObservingMode, Flamingos2LongSlit] =
     GenPrism[ObservingMode, Flamingos2LongSlit]
+
+  val flamingos2Imaging: Prism[ObservingMode, Flamingos2Imaging] =
+    GenPrism[ObservingMode, Flamingos2Imaging]
 
   val igrins2LongSlit: Prism[ObservingMode, Igrins2LongSlit] =
     GenPrism[ObservingMode, Igrins2LongSlit]
