@@ -113,6 +113,26 @@ object ObservingModeSubquery
             defaultRoi
             explicitRoi
           }
+          flamingos2Imaging {
+            initialFilters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            filters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            defaultReadMode
+            explicitReadMode
+            defaultReads
+            explicitReads
+            defaultDecker
+            explicitDecker
+            defaultReadoutMode
+            explicitReadoutMode
+            defaultSpatialOffsets $OffsetSubquery
+            explicitSpatialOffsets $OffsetSubquery
+          }
           flamingos2LongSlit {
             initialDisperser
             initialFilter

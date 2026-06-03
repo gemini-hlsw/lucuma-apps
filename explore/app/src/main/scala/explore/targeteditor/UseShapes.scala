@@ -75,6 +75,8 @@ def usePatrolFieldShapes(
         AgsParams
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
           .some
+      case BasicConfiguration.Flamingos2Imaging(_)                             =>
+        none // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.Igrins2LongSlit                                  =>
         AgsParams.Igrins2LongSlit().some
       case BasicConfiguration.GnirsLongSlit(_, _, _, _, _)                     =>

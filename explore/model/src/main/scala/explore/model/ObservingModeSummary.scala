@@ -10,9 +10,13 @@ import clue.data.syntax.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.enums.Flamingos2Decker
 import lucuma.core.enums.Flamingos2Disperser
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.Flamingos2Fpu
+import lucuma.core.enums.Flamingos2ReadMode
+import lucuma.core.enums.Flamingos2ReadoutMode
+import lucuma.core.enums.Flamingos2Reads
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosNorthFilter
@@ -30,10 +34,11 @@ import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
-import lucuma.core.math.Wavelength
+iad9525b4bb71b768a04ed07e4097c23f448423dcad9525b4bb71b768a04ed07e4097c23f448423dcmport lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
+import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
@@ -93,6 +98,13 @@ enum ObservingModeSummary derives Order:
     roi:         GmosRoi
   )                                                        extends ObservingModeSummary
   case Igrins2LongSlit(exposureTimeMode: ExposureTimeMode) extends ObservingModeSummary
+  case Flamingos2Imaging(
+    filters:     NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter],
+    readMode:    Flamingos2ReadMode,
+    reads:       Flamingos2Reads,
+    decker:      Flamingos2Decker,
+    readoutMode: Flamingos2ReadoutMode
+  )                                                  extends ObservingModeSummary
   case GnirsLongSlit(
     filter:           GnirsFilter,
     fpu:              GnirsFpuSlit,
@@ -178,7 +190,17 @@ enum ObservingModeSummary derives Order:
           explicitRoi = roi.assign
         )
       )
-    case Igrins2LongSlit(etm)                                                              =>
+    case Flamingos2Imaging(filters, readMode, reads, decker, readoutMode)             =>
+      ObservingModeInput.Flamingos2Imaging(
+        Flamingos2ImagingInput(
+          filters = filters.toList.map(_.toInput).assign,
+          explicitReadMode = readMode.assign,
+          explicitReads = reads.assign,
+          explicitDecker = decker.assign,
+          explicitReadoutMode = readoutMode.assign
+        )
+      )
+    case Igrins2LongSlit()                                                            =>
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput(exposureTimeMode = etm.toInput.assign)
       )
@@ -316,6 +338,8 @@ object ObservingModeSummary:
         )
       case f: ObservingMode.Flamingos2LongSlit =>
         Flamingos2LongSlit(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
+      case f: ObservingMode.Flamingos2Imaging  =>
+        Flamingos2Imaging(f.filters, f.readMode, f.reads, f.decker, f.readoutMode)
       case n: ObservingMode.GmosNorthImaging   =>
         GmosNorthImaging(
           n.variant,
@@ -363,7 +387,10 @@ object ObservingModeSummary:
     case GmosSouthImaging(variant, filters, ampReadMode, roi)                            =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"GMOS-S Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
-    case Igrins2LongSlit(_)                                                              =>
+    case Flamingos2Imaging(filters, readMode, _, _, readoutMode)                      =>
+      val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
+      s"Flamingos2 Imaging $filterStr ${readMode.shortName} ${readoutMode.shortName}"
+    case Igrins2LongSlit()                                                            =>
       s"IGRINS-2 Longslit"
     case GnirsLongSlit(filter, fpu, prism, grating, camera, _)                           =>
       val prismSummary: String      = prism match
@@ -389,6 +416,10 @@ object ObservingModeSummary:
   object GmosSouthImaging:
     given Order[GmosSouthImaging] =
       Order.by(x => (x.variant.variantType, x.filters.map(_.filter), x.ampReadMode, x.roi))
+
+  object Flamingos2Imaging:
+    given Order[Flamingos2Imaging] =
+      Order.by(x => (x.filters.map(_.filter), x.readMode, x.reads, x.decker, x.readoutMode))
 
   object Visitor:
     given Order[Visitor] =
