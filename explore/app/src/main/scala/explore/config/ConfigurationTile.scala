@@ -49,7 +49,6 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.User
-import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
 import lucuma.react.primereact.DropdownOptional
 import lucuma.react.primereact.SelectItem
@@ -65,6 +64,7 @@ import org.typelevel.log4cats.Logger
 import queries.schemas.itc.syntax.*
 
 import scala.collection.immutable.SortedSet
+import scalajs.js
 
 final case class ConfigurationTile(
   userId:                   Option[User.Id],
@@ -298,10 +298,20 @@ object ConfigurationTile
                     isChanging
                   ).runAsync
                 ),
+              panelClass = ExploreStyles.TileTitleConfigSelectorPanel,
+              itemTemplate = (om: js.UndefOr[SelectItem[ObservingModeSummary]]) =>
+                om.map(si =>
+                  <.div(
+                    si.value.dropdownEntry
+                      .split("\n")
+                      .map(<.div(_))
+                      .toVdomArray
+                  )
+                ).getOrElse("None"),
               options = props.observingModeGroups.values.toList.sorted
                 .map:
                   _.map: om =>
-                    new SelectItem[ObservingModeSummary](value = om, label = om.shortName)
+                    new SelectItem[ObservingModeSummary](value = om, label = om.dropdownEntry)
                 .flattenOption
             ).when(props.permissions.isFullEdit)
           )

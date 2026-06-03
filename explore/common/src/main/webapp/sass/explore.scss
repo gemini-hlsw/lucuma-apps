@@ -619,6 +619,13 @@ thead tr th.sticky-header {
   }
 }
 
+.explore-tile-title-config-selector-panel {
+  .p-dropdown-item-label {
+    width: 100%;
+    border-bottom: 1px solid var(--color-text-light-55);
+  }
+}
+
 .p-button.p-button-text.explore-tile-state-button {
   color: var(--site-text-color);
   filter: brightness(70%);
