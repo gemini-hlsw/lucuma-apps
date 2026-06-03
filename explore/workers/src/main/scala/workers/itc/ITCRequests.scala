@@ -29,7 +29,7 @@ import queries.schemas.itc.syntax.*
 import workers.*
 
 object ITCRequests:
-  val cacheVersion = CacheVersion(32)
+  val cacheVersion = CacheVersion(33)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell)  => ItcQueryProblem.SourceTooBright(halfWell)
@@ -133,6 +133,8 @@ object ITCRequests:
           case m @ ItcInstrumentConfig.GmosNorthImaging(_, _)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)                =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.Flamingos2Imaging(_, _)               =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)

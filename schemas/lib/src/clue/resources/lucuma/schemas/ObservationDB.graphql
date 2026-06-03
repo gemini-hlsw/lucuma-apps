@@ -499,7 +499,7 @@ input CallForProposalsPropertiesInput {
   Active period start date (inclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   The start date is required on create and must be before the `activeEnd` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -509,7 +509,7 @@ input CallForProposalsPropertiesInput {
   Active period end date (exclusive) for this call.  The date is considered to
   be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   The end date is required on create and must be after the `activeStart` date.
   Not nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3187,7 +3187,7 @@ input ProgramPropertiesInput {
   Active period start date (inclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may begin the
   evening of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3197,7 +3197,7 @@ input ProgramPropertiesInput {
   Active period end date (exclusive) for this program.  The date is considered
   to be the local date at each observation site.  Observations may end the
   morning of the indicated date at the site of the observation.
-  
+
   This property is avaliable only to those with staff access or better. Not
   nullable.  Limited to dates between 1900 and 2100 (exclusive).
   """
@@ -3930,6 +3930,11 @@ type SmartGcal implements StepConfig {
 
 """Edit or create an observation's observing mode"""
 input ObservingModeInput @oneOf {
+  """
+  The flamingos2Imaging field must be either specified or skipped altogether.  It cannot be unset with a null value.
+  """
+  flamingos2Imaging: Flamingos2ImagingInput
+
   """
   The flamingos2LongSlit field must be either specified or skipped altogether.  It cannot be unset with a null value.
   """
@@ -7196,6 +7201,133 @@ input Flamingos2LongSlitInput {
   acquisition: Flamingos2LongSlitAcquisitionInput
 }
 
+"""Imaging filters combine an actual filter with an exposure time mode."""
+type Flamingos2ImagingFilter {
+  """The filter to use for this imaging configuration."""
+  filter: Flamingos2Filter!
+
+  """
+  Exposure time mode for this filter.
+  If not specified, it is taken from the observation's requirements.
+  """
+  exposureTimeMode: ExposureTimeMode!
+}
+
+"""
+Defines a Flamingos2 imaging filter to use along with its exposure time mode.
+"""
+input Flamingos2ImagingFilterInput {
+  """The filter to use for this imaging configuration."""
+  filter: Flamingos2Filter!
+
+  """
+  Exposure time mode for this filter.
+  If not specified, it is taken from the observation's requirements.
+  """
+  exposureTimeMode: ExposureTimeModeInput
+}
+
+"""Flamingos2 Imaging mode"""
+type Flamingos2Imaging {
+  """The filters (at least one is required) to be used for data collection."""
+  filters: [Flamingos2ImagingFilter!]!
+
+  """Filters as initially selected when creating the imaging mode."""
+  initialFilters: [Flamingos2ImagingFilter!]!
+
+  """Default read mode."""
+  defaultReadMode: Flamingos2ReadMode!
+
+  """
+  Optional explicitly specified F2 ReadMode. If set it overrides the default.
+  """
+  explicitReadMode: Flamingos2ReadMode
+
+  """Default reads."""
+  defaultReads: Flamingos2Reads!
+
+  """
+  Optional explicitly specified F2 Reads. If set it overrides the default.
+  """
+  explicitReads: Flamingos2Reads
+
+  """
+  The decker field is either explicitly specified in explicitDecker or else taken
+  from defaultDecker.
+  """
+  decker: Flamingos2Decker!
+
+  """Default decker."""
+  defaultDecker: Flamingos2Decker!
+
+  """
+  Optional explicitly specified F2 Decker. If set it overrides the default.
+  """
+  explicitDecker: Flamingos2Decker
+
+  """
+  The readoutMode field is either explicitly specified in explicitReadoutMode or
+  else taken from defaultReadoutMode.
+  """
+  readoutMode: Flamingos2ReadoutMode!
+
+  """Default readout mode."""
+  defaultReadoutMode: Flamingos2ReadoutMode!
+
+  """
+  Optional explicitly specified F2 Readout mode. If set it overrides the default.
+  """
+  explicitReadoutMode: Flamingos2ReadoutMode
+
+  """
+  Spatial offsets, either explicitly specified in explicitSpatialOffsets or else
+  taken from defaultSpatialOffsets.
+  """
+  spatialOffsets: [Offset!]!
+
+  """Default spatial offsets."""
+  defaultSpatialOffsets: [Offset!]!
+
+  """
+  Optional explicitly specified spatial offsets. If set it overrides the default.
+  """
+  explicitSpatialOffsets: [Offset!]
+}
+
+"""Flamingos2 Imaging creation and edit input parameters."""
+input Flamingos2ImagingInput {
+  """
+  The filters field must be specified with at least one filter. It cannot be
+  unset with a null value.
+  """
+  filters: [Flamingos2ImagingFilterInput!]
+
+  """
+  The explicitReadMode field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReadMode: Flamingos2ReadMode
+
+  """
+  The explicitReads field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReads: Flamingos2Reads
+
+  """
+  The explicitDecker field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitDecker: Flamingos2Decker
+
+  """
+  The explicitReadoutMode field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitReadoutMode: Flamingos2ReadoutMode
+
+  """
+  The explicitSpatialOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
+  """
+  explicitSpatialOffsets: [OffsetInput!]
+}
+
 enum GhostIfu1FiberAgitator {
   DISABLED
   ENABLED
@@ -9601,6 +9733,12 @@ type ImagingConfigOption {
   instruments.
   """
   gmosSouth: ImagingConfigOptionGmosSouth
+
+  """
+  For Flamingos2 options, the Flamingos2 configuration.  Null for other
+  instruments.
+  """
+  flamingos2: ImagingConfigOptionFlamingos2
 }
 
 type ImagingConfigOptionGmosNorth {
@@ -9609,6 +9747,10 @@ type ImagingConfigOptionGmosNorth {
 
 type ImagingConfigOptionGmosSouth {
   filter: GmosSouthFilter!
+}
+
+type ImagingConfigOptionFlamingos2 {
+  filter: Flamingos2Filter!
 }
 
 """An 'Int` in the range 0 to 100"""
@@ -10759,7 +10901,7 @@ type Query {
   Obtains a list of program references for which the user with ORCiD `orcidId`
   has GOA data-download access privileges.  These will be those for which the
   user is a ProgramUser of any role with the `hasDataAccess` flag set.
-  
+
   This query is for use by staff and the GOA and will fail for other users.
   """
   goaDataDownloadAccess(orcidId: String!): [ProgramReferenceLabel!]!
@@ -11024,6 +11166,9 @@ type ObservingMode {
 
   """Mode type"""
   mode: ObservingModeType!
+
+  """Flamingos 2 Imaging mode"""
+  flamingos2Imaging: Flamingos2Imaging
 
   """Flamingos 2 Long Slit mode"""
   flamingos2LongSlit: Flamingos2LongSlit

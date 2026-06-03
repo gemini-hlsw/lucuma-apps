@@ -68,6 +68,13 @@ object ImagingModeRow {
         ItcInstrumentConfig.GmosSouthImaging(filter, ItcInstrumentConfig.PlaceholderEtm)
       )
 
+  private given Decoder[ItcInstrumentConfig.Flamingos2Imaging] =
+    _.downField("filter")
+      .as[Flamingos2Filter]
+      .map(filter =>
+        ItcInstrumentConfig.Flamingos2Imaging(filter, ItcInstrumentConfig.PlaceholderEtm)
+      )
+
   given Decoder[ImagingModeRow] = c =>
     for {
       inst        <- c.downField("instrument").as[Instrument]
@@ -78,9 +85,11 @@ object ImagingModeRow {
       filterLabel <- c.downField("filterLabel").as[NonEmptyString]
       gmosNorth   <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthImaging]]
       gmosSouth   <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthImaging]]
+      flamingos2  <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Imaging]]
     } yield {
       val cfg: ItcInstrumentConfig = gmosNorth
         .orElse(gmosSouth)
+        .orElse(flamingos2)
         // Alopeke and Zorro only have a label field
         .getOrElse(ItcInstrumentConfig.GenericImaging(inst, filterLabel, site, capability))
       ImagingModeRow(none, cfg, ModeAO(ao), fov, capability)
@@ -103,6 +112,5 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
         declination.forall(r.instrumentConfig.site.inPreferredDeclination)
     matrix.filter(filter)
 
-object ImagingModesMatrix {
+object ImagingModesMatrix:
   val empty: ImagingModesMatrix = ImagingModesMatrix(Nil)
-}

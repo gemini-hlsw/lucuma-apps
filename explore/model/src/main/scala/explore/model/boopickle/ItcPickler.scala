@@ -76,6 +76,8 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcInstrumentConfig.Flamingos2Spectroscopy] = generatePickler
 
+  given Pickler[ItcInstrumentConfig.Flamingos2Imaging] = generatePickler
+
   given Pickler[ItcInstrumentConfig.GpiSpectroscopy] = generatePickler
 
   given Pickler[ItcInstrumentConfig.GnirsSpectroscopy] = generatePickler
@@ -103,6 +105,7 @@ trait ItcPicklers extends CommonPicklers {
       .addConcreteType[ItcInstrumentConfig.GmosNorthSpectroscopy]
       .addConcreteType[ItcInstrumentConfig.GmosSouthSpectroscopy]
       .addConcreteType[ItcInstrumentConfig.Flamingos2Spectroscopy]
+      .addConcreteType[ItcInstrumentConfig.Flamingos2Imaging]
       .addConcreteType[ItcInstrumentConfig.GpiSpectroscopy]
       .addConcreteType[ItcInstrumentConfig.GnirsSpectroscopy]
       .addConcreteType[ItcInstrumentConfig.GenericSpectroscopy]
