@@ -21,10 +21,8 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionSkyOffset
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbNewType
@@ -44,7 +42,6 @@ trait ArbObservingMode {
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
-  import ArbGnirsAcquisitionSkyOffset.given
 
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
@@ -628,39 +625,25 @@ trait ArbObservingMode {
     Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
       for {
         explicitAcquisitionType <- arbitrary[Option[GnirsAcquisitionType]]
-        coadds                  <- arbitrary[PosInt]
-        defaultFilter           <- arbitrary[GnirsFilter]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
-        skyOffset               <- arbitrary[Option[GnirsAcquisitionSkyOffset]]
+        skyOffset               <- arbitrary[Option[Offset]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
+        coadds                  <- arbitrary[PosInt]
       } yield ObservingMode.GnirsLongSlit.Acquisition(
         explicitAcquisitionType,
-        coadds,
-        defaultFilter,
         explicitFilter,
         skyOffset,
-        exposureTimeMode
+        exposureTimeMode,
+        coadds
       )
     )
 
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
     Cogen[
-      (Option[GnirsAcquisitionType],
-       PosInt,
-       GnirsFilter,
-       Option[GnirsFilter],
-       Option[GnirsAcquisitionSkyOffset],
-       ExposureTimeMode
-      )
+      (Option[GnirsAcquisitionType], Option[GnirsFilter], Option[Offset], ExposureTimeMode, PosInt)
     ].contramap(a =>
-      (a.explicitAcquisitionType,
-       a.coadds,
-       a.defaultFilter,
-       a.explicitFilter,
-       a.skyOffset,
-       a.exposureTimeMode
-      )
+      (a.explicitAcquisitionType, a.explicitFilter, a.skyOffset, a.exposureTimeMode, a.coadds)
     )
 
   given Arbitrary[ObservingMode.GnirsLongSlit] =

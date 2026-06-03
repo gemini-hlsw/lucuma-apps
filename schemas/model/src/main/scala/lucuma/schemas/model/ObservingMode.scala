@@ -21,9 +21,9 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionSkyOffset
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
@@ -791,37 +791,46 @@ object ObservingMode:
 
   object GnirsLongSlit:
     case class Acquisition(
-      explicitAcquisitionType: Option[GnirsAcquisitionType],
-      coadds:                  PosInt,
-      defaultFilter:           GnirsFilter,
+      explicitAcquisitionMode: Option[GnirsAcquisitionMode],
       explicitFilter:          Option[GnirsFilter],
-      skyOffset:               Option[GnirsAcquisitionSkyOffset],
-      exposureTimeMode:        ExposureTimeMode
-    ) derives Decoder,
-          Eq:
-      val filter: GnirsFilter = explicitFilter.getOrElse(defaultFilter)
-
+      exposureTimeMode:        ExposureTimeMode,
+      coadds:                  PosInt
+    ) derives Eq {
       def isCustomized: Boolean =
-        explicitAcquisitionType.isDefined ||
-          explicitFilter.exists(_ =!= defaultFilter) ||
-          skyOffset.isDefined
+        explicitAcquisitionMode.isDefined ||
+          explicitFilter.isDefined
 
       def revertCustomizations: Acquisition =
-        this.copy(explicitAcquisitionType = none, explicitFilter = none, skyOffset = none)
+        this.copy(explicitAcquisitionMode = none, explicitFilter = none)
+    }
 
-    object Acquisition:
-      val explicitAcquisitionType: Lens[Acquisition, Option[GnirsAcquisitionType]] =
-        Focus[Acquisition](_.explicitAcquisitionType)
-      val coadds: Lens[Acquisition, PosInt]                                        =
-        Focus[Acquisition](_.coadds)
-      val defaultFilter: Lens[Acquisition, GnirsFilter]                            =
-        Focus[Acquisition](_.defaultFilter)
+    object Acquisition {
+      given Decoder[Acquisition] = Decoder.instance: c =>
+        for
+          explicitAcquisitionType <-
+            c.downField("explicitAcquisitionType").as[Option[GnirsAcquisitionType]]
+          skyOffset               <- c.downField("skyOffset").as[Option[Offset]]
+          explicitAcquisitionMode  =
+            explicitAcquisitionType.map(GnirsAcquisitionMode.forTypeAndOffset(_, skyOffset))
+          explicitFilter          <- c.downField("explicitFilter").as[Option[GnirsFilter]]
+          exposureTimeMode        <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+          coadds                  <- c.downField("coadds").as[PosInt]
+        yield Acquisition(
+          explicitAcquisitionMode,
+          explicitFilter,
+          exposureTimeMode,
+          coadds
+        )
+
+      val explicitAcquisitionMode: Lens[Acquisition, Option[GnirsAcquisitionMode]] =
+        Focus[Acquisition](_.explicitAcquisitionMode)
       val explicitFilter: Lens[Acquisition, Option[GnirsFilter]]                   =
         Focus[Acquisition](_.explicitFilter)
-      val skyOffset: Lens[Acquisition, Option[GnirsAcquisitionSkyOffset]]          =
-        Focus[Acquisition](_.skyOffset)
       val exposureTimeMode: Lens[Acquisition, ExposureTimeMode]                    =
         Focus[Acquisition](_.exposureTimeMode)
+      val coadds: Lens[Acquisition, PosInt]                                        =
+        Focus[Acquisition](_.coadds)
+    }
 
     given Decoder[GnirsLongSlit] = deriveDecoder
     given Eq[GnirsLongSlit]      = Eq.by: x => // We use tuples since there are too many fields.
