@@ -112,6 +112,5 @@ case class ImagingModesMatrix(matrix: List[ImagingModeRow]) derives Eq:
         declination.forall(r.instrumentConfig.site.inPreferredDeclination)
     matrix.filter(filter)
 
-object ImagingModesMatrix {
+object ImagingModesMatrix:
   val empty: ImagingModesMatrix = ImagingModesMatrix(Nil)
-}

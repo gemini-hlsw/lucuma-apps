@@ -134,6 +134,8 @@ object ITCRequests:
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.Flamingos2Imaging(_, _)               =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _, _)               =>

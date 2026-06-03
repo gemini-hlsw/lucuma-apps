@@ -14,6 +14,7 @@ import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
 import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
+import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GnirsReadMode
@@ -126,6 +127,8 @@ trait syntax:
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                   =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
+        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                  =>
+          InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
         case ItcInstrumentConfig.GnirsSpectroscopy(
               grating,
               fpu,
