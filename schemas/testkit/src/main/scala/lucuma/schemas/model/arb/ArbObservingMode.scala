@@ -23,6 +23,8 @@ import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
+import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbNewType
@@ -42,7 +44,7 @@ trait ArbObservingMode {
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbGmosImagingVariant.given
-
+  import ArbGnirsAcquisitionMode.given
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
   import ArbTimeSpan.given
@@ -624,15 +626,13 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
     Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
       for {
-        explicitAcquisitionType <- arbitrary[Option[GnirsAcquisitionType]]
+        explicitAcquisitionMode <- arbitrary[Option[GnirsAcquisitionMode]]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
-        skyOffset               <- arbitrary[Option[Offset]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
         coadds                  <- arbitrary[PosInt]
       } yield ObservingMode.GnirsLongSlit.Acquisition(
-        explicitAcquisitionType,
+        explicitAcquisitionMode,
         explicitFilter,
-        skyOffset,
         exposureTimeMode,
         coadds
       )
@@ -641,10 +641,8 @@ trait ArbObservingMode {
   @targetName("gnirsLongSlitAcquisitionCogen")
   given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
     Cogen[
-      (Option[GnirsAcquisitionType], Option[GnirsFilter], Option[Offset], ExposureTimeMode, PosInt)
-    ].contramap(a =>
-      (a.explicitAcquisitionType, a.explicitFilter, a.skyOffset, a.exposureTimeMode, a.coadds)
-    )
+      (Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)
+    ].contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
 
   given Arbitrary[ObservingMode.GnirsLongSlit] =
     import ArbNewType.given
