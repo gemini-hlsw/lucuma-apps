@@ -483,7 +483,7 @@ object UserPreferencesQueries:
       UserLogLevelUpdate[F]
         .execute(
           userId = userId.show.assign,
-          logLevel = logLevel.show.toUpperCase.assign
+          logLevel = logLevel.toString.toUpperCase.assign
         )
         .attempt
         .void
