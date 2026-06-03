@@ -596,7 +596,7 @@ extension (o: ObservingMode.Flamingos2Imaging)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.toList.map(_.toInput)).orUnassign
+    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.map(_.toInput)).orUnassign
   )
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)

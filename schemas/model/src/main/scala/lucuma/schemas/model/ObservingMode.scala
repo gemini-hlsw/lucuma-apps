@@ -703,8 +703,8 @@ object ObservingMode:
     explicitDecker:         Option[Flamingos2Decker],
     defaultReadoutMode:     Flamingos2ReadoutMode,
     explicitReadoutMode:    Option[Flamingos2ReadoutMode],
-    defaultSpatialOffsets:  NonEmptyList[Offset],
-    explicitSpatialOffsets: Option[NonEmptyList[Offset]]
+    defaultSpatialOffsets:  List[Offset],
+    explicitSpatialOffsets: Option[List[Offset]]
   ) extends ObservingMode(Instrument.Flamingos2) derives Eq:
     val readMode: Flamingos2ReadMode         =
       explicitReadMode.getOrElse(defaultReadMode)
@@ -714,7 +714,7 @@ object ObservingMode:
       explicitDecker.getOrElse(defaultDecker)
     val readoutMode: Flamingos2ReadoutMode   =
       explicitReadoutMode.getOrElse(defaultReadoutMode)
-    val spatialOffsets: NonEmptyList[Offset] =
+    val spatialOffsets: List[Offset]         =
       explicitSpatialOffsets.getOrElse(defaultSpatialOffsets)
 
     def isCustomized: Boolean =
@@ -767,9 +767,9 @@ object ObservingMode:
       Focus[Flamingos2Imaging](_.defaultReadoutMode)
     val explicitReadoutMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadoutMode]]   =
       Focus[Flamingos2Imaging](_.explicitReadoutMode)
-    val defaultSpatialOffsets: Lens[Flamingos2Imaging, NonEmptyList[Offset]]           =
+    val defaultSpatialOffsets: Lens[Flamingos2Imaging, List[Offset]]           =
       Focus[Flamingos2Imaging](_.defaultSpatialOffsets)
-    val explicitSpatialOffsets: Lens[Flamingos2Imaging, Option[NonEmptyList[Offset]]] =
+    val explicitSpatialOffsets: Lens[Flamingos2Imaging, Option[List[Offset]]] =
       Focus[Flamingos2Imaging](_.explicitSpatialOffsets)
 
   case class Igrins2LongSlit(

@@ -52,7 +52,6 @@ import org.typelevel.log4cats.extras.LogLevel.logLevelOrder
 
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-
 import scala.scalajs.LinkingInfo
 
 case class TopBar(
