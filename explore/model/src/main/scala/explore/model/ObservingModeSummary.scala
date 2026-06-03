@@ -256,8 +256,11 @@ enum ObservingModeSummary derives Order:
       case GhostIfu(resolutionMode, steps, red, blue)                                        =>
         extension (detector: ObservingMode.GhostIfu.GhostDetector)
           def summary: String =
-            s"${detector.readMode.shortName} ${detector.binning.shortName} (${detector.timeAndCount.format})"
-        s"GHOST IFU ${resolutionMode.shortName} ${steps.value} steps\nBlue: ${blue.summary}\nRed: ${red.summary}"
+            val tAndC        = detector.timeAndCount
+            val tAndCSummary =
+              s"(${tAndC.count} x ${tAndC.time.toSeconds.toInt}s/step at ${tAndC.at.toNanometers}nm)"
+            s"${detector.readMode.shortName} ${detector.binning.shortName} $tAndCSummary"
+        s"GHOST IFU ${resolutionMode.shortName}\n${steps.value} steps\nBlue: ${blue.summary}\nRed: ${red.summary}"
       case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                  =>
         s"Gemini North Visitor: ${name.value}"
       case Visitor(VisitorObservingModeType.VisitorSouth, _, _, Some(name))                  =>
