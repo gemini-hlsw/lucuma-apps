@@ -169,7 +169,6 @@ object ObservingModeSubquery
             coadds
             acquisition {
               explicitAcquisitionType
-              defaultFilter
               explicitFilter
               skyOffset $OffsetSubquery
               exposureTimeMode $ExposureTimeModeSubquery
