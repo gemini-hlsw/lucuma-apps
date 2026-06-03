@@ -29,7 +29,7 @@ import queries.schemas.itc.syntax.*
 import workers.*
 
 object ITCRequests:
-  val cacheVersion = CacheVersion(32)
+  val cacheVersion = CacheVersion(33)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell)  => ItcQueryProblem.SourceTooBright(halfWell)

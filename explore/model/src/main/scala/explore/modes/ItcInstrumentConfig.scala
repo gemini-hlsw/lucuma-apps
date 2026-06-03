@@ -198,6 +198,30 @@ object ItcInstrumentConfig:
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
+  case class Flamingos2Imaging(
+    filter:           Flamingos2Filter,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = Unit
+    type Filter   = Flamingos2Filter
+    type FPU      = Unit
+    type Override = Unit
+
+    val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
+    val filterStr: String                = filter.shortName
+    val instrument                       = Instrument.Flamingos2
+    val site                             = Site.GS
+    val hasFilter                        = true
+    val mode                             = ScienceMode.Imaging
+    val grating: Grating                 = ()
+    val fpu: FPU                         = ()
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
+  }
+
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,
     stepCount:       PosInt,

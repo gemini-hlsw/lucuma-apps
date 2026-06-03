@@ -99,6 +99,9 @@ object ModesQueriesGQL:
           gmosSouth {
             filter
           }
+          flamingos2 {
+            filter
+          }
         }
       }
     """
