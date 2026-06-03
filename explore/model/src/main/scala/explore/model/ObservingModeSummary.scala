@@ -30,6 +30,7 @@ import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
+import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
@@ -48,6 +49,7 @@ import lucuma.schemas.model.GmosImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.display.given
+import monocle.Lens
 
 // Observing mode with explicit values merged over defaults. Used for grouping observations by configuration.
 enum ObservingModeSummary derives Order:
@@ -214,45 +216,50 @@ enum ObservingModeSummary derives Order:
   // but will be rendered with line breaks in the dropdown panel.
   def dropdownEntry: String =
     extension (etm: ExposureTimeMode)
-      def format: String = etm match
+      def formatSpec: String    = etm match
         case ExposureTimeMode.SignalToNoiseMode(value, at)      =>
           s"S/N = $value at ${at.toNanometers}nm"
         case ExposureTimeMode.TimeAndCountMode(time, count, at) =>
           s"$count x ${time.toSeconds.toInt}s at ${at.toNanometers}nm"
+      def formatImaging: String = etm match
+        case ExposureTimeMode.SignalToNoiseMode(value, at)      =>
+          s"S/N = $value"
+        case ExposureTimeMode.TimeAndCountMode(time, count, at) =>
+          s"$count x ${time.toSeconds.toInt}s"
 
     this match
       case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
         val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
         val filterStr = filter.fold("None")(_.shortName)
-        s"GMOS-N Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.format})"
+        s"GMOS-N Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
       case GmosSouthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
         val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
         val filterStr = filter.fold("None")(_.shortName)
-        s"GMOS-S Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.format})"
+        s"GMOS-S Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
       case Flamingos2LongSlit(grating, filter, fpu, etm)                                     =>
-        s"Flamingos2 Longslit\n${grating.shortName} ${filter.shortName} ${fpu.shortName} (${etm.format})"
+        s"Flamingos2 Longslit\n${grating.shortName} ${filter.shortName} ${fpu.shortName} (${etm.formatSpec})"
       case GmosNorthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr =
           filters
-            .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.format})")
+            .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
             .toList
             .mkString("\n")
         s"GMOS-N Imaging ${variant.variantType.display}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case GmosSouthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr = filters
-          .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.format})")
+          .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
           .toList
           .mkString("\n")
         s"GMOS-S Imaging ${variant.variantType.display}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case Igrins2LongSlit(etm)                                                              =>
-        s"IGRINS-2 Longslit (${etm.format})"
+        s"IGRINS-2 Longslit (${etm.formatSpec})"
       case GnirsLongSlit(filter, fpu, prism, grating, camera, etm)                           =>
         val prismSummary: String      = prism match
           case GnirsPrism.Mirror => ""
           case p                 => s" ${p.shortName}"
         val wavelengthSummary: String =
           f"${filter.centralWavelength.toMicrometers.value}%.2fµm"
-        s"GNIRS Longslit\n${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit (${etm.format})"
+        s"GNIRS Longslit\n${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit (${etm.formatSpec})"
       case GhostIfu(resolutionMode, steps, red, blue)                                        =>
         extension (detector: ObservingMode.GhostIfu.GhostDetector)
           def summary: String =
@@ -273,6 +280,17 @@ object ObservingModeSummary:
   private given Order[ExposureTimeMode.SignalToNoiseMode] = Order.by(sn => (sn.value, sn.at))
   private given Order[ExposureTimeMode.TimeAndCountMode]  =
     Order.by(tc => (tc.time, tc.count, tc.at))
+
+  extension (etm: ExposureTimeMode)
+    private def withMininumAt: ExposureTimeMode = ExposureTimeMode.at.replace(Wavelength.Min)(etm)
+
+  // To make comparisons equal and grouping work, we'll set the wavelangthAt of all the filters to the minimum wavelength.
+  // The @ wavelength is not actually used for imaging, but some reaason observations have differing values for it.
+  def normalizeImagingFiltersAt[I, F](
+    filters: NonEmptyList[I],
+    lens:    Lens[I, ExposureTimeMode]
+  ): NonEmptyList[I] =
+    filters.map(i => lens.modify(_.withMininumAt)(i))
 
   def fromObservingMode(observingMode: ObservingMode): ObservingModeSummary =
     observingMode match
@@ -299,9 +317,23 @@ object ObservingModeSummary:
       case f: ObservingMode.Flamingos2LongSlit =>
         Flamingos2LongSlit(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
       case n: ObservingMode.GmosNorthImaging   =>
-        GmosNorthImaging(n.variant, n.filters, n.ampReadMode, n.roi)
+        GmosNorthImaging(
+          n.variant,
+          normalizeImagingFiltersAt(n.filters,
+                                    ObservingMode.GmosNorthImaging.ImagingFilter.exposureTimeMode
+          ),
+          n.ampReadMode,
+          n.roi
+        )
       case s: ObservingMode.GmosSouthImaging   =>
-        GmosSouthImaging(s.variant, s.filters, s.ampReadMode, s.roi)
+        GmosSouthImaging(
+          s.variant,
+          normalizeImagingFiltersAt(s.filters,
+                                    ObservingMode.GmosSouthImaging.ImagingFilter.exposureTimeMode
+          ),
+          s.ampReadMode,
+          s.roi
+        )
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
       case g: ObservingMode.GnirsLongSlit      =>
