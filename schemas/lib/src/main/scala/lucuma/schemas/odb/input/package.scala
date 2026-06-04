@@ -512,6 +512,12 @@ extension (imagingFilter: ObservingMode.GmosSouthImaging.ImagingFilter)
     exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
   )
 
+extension (imagingFilter: ObservingMode.Flamingos2Imaging.ImagingFilter)
+  def toInput: Flamingos2ImagingFilterInput = Flamingos2ImagingFilterInput(
+    filter = imagingFilter.filter,
+    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
+  )
+
 extension (tcg: TelescopeConfigGenerator)
   def toInput: TelescopeConfigGeneratorInput =
     tcg match
@@ -581,6 +587,16 @@ extension (o: ObservingMode.GmosSouthImaging)
     explicitAmpReadMode = o.explicitAmpReadMode.orUnassign,
     explicitAmpGain = o.explicitAmpGain.orUnassign,
     explicitRoi = o.explicitRoi.orUnassign
+  )
+
+extension (o: ObservingMode.Flamingos2Imaging)
+  def toInput: Flamingos2ImagingInput = Flamingos2ImagingInput(
+    filters = o.filters.toList.map(_.toInput).assign,
+    explicitReadMode = o.explicitReadMode.orUnassign,
+    explicitReads = o.explicitReads.orUnassign,
+    explicitDecker = o.explicitDecker.orUnassign,
+    explicitReadoutMode = o.explicitReadoutMode.orUnassign,
+    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.map(_.toInput)).orUnassign
   )
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
@@ -680,6 +696,8 @@ extension (b: ObservingMode)
       ObservingModeInput.GmosNorthImaging(o.toInput)
     case o: ObservingMode.GmosSouthImaging   =>
       ObservingModeInput.GmosSouthImaging(o.toInput)
+    case o: ObservingMode.Flamingos2Imaging  =>
+      ObservingModeInput.Flamingos2Imaging(o.toInput)
     case o: ObservingMode.Flamingos2LongSlit =>
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
@@ -737,6 +755,11 @@ extension (i: BasicConfiguration)
         GmosSouthImagingInput(
           variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
           filters = filters.toList.map(GmosSouthImagingFilterInput(_)).assign
+        )
+    case BasicConfiguration.Flamingos2Imaging(filters = filters)                                  =>
+      ObservingModeInput.Flamingos2Imaging:
+        Flamingos2ImagingInput(
+          filters = filters.toList.map(Flamingos2ImagingFilterInput(_)).assign
         )
     case BasicConfiguration.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
       ObservingModeInput.Flamingos2LongSlit:

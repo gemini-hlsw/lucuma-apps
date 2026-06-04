@@ -218,6 +218,9 @@ final case class Observation(
             ItcInstrumentConfig
               .Flamingos2Spectroscopy(f.disperser, f.filter, f.fpu, f.readMode, f.exposureTimeMode)
           )
+        case f: ObservingMode.Flamingos2Imaging  =>
+          f.filters.toList
+            .map(f => ItcInstrumentConfig.Flamingos2Imaging(f.filter, f.exposureTimeMode))
         case i: ObservingMode.Igrins2LongSlit    =>
           List(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)

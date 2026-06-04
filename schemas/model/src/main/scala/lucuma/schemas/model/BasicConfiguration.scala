@@ -52,6 +52,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _                                                => none
 
   def siteFor: Site = this match
+    case _: BasicConfiguration.Flamingos2Imaging  => Site.GS
     case _: BasicConfiguration.Flamingos2LongSlit => Site.GS
     case _: BasicConfiguration.GhostIfu           => Site.GS
     case _: BasicConfiguration.GmosNorthImaging   => Site.GN
@@ -63,6 +64,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case v: BasicConfiguration.Visitor            => v.site
 
   def obsModeType: ObservingModeType = this match
+    case _: BasicConfiguration.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
     case _: BasicConfiguration.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: BasicConfiguration.GhostIfu           => ObservingModeType.GhostIfu
     case _: BasicConfiguration.GmosNorthImaging   => ObservingModeType.GmosNorthImaging
@@ -98,6 +100,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
     case BasicConfiguration.GmosSouthImaging(filters)                 =>
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
+    case BasicConfiguration.Flamingos2Imaging(filters)                =>
+      AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
@@ -117,6 +121,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.GmosNorthImaging(filters)                 =>
       filters.minimumBy(_.wavelength).wavelength
     case BasicConfiguration.GmosSouthImaging(filters)                 =>
+      filters.minimumBy(_.wavelength).wavelength
+    case BasicConfiguration.Flamingos2Imaging(filters)                =>
       filters.minimumBy(_.wavelength).wavelength
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       filter.wavelength
@@ -146,6 +152,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
         BasicConfiguration.GmosSouthLongSlit(_, _, _, _) | BasicConfiguration.GmosNorthImaging(_) |
         BasicConfiguration.GmosSouthImaging(_) =>
       GuideProbe.GmosOIWFS
+    case BasicConfiguration.Flamingos2Imaging(_)         => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Flamingos2LongSlit(_, _, _)  => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Igrins2LongSlit              => GuideProbe.PWFS2
     case BasicConfiguration.GhostIfu(_, _, _, _, _)      => GuideProbe.PWFS2
@@ -168,24 +175,28 @@ object BasicConfiguration:
                     c.downField("gmosSouthImaging")
                       .as[GmosSouthImaging]
                       .orElse:
-                        c.downField("flamingos2LongSlit")
-                          .as[Flamingos2LongSlit]
+                        c.downField("flamingos2Imaging")
+                          .as[Flamingos2Imaging]
                           .orElse:
-                            c.downField("igrins2LongSlit")
-                              .as[Igrins2LongSlit.type]
+                            c.downField("flamingos2LongSlit")
+                              .as[Flamingos2LongSlit]
                               .orElse:
-                                c.downField("gnirsLongSlit")
-                                  .as[GnirsLongSlit]
+                                c.downField("igrins2LongSlit")
+                                  .as[Igrins2LongSlit.type]
                                   .orElse:
-                                    c.downField("ghostIfu")
-                                      .as[GhostIfu]
+                                    c.downField("gnirsLongSlit")
+                                      .as[GnirsLongSlit]
                                       .orElse:
-                                        c.downField("visitor")
-                                          .as[Visitor]
+                                        c.downField("ghostIfu")
+                                          .as[GhostIfu]
                                           .orElse:
-                                            DecodingFailure("Could not decode BasicConfiguration",
-                                                            c.history
-                                            ).asLeft
+                                            c.downField("visitor")
+                                              .as[Visitor]
+                                              .orElse:
+                                                DecodingFailure(
+                                                  "Could not decode BasicConfiguration",
+                                                  c.history
+                                                ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -229,6 +240,13 @@ object BasicConfiguration:
 
   object Flamingos2LongSlit:
     given Decoder[Flamingos2LongSlit] = deriveDecoder
+
+  case class Flamingos2Imaging(
+    filters: NonEmptyList[Flamingos2Filter]
+  ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq
+
+  object Flamingos2Imaging:
+    given Decoder[Flamingos2Imaging] = deriveDecoder
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
@@ -338,6 +356,9 @@ object BasicConfiguration:
 
   val flamingos2LongSlit: Prism[BasicConfiguration, Flamingos2LongSlit] =
     GenPrism[BasicConfiguration, Flamingos2LongSlit]
+
+  val flamingos2Imaging: Prism[BasicConfiguration, Flamingos2Imaging] =
+    GenPrism[BasicConfiguration, Flamingos2Imaging]
 
   val igrins2LongSlit: Prism[BasicConfiguration, Igrins2LongSlit.type] =
     GenPrism[BasicConfiguration, Igrins2LongSlit.type]

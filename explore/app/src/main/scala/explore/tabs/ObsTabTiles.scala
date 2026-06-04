@@ -448,8 +448,10 @@ object ObsTabTiles:
                   globalPreferences
                 ).some
               // Visitor instruments have no ITC, hide the itc tile.
-              case Some(_: BasicConfiguration.Visitor) => none
-              case None                                => ItcEmptyTile().some
+              case Some(_: BasicConfiguration.Visitor) |
+                  Some(_: BasicConfiguration.Flamingos2Imaging) =>
+                none
+              case None => ItcEmptyTile().some
 
           val obsConf: ObsConfiguration =
             ObsConfiguration(

@@ -80,6 +80,13 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu)
     )
 
+  given Arbitrary[BasicConfiguration.Flamingos2Imaging] =
+    Arbitrary[BasicConfiguration.Flamingos2Imaging](
+      for {
+        filters <- arbitrary[NonEmptyList[Flamingos2Filter]]
+      } yield BasicConfiguration.Flamingos2Imaging(filters)
+    )
+
   given Arbitrary[BasicConfiguration.Igrins2LongSlit.type] =
     Arbitrary[BasicConfiguration.Igrins2LongSlit.type](
       Gen.const(BasicConfiguration.Igrins2LongSlit)
@@ -124,6 +131,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosSouthImaging],
       arbitrary[BasicConfiguration.GnirsLongSlit],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
+      arbitrary[BasicConfiguration.Flamingos2Imaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
       arbitrary[BasicConfiguration.GhostIfu],
       arbitrary[BasicConfiguration.Visitor]
@@ -181,6 +189,10 @@ trait ArbBasicConfiguration {
     Cogen[NonEmptyList[GmosSouthFilter]]
       .contramap(_.filters)
 
+  given Cogen[BasicConfiguration.Flamingos2Imaging] =
+    Cogen[NonEmptyList[Flamingos2Filter]]
+      .contramap(_.filters)
+
   given Cogen[BasicConfiguration.GhostIfu] =
     Cogen[(GhostResolutionMode, ItcGhostDetector, ItcGhostDetector)]
       .contramap(o => (o.resolutionMode, o.red, o.blue))
@@ -206,7 +218,10 @@ trait ArbBasicConfiguration {
                   BasicConfiguration.GmosNorthImaging,
                   Either[
                     BasicConfiguration.GmosSouthImaging,
-                    BasicConfiguration.Visitor
+                    Either[
+                      BasicConfiguration.Flamingos2Imaging,
+                      BasicConfiguration.Visitor
+                    ]
                   ]
                 ]
               ]
@@ -215,7 +230,7 @@ trait ArbBasicConfiguration {
         ]
       ]
     ]]
-      .contramap {
+      .contramap:
         case BasicConfiguration.Igrins2LongSlit       => BasicConfiguration.Igrins2LongSlit.asLeft
         case f: BasicConfiguration.Flamingos2LongSlit => f.asLeft.asRight
         case n: BasicConfiguration.GmosNorthLongSlit  => n.asLeft.asRight.asRight
@@ -226,9 +241,10 @@ trait ArbBasicConfiguration {
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.GmosSouthImaging   =>
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case f: BasicConfiguration.Flamingos2Imaging  =>
+          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: BasicConfiguration.Visitor            =>
-          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
-      }
+          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 
 }
 
