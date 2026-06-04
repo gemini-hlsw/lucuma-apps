@@ -255,7 +255,7 @@ enum ObservingModeSummary derives Order:
             .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
             .toList
             .mkString("\n")
-        s"Flamingos2 Imaging $filterStr"
+        s"Flamingos2 Imaging\n$filterStr"
       case GmosNorthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr =
           filters
