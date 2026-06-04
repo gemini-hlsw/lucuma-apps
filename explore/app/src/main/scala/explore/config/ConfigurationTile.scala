@@ -64,6 +64,7 @@ import org.typelevel.log4cats.Logger
 import queries.schemas.itc.syntax.*
 
 import scala.collection.immutable.SortedSet
+
 import scalajs.js
 
 final case class ConfigurationTile(

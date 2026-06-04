@@ -21,9 +21,9 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated

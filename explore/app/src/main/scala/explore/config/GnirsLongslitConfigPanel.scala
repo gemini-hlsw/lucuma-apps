@@ -5,8 +5,8 @@ package explore.config
 
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.syntax.*
 import clue.data.*
+import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
 import eu.timepit.refined.cats.given
@@ -33,10 +33,11 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
+import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.validation.*
@@ -51,7 +52,6 @@ import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
-import lucuma.core.optics.syntax.lens.*
 
 final case class GnirsLongslitConfigPanel(
   programId:       Program.Id,
