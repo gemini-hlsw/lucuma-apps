@@ -21,9 +21,9 @@ import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given

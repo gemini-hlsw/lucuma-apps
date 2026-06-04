@@ -199,6 +199,10 @@ object AddTargetButton
             _.blindOffset.useBlindOffset
           )
 
+        // only allow blind offsets if there is a science target.
+        val hasScienceTargets: Boolean =
+          observations.headOption.exists(_.scienceTargetIds.nonEmpty)
+
         val hasTargetOfOpportunity: Boolean =
           observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
 
@@ -227,21 +231,24 @@ object AddTargetButton
                   Action(
                     "Automatic Blind Offset",
                     Icons.LocationDot,
-                    initializeAutomaticBlindOffsetCB(obsId, blindOffset)
+                    initializeAutomaticBlindOffsetCB(obsId, blindOffset),
+                    disabled = !hasScienceTargets
                   )
                 ),
                 Action(
                   "Blind Offset Search",
                   Icons.LocationDot,
                   onSelected.set(insertManualBlindOffsetCB(obsId, blindOffset)) >>
-                    sources.set(simbad) >> popupState.set(PopupState.Open)
+                    sources.set(simbad) >> popupState.set(PopupState.Open),
+                  disabled = !hasScienceTargets
                 ).some,
                 Action(
                   "Empty Blind Offset",
                   Icons.LocationDot,
                   insertManualBlindOffsetCB(obsId, blindOffset)(
                     TargetWithOptId(None, EmptySiderealTarget, TargetDisposition.BlindOffset, None)
-                  )
+                  ),
+                  disabled = !hasScienceTargets
                 ).some
               ).flattenOption
             )
