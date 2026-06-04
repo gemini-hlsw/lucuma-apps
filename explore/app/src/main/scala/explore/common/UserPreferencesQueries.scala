@@ -270,7 +270,8 @@ object UserPreferencesQueries:
             ).mapN(Offset.apply).getOrElse(Offset.Zero)
 
           def rangeProp(range: Option[Int]) =
-            range.flatMap(refineV[Interval.Closed[0, 100]](_).toOption)
+            range
+              .flatMap(refineV[Interval.Closed[0, 100]](_).toOption)
               .getOrElse(AsterismVisualOptions.Default.saturation)
 
           key -> AsterismVisualOptions(id.some,

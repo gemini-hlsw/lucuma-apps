@@ -71,23 +71,23 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
 
   def toBasicConfiguration: BasicConfiguration = this match
-    case n: ObservingMode.GmosNorthLongSlit                =>
+    case n: ObservingMode.GmosNorthLongSlit                 =>
       BasicConfiguration.GmosNorthLongSlit(n.grating, n.filter, n.fpu, n.centralWavelength)
-    case s: ObservingMode.GmosSouthLongSlit                =>
+    case s: ObservingMode.GmosSouthLongSlit                 =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
-    case ObservingMode.GmosNorthImaging(filters = filters) =>
+    case ObservingMode.GmosNorthImaging(filters = filters)  =>
       BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
-    case ObservingMode.GmosSouthImaging(filters = filters) =>
+    case ObservingMode.GmosSouthImaging(filters = filters)  =>
       BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
     case ObservingMode.Flamingos2Imaging(filters = filters) =>
       BasicConfiguration.Flamingos2Imaging(filters.map(_.filter))
-    case f: ObservingMode.Flamingos2LongSlit               =>
+    case f: ObservingMode.Flamingos2LongSlit                =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
-    case _: ObservingMode.Igrins2LongSlit                  =>
+    case _: ObservingMode.Igrins2LongSlit                   =>
       BasicConfiguration.Igrins2LongSlit
-    case g: ObservingMode.GnirsLongSlit                    =>
+    case g: ObservingMode.GnirsLongSlit                     =>
       BasicConfiguration.GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera)
-    case g: ObservingMode.GhostIfu                         =>
+    case g: ObservingMode.GhostIfu                          =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
         binning = g.red.binning,
@@ -104,7 +104,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
                                   red = red,
                                   blue = blue
       )
-    case v: ObservingMode.Visitor                          =>
+    case v: ObservingMode.Visitor                           =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.scienceFov)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
@@ -706,15 +706,15 @@ object ObservingMode:
     defaultSpatialOffsets:  List[Offset],
     explicitSpatialOffsets: Option[List[Offset]]
   ) extends ObservingMode(Instrument.Flamingos2) derives Eq:
-    val readMode: Flamingos2ReadMode         =
+    val readMode: Flamingos2ReadMode       =
       explicitReadMode.getOrElse(defaultReadMode)
-    val reads: Flamingos2Reads               =
+    val reads: Flamingos2Reads             =
       explicitReads.getOrElse(defaultReads)
-    val decker: Flamingos2Decker             =
+    val decker: Flamingos2Decker           =
       explicitDecker.getOrElse(defaultDecker)
-    val readoutMode: Flamingos2ReadoutMode   =
+    val readoutMode: Flamingos2ReadoutMode =
       explicitReadoutMode.getOrElse(defaultReadoutMode)
-    val spatialOffsets: List[Offset]         =
+    val spatialOffsets: List[Offset]       =
       explicitSpatialOffsets.getOrElse(defaultSpatialOffsets)
 
     def isCustomized: Boolean =
@@ -747,29 +747,29 @@ object ObservingMode:
 
     given Decoder[Flamingos2Imaging] = deriveDecoder
 
-    val initialFilters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]           =
+    val initialFilters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]        =
       Focus[Flamingos2Imaging](_.initialFilters)
-    val filters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]                  =
+    val filters: Lens[Flamingos2Imaging, NonEmptyList[ImagingFilter]]               =
       Focus[Flamingos2Imaging](_.filters)
-    val defaultReadMode: Lens[Flamingos2Imaging, Flamingos2ReadMode]                   =
+    val defaultReadMode: Lens[Flamingos2Imaging, Flamingos2ReadMode]                =
       Focus[Flamingos2Imaging](_.defaultReadMode)
-    val explicitReadMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadMode]]          =
+    val explicitReadMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadMode]]       =
       Focus[Flamingos2Imaging](_.explicitReadMode)
-    val defaultReads: Lens[Flamingos2Imaging, Flamingos2Reads]                         =
+    val defaultReads: Lens[Flamingos2Imaging, Flamingos2Reads]                      =
       Focus[Flamingos2Imaging](_.defaultReads)
-    val explicitReads: Lens[Flamingos2Imaging, Option[Flamingos2Reads]]               =
+    val explicitReads: Lens[Flamingos2Imaging, Option[Flamingos2Reads]]             =
       Focus[Flamingos2Imaging](_.explicitReads)
-    val defaultDecker: Lens[Flamingos2Imaging, Flamingos2Decker]                       =
+    val defaultDecker: Lens[Flamingos2Imaging, Flamingos2Decker]                    =
       Focus[Flamingos2Imaging](_.defaultDecker)
-    val explicitDecker: Lens[Flamingos2Imaging, Option[Flamingos2Decker]]             =
+    val explicitDecker: Lens[Flamingos2Imaging, Option[Flamingos2Decker]]           =
       Focus[Flamingos2Imaging](_.explicitDecker)
-    val defaultReadoutMode: Lens[Flamingos2Imaging, Flamingos2ReadoutMode]             =
+    val defaultReadoutMode: Lens[Flamingos2Imaging, Flamingos2ReadoutMode]          =
       Focus[Flamingos2Imaging](_.defaultReadoutMode)
-    val explicitReadoutMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadoutMode]]   =
+    val explicitReadoutMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadoutMode]] =
       Focus[Flamingos2Imaging](_.explicitReadoutMode)
-    val defaultSpatialOffsets: Lens[Flamingos2Imaging, List[Offset]]           =
+    val defaultSpatialOffsets: Lens[Flamingos2Imaging, List[Offset]]                =
       Focus[Flamingos2Imaging](_.defaultSpatialOffsets)
-    val explicitSpatialOffsets: Lens[Flamingos2Imaging, Option[List[Offset]]] =
+    val explicitSpatialOffsets: Lens[Flamingos2Imaging, Option[List[Offset]]]       =
       Focus[Flamingos2Imaging](_.explicitSpatialOffsets)
 
   case class Igrins2LongSlit(
