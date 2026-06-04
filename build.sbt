@@ -180,6 +180,7 @@ lazy val schemas_lib =
              |  "version": "$semVerWithPrerelease",
              |  "license": "${licenses.value.head._1}",
              |  "exports": {
+             |    "./package.json": "./package.json",
              |    "./odb": "./${odbSchemaFile.getName}",
              |    "./navigate": "./${navigateSchemaFile.getName}",
              |    "./resource": "./${resourceSchemaFile.getName}"
