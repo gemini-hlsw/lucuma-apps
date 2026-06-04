@@ -23,6 +23,7 @@ import explore.model.AttachmentList
 import explore.model.Focused
 import explore.model.ObsAttachmentAssignmentMap
 import explore.model.Observation
+import explore.model.ObservationList
 import explore.model.OverviewTabTileIds
 import explore.model.TargetAttachmentAssignmentMap
 import explore.model.display.given
@@ -69,6 +70,8 @@ final case class AttachmentsTile(
   obsAttachmentAssignments:    ObsAttachmentAssignmentMap,
   targetAttachmentAssignments: TargetAttachmentAssignmentMap,
   attachments:                 View[AttachmentList],
+  obsList:                     ObservationList,
+  targetObservations:          Map[Target.Id, SortedSet[Observation.Id]],
   showObsAttachments:          Boolean,
   readonly:                    Boolean
 ) extends Tile[AttachmentsTile](
@@ -92,12 +95,26 @@ object AttachmentsTile
       import ObsAttachmentUtils.*
 
       case class TableMeta(
-        client:            OdbRestClient[IO],
-        obsAssignments:    ObsAttachmentAssignmentMap,
-        targetAssignments: TargetAttachmentAssignmentMap,
-        urlMap:            UrlMap,
-        readOnly:          Boolean
-      )
+        client:             OdbRestClient[IO],
+        obsAssignments:     ObsAttachmentAssignmentMap,
+        targetAssignments:  TargetAttachmentAssignmentMap,
+        obsList:            ObservationList,
+        targetObservations: Map[Target.Id, SortedSet[Observation.Id]],
+        urlMap:             UrlMap,
+        readOnly:           Boolean,
+        isStaffOrAdmin:     Boolean
+      ):
+        def getObsAssignments(aid: Attachment.Id): SortedSet[Observation.Id] =
+          obsAssignments.get(aid).orEmpty
+
+        def getTargetAssignments(aid: Attachment.Id): SortedSet[Target.Id] =
+          targetAssignments.get(aid).orEmpty
+
+        def isAssignedToExecutedObs(aid: Attachment.Id): Boolean =
+          val targetIds                         = getTargetAssignments(aid)
+          val obsIds: SortedSet[Observation.Id] =
+            getObsAssignments(aid) ++ targetIds.flatMap(tid => targetObservations.get(tid).orEmpty)
+          obsIds.exists(oid => obsList.get(oid).exists(_.isExecuted))
 
       val ColDef = ColumnDef[View[Attachment]].WithTableMeta[TableMeta]
 
@@ -207,11 +224,28 @@ object AttachmentsTile
                       .runAsync)
                     .when_(files.nonEmpty)
 
-                val targetAssignments = meta.targetAssignments.get(id).orEmpty
-                val deleteTooltip     =
-                  if (targetAssignments.nonEmpty)
-                    "Attachment must be removed from all targets before it can be deleted."
-                  else "Delete attachment"
+                val targetAssignments               = meta.targetAssignments.get(id).orEmpty
+                val isAssignedToExecutedObservation = meta.isAssignedToExecutedObs(id)
+
+                val (canDelete, deleteTooltip) =
+                  if isAssignedToExecutedObservation
+                  then
+                    (false,
+                     "Attachment is assigned to an executed observation and cannot be deleted"
+                    )
+                  else if targetAssignments.nonEmpty
+                  then
+                    (false, "Attachment must be removed from all targets before it can be deleted")
+                  else (true, "Delete attachment")
+
+                val (canReplace, replaceTooltip) =
+                  if isAssignedToExecutedObservation
+                  then
+                    (
+                      false,
+                      "Attachment is assigned to an executed observation and cannot be replaced."
+                    )
+                  else (true, "Upload replacement file")
 
                 <.div(
                   // The upload "button" needs to be a label. In order to make
@@ -219,37 +253,38 @@ object AttachmentsTile
                   <.span( // need to wrap it in a span show tooltip shows even when "disabled"
                     <.label(
                       tableLabelButtonClasses |+|
-                        Css("p-disabled").when_(targetAssignments.nonEmpty),
+                        Css("p-disabled").unless_(canDelete),
                       Icons.Trash,
                       ^.onClick ==> { e =>
-                        if (targetAssignments.nonEmpty) Callback.empty
-                        else
+                        if canDelete then
                           deletePrompt(
                             props.attachments,
                             meta.client,
                             thisAtt,
-                            meta.obsAssignments.get(id).orEmpty,
-                            meta.targetAssignments.get(id).orEmpty
+                            meta.getObsAssignments(id),
+                            targetAssignments
                           )(e)
+                        else Callback.empty
                       }
                     )
                   ).withTooltip(deleteTooltip).unless(meta.readOnly),
-                  <.label(
-                    tableLabelButtonClasses,
-                    ^.htmlFor := s"attachment-replace-$id",
-                    Icons.FileArrowUp
-                  ).withTooltip(
-                    tooltip = s"Upload replacement file",
-                    placement = Placement.Right
-                  ).unless(meta.readOnly),
-                  <.input(
-                    ExploreStyles.FileUpload,
-                    ^.tpe    := "file",
-                    ^.onChange ==> onUpdateFileSelected,
-                    ^.id     := s"attachment-replace-$id",
-                    ^.name   := "file",
-                    ^.accept := thisAtt.attachmentType.accept
-                  ).unless(meta.readOnly),
+                  <.span( // need to wrap it in a span show tooltip shows even when "disabled"
+                    <.label(
+                      tableLabelButtonClasses |+|
+                        Css("p-disabled").unless_(canReplace),
+                      ^.htmlFor  := s"attachment-replace-$id",
+                      Icons.FileArrowUp
+                    ),
+                    <.input(
+                      ExploreStyles.FileUpload,
+                      ^.tpe      := "file",
+                      ^.onChange ==> onUpdateFileSelected,
+                      ^.id       := s"attachment-replace-$id",
+                      ^.name     := "file",
+                      ^.accept   := thisAtt.attachmentType.accept,
+                      ^.disabled := !canReplace
+                    )
+                  ).withTooltip(replaceTooltip, Placement.Right).unless(meta.readOnly),
                   meta.urlMap
                     .get(thisAtt.toMapKey)
                     .foldMap:
@@ -281,9 +316,8 @@ object AttachmentsTile
                 att.attachmentType.purpose match
                   case AttachmentPurpose.Observation =>
                     <.span(
-                      meta.obsAssignments
-                        .get(id)
-                        .orEmpty
+                      meta
+                        .getObsAssignments(id)
                         .toList
                         .map(obsId =>
                           <.a(
@@ -296,9 +330,8 @@ object AttachmentsTile
                     )
                   case AttachmentPurpose.Target      =>
                     <.span(
-                      meta.targetAssignments
-                        .get(id)
-                        .orEmpty
+                      meta
+                        .getTargetAssignments(id)
                         .toList
                         .map(targetId =>
                           <.a(
@@ -350,7 +383,7 @@ object AttachmentsTile
                     )
                     .zoom(Attachment.checked),
                   label = "",
-                  disabled = meta.readOnly
+                  disabled = meta.readOnly || !meta.isStaffOrAdmin
                 )
           ).sortableBy(_.get.checked)
         )
@@ -404,8 +437,11 @@ object AttachmentsTile
                                client,
                                props.obsAttachmentAssignments,
                                props.targetAttachmentAssignments,
+                               props.obsList,
+                               props.targetObservations,
                                urlMap.get,
-                               props.readonly
+                               props.readonly,
+                               props.userVault.isStaffOrAdmin
                              )
                            )
 

@@ -23,6 +23,7 @@ import explore.model.ExploreGridLayouts
 import explore.model.Group
 import explore.model.GroupList
 import explore.model.ObsAttachmentAssignmentMap
+import explore.model.Observation
 import explore.model.ObservationList
 import explore.model.OverviewTabTileIds
 import explore.model.ProgramDetails
@@ -38,6 +39,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
 import lucuma.core.model.Program
+import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -53,6 +55,8 @@ import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.*
 import lucuma.ui.undo.UndoButtons
 
+import scala.collection.immutable.SortedSet
+
 case class OverviewTabContents(
   programId:                   Program.Id,
   userVault:                   Option[UserVault],
@@ -61,6 +65,7 @@ case class OverviewTabContents(
   obsAttachmentAssignments:    ObsAttachmentAssignmentMap,
   targetAttachmentAssignments: TargetAttachmentAssignmentMap,
   observations:                View[ObservationList],
+  targetObservations:          Map[Target.Id, SortedSet[Observation.Id]],
   groups:                      GroupList,
   groupWarnings:               Map[Group.Id, NonEmptySet[GroupWarning]],
   detailsUndoSetter:           UndoSetter[ProgramDetails],
@@ -110,6 +115,8 @@ object OverviewTabContents
               props.obsAttachmentAssignments,
               props.targetAttachmentAssignments,
               props.attachments,
+              props.observations.get,
+              props.targetObservations,
               showObsAttachments,
               props.readonly
             )

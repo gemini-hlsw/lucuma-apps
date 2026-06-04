@@ -73,6 +73,7 @@ object Routing:
                 programSummaries.model.get.obsAttachmentAssignments,
                 programSummaries.model.get.targetAttachmentAssignments,
                 programSummaries.model.zoom(ProgramSummaries.observations),
+                programSummaries.model.get.targetObservations,
                 programSummaries.model.get.groups,
                 programSummaries.model.get.groupWarnings,
                 detailsUndoSetter,
