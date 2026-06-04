@@ -411,6 +411,45 @@ trait ArbObservingMode {
       )
     )
 
+  given arbFlamingos2ImagingFilter: Arbitrary[ObservingMode.Flamingos2Imaging.ImagingFilter] =
+    Arbitrary(
+      for {
+        filter <- arbitrary[Flamingos2Filter]
+        etm    <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.Flamingos2Imaging.ImagingFilter(filter, etm)
+    )
+
+  given Arbitrary[ObservingMode.Flamingos2Imaging] =
+    Arbitrary[ObservingMode.Flamingos2Imaging](
+      for
+        initialFilters         <- arbitrary[NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]]
+        filters                <- arbitrary[NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]]
+        defaultReadMode        <- arbitrary[Flamingos2ReadMode]
+        explicitReadMode       <- arbitrary[Option[Flamingos2ReadMode]]
+        defaultReads           <- arbitrary[Flamingos2Reads]
+        explicitReads          <- arbitrary[Option[Flamingos2Reads]]
+        defaultDecker          <- arbitrary[Flamingos2Decker]
+        explicitDecker         <- arbitrary[Option[Flamingos2Decker]]
+        defaultReadoutMode     <- arbitrary[Flamingos2ReadoutMode]
+        explicitReadoutMode    <- arbitrary[Option[Flamingos2ReadoutMode]]
+        defaultSpatialOffsets  <- arbitrary[List[Offset]]
+        explicitSpatialOffsets <- arbitrary[Option[List[Offset]]]
+      yield ObservingMode.Flamingos2Imaging(
+        initialFilters,
+        filters,
+        defaultReadMode,
+        explicitReadMode,
+        defaultReads,
+        explicitReads,
+        defaultDecker,
+        explicitDecker,
+        defaultReadoutMode,
+        explicitReadoutMode,
+        defaultSpatialOffsets,
+        explicitSpatialOffsets
+      )
+    )
+
   given Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition] =
     Arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition](
       for {
@@ -576,6 +615,43 @@ trait ArbObservingMode {
           o.explicitAmpGain,
           o.defaultRoi,
           o.explicitRoi
+        )
+      )
+
+  given cogenFlamingos2ImagingFilter: Cogen[ObservingMode.Flamingos2Imaging.ImagingFilter] =
+    Cogen[(Flamingos2Filter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
+
+  given Cogen[ObservingMode.Flamingos2Imaging] =
+    Cogen[
+      (
+        NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter],
+        NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter],
+        Flamingos2ReadMode,
+        Option[Flamingos2ReadMode],
+        Flamingos2Reads,
+        Option[Flamingos2Reads],
+        Flamingos2Decker,
+        Option[Flamingos2Decker],
+        Flamingos2ReadoutMode,
+        Option[Flamingos2ReadoutMode],
+        List[Offset],
+        Option[List[Offset]]
+      )
+    ]
+      .contramap(o =>
+        (
+          o.initialFilters,
+          o.filters,
+          o.defaultReadMode,
+          o.explicitReadMode,
+          o.defaultReads,
+          o.explicitReads,
+          o.defaultDecker,
+          o.explicitDecker,
+          o.defaultReadoutMode,
+          o.explicitReadoutMode,
+          o.defaultSpatialOffsets,
+          o.explicitSpatialOffsets
         )
       )
 
@@ -835,6 +911,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosNorthImaging],
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
+      arbitrary[ObservingMode.Flamingos2Imaging],
       arbitrary[ObservingMode.Igrins2LongSlit],
       arbitrary[ObservingMode.GnirsLongSlit],
       arbitrary[ObservingMode.GhostIfu],
@@ -855,7 +932,9 @@ trait ArbObservingMode {
               ObservingMode.GmosSouthLongSlit,
               Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
                                                             Either[ObservingMode.GhostIfu,
-                                                                   ObservingMode.Visitor
+                                                                   Either[ObservingMode.Flamingos2Imaging,
+                                                                          ObservingMode.Visitor
+                                                                   ]
                                                             ]
               ]]
             ]
@@ -874,8 +953,10 @@ trait ArbObservingMode {
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
         case g: ObservingMode.GhostIfu           =>
           g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case f: ObservingMode.Flamingos2Imaging  =>
+          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: ObservingMode.Visitor            =>
-          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

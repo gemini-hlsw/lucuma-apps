@@ -230,7 +230,7 @@ trait ArbBasicConfiguration {
         ]
       ]
     ]]
-      .contramap {
+      .contramap:
         case BasicConfiguration.Igrins2LongSlit       => BasicConfiguration.Igrins2LongSlit.asLeft
         case f: BasicConfiguration.Flamingos2LongSlit => f.asLeft.asRight
         case n: BasicConfiguration.GmosNorthLongSlit  => n.asLeft.asRight.asRight
@@ -245,7 +245,6 @@ trait ArbBasicConfiguration {
           f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: BasicConfiguration.Visitor            =>
           v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
-      }
 
 }
 
