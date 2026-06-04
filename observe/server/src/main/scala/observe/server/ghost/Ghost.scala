@@ -143,7 +143,8 @@ object Ghost {
 
         override def instrument: Instrument = specifics.instrument
 
-        override def centralWavelength: Option[Wavelength] = none
+        override def centralWavelength: Option[Wavelength] =
+          step.instrumentConfig.centralWavelength.some
       }
     }.pure[F]
 }

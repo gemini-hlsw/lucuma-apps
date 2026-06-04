@@ -344,6 +344,9 @@ object TestCommon {
   val telescopeCfg1: CoreTelescopeConfig =
     CoreTelescopeConfig(Offset.Zero, StepGuideState.Enabled)
 
+  val defaultTargetEnvironment: TargetEnvironment =
+    TargetEnvironment(List.empty, None, None, GuideEnvironment(List.empty))
+
   def odbObservation(id: Observation.Id): ODBObservation =
     ODBObservation(
       id = id,
@@ -354,7 +357,7 @@ object TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      TargetEnvironment(List.empty, None, GuideEnvironment(List.empty)),
+      defaultTargetEnvironment,
       ConstraintSet(
         ImageQuality.Preset.PointOne,
         CloudExtinction.Preset.PointOne,

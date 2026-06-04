@@ -36,9 +36,9 @@ import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
 import observe.common.ObsQueriesGql.ObsQuery.Data
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.model.dhs.ImageFileId
 import observe.model.odb.ObsRecordedIds
+import observe.server.TestCommon
 
 import java.time.Instant
 
@@ -226,8 +226,7 @@ object TestOdbProxy {
                     None,
                     ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
                   ),
-                  Data.Observation
-                    .TargetEnvironment(List.empty, none, GuideEnvironment(List.empty)),
+                  TestCommon.defaultTargetEnvironment,
                   ConstraintSet(
                     ImageQuality.Preset.TwoPointZero,
                     CloudExtinction.Preset.TwoPointZero,
