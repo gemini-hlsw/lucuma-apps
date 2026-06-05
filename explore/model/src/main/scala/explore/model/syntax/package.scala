@@ -24,7 +24,6 @@ import lucuma.core.model.ProgramReference
 import lucuma.core.model.Semester
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
@@ -127,8 +126,10 @@ object all:
     def findContainingObsIds(obsIds: ObsIdSet): Option[SchedulingGroup] =
       self.find { case (ids, _) => obsIds.subsetOf(ids) }.map(SchedulingGroup.fromTuple)
 
-    def findWithSchedulingGroup(schedulingGroup: List[TimingWindow]): Option[SchedulingGroup] =
-      self.find { case (_, sg) => sg === schedulingGroup }.map(SchedulingGroup.fromTuple)
+    def findWithSchedulingGroup(
+      schedulingConstraints: SchedulingConstraints
+    ): Option[SchedulingGroup] =
+      self.find { case (_, sc) => sc === schedulingConstraints }.map(SchedulingGroup.fromTuple)
 
   extension (self: AttachmentList)
     def listForPurpose(purpose: AttachmentPurpose): List[Attachment]  =

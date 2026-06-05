@@ -8,13 +8,12 @@ import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.*
 import explore.model.ObsIdSet
+import explore.model.SchedulingConstraints
 import explore.services.OdbObservationApi
 import explore.syntax.ui.*
 import japgolly.scalajs.react.util.Effect.Dispatch
-import lucuma.core.model.TimingWindow
 import lucuma.react.primereact.Message
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.ToastCtx
 import org.typelevel.log4cats.Logger
 
@@ -22,19 +21,19 @@ object TimingWindowsQueries:
 
   def viewWithRemoteMod[F[_]: {MonadThrow, Dispatch}](
     obsIds: ObsIdSet,
-    view:   View[List[TimingWindow]]
+    view:   View[SchedulingConstraints]
   )(using
     odbApi: OdbObservationApi[F]
-  )(using Logger[F], ToastCtx[F]): View[List[TimingWindow]] =
+  )(using Logger[F], ToastCtx[F]): View[SchedulingConstraints] =
     view
       .withOnMod: value =>
-        (if (value.forall(_.isValid))
+        (if (value.timingWindows.forall(_.isValid))
            ToastCtx[F].clear() >>
              odbApi
                .updateObservations(
                  obsIds.toList,
                  ObservationPropertiesInput(
-                   timingWindows = value.filter(_.isValid).map(_.toInput).assign
+                   schedulingConstraints = value.toInput.assign
                  )
                )
                .toastErrors

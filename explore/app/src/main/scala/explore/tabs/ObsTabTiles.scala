@@ -530,7 +530,7 @@ object ObsTabTiles:
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
                 telluricGroup.isEmpty,
-                props.observation.get.timingWindows,
+                props.observation.get.schedulingConstraints.timingWindows,
                 globalPreferences.get,
                 Constants.NoTargetSelected,
                 props.programSummaries.cfpDate

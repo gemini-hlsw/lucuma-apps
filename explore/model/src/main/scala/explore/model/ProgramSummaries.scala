@@ -24,7 +24,6 @@ import lucuma.core.model.ProgramReference
 import lucuma.core.model.ProposalReference
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.optics.syntax.lens.*
@@ -138,9 +137,9 @@ case class ProgramSummaries(
   lazy val schedulingGroups: SchedulingGroupList =
     SortedMap.from:
       nonCalibrationObservations
-        .map(obs => obs.timingWindows.sorted -> obs.id)
+        .map(obs => obs.schedulingConstraints -> obs.id)
         .groupMap(_._1)(_._2)
-        .map((tws, obsIds) => ObsIdSet.of(obsIds.head, obsIds.tail.toList*) -> tws.sorted)
+        .map((sc, obsIds) => ObsIdSet.of(obsIds.head, obsIds.tail.toList*) -> sc)
 
   lazy val observingModeGroups: ObservingModeGroupList =
     SortedMap.from:

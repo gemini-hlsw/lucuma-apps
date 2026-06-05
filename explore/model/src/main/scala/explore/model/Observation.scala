@@ -37,7 +37,6 @@ import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.optics.syntax.lens.*
@@ -68,7 +67,7 @@ final case class Observation(
   scienceTargetIds:        SortedSet[Target.Id],
   selectedGSName:          Option[NonEmptyString],
   constraints:             ConstraintSet,
-  timingWindows:           List[TimingWindow],
+  schedulingConstraints:   SchedulingConstraints,
   attachmentIds:           SortedSet[Attachment.Id],
   scienceRequirements:     ScienceRequirements,
   observingMode:           Option[ObservingMode],
@@ -340,7 +339,7 @@ object Observation:
   val selectedGSName           = Focus[Observation](_.selectedGSName)
   val constraints              = Focus[Observation](_.constraints)
   val centralWavelength        = Focus[Observation](_.centralWavelength)
-  val timingWindows            = Focus[Observation](_.timingWindows)
+  val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
   val attachmentIds            = Focus[Observation](_.attachmentIds)
   val scienceRequirements      = Focus[Observation](_.scienceRequirements)
   val observingMode            = Focus[Observation](_.observingMode)
@@ -397,34 +396,34 @@ object Observation:
 
   given Decoder[Observation] = Decoder.instance(c =>
     for {
-      id                  <- c.get[Observation.Id]("id")
-      reference           <- c.downField("reference")
-                               .downField("label")
-                               .success
-                               .traverse(_.as[Option[ObservationReference]])
-      title               <- c.get[String]("title")
-      subtitle            <- c.get[Option[NonEmptyString]]("subtitle")
-      targetEnv            = c.downField("targetEnvironment")
-      scienceTargetIds    <- targetEnv.get[List[TargetIdWrapper]]("asterism")
-      selectedGSName      <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
-      constraints         <- c.get[ConstraintSet]("constraintSet")
-      timingWindows       <- c.get[List[TimingWindow]]("timingWindows")
-      attachmentIds       <- c.get[List[AttachmentIdWrapper]]("attachments")
-      scienceRequirements <- c.get[ScienceRequirements]("scienceRequirements")
-      observingMode       <- c.get[Option[ObservingMode]]("observingMode")
-      observationTime     <- c.get[Option[Timestamp]]("observationTime")
-      observationDur      <- c.get[Option[TimeSpan]]("observationDuration")
-      posAngleConstraint  <- c.get[PosAngleConstraint]("posAngleConstraint")
-      observerNotes       <- c.get[Option[NonEmptyString]]("observerNotes")
-      calibrationRole     <- c.get[Option[CalibrationRole]]("calibrationRole")
-      scienceBand         <- c.get[Option[ScienceBand]]("scienceBand")
-      configuration       <- c.get[Configuration]("configuration").fold(_ => none.asRight, _.some.asRight)
-      crIds               <- c.get[List[ConfigurationRequestIdWrapper]]("configurationRequests")
-      workflow            <- c.get[CalculatedValue[ObservationWorkflow]]("workflow")
-      groupId             <- c.get[Option[Group.Id]]("groupId")
-      groupIndex          <- c.get[NonNegShort]("groupIndex")
-      execution           <- c.get[Execution]("execution")
-      blindOffset         <- targetEnv.as[BlindOffset]
+      id                    <- c.get[Observation.Id]("id")
+      reference             <- c.downField("reference")
+                                 .downField("label")
+                                 .success
+                                 .traverse(_.as[Option[ObservationReference]])
+      title                 <- c.get[String]("title")
+      subtitle              <- c.get[Option[NonEmptyString]]("subtitle")
+      targetEnv              = c.downField("targetEnvironment")
+      scienceTargetIds      <- targetEnv.get[List[TargetIdWrapper]]("asterism")
+      selectedGSName        <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
+      constraints           <- c.get[ConstraintSet]("constraintSet")
+      schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
+      attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
+      scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
+      observingMode         <- c.get[Option[ObservingMode]]("observingMode")
+      observationTime       <- c.get[Option[Timestamp]]("observationTime")
+      observationDur        <- c.get[Option[TimeSpan]]("observationDuration")
+      posAngleConstraint    <- c.get[PosAngleConstraint]("posAngleConstraint")
+      observerNotes         <- c.get[Option[NonEmptyString]]("observerNotes")
+      calibrationRole       <- c.get[Option[CalibrationRole]]("calibrationRole")
+      scienceBand           <- c.get[Option[ScienceBand]]("scienceBand")
+      configuration         <- c.get[Configuration]("configuration").fold(_ => none.asRight, _.some.asRight)
+      crIds                 <- c.get[List[ConfigurationRequestIdWrapper]]("configurationRequests")
+      workflow              <- c.get[CalculatedValue[ObservationWorkflow]]("workflow")
+      groupId               <- c.get[Option[Group.Id]]("groupId")
+      groupIndex            <- c.get[NonNegShort]("groupIndex")
+      execution             <- c.get[Execution]("execution")
+      blindOffset           <- targetEnv.as[BlindOffset]
     } yield Observation(
       id,
       reference.flatten,
@@ -433,7 +432,7 @@ object Observation:
       SortedSet.from(scienceTargetIds.map(_.id)),
       selectedGSName,
       constraints,
-      timingWindows,
+      schedulingConstraints,
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
       observingMode,

@@ -9,6 +9,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.BlindOffset
 import explore.model.Execution
 import explore.model.Observation
+import explore.model.SchedulingConstraints
 import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
 import lucuma.core.arb.ArbTime
@@ -24,14 +25,12 @@ import lucuma.core.model.ObservationValidation
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.arb.ArbConfiguration.given
 import lucuma.core.model.arb.ArbConstraintSet.given
 import lucuma.core.model.arb.ArbObservationReference.given
 import lucuma.core.model.arb.ArbObservationValidation.given
 import lucuma.core.model.arb.ArbObservationWorkflow.given
 import lucuma.core.model.arb.ArbPosAngleConstraint.given
-import lucuma.core.model.arb.ArbTimingWindow.given
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbCalculatedValue.given
@@ -56,38 +55,39 @@ trait ArbObservation:
   import ArbBlindOffset.given
   import ArbExecution.given
   import ArbTime.given
+  import ArbSchedulingConstraints.given
   import ArbScienceRequirements.given
   import ArbObservingMode.given
 
   given Arbitrary[Observation] =
     Arbitrary(
       for
-        id                  <- arbitrary[Observation.Id]
-        reference           <- arbitrary[Option[ObservationReference]]
-        title               <- arbitrary[String]
-        subtitle            <- arbitrary[Option[NonEmptyString]]
-        scienceTargetIds    <- arbitrary[Set[Target.Id]]
-        selectedGSName      <- arbitrary[Option[NonEmptyString]]
-        constraints         <- arbitrary[ConstraintSet]
-        timingWindows       <- arbitrary[List[TimingWindow]]
-        attachmentIds       <- arbitrary[Set[Attachment.Id]]
-        scienceRequirements <- arbitrary[ScienceRequirements]
-        observingMode       <- arbitrary[Option[ObservingMode]]
-        vizTime             <- arbitrary[Option[Instant]]
-        vizDuration         <- arbitrary[Option[TimeSpan]]
-        posAngleConstraint  <- arbitrary[PosAngleConstraint]
-        centralWavelength   <- arbitrary[Option[Wavelength]].map(_.map(CentralWavelength.apply))
-        validations         <- arbitrary[List[ObservationValidation]]
-        observerNotes       <- arbitrary[Option[NonEmptyString]]
-        calibrationRole     <- arbitrary[Option[CalibrationRole]]
-        scienceBand         <- arbitrary[Option[ScienceBand]]
-        configuration       <- arbitrary[Option[Configuration]]
-        crIds               <- arbitrary[Set[ConfigurationRequest.Id]]
-        workflow            <- arbitrary[CalculatedValue[ObservationWorkflow]]
-        groupId             <- arbitrary[Option[Group.Id]]
-        groupIndex          <- arbitrary[NonNegShort]
-        execution           <- arbitrary[Execution]
-        blindOffset         <- arbitrary[BlindOffset]
+        id                    <- arbitrary[Observation.Id]
+        reference             <- arbitrary[Option[ObservationReference]]
+        title                 <- arbitrary[String]
+        subtitle              <- arbitrary[Option[NonEmptyString]]
+        scienceTargetIds      <- arbitrary[Set[Target.Id]]
+        selectedGSName        <- arbitrary[Option[NonEmptyString]]
+        constraints           <- arbitrary[ConstraintSet]
+        schedulingConstraints <- arbitrary[SchedulingConstraints]
+        attachmentIds         <- arbitrary[Set[Attachment.Id]]
+        scienceRequirements   <- arbitrary[ScienceRequirements]
+        observingMode         <- arbitrary[Option[ObservingMode]]
+        vizTime               <- arbitrary[Option[Instant]]
+        vizDuration           <- arbitrary[Option[TimeSpan]]
+        posAngleConstraint    <- arbitrary[PosAngleConstraint]
+        centralWavelength     <- arbitrary[Option[Wavelength]].map(_.map(CentralWavelength.apply))
+        validations           <- arbitrary[List[ObservationValidation]]
+        observerNotes         <- arbitrary[Option[NonEmptyString]]
+        calibrationRole       <- arbitrary[Option[CalibrationRole]]
+        scienceBand           <- arbitrary[Option[ScienceBand]]
+        configuration         <- arbitrary[Option[Configuration]]
+        crIds                 <- arbitrary[Set[ConfigurationRequest.Id]]
+        workflow              <- arbitrary[CalculatedValue[ObservationWorkflow]]
+        groupId               <- arbitrary[Option[Group.Id]]
+        groupIndex            <- arbitrary[NonNegShort]
+        execution             <- arbitrary[Execution]
+        blindOffset           <- arbitrary[BlindOffset]
       yield Observation(
         id,
         reference,
@@ -96,7 +96,7 @@ trait ArbObservation:
         SortedSet.from(scienceTargetIds),
         selectedGSName,
         constraints,
-        timingWindows,
+        schedulingConstraints,
         SortedSet.from(attachmentIds),
         scienceRequirements,
         observingMode,
@@ -126,7 +126,7 @@ trait ArbObservation:
        List[Target.Id],
        Option[String],
        ConstraintSet,
-       List[TimingWindow],
+       SchedulingConstraints,
        SortedSet[Attachment.Id],
        ScienceRequirements,
        Option[ObservingMode],
@@ -151,7 +151,7 @@ trait ArbObservation:
          o.scienceTargetIds.toList,
          o.selectedGSName.map(_.value),
          o.constraints,
-         o.timingWindows,
+         o.schedulingConstraints,
          o.attachmentIds,
          o.scienceRequirements,
          o.observingMode,

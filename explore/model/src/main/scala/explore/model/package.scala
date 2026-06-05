@@ -27,7 +27,6 @@ import lucuma.core.model.SiderealTracking
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.refined.*
@@ -83,7 +82,7 @@ type TargetWithObsList             = SortedMap[Target.Id, TargetWithObs]
 type ObservationList               = SortedMap[Observation.Id, Observation]
 type GroupList                     = SortedMap[Group.Id, Group]
 type ConstraintGroupList           = SortedMap[ObsIdSet, ConstraintSet]
-type SchedulingGroupList           = SortedMap[ObsIdSet, List[TimingWindow]]
+type SchedulingGroupList           = SortedMap[ObsIdSet, SchedulingConstraints]
 type ObservingModeGroupList        = SortedMap[ObsIdSet, Option[ObservingModeSummary]]
 type AttachmentList                = SortedMap[Attachment.Id, Attachment]
 type ObsAttachmentAssignmentMap    = Map[Attachment.Id, SortedSet[Observation.Id]]

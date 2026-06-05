@@ -28,7 +28,10 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
             blindOffsetType
           }
           constraintSet $ConstraintSetSubquery
-          timingWindows $TimingWindowSubquery
+          schedulingConstraints {
+            isSplittable
+            timingWindows $TimingWindowSubquery
+          }
           attachments { id }
           scienceRequirements {
             exposureTimeMode $ExposureTimeModeSubquery

@@ -5,14 +5,14 @@ package explore.model
 
 import cats.Eq
 import cats.derived.*
-import lucuma.core.model.TimingWindow
 import monocle.Focus
 
-case class SchedulingGroup(timingWindows: List[TimingWindow], obsIds: ObsIdSet) derives Eq
+case class SchedulingGroup(schedulingConstraints: SchedulingConstraints, obsIds: ObsIdSet)
+    derives Eq
 
 object SchedulingGroup:
-  val timingWindows = Focus[SchedulingGroup](_.timingWindows)
-  val obsIds        = Focus[SchedulingGroup](_.obsIds)
+  val schedulingConstraints = Focus[SchedulingGroup](_.schedulingConstraints)
+  val obsIds                = Focus[SchedulingGroup](_.obsIds)
 
-  def fromTuple(tuple: (ObsIdSet, List[TimingWindow])): SchedulingGroup =
+  def fromTuple(tuple: (ObsIdSet, SchedulingConstraints)): SchedulingGroup =
     SchedulingGroup(tuple._2, tuple._1)

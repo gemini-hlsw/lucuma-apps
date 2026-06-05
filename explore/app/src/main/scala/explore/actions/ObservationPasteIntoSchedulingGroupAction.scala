@@ -9,9 +9,9 @@ import cats.syntax.all.*
 import explore.model.ObsIdSet
 import explore.model.Observation
 import explore.model.ProgramSummaries
+import explore.model.SchedulingConstraints
 import explore.model.syntax.all.*
 import explore.services.OdbObservationApi
-import lucuma.core.model.TimingWindow
 import lucuma.ui.undo.*
 
 import scala.collection.immutable.SortedSet
@@ -24,15 +24,15 @@ object ObservationPasteIntoSchedulingGroupAction:
   )(
     expandedIds:      SortedSet[ObsIdSet]
   ) =
-    val obsWithSchedulingGroups: List[(Observation.Id, List[TimingWindow])] =
+    val obsWithSchedulingGroups: List[(Observation.Id, SchedulingConstraints)] =
       obsList.flatMap: obsId =>
         programSummaries.observations
           .get(obsId)
           .map: obs =>
-            (obsId, obs.timingWindows)
+            (obsId, obs.schedulingConstraints)
 
     // We'll just expand any affected asterisms
-    val newGroups: List[(List[TimingWindow], List[Observation.Id])] =
+    val newGroups: List[(SchedulingConstraints, List[Observation.Id])] =
       obsWithSchedulingGroups.groupMap(_._2)(_._1).toList
 
     newGroups.foldLeft(expandedIds) { case (eids, (sg, obsIds)) =>
@@ -49,15 +49,15 @@ object ObservationPasteIntoSchedulingGroupAction:
     }
 
   def apply(
-    ids:            List[(Observation.Id, List[TimingWindow])],
+    ids:            List[(Observation.Id, SchedulingConstraints)],
     modExpandedIds: Endo[SortedSet[ObsIdSet]] => IO[Unit]
   )(using
     odbApi:         OdbObservationApi[IO]
   ): AsyncAction[ProgramSummaries, List[Observation.Id], Option[List[Observation]]] =
     AsyncAction(
       asyncGet = ids
-        .traverse: (obsId, timingWindows) =>
-          odbApi.applyObservation(obsId, onTimingWindows = timingWindows.some)
+        .traverse: (obsId, schedulingConstraints) =>
+          odbApi.applyObservation(obsId, onSchedulingConstraints = schedulingConstraints.some)
         .map(obsList => (obsList.map(_.id), obsList.some)),
       getter = obsListGetter,
       setter = obsListSetter,

@@ -9,6 +9,7 @@ import clue.data.Input
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
+import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
@@ -17,7 +18,6 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
@@ -56,10 +56,10 @@ trait OdbObservationApi[F[_]]:
   def createObservationWithTargets(programId: Program.Id, targetIds:       Set[Target.Id]): F[Observation]
   def cloneObservation(obsId:                 Observation.Id, newGroupId:  Option[Group.Id]): F[Observation]
   def applyObservation(
-    obsId:           Observation.Id,
-    onTargets:       Option[List[Target.Id]] = none,
-    onConstraintSet: Option[ConstraintSet] = none,
-    onTimingWindows: Option[List[TimingWindow]] = none
+    obsId:                   Observation.Id,
+    onTargets:               Option[List[Target.Id]] = none,
+    onConstraintSet:         Option[ConstraintSet] = none,
+    onSchedulingConstraints: Option[SchedulingConstraints] = none
   ): F[Observation]
   def deleteObservation(obsId:                Observation.Id): F[Unit]
   def undeleteObservation(obsId:              Observation.Id): F[Unit]

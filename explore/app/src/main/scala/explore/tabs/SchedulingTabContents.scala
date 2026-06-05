@@ -26,7 +26,6 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.User
 import lucuma.react.common.ReactFnProps
 import lucuma.react.hotkeys.*
@@ -93,14 +92,14 @@ object SchedulingTabContents extends TwoPanels:
               ExploreClipboard.get
                 .flatMap:
                   case LocalClipboard.CopiedObservations(copiedObsIdSet) =>
-                    val selectedGroups: Option[List[TimingWindow]] =
+                    val selectedGroups: Option[SchedulingConstraints] =
                       selObsSet
                         .flatMap: focusedObsIdSet =>
                           observations // All focused obs have the same constraints, so we can use head
                             .get(focusedObsIdSet.idSet.head)
-                            .map(_.timingWindows)
+                            .map(_.schedulingConstraints)
 
-                    val obsAndConstraints: List[(Observation.Id, List[TimingWindow])] =
+                    val obsAndConstraints: List[(Observation.Id, SchedulingConstraints)] =
                       selectedGroups
                         .map: cs =>
                           copiedObsIdSet.idSet.toList.map: obsId =>

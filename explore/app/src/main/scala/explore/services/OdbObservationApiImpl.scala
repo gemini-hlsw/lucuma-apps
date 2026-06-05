@@ -14,6 +14,7 @@ import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
+import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.ConfigurationRequest
@@ -24,7 +25,6 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.Target
-import lucuma.core.model.TimingWindow
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.schemas.ObservationDB
@@ -229,10 +229,10 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .map(_.cloneObservation.newObservation)
 
   def applyObservation(
-    obsId:           Observation.Id,
-    onTargets:       Option[List[Target.Id]] = none,
-    onConstraintSet: Option[ConstraintSet] = none,
-    onTimingWindows: Option[List[TimingWindow]] = none
+    obsId:                   Observation.Id,
+    onTargets:               Option[List[Target.Id]] = none,
+    onConstraintSet:         Option[ConstraintSet] = none,
+    onSchedulingConstraints: Option[SchedulingConstraints] = none
   ): F[Observation] =
     CloneObservationMutation[F]
       .execute:
@@ -242,7 +242,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             targetEnvironment =
               onTargets.map(tids => TargetEnvironmentInput(asterism = tids.assign)).orIgnore,
             constraintSet = onConstraintSet.map(_.toInput).orIgnore,
-            timingWindows = onTimingWindows.map(_.map(_.toInput)).orIgnore,
+            schedulingConstraints = onSchedulingConstraints.map(_.toInput).orIgnore,
             attachments = List.empty.assign // Always clean observation attachments
           ).assign
         )
