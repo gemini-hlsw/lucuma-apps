@@ -69,7 +69,7 @@ object AlienVisitorConfigPanel
             VisitorInput(
               mode = m.mode.assign,
               centralWavelength = m.centralWavelength.value.toInput.assign,
-              scienceFov = m.scienceFov.toInput.assign,
+              agsDiameter = m.agsDiameter.toInput.assign,
               name = m.name.orUnassign,
               totalRequestTime = m.totalRequestTime.map(_.toInput).orUnassign
             )
@@ -79,8 +79,8 @@ object AlienVisitorConfigPanel
             ObservingMode.Visitor.centralWavelength.andThen(CentralWavelength.Value)
           )
 
-        val scienceFovView: View[Angle] =
-          visitorView.zoom(ObservingMode.Visitor.scienceFov)
+        val agsDiameterView: View[Angle] =
+          visitorView.zoom(ObservingMode.Visitor.agsDiameter)
 
         // Site is encoded in the mode type for aliens
         val unsafeModelToSite: Lens[VisitorObservingModeType, Site] =
@@ -132,7 +132,7 @@ object AlienVisitorConfigPanel
             )(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-science-fov".refined,
-              value = scienceFovView,
+              value = agsDiameterView,
               label = "Instrument Diameter",
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = ChangeAuditor.posBigDecimal(2.refined),

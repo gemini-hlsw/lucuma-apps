@@ -62,7 +62,7 @@ object BasicConfigurationSubquery
           visitor {
             mode
             centralWavelength $WavelengthSubquery
-            scienceFov $AngleSubquery
+            agsDiameter $AngleSubquery
           }
         }
       """

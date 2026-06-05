@@ -114,7 +114,7 @@ enum ObservingModeSummary derives Order:
   case Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:        Angle,
+    agsDiameter:       Angle,
     name:              Option[NonEmptyString]
   )                                                        extends ObservingModeSummary
 
@@ -213,12 +213,12 @@ enum ObservingModeSummary derives Order:
           blue = blue.toInput.assign
         )
       )
-    case Visitor(mode, centralWavelength, scienceFov, name)                                =>
+    case Visitor(mode, centralWavelength, agsDiameter, name)                               =>
       ObservingModeInput.Visitor(
         VisitorInput(
           mode = mode.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
-          scienceFov = scienceFov.toInput.assign,
+          agsDiameter = agsDiameter.toInput.assign,
           name = name.orUnassign
         )
       )
@@ -361,7 +361,7 @@ object ObservingModeSummary:
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
       case v: ObservingMode.Visitor            =>
-        Visitor(v.mode, v.centralWavelength, v.scienceFov, v.name)
+        Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.name)
 
   // TODO Can we unify this logic with the one in explore/model/src/main/scala/explore/model/display.scala
   // and/or observe/web/client-model/src/main/scala/observe/ui/model/ObsSummary.scala?
@@ -419,4 +419,4 @@ object ObservingModeSummary:
 
   object Visitor:
     given Order[Visitor] =
-      Order.by(x => (x.mode, x.centralWavelength.value, x.scienceFov.toMicroarcseconds, x.name))
+      Order.by(x => (x.mode, x.centralWavelength.value, x.agsDiameter.toMicroarcseconds, x.name))

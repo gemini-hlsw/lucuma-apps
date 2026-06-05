@@ -902,7 +902,7 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.Visitor] =
     Cogen[(VisitorObservingModeType, Wavelength, Long)]
-      .contramap(o => (o.mode, o.centralWavelength.value, o.scienceFov.toMicroarcseconds))
+      .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter.toMicroarcseconds))
 
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
@@ -930,13 +930,14 @@ trait ArbObservingMode {
             ObservingMode.GmosNorthLongSlit,
             Either[
               ObservingMode.GmosSouthLongSlit,
-              Either[ObservingMode.GmosNorthImaging, Either[ObservingMode.GmosSouthImaging,
-                                                            Either[ObservingMode.GhostIfu,
-                                                                   Either[ObservingMode.Flamingos2Imaging,
-                                                                          ObservingMode.Visitor
-                                                                   ]
-                                                            ]
-              ]]
+              Either[
+                ObservingMode.GmosNorthImaging,
+                Either[ObservingMode.GmosSouthImaging,
+                       Either[ObservingMode.GhostIfu, Either[ObservingMode.Flamingos2Imaging,
+                                                             ObservingMode.Visitor
+                       ]]
+                ]
+              ]
             ]
           ]
         ]

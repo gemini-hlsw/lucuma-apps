@@ -63,9 +63,9 @@ object ResidentVisitorConfigPanel
             )
             .view(_.toInput.assign)
 
-        val scienceFovView: View[Angle] =
+        val agsDiameterView: View[Angle] =
           props.observingMode
-            .zoom(ObservingMode.Visitor.scienceFov, VisitorInput.scienceFov.modify)
+            .zoom(ObservingMode.Visitor.agsDiameter, VisitorInput.agsDiameter.modify)
             .view(_.toInput.assign)
 
         val exposureTimeMode: ViewOpt[TimeAndCountMode] =
@@ -90,7 +90,7 @@ object ResidentVisitorConfigPanel
             )(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-science-fov".refined,
-              value = scienceFovView,
+              value = agsDiameterView,
               label = "Instrument Diameter",
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = angleArcsecondsChangeAuditor,

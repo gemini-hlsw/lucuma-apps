@@ -35,7 +35,7 @@ case class AlienVisitorState(
   site:              Option[Site],
   name:              Option[NonEmptyString],
   centralWavelength: Option[Wavelength],
-  scienceFov:        Option[Angle],
+  agsDiameter:       Option[Angle],
   totalRequestTime:  Option[TimeSpan]
 )
 
@@ -51,8 +51,8 @@ object AlienVisitorState:
   val centralWavelength: Lens[AlienVisitorState, Option[Wavelength]] =
     Focus[AlienVisitorState](_.centralWavelength)
 
-  val scienceFov: Lens[AlienVisitorState, Option[Angle]] =
-    Focus[AlienVisitorState](_.scienceFov)
+  val agsDiameter: Lens[AlienVisitorState, Option[Angle]] =
+    Focus[AlienVisitorState](_.agsDiameter)
 
   val totalRequestTime: Lens[AlienVisitorState, Option[TimeSpan]] =
     Focus[AlienVisitorState](_.totalRequestTime)
@@ -69,7 +69,7 @@ object AlienVisitorConfigEditor
       val site              = props.state.zoom(AlienVisitorState.site)
       val name              = props.state.zoom(AlienVisitorState.name)
       val centralWavelength = props.state.zoom(AlienVisitorState.centralWavelength)
-      val scienceFov        = props.state.zoom(AlienVisitorState.scienceFov)
+      val agsDiameter       = props.state.zoom(AlienVisitorState.agsDiameter)
       val totalRequestTime  = props.state.zoom(AlienVisitorState.totalRequestTime)
 
       <.div(
@@ -103,9 +103,9 @@ object AlienVisitorConfigEditor
         ).clearable(^.autoComplete.off),
         FormInputTextView(
           id = "visitor-basic-science-fov".refined,
-          value = scienceFov,
+          value = agsDiameter,
           label = "Instrument Diameter",
-          groupClass = ExploreStyles.WarningInput.when_(scienceFov.get.isEmpty),
+          groupClass = ExploreStyles.WarningInput.when_(agsDiameter.get.isEmpty),
           validFormat = angleArcsecsFormat,
           changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
           units = "arcsec",

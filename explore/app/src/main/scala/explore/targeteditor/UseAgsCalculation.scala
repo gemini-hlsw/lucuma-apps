@@ -147,7 +147,7 @@ object UseAgsCalculation:
         val base = observingMode.collectFirst:
           case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
             AgsParams.MaroonX(port)
-          case BasicConfiguration.Visitor(scienceFov = fov)                        =>
+          case BasicConfiguration.Visitor(agsDiameter = fov)                       =>
             AgsParams.Visitor(fov, port)
         applyGuideProbe(base, guideProbe)
 

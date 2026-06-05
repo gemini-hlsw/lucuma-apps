@@ -300,7 +300,7 @@ object BasicConfiguration:
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:        Angle
+    agsDiameter:       Angle
   ) extends BasicConfiguration(mode.instrument) derives Eq:
     def site: Site = mode match
       case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField |
@@ -339,7 +339,7 @@ object BasicConfiguration:
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
-        gsms <- c.downField("scienceFov").as[Angle]
+        gsms <- c.downField("agsDiameter").as[Angle]
       yield Visitor(mode, CentralWavelength(cw), gsms)
 
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =

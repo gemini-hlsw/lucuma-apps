@@ -24,7 +24,7 @@ import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
 
-case class VisitorGeometry(mode: VisitorObservingModeType, scienceFov: Angle) extends PwfsGeometry:
+case class VisitorGeometry(mode: VisitorObservingModeType, agsDiameter: Angle) extends PwfsGeometry:
 
   override def shapesForMode(posAngle: Angle, offset: Offset) =
     mode match
@@ -34,7 +34,7 @@ case class VisitorGeometry(mode: VisitorObservingModeType, scienceFov: Angle) ex
           (ExtendedVignettingArea, maroonXScienceArea.extendedVignettingAreaAt(posAngle, offset))
         )
       case _                                =>
-        SortedMap((VisitorScienceFov, visitorScienceArea.shapeAt(posAngle, offset, scienceFov)))
+        SortedMap((VisitorScienceFov, visitorScienceArea.shapeAt(posAngle, offset, agsDiameter)))
 
   override protected def candidatesAreaCss: Css = VisitorCandidatesArea
 
@@ -47,9 +47,9 @@ case class VisitorGeometry(mode: VisitorObservingModeType, scienceFov: Angle) ex
           case _                => AgsParams.MaroonX()
       case _                                =>
         guideProbe match
-          case GuideProbe.PWFS1 => AgsParams.Visitor(scienceFov).withPWFS1
-          case GuideProbe.PWFS2 => AgsParams.Visitor(scienceFov).withPWFS2
-          case _                => AgsParams.Visitor(scienceFov)
+          case GuideProbe.PWFS1 => AgsParams.Visitor(agsDiameter).withPWFS1
+          case GuideProbe.PWFS2 => AgsParams.Visitor(agsDiameter).withPWFS2
+          case _                => AgsParams.Visitor(agsDiameter)
 
 object VisitorGeometry:
 
@@ -65,7 +65,7 @@ object VisitorGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
       .collect:
-        case BasicConfiguration.Visitor(mode = mode, scienceFov = fov) =>
+        case BasicConfiguration.Visitor(mode = mode, agsDiameter = fov) =>
           new VisitorGeometry(mode, fov)
       .flatMap:
         _.instrumentGeometry(
