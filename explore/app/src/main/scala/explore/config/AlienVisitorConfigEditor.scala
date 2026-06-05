@@ -104,7 +104,9 @@ object AlienVisitorConfigEditor
         FormInputTextView(
           id = "visitor-basic-science-fov".refined,
           value = agsDiameter,
-          label = "Instrument Diameter",
+          label = React.Fragment("AGS Diameter",
+                                 HelpIcon("configuration/visitor/ags-diameter.md".refined)
+          ),
           groupClass = ExploreStyles.WarningInput.when_(agsDiameter.get.isEmpty),
           validFormat = angleArcsecsFormat,
           changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,

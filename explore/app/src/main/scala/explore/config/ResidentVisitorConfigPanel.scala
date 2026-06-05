@@ -10,6 +10,7 @@ import crystal.react.View
 import crystal.react.ViewOpt
 import crystal.react.hooks.*
 import explore.common.Aligner
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
@@ -91,7 +92,9 @@ object ResidentVisitorConfigPanel
             FormInputTextView(
               id = "visitor-science-fov".refined,
               value = agsDiameterView,
-              label = "Instrument Diameter",
+              label = React.Fragment("AGS Diameter",
+                                     HelpIcon("configuration/visitor/ags-diameter.md".refined)
+              ),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = angleArcsecondsChangeAuditor,
               units = "arcsec",

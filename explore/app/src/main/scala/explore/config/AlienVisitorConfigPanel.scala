@@ -11,6 +11,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
@@ -133,7 +134,9 @@ object AlienVisitorConfigPanel
             FormInputTextView(
               id = "visitor-science-fov".refined,
               value = agsDiameterView,
-              label = "Instrument Diameter",
+              label = React.Fragment("AGS Diameter",
+                                     HelpIcon("configuration/visitor/ags-diameter.md".refined)
+              ),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
               units = "arcsec",
