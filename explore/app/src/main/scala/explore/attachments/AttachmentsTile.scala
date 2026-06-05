@@ -110,11 +110,11 @@ object AttachmentsTile
         def getTargetAssignments(aid: Attachment.Id): SortedSet[Target.Id] =
           targetAssignments.get(aid).orEmpty
 
-        def isAssignedToExecutedObs(aid: Attachment.Id): Boolean =
+        def isAssignedToCompletedObs(aid: Attachment.Id): Boolean =
           val targetIds                         = getTargetAssignments(aid)
           val obsIds: SortedSet[Observation.Id] =
             getObsAssignments(aid) ++ targetIds.flatMap(tid => targetObservations.get(tid).orEmpty)
-          obsIds.exists(oid => obsList.get(oid).exists(_.isExecuted))
+          obsIds.exists(oid => obsList.get(oid).exists(_.isCompleted))
 
       val ColDef = ColumnDef[View[Attachment]].WithTableMeta[TableMeta]
 
@@ -224,14 +224,14 @@ object AttachmentsTile
                       .runAsync)
                     .when_(files.nonEmpty)
 
-                val targetAssignments               = meta.targetAssignments.get(id).orEmpty
-                val isAssignedToExecutedObservation = meta.isAssignedToExecutedObs(id)
+                val targetAssignments                = meta.targetAssignments.get(id).orEmpty
+                val isAssignedToCompletedObservation = meta.isAssignedToCompletedObs(id)
 
                 val (canDelete, deleteTooltip) =
-                  if isAssignedToExecutedObservation
+                  if isAssignedToCompletedObservation
                   then
                     (false,
-                     "Attachment is assigned to an executed observation and cannot be deleted"
+                     "Attachment is assigned to a completed observation and cannot be deleted"
                     )
                   else if targetAssignments.nonEmpty
                   then
@@ -239,11 +239,11 @@ object AttachmentsTile
                   else (true, "Delete attachment")
 
                 val (canReplace, replaceTooltip) =
-                  if isAssignedToExecutedObservation
+                  if isAssignedToCompletedObservation
                   then
                     (
                       false,
-                      "Attachment is assigned to an executed observation and cannot be replaced."
+                      "Attachment is assigned to a completed observation and cannot be replaced."
                     )
                   else (true, "Upload replacement file")
 
