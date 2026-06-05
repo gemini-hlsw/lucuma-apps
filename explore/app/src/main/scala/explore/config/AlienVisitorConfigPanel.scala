@@ -11,6 +11,7 @@ import crystal.react.hooks.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
@@ -69,7 +70,7 @@ object AlienVisitorConfigPanel
             VisitorInput(
               mode = m.mode.assign,
               centralWavelength = m.centralWavelength.value.toInput.assign,
-              scienceFov = m.scienceFov.toInput.assign,
+              agsDiameter = m.agsDiameter.toInput.assign,
               name = m.name.orUnassign,
               totalRequestTime = m.totalRequestTime.map(_.toInput).orUnassign
             )
@@ -79,8 +80,8 @@ object AlienVisitorConfigPanel
             ObservingMode.Visitor.centralWavelength.andThen(CentralWavelength.Value)
           )
 
-        val scienceFovView: View[Angle] =
-          visitorView.zoom(ObservingMode.Visitor.scienceFov)
+        val agsDiameterView: View[Angle] =
+          visitorView.zoom(ObservingMode.Visitor.agsDiameter)
 
         // Site is encoded in the mode type for aliens
         val unsafeModelToSite: Lens[VisitorObservingModeType, Site] =
@@ -132,8 +133,10 @@ object AlienVisitorConfigPanel
             )(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-science-fov".refined,
-              value = scienceFovView,
-              label = "Instrument Diameter",
+              value = agsDiameterView,
+              label = React.Fragment("AGS Diameter",
+                                     HelpIcon("configuration/visitor/ags-diameter.md".refined)
+              ),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
               units = "arcsec",

@@ -10,6 +10,7 @@ import crystal.react.View
 import crystal.react.ViewOpt
 import crystal.react.hooks.*
 import explore.common.Aligner
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.model.AppContext
@@ -63,9 +64,9 @@ object ResidentVisitorConfigPanel
             )
             .view(_.toInput.assign)
 
-        val scienceFovView: View[Angle] =
+        val agsDiameterView: View[Angle] =
           props.observingMode
-            .zoom(ObservingMode.Visitor.scienceFov, VisitorInput.scienceFov.modify)
+            .zoom(ObservingMode.Visitor.agsDiameter, VisitorInput.agsDiameter.modify)
             .view(_.toInput.assign)
 
         val exposureTimeMode: ViewOpt[TimeAndCountMode] =
@@ -90,8 +91,10 @@ object ResidentVisitorConfigPanel
             )(^.autoComplete.off),
             FormInputTextView(
               id = "visitor-science-fov".refined,
-              value = scienceFovView,
-              label = "Instrument Diameter",
+              value = agsDiameterView,
+              label = React.Fragment("AGS Diameter",
+                                     HelpIcon("configuration/visitor/ags-diameter.md".refined)
+              ),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = angleArcsecondsChangeAuditor,
               units = "arcsec",

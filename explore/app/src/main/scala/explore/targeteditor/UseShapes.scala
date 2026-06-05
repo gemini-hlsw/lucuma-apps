@@ -85,7 +85,7 @@ def usePatrolFieldShapes(
         AgsParams.GhostIfu().some
       case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
         AgsParams.MaroonX(port).some
-      case BasicConfiguration.Visitor(scienceFov = fov)                        =>
+      case BasicConfiguration.Visitor(agsDiameter = fov)                       =>
         AgsParams.Visitor(fov, port).some
 
     params.map: p =>

@@ -116,7 +116,7 @@ private object BasicConfigurationPanel:
 
         // for alien visitors mode we get the config from a temporary state until saved.
         val alienVisitorConfig: Option[BasicConfiguration.Visitor] =
-          (visitorMode, alienVisitorState.centralWavelength, alienVisitorState.scienceFov).mapN:
+          (visitorMode, alienVisitorState.centralWavelength, alienVisitorState.agsDiameter).mapN:
             (mode, cw, fov) => BasicConfiguration.Visitor(mode, CentralWavelength(cw), fov)
 
         val alienInput: Option[ObservingModeInput] =
@@ -126,7 +126,7 @@ private object BasicConfigurationPanel:
                 VisitorInput(
                   mode = visitor.mode.assign,
                   centralWavelength = visitor.centralWavelength.value.toInput.assign,
-                  scienceFov = visitor.scienceFov.toInput.assign,
+                  agsDiameter = visitor.agsDiameter.toInput.assign,
                   name = name.assign,
                   totalRequestTime = totalTime.toInput.assign
                 )

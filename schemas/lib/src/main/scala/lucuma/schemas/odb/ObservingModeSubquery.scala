@@ -220,7 +220,7 @@ object ObservingModeSubquery
           visitor {
             mode
             centralWavelength $WavelengthSubquery
-            scienceFov $AngleSubquery
+            agsDiameter $AngleSubquery
             name
             totalRequestTime $TimeSpanSubquery
           }

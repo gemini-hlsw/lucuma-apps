@@ -105,7 +105,7 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
                                   blue = blue
       )
     case v: ObservingMode.Visitor                           =>
-      BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.scienceFov)
+      BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.agsDiameter)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -1134,7 +1134,7 @@ object ObservingMode:
   case class Visitor(
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
-    scienceFov:        Angle,
+    agsDiameter:       Angle,
     name:              Option[NonEmptyString],
     totalRequestTime:  Option[TimeSpan]
   ) extends ObservingMode(mode.instrument) derives Eq:
@@ -1145,8 +1145,8 @@ object ObservingMode:
       Focus[Visitor](_.mode)
     val centralWavelength: Lens[Visitor, CentralWavelength] =
       Focus[Visitor](_.centralWavelength)
-    val scienceFov: Lens[Visitor, Angle]                    =
-      Focus[Visitor](_.scienceFov)
+    val agsDiameter: Lens[Visitor, Angle]                   =
+      Focus[Visitor](_.agsDiameter)
     val name: Lens[Visitor, Option[NonEmptyString]]         =
       Focus[Visitor](_.name)
     val totalRequestTime: Lens[Visitor, Option[TimeSpan]]   =
@@ -1156,7 +1156,7 @@ object ObservingMode:
       for
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
-        gsms <- c.downField("scienceFov").as[Angle]
+        gsms <- c.downField("agsDiameter").as[Angle]
         name <- c.downField("name").as[Option[NonEmptyString]]
         trt  <- c.downField("totalRequestTime").as[Option[TimeSpan]]
       yield Visitor(mode, CentralWavelength(cw), gsms, name, trt)
