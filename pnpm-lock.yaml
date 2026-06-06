@@ -33,8 +33,8 @@ importers:
         specifier: 2.1.5
         version: 2.1.5
       '@atlaskit/pragmatic-drag-and-drop-hitbox':
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 1.2.0
+        version: 1.2.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
         specifier: 2.1.1
         version: 2.1.1(@types/react@19.2.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -276,8 +276,8 @@ importers:
         specifier: 2.1.5
         version: 2.1.5
       '@atlaskit/pragmatic-drag-and-drop-hitbox':
-        specifier: 1.1.0
-        version: 1.1.0
+        specifier: 1.2.0
+        version: 1.2.0
       '@react-hook/resize-observer':
         specifier: 2.0.2
         version: 2.0.2(react@19.2.7)
@@ -356,6 +356,9 @@ packages:
 
   '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
     resolution: {integrity: sha512-JWt6eVp6Br2FPHRM8s0dUIHQk/jFInGP1f3ti5CdtM1Ji5/pt8Akm44wDC063Gv2i5RGseixtbW0z/t6RYtbdg==}
+
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.2.0':
+    resolution: {integrity: sha512-eWJvvuHZOC4Yk+Li7QpS+JM2F/I50/3PhMvEcyvcHbXI0FP0kCDD1MiF8Hv7uSOxpk5JNqKoOmK8e1ncOzTgqA==}
 
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
     resolution: {integrity: sha512-lo4x9p7DAq3WeCknHXqkCNmzSMvyKfucl1BFF6K22BjdiRd+DavBwt4aGUQBGnIPGwZgNKrjmwAFj9xuYdLZDQ==}
@@ -3725,6 +3728,11 @@ snapshots:
       '@babel/runtime': 7.28.6
 
   '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
+    dependencies:
+      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
+      '@babel/runtime': 7.28.6
+
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.2.0':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6

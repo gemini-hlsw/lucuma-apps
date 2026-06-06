@@ -4,7 +4,7 @@
   "devDependencies": {
     "@atlaskit/pragmatic-drag-and-drop": "1.8.1",
     "@atlaskit/pragmatic-drag-and-drop-auto-scroll": "2.1.5",
-    "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0",
+    "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.2.0",
     "@react-hook/resize-observer": "2.0.2",
     "@tanstack/react-table": "8.21.3",
     "@tanstack/react-virtual": "3.13.26",
