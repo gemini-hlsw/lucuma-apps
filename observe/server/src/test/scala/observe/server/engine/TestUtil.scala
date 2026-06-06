@@ -37,7 +37,8 @@ object TestUtil {
         gmosSouth = none,
         ghost = none,
         flamingos2 = none,
-        igrins2 = none
+        igrins2 = none,
+        gnirs = none
       ),
       conditions = CurrentConditions.Default,
       operator = None

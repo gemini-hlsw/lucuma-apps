@@ -30,6 +30,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
@@ -53,6 +55,7 @@ import observe.server.gems.Gems
 import observe.server.ghost.Ghost
 import observe.server.gmos.GmosNorth
 import observe.server.gmos.GmosSouth
+import observe.server.gnirs.Gnirs
 import observe.server.gws.GwsHeader
 import observe.server.igrins2.Igrins2
 import observe.server.keywords.*
@@ -771,7 +774,15 @@ object SeqTranslate {
                 instrumentStepBuilders.ghost,
                 StepGen.Ghost[F](_, _, _, _, _, _, _, _, _, _, _, _)
               )
-            case InstrumentExecutionConfig.Gnirs(_)                    => ???
+            case InstrumentExecutionConfig.Gnirs(executionConfig)      =>
+              buildStep(
+                odbObsData.observation,
+                obsTime,
+                executionConfig,
+                stepIdFrom,
+                instrumentStepBuilders.gnirs,
+                StepGen.Gnirs[F](_, _, _, _, _, _, _, _, _, _, _, _)
+              )
             case InstrumentExecutionConfig.Visitor(_)                  => ???
           }
         }
@@ -797,12 +808,14 @@ object SeqTranslate {
       f2      <- Flamingos2.build
       ghost   <- Ghost.instrumentStepBuilder(conditionsRef)
       igrins2 <- Igrins2.build
+      gnirs   <- Gnirs.build
     } yield InstrumentStepBuilders[F](
       f2,
       gmosN,
       gmosS,
       ghost,
-      igrins2
+      igrins2,
+      gnirs
     )
   ).map(x => new SeqTranslateImpl(site, systems, environment, x))
 
@@ -826,7 +839,8 @@ object SeqTranslate {
     gmosNorth:  InstrumentStepBuilder[F, gmos.StaticConfig.GmosNorth, gmos.DynamicConfig.GmosNorth],
     gmosSouth:  InstrumentStepBuilder[F, gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth],
     ghost:      InstrumentStepBuilder[F, GhostStaticConfig, GhostDynamicConfig],
-    igrins2:    InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig]
+    igrins2:    InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig],
+    gnirs:      InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]
   )
 
 }

@@ -14,6 +14,8 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.ghost.GhostStaticConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import monocle.Lens
@@ -76,6 +78,8 @@ object SequenceData:
     GenPrism[SequenceData[F], SequenceData.Flamingos2[F]]
   def igrins2[F[_]]: Prism[SequenceData[F], SequenceData.Igrins2[F]]       =
     GenPrism[SequenceData[F], SequenceData.Igrins2[F]]
+  def gnirs[F[_]]: Prism[SequenceData[F], SequenceData.Gnirs[F]]           =
+    GenPrism[SequenceData[F], SequenceData.Gnirs[F]]
   def ghost[F[_]]: Prism[SequenceData[F], SequenceData.Ghost[F]]           =
     GenPrism[SequenceData[F], SequenceData.Ghost[F]]
 
@@ -85,6 +89,7 @@ object SequenceData:
       case gmosSouth(s)  => s.copy(seq = seq)
       case flamingos2(s) => s.copy(seq = seq)
       case igrins2(s)    => s.copy(seq = seq)
+      case gnirs(s)      => s.copy(seq = seq)
       case ghost(s)      => s.copy(seq = seq)
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
@@ -95,6 +100,7 @@ object SequenceData:
       case gmosSouth(s)  => s.copy(overrides = overrides)
       case flamingos2(s) => s.copy(overrides = overrides)
       case igrins2(s)    => s.copy(overrides = overrides)
+      case gnirs(s)      => s.copy(overrides = overrides)
       case ghost(s)      => s.copy(overrides = overrides)
 
       case other => other // should not happen, but needed to satisfy exhaustivity check
@@ -106,6 +112,7 @@ object SequenceData:
       case gmosSouth(s)  => s.copy(pendingObsCmd = pendingObsCmd)
       case flamingos2(s) => s.copy(pendingObsCmd = pendingObsCmd)
       case igrins2(s)    => s.copy(pendingObsCmd = pendingObsCmd)
+      case gnirs(s)      => s.copy(pendingObsCmd = pendingObsCmd)
       case ghost(s)      => s.copy(pendingObsCmd = pendingObsCmd)
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
@@ -116,6 +123,7 @@ object SequenceData:
       case gmosSouth(s)  => s.copy(observer = observer)
       case flamingos2(s) => s.copy(observer = observer)
       case igrins2(s)    => s.copy(observer = observer)
+      case gnirs(s)      => s.copy(observer = observer)
       case ghost(s)      => s.copy(observer = observer)
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
@@ -126,6 +134,7 @@ object SequenceData:
       case gmosSouth(s)  => s.copy(visitStartDone = visitStartDone)
       case flamingos2(s) => s.copy(visitStartDone = visitStartDone)
       case igrins2(s)    => s.copy(visitStartDone = visitStartDone)
+      case gnirs(s)      => s.copy(visitStartDone = visitStartDone)
       case ghost(s)      => s.copy(visitStartDone = visitStartDone)
       case other         => other // should not happen, but needed to satisfy exhaustivity check
     })
@@ -181,6 +190,19 @@ object SequenceData:
   ) extends SequenceData[F]:
     type D = Igrins2DynamicConfig
     val instrument: Instrument = Instrument.Igrins2
+
+  case class Gnirs[F[_]](
+    observer:          Option[Observer],
+    overrides:         SystemOverrides,
+    targetEnvironment: TargetEnvironment,
+    constraintSet:     ConstraintSet,
+    staticCfg:         GnirsStaticConfig,
+    seq:               SequenceState[F],
+    pendingObsCmd:     Option[PendingObserveCmd],
+    visitStartDone:    Boolean
+  ) extends SequenceData[F]:
+    type D = GnirsDynamicConfig
+    val instrument: Instrument = Instrument.Gnirs
 
   case class Ghost[F[_]](
     observer:          Option[Observer],

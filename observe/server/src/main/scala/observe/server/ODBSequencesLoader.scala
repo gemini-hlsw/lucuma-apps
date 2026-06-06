@@ -40,8 +40,8 @@ object ODBSequencesLoader {
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Ghost(ec)      =>
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
-        case InstrumentExecutionConfig.Gnirs(_)       =>
-          ???
+        case InstrumentExecutionConfig.Gnirs(ec)      =>
+          (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Visitor(_)     =>
           ???
 
@@ -104,7 +104,17 @@ object ODBSequencesLoader {
           pendingObsCmd = none,
           visitStartDone = false
         )
-      case InstrumentExecutionConfig.Gnirs(_)       => ???
+      case InstrumentExecutionConfig.Gnirs(ec)      =>
+        SequenceData.Gnirs(
+          observer = observer,
+          overrides = SystemOverrides.AllEnabled,
+          targetEnvironment = odbData.observation.targetEnvironment,
+          constraintSet = odbData.observation.constraintSet,
+          staticCfg = ec.static,
+          seq = seqState,
+          pendingObsCmd = none,
+          visitStartDone = false
+        )
       case InstrumentExecutionConfig.Visitor(_)     => ???
 
     instrumentSequenceLens.replace(seqData.some)(st)

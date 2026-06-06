@@ -30,6 +30,7 @@ case class EngineState[F[_]](
       selected.gmosSouth,
       selected.flamingos2,
       selected.igrins2,
+      selected.gnirs,
       selected.ghost
     ).flattenOption
       .map(x => x.obsId -> x)
@@ -41,6 +42,7 @@ case class EngineState[F[_]](
       selected.gmosSouth,
       selected.flamingos2,
       selected.igrins2,
+      selected.gnirs,
       selected.ghost
     ).flattenOption
       .map(x => x.instrument -> x)
@@ -63,6 +65,9 @@ object EngineState {
   private def selectedIgrins2[F[_]]: Lens[EngineState[F], Option[SequenceData[F]]] =
     Focus[EngineState[F]](_.selected.igrins2)
 
+  private def selectedGnirs[F[_]]: Lens[EngineState[F], Option[SequenceData[F]]] =
+    Focus[EngineState[F]](_.selected.gnirs)
+
   def default[F[_]]: EngineState[F] =
     EngineState[F](
       Map(CalibrationQueueId -> ExecutionQueue.init(CalibrationQueueName)),
@@ -79,6 +84,7 @@ object EngineState {
     case Instrument.Ghost      => EngineState.selectedGhost
     case Instrument.Flamingos2 => EngineState.selectedFlamingos2
     case Instrument.Igrins2    => EngineState.selectedIgrins2
+    case Instrument.Gnirs      => EngineState.selectedGnirs
     case i                     => sys.error(s"Unexpected instrument $i")
   }
 
@@ -91,6 +97,7 @@ object EngineState {
             .orElse(s.gmosSouth.find(_.obsId === sid))
             .orElse(s.flamingos2.find(_.obsId === sid))
             .orElse(s.igrins2.find(_.obsId === sid))
+            .orElse(s.gnirs.find(_.obsId === sid))
             .orElse(s.ghost.find(_.obsId === sid))
         } { d => s =>
           if (s.gmosNorth.exists(_.obsId === sid))
@@ -101,6 +108,8 @@ object EngineState {
             s.focus(_.flamingos2).replace(d.some)
           else if (s.igrins2.exists(_.obsId === sid))
             s.focus(_.igrins2).replace(d.some)
+          else if (s.gnirs.exists(_.obsId === sid))
+            s.focus(_.gnirs).replace(d.some)
           else if (s.ghost.exists(_.obsId === sid))
             s.focus(_.ghost).replace(d.some)
           else s
@@ -135,6 +144,13 @@ object EngineState {
       s.focus(_.selected.igrins2).replace(d.some)
     }
 
+  def gnirsSequence[F[_]]: Optional[EngineState[F], SequenceData[F]] =
+    Optional[EngineState[F], SequenceData[F]] {
+      _.selected.gnirs
+    } { d => s =>
+      s.focus(_.selected.gnirs).replace(d.some)
+    }
+
   def ghostSequence[F[_]]: Optional[EngineState[F], SequenceData[F]] =
     Optional[EngineState[F], SequenceData[F]] {
       _.selected.ghost
@@ -149,6 +165,7 @@ object EngineState {
         .orElse(s.selected.gmosNorth.filter(_.obsId === obsId))
         .orElse(s.selected.flamingos2.filter(_.obsId === obsId))
         .orElse(s.selected.igrins2.filter(_.obsId === obsId))
+        .orElse(s.selected.gnirs.filter(_.obsId === obsId))
         .orElse(s.selected.ghost.filter(_.obsId === obsId))
     )(sd =>
       es =>
@@ -160,6 +177,8 @@ object EngineState {
           es.copy(selected = es.selected.copy(flamingos2 = sd.some))
         else if (es.selected.igrins2.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(igrins2 = sd.some))
+        else if (es.selected.gnirs.exists(_.obsId === obsId))
+          es.copy(selected = es.selected.copy(gnirs = sd.some))
         else if (es.selected.ghost.exists(_.obsId === obsId))
           es.copy(selected = es.selected.copy(ghost = sd.some))
         else es
