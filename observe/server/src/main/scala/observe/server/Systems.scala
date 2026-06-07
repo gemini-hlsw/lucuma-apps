@@ -35,6 +35,7 @@ import observe.server.gems.*
 import observe.server.ghost.*
 import observe.server.gmos.*
 import observe.server.gmos.GmosController.GmosSite
+import observe.server.gnirs.*
 import observe.server.gsaoi.*
 import observe.server.gws.*
 import observe.server.igrins2.Igrins2Controller
@@ -68,7 +69,7 @@ case class Systems[F[_]] private[server] (
   gmosNorth:           GmosNorthController[F],
   ghost:               GhostController[F],
   igrins2:             Igrins2Controller[F],
-  //  gnirs:               GnirsController[F],
+  gnirs:               GnirsController[F],
   //  gpi:                 GpiController[F],
   //  niri:                NiriController[F],
   //  nifs:                NifsController[F],
@@ -79,8 +80,8 @@ case class Systems[F[_]] private[server] (
   conditionSetReader:  CurrentConditions => ConditionSetReader[F],
   gcalKeywordReader:   GcalKeywordReader[F],
   gmosKeywordReader:   GmosKeywordReader[F],
-  /*  gnirsKeywordReader:  GnirsKeywordReader[F],
-                                           niriKeywordReader:   NiriKeywordReader[F],
+  gnirsKeywordReader:  GnirsKeywordReader[F],
+  /*  niriKeywordReader:   NiriKeywordReader[F],
                                            nifsKeywordReader:   NifsKeywordReader[F],*/
   altairKeywordReader: AltairKeywordReader[F],
   gemsKeywordsReader:  GemsKeywordReader[F],
@@ -314,15 +315,15 @@ object Systems {
       else
         simCtrlBuilder.map((_, simKeyReaderBuilder))
 
-    //    def gnirs: IO[(GnirsController[IO], GnirsKeywordReader[IO])] =
-    //      instObjects(
-    //        settings.systemControl.gnirs,
-    //        GnirsEpics.instance[IO],
-    //        GnirsControllerEpics.apply[IO],
-    //        GnirsControllerSim.apply[IO],
-    //        GnirsKeywordReaderEpics[IO],
-    //        GnirsKeywordReaderDummy[IO]
-    //      )
+    def gnirs: IO[(GnirsController[IO], GnirsKeywordReader[IO])] =
+      instObjects(
+        settings.systemControl.gnirs,
+        GnirsEpics.instance[IO],
+        GnirsControllerEpics.apply[IO],
+        GnirsControllerSim.apply[IO],
+        GnirsKeywordReaderEpics[IO],
+        GnirsKeywordReaderDummy[IO]
+      )
     //
     //    def niri: IO[(NiriController[IO], NiriKeywordReader[IO])] =
     //      instObjects(
@@ -454,7 +455,8 @@ object Systems {
         (tcsGN, tcsGS, tcsKR, altairCtr, altairKR, condsR) = v
         w                                                 <- Resource.eval(gemsObjects)
         (gemsCtr, gemsKR, gsaoiCtr, gsaoiKR)               = w
-        //        (gnirsCtr, gnirsKR)                        <- Resource.eval(gnirs)
+        gnirsObjs                                         <- Resource.eval(gnirs)
+        (gnirsCtr, gnirsKR)                                = gnirsObjs
         f2Controller                                      <- Resource.eval(flamingos2)
         igrins2Ctr                                        <- igrins2(httpClient, instanceName)
         //        (niriCtr, niriKR)                          <- Resource.eval(niri)
@@ -473,13 +475,13 @@ object Systems {
         f2Controller,
         gmosSouthCtr,
         gmosNorthCtr,
-        //        gnirsCtr,
         //        gsaoiCtr,
         //        gpiController,
         ghostController,
         //        niriCtr,
         //        nifsCtr,
         igrins2Ctr,
+        gnirsCtr,
         altairCtr,
         gemsCtr,
         gcdb,
@@ -487,7 +489,7 @@ object Systems {
         condsR,
         gcalKR,
         gmosKR,
-        //        gnirsKR,
+        gnirsKR,
         //        niriKR,
         //        nifsKR,
         //        gsaoiKR,
@@ -530,6 +532,7 @@ object Systems {
           GmosControllerDisabled[F, GmosController.GmosSite.North.type]("north"),
           GhostControllerDisabled[F],
           Igrins2ControllerDisabled[F],
+          GnirsControllerDisabled[F],
           AltairControllerSim[F],
           GemsControllerSim[F],
           guideDb,
@@ -537,6 +540,7 @@ object Systems {
           DummyConditionSetReader.apply[F](Site.GN),
           DummyGcalKeywordsReader[F],
           GmosKeywordReaderDummy[F],
+          GnirsKeywordReaderDummy[F],
           AltairKeywordReaderDummy[F],
           GemsKeywordReaderDummy[F],
           GwsKeywordsReaderDummy[F]
@@ -562,7 +566,7 @@ object Systems {
     private val ghostDisabled: GhostController[F]           = new GhostControllerDisabled[F]
     //    private val nifsDisabled: NifsController[F]             = new NifsControllerDisabled[F]
     //    private val niriDisabled: NiriController[F]             = new NiriControllerDisabled[F]
-    //    private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
+    private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
 
     def tcsSouth(overrides: SystemOverrides): TcsSouthController[F] =
       if (overrides.isTcsEnabled.value) systems.tcsSouth
@@ -624,9 +628,9 @@ object Systems {
     //      if (overrides.isInstrumentEnabled) systems.niri
     //      else niriDisabled
     //
-    //    def gnirs(overrides: SystemOverrides): GnirsController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.gnirs
-    //      else gnirsDisabled
+    def gnirs(overrides: SystemOverrides): GnirsController[F] =
+      if (overrides.isInstrumentEnabled.value) systems.gnirs
+      else gnirsDisabled
 
   }
 }
