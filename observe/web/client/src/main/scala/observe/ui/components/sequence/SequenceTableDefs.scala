@@ -122,17 +122,20 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
       SettingsColumnId
     ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
 
+  private lazy val collapsibleColIds: Set[ColumnId] =
+    Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
+      .filter(_ => instrument.isSequenceEditable)
+
   protected lazy val DynTableDef = DynTable(
     ColumnSizes,
     ColumnPriorities,
     DynTable.ColState(
       resized = ColumnSizing(),
       visibility = ColumnVisibility(
-        extraDetailColumnIds.map(_ -> Visibility.Hidden).toMap
+        (extraDetailColumnIds ++ collapsibleColIds).map(_ -> Visibility.Hidden).toMap
       )
     ),
-    collapsibleCols = Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
-      .filter(_ => instrument.isSequenceEditable)
+    collapsibleCols = collapsibleColIds
   )
 
 // [T, A, TM, CM, TF, CF, FM]
