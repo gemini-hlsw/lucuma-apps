@@ -4,7 +4,6 @@
 package explore.config.sequence.byInstrument
 
 import cats.effect.IO
-import cats.syntax.option.*
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
@@ -13,6 +12,7 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
+import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.IsEditEnabled
@@ -24,6 +24,8 @@ final case class GnirsSequenceTable(
   staticConfig:         GnirsStaticConfig,
   acquisition:          View[List[Atom[GnirsDynamicConfig]]],
   science:              View[List[Atom[GnirsDynamicConfig]]],
+  acquisitonSN:         Option[SignalToNoiseAt],
+  scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
   isEditingScience:     View[IsEditing],
@@ -34,9 +36,6 @@ final case class GnirsSequenceTable(
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
     with SpectroscopySequenceTable[GnirsDynamicConfig]:
-
-  override val acquisitonSN = none
-  override val scienceSN    = none
 
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits

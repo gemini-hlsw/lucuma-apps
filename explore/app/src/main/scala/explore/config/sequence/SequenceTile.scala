@@ -341,26 +341,28 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               _ => atoms => IO(atoms)
                             )
-                      case SequenceData(InstrumentExecutionConfig.Gnirs(config), _) =>
-                        sequnceView
-                          .zoom(
-                            SequenceData.config
-                              .andThen(InstrumentExecutionConfig.gnirs)
-                              .andThen(InstrumentExecutionConfig.Gnirs.executionConfig)
-                          )
-                          .toOptionView
-                          .map: gnirsExecutionView =>
-                            GnirsSequenceTable(
-                              visitsViewOpt,
-                              config.static,
-                              gnirsExecutionView.flatAcquisition,
-                              gnirsExecutionView.flatScience,
-                              isEditEnabled,
-                              props.isEditingAcquisition,
-                              props.isEditingScience,
-                              props.isUserStaffOrAdmin,
-                              seqType => ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
+                      case SequenceData(InstrumentExecutionConfig.Gnirs(config), ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)) =>
+                          sequnceView
+                            .zoom(
+                              SequenceData.config
+                                .andThen(InstrumentExecutionConfig.gnirs)
+                                .andThen(InstrumentExecutionConfig.Gnirs.executionConfig)
                             )
+                            .toOptionView
+                            .map: gnirsExecutionView =>
+                              GnirsSequenceTable(
+                                visitsViewOpt,
+                                config.static,
+                                gnirsExecutionView.flatAcquisition,
+                                gnirsExecutionView.flatScience,
+                                acquisitionSn,
+                                scienceSn,
+                                isEditEnabled,
+                                props.isEditingAcquisition,
+                                props.isEditingScience,
+                                props.isUserStaffOrAdmin,
+                                seqType => ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
+                              )
                       case _                                                        => mismatchError.some
                   }
                   .getOrElse:
