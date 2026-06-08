@@ -26,7 +26,6 @@ import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.core.enums.ImagingVariantType
 import lucuma.ui.display.given
 
 import java.text.DecimalFormat
@@ -358,11 +357,6 @@ trait DisplayImplicits:
       // GNIRS LB K-band imaging AO:LGS+P1
     case BasicConfiguration.Visitor(mode, _, _)                                           =>
       mode.shortName
-
-  given Display[ImagingVariantType] = Display.byShortName:
-    case ImagingVariantType.Grouped     => "Grouped"
-    case ImagingVariantType.Interleaved => "Interleaved"
-    case ImagingVariantType.PreImaging  => "Pre-Imaging"
 
   given Display[WavelengthOrder] = Display.byShortName:
     case WavelengthOrder.Increasing => "Increasing"
