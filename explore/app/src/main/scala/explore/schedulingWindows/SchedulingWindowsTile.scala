@@ -21,6 +21,7 @@ import explore.model.ObsIdSetEditInfo
 import explore.model.ObsTabTileIds
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.SchedulingConstraints
 import explore.model.enums.TileSizeState
 import explore.model.formats.*
 import explore.model.reusability.given
@@ -66,18 +67,20 @@ import java.time.ZoneOffset
 import java.time.ZonedDateTime
 
 sealed abstract class SchedulingWindowsTile(
-  val obsEditInfo:   ObsIdSetEditInfo,
-  val timingWindows: View[List[TimingWindow]],
-  isReadOnly:        Boolean,
-  fullSize:          Boolean
+  val obsEditInfo:           ObsIdSetEditInfo,
+  val schedulingConstraints: View[SchedulingConstraints],
+  isReadOnly:                Boolean,
+  fullSize:                  Boolean
 ) extends Tile[SchedulingWindowsTile](
       ObsTabTileIds.TimingWindowsId.id,
-      if (timingWindows.get.isEmpty) "Scheduling Windows"
-      else s"Scheduling Windows (${timingWindows.get.length})",
+      if (schedulingConstraints.get.timingWindows.isEmpty) "Scheduling Windows"
+      else s"Scheduling Windows (${schedulingConstraints.get.timingWindows.length})",
       canMaximize = !fullSize,
       canMinimize = !fullSize
     )(SchedulingWindowsTile):
-  val readonly = isReadOnly || obsEditInfo.allAreCompleted
+  val readonly                                = isReadOnly || obsEditInfo.allAreCompleted
+  val timingWindows: View[List[TimingWindow]] =
+    schedulingConstraints.zoom(SchedulingConstraints.timingWindows)
 
 object SchedulingWindowsTile
     extends TileComponent[SchedulingWindowsTile]({ (props, tileSize) =>
@@ -456,7 +459,9 @@ final case class ObservationSchedulingWindowsTile[F[
       ObsIdSetEditInfo.of(observation.get),
       TimingWindowsQueries.viewWithRemoteMod(
         ObsIdSet.one(observation.get.id),
-        observation.undoableView[List[TimingWindow]](Observation.timingWindows)
+        observation.undoableView[SchedulingConstraints](
+          Observation.schedulingConstraints
+        )
       ),
       isReadonly,
       fullSize
@@ -480,12 +485,12 @@ final case class ObsIdSetSchedulingWindowsTile[F[
             .id[ObservationList]
             .filterIndex((id: Observation.Id) => idsToEdit.contains(id))
 
-        val twTraversal = obsTraversal.andThen(Observation.timingWindows)
+        val twTraversal = obsTraversal.andThen(Observation.schedulingConstraints)
 
         TimingWindowsQueries.viewWithRemoteMod(
           idsToEdit,
           observations
-            .undoableView[List[TimingWindow]](
+            .undoableView[SchedulingConstraints](
               twTraversal.getAll.andThen(_.head),
               twTraversal.modify
             )

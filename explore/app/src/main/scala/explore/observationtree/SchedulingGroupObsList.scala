@@ -18,6 +18,7 @@ import explore.model.ObsIdSet
 import explore.model.ObsIdSetEditInfo
 import explore.model.Observation
 import explore.model.ObservationList
+import explore.model.SchedulingConstraints
 import explore.model.SchedulingGroupList
 import explore.model.enums.AppTab
 import explore.model.syntax.all.*
@@ -154,7 +155,7 @@ object SchedulingGroupObsList:
       destIds     <- ObsIdSet.fromString.getOption(destination.droppableId)
       draggedIds  <- getDraggedIds(result.draggableId, focusedObsSet)
       if !destIds.intersects(draggedIds)
-      newTw       <- schedulingGroups.get(destIds)
+      newSc       <- schedulingGroups.get(destIds)
       grp         <- schedulingGroups.findContainingObsIds(draggedIds)
     yield
       val obsEditInfo = ObsIdSetEditInfo.fromObservationList(draggedIds, observations.get)
@@ -171,7 +172,7 @@ object SchedulingGroupObsList:
         val traversal = Iso
           .id[ObservationList]
           .filterIndex(draggedIds.contains)
-          .andThen(Observation.timingWindows)
+          .andThen(Observation.schedulingConstraints)
 
         val twUndoCtx =
           observations.zoom(traversal.getAll.andThen(_.head), traversal.modify)
@@ -185,7 +186,7 @@ object SchedulingGroupObsList:
               draggedIds,
               twUndoCtx.undoableView(Iso.id.asLens)
             )
-            .set(newTw)
+            .set(newSc)
     ).orEmpty
 
   private val component = ScalaFnComponent
@@ -220,8 +221,8 @@ object SchedulingGroupObsList:
     .render: (props, ctx, dragging) =>
       import ctx.given
 
-      val schedulingGroups: List[(ObsIdSet, List[TimingWindow])] =
-        props.schedulingGroups.toList.sortBy(_._2.headOption)
+      val schedulingGroups: List[(ObsIdSet, SchedulingConstraints)] =
+        props.schedulingGroups.toList.sortBy(_._2.timingWindows)
 
       val renderClone: Draggable.Render = (provided, snapshot, rubric) =>
         <.div(
@@ -295,7 +296,8 @@ object SchedulingGroupObsList:
           } else Callback.empty // Not in the same group
         }
 
-      def renderGroup(obsIds: ObsIdSet, timingWindows: List[TimingWindow]): VdomNode = {
+      def renderGroup(obsIds: ObsIdSet, s: SchedulingConstraints): VdomNode = {
+        val timingWindows = s.timingWindows
         val cgObs         = obsIds.toList.map(id => props.observations.get.get(id)).flatten
         // if this group or something in it is selected
         val groupSelected = props.focusedObsSet.exists(_.subsetOf(obsIds))
