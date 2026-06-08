@@ -242,7 +242,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             targetEnvironment =
               onTargets.map(tids => TargetEnvironmentInput(asterism = tids.assign)).orIgnore,
             constraintSet = onConstraintSet.map(_.toInput).orIgnore,
-            scheduling = onSchedulingConstraints.map(_.toInput).orIgnore,
+            schedulingConstraints = onSchedulingConstraints.map(_.toInput).orIgnore,
             attachments = List.empty.assign // Always clean observation attachments
           ).assign
         )

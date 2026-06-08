@@ -68,9 +68,7 @@ trait ImagingVariantDecoders:
         case ImagingVariantType.Grouped     =>
           val grouped = c.downField("grouped")
           for
-            // `order` is nullable/absent for some modes (e.g. Flamingos2 imaging); default it.
-            order      <-
-              grouped.downField("order").as[Option[WavelengthOrder]].map(_.getOrElse(WavelengthOrder.Increasing))
+            order      <- grouped.downField("order").as[WavelengthOrder]
             offsets    <- grouped.downField("offsets").as[Option[TelescopeConfigGenerator]]
             skyCount   <- grouped.downField("skyCount").as[NonNegInt]
             skyOffsets <- grouped.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]

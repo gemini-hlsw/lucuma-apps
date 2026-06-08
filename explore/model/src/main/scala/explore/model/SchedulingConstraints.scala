@@ -18,17 +18,12 @@ case class SchedulingConstraints(
   isSplittable:  Boolean,
   timingWindows: List[TimingWindow]
 ) derives Eq:
-  def toInput: SchedulingPropertiesInput =
-    SchedulingPropertiesInput(isSplittable.assign, timingWindows.map(_.toInput).assign)
+  def toInput: SchedulingConstraintsInput =
+    SchedulingConstraintsInput(isSplittable.assign, timingWindows.map(_.toInput).assign)
 
 object SchedulingConstraints:
   val isSplittable  = Focus[SchedulingConstraints](_.isSplittable)
   val timingWindows = Focus[SchedulingConstraints](_.timingWindows)
-
-  // The ODB no longer exposes `isSplittable` on read (only `timingWindows`), so
-  // it defaults to splittable. See SchedulingPropertiesInput on write.
-  def fromTimingWindows(timingWindows: List[TimingWindow]): SchedulingConstraints =
-    SchedulingConstraints(isSplittable = true, timingWindows = timingWindows.sorted)
 
   given Decoder[SchedulingConstraints] = Decoder.instance: c =>
     for

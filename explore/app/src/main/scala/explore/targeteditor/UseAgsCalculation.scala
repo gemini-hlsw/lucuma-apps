@@ -83,24 +83,26 @@ object UseAgsCalculation:
     guideProbe match
       case Some(GuideProbe.PWFS1) =>
         base.map:
-          case p: AgsParams.GmosLongSlit       => p.withPWFS1
-          case p: AgsParams.GmosImaging        => p.withPWFS1
           case p: AgsParams.Flamingos2LongSlit => p.withPWFS1
           case p: AgsParams.Flamingos2Imaging  => p.withPWFS1
-          case p: AgsParams.Igrins2LongSlit    => p.withPWFS1
           case p: AgsParams.GhostIfu           => p.withPWFS1
-          case p: AgsParams.Visitor            => p.withPWFS1
+          case p: AgsParams.GmosImaging        => p.withPWFS1
+          case p: AgsParams.GmosLongSlit       => p.withPWFS1
+          case p: AgsParams.GnirsLongSlit      => p.withPWFS1
+          case p: AgsParams.Igrins2LongSlit    => p.withPWFS1
           case p: AgsParams.MaroonX            => p.withPWFS1
+          case p: AgsParams.Visitor            => p.withPWFS1
       case Some(GuideProbe.PWFS2) =>
         base.map:
-          case p: AgsParams.GmosLongSlit       => p.withPWFS2
-          case p: AgsParams.GmosImaging        => p.withPWFS2
           case p: AgsParams.Flamingos2LongSlit => p.withPWFS2
           case p: AgsParams.Flamingos2Imaging  => p.withPWFS2
-          case p: AgsParams.Igrins2LongSlit    => p.withPWFS2
           case p: AgsParams.GhostIfu           => p.withPWFS2
-          case p: AgsParams.Visitor            => p.withPWFS2
+          case p: AgsParams.GmosImaging        => p.withPWFS2
+          case p: AgsParams.GmosLongSlit       => p.withPWFS2
+          case p: AgsParams.GnirsLongSlit      => p.withPWFS2
+          case p: AgsParams.Igrins2LongSlit    => p.withPWFS2
           case p: AgsParams.MaroonX            => p.withPWFS2
+          case p: AgsParams.Visitor            => p.withPWFS2
 
       case _ => base
 
