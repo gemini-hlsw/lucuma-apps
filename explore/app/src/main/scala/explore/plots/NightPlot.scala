@@ -541,10 +541,18 @@ object NightPlot:
         useMemo((props.options.get.site, trackingMapPot.value, start, end)):
           (site, trackingMapPot, start, end) =>
             trackingMapPot.value.map: trackingMap =>
+              val numTargets                = trackingMap.size
+              val pointResolution: Duration =
+                if numTargets <= 10 then Duration.ofMinutes(1)
+                else if numTargets <= 50 then Duration.ofMinutes(5)
+                else if numTargets <= 100 then Duration.ofMinutes(10)
+                else Duration.ofMinutes(30)
+
+              println(s"Using point resolution of $pointResolution for $numTargets targets")
               val seriesData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.Points]] =
                 trackingMap.view
                   .mapValues: (objPlotData, tracking) =>
-                    objPlotData.pointsAtInstant(site, start, end, tracking)
+                    objPlotData.pointsAtInstant(site, start, end, tracking, pointResolution)
 
               val chartData: MapView[ObjectPlotData.Id, Option[ObjectPlotData.SeriesData]] =
                 seriesData.mapValues(_.map(_.seriesData))

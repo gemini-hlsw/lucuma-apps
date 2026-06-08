@@ -48,17 +48,18 @@ case class ObjectPlotData(
     targets.exists(Target.nonsidereal.getOption(_).isDefined)
 
   def pointsAtInstant(
-    site:     Site,
-    start:    Instant,
-    end:      Instant,
-    tracking: Tracking
+    site:      Site,
+    start:     Instant,
+    end:       Instant,
+    tracking:  Tracking,
+    plotEvery: Duration = PlotEvery
   ): Option[ObjectPlotData.Points] =
     SkyCalc
       .forInterval(
         site,
         start,
         end,
-        PlotEvery,
+        plotEvery,
         tracking.at(_)
       )
       .map(ObjectPlotData.Points(_))
