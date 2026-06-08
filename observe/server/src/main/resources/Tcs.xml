@@ -976,6 +976,11 @@
     </Status>
     <Status name="tcsstate">
         <top>tcs</top>
+        <attribute name="dtelFocusB">
+            <channel>dtelFocus.VALB</channel>
+            <type>DOUBLE</type>
+            <description>Instrument defocus</description>
+        </attribute>
         <attribute name="crfollow">
             <channel>crFollow.VAL</channel>
             <type>INTEGER</type>
@@ -1299,11 +1304,6 @@
             <channel>guiderConfig.VALB</channel>
             <type>STRING</type>
             <description>Name of GeMS WFS for G2</description>
-        </attribute>
-        <attribute name="xoffsetPoA1">
-            <channel>offsetPoA1.VALA</channel>
-            <type>DOUBLE</type>
-            <description>X offset</description>
         </attribute>
         <attribute name="p1FollowS">
             <channel>p1:followS.VAL</channel>
