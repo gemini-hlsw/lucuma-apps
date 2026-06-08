@@ -34,20 +34,11 @@ import observe.server.gnirs.GnirsController.GnirsConfig
 import org.typelevel.log4cats.Logger
 
 trait GnirsEncoders {
-  // GNIRS read modes encode to (lowNoise, digitalAvgs):
-  //  - lowNoise is the number of low-noise (Fowler) reads, taken from lucuma-core
-  //    (GnirsReadMode.lowNoiseReads: VeryBright=1, Bright=1, Faint=16, VeryFaint=32).
-  //  - digitalAvgs is the number of on-controller digital averages. lucuma-core does not model it
-  //    yet, so it stays here; if GnirsReadMode gains a `digitalAverages` field, drop this.
-  private def digitalAverages(rm: GnirsReadMode): Int = rm match {
-    case GnirsReadMode.VeryBright => 1
-    case GnirsReadMode.Bright     => 16
-    case GnirsReadMode.Faint      => 16
-    case GnirsReadMode.VeryFaint  => 16
-  }
-
+  // GNIRS read modes encode to (lowNoise, digitalAvgs), both taken from lucuma-core:
+  // GnirsReadMode.lowNoiseReads (number of low-noise/Fowler reads) and
+  // GnirsReadMode.digitalAverages (on-controller digital averages).
   val readModeEncoder: EncodeEpicsValue[GnirsReadMode, (Int, Int)] =
-    EncodeEpicsValue(rm => (rm.lowNoiseReads, digitalAverages(rm)))
+    EncodeEpicsValue(rm => (rm.lowNoiseReads, rm.digitalAverages))
 
   // Bias voltage for the detector well depth (volts), taken from lucuma-core so it cannot drift
   // from the model (Shallow = 300mV, Deep = 600mV).
