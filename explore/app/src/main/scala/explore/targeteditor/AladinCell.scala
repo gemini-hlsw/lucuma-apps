@@ -346,15 +346,19 @@ object AladinCell extends ModelOptics with AladinCommon:
                                  _ <- props.guideStarSelection.set(GuideStarSelection.Default)
                                  _ <- offsetOnCenter.set(Offset.Zero)
                                yield ()
-      // Reset selection if pos angle changes except for manual selection changes
-      _                   <- useEffectWithDeps(props.obsConf.flatMap(_.posAngleConstraint)): _ =>
+      // Reset selection if the angles to test change
+      _                   <- useEffectWithDeps(props.anglesToTest): _ =>
                                (props.obsConf
                                  .flatMap(_.agsState)
                                  .foldMap(
                                    _.set(AgsState.Calculating)
-                                 ) *> props.guideStarSelection
-                                 .set(GuideStarSelection.Default))
-                                 .whenA(props.needsAGS && candidates.value.toOption.flatten.nonEmpty)
+                                 ) *>
+                                 props.guideStarSelection
+                                   .set(GuideStarSelection.Default))
+                                 .whenA(
+                                   // should check that the candidates list option is definde AND non empty
+                                   props.needsAGS && candidates.value.toOption.flatten.exists(_.nonEmpty)
+                                 )
       // request AGS calculation
       agsResults          <- useAgsCalculation(
                                obsTargetsCoordsPot.toOption.flatMap(_.toOption),
