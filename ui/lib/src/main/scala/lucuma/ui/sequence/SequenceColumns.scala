@@ -485,8 +485,8 @@ object SequenceColumns:
       CommonColumnSizes ++ SpectroscopyColumnSizes ++ Map(
         ExposureColumnId -> Resizable(77.toPx, min = 77.toPx, max = 130.toPx),
         CoaddsColumnId   -> Resizable(60.toPx, min = 50.toPx, max = 70.toPx),
-        FPUColumnId      -> Resizable(130.toPx, min = 130.toPx, max = 170.toPx),
-        DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx, max = 150.toPx),
+        FPUColumnId      -> Resizable(130.toPx, min = 130.toPx),
+        DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx),
         GratingColumnId  -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
         FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
         ReadModeColumnId -> Resizable(90.toPx, min = 75.toPx, max = 120.toPx),

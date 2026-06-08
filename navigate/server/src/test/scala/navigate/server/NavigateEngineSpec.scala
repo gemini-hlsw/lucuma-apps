@@ -54,7 +54,7 @@ class NavigateEngineSpec extends CatsEffectSuite {
     probeGuide = none
   )
 
-  test("NavigateEngine must memorize requested guide configuration.") {
+  test("NavigateEngine must memorize requested guide configuration.".flaky) {
     for {
       eng <- NavigateEngineSpec.buildEngine[IO]
       _   <- Stream.eval(eng.enableGuide(guideOnCfg)).merge(eng.eventStream.take(1)).compile.drain

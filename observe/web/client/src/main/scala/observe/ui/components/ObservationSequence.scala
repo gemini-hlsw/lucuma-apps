@@ -186,8 +186,25 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
-          case SequenceData(InstrumentExecutionConfig.Ghost(config), _) =>
+          case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                 =>
             GhostSequenceTable(
+              props.clientMode,
+              props.obsId,
+              config,
+              none,
+              none,
+              props.visits,
+              props.executionState.get,
+              props.currentRecordedVisit,
+              props.progress,
+              props.selectedRowId,
+              props.setSelectedRowId,
+              props.requests,
+              isPreview = false,
+              onBreakpointFlip
+            )
+          case SequenceData(InstrumentExecutionConfig.Gnirs(config), _)                 =>
+            GnirsSequenceTable(
               props.clientMode,
               props.obsId,
               config,

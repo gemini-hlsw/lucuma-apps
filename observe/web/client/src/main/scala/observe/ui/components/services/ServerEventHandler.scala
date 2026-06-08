@@ -19,6 +19,8 @@ import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.ExecutionSequence
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.MessageItem
 import lucuma.react.primereact.ToastRef
@@ -103,6 +105,11 @@ trait ServerEventHandler:
     InstrumentExecutionConfig.igrins2
       .andThen(InstrumentExecutionConfig.Igrins2.executionConfig)
 
+  private val gnirsExecutionOptional
+    : Optional[InstrumentExecutionConfig, ExecutionConfig[GnirsStaticConfig, GnirsDynamicConfig]] =
+    InstrumentExecutionConfig.gnirs
+      .andThen(InstrumentExecutionConfig.Gnirs.executionConfig)
+
   private def sequenceTypeOptic[S, D](
     sequenceType: SequenceType
   ): Lens[ExecutionConfig[S, D], Option[ExecutionSequence[D]]] =
@@ -139,6 +146,12 @@ trait ServerEventHandler:
           case Instrument.Igrins2    =>
             removeFutureAtomFromLoadedObservation(
               igrins2ExecutionOptional,
+              sequenceTypeOptic(sequenceType),
+              atomId
+            )(loadedObservation)
+          case Instrument.Gnirs      =>
+            removeFutureAtomFromLoadedObservation(
+              gnirsExecutionOptional,
               sequenceTypeOptic(sequenceType),
               atomId
             )(loadedObservation)

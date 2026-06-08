@@ -35,11 +35,12 @@ case class Selected[F[_]](
   gmosNorth:  Option[SequenceData[F]],
   ghost:      Option[SequenceData[F]],
   flamingos2: Option[SequenceData[F]],
-  igrins2:    Option[SequenceData[F]]
+  igrins2:    Option[SequenceData[F]],
+  gnirs:      Option[SequenceData[F]]
 )
 
 object Selected:
-  def none[F[_]]: Selected[F] = Selected(None, None, None, None, None)
+  def none[F[_]]: Selected[F] = Selected(None, None, None, None, None, None)
 
 case class HeaderExtraData(
   conditions: CurrentConditions,

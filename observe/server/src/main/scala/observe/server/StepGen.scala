@@ -14,6 +14,7 @@ import lucuma.core.model.sequence.TelescopeConfig as CoreTelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import observe.model.Subsystem
 import observe.model.SystemOverrides
@@ -47,6 +48,8 @@ sealed trait StepGen[F[_]]:
         case (a: StepGen.Flamingos2[F], b: StepGen.Flamingos2[F]) =>
           a.instConfig === b.instConfig
         case (a: StepGen.Igrins2[F], b: StepGen.Igrins2[F])       =>
+          a.instConfig === b.instConfig
+        case (a: StepGen.Gnirs[F], b: StepGen.Gnirs[F])           =>
           a.instConfig === b.instConfig
         case _                                                    =>
           false)
@@ -139,6 +142,22 @@ object StepGen:
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Igrins2DynamicConfig
+
+  case class Gnirs[F[_]](
+    atomId:          Atom.Id,
+    sequenceType:    SequenceType,
+    id:              Step.Id,
+    dataId:          DataId,
+    resources:       Set[Subsystem],
+    obsControl:      SystemOverrides => InstrumentSystem.ObserveControl[F],
+    generator:       StepActionsGen[F],
+    instConfig:      GnirsDynamicConfig,
+    config:          StepConfig,
+    telescopeConfig: CoreTelescopeConfig,
+    signalToNoise:   Option[SignalToNoise],
+    breakpoint:      Breakpoint
+  ) extends StepGen[F]:
+    type D = GnirsDynamicConfig
 
   case class Ghost[F[_]](
     atomId:          Atom.Id,

@@ -80,6 +80,25 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected val ImagingMirrorColumnId: ColumnId   = ColumnId("imagingMirror")
   protected val SettingsColumnId: ColumnId        = ColumnId("settings")
 
+  // Observe-specific detail columns. Some of these ids (e.g. decker, readMode) are also provided
+  // by the shared per-instrument `SequenceColumns` (e.g. for GNIRS and Flamingos2). In that case
+  // we must not declare them again here: doing so would produce duplicate column ids and, because
+  // these are hidden by default, would also hide the shared column. So they are filtered against
+  // the instrument's shared columns below (`extraDetailColumnIds`).
+  private val detailColumnIds: List[ColumnId] =
+    List(CameraColumnId, DeckerColumnId, ReadModeColumnId, ImagingMirrorColumnId)
+
+  private lazy val instrumentColDefs: List[ColDef.Type] =
+    SequenceColumns(ColDef, _._1.some, _._2.some)(instrument)
+
+  // Column ids contributed by the shared per-instrument `SequenceColumns`.
+  private lazy val instrumentColumnIds: Set[ColumnId] =
+    instrumentColDefs.map(_.id).toSet
+
+  // Detail columns not already provided by the shared instrument columns.
+  protected lazy val extraDetailColumnIds: List[ColumnId] =
+    detailColumnIds.filterNot(instrumentColumnIds.contains)
+
   protected lazy val ColumnSizes: Map[ColumnId, ColumnSize] = Map(
     HeaderColumnId          -> FixedSize(0.toPx),
     BreakpointColumnId      -> FixedSize(0.toPx),
@@ -103,20 +122,20 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
       SettingsColumnId
     ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
 
+  private lazy val collapsibleColIds: Set[ColumnId] =
+    Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
+      .filter(_ => instrument.isSequenceEditable)
+
   protected lazy val DynTableDef = DynTable(
     ColumnSizes,
     ColumnPriorities,
     DynTable.ColState(
       resized = ColumnSizing(),
       visibility = ColumnVisibility(
-        CameraColumnId        -> Visibility.Hidden,
-        DeckerColumnId        -> Visibility.Hidden,
-        ReadModeColumnId      -> Visibility.Hidden,
-        ImagingMirrorColumnId -> Visibility.Hidden
+        (extraDetailColumnIds ++ collapsibleColIds).map(_ -> Visibility.Hidden).toMap
       )
     ),
-    collapsibleCols = Set(SequenceColumns.DragHandleColumnId, SequenceColumns.EditControlsColumnId)
-      .filter(_ => instrument.isSequenceEditable)
+    collapsibleCols = collapsibleColIds
   )
 
 // [T, A, TM, CM, TF, CF, FM]
@@ -235,14 +254,15 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                       }
       )
     ) ++
-      SequenceColumns(ColDef, _._1.some, _._2.some)(instrument)
-        .map(colDef => colDef.withColumnSize(ColumnSizes(colDef.id))) ++
+      instrumentColDefs.map(colDef => colDef.withColumnSize(ColumnSizes(colDef.id))) ++
       List(
         // column(ObsModeColumnId, "Observing Mode"),
         column(CameraColumnId, "Camera"),
         column(DeckerColumnId, "Decker"),
         column(ReadModeColumnId, "ReadMode"),
-        column(ImagingMirrorColumnId, "ImagingMirror"),
+        column(ImagingMirrorColumnId, "ImagingMirror")
+      ).filterNot(c => instrumentColumnIds.contains(c.id)) ++
+      List(
         column(
           SettingsColumnId,
           Icons.RectangleList,
