@@ -85,12 +85,11 @@ object ItcResult {
     val snAt: Option[SignalToNoiseAt] = times.focus.signalToNoiseAt
     val duration: TimeSpan            = exposureTime *| exposures.value
 
-    val ccds: SortedMap[Int, ItcCcd]              =
-      SortedMap.from(
-        times.focus.ccds.zipWithIndex.map { case (ccd, index) =>
-          index -> ccd
-        }
-      )
+    val ccds: SortedMap[Int, ItcCcd] =
+      SortedMap.from(times.focus.ccds.zipWithIndex.map(_.swap))
+
+    val ccdCount: Int = ccds.size
+
     val ccdWarnings: SortedMap[Int, List[String]] =
       SortedMap.from(ccds.map { case (idx, ccd) =>
         idx -> ccd.warnings.map(_.msg)

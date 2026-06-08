@@ -424,7 +424,8 @@ object ObsTabTiles:
           val itcTile =
             odbOrSelectedConfig match
               case Some(_: BasicConfiguration.GmosNorthImaging) |
-                  Some(_: BasicConfiguration.GmosSouthImaging) =>
+                  Some(_: BasicConfiguration.GmosSouthImaging) |
+                  Some(_: BasicConfiguration.Flamingos2Imaging) =>
                 ItcImagingTile(
                   props.vault.userId,
                   selectedConfig.get,
@@ -448,8 +449,7 @@ object ObsTabTiles:
                   globalPreferences
                 ).some
               // Visitor instruments have no ITC, hide the itc tile.
-              case Some(_: BasicConfiguration.Visitor) |
-                  Some(_: BasicConfiguration.Flamingos2Imaging) =>
+              case Some(_: BasicConfiguration.Visitor) =>
                 none
               case None => ItcEmptyTile().some
 

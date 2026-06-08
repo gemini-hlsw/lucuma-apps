@@ -27,6 +27,7 @@ import explore.model.itc.*
 import explore.model.reusability.given
 import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
+import explore.modes.ItcInstrumentConfig.Flamingos2Imaging
 import explore.modes.ItcInstrumentConfig.GmosNorthImaging
 import explore.modes.ItcInstrumentConfig.GmosSouthImaging
 import explore.modes.ModeRow
@@ -71,11 +72,13 @@ object ItcImagingTile
       // We only have imaging configs here, and all of them will be the same type, so this is
       // sufficient for our purposes
       given Order[ItcInstrumentConfig] = Order.from:
-        case (GmosNorthImaging(filter = filter1), GmosNorthImaging(filter = filter2)) =>
+        case (GmosNorthImaging(filter = filter1), GmosNorthImaging(filter = filter2))   =>
           filter1.compare(filter2)
-        case (GmosSouthImaging(filter = filter1), GmosSouthImaging(filter = filter2)) =>
+        case (GmosSouthImaging(filter = filter1), GmosSouthImaging(filter = filter2))   =>
           filter1.compare(filter2)
-        case (_, _)                                                                   => 0
+        case (Flamingos2Imaging(filter = filter1), Flamingos2Imaging(filter = filter2)) =>
+          filter1.compare(filter2)
+        case (_, _)                                                                     => 0
 
       def toMessage(msg: String, severity: Message.Severity) =
         Message(text = msg, severity = severity): VdomNode
@@ -132,32 +135,76 @@ object ItcImagingTile
       ): ColumnDef.Single.WithTableMeta[ImagingFilterRow, V, TableMeta] =
         ColDef(id, accessor, columnNames.getOrElse(id, id.value))
 
-      def ccdColumns[V](
-        idBase:      String,
-        groupHeader: String,
-        accessor:    ItcCcd => V,
-        format:      V => VdomNode,
-        size:        SizePx
-      ): ColumnDef.Group.WithTableMeta[ImagingFilterRow, TableMeta] =
-        ColumnDef.Group(
-          id = ColumnId(idBase),
-          header = _ => <.div(groupHeader, ExploreStyles.ItcImagingTableGroupHeader),
-          columns = (0 to 2).map { ccdIndex =>
-            ColDef(
-              ColumnId(s"${idBase}-$ccdIndex"),
-              accessor = _.result.toOption
-                .flatMap(_.toOption)
-                .flatMap(ItcResult.result.getOption)
-                .flatMap(_.ccds.get(ccdIndex))
-                .map(accessor),
-              cell = _.value.map(format),
-              header = s"CCD ${ccdIndex + 1}",
-              size = size
-            )
-          }.toList
-        )
+      // Number of detectors for the S/N columns
+      def detectorCount(results: Pot[EitherNec[ItcQueryProblem, ImagingResults]]): Int =
+        results.toOption
+          .flatMap(_.toOption)
+          .map:
+            _.values
+              .flatMap(_.values)
+              .flatMap(_.toOption)
+              .collect:
+                case r @ ItcResult.Result(_, _) => r.ccdCount
+          .flatMap(_.maxOption)
+          .getOrElse(1)
 
-      lazy val columns =
+      def columnsFor(numDetectors: Int) =
+        def ccdValue[V](idx: Int, get: ItcCcd => V): ImagingFilterRow => Option[V] =
+          _.result.toOption
+            .flatMap(_.toOption)
+            .flatMap(ItcResult.result.getOption)
+            .flatMap(_.ccds.get(idx))
+            .map(get)
+
+        // Single ccd column
+        def ccdColumn[V](
+          id:       String,
+          header:   String,
+          accessor: ItcCcd => V,
+          format:   V => VdomNode,
+          size:     SizePx
+        ): ColumnDef.Single.WithTableMeta[ImagingFilterRow, Option[V], TableMeta] =
+          ColDef(
+            ColumnId(id),
+            accessor = ccdValue(0, accessor),
+            cell = _.value.map(format),
+            header = header,
+            size = size
+          )
+
+        // per-CCD columns
+        def ccdColumns[V](
+          idBase: String,
+          header: String,
+          get:    ItcCcd => V,
+          format: V => VdomNode,
+          size:   SizePx
+        ): ColumnDef.Group.WithTableMeta[ImagingFilterRow, TableMeta] =
+          ColumnDef.Group(
+            id = ColumnId(idBase),
+            header = _ => <.div(header, ExploreStyles.ItcImagingTableGroupHeader),
+            columns = (0 until numDetectors).map { ccdIndex =>
+              ColDef(
+                ColumnId(s"${idBase}-$ccdIndex"),
+                accessor = ccdValue(ccdIndex, get),
+                cell = _.value.map(format),
+                header = s"CCD ${ccdIndex + 1}",
+                size = size
+              )
+            }.toList
+          )
+
+        def snColumns[V](
+          id:       String,
+          header:   String,
+          get:      ItcCcd => V,
+          format:   V => VdomNode,
+          ccdSize:  SizePx,
+          flatSize: SizePx
+        ) =
+          if numDetectors <= 1 then ccdColumn(id, header, get, format, flatSize)
+          else ccdColumns(id, header, get, format, ccdSize)
+
         List(
           column(InstrumentColId, _.config.instrument.shortName)
             .withCell(_.value: String)
@@ -176,9 +223,21 @@ object ItcImagingTile
             .withCell: cell =>
               itcCell(cell.value, ItcColumns.Time)
             .withSize(85.toPx),
-          ccdColumns("sn+bg-ccd", "S/N + Background", _.peakPixelFlux, v => f"$v%.0fe-", 85.toPx),
-          ccdColumns("single-sn-ccd", "S/N per Exposure", _.singleSNRatio.value, _.format, 85.toPx),
-          ccdColumns("total-sn-ccd", "Total S/N", _.totalSNRatio.value, _.format, 85.toPx)
+          snColumns("sn+bg-ccd",
+                    "S/N + Background",
+                    _.peakPixelFlux,
+                    v => f"$v%.0fe-",
+                    85.toPx,
+                    110.toPx
+          ),
+          snColumns("single-sn-ccd",
+                    "S/N per Exposure",
+                    _.singleSNRatio.value,
+                    _.format,
+                    85.toPx,
+                    110.toPx
+          ),
+          snColumns("total-sn-ccd", "Total S/N", _.totalSNRatio.value, _.format, 85.toPx, 90.toPx)
         )
 
       for {
@@ -241,8 +300,8 @@ object ItcImagingTile
                                            ImagingFilterRow(params.hashCode, params.mode, r.ready)
                                      .orEmpty
                                      .asRight
-        cols          <- useMemo(()): _ =>
-                           columns
+        cols          <- useMemo(detectorCount(tileState.get.calculationResults)): numDetectors =>
+                           columnsFor(numDetectors)
         table         <- useReactTable(
                            TableOptions(
                              cols,
