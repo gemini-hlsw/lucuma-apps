@@ -1770,7 +1770,7 @@ input GmosNorthLongSlitInput {
 
 """Edit or create GMOS North Imaging advanced configuration"""
 input GmosNorthImagingInput {
-  variant: GmosImagingVariantInput
+  variant: ImagingVariantInput
 
   """
   The filters field must be specified with at least one filter. It cannot be
@@ -2135,7 +2135,7 @@ input GmosSouthImagingFilterInput {
 
 """Edit or create GMOS South Imaging advanced configuration"""
 input GmosSouthImagingInput {
-  variant: GmosImagingVariantInput
+  variant: ImagingVariantInput
 
   """
   The filters field must be specified with at least one filter. It cannot be
@@ -2803,7 +2803,7 @@ Configuration that controls how and when the Scheduler may plan execution of an
 observation, including whether it can be split across multiple visits and any
 timing constraints.
 """
-input SchedulingConstraintsInput {
+input SchedulingPropertiesInput {
   """
   Controls whether the observation may be split across multiple visits. When
   true (default), the scheduler may divide the science sequence into discrete
@@ -2820,27 +2820,6 @@ input SchedulingConstraintsInput {
   value clears all existing timing windows.
   """
   timingWindows: [TimingWindowInput!]
-}
-
-"""
-Configuration that controls how and when the Scheduler may plan execution of an
-observation, including whether it can be split across multiple visits and any
-timing constraints.
-"""
-type SchedulingConstraints {
-  """
-  Controls whether the observation may be split across multiple visits. When
-  true, the scheduler may divide the science sequence into discrete segments
-  (i.e. "atoms") scheduled in order across separate visits. When false, the
-  entire science sequence must complete within a single uninterrupted visit.
-  """
-  isSplittable: Boolean!
-
-  """
-  One or more windows during which the observation is permitted to execute.  If
-  empty, there are no timing constraints for the observation.
-  """
-  timingWindows: [TimingWindow!]!
 }
 
 """Observation properties"""
@@ -2872,15 +2851,14 @@ input ObservationPropertiesInput {
   constraintSet: ConstraintSetInput
 
   """
-  Deprecated in favor of the `schedulingConstraints` field — use that instead.
-  If both this field and `schedulingConstraints` are specified in the same
-  mutation, the mutation will be rejected with a validation error.
-  
-  Specifies one or more timing windows during which the observation may execute.
-  Defaults to empty (unconstrained) if omitted. To modify, supply the complete
-  desired array — it replaces the previous value entirely.
+  Deprecated in favor of the scheduling field — use that instead. If both this
+  field and scheduling are specified in the same mutation, the mutation will be
+  rejected with a validation error. One or more timing windows during which the
+  observation may execute. Defaults to empty (unconstrained) if omitted. To
+  modify, supply the complete desired array — it replaces the previous value
+  entirely.
   """
-  timingWindows: [TimingWindowInput!] @deprecated(reason: "Use `schedulingConstraints` instead. (Deprecated June 4, 2026)")
+  timingWindows: [TimingWindowInput!] @deprecated(reason: "Use `scheduling` instead. (Deprecated June 4, 2026).")
 
   """
   Scheduling configuration for this observation, controlling visit splitting and
@@ -2888,7 +2866,7 @@ input ObservationPropertiesInput {
   splittable, no timing windows). Set to `null` to reset any existing scheduling
   configuration to those defaults.
   """
-  schedulingConstraints: SchedulingConstraintsInput
+  scheduling: SchedulingPropertiesInput
 
   """
   The attachments defaults to empty if not specified on creation, and may be edited by specifying a new whole array
@@ -7288,6 +7266,9 @@ input Flamingos2ImagingFilterInput {
 
 """Flamingos2 Imaging mode"""
 type Flamingos2Imaging {
+  """Details specific to the type of imaging being performed."""
+  variant: ImagingVariant!
+
   """The filters (at least one is required) to be used for data collection."""
   filters: [Flamingos2ImagingFilter!]!
 
@@ -7337,24 +7318,17 @@ type Flamingos2Imaging {
   Optional explicitly specified F2 Readout mode. If set it overrides the default.
   """
   explicitReadoutMode: Flamingos2ReadoutMode
-
-  """
-  Spatial offsets, either explicitly specified in explicitSpatialOffsets or else
-  taken from defaultSpatialOffsets.
-  """
-  spatialOffsets: [Offset!]!
-
-  """Default spatial offsets."""
-  defaultSpatialOffsets: [Offset!]!
-
-  """
-  Optional explicitly specified spatial offsets. If set it overrides the default.
-  """
-  explicitSpatialOffsets: [Offset!]
 }
 
 """Flamingos2 Imaging creation and edit input parameters."""
 input Flamingos2ImagingInput {
+  """
+  Details specific to the type of imaging being performed.  On creation, if not
+  specified, defaults to a grouped variant with an increasing-wavelength,
+  30 arcsec spiral offset generator.
+  """
+  variant: ImagingVariantInput
+
   """
   The filters field must be specified with at least one filter. It cannot be
   unset with a null value.
@@ -7380,11 +7354,6 @@ input Flamingos2ImagingInput {
   The explicitReadoutMode field may be unset by assigning a null value, or ignored by skipping it altogether
   """
   explicitReadoutMode: Flamingos2ReadoutMode
-
-  """
-  The explicitSpatialOffsets field may be unset by assigning a null value, or ignored by skipping it altogether
-  """
-  explicitSpatialOffsets: [OffsetInput!]
 }
 
 enum GhostIfu1FiberAgitator {
@@ -8406,7 +8375,7 @@ enum WavelengthOrder {
 The available GMOS imaging categories.  Each category will produce a distinct
 sequence.
 """
-enum GmosImagingVariantType {
+enum ImagingVariantType {
   GROUPED
   INTERLEAVED
   PRE_IMAGING
@@ -8416,19 +8385,19 @@ enum GmosImagingVariantType {
 The specific imaging sub-type, one of which will be defined and the remaining
 options null.
 """
-type GmosImagingVariant {
-  variantType: GmosImagingVariantType!
+type ImagingVariant {
+  variantType: ImagingVariantType!
 
   """
   Grouped mode collects all datasets for each filter before changing filters.
   """
-  grouped: GmosGroupedImagingVariant
+  grouped: GroupedImagingVariant
 
   """Interleaved mode cycles through all filters repeatedly."""
-  interleaved: GmosInterleavedImagingVariant
+  interleaved: InterleavedImagingVariant
 
   """PreImaging mode is used for MOS mask creation."""
-  preImaging: GmosPreImagingVariant
+  preImaging: PreImagingVariant
 }
 
 """
@@ -8436,17 +8405,17 @@ Input that specifies which imaging sub-type is desired along with its configurat
 details.  Exactly one of the options should be defined and the other two left
 unspecified.
 """
-input GmosImagingVariantInput @oneOf {
+input ImagingVariantInput @oneOf {
   """
   Grouped mode collects all datasets for each filter before changing filters.
   """
-  grouped: GmosGroupedImagingVariantInput
+  grouped: GroupedImagingVariantInput
 
   """Interleaved mode cycles through all filters repeatedly."""
-  interleaved: GmosInterleavedImagingVariantInput
+  interleaved: InterleavedImagingVariantInput
 
   """PreImaging mode is used for MOS mask creation."""
-  preImaging: GmosPreImagingVariantInput
+  preImaging: PreImagingVariantInput
 }
 
 """
@@ -8454,7 +8423,7 @@ When doing "grouped" filter imaging, datasets associated with a particular
 filter are collected consecutively before moving on to other filters (if any).
 Sky datasets may be collected before and after each group of object datasets.
 """
-type GmosGroupedImagingVariant {
+type GroupedImagingVariant {
   """
   Whether the filters should appear in the sequence in increasing or decreasing
   order by their wavelength.
@@ -8479,7 +8448,7 @@ type GmosGroupedImagingVariant {
 }
 
 """Input used for specifying GMOS grouped filter imaging."""
-input GmosGroupedImagingVariantInput {
+input GroupedImagingVariantInput {
   """
   Whether the filters should appear in the sequence in increasing or decreasing
   order by their wavelength.  Defaults to `INCREASING` on create, absent (i.e.,
@@ -8513,7 +8482,7 @@ input GmosGroupedImagingVariantInput {
 When doing "interleaved" filter imaging, the sequence repeatedly alternates
 through the set of filters in use.
 """
-type GmosInterleavedImagingVariant {
+type InterleavedImagingVariant {
   """
   Offset generator for the science object datasets. The offset pattern is
   applied to the sequence of science datasets as a whole.
@@ -8532,7 +8501,7 @@ type GmosInterleavedImagingVariant {
 }
 
 """Input used for specifying GMOS interleaved filter imaging."""
-input GmosInterleavedImagingVariantInput {
+input InterleavedImagingVariantInput {
   """
   Offset generator for the science object datasets. The offset pattern is
   created for the sequence of science datasets as a whole.
@@ -8557,7 +8526,7 @@ input GmosInterleavedImagingVariantInput {
 """
 A special imaging case, MOS pre-imaging is defined by an offset region.
 """
-type GmosPreImagingVariant {
+type PreImagingVariant {
   offset1: Offset!
   offset2: Offset!
   offset3: Offset!
@@ -8565,7 +8534,7 @@ type GmosPreImagingVariant {
 }
 
 """MOS pre-imaging offsets, each of which default to (0, 0)."""
-input GmosPreImagingVariantInput {
+input PreImagingVariantInput {
   offset1: OffsetInput
   offset2: OffsetInput
   offset3: OffsetInput
@@ -8591,7 +8560,7 @@ input GmosNorthImagingFilterInput {
 """GMOS North Imaging mode"""
 type GmosNorthImaging {
   """Details specific to the type of imaging being performed."""
-  variant: GmosImagingVariant!
+  variant: ImagingVariant!
 
   """
   The filters (at least one is required) to be used for data collection. How
@@ -9066,7 +9035,7 @@ type GmosSouthLongSlit {
 """GMOS South Imaging mode"""
 type GmosSouthImaging {
   """Details specific to the type of imaging being performed."""
-  variant: GmosImagingVariant!
+  variant: ImagingVariant!
 
   """
   The filters (at least one is required) to be used for data collection. How
@@ -10107,14 +10076,8 @@ type Observation {
   """The constraint set for the observation"""
   constraintSet: ConstraintSet!
 
-  """
-  Deprecated (using `schedulingConstraints` instead).  Observation timing
-  windows.
-  """
-  timingWindows: [TimingWindow!]! @deprecated(reason: "Use `schedulingConstraints` instead. (Deprecated June 5, 2026)")
-
-  """Observation scheduling constraints."""
-  schedulingConstraints: SchedulingConstraints!
+  """Observation timing windows"""
+  timingWindows: [TimingWindow!]!
 
   """attachments"""
   attachments: [Attachment!]!

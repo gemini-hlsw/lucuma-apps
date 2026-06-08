@@ -41,7 +41,7 @@ import lucuma.react.primereact.Panel
 import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
@@ -96,7 +96,7 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[GmosImagingVariant]
+    ): View[ImagingVariant]
 
     protected def filters(aligner: AA)(using
       MonadError[IO, Throwable],
@@ -192,12 +192,12 @@ object GmosImagingConfigPanel {
           val initialFilters: NonEmptyList[ImagingFilter] =
             initialFiltersLens.get(props.observingMode.get)
 
-          val variantView: View[GmosImagingVariant] = variant(props.observingMode)
+          val variantView: View[ImagingVariant] = variant(props.observingMode)
 
           React.Fragment(
             <.div(ExploreStyles.GmosImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
-                GmosImagingVariantEditor(variantView, props.readonly)
+                ImagingVariantEditor(variantView, props.readonly)
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 CustomizableEnumSelectOptional(
@@ -379,7 +379,7 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[GmosImagingVariant] = aligner
+    ): View[ImagingVariant] = aligner
       .zoom(
         ObservingMode.GmosNorthImaging.variant,
         GmosNorthImagingInput.variant.modify
@@ -510,7 +510,7 @@ object GmosImagingConfigPanel {
       MonadError[IO, Throwable],
       Effect.Dispatch[IO],
       Logger[IO]
-    ): View[GmosImagingVariant] = aligner
+    ): View[ImagingVariant] = aligner
       .zoom(
         ObservingMode.GmosSouthImaging.variant,
         GmosSouthImagingInput.variant.modify

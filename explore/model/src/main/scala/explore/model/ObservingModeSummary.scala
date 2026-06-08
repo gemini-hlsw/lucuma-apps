@@ -32,6 +32,7 @@ import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import explore.model.display.given
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
@@ -46,7 +47,7 @@ import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.display.given
@@ -82,13 +83,13 @@ enum ObservingModeSummary derives Order:
     exposureTimeMode: ExposureTimeMode
   )                                                        extends ObservingModeSummary
   case GmosNorthImaging(
-    variant:     GmosImagingVariant,
+    variant:     ImagingVariant,
     filters:     NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
   )                                                        extends ObservingModeSummary
   case GmosSouthImaging(
-    variant:     GmosImagingVariant,
+    variant:     ImagingVariant,
     filters:     NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
     ampReadMode: GmosAmpReadMode,
     roi:         GmosRoi
@@ -262,13 +263,13 @@ enum ObservingModeSummary derives Order:
             .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
             .toList
             .mkString("\n")
-        s"GMOS-N Imaging ${variant.variantType.display}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
+        s"GMOS-N Imaging ${variant.variantType.shortName}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case GmosSouthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr = filters
           .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
           .toList
           .mkString("\n")
-        s"GMOS-S Imaging ${variant.variantType.display}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
+        s"GMOS-S Imaging ${variant.variantType.shortName}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case Igrins2LongSlit(etm)                                                              =>
         s"IGRINS-2 Longslit (${etm.formatSpec})"
       case GnirsLongSlit(filter, fpu, prism, grating, camera, etm)                           =>
@@ -379,10 +380,10 @@ object ObservingModeSummary:
       s"Flamingos2 Longslit ${grating.shortName} ${filter.shortName} ${fpu.shortName}"
     case GmosNorthImaging(variant, filters, ampReadMode, roi)                            =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
-      s"GMOS-N Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
+      s"GMOS-N Imaging ${variant.variantType.shortName} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case GmosSouthImaging(variant, filters, ampReadMode, roi)                            =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
-      s"GMOS-S Imaging ${variant.variantType.display} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
+      s"GMOS-S Imaging ${variant.variantType.shortName} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
     case Flamingos2Imaging(filters)                                                      =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"Flamingos2 Imaging $filterStr"

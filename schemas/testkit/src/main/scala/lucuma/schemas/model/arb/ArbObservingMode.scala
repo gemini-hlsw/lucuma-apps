@@ -30,7 +30,7 @@ import lucuma.core.util.arb.ArbEnumerated
 import lucuma.core.util.arb.ArbNewType
 import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -43,7 +43,7 @@ trait ArbObservingMode {
   import ArbAngle.given
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
-  import ArbGmosImagingVariant.given
+  import ArbImagingVariant.given
   import ArbGnirsAcquisitionMode.given
   import ArbOffset.given
   import ArbSlitTelescopeConfigs.given
@@ -346,7 +346,7 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GmosNorthImaging] =
     Arbitrary[ObservingMode.GmosNorthImaging](
       for
-        variant             <- arbitrary[GmosImagingVariant]
+        variant             <- arbitrary[ImagingVariant]
         initialFilters      <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
         filters             <- arbitrary[NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter]]
         defaultBin          <- arbitrary[GmosBinning]
@@ -384,7 +384,7 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GmosSouthImaging] =
     Arbitrary[ObservingMode.GmosSouthImaging](
       for
-        variant             <- arbitrary[GmosImagingVariant]
+        variant             <- arbitrary[ImagingVariant]
         initialFilters      <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
         filters             <- arbitrary[NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter]]
         defaultBin          <- arbitrary[GmosBinning]
@@ -432,8 +432,7 @@ trait ArbObservingMode {
         explicitDecker         <- arbitrary[Option[Flamingos2Decker]]
         defaultReadoutMode     <- arbitrary[Flamingos2ReadoutMode]
         explicitReadoutMode    <- arbitrary[Option[Flamingos2ReadoutMode]]
-        defaultSpatialOffsets  <- arbitrary[List[Offset]]
-        explicitSpatialOffsets <- arbitrary[Option[List[Offset]]]
+        variant                <- arbitrary[ImagingVariant]
       yield ObservingMode.Flamingos2Imaging(
         initialFilters,
         filters,
@@ -445,8 +444,7 @@ trait ArbObservingMode {
         explicitDecker,
         defaultReadoutMode,
         explicitReadoutMode,
-        defaultSpatialOffsets,
-        explicitSpatialOffsets
+        variant
       )
     )
 
@@ -555,7 +553,7 @@ trait ArbObservingMode {
   given Cogen[ObservingMode.GmosNorthImaging] =
     Cogen[
       (
-        GmosImagingVariant,
+        ImagingVariant,
         NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
         NonEmptyList[ObservingMode.GmosNorthImaging.ImagingFilter],
         GmosBinning,
@@ -589,7 +587,7 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.GmosSouthImaging] =
     Cogen[
-      (GmosImagingVariant,
+      (ImagingVariant,
        NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
        NonEmptyList[ObservingMode.GmosSouthImaging.ImagingFilter],
        GmosBinning,
@@ -634,8 +632,7 @@ trait ArbObservingMode {
         Option[Flamingos2Decker],
         Flamingos2ReadoutMode,
         Option[Flamingos2ReadoutMode],
-        List[Offset],
-        Option[List[Offset]]
+        ImagingVariant
       )
     ]
       .contramap(o =>
@@ -650,8 +647,7 @@ trait ArbObservingMode {
           o.explicitDecker,
           o.defaultReadoutMode,
           o.explicitReadoutMode,
-          o.defaultSpatialOffsets,
-          o.explicitSpatialOffsets
+          o.variant
         )
       )
 

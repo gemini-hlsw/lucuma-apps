@@ -37,6 +37,7 @@ import lucuma.core.model.ObservationWorkflow
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
+import lucuma.core.model.TimingWindow
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.optics.syntax.lens.*
@@ -407,7 +408,7 @@ object Observation:
       scienceTargetIds      <- targetEnv.get[List[TargetIdWrapper]]("asterism")
       selectedGSName        <- targetEnv.downField("guideTargetName").as[Option[NonEmptyString]]
       constraints           <- c.get[ConstraintSet]("constraintSet")
-      schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
+      timingWindows         <- c.get[List[TimingWindow]]("timingWindows")
       attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
       scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
       observingMode         <- c.get[Option[ObservingMode]]("observingMode")
@@ -432,7 +433,7 @@ object Observation:
       SortedSet.from(scienceTargetIds.map(_.id)),
       selectedGSName,
       constraints,
-      schedulingConstraints,
+      SchedulingConstraints.fromTimingWindows(timingWindows),
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
       observingMode,

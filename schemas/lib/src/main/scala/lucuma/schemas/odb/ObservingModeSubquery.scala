@@ -76,7 +76,7 @@ object ObservingModeSubquery
             }
           }
           gmosNorthImaging {
-            variant $GmosImagingVariantSubquery
+            variant $ImagingVariantSubquery
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
@@ -95,7 +95,7 @@ object ObservingModeSubquery
             explicitRoi
           }
           gmosSouthImaging {
-            variant $GmosImagingVariantSubquery
+            variant $ImagingVariantSubquery
             initialFilters {
               filter
               exposureTimeMode $ExposureTimeModeSubquery
@@ -130,8 +130,7 @@ object ObservingModeSubquery
             explicitDecker
             defaultReadoutMode
             explicitReadoutMode
-            defaultSpatialOffsets $OffsetSubquery
-            explicitSpatialOffsets $OffsetSubquery
+            variant $ImagingVariantSubquery
           }
           flamingos2LongSlit {
             initialDisperser

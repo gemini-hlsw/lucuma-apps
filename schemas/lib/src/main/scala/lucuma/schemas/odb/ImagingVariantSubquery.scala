@@ -6,11 +6,11 @@ package lucuma.schemas.odb
 import clue.GraphQLSubquery
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.odb.*
 
-object GmosImagingVariantSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GmosImagingVariant]("GmosImagingVariant"):
+object ImagingVariantSubquery
+    extends GraphQLSubquery.Typed[ObservationDB, ImagingVariant]("ImagingVariant"):
   override val subquery: String = s"""
     {
       variantType
@@ -25,7 +25,7 @@ object GmosImagingVariantSubquery
         skyCount
         skyOffsets $TelescopeConfigGeneratorSubquery
       }
-      preImaging { 
+      preImaging {
         offset1 $OffsetSubquery
         offset2 $OffsetSubquery
         offset3 $OffsetSubquery

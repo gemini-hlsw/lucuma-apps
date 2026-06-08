@@ -33,7 +33,7 @@ object TimingWindowsQueries:
                .updateObservations(
                  obsIds.toList,
                  ObservationPropertiesInput(
-                   schedulingConstraints = value.toInput.assign
+                   scheduling = value.toInput.assign
                  )
                )
                .toastErrors

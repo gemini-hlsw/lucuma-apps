@@ -23,8 +23,7 @@ import lucuma.core.validation.InputValidSplitEpi
 import lucuma.react.common.*
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -33,18 +32,18 @@ import monocle.Iso
 import monocle.Lens
 import monocle.Prism
 
-final case class GmosImagingVariantEditor(variant: View[GmosImagingVariant], readonly: Boolean)
-    extends ReactFnProps(GmosImagingVariantEditor)
+final case class ImagingVariantEditor(variant: View[ImagingVariant], readonly: Boolean)
+    extends ReactFnProps(ImagingVariantEditor)
 
-object GmosImagingVariantEditor
-    extends ReactFnComponent[GmosImagingVariantEditor](props =>
+object ImagingVariantEditor
+    extends ReactFnComponent[ImagingVariantEditor](props =>
       val enumeratedValues: Prism[Option[TelescopeConfigGenerator], NonEmptyList[TelescopeConfig]] =
         Iso.id.some
           .andThen(TelescopeConfigGenerator.enumerated)
           .andThen(TelescopeConfigGenerator.Enumerated.values)
 
       // For Grouped and Interleaved, this sets the skyCount and skyOffsets as needed
-      def skyOffsetModifier[A <: GmosImagingVariant](
+      def skyOffsetModifier[A <: ImagingVariant](
         skyCountLens:  Lens[A, NonNegInt],
         skyOffsetLens: Lens[A, Option[TelescopeConfigGenerator]]
       ): (A, A) => A = (oldVariant, newVariant) =>
@@ -74,39 +73,39 @@ object GmosImagingVariantEditor
             skyOffsetLens.replace(updatedTcg)(newVariant)
         updatedVariant
 
-      val groupedView: Option[View[GmosImagingVariant.Grouped]]         =
+      val groupedView: Option[View[ImagingVariant.Grouped]]         =
         props.variant
-          .zoom(GmosImagingVariant.grouped)
+          .zoom(ImagingVariant.grouped)
           .toOptionView
           .map:
             _.withModPatch(
               skyOffsetModifier(
-                GmosImagingVariant.Grouped.skyCount,
-                GmosImagingVariant.Grouped.skyOffsets
+                ImagingVariant.Grouped.skyCount,
+                ImagingVariant.Grouped.skyOffsets
               )
             )
-      val interleavedView: Option[View[GmosImagingVariant.Interleaved]] =
+      val interleavedView: Option[View[ImagingVariant.Interleaved]] =
         props.variant
-          .zoom(GmosImagingVariant.interleaved)
+          .zoom(ImagingVariant.interleaved)
           .toOptionView
           .map:
             _.withModPatch(
               skyOffsetModifier(
-                GmosImagingVariant.Interleaved.skyCount,
-                GmosImagingVariant.Interleaved.skyOffsets
+                ImagingVariant.Interleaved.skyCount,
+                ImagingVariant.Interleaved.skyOffsets
               )
             )
-      val preImagingView: Option[View[GmosImagingVariant.PreImaging]]   =
+      val preImagingView: Option[View[ImagingVariant.PreImaging]]   =
         props.variant
-          .zoom(GmosImagingVariant.preImaging)
+          .zoom(ImagingVariant.preImaging)
           .toOptionView
           .map:
             _.withOnMod(props.variant.set) // no extra work to do here.
 
-      val variantType: GmosImagingVariantType = props.variant.get match
-        case GmosImagingVariant.Grouped(_, _, _, _)    => GmosImagingVariantType.Grouped
-        case GmosImagingVariant.Interleaved(_, _, _)   => GmosImagingVariantType.Interleaved
-        case GmosImagingVariant.PreImaging(_, _, _, _) => GmosImagingVariantType.PreImaging
+      val variantType: ImagingVariantType = props.variant.get match
+        case ImagingVariant.Grouped(_, _, _, _)    => ImagingVariantType.Grouped
+        case ImagingVariant.Interleaved(_, _, _)   => ImagingVariantType.Interleaved
+        case ImagingVariant.PreImaging(_, _, _, _) => ImagingVariantType.PreImaging
 
       def commonInputs(
         offsets:    View[Option[TelescopeConfigGenerator]],
@@ -144,7 +143,7 @@ object GmosImagingVariantEditor
         )
 
       React.Fragment(
-        FormEnumDropdown[GmosImagingVariantType](
+        FormEnumDropdown[ImagingVariantType](
           id = "variant-type".refined,
           value = variantType,
           onChange = vt => props.variant.mod(_.toVariantType(vt)),
@@ -159,50 +158,50 @@ object GmosImagingVariantEditor
           React.Fragment(
             FormEnumDropdownView(
               id = "wavelength-order".refined,
-              value = grouped.zoom(GmosImagingVariant.Grouped.order),
+              value = grouped.zoom(ImagingVariant.Grouped.order),
               label = "Wavelength Order".some,
               clazz = LucumaPrimeStyles.FormField,
               disabled = props.readonly
             ),
             commonInputs(
-              grouped.zoom(GmosImagingVariant.Grouped.offsets),
-              grouped.zoom(GmosImagingVariant.Grouped.skyCount),
-              grouped.zoom(GmosImagingVariant.Grouped.skyOffsets)
+              grouped.zoom(ImagingVariant.Grouped.offsets),
+              grouped.zoom(ImagingVariant.Grouped.skyCount),
+              grouped.zoom(ImagingVariant.Grouped.skyOffsets)
             )
           ),
         interleavedView.map[VdomNode]: interleaved =>
           commonInputs(
-            interleaved.zoom(GmosImagingVariant.Interleaved.offsets),
-            interleaved.zoom(GmosImagingVariant.Interleaved.skyCount),
-            interleaved.zoom(GmosImagingVariant.Interleaved.skyOffsets)
+            interleaved.zoom(ImagingVariant.Interleaved.offsets),
+            interleaved.zoom(ImagingVariant.Interleaved.skyCount),
+            interleaved.zoom(ImagingVariant.Interleaved.skyOffsets)
           ),
         preImagingView.map[VdomNode]: preImaging =>
           React.Fragment(
             <.label(^.htmlFor := "preImaging-offset-1", "Offset 1 (arcsec):"),
             OffsetInput(
               id = "preImaging-offset-1".refined,
-              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset1),
+              offset = preImaging.zoom(ImagingVariant.PreImaging.offset1),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
             <.label(^.htmlFor := "preImaging-offset-2", "Offset 2 (arcsec):"),
             OffsetInput(
               id = "preImaging-offset-2".refined,
-              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset2),
+              offset = preImaging.zoom(ImagingVariant.PreImaging.offset2),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
             <.label(^.htmlFor := "preImaging-offset-3", "Offset 3 (arcsec):"),
             OffsetInput(
               id = "preImaging-offset-3".refined,
-              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset3),
+              offset = preImaging.zoom(ImagingVariant.PreImaging.offset3),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             ),
             <.label(^.htmlFor := "preImaging-offset-4", "Offset 4 (arcsec):"),
             OffsetInput(
               id = "preImaging-offset-4".refined,
-              offset = preImaging.zoom(GmosImagingVariant.PreImaging.offset4),
+              offset = preImaging.zoom(ImagingVariant.PreImaging.offset4),
               readonly = props.readonly,
               inputClass = LucumaPrimeStyles.FormField
             )

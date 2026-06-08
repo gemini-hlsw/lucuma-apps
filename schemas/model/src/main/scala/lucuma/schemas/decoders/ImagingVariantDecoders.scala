@@ -8,7 +8,7 @@ import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.NonNegInt
 import io.circe.Decoder
 import io.circe.refined.given
-import lucuma.core.enums.GmosImagingVariantType
+import lucuma.core.enums.ImagingVariantType
 import lucuma.core.enums.TelescopeConfigGeneratorType
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.geom.OffsetGenerator
@@ -17,12 +17,12 @@ import lucuma.core.math.Offset
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.stepconfig.given
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.TelescopeConfigGenerator
 
 import scala.annotation.targetName
 
-trait GmosImagingVariantDecoders:
+trait ImagingVariantDecoders:
   @targetName("TelescopeConfigGeneratorDecoder")
   given Decoder[Option[TelescopeConfigGenerator]] = Decoder.instance: c =>
     if c.value.isNull then Right(none)
@@ -61,30 +61,32 @@ trait GmosImagingVariantDecoders:
               .FromOffsetGenerator(OffsetGenerator.Uniform(cornerA, cornerB))
               .some
 
-  given Decoder[GmosImagingVariant] = Decoder.instance: c =>
+  given Decoder[ImagingVariant] = Decoder.instance: c =>
     c.downField("variantType")
-      .as[GmosImagingVariantType]
+      .as[ImagingVariantType]
       .flatMap:
-        case GmosImagingVariantType.Grouped     =>
+        case ImagingVariantType.Grouped     =>
           val grouped = c.downField("grouped")
           for
-            order      <- grouped.downField("order").as[WavelengthOrder]
+            // `order` is nullable/absent for some modes (e.g. Flamingos2 imaging); default it.
+            order      <-
+              grouped.downField("order").as[Option[WavelengthOrder]].map(_.getOrElse(WavelengthOrder.Increasing))
             offsets    <- grouped.downField("offsets").as[Option[TelescopeConfigGenerator]]
             skyCount   <- grouped.downField("skyCount").as[NonNegInt]
             skyOffsets <- grouped.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
-          yield GmosImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
-        case GmosImagingVariantType.Interleaved =>
+          yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
+        case ImagingVariantType.Interleaved =>
           val interleaved = c.downField("interleaved")
           for
             offsets    <- interleaved.downField("offsets").as[Option[TelescopeConfigGenerator]]
             skyCount   <- interleaved.downField("skyCount").as[NonNegInt]
             skyOffsets <- interleaved.downField("skyOffsets").as[Option[TelescopeConfigGenerator]]
-          yield GmosImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
-        case GmosImagingVariantType.PreImaging  =>
+          yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
+        case ImagingVariantType.PreImaging  =>
           val preimaging = c.downField("preImaging")
           for
             offset1 <- preimaging.downField("offset1").as[Offset]
             offset2 <- preimaging.downField("offset2").as[Offset]
             offset3 <- preimaging.downField("offset3").as[Offset]
             offset4 <- preimaging.downField("offset4").as[Offset]
-          yield GmosImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
+          yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
