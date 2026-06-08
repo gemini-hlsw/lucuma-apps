@@ -66,7 +66,7 @@ final case class Gnirs[F[_]: {Async, Logger}](
   override def notifyObserveStart: F[Unit] = Applicative[F].unit
 
   override def calcObserveTime: TimeSpan =
-    GnirsController.calcObserveTime(config.dynamicConfig)
+    Gnirs.calcObserveTime(config.dynamicConfig)
 
   override def observeProgress(
     total:   TimeSpan,
@@ -79,6 +79,9 @@ final case class Gnirs[F[_]: {Async, Logger}](
 }
 
 object Gnirs {
+  // Placed here in companinon object to allow invoking from test.
+  def calcObserveTime(dc: GnirsDynamicConfig): TimeSpan =
+    (dc.exposure +| dc.readMode.readoutTimePerCoadd) *| dc.coadds.value
 
   def build[F[_]: {Async, Logger}]
     : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =

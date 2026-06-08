@@ -27,10 +27,10 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
-import lucuma.core.util.TimeSpan
+import lucuma.core.syntax.timespan.*
 import lucuma.core.util.Timestamp
 import observe.server.TestCommon.*
-import observe.server.gnirs.GnirsController
+import observe.server.gnirs.Gnirs
 import observe.server.odb.OdbObservationData
 
 class GnirsSuite extends TestCommon {
@@ -39,7 +39,7 @@ class GnirsSuite extends TestCommon {
 
   // Acquisition-mirror In => imaging/acquisition, no grating/prism (mode-independent passthrough).
   private val gnirsDynamicCfg: GnirsDynamicConfig = GnirsDynamicConfig(
-    exposure = TimeSpan.fromSeconds(5).get,
+    exposure = 5.secondTimeSpan,
     coadds = PosInt.unsafeFrom(2),
     filter = GnirsFilter.K,
     decker = GnirsDecker.LongCamLongSlit,
@@ -84,7 +84,7 @@ class GnirsSuite extends TestCommon {
   test("GNIRS calcObserveTime accounts for coadds and read-mode readout") {
     // (5s exposure + 11.4s readout/coadd) * 2 coadds = 32.8s
     assertEquals(
-      GnirsController.calcObserveTime(gnirsDynamicCfg).toMicroseconds,
+      Gnirs.calcObserveTime(gnirsDynamicCfg).toMicroseconds,
       32_800_000L
     )
   }

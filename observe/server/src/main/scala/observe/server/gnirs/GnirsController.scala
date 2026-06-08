@@ -43,11 +43,4 @@ object GnirsController {
   object GnirsConfig {
     given Show[GnirsConfig] = Show.fromToString
   }
-
-  /**
-   * Total observation time for a GNIRS dynamic config: coadds * (exposure + readout per coadd). The
-   * per-coadd readout time is provided by the read mode in lucuma-core.
-   */
-  def calcObserveTime(dc: GnirsDynamicConfig): TimeSpan =
-    (dc.exposure +| dc.readMode.readoutTimePerCoadd) *| dc.coadds.value
 }

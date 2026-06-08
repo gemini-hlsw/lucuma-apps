@@ -20,6 +20,7 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
+import lucuma.core.syntax.timespan.*
 import lucuma.core.util.TimeSpan
 import observe.model.ObserveStage
 import observe.model.dhs.ImageFileId
@@ -64,9 +65,9 @@ trait GnirsEncoders {
 
 object GnirsControllerEpics extends GnirsEncoders {
 
-  val DefaultTimeout: TimeSpan = TimeSpan.fromSeconds(60).get
-  val ReadoutTimeout: TimeSpan = TimeSpan.fromSeconds(120).get
-  val ConfigTimeout: TimeSpan  = TimeSpan.fromSeconds(240).get
+  val DefaultTimeout: TimeSpan = 60.secondTimeSpan
+  val ReadoutTimeout: TimeSpan = 120.secondTimeSpan
+  val ConfigTimeout: TimeSpan  = 240.secondTimeSpan
 
   // Short camera name used to build grating/prism EPICS strings.
   private def cameraStr(c: GnirsCamera): String = c match {
