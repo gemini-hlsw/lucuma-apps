@@ -7,6 +7,7 @@ import explore.components.ui.ExploreStyles
 import lucuma.react.fa.FAIcon
 import lucuma.react.fa.FontAwesome
 import lucuma.react.fa.FontAwesomeIcon
+import lucuma.react.fa.LayeredIcon
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.*
@@ -416,6 +417,10 @@ object Icons {
   @JSImport("@fortawesome/pro-thin-svg-icons", "faListRadio")
   val faListRadio: FAIcon = js.native
 
+  @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faScissors")
+  val faScissors: FAIcon = js.native
+
   // This is tedious but lets us do proper tree-shaking
   FontAwesome.library.add(
     faArrowDownLeft,
@@ -517,7 +522,8 @@ object Icons {
     faPlanetRinged,
     faLocationDot,
     faObjectIntersect,
-    faListRadio
+    faListRadio,
+    faScissors
   )
 
   val ArrowDownLeft               = FontAwesomeIcon(faArrowDownLeft)
@@ -623,8 +629,14 @@ object Icons {
   val LocationDot                 = FontAwesomeIcon(faLocationDot)
   val ObjectIntersect             = FontAwesomeIcon(faObjectIntersect)
   val ListRadio                   = FontAwesomeIcon(faListRadio)
+  val Scissors                    = FontAwesomeIcon(faScissors)
 
   val MissingInfoIcon  = ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
   val ErrorIcon        = ExclamationTriangle.withClass(ExploreStyles.ErrorIcon)
   val SuccessCheckmark = Checkmark.withClass(ExploreStyles.SuccessIcon)
+  val DoNotSplitIcon   = LayeredIcon(fixedWidth = true)(
+    Icons.Scissors,
+    Icons.Ban
+      .withClass(ExploreStyles.TrashIcon)
+  )
 }

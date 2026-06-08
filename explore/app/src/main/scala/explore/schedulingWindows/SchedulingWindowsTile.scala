@@ -73,12 +73,13 @@ sealed abstract class SchedulingWindowsTile(
   fullSize:                  Boolean
 ) extends Tile[SchedulingWindowsTile](
       ObsTabTileIds.TimingWindowsId.id,
-      if (schedulingConstraints.get.timingWindows.isEmpty) "Scheduling Windows"
-      else s"Scheduling Windows (${schedulingConstraints.get.timingWindows.length})",
+      "Scheduling",
       canMaximize = !fullSize,
-      canMinimize = !fullSize
+      canMinimize = !fullSize,
+      tileClass = ExploreStyles.SchedulingTile
     )(SchedulingWindowsTile):
   val readonly                                = isReadOnly || obsEditInfo.allAreCompleted
+  val splittable: View[Boolean]               = schedulingConstraints.zoom(SchedulingConstraints.isSplittable)
   val timingWindows: View[List[TimingWindow]] =
     schedulingConstraints.zoom(SchedulingConstraints.timingWindows)
 
@@ -184,24 +185,30 @@ object SchedulingWindowsTile
                           meta = TableMeta(props.timingWindows.mod)
                         )
       yield
-        val title =
-          <.span(
-            if (props.readonly || tileSize.isMinimized) EmptyVdom
-            else
-              Button(
-                severity = Button.Severity.Success,
-                icon = Icons.New,
-                label = "Add",
-                onClick = props.timingWindows.mod(
-                  _ :+ TimingWindow(
-                    inclusion = TimingWindowInclusion.Include,
-                    start = Timestamp.unsafeFromInstantTruncated(Instant.now),
-                    end = none
-                  )
-                ) >> table.setRowSelection(
-                  RowSelection(RowId(props.timingWindows.get.size.toString) -> true)
+        val addButton: VdomNode =
+          if (props.readonly || tileSize.isMinimized) <.span
+          else
+            Button(
+              severity = Button.Severity.Success,
+              icon = Icons.New,
+              label = "Window",
+              onClick = props.timingWindows.mod(
+                _ :+ TimingWindow(
+                  inclusion = TimingWindowInclusion.Include,
+                  start = Timestamp.unsafeFromInstantTruncated(Instant.now),
+                  end = none
                 )
-              ).tiny.compact
+              ) >> table.setRowSelection(
+                RowSelection(RowId(props.timingWindows.get.size.toString) -> true)
+              )
+            ).tiny.compact
+
+        val title =
+          <.div(
+            ExploreStyles.SchedulingTileTitle,
+            addButton,
+            <.span(s"${props.timingWindows.get.length} Windows"),
+            if props.splittable.get then <.span else <.span(Icons.DoNotSplitIcon, " Do Not Split")
           )
 
         val pos: Option[Int] = table.getSelectedRowModel().rows.headOption.map(_.original._2)
@@ -218,6 +225,24 @@ object SchedulingWindowsTile
         val body =
           React.Fragment(
             msg.map(msg => <.div(msg, ExploreStyles.SharedEditWarning)),
+            <.h3("Splitting", HelpIcon("scheduling/splitting.md".refined)),
+            <.div(
+              if props.obsEditInfo.editing.length > 1 then "These observations"
+              else "This observation",
+              BooleanDropdownView(
+                id = "observation-is-splittable".refined,
+                value = props.splittable,
+                trueLabel = "may".refined,
+                falseLabel = "may not".refined,
+                clazz = ExploreStyles.IsSplittableDropdown,
+                disabled = props.readonly
+              ),
+              "be split."
+            ),
+            Divider(),
+            <.h3(s"Windows (${props.timingWindows.get.length})",
+                 HelpIcon("scheduling/windows.md".refined)
+            ),
             <.div(ExploreStyles.TimingWindowsBody)(
               <.div.withRef(resize.ref)(ExploreStyles.TimingWindowsTable)(
                 PrimeTable(

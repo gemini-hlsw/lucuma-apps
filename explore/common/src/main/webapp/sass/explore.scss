@@ -3307,131 +3307,157 @@ $help-title-height: 40px;
 }
 
 // --------------
-// Timing windows
+// Scheduling and Timing windows
 // --------------
-@mixin timing-window-list {
-  margin-bottom: 0.5em;
-  border: solid 1px var(--under-tab-border-color);
-  grid-area: table;
-}
-
-.timing-windows-body {
-  padding: 0.5em;
-  display: grid;
-  min-height: 100%;
-  border-collapse: collapse;
-  grid-template:
-    'table table' 1fr
-    'editor add' min-content / 1fr min-content;
-
-  .timing-windows-header {
-    display: none;
-    height: 0;
-
-    & tr {
-      height: 0;
-    }
-  }
-
-  .timing-windows-empty {
-    @include timing-window-list;
-
+.scheduling-tile {
+  .scheduling-tile-title {
     display: flex;
-    justify-content: center;
     align-items: center;
-    font-size: large;
+    justify-content: space-between;
+    gap: 1em;
   }
 
-  .timing-windows-table {
-    @include timing-window-list;
-
-    table-layout: auto;
-    overflow: auto;
-  }
-
-  .timing-window-editor {
-    grid-area: editor;
-    padding: 0.5em;
-    font-size: smaller;
+  .explore-tile-body {
     display: flex;
     flex-direction: column;
-    gap: 0.3em 0;
+    gap: 0.5em;
+    height: 100%;
+    padding: 0.5em;
 
-    @include datepicker.react-datepicker-input;
-    @include datepicker.react-datepicker-wrapper;
-
-    .p-inputgroup input {
-      font-size: 96%;
+    .is-splittable-dropdown {
+      width: 9em;
+      margin-left: 0.5em;
+      margin-right: 0.5em;
     }
 
-    span {
-      display: inline-block;
+    .p-divider {
+      margin: 0;
     }
 
-    .p-radiobutton {
-      margin-right: 0.3em;
+    @mixin timing-window-list {
+      margin-bottom: 0.5em;
+      border: solid 1px var(--under-tab-border-color);
+      grid-area: table;
     }
 
-    .timing-window-inclusion-editor {
-      display: inline-flex;
-      flex-direction: row;
-      gap: 0 0.5em;
+    .timing-windows-body {
+      flex: 1 1 0; // make it take up the full remaining height
+      display: grid;
+      border-collapse: collapse;
+      grid-template:
+        'table table' 1fr
+        'editor add' min-content / 1fr min-content;
 
-      @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-        flex-direction: column;
-        gap: 0.5em 0;
-      }
-    }
+      .timing-windows-header {
+        display: none;
+        height: 0;
 
-    .timing-window-through-editor,
-    .timing-window-from-editor {
-      display: flex;
-      align-items: baseline;
-    }
-
-    .timing-window-editor-body {
-      display: flex;
-      flex-direction: column;
-      gap: 0.1em 0;
-
-      .timing-window-repeat-editor {
-        margin-left: 1.5em;
-      }
-
-      .timing-window-end-after,
-      .timing-window-repeat-editor,
-      .timing-window-repeat-editor-n-times {
-        display: flex;
-        align-items: baseline;
-
-        label {
-          margin-right: 0.5em;
-        }
-
-        .pl-form-field {
-          margin-right: 0.5em;
-          width: 9ch;
+        & tr {
+          height: 0;
         }
       }
 
-      .timing-window-repeat-editor-alternatives {
+      .timing-windows-empty {
+        @include timing-window-list;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: large;
+      }
+
+      .timing-windows-table {
+        @include timing-window-list;
+
+        table-layout: auto;
+        overflow: auto;
+      }
+
+      .timing-window-editor {
+        grid-area: editor;
+        padding: 0.5em;
+        font-size: smaller;
         display: flex;
         flex-direction: column;
-        row-gap: 0.5em;
-        margin-top: 0.5em;
-        margin-left: 3em;
+        gap: 0.3em 0;
+
+        @include datepicker.react-datepicker-input;
+        @include datepicker.react-datepicker-wrapper;
+
+        .p-inputgroup input {
+          font-size: 96%;
+        }
+
+        span {
+          display: inline-block;
+        }
+
+        .p-radiobutton {
+          margin-right: 0.3em;
+        }
+
+        .timing-window-inclusion-editor {
+          display: inline-flex;
+          flex-direction: row;
+          gap: 0 0.5em;
+
+          @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+            flex-direction: column;
+            gap: 0.5em 0;
+          }
+        }
+
+        .timing-window-through-editor,
+        .timing-window-from-editor {
+          display: flex;
+          align-items: baseline;
+        }
+
+        .timing-window-editor-body {
+          display: flex;
+          flex-direction: column;
+          gap: 0.1em 0;
+
+          .timing-window-repeat-editor {
+            margin-left: 1.5em;
+          }
+
+          .timing-window-end-after,
+          .timing-window-repeat-editor,
+          .timing-window-repeat-editor-n-times {
+            display: flex;
+            align-items: baseline;
+
+            label {
+              margin-right: 0.5em;
+            }
+
+            .pl-form-field {
+              margin-right: 0.5em;
+              width: 9ch;
+            }
+          }
+
+          .timing-window-repeat-editor-alternatives {
+            display: flex;
+            flex-direction: column;
+            row-gap: 0.5em;
+            margin-top: 0.5em;
+            margin-left: 3em;
+          }
+        }
+
+        @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
+          flex-direction: row;
+          gap: 0 1em;
+        }
+      }
+
+      .p-button {
+        grid-area: add;
+        align-self: start;
       }
     }
-
-    @media (min-width: lucumaUICommon.$mobile-responsive-cutoff) {
-      flex-direction: row;
-      gap: 0 1em;
-    }
-  }
-
-  .p-button {
-    grid-area: add;
-    align-self: start;
   }
 }
 

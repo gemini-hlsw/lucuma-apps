@@ -13,7 +13,6 @@ import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.tooltip.*
 import lucuma.ui.syntax.all.given
-import org.scalajs.dom.SVGGElement
 
 final case class OffsetSvg(
   p:        Double,
