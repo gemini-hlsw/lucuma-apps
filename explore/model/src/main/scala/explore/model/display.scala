@@ -25,8 +25,8 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
 import lucuma.itc.GraphType
-import lucuma.schemas.ObservationDB.Enums.GmosImagingVariantType
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.core.enums.ImagingVariantType
 import lucuma.ui.display.given
 
 import java.text.DecimalFormat
@@ -359,7 +359,10 @@ trait DisplayImplicits:
     case BasicConfiguration.Visitor(mode, _, _)                                           =>
       mode.shortName
 
-  given Display[GmosImagingVariantType] = Display.byShortName(_.display)
+  given Display[ImagingVariantType] = Display.byShortName:
+    case ImagingVariantType.Grouped     => "Grouped"
+    case ImagingVariantType.Interleaved => "Interleaved"
+    case ImagingVariantType.PreImaging  => "Pre-Imaging"
 
   given Display[WavelengthOrder] = Display.byShortName:
     case WavelengthOrder.Increasing => "Increasing"

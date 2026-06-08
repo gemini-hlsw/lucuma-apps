@@ -10,7 +10,7 @@ import lucuma.core.math.Offset
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbOffset.given
 import lucuma.core.util.arb.ArbEnumerated.given
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.TelescopeConfigGenerator
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -19,35 +19,35 @@ import org.scalacheck.Gen
 
 import ArbTelescopeConfigGenerator.given
 
-trait ArbGmosImagingVariant:
-  val genGrouped: Gen[GmosImagingVariant.Grouped] =
+trait ArbImagingVariant:
+  val genGrouped: Gen[ImagingVariant.Grouped] =
     for
       order      <- arbitrary[WavelengthOrder]
       offsets    <- Gen.option(arbitrary[TelescopeConfigGenerator])
       skyCount   <- arbitrary[NonNegInt]
       skyOffsets <- Gen.option(arbitrary[TelescopeConfigGenerator])
-    yield GmosImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
+    yield ImagingVariant.Grouped(order, offsets, skyCount, skyOffsets)
 
-  val genInterleaved: Gen[GmosImagingVariant.Interleaved] =
+  val genInterleaved: Gen[ImagingVariant.Interleaved] =
     for
       offsets    <- Gen.option(arbitrary[TelescopeConfigGenerator])
       skyCount   <- arbitrary[NonNegInt]
       skyOffsets <- Gen.option(arbitrary[TelescopeConfigGenerator])
-    yield GmosImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
+    yield ImagingVariant.Interleaved(offsets, skyCount, skyOffsets)
 
-  val genPreImaging: Gen[GmosImagingVariant.PreImaging] =
+  val genPreImaging: Gen[ImagingVariant.PreImaging] =
     for
       offset1 <- arbitrary[Offset]
       offset2 <- arbitrary[Offset]
       offset3 <- arbitrary[Offset]
       offset4 <- arbitrary[Offset]
-    yield GmosImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
+    yield ImagingVariant.PreImaging(offset1, offset2, offset3, offset4)
 
-  given Arbitrary[GmosImagingVariant] =
-    Arbitrary[GmosImagingVariant]:
+  given Arbitrary[ImagingVariant] =
+    Arbitrary[ImagingVariant]:
       Gen.oneOf(genGrouped, genInterleaved, genPreImaging)
 
-  given Cogen[GmosImagingVariant.Grouped] =
+  given Cogen[ImagingVariant.Grouped] =
     Cogen[
       (WavelengthOrder,
        Option[TelescopeConfigGenerator],
@@ -56,28 +56,28 @@ trait ArbGmosImagingVariant:
       )
     ].contramap(o => (o.order, o.offsets, o.skyCount, o.skyOffsets))
 
-  given Cogen[GmosImagingVariant.Interleaved] =
+  given Cogen[ImagingVariant.Interleaved] =
     Cogen[
       (Option[TelescopeConfigGenerator], NonNegInt, Option[TelescopeConfigGenerator])
     ].contramap(o => (o.offsets, o.skyCount, o.skyOffsets))
 
-  given Cogen[GmosImagingVariant.PreImaging] =
+  given Cogen[ImagingVariant.PreImaging] =
     Cogen[(Offset, Offset, Offset, Offset)].contramap(o =>
       (o.offset1, o.offset2, o.offset3, o.offset4)
     )
 
-  given Cogen[GmosImagingVariant] =
+  given Cogen[ImagingVariant] =
     Cogen[
       Either[
-        GmosImagingVariant.Grouped,
+        ImagingVariant.Grouped,
         Either[
-          GmosImagingVariant.Interleaved,
-          GmosImagingVariant.PreImaging
+          ImagingVariant.Interleaved,
+          ImagingVariant.PreImaging
         ]
       ]
     ].contramap:
-      case g: GmosImagingVariant.Grouped     => Left(g)
-      case i: GmosImagingVariant.Interleaved => Right(Left(i))
-      case p: GmosImagingVariant.PreImaging  => Right(Right(p))
+      case g: ImagingVariant.Grouped     => Left(g)
+      case i: ImagingVariant.Interleaved => Right(Left(i))
+      case p: ImagingVariant.PreImaging  => Right(Right(p))
 
-object ArbGmosImagingVariant extends ArbGmosImagingVariant
+object ArbImagingVariant extends ArbImagingVariant

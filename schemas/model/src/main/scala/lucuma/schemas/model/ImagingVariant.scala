@@ -7,7 +7,7 @@ import cats.Eq
 import cats.derived.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.NonNegInt
-import lucuma.core.enums.GmosImagingVariantType
+import lucuma.core.enums.ImagingVariantType
 import lucuma.core.enums.WavelengthOrder
 import lucuma.core.math.Offset
 import lucuma.refined.*
@@ -16,48 +16,48 @@ import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
 
-enum GmosImagingVariant(val variantType: GmosImagingVariantType) derives Eq:
+enum ImagingVariant(val variantType: ImagingVariantType) derives Eq:
   case Grouped(
     order:      WavelengthOrder,
     offsets:    Option[TelescopeConfigGenerator],
     skyCount:   NonNegInt,
     skyOffsets: Option[TelescopeConfigGenerator]
-  ) extends GmosImagingVariant(GmosImagingVariantType.Grouped)
+  ) extends ImagingVariant(ImagingVariantType.Grouped)
   case Interleaved(
     offsets:    Option[TelescopeConfigGenerator],
     skyCount:   NonNegInt,
     skyOffsets: Option[TelescopeConfigGenerator]
-  ) extends GmosImagingVariant(GmosImagingVariantType.Interleaved)
+  ) extends ImagingVariant(ImagingVariantType.Interleaved)
   case PreImaging(offset1: Offset, offset2: Offset, offset3: Offset, offset4: Offset)
-      extends GmosImagingVariant(GmosImagingVariantType.PreImaging)
+      extends ImagingVariant(ImagingVariantType.PreImaging)
 
-  def toVariantType(newVariantType: GmosImagingVariantType): GmosImagingVariant =
+  def toVariantType(newVariantType: ImagingVariantType): ImagingVariant =
     this match
       case Grouped(order, offsets, skyCount, skyOffsets)  =>
         newVariantType match
-          case GmosImagingVariantType.Grouped     => this
-          case GmosImagingVariantType.Interleaved => Interleaved(offsets, skyCount, skyOffsets)
-          case GmosImagingVariantType.PreImaging  => PreImaging.Default
+          case ImagingVariantType.Grouped     => this
+          case ImagingVariantType.Interleaved => Interleaved(offsets, skyCount, skyOffsets)
+          case ImagingVariantType.PreImaging  => PreImaging.Default
       case Interleaved(offsets, skyCount, skyOffsets)     =>
         newVariantType match
-          case GmosImagingVariantType.Grouped     =>
+          case ImagingVariantType.Grouped     =>
             Grouped(WavelengthOrder.Increasing, offsets, skyCount, skyOffsets)
-          case GmosImagingVariantType.Interleaved => this
-          case GmosImagingVariantType.PreImaging  => PreImaging.Default
+          case ImagingVariantType.Interleaved => this
+          case ImagingVariantType.PreImaging  => PreImaging.Default
       case PreImaging(offset1, offset2, offset3, offset4) =>
         newVariantType match
-          case GmosImagingVariantType.Grouped     =>
+          case ImagingVariantType.Grouped     =>
             Grouped(WavelengthOrder.Increasing, None, 0.refined, None)
-          case GmosImagingVariantType.Interleaved => Interleaved(None, 0.refined, None)
-          case GmosImagingVariantType.PreImaging  => this
+          case ImagingVariantType.Interleaved => Interleaved(None, 0.refined, None)
+          case ImagingVariantType.PreImaging  => this
 
-object GmosImagingVariant:
-  val grouped: Prism[GmosImagingVariant, GmosImagingVariant.Grouped]         =
-    GenPrism[GmosImagingVariant, GmosImagingVariant.Grouped]
-  val interleaved: Prism[GmosImagingVariant, GmosImagingVariant.Interleaved] =
-    GenPrism[GmosImagingVariant, GmosImagingVariant.Interleaved]
-  val preImaging: Prism[GmosImagingVariant, GmosImagingVariant.PreImaging]   =
-    GenPrism[GmosImagingVariant, GmosImagingVariant.PreImaging]
+object ImagingVariant:
+  val grouped: Prism[ImagingVariant, ImagingVariant.Grouped]         =
+    GenPrism[ImagingVariant, ImagingVariant.Grouped]
+  val interleaved: Prism[ImagingVariant, ImagingVariant.Interleaved] =
+    GenPrism[ImagingVariant, ImagingVariant.Interleaved]
+  val preImaging: Prism[ImagingVariant, ImagingVariant.PreImaging]   =
+    GenPrism[ImagingVariant, ImagingVariant.PreImaging]
 
   object Grouped:
     val order: Lens[Grouped, WavelengthOrder]                       = Focus[Grouped](_.order)

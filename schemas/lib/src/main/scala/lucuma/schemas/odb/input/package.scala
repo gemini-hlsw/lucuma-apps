@@ -44,7 +44,7 @@ import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.GmosImagingVariant
+import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TelescopeConfigGenerator
 
@@ -537,37 +537,37 @@ extension (tcg: TelescopeConfigGenerator)
           UniformTelescopeConfigGeneratorInput(cornerA.toInput, cornerB.toInput)
       case _                                                                                  => ???
 
-extension (iv: GmosImagingVariant.Grouped)
-  def toInput: GmosGroupedImagingVariantInput =
-    GmosGroupedImagingVariantInput(
+extension (iv: ImagingVariant.Grouped)
+  def toInput: GroupedImagingVariantInput =
+    GroupedImagingVariantInput(
       order = iv.order.assign,
       offsets = iv.offsets.map(_.toInput).orUnassign,
       skyCount = iv.skyCount.assign,
       skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign
     )
 
-extension (iv: GmosImagingVariant.Interleaved)
-  def toInput: GmosInterleavedImagingVariantInput =
-    GmosInterleavedImagingVariantInput(
+extension (iv: ImagingVariant.Interleaved)
+  def toInput: InterleavedImagingVariantInput =
+    InterleavedImagingVariantInput(
       offsets = iv.offsets.map(_.toInput).orUnassign,
       skyCount = iv.skyCount.assign,
       skyOffsets = iv.skyOffsets.map(_.toInput).orUnassign
     )
 
-extension (iv: GmosImagingVariant.PreImaging)
-  def toInput: GmosPreImagingVariantInput = GmosPreImagingVariantInput(
+extension (iv: ImagingVariant.PreImaging)
+  def toInput: PreImagingVariantInput = PreImagingVariantInput(
     offset1 = iv.offset1.toInput.assign,
     offset2 = iv.offset2.toInput.assign,
     offset3 = iv.offset3.toInput.assign,
     offset4 = iv.offset4.toInput.assign
   )
 
-extension (iv: GmosImagingVariant)
-  def toInput: GmosImagingVariantInput =
+extension (iv: ImagingVariant)
+  def toInput: ImagingVariantInput =
     iv match
-      case g: GmosImagingVariant.Grouped     => GmosImagingVariantInput.Grouped(g.toInput)
-      case i: GmosImagingVariant.Interleaved => GmosImagingVariantInput.Interleaved(i.toInput)
-      case p: GmosImagingVariant.PreImaging  => GmosImagingVariantInput.PreImaging(p.toInput)
+      case g: ImagingVariant.Grouped     => ImagingVariantInput.Grouped(g.toInput)
+      case i: ImagingVariant.Interleaved => ImagingVariantInput.Interleaved(i.toInput)
+      case p: ImagingVariant.PreImaging  => ImagingVariantInput.PreImaging(p.toInput)
 
 extension (o: ObservingMode.GmosNorthImaging)
   def toInput: GmosNorthImagingInput = GmosNorthImagingInput(
@@ -591,12 +591,12 @@ extension (o: ObservingMode.GmosSouthImaging)
 
 extension (o: ObservingMode.Flamingos2Imaging)
   def toInput: Flamingos2ImagingInput = Flamingos2ImagingInput(
+    variant = o.variant.toInput.assign,
     filters = o.filters.toList.map(_.toInput).assign,
     explicitReadMode = o.explicitReadMode.orUnassign,
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
-    explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitSpatialOffsets = o.explicitSpatialOffsets.map(_.map(_.toInput)).orUnassign
+    explicitReadoutMode = o.explicitReadoutMode.orUnassign
   )
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
@@ -747,13 +747,13 @@ extension (i: BasicConfiguration)
     case BasicConfiguration.GmosNorthImaging(filters = filters)                                   =>
       ObservingModeInput.GmosNorthImaging:
         GmosNorthImagingInput(
-          variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
+          variant = ImagingVariantInput.Grouped(GroupedImagingVariantInput()).assign,
           filters = filters.toList.map(GmosNorthImagingFilterInput(_)).assign
         )
     case BasicConfiguration.GmosSouthImaging(filters = filters)                                   =>
       ObservingModeInput.GmosSouthImaging:
         GmosSouthImagingInput(
-          variant = GmosImagingVariantInput.Grouped(GmosGroupedImagingVariantInput()).assign,
+          variant = ImagingVariantInput.Grouped(GroupedImagingVariantInput()).assign,
           filters = filters.toList.map(GmosSouthImagingFilterInput(_)).assign
         )
     case BasicConfiguration.Flamingos2Imaging(filters = filters)                                  =>
