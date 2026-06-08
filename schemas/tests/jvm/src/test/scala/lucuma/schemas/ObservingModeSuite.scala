@@ -32,7 +32,7 @@ class ObservingModeSuite extends FunSuite:
           ) =>
         assertEquals(
           variant,
-          GmosImagingVariant.Grouped(
+          ImagingVariant.Grouped(
             order = WavelengthOrder.Increasing,
             offsets = none,
             skyCount = 0.refined,
