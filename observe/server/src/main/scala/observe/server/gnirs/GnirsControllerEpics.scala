@@ -197,7 +197,7 @@ object GnirsControllerEpics extends GnirsEncoders {
         val filter1Value: String                           = if (pupilViewer) "PupilViewer" else filterWheel1
         val cameraValue: String                            = encode(dc.camera)
         val deckerValue: String                            = encode(dc.decker)
-        val wavelengthTolerance: Double                    = 0.0001
+        val wavelengthToleranceNm: Double                  = 0.0001
 
         val acqMirrorAndSpectrography: List[F[Option[F[Unit]]]] = dc.acquisitionMirror match {
           case GnirsAcquisitionMirrorMode.In       => List(setAcqMirror("In"))
@@ -219,7 +219,7 @@ object GnirsControllerEpics extends GnirsEncoders {
           smartSetParamF(cameraValue, epicsSys.camera.map(removePartName), epicsSys.configCCCmd.setCamera(cameraValue)),
           smartSetParamF(deckerValue, epicsSys.decker.map(removePartName), epicsSys.configCCCmd.setDecker(deckerValue)),
           focusParam,
-          smartSetDoubleParamF(wavelengthTolerance)(
+          smartSetDoubleParamF(wavelengthToleranceNm)(
             wavelengthNm(dc.centralWavelength),
             epicsSys.centralWavelength,
             epicsSys.configCCCmd.setCentralWavelength(wavelengthNm(dc.centralWavelength))
@@ -244,22 +244,22 @@ object GnirsControllerEpics extends GnirsEncoders {
 
       private def setDCParams(config: GnirsConfig): F[Unit] = {
         val dc: GnirsDynamicConfig = config.dynamicConfig
-        val expTimeTolerance: Double = 0.0001
+        val expTimeToleranceSec: Double = 0.0001
         // Old Seqexec uses an absolute tolerance of 0.05V, ~16.7% relative for a 0.3V bias.
-        val biasTolerance: Double = 0.15
+        val biasToleranceVolts: Double = 0.15
 
         val (lowNoise, digitalAvgs): (Int, Int) = readModeEncoder.encode(dc.readMode)
         val biasVolts: Double                   = encode(config.staticConfig.wellDepth)
 
         val params: List[F[Option[F[Unit]]]] = List(
-          smartSetDoubleParamF(expTimeTolerance)(
+          smartSetDoubleParamF(expTimeToleranceSec)(
             dc.exposure.toSeconds.toDouble,
             epicsSys.exposureTime,
             epicsSys.configDCCmd.setExposureTime(dc.exposure.toSeconds.toDouble)
           ),
           smartSetParamF(dc.coadds.value, epicsSys.numCoadds, epicsSys.configDCCmd.setCoadds(dc.coadds.value)),
           // The instrument reports the negative of the bias that was set.
-          smartSetDoubleParamF(biasTolerance)(
+          smartSetDoubleParamF(biasToleranceVolts)(
             -biasVolts,
             epicsSys.detBias,
             epicsSys.configDCCmd.setDetBias(biasVolts)
