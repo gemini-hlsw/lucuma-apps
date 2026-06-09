@@ -7824,6 +7824,9 @@ type GnirsLongSlit {
   defaultTelescopeConfigs: SlitTelescopeConfigs!
   explicitTelescopeConfigs: SlitTelescopeConfigs
   acquisition: GnirsLongSlitAcquisition!
+
+  """Telluric type configuration for this observation."""
+  telluricType: TelluricType!
 }
 
 input GnirsLongSlitAcquisitionInput {
@@ -7880,6 +7883,12 @@ input GnirsLongSlitInput {
   explicitWellDepth: GnirsWellDepth
   explicitTelescopeConfigs: SlitTelescopeConfigsInput
   acquisition: GnirsLongSlitAcquisitionInput
+
+  """
+  The telluricType field must be either specified or skipped altogether. It cannot be unset with a null value.
+  On create the default is HOT.
+  """
+  telluricType: TelluricTypeInput
 }
 
 """Time and Count exposure time mode."""
