@@ -50,15 +50,25 @@ case class ItcTileState(
     graphResults.flatMap(_.brightestTarget).flatMap(findGraphResults)
 
   def graphsBrightestOrFirst: Option[TargetAndResults] =
-    graphBrightestTarget
-      .orElse:
-        asterismGraphs.headOption
-          .map(_.toTargetAndResults)
+    val brightest = graphBrightestTarget
+    brightest
+      .filter(_.result.isRight)
+      .orElse(targetResults.find(_.result.isRight))
+      .orElse(brightest)
+      .orElse(asterismGraphs.headOption.map(_.toTargetAndResults))
 
   def imagingTargets: List[ItcTarget] =
     calculationResults.toOption
       .flatMap(_.toOption)
       .fold(List.empty)(_.keys.toList.sortBy(_.name.value))
+
+  def imagingDefaultTarget: Option[ItcTarget] =
+    calculationResults.toOption
+      .flatMap(_.toOption)
+      .flatMap: results =>
+        imagingTargets.find: t =>
+          results.get(t).exists(_.values.exists(_.isRight))
+      .orElse(imagingTargets.headOption)
 
 object ItcTileState:
   def Empty: ItcTileState = ItcTileState(Pot.pending, Pot.pending, none)
