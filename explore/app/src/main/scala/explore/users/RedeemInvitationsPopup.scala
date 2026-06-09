@@ -6,7 +6,6 @@ package explore.users
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.ResponseException
-import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons

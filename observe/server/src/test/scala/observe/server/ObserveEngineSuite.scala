@@ -60,7 +60,6 @@ import observe.server.engine.SystemEvent.SequenceComplete
 import observe.server.engine.user
 import observe.server.odb.OdbObservationData
 import observe.server.odb.TestOdbProxy
-import observe.server.odb.TestOdbProxy.StepStartStep
 import observe.server.tcs.DummyTargetKeywordsReader
 import observe.server.tcs.DummyTcsKeywordsReader
 import observe.server.tcs.TargetKeywordsReader

@@ -6,7 +6,6 @@ package explore.targeteditor
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
-import crystal.*
 import crystal.react.*
 import eu.timepit.refined.*
 import eu.timepit.refined.auto.*
