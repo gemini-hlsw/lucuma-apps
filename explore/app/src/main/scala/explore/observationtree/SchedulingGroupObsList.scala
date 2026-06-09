@@ -320,7 +320,9 @@ object SchedulingGroupObsList:
           val csHeader = <.span(ExploreStyles.ObsTreeGroupHeader)(
             icon,
             <.ul(ExploreStyles.ObsGroupTitleWithList)(
-              timingWindows.map(tw => <.li(tw.renderVdom)).toTagMod
+              ((if s.isSplittable then List.empty[VdomNode]
+                else List[VdomNode](<.li(Icons.DoNotSplitIcon, " Do Not Split"))) ++
+                timingWindows.map(tw => <.li(tw.renderVdom))).toTagMod
             ),
             <.span(ExploreStyles.ObsCount, s"${obsIds.size} Obs")
           )

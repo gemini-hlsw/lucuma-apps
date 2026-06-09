@@ -559,7 +559,10 @@ object ExploreStyles:
 
   val FormValue: Css = Css("explore-value-field")
 
-  // Timing Windows
+  // Scheduling and Timing Windows
+  val SchedulingTile: Css                       = Css("scheduling-tile")
+  val SchedulingTileTitle: Css                  = Css("scheduling-tile-title")
+  val IsSplittableDropdown: Css                 = Css("is-splittable-dropdown")
   val TimingWindowsBody: Css                    = Css("timing-windows-body")
   val TimingWindowsEmpty: Css                   = Css("timing-windows-empty")
   val TimingWindowsList: Css                    = Css("timing-windows-list")
