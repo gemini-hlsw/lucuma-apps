@@ -6,8 +6,8 @@ package navigate.model
 import cats.Show
 import cats.derived.*
 import cats.syntax.all.*
-import mouse.boolean.given
 import lucuma.core.enums.Site
+import mouse.boolean.given
 import navigate.model.enums.LightSink
 
 case class SwapConfig(

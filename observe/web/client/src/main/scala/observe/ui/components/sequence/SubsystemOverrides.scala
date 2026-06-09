@@ -4,7 +4,6 @@
 package observe.ui.components.sequence
 
 import cats.syntax.all.*
-import crystal.*
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*

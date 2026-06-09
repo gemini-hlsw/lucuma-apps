@@ -5,7 +5,6 @@ package explore.plots
 
 import cats.effect.IO
 import cats.syntax.all.*
-import crystal.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString

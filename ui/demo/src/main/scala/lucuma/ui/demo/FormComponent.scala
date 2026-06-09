@@ -5,7 +5,6 @@ package lucuma.ui.demo
 
 import cats.data.NonEmptyChain
 import cats.syntax.all.*
-import crystal.ViewF
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.*
