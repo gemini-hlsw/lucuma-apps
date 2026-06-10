@@ -19,6 +19,10 @@ import lucuma.ui.table.ColumnSize.*
  *   - `columnVisibility`: To be passed directly to table `state` as
  *     `PartialTableState.columnVisibility`.
  *   - `onColumnSizingChangeHandler`: To be passed directly to table `onColumnSizingChange`.
+ *   - `onColumnVisibilityChangeHandler`: To be passed directly to table `onColumnVisibilityChange`.
+ *   - `modCollapsedCols`: To be used to modify the state of collapsible columns. Collapsible
+ *     columns are columns that we always want to remain visible but can be collapsed to 0px.
+ *     Collapsing is triggered programmatically by the caller, and they start collapsed.
  *
  * Make sure the table has `table-layout: fixed`.
  */
