@@ -29,14 +29,14 @@ case class DynTable(
   columnSizes:      Map[ColumnId, ColumnSize],
   droppableColumns: List[ColumnId],
   initialState:     DynTable.ColState,
-  // Columns that can be collapsed to 0px but remain visible. Collapsing is triggered programatically, and they start collapsed.
+  // Columns that can be collapsed to 0px but remain visible. Collapsing is triggered programmatically, and they start collapsed.
   collapsibleCols:  Set[ColumnId] = Set.empty
 ):
   // Check columns comply with the ones passed in columnSizes
   droppableColumns.foreach(colId =>
     assert(
       columnSizes.keySet.contains(colId),
-      s"DynTable.initialState.droppableColumns contains unknown column [$colId] not in columnSizes"
+      s"DynTable.droppableColumns contains unknown column [$colId] not in columnSizes"
     )
   )
   initialState.resized.value.keySet.foreach(colId =>
@@ -234,10 +234,6 @@ object DynTable:
      */
     lazy val computedVisibility: ColumnVisibility =
       visibility.modify(_ ++ droppedColumns.map(_ -> Visibility.Hidden))
-
-    /**
-     * The same state without overflows. Useful when recomputing them.
-     */
 
   object ColState:
     val resized: Lens[ColState, ColumnSizing]         = Focus[ColState](_.resized)
