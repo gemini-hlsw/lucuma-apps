@@ -5,6 +5,7 @@ package queries.schemas.itc
 
 import cats.Hash
 import cats.data.EitherNec
+import cats.data.NonEmptyChain
 import cats.data.NonEmptyList
 import cats.syntax.all.*
 import explore.model.Constants
@@ -29,6 +30,27 @@ import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
 
 import scala.collection.immutable.SortedSet
+
+case class AllItcTargets(
+  valid:   List[ItcTarget],
+  invalid: List[(ItcTarget, ItcTargetProblem)]
+):
+  private def validNel: Option[NonEmptyList[ItcTarget]] = NonEmptyList.fromList(valid)
+
+  private def problemsNec: Option[NonEmptyChain[ItcTargetProblem]] =
+    NonEmptyChain.fromSeq(invalid.map(_._2))
+
+  // Valid targets as an EitherNec
+  def validNelOrProblems: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
+    validNel.toRight(
+      problemsNec.getOrElse(
+        NonEmptyChain.one(ItcTargetProblem(None, ItcQueryProblem.GenericError(Constants.NoTargets)))
+      )
+    )
+
+  // Targets with problems
+  def queryProblems: List[(ItcTarget, ItcQueryProblem)] =
+    invalid.map((t, p) => (t, p.problem))
 
 trait syntax:
 
@@ -175,11 +197,19 @@ trait syntax:
     def toItcTargets(allTargets: TargetList): EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
       toAsterism(allTargets).toItcTargets
 
+    def toAllItcTargets(allTargets: TargetList): AllItcTargets =
+      toAsterism(allTargets).allItcTargets
+
   extension (target: Target)
-    def itcTarget: EitherNec[ItcTargetProblem, ItcTarget] =
+    def itcTargetWithProblem: (ItcTarget, Option[ItcTargetProblem]) =
       // ToOs have source profiles, but no RV, so we'll just use Zero
-      val rv: RadialVelocity = TargetRV.getOption(target).getOrElse(RadialVelocity.Zero)
-      ItcTarget(target.name, TargetInput(Target.sourceProfile.get(target), rv)).orItcProblem
+      val rv  = TargetRV.getOption(target).getOrElse(RadialVelocity.Zero)
+      val itc = ItcTarget(target.name, TargetInput(Target.sourceProfile.get(target), rv))
+      (itc, itc.itcProblem)
+
+    def itcTarget: EitherNec[ItcTargetProblem, ItcTarget] =
+      val (itc, problem) = itcTargetWithProblem
+      problem.map(NonEmptyChain.one).toLeft(itc)
 
   extension (asterism: List[Target])
     def toItcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
@@ -189,5 +219,12 @@ trait syntax:
         .flatMap:
           _.toNel
             .toRightNec(ItcTargetProblem(None, ItcQueryProblem.GenericError(Constants.NoTargets)))
+
+    def allItcTargets: AllItcTargets =
+      val distinctTargets = asterism.map(_.itcTargetWithProblem._1).distinct
+
+      val valid   = distinctTargets.filter(_.itcProblem.isEmpty)
+      val invalid = distinctTargets.flatMap(t => t.itcProblem.tupleLeft(t))
+      AllItcTargets(valid, invalid)
 
 object syntax extends syntax

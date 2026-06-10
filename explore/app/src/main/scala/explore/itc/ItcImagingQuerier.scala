@@ -39,8 +39,11 @@ case class ItcImagingQuerier(
   private val constraints = observation.constraints
   private val asterismIds = observation.scienceTargetIds
 
+  // Include both valid and invalid targets, so we can keep track of the problems for the invalid ones and show them in the UI.
+  private val validAndInvalidTargets = asterismIds.toAllItcTargets(allTargets)
+
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
-    asterismIds.toItcTargets(allTargets)
+    validAndInvalidTargets.validNelOrProblems
 
   private val obsModeConfigs: Option[NonEmptyList[ItcInstrumentConfig]] =
     NonEmptyList.fromList(observation.toInstrumentConfig(allTargets))
@@ -67,7 +70,12 @@ case class ItcImagingQuerier(
     for {
       t       <- itcTargets.leftMap(_.map(_.problem))
       configs <- finalConfigs
-    } yield ItcImagingQuerier.QueryProps(constraints, t, configs.toList, customSedTimestamps)
+    } yield ItcImagingQuerier.QueryProps(constraints,
+                                         t,
+                                         configs.toList,
+                                         customSedTimestamps,
+                                         validAndInvalidTargets.invalid
+    )
 
   def requestCalculations(using
     WorkerClient[IO, ItcMessage.Request]
@@ -91,7 +99,7 @@ case class ItcImagingQuerier(
             if list.length < qp.instrumentConfigs.length then
               ItcQueryProblem.GenericError("ITC failed to return some or all modes.").leftNec
             else
-              val imagingResults = list.foldLeft(ImagingResults.empty): (acc, entry) =>
+              val imagingResults                    = list.foldLeft(ImagingResults.empty): (acc, entry) =>
                 val (params, result) = entry
                 val newEntries: List[
                   (ItcTarget, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
@@ -122,7 +130,15 @@ case class ItcImagingQuerier(
                       acc.updatedWith(target):
                         case Some(targetMap) => Some(targetMap + (params -> result))
                         case None            => Some(Map(params -> result))
-              imagingResults.rightNec[ItcQueryProblem]
+              val allParams: List[ItcRequestParams] =
+                imagingResults.values.flatMap(_.keys).toList.distinct
+
+              val withProblems: ImagingResults =
+                qp.targetProblems.foldLeft(imagingResults):
+                  case (acc, (target, problem)) =>
+                    acc.updated(target, allParams.map(_ -> problem.leftNec).toMap)
+
+              withProblems.rightNec[ItcQueryProblem]
 
     (for {
       qp <- EitherT(queryProps.pure[IO])
@@ -134,7 +150,8 @@ object ItcImagingQuerier:
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
     instrumentConfigs:   List[ItcInstrumentConfig],
-    customSedTimestamps: List[Timestamp]
+    customSedTimestamps: List[Timestamp],
+    targetProblems:      List[(ItcTarget, ItcTargetProblem)]
   ) derives Eq
 
   private given Reusability[QueryProps] = Reusability.byEq

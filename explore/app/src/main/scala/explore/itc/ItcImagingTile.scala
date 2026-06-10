@@ -269,10 +269,12 @@ object ItcImagingTile
           useEffectWithDeps((props.selectedTarget.get, tileState.get.imagingTargets)):
             (selectedTarget, availableTargets) =>
               selectedTarget match
-                case None            => props.selectedTarget.set(availableTargets.headOption)
                 case Some(itcTarget) =>
-                  if availableTargets.contains(itcTarget) then Callback.empty
-                  else props.selectedTarget.set(availableTargets.headOption)
+                  props.selectedTarget
+                    .set(tileState.get.imagingDefaultTarget)
+                    .unless_(availableTargets.contains(itcTarget))
+                case _               =>
+                  props.selectedTarget.set(tileState.get.imagingDefaultTarget)
         rowsOrMsg     <- useMemo(
                            (tileState.get.calculationResults, props.selectedTarget.get)
                          ): (results, oTarget) =>

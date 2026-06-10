@@ -5,6 +5,7 @@ package explore.model.itc
 
 import cats.Eq
 import cats.data.EitherNec
+import cats.data.NonEmptyChain
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
@@ -44,8 +45,11 @@ case class ItcTarget(name: NonEmptyString, input: TargetInput) derives Eq:
     case SourceProfile.Uniform(sd)     => canQuerySD(sd)
     case SourceProfile.Gaussian(_, sd) => canQuerySD(sd)
 
+  def itcProblem: Option[ItcTargetProblem] =
+    if canQueryITC then none
+    else ItcTargetProblem(name.some, ItcQueryProblem.MissingBrightness).some
+
   def orItcProblem: EitherNec[ItcTargetProblem, ItcTarget] =
-    if (canQueryITC) this.rightNec
-    else ItcTargetProblem(name.some, ItcQueryProblem.MissingBrightness).leftNec
+    itcProblem.map(NonEmptyChain.one).toLeft(this)
 
   def gaiaFree: ItcTarget = copy(input = input.copy(sourceProfile = input.sourceProfile.gaiaFree))

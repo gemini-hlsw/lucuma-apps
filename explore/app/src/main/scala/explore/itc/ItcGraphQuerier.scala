@@ -66,14 +66,22 @@ case class ItcGraphQuerier(
   private val finalConfig: EitherNec[ItcQueryProblem, ItcInstrumentConfig] =
     remoteConfig.fold(requirementsConfig)(_.rightNec)
 
+  // Include both valid and invalid targets, so we can keep track of the problems for the invalid ones and show them in the UI.
+  private val validAndInvalidTargets = asterismIds.toAllItcTargets(allTargets)
+
   private val itcTargets: EitherNec[ItcTargetProblem, NonEmptyList[ItcTarget]] =
-    asterismIds.toItcTargets(allTargets)
+    validAndInvalidTargets.validNelOrProblems
 
   private val queryProps: EitherNec[ItcTargetProblem, ItcGraphQuerier.QueryProps] =
     for {
       t <- itcTargets
       i <- finalConfig.leftMap(_.map(_.toTargetProblem))
-    } yield ItcGraphQuerier.QueryProps(constraints, t, i, customSedTimestamps)
+    } yield ItcGraphQuerier.QueryProps(constraints,
+                                       t,
+                                       i,
+                                       customSedTimestamps,
+                                       validAndInvalidTargets.queryProblems
+    )
 
   // Returns graphs for each target and the brightest target
   def requestGraphs(using
@@ -97,7 +105,12 @@ case class ItcGraphQuerier(
             _.leftMap(_.map(_.toTargetProblem))
           )
         )
-        .map(_.map((_, qp.instrumentConfig)))
+        .map(_.map: graphResults =>
+          val merged =
+            graphResults.copy(asterismGraphs =
+              graphResults.asterismGraphs ++ qp.targetProblems.map((t, p) => t -> p.asLeft)
+            )
+          (merged, qp.instrumentConfig))
 
     (for {
       qp <- EitherT(queryProps.pure[IO])
@@ -109,7 +122,8 @@ object ItcGraphQuerier:
     constraints:         ConstraintSet,
     targets:             NonEmptyList[ItcTarget],
     instrumentConfig:    ItcInstrumentConfig,
-    customSedTimestamps: List[Timestamp]
+    customSedTimestamps: List[Timestamp],
+    targetProblems:      List[(ItcTarget, ItcQueryProblem)]
   ) derives Eq
 
   private given Reusability[QueryProps] = Reusability.byEq
