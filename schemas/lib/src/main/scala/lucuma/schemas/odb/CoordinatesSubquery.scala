@@ -4,12 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import lucuma.schemas.ObservationDB
 import lucuma.core.math.Coordinates
-import lucuma.odb.json.coordinates.query.given 
+import lucuma.odb.json.coordinates.query.given
+import lucuma.schemas.ObservationDB
 
-object CoordinatesSubquery extends GraphQLSubquery.Typed[ObservationDB, Coordinates]("Coordinates") {
-  override val subquery: String =s"""
+object CoordinatesSubquery
+    extends GraphQLSubquery.Typed[ObservationDB, Coordinates]("Coordinates") {
+  override val subquery: String = s"""
     {
       ra $RASubquery
       dec $DecSubquery

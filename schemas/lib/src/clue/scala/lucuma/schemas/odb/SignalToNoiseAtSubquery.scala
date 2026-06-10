@@ -5,9 +5,9 @@ package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
 import clue.annotation.GraphQL
-import lucuma.schemas.ObservationDB
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
+import lucuma.schemas.ObservationDB
 
 @GraphQL
 object SignalToNoiseAtSubquery

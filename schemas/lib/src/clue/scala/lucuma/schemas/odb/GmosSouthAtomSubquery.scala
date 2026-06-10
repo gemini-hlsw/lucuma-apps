@@ -3,13 +3,13 @@
 
 package lucuma.schemas.odb
 
-import clue.annotation.GraphQL
 import clue.GraphQLSubquery
-import lucuma.schemas.ObservationDB
-import lucuma.odb.json.sequence.given
-import lucuma.odb.json.gmos.given
+import clue.annotation.GraphQL
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.gmos
+import lucuma.odb.json.gmos.given
+import lucuma.odb.json.sequence.given
+import lucuma.schemas.ObservationDB
 
 @GraphQL
 object GmosSouthAtomSubquery

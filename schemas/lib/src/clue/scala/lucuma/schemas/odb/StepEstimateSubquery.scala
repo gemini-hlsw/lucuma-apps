@@ -3,11 +3,11 @@
 
 package lucuma.schemas.odb
 
-import clue.annotation.GraphQL
 import clue.GraphQLSubquery
+import clue.annotation.GraphQL
 import lucuma.core.model.sequence.StepEstimate
-import lucuma.schemas.ObservationDB
 import lucuma.odb.json.timeaccounting.given
+import lucuma.schemas.ObservationDB
 
 @GraphQL
 object StepEstimateSubquery
