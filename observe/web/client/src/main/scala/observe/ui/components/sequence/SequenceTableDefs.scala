@@ -110,10 +110,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   // Missing columns are not removed by overflow. (We declare them in reverse order)
   protected lazy val ColumnPriorities: List[ColumnId] =
     List(
-      // CameraColumnId,
       DeckerColumnId,
       ReadModeColumnId,
-      // ImagingMirrorColumnId,
       SettingsColumnId
     ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
 
