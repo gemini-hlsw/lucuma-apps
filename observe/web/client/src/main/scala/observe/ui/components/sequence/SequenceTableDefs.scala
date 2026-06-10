@@ -73,11 +73,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   protected val BreakpointSpaceColumnId: ColumnId = ColumnId("breakpointDummy")
   // Will be rendered as a full-width column in an extra row
   protected val ExtraRowColumnId: ColumnId        = ColumnId("extraRow")
-  // protected val ObsModeColumnId: ColumnId         = ColumnId("obsMode")
-  protected val CameraColumnId: ColumnId          = ColumnId("camera")
   protected val DeckerColumnId: ColumnId          = ColumnId("decker")
   protected val ReadModeColumnId: ColumnId        = ColumnId("readMode")
-  protected val ImagingMirrorColumnId: ColumnId   = ColumnId("imagingMirror")
   protected val SettingsColumnId: ColumnId        = ColumnId("settings")
 
   // Observe-specific detail columns. Some of these ids (e.g. decker, readMode) are also provided
@@ -86,7 +83,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   // these are hidden by default, would also hide the shared column. So they are filtered against
   // the instrument's shared columns below (`extraDetailColumnIds`).
   private val detailColumnIds: List[ColumnId] =
-    List(CameraColumnId, DeckerColumnId, ReadModeColumnId, ImagingMirrorColumnId)
+    List(DeckerColumnId, ReadModeColumnId)
 
   private lazy val instrumentColDefs: List[ColDef.Type] =
     SequenceColumns(ColDef, _._1.some, _._2.some)(instrument)
@@ -104,10 +101,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     BreakpointColumnId      -> FixedSize(0.toPx),
     BreakpointSpaceColumnId -> FixedSize(30.toPx),
     ExtraRowColumnId        -> FixedSize(0.toPx),
-    CameraColumnId          -> Resizable(10.toPx),
     DeckerColumnId          -> Resizable(10.toPx),
     ReadModeColumnId        -> Resizable(180.toPx),
-    ImagingMirrorColumnId   -> Resizable(10.toPx),
     SettingsColumnId        -> FixedSize(39.toPx)
   ) ++ SequenceColumns.BaseColumnSizes(instrument)
 
@@ -115,10 +110,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
   // Missing columns are not removed by overflow. (We declare them in reverse order)
   protected lazy val ColumnPriorities: List[ColumnId] =
     List(
-      CameraColumnId,
       DeckerColumnId,
       ReadModeColumnId,
-      ImagingMirrorColumnId,
       SettingsColumnId
     ).reverse ++ SequenceColumns.BaseColumnPriorities(instrument)
 
@@ -256,11 +249,8 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
     ) ++
       instrumentColDefs.map(colDef => colDef.withColumnSize(ColumnSizes(colDef.id))) ++
       List(
-        // column(ObsModeColumnId, "Observing Mode"),
-        column(CameraColumnId, "Camera"),
         column(DeckerColumnId, "Decker"),
-        column(ReadModeColumnId, "ReadMode"),
-        column(ImagingMirrorColumnId, "ImagingMirror")
+        column(ReadModeColumnId, "ReadMode")
       ).filterNot(c => instrumentColumnIds.contains(c.id)) ++
       List(
         column(

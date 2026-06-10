@@ -51,18 +51,18 @@ object ObsHeader
           ),
           <.div(ObserveStyles.ObsSummaryDetails)(
             <.span(props.observation.instrumentConfigurationSummary),
-            <.span(props.observation.constraintsSummary),
-            props.overrides
-              .map: overrides =>
-                SubsystemOverrides(
-                  props.observation.obsId,
-                  props.observation.instrument,
-                  overrides,
-                  props.subsystemControlStrategies
-                )
-                  .when(props.loadedObsId.contains_(props.observation.obsId.ready))
-              .whenDefined
-          )
+            <.span(props.observation.constraintsSummary)
+          ),
+          props.overrides
+            .map: overrides =>
+              SubsystemOverrides(
+                props.observation.obsId,
+                props.observation.instrument,
+                overrides,
+                props.subsystemControlStrategies
+              )
+                .when(props.loadedObsId.contains_(props.observation.obsId.ready))
+            .whenDefined
         ),
         ConfigPanel(
           props.loadedObsId.flatMap(_.toOption),

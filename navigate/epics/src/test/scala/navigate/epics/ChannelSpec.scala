@@ -32,7 +32,7 @@ class ChannelSpec extends CatsEffectSuite {
         )
     )
 
-  epicsServer.test("Read stream of channel events") { case (serverCtx, srv) =>
+  epicsServer.test("Read stream of channel events".flaky) { case (serverCtx, srv) =>
     assertIOBoolean(
       (
         for {

@@ -21,6 +21,9 @@ enum ColumnSize(
   case Resizable(size: SizePx, min: Option[SizePx] = None, max: Option[SizePx] = None)
       extends ColumnSize(size, min, max, true)
 
+  def effectiveMinSize: SizePx =
+    minSize.getOrElse(SizePx(0))
+
 object ColumnSize:
   object Resizable:
     def apply(initial: SizePx, min: SizePx, max: SizePx): Resizable =

@@ -28,6 +28,7 @@ body {
 }
 
 .observe-main-panel {
+  min-width: 0; // Important for tables to shrink properly
   display: flex;
   flex-direction: column;
 
@@ -179,7 +180,8 @@ body {
 .observe-config-section {
   display: flex;
   flex-direction: column;
-  justify-content: space-evenly;
+  justify-content: flex-start;
+  gap: 1em;
   align-items: center;
 
   .observe-conditions-label {
@@ -966,6 +968,7 @@ body {
 .observe-obs-header {
   display: flex;
   justify-content: space-between;
+  flex-wrap: wrap;
 
   > div {
     flex: 1 1 auto;

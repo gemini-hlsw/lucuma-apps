@@ -487,7 +487,7 @@ object SequenceColumns:
         CoaddsColumnId   -> Resizable(60.toPx, min = 50.toPx, max = 70.toPx),
         FPUColumnId      -> Resizable(130.toPx, min = 130.toPx),
         DeckerColumnId   -> Resizable(120.toPx, min = 100.toPx),
-        GratingColumnId  -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
+        GratingColumnId  -> Resizable(50.toPx, min = 50.toPx, max = 70.toPx),
         FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
         ReadModeColumnId -> Resizable(90.toPx, min = 75.toPx, max = 120.toPx),
         SNColumnId       -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
