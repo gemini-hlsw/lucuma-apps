@@ -36,7 +36,6 @@ import lucuma.core.util.time.format.GppTimeFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
 import lucuma.react.primereact.Message
-import lucuma.typed.highcharts.highchartsStrings.area
 import lucuma.typed.highcharts.mod as Highcharts
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.components.MoonPhase
@@ -255,7 +254,7 @@ object NightPlot:
             )
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
-      (point: Point, _: Tooltip) =>
+      (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
         val x: Double                             = point.x
         val y: Double                             = point.y.toOption.orEmpty
         val time: String                          = timeFormat(x)
@@ -446,7 +445,7 @@ object NightPlot:
                  else s" highcharts-color-${seriesData.objectIndex % 10}")
 
               val baseSeries: SeriesAreaOptions =
-                SeriesAreaOptions((), (), area, ())
+                SeriesAreaOptions((), (), ())
                   .setName(if (seriesData.showLabel) seriesData.name else "")
                   .setLabel:
                     SeriesLabelOptionsObject()

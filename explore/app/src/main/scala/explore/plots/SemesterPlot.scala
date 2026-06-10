@@ -23,7 +23,6 @@ import lucuma.core.util.time.format.GppDateFormatter
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
 import lucuma.react.primereact.Message
-import lucuma.typed.highcharts.highchartsStrings.line
 import lucuma.typed.highcharts.mod.*
 import lucuma.typed.highcharts.mod.Point
 import lucuma.ui.primereact.ToastCtx
@@ -212,7 +211,7 @@ object SemesterPlot:
                           .format(GppDateFormatter)
 
                       val tooltipFormatter: TooltipFormatterCallbackFunction = {
-                        (point: Point, _: Tooltip) =>
+                        (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
                           val x: Double            = point.x
                           val y: Double            = point.y.toOption.orEmpty
                           val date: String         = dateFormat(x)
@@ -269,7 +268,7 @@ object SemesterPlot:
                             )
                         .setSeries:
                           List(
-                            SeriesLineOptions((), (), line)
+                            SeriesLineOptions((), ())
                               .setName("Visibility")
                               .setYAxis(0)
                               .setAnimation(false)
