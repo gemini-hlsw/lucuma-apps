@@ -4,7 +4,10 @@
 package observe.server.gnirs
 
 import cats.Applicative
+import cats.data.Kleisli
+import cats.effect.Async
 import cats.syntax.all.*
+import fs2.Stream
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepType as OcsStepType
@@ -12,22 +15,76 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
+import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.SystemOverrides
+import observe.model.dhs.ImageFileId
+import observe.model.enums.ObserveCommandResult
 import observe.server.*
+import observe.server.gnirs.GnirsController.GnirsConfig
+import observe.server.keywords.DhsClient
+import observe.server.keywords.DhsClientProvider
+import observe.server.keywords.DhsInstrument
 import observe.server.keywords.Header
 import observe.server.keywords.KeywordsClient
+import org.typelevel.log4cats.Logger
 
-object Gnirs:
+final case class Gnirs[F[_]: {Async, Logger}](
+  controller:        GnirsController[F],
+  dhsClientProvider: DhsClientProvider[F],
+  config:            GnirsConfig
+) extends DhsInstrument[F]
+    with InstrumentSystem[F] {
 
-  // GNIRS is currently only supported for loading and display in Observe; sequence
-  // execution is not yet implemented. The instrument system and headers are therefore
-  // only reachable at execution time, which does not happen for GNIRS yet.
-  private val notImplemented: String =
-    "GNIRS sequence execution is not yet implemented in Observe"
+  override val resource: Instrument = Instrument.Gnirs
 
-  def build[F[_]: Applicative]: F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
+  override val contributorName: String = "gnirs"
+
+  override val dhsInstrumentName: String = "GNIRS"
+
+  override val dhsClient: DhsClient[F] = dhsClientProvider.dhsClient(dhsInstrumentName)
+
+  override val keywordsClient: KeywordsClient[F] = this
+
+  override def observeControl: InstrumentSystem.ObserveControl[F] =
+    InstrumentSystem.UnpausableControl(
+      InstrumentSystem.StopObserveCmd(_ => controller.stopObserve),
+      InstrumentSystem.AbortObserveCmd(controller.abortObserve)
+    )
+
+  override def observe: Kleisli[F, ImageFileId, ObserveCommandResult] =
+    Kleisli { fileId =>
+      controller.observe(fileId, calcObserveTime)
+    }
+
+  override def configure: F[ConfigResult[F]] =
+    controller.applyConfig(config).as(ConfigResult(this))
+
+  override def notifyObserveEnd: F[Unit] = controller.endObserve
+
+  override def notifyObserveStart: F[Unit] = Applicative[F].unit
+
+  override def calcObserveTime: TimeSpan =
+    Gnirs.calcObserveTime(config.dynamicConfig)
+
+  override def observeProgress(
+    total:   TimeSpan,
+    elapsed: InstrumentSystem.ElapsedTime
+  ): Stream[F, Progress] =
+    controller.observeProgress(total)
+
+  override def instrumentActions: InstrumentActions[F] =
+    InstrumentActions.defaultInstrumentActions[F]
+}
+
+object Gnirs {
+  // Placed here in companion object to allow invoking from test.
+  def calcObserveTime(dc: GnirsDynamicConfig): TimeSpan =
+    (dc.exposure +| dc.readMode.readoutTimePerCoadd) *| dc.coadds.value
+
+  def build[F[_]: {Async, Logger}]
+    : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
     new InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig] {
       override def build(
         systems:           Systems.OverriddenSystems[F],
@@ -39,6 +96,7 @@ object Gnirs:
       ): Either[ObserveFailure, InstrumentStep[F]] =
         SeqTranslate.calcStepType(Instrument.Gnirs, step.stepConfig, step.observeClass).map {
           stepKind =>
+            val config: GnirsConfig = GnirsConfig(staticConf, step.instrumentConfig, stepType)
             new InstrumentStep[F] {
               override def stepType: StepKind = stepKind
 
@@ -50,10 +108,15 @@ object Gnirs:
               override def instrument: Instrument = Instrument.Gnirs
 
               override def instrumentSystem(sysOverrides: SystemOverrides): InstrumentSystem[F] =
-                sys.error(notImplemented)
+                Gnirs(systems.gnirs(sysOverrides), systems.dhs(sysOverrides), config)
 
               override def instrumentHeader(client: KeywordsClient[F]): Header[F] =
-                sys.error(notImplemented)
+                GnirsHeader.header(
+                  client,
+                  systems.systems.gnirsKeywordReader,
+                  systems.systems.tcsKeywordReader
+                )
             }
         }
     }.pure[F]
+}
