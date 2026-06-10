@@ -61,7 +61,7 @@ class GnirsSuite extends TestCommon {
         ObserveClass.Science,
         Breakpoint.Disabled
       )
-    val atom: Atom[GnirsDynamicConfig]            = Atom(atomId1, none, NonEmptyList.one(step))
+    val atom: Atom[GnirsDynamicConfig] = Atom(atomId1, none, NonEmptyList.one(step))
     OdbObservationData(
       // nextStep requires an observation time to be set.
       odbObservation(seqObsId1).copy(observationTime = Timestamp.Min.some),
@@ -82,10 +82,10 @@ class GnirsSuite extends TestCommon {
   }
 
   test("GNIRS calcObserveTime accounts for coadds and read-mode readout") {
-    // (5s exposure + 11.4s readout/coadd) * 2 coadds = 32.8s
+    // (5s exposure + 11.14s readout/coadd) * 2 coadds = 32.28s
     assertEquals(
       Gnirs.calcObserveTime(gnirsDynamicCfg).toMicroseconds,
-      32_800_000L
+      32_280_000L
     )
   }
 }
