@@ -200,6 +200,13 @@
     fill: lightgray;
   }
 
+  .gnirs-science-slit {
+    stroke: blue;
+    stroke-width: 0.8px;
+    fill-opacity: 0.1;
+    fill: lightgray;
+  }
+
   .visitor-science-fov {
     stroke: cyan;
     stroke-width: 0.8px;
@@ -216,6 +223,7 @@
   }
 
   &.igrins2-candidates-area-visible .igrins2-candidates-area,
+  &.gnirs-candidates-area-visible .gnirs-candidates-area,
   &.flamingos2-candidates-area-visible .flamingos2-candidates-area,
   &.ghost-candidates-area-visible .ghost-candidates-area,
   &.visitor-candidates-area-visible .visitor-candidates-area,
@@ -224,6 +232,7 @@
   }
 
   .igrins2-candidates-area,
+  .gnirs-candidates-area,
   .flamingos2-candidates-area,
   .ghost-candidates-area,
   .visitor-candidates-area,

@@ -143,7 +143,10 @@ object UseAgsCalculation:
         applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
 
       case ObservingModeType.GnirsLongSlit =>
-        none
+        val base = observingMode.collectFirst:
+          case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
+            AgsParams.GnirsLongSlit(fpu, camera, prism, port)
+        applyGuideProbe(base, guideProbe)
 
       case _: VisitorObservingModeType =>
         val base = observingMode.collectFirst:

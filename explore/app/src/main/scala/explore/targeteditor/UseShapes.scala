@@ -79,8 +79,8 @@ def usePatrolFieldShapes(
         none // TODO; We don't have a Gnirs geometry yet.
       case BasicConfiguration.Igrins2LongSlit                                  =>
         AgsParams.Igrins2LongSlit().some
-      case BasicConfiguration.GnirsLongSlit(_, _, _, _, _)                     =>
-        none // TODO; We don't have a Gnirs geometry yet.
+      case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
+        AgsParams.GnirsLongSlit(fpu, camera, prism, port).some
       case BasicConfiguration.GhostIfu(_, _, _, _, _)                          =>
         AgsParams.GhostIfu().some
       case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
@@ -214,7 +214,7 @@ def usePatrolFieldShapes(
           case ObservingModeType.GhostIfu                                                =>
             (VisualizationStyles.Anchor, ghost.scienceArea.fov)
           case ObservingModeType.GnirsLongSlit                                           =>
-            (Css.Empty, ShapeExpression.Empty)
+            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
           case _: VisitorObservingModeType                                               =>
             (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
 
@@ -343,7 +343,24 @@ def useVisualizationShapes(
            )
           )
         case ObservingModeType.GnirsLongSlit                                           =>
-          (Css.Empty, none)
+          val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+              VisualizationStyles.PwfsProbeArmVisible
+            case _                                               =>
+              Css.Empty
+
+          (probeVisibilityCss,
+           GnirsGeometry.gnirsGeometry(
+             baseCoords,
+             blindOffset,
+             vizConf.flatMap(_.guidedSciOffsets),
+             vizConf.map(_.posAngle),
+             vizConf.map(_.configuration),
+             vizConf.flatMap(_.trackType),
+             selectedGS,
+             candidatesVisibilityCss
+           )
+          )
         case _: VisitorObservingModeType                                               =>
           val probeVisibilityCss = vizConf.map(_.guideProbe) match
             case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
