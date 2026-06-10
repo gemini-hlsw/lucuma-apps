@@ -122,3 +122,6 @@ TASK.md
 TASK_*.md
 *_TASK.md
 .claude/
+
+# Certs - Folder used as temporary certs storage during conversion.
+.certs/*
