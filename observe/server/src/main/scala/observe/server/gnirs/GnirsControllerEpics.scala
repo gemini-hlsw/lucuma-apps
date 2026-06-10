@@ -54,12 +54,12 @@ trait GnirsEncoders {
   }
 
   given EncodeEpicsValue[GnirsDecker, String] = EncodeEpicsValue {
-    case GnirsDecker.Acquisition           => "Acq"
-    case GnirsDecker.PupilViewer           => "PV"
-    case GnirsDecker.ShortCamLongSlit      => "SCLong"
+    case GnirsDecker.Acquisition            => "Acq"
+    case GnirsDecker.PupilViewer            => "PV"
+    case GnirsDecker.ShortCamLongSlit       => "SCLong"
     case GnirsDecker.ShortCamCrossDispersed => "SCXD"
-    case GnirsDecker.LongCamLongSlit       => "LCLong"
-    case GnirsDecker.LongCamCrossDispersed => "LCXD"
+    case GnirsDecker.LongCamLongSlit        => "LCLong"
+    case GnirsDecker.LongCamCrossDispersed  => "LCXD"
   }
 }
 
@@ -123,7 +123,10 @@ object GnirsControllerEpics extends GnirsEncoders {
         epicsSys.arrayActive.flatMap(L.warn("GNIRS detector array is not active").unlessA)
 
       private val checkDhs: F[Unit] =
-        failUnlessM(epicsSys.dhsConnected, ObserveFailure.Execution("GNIRS is not connected to DHS"))
+        failUnlessM(
+          epicsSys.dhsConnected,
+          ObserveFailure.Execution("GNIRS is not connected to DHS")
+        )
 
       private val checkArray: F[Unit] =
         failUnlessM(epicsSys.arrayActive,
@@ -131,7 +134,11 @@ object GnirsControllerEpics extends GnirsEncoders {
         )
 
       private def setAcqMirror(v: String): F[Option[F[Unit]]] =
-        smartSetParamF(v, epicsSys.acqMirror.map(removePartName), epicsSys.configCCCmd.setAcqMirror(v))
+        smartSetParamF(
+          v,
+          epicsSys.acqMirror.map(removePartName),
+          epicsSys.configCCCmd.setAcqMirror(v)
+        )
 
       private def setSpectrography(
         camera: GnirsCamera,
@@ -153,21 +160,41 @@ object GnirsControllerEpics extends GnirsEncoders {
         val gratingMode: String = "WAVELENGTH"
 
         List(
-          smartSetParamF(gratingValue, epicsSys.grating.map(removePartName), epicsSys.configCCCmd.setGrating(gratingValue)),
-          smartSetParamF(gratingMode, epicsSys.gratingMode, epicsSys.configCCCmd.setGratingMode(gratingMode)),
-          smartSetParamF(prismValue, epicsSys.prism.map(removePartName), epicsSys.configCCCmd.setPrism(prismValue))
+          smartSetParamF(
+            gratingValue,
+            epicsSys.grating.map(removePartName),
+            epicsSys.configCCCmd.setGrating(gratingValue)
+          ),
+          smartSetParamF(
+            gratingMode,
+            epicsSys.gratingMode,
+            epicsSys.configCCCmd.setGratingMode(gratingMode)
+          ),
+          smartSetParamF(
+            prismValue,
+            epicsSys.prism.map(removePartName),
+            epicsSys.configCCCmd.setPrism(prismValue)
+          )
         )
       }
 
       private def setDarkCCParams: List[F[Option[F[Unit]]]] =
         List(
-          smartSetParamF("Closed", epicsSys.cover.map(removePartName), epicsSys.configCCCmd.setCover("Closed")),
-          smartSetParamF("Dark", epicsSys.filter1.map(removePartName), epicsSys.configCCCmd.setFilter1("Dark"))
+          smartSetParamF(
+            "Closed",
+            epicsSys.cover.map(removePartName),
+            epicsSys.configCCCmd.setCover("Closed")
+          ),
+          smartSetParamF(
+            "Dark",
+            epicsSys.filter1.map(removePartName),
+            epicsSys.configCCCmd.setFilter1("Dark")
+          )
         )
 
       private def slitWidthValue(dc: GnirsDynamicConfig): Option[String] =
         dc.fpu match {
-          case Left(slit)  =>
+          case Left(slit)   =>
             (slit match {
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_10  => "0.10arcsec"
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_15  => "0.15arcsec"
@@ -198,29 +225,49 @@ object GnirsControllerEpics extends GnirsEncoders {
         val filter1Value: String                           = if (pupilViewer) "PupilViewer" else filterWheel1
         val cameraValue: String                            = encode(dc.camera)
         val deckerValue: String                            = encode(dc.decker)
-        val wavelengthToleranceNm: Double                  = 0.0001
+        val wavelengthRelTolerance: Double                 = 0.0001
 
         val acqMirrorAndSpectrography: List[F[Option[F[Unit]]]] = dc.acquisitionMirror match {
-          case GnirsAcquisitionMirrorMode.In       => List(setAcqMirror("In"))
+          case GnirsAcquisitionMirrorMode.In                 => List(setAcqMirror("In"))
           case out @ GnirsAcquisitionMirrorMode.Out(_, _, _) =>
             setAcqMirror("Out") :: setSpectrography(dc.camera, out)
         }
 
         val focusParam: F[Option[F[Unit]]] = dc.focus match {
-          case GnirsFocus.Best      => (epicsSys.configCCCmd.setFocusBest("best focus").some).pure[F]
+          case GnirsFocus.Best      => epicsSys.configCCCmd.setFocusBest("best focus").some.pure[F]
           case GnirsFocus.Custom(v) =>
             val steps: Int = focusSteps(v.value)
             smartSetParamF(steps, epicsSys.focusEng, epicsSys.configCCCmd.setFocus(steps))
         }
 
         val common: List[F[Option[F[Unit]]]] = List(
-          smartSetParamF("Open", epicsSys.cover.map(removePartName), epicsSys.configCCCmd.setCover("Open")),
-          smartSetParamF(filter1Value, epicsSys.filter1.map(removePartName), epicsSys.configCCCmd.setFilter1(filter1Value)),
-          smartSetParamF(filter2Value, epicsSys.filter2.map(removePartName), epicsSys.configCCCmd.setFilter2(filter2Value)),
-          smartSetParamF(cameraValue, epicsSys.camera.map(removePartName), epicsSys.configCCCmd.setCamera(cameraValue)),
-          smartSetParamF(deckerValue, epicsSys.decker.map(removePartName), epicsSys.configCCCmd.setDecker(deckerValue)),
+          smartSetParamF(
+            "Open",
+            epicsSys.cover.map(removePartName),
+            epicsSys.configCCCmd.setCover("Open")
+          ),
+          smartSetParamF(
+            filter1Value,
+            epicsSys.filter1.map(removePartName),
+            epicsSys.configCCCmd.setFilter1(filter1Value)
+          ),
+          smartSetParamF(
+            filter2Value,
+            epicsSys.filter2.map(removePartName),
+            epicsSys.configCCCmd.setFilter2(filter2Value)
+          ),
+          smartSetParamF(
+            cameraValue,
+            epicsSys.camera.map(removePartName),
+            epicsSys.configCCCmd.setCamera(cameraValue)
+          ),
+          smartSetParamF(
+            deckerValue,
+            epicsSys.decker.map(removePartName),
+            epicsSys.configCCCmd.setDecker(deckerValue)
+          ),
           focusParam,
-          smartSetDoubleParamF(wavelengthToleranceNm)(
+          smartSetDoubleParamF(wavelengthRelTolerance)(
             wavelengthNm(dc.centralWavelength),
             epicsSys.centralWavelength,
             epicsSys.configCCCmd.setCentralWavelength(wavelengthNm(dc.centralWavelength))
@@ -228,9 +275,12 @@ object GnirsControllerEpics extends GnirsEncoders {
         )
 
         val slit: F[Option[F[Unit]]] = slitWidthValue(dc)
-          .map(sl =>
-            smartSetParamF(sl, epicsSys.slitWidth.map(removePartName), epicsSys.configCCCmd.setSlitWidth(sl))
-          )
+          .map: sl =>
+            smartSetParamF(
+              sl,
+              epicsSys.slitWidth.map(removePartName),
+              epicsSys.configCCCmd.setSlitWidth(sl)
+            )
           .getOrElse(none[F[Unit]].pure[F])
 
         common ::: acqMirrorAndSpectrography ::: List(slit)
@@ -244,21 +294,25 @@ object GnirsControllerEpics extends GnirsEncoders {
       }
 
       private def setDCParams(config: GnirsConfig): F[Unit] = {
-        val dc: GnirsDynamicConfig = config.dynamicConfig
-        val expTimeToleranceSec: Double = 0.0001
+        val dc: GnirsDynamicConfig      = config.dynamicConfig
+        val expTimeRelTolerance: Double = 0.0001
         // Old Seqexec uses an absolute tolerance of 0.05V, ~16.7% relative for a 0.3V bias.
-        val biasToleranceVolts: Double = 0.15
+        val biasToleranceVolts: Double  = 0.15
 
         val (lowNoise, digitalAvgs): (Int, Int) = readModeEncoder.encode(dc.readMode)
         val biasVolts: Double                   = encode(config.staticConfig.wellDepth)
 
         val params: List[F[Option[F[Unit]]]] = List(
-          smartSetDoubleParamF(expTimeToleranceSec)(
+          smartSetDoubleParamF(expTimeRelTolerance)(
             dc.exposure.toSeconds.toDouble,
             epicsSys.exposureTime,
             epicsSys.configDCCmd.setExposureTime(dc.exposure.toSeconds.toDouble)
           ),
-          smartSetParamF(dc.coadds.value, epicsSys.numCoadds, epicsSys.configDCCmd.setCoadds(dc.coadds.value)),
+          smartSetParamF(
+            dc.coadds.value,
+            epicsSys.numCoadds,
+            epicsSys.configDCCmd.setCoadds(dc.coadds.value)
+          ),
           // The instrument reports the negative of the bias that was set.
           smartSetDoubleParamF(biasToleranceVolts)(
             -biasVolts,
@@ -266,7 +320,11 @@ object GnirsControllerEpics extends GnirsEncoders {
             epicsSys.configDCCmd.setDetBias(biasVolts)
           ),
           smartSetParamF(lowNoise, epicsSys.lowNoise, epicsSys.configDCCmd.setLowNoise(lowNoise)),
-          smartSetParamF(digitalAvgs, epicsSys.digitalAvgs, epicsSys.configDCCmd.setDigitalAvgs(digitalAvgs))
+          smartSetParamF(
+            digitalAvgs,
+            epicsSys.digitalAvgs,
+            epicsSys.configDCCmd.setDigitalAvgs(digitalAvgs)
+          )
         )
 
         executeIfNeeded(params, epicsSys.configDCCmd.post(DefaultTimeout))

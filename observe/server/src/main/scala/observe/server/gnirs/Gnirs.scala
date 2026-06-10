@@ -79,7 +79,7 @@ final case class Gnirs[F[_]: {Async, Logger}](
 }
 
 object Gnirs {
-  // Placed here in companinon object to allow invoking from test.
+  // Placed here in companion object to allow invoking from test.
   def calcObserveTime(dc: GnirsDynamicConfig): TimeSpan =
     (dc.exposure +| dc.readMode.readoutTimePerCoadd) *| dc.coadds.value
 
