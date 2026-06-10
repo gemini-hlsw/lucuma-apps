@@ -98,7 +98,9 @@ private[server] trait ScienceFoldPositionCodex:
   }
 
   given Encoder[Position, String] = (a: Position) =>
-    val instAGName = if (a.port === 1) a.sink.encode else s"${a.sink.encode}${a.port}"
+    // Position name in agSeq doesn't have the port number for AC
+    val instAGName =
+      if (a.sink === LightSinkName.Ac) a.sink.encode else s"${a.sink.encode}${a.port}"
 
     a.source match {
       case Sky  => instAGName
