@@ -14,8 +14,6 @@ import lucuma.core.enums.GhostIfu1FiberAgitator
 import lucuma.core.enums.GhostIfu2FiberAgitator
 import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.StepType
-import lucuma.core.model.Target as GemTarget
-import lucuma.core.model.Target.given
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.util.Enumerated
 
@@ -97,8 +95,8 @@ enum BundleConfig(val tag: String, val configName: String) derives Enumerated {
 
   def determineType(t: IFUTargetType): BundleConfig =
     t match {
-      case IFUTargetType.SkyPosition(_) => BundleConfig.Sky
-      case _                            => this
+      case IFUTargetType.SkyPosition => BundleConfig.Sky
+      case _                         => this
     }
 }
 
@@ -107,12 +105,12 @@ object BundleConfig {
 }
 
 sealed abstract class IFUTargetType(val targetType: String) extends Product with Serializable {
-  def name: Option[String] = this match {
-    case IFUTargetType.NoTarget                  => none
-    case IFUTargetType.TargetXY                  => none
-    case IFUTargetType.SkyPosition(sky)          => sky.name.value.some
-    case IFUTargetType.SiderealTarget(target)    => target.name.value.some
-    case IFUTargetType.NonsiderealTarget(target) => target.name.value.some
+  def getNameOption: Option[String] = this match {
+    case IFUTargetType.NoTarget                => none
+    case IFUTargetType.TargetXY                => none
+    case IFUTargetType.SkyPosition             => none
+    case IFUTargetType.SiderealTarget(name)    => name.some
+    case IFUTargetType.NonsiderealTarget(name) => name.some
   }
 }
 
@@ -122,36 +120,24 @@ object IFUTargetType {
 
   case object TargetXY extends IFUTargetType(targetType = "IFU_TARGET_OBJECT")
 
-  final case class SkyPosition(sky: GemTarget) extends IFUTargetType(targetType = "IFU_TARGET_SKY")
+  case object SkyPosition extends IFUTargetType(targetType = "IFU_TARGET_SKY")
 
-  final case class SiderealTarget(target: GemTarget.Sidereal)
+  final case class SiderealTarget(name: String)
       extends IFUTargetType(targetType = "IFU_TARGET_OBJECT")
 
-  final case class NonsiderealTarget(target: GemTarget.Nonsidereal)
+  final case class NonsiderealTarget(name: String)
       extends IFUTargetType(targetType = "IFU_TARGET_OBJECT")
-
-  def determineType(target: Option[GemTarget], sky: Option[GemTarget]): IFUTargetType =
-    target
-      .flatMap {
-        case t: GemTarget.Sidereal    => SiderealTarget(t).some
-        case t: GemTarget.Nonsidereal => NonsiderealTarget(t).some
-        case _                        => none
-      }
-      .orElse(sky.map(SkyPosition.apply))
-      .getOrElse(NoTarget)
 
   given GiapiConfig[IFUTargetType] = _.targetType
 
-  given Eq[IFUTargetType.SiderealTarget] = Eq.by(_.target)
+  given Eq[IFUTargetType.SiderealTarget] = Eq.by(_.name)
 
-  given Eq[IFUTargetType.NonsiderealTarget] = Eq.by(_.target)
-
-  given Eq[IFUTargetType.SkyPosition] = Eq.by(_.sky)
+  given Eq[IFUTargetType.NonsiderealTarget] = Eq.by(_.name)
 
   given Eq[IFUTargetType] = Eq.instance {
     case (NoTarget, NoTarget)                           => true
     case (TargetXY, TargetXY)                           => true
-    case (s1: SkyPosition, s2: SkyPosition)             => s1 === s2
+    case (SkyPosition, SkyPosition)                     => true
     case (t1: SiderealTarget, t2: SiderealTarget)       => t1 === t2
     case (t1: NonsiderealTarget, t2: NonsiderealTarget) => t1 === t2
     case _                                              => false

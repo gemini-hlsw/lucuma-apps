@@ -85,32 +85,25 @@ object GhostKeywordsReader extends GhostLUT with GhostTargetName {
   ): TimeSpan = (red.value.exposureTime *| red.value.exposureCount.value)
     .max(blue.value.exposureTime *| blue.value.exposureCount.value)
 
-  def extractTargetName(t: IFUTargetType): Option[String] = t match {
-    case IFUTargetType.SkyPosition(sky)          => sky.name.toString.some
-    case IFUTargetType.SiderealTarget(target)    => target.name.toString.some
-    case IFUTargetType.NonsiderealTarget(target) => target.name.toString.some
-    case _                                       => none
-  }
-
   def apply[F[_]: Sync](
     config:     GhostConfig,
     conditions: Ref[F, CurrentConditions]
   ): GhostKeywordsReader[F] =
     new GhostKeywordsReader[F] {
       val basePos: F[Boolean]                 = config.baseCoords.isEmpty.pure[F]
-      val srifu1: F[String]                   = config.ifu1TargetType.name
+      val srifu1: F[String]                   = config.ifu1TargetType.getNameOption
         .filter(_ => config.resolutionMode === GhostResolutionMode.Standard)
         .getOrElse("    ")
         .pure[F]
-      val srifu2: F[String]                   = config.ifu2TargetType.name
+      val srifu2: F[String]                   = config.ifu2TargetType.getNameOption
         .filter(_ => config.resolutionMode === GhostResolutionMode.Standard)
         .getOrElse("    ")
         .pure[F]
-      val hrifu1: F[String]                   = config.ifu1TargetType.name
+      val hrifu1: F[String]                   = config.ifu1TargetType.getNameOption
         .filter(_ => config.resolutionMode === GhostResolutionMode.High)
         .getOrElse("    ")
         .pure[F]
-      val hrifu2: F[String]                   = config.ifu2TargetType.name
+      val hrifu2: F[String]                   = config.ifu2TargetType.getNameOption
         .filter(_ => config.resolutionMode === GhostResolutionMode.High)
         .getOrElse("    ")
         .pure[F]

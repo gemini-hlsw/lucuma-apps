@@ -12,10 +12,10 @@ import lucuma.core.enums.LightSinkName
 import lucuma.core.enums.StepGuideState
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.TelescopeConfig
-import observe.common.ObsQueriesGql.ObsQuery.Data
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment.GuideTargets
 import observe.server.InstrumentGuide
+import observe.server.TestCommon.defaultTargetEnvironment
 import observe.server.tcs.TcsController.LightPath
 import observe.server.tcs.TcsController.LightSource
 
@@ -30,11 +30,8 @@ class TcsSouthSuite extends munit.FunSuite {
             override def instrument: Instrument                                       = Instrument.GmosSouth
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
-          Data.Observation
-            .TargetEnvironment(List.empty,
-                               none,
-                               GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))
-            ),
+          defaultTargetEnvironment
+            .copy(guideEnvironment = GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
           TelescopeConfig.Default,
           LightPath(LightSource.Sky, LightSinkName.Gmos),
           none,
@@ -52,8 +49,7 @@ class TcsSouthSuite extends munit.FunSuite {
 
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
-          Data.Observation
-            .TargetEnvironment(List.empty, none, GuideEnvironment(List.empty)),
+          defaultTargetEnvironment,
           TelescopeConfig.Default,
           LightPath(LightSource.Sky, LightSinkName.Gmos),
           none,
@@ -70,11 +66,8 @@ class TcsSouthSuite extends munit.FunSuite {
             override def instrument: Instrument                                       = Instrument.GmosSouth
             override def oiOffsetGuideThreshold: Option[Quantity[Double, Millimeter]] = none
           },
-          Data.Observation
-            .TargetEnvironment(List.empty,
-                               none,
-                               GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))
-            ),
+          defaultTargetEnvironment
+            .copy(guideEnvironment = GuideEnvironment(List(GuideTargets(GuideProbe.GmosOIWFS)))),
           TelescopeConfig(Offset.Zero, StepGuideState.Disabled),
           LightPath(LightSource.Sky, LightSinkName.Gmos),
           none,

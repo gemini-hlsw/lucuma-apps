@@ -13,19 +13,7 @@ object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetW
     {
       id
       name
-      sidereal {
-        ra $RASubquery
-        dec $DecSubquery
-        epoch
-        properMotion $ProperMotionSubquery
-        radialVelocity $RadialVelocitySubquery
-        parallax $AngleSubquery
-        catalogInfo {
-          name
-          id
-          objectType
-        }
-      }
+      sidereal $SiderealSubquery
       nonsidereal {
         key
       }

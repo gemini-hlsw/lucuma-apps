@@ -27,8 +27,7 @@ object Gnirs:
   private val notImplemented: String =
     "GNIRS sequence execution is not yet implemented in Observe"
 
-  def build[F[_]: Applicative]
-    : F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
+  def build[F[_]: Applicative]: F[InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig]] =
     new InstrumentStepBuilder[F, GnirsStaticConfig, GnirsDynamicConfig] {
       override def build(
         systems:           Systems.OverriddenSystems[F],

@@ -34,13 +34,21 @@ object ObsQueriesGql:
               targetId: id
               targetName: name
             }
+            basePosition {
+              type
+              name
+              sidereal $SiderealSubquery
+              nonsidereal {
+                des
+                keyType
+                key
+              }
+              coordinates $CoordinatesSubquery
+            }
             guideEnvironment {
               guideTargets { probe }
             }
-            explicitBase {
-              ra $RASubquery
-              dec $DecSubquery
-            }
+            explicitBase $CoordinatesSubquery
           }
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery
@@ -94,6 +102,24 @@ object ObsQueriesGql:
           ghost {
             static {
               resolutionMode
+              ifuMapping {
+                mappingType
+                singleTarget {
+                  ifu1
+                }
+                targetPlusSky {
+                  ifu1
+                  ifu2 $CoordinatesSubquery
+                }
+                skyPlusTarget {
+                  ifu1 $CoordinatesSubquery
+                  ifu2
+                }
+                dualTarget {
+                  ifu1
+                  ifu2
+                }
+              }
               slitViewingCameraExposureTime $TimeSpanSubquery
             }
             science { ...ghostSequenceFields }

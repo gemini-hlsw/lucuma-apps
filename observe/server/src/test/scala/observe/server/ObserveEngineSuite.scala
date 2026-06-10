@@ -31,9 +31,7 @@ import lucuma.core.refined.auto.*
 import lucuma.core.refined.given
 import lucuma.schemas.model.ModeSignalToNoise
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.FirstScienceTarget
-import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
 import observe.common.test.*
 import observe.model
 import observe.model.ClientId
@@ -561,10 +559,8 @@ class ObserveEngineSuite extends TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      TargetEnvironment(
-        List.empty,
-        Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName)),
-        GuideEnvironment(List.empty)
+      defaultTargetEnvironment.copy(
+        firstScienceTarget = Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName))
       ),
       reqConditions,
       List.empty,
@@ -702,7 +698,7 @@ class ObserveEngineSuite extends TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      TargetEnvironment(List.empty, None, GuideEnvironment(List.empty)),
+      defaultTargetEnvironment,
       reqConditions,
       List.empty,
       ModeSignalToNoise.Spectroscopy(none, none)

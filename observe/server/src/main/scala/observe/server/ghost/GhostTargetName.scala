@@ -28,11 +28,12 @@ trait GhostTargetName {
     case _: GhostCalibration                     => none
     case _: StandardResolutionMode.SingleTarget | _: StandardResolutionMode.NonSiderealTarget |
         _: StandardResolutionMode.TargetPlusSky | _: HighResolutionMode =>
-      ghostConfig.ifu1TargetType.name
+      ghostConfig.ifu1TargetType.getNameOption
     case _: StandardResolutionMode.DualTarget    =>
-      (ghostConfig.ifu1TargetType.name, ghostConfig.ifu2TargetType.name).mapN { case (n1, n2) =>
-        s"${ellipsis(n1, 35 - 3)}, ${ellipsis(n2, 35 - 3)}"
+      (ghostConfig.ifu1TargetType.getNameOption, ghostConfig.ifu2TargetType.getNameOption).mapN {
+        case (n1, n2) =>
+          s"${ellipsis(n1, 35 - 3)}, ${ellipsis(n2, 35 - 3)}"
       }
-    case _: StandardResolutionMode.SkyPlusTarget => ghostConfig.ifu2TargetType.name
+    case _: StandardResolutionMode.SkyPlusTarget => ghostConfig.ifu2TargetType.getNameOption
   }
 }
