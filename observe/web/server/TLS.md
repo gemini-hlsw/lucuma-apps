@@ -16,6 +16,21 @@ in the server and referred from the configurationFile.
 
 The web server ships with a self-signed certificate WHICH SHOULD NOT BE USED IN PRODUCTION.
 
+# Certificate conversion
+
+The 8 certificates that IT provides must be converted to JKS so that they can be used from Java.
+
+If you're in a hurry, just place the 8 `.tar.gz` files that IT provides in the `.certs` folder
+and run `convert-certs.sh`. We use only 2 passwords: one for the staging (test) servers and one
+for the production ones. Then manually upload the resulting JKS files to each of the 8 servers
+to their `~/[navigate|observe]/conf` folders and restart them.
+
+BTW: The current passwords can be checked in that directory, in the `secrets.conf` file.
+
+The rest of this file is for illustrative purposes of the steps that the script performs.
+
+---
+
 # Keystore creation
 
 The application needs the certificates on a java keystore and setting it properly
@@ -42,7 +57,7 @@ Now we are ready to build the keystore as follows:
 The keystore and certificate passwords are stored on each target host at
 
 ```
-/gemsoft/etc/observe/conf.d/tls.conf
+~/[navigate|observe]/conf/secrets.conf
 ```
 
 ## Concatenate the intermediate and the site certificates
@@ -100,6 +115,4 @@ See [here](http://jw35.blogspot.cl/2011/02/root-certificates-for-macos-openssl.h
 # Root certificate
 
 Internal sites are provided with a certificate signed by Gemini's root CA which is not necessarily installed
-in all systems. In particular Firefox has its own CA store and the certificate should be installed manually there
-
-The code here cannot solve this at the moment
+in all systems. In particular Firefox has its own CA store and the certificate should be installed manually there.
