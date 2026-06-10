@@ -18,6 +18,7 @@ import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.observationtree.focusObs
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.ImplicitsFromRaw.vdomNodeFromRawReactNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.model.ObservationValidation

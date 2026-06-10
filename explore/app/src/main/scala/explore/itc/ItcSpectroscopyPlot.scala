@@ -19,7 +19,6 @@ import lucuma.itc.client.GraphResult
 import lucuma.itc.math.roundToSignificantFigures
 import lucuma.react.common.ReactFnProps
 import lucuma.react.highcharts.Chart
-import lucuma.typed.highcharts.highchartsStrings.line
 import lucuma.typed.highcharts.mod.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -75,7 +74,7 @@ object ItcSpectroscopyPlot {
       }
 
     val tooltipFormatter: TooltipFormatterCallbackFunction =
-      (point: Point, _: Tooltip) =>
+      (point: Point, _: Tooltip, _: js.UndefOr[Point]) =>
         val x: String          = rounded(point.x)
         val y: String          = rounded(point.y)
         val measUnit: String   = if (graph.graphType === GraphType.SignalGraph) " 𝐞⁻" else ""
@@ -167,7 +166,7 @@ object ItcSpectroscopyPlot {
                 .map(label => s"$label $seriesName")
                 .getOrElse(seriesName)
             val id                                              = s"series-$idx"
-            SeriesLineOptions((), (), line)
+            SeriesLineOptions((), ())
               .setName(mkName(series.title, ccdIdx))
               .setYAxis(0)
               .setData(

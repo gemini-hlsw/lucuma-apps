@@ -20,6 +20,7 @@ import explore.model.enums.GroupWarning
 import explore.model.enums.TableId
 import explore.model.enums.TileSizeState
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.ImplicitsFromRaw.vdomNodeFromRawReactNode
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Program
 import lucuma.core.model.User
