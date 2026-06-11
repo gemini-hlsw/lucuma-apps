@@ -54,7 +54,7 @@ class GnirsEpics[F[_]: Async](epicsService: CaService, tops: Map[String, String]
 
     private val centralWavelength: Option[CaParameter[JDouble]] =
       cs.map(_.getDouble("centralWavelength"))
-    def setCentralWavelength(v: Double): F[Unit] =
+    def setCentralWavelength(v: Double): F[Unit]                =
       setParameter(centralWavelength, JDouble.valueOf(v))
 
     private val camera: Option[CaParameter[String]] = cs.map(_.getString("camera"))
@@ -64,7 +64,7 @@ class GnirsEpics[F[_]: Async](epicsService: CaService, tops: Map[String, String]
     def setGratingMode(v: String): F[Unit]               = setParameter(gratingMode, v)
 
     private val gratingOrder: Option[CaParameter[Integer]] = cs.map(_.getInteger("order"))
-    def setOrder(v: Int): F[Unit] = setParameter(gratingOrder, Integer.valueOf(v))
+    def setOrder(v: Int): F[Unit]                          = setParameter(gratingOrder, Integer.valueOf(v))
 
     private val grating: Option[CaParameter[String]] = cs.map(_.getString("grating"))
     def setGrating(v: String): F[Unit]               = setParameter(grating, v)
@@ -82,22 +82,22 @@ class GnirsEpics[F[_]: Async](epicsService: CaService, tops: Map[String, String]
     )
 
     private val lowNoise: Option[CaParameter[Integer]] = cs.map(_.getInteger("lowNoise"))
-    def setLowNoise(v: Int): F[Unit] = setParameter(lowNoise, Integer.valueOf(v))
+    def setLowNoise(v: Int): F[Unit]                   = setParameter(lowNoise, Integer.valueOf(v))
 
     private val exposureTime: Option[CaParameter[JDouble]] = cs.map(_.getDouble("exposureTime"))
-    def setExposureTime(v: Double): F[Unit] = setParameter(exposureTime, JDouble.valueOf(v))
+    def setExposureTime(v: Double): F[Unit]                = setParameter(exposureTime, JDouble.valueOf(v))
 
     private val wcs: Option[CaParameter[String]] = cs.map(_.getString("wcs"))
     def setWcs(v: String): F[Unit]               = setParameter(wcs, v)
 
     private val digitalAvgs: Option[CaParameter[Integer]] = cs.map(_.getInteger("digitalAvgs"))
-    def setDigitalAvgs(v: Int): F[Unit] = setParameter(digitalAvgs, Integer.valueOf(v))
+    def setDigitalAvgs(v: Int): F[Unit]                   = setParameter(digitalAvgs, Integer.valueOf(v))
 
     private val detBias: Option[CaParameter[JDouble]] = cs.map(_.getDouble("detBias"))
     def setDetBias(v: Double): F[Unit]                = setParameter(detBias, JDouble.valueOf(v))
 
     private val coadds: Option[CaParameter[JDouble]] = cs.map(_.getDouble("coadds"))
-    def setCoadds(v: Int): F[Unit] = setParameter(coadds, JDouble.valueOf(v.toDouble))
+    def setCoadds(v: Int): F[Unit]                   = setParameter(coadds, JDouble.valueOf(v.toDouble))
   }
 
   object endObserveCmd extends EpicsCommandBase[F](sysName) {
