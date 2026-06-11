@@ -151,14 +151,10 @@ trait syntax:
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                  =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsSpectroscopy(
-              grating,
-              fpu,
-              filter,
-              prism,
-              camera,
-              etm @ ExposureTimeMode.TimeAndCountMode(time, _, _)
-            ) =>
+        case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm)     =>
+          val readMode: GnirsReadMode = etm match
+            case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
+            case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
           filter.optimalWavelength
             .map: w =>
               InstrumentMode
@@ -170,7 +166,7 @@ trait syntax:
                   prism,
                   grating,
                   camera,
-                  GnirsReadMode.forExposureTime(time),
+                  readMode,
                   GnirsWellDepth.forCamera(camera)
                 )
                 .rightNec
