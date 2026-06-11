@@ -171,6 +171,13 @@ object GnirsLongslitConfigPanel
           )
           .view(_.toInput.assign)
 
+        val coaddsView: View[PosInt] = props.observingMode
+          .zoom(
+            ObservingMode.GnirsLongSlit.coadds,
+            GnirsLongSlitInput.coadds.modify
+          )
+          .view(_.assign)
+
         val slitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
           .zoom(
             ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
@@ -317,7 +324,9 @@ object GnirsLongslitConfigPanel
                 id = "grating-wavelength".refined,
                 value = gratingWavelengthView.as(GnirsGratingWavelength.Value.mapping[Option]),
                 defaultValue = props.observingMode.get.defaultGratingWavelength.value,
-                label = React.Fragment("Wavelength", HelpIcon("configuration/gnirs/wavelength.md".refined)),
+                label = React.Fragment("Wavelength",
+                                       HelpIcon("configuration/gnirs/wavelength.md".refined)
+                ),
                 units = props.units.symbol.some,
                 validFormat = props.units.toInputWedge,
                 changeAuditor = props.units.toAuditor.optional,
@@ -350,9 +359,10 @@ object GnirsLongslitConfigPanel
                 FormInputTextView(
                   id = "focus-motor-steps".refined,
                   value = focusMotorStepsView.as(GnirsFocusMotorStepsValue.Value),
-                  label = React.Fragment("Focus Motor Steps",
-                                        HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
-                  ),
+                  label =
+                    React.Fragment("Focus Motor Steps",
+                                   HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
+                    ),
                   validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
                   disabled = disableSimpleEdit || !props.isStaffOrAdmin
                 ),
@@ -387,7 +397,17 @@ object GnirsLongslitConfigPanel
                 props.units,
                 props.calibrationRole,
                 "gnirsLongSlit".refined
-              )
+              ),
+              FormInputTextView(
+                id = "gnirs-coadds".refined,
+                value = coaddsView,
+                label = React.Fragment(
+                  "Coadds",
+                  HelpIcon("configuration/gnirs/coadds.md".refined)
+                ),
+                validFormat = InputValidSplitEpi.posInt,
+                changeAuditor = ChangeAuditor.int
+              )(^.autoComplete.off)
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               SlitTelescopeConfigsEditor(
