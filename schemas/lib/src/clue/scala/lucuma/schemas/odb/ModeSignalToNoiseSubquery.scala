@@ -6,8 +6,8 @@ package lucuma.schemas.odb
 import clue.GraphQLSubquery
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
-import lucuma.schemas.model.ModeSignalToNoise
 import lucuma.schemas.decoders.given
+import lucuma.schemas.model.ModeSignalToNoise
 
 @GraphQL
 object ModeSignalToNoiseSubquery

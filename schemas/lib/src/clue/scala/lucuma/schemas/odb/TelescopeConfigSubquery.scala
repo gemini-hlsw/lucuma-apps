@@ -3,11 +3,11 @@
 
 package lucuma.schemas.odb
 
-import clue.annotation.GraphQL
 import clue.GraphQLSubquery
+import clue.annotation.GraphQL
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.schemas.ObservationDB
 import lucuma.odb.json.stepconfig.given
+import lucuma.schemas.ObservationDB
 
 @GraphQL
 object TelescopeConfigSubquery

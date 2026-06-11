@@ -411,7 +411,7 @@ object GhostConfig {
     targetEnvironment: TargetEnvironment,
     time:              Timestamp
   ): Option[Coordinates] = targetEnvironment.basePosition.flatMap { bp =>
-    bp.coordinates.orElse(bp.sidereal.flatMap(_.tracking.at(time.toInstant)))
+    bp.coordinates.orElse(bp.sidereal.flatMap(_.at(time.toInstant)))
   }
 
   // Placeholders for parameters not included (yet?) in the observation
