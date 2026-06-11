@@ -1050,13 +1050,15 @@ val navigateChangedCond: String                 =
     changedProjectCond("projectDef")
   )
 
-val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
-val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
+val faNpmAuthToken  = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
+val herokuToken     = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
+val munitFlakyOk    = "MUNIT_FLAKY_OK"             -> "${{ vars.MUNIT_FLAKY_OK }}"
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowEnv += faNpmAuthToken
 ThisBuild / githubWorkflowEnv += herokuToken
+ThisBuild / githubWorkflowEnv += munitFlakyOk
 
 ThisBuild / githubWorkflowPermissions := Some(
   Permissions.Specify.defaultPermissive
