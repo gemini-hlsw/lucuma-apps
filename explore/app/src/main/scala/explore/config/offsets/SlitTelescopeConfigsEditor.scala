@@ -7,6 +7,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import explore.components.CustomizedGroupAddon
+import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.display.given
 import explore.syntax.ui.*
@@ -56,7 +57,10 @@ object SlitTelescopeConfigsEditor
             id = "offset-mode".refined,
             value = value.get.offsetsType,
             options = Enumerated[SlitOffsetMode].all.map(t => SelectItem(t, t.shortName)).toList,
-            label = "Spatial Offsets".some,
+            label = React.Fragment(
+              "Spatial Offsets",
+              HelpIcon("configuration/slit-spatial-offsets.md".refined)
+            ),
             onChange = mode => value.set(props.defaultForMode(mode)),
             disabled = props.readonly
           ),
