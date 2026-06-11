@@ -67,6 +67,11 @@ sealed trait ItcInstrumentConfig derives Eq:
 
   def canBeAccepted: Boolean = true
 
+  // Compare hardware configuration only, ignoring exposure time mode.
+  def hasSameHardwareAs(other: ItcInstrumentConfig): Boolean =
+    setSingleExposureTimeMode(ItcInstrumentConfig.PlaceholderEtm) ===
+      other.setSingleExposureTimeMode(ItcInstrumentConfig.PlaceholderEtm)
+
 object ItcInstrumentConfig:
   // GMOS suporta a total wavelength range of 360-1030 nm
   // https://www.gemini.edu/instrumentation/gmos

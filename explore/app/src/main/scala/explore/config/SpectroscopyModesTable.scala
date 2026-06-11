@@ -386,7 +386,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                             val oldCfgs = props.selectedConfig.get.configs
                             val newCfgs =
                               oldCfgs
-                                .map(cfg => rows.find(_.entry.instrumentConfig === cfg.instrumentConfig))
+                                .map(cfg => rows.find(_.entry.instrumentConfig.hasSameHardwareAs(cfg.instrumentConfig)))
                                 .flattenOption
                                 .map(_.configAndResult)
                             if (oldCfgs =!= newCfgs)
@@ -397,7 +397,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         selectedIndex  <-
           useMemo((sortedRows, props.selectedConfig.get)): (sortRows, selectedConfig) =>
             selectedConfig.headOption.map: head =>
-              sortRows.indexWhere(_.entry.instrumentConfig === head.instrumentConfig)
+              sortRows.indexWhere(_.entry.instrumentConfig.hasSameHardwareAs(head.instrumentConfig))
         visibleRows    <- useStateView(none[Range.Inclusive])
         atTop          <- useStateView(false)
         virtualizerRef <- useRef(none[HTMLTableVirtualizer])
@@ -444,7 +444,7 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                   ExploreStyles.TableRowSelected
                     .when:
                       props.selectedConfig.get.headOption
-                        .exists(_.instrumentConfig === row.original.entry.instrumentConfig)
+                        .exists(_.instrumentConfig.hasSameHardwareAs(row.original.entry.instrumentConfig))
                   ,
                   (
                     ^.onClick --> props.selectedConfig.mod(
