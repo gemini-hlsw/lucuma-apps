@@ -103,6 +103,12 @@
   --visitor-science-fov-fill-color: cyan;
   --visitor-science-fov-fill-opacity: 0.05;
 
+  // Science slit (shared by GNIRS, IGRINS2, GMOS FPU, F2 FPU)
+  --science-slit-stroke: blue;
+  --science-slit-stroke-width: 0.8px;
+  --science-slit-fill-opacity: 0.1;
+  --science-slit-fill: lightgray;
+
   // Extended vignetting area, maroon-x
   --extended-vignetting-area-stroke-color: orange;
   --extended-vignetting-area-stroke-width: 0.6px;
