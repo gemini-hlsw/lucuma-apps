@@ -271,16 +271,17 @@ object ObsSummaryColumns:
             .orEmpty
         )
         .sortable,
-      obsColumn(ConstraintsColumnId, r => (r.obs.id, r.obs.constraints.summaryString))
-        .withFilterMethod(FilterMethod.Select(_.fold("")(_._2)))
+      obsColumn(ConstraintsColumnId, _.obs.constraints.summaryString)
+        .withFilterMethod(FilterMethod.Select(_.orEmpty))
         .withCell: cell =>
-          cell.value.map: (id, constraintsSummary) =>
+          cell.value.map: constraintsSummary =>
+            val id = cell.row.original.value.obs.id
             <.a(
               ^.href := constraintUrl(id),
               ^.onClick ==> (_.preventDefaultCB *> goToConstraint(id)),
               constraintsSummary
             ).withTooltip(content = constraintsSummary, position = Tooltip.Position.Top)
-        .sortableBy(_.map(_._2)),
+        .sortable,
       // TODO: FindingChartColumnId
       obsColumn(ConfigurationColumnId, _.obs.basicConfiguration.foldMap(_.shortName))
         .withFilterMethod(FilterMethod.Select(_.orEmpty))

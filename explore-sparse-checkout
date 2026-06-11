@@ -1,9 +1,20 @@
 /*
 !/*/
+/observe/
+!/observe/*/
+/observe/web/
+!/observe/web/*/
+/observe/web/client/
+!/observe/web/client/*/
 /schemas/
 !/schemas/*/
 /ui/
 !/ui/*/
+/ui/demo/
+!/ui/demo/*/
+/ui/tests/
+!/ui/tests/*/
+/.github/
 /explore/
 /project/
 /schemas/lib/
@@ -11,4 +22,3 @@
 /schemas/testkit/
 /ui/lib/
 /ui/testkit/
-/.github/
