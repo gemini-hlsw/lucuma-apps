@@ -160,10 +160,10 @@
   .flamingos2-fpu > polygon,
   .gmos-fpu > polygon {
     display: none;
-    stroke: blue;
-    stroke-width: 0.8px;
-    fill: lightgray;
-    fill-opacity: 0.1;
+    stroke: var(--science-slit-stroke);
+    stroke-width: var(--science-slit-stroke-width);
+    fill: var(--science-slit-fill);
+    fill-opacity: var(--science-slit-fill-opacity);
   }
 
   &.flamingos2-science-ccd-visible polygon.flamingos2-science-ccd-offset,
@@ -194,10 +194,17 @@
   }
 
   .igrins2-science-slit {
-    stroke: blue;
-    stroke-width: 0.8px;
-    fill-opacity: 0.1;
-    fill: lightgray;
+    stroke: var(--science-slit-stroke);
+    stroke-width: var(--science-slit-stroke-width);
+    fill-opacity: var(--science-slit-fill-opacity);
+    fill: var(--science-slit-fill);
+  }
+
+  .gnirs-science-slit {
+    stroke: var(--science-slit-stroke);
+    stroke-width: var(--science-slit-stroke-width);
+    fill-opacity: var(--science-slit-fill-opacity);
+    fill: var(--science-slit-fill);
   }
 
   .visitor-science-fov {
@@ -216,6 +223,7 @@
   }
 
   &.igrins2-candidates-area-visible .igrins2-candidates-area,
+  &.gnirs-candidates-area-visible .gnirs-candidates-area,
   &.flamingos2-candidates-area-visible .flamingos2-candidates-area,
   &.ghost-candidates-area-visible .ghost-candidates-area,
   &.visitor-candidates-area-visible .visitor-candidates-area,
@@ -224,6 +232,7 @@
   }
 
   .igrins2-candidates-area,
+  .gnirs-candidates-area,
   .flamingos2-candidates-area,
   .ghost-candidates-area,
   .visitor-candidates-area,

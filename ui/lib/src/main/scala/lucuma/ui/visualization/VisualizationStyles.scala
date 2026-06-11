@@ -65,6 +65,11 @@ object VisualizationStyles:
   val Igrins2CandidatesArea: Css        = Css("igrins2-candidates-area")
   val Igrins2CandidatesAreaVisible: Css = Css("igrins2-candidates-area-visible")
 
+  // GNIRS-specific styles
+  val GnirsScienceSlit: Css           = Css("gnirs-science-slit")
+  val GnirsCandidatesArea: Css        = Css("gnirs-candidates-area")
+  val GnirsCandidatesAreaVisible: Css = Css("gnirs-candidates-area-visible")
+
   // Visitor-specific styles
   val VisitorScienceFov: Css             = Css("visitor-science-fov")
   val VisitorScienceFovVisible: Css      = Css("visitor-science-fov-visible")
