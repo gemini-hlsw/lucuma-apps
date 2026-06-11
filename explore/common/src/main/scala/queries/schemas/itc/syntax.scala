@@ -155,22 +155,19 @@ trait syntax:
           val readMode: GnirsReadMode = etm match
             case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
             case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
-          filter.optimalWavelength
-            .map: w =>
-              InstrumentMode
-                .GnirsSpectroscopy(
-                  etm,
-                  w,
-                  filter,
-                  fpu,
-                  prism,
-                  grating,
-                  camera,
-                  readMode,
-                  GnirsWellDepth.forCamera(camera)
-                )
-                .rightNec
-            .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
+          InstrumentMode
+            .GnirsSpectroscopy(
+              etm,
+              filter.centralWavelength,
+              filter,
+              fpu,
+              prism,
+              grating,
+              camera,
+              readMode,
+              GnirsWellDepth.forCamera(camera)
+            )
+            .rightNec
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
         case g: ItcInstrumentConfig.GhostIfu                                                     =>
