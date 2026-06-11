@@ -264,6 +264,7 @@ object GnirsLongslitConfigPanel
                 view = filterView,
                 defaultValue = props.observingMode.get.initialFilter,
                 label = "Filter".some,
+                helpId = Some("configuration/gnirs/filter.md".refined),
                 disabled = disableAdvancedEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
@@ -274,6 +275,7 @@ object GnirsLongslitConfigPanel
                 view = deckerView.withDefault(defaultDecker),
                 defaultValue = defaultDecker.some,
                 label = "Decker".some,
+                helpId = Some("configuration/gnirs/decker.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
@@ -284,6 +286,7 @@ object GnirsLongslitConfigPanel
                 view = fpuView,
                 defaultValue = props.observingMode.get.initialFpu,
                 label = "FPU".some,
+                helpId = Some("configuration/gnirs/fpu.md".refined),
                 disabled = disableAdvancedEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
@@ -294,6 +297,7 @@ object GnirsLongslitConfigPanel
                 view = prismView,
                 defaultValue = props.observingMode.get.initialPrism,
                 label = "Prism".some,
+                helpId = Some("configuration/gnirs/prism.md".refined),
                 disabled = disableAdvancedEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -303,6 +307,7 @@ object GnirsLongslitConfigPanel
                 view = gratingView,
                 defaultValue = props.observingMode.get.initialGrating,
                 label = "Grating".some,
+                helpId = Some("configuration/gnirs/grating.md".refined),
                 disabled = disableAdvancedEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
@@ -312,7 +317,7 @@ object GnirsLongslitConfigPanel
                 id = "grating-wavelength".refined,
                 value = gratingWavelengthView.as(GnirsGratingWavelength.Value.mapping[Option]),
                 defaultValue = props.observingMode.get.defaultGratingWavelength.value,
-                label = "Wavelength",
+                label = React.Fragment("Wavelength", HelpIcon("configuration/gnirs/wavelength.md".refined)),
                 units = props.units.symbol.some,
                 validFormat = props.units.toInputWedge,
                 changeAuditor = props.units.toAuditor.optional,
@@ -325,6 +330,7 @@ object GnirsLongslitConfigPanel
                 view = cameraView,
                 defaultValue = props.observingMode.get.initialCamera,
                 label = "Camera".some,
+                helpId = Some("configuration/gnirs/camera.md".refined),
                 disabled = disableAdvancedEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization,
@@ -335,6 +341,7 @@ object GnirsLongslitConfigPanel
                 view = focusModeView,
                 defaultValue = GnirsFocusMode.Best,
                 label = "Focus".some,
+                helpId = Some("configuration/gnirs/focus.md".refined),
                 disabled = disableSimpleEdit || !props.isStaffOrAdmin,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -343,7 +350,9 @@ object GnirsLongslitConfigPanel
                 FormInputTextView(
                   id = "focus-motor-steps".refined,
                   value = focusMotorStepsView.as(GnirsFocusMotorStepsValue.Value),
-                  label = "Focus Motor Steps".some,
+                  label = React.Fragment("Focus Motor Steps",
+                                        HelpIcon("configuration/gnirs/focus-motor-steps.md".refined)
+                  ),
                   validFormat = ExploreModelValidators.GnirsFocusMotorStepsValidSplitEpi,
                   disabled = disableSimpleEdit || !props.isStaffOrAdmin
                 ),
@@ -352,6 +361,7 @@ object GnirsLongslitConfigPanel
                 view = readModeView,
                 defaultValue = None,
                 label = "Read Mode".some,
+                helpId = Some("configuration/gnirs/read-mode.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -361,6 +371,7 @@ object GnirsLongslitConfigPanel
                 view = wellDepthView.withDefault(defaultWellDepth),
                 defaultValue = defaultWellDepth.some,
                 label = "Well Depth".some,
+                helpId = Some("configuration/gnirs/well-depth.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -395,7 +406,9 @@ object GnirsLongslitConfigPanel
           ),
           <.div(ExploreStyles.GnirsLowerGrid)(
             Panel(
-              header = <.span("Acquisition"),
+              header = <.span("Acquisition",
+                              HelpIcon("configuration/gnirs/acquisition-customization.md".refined)
+              ),
               toggleable = true,
               collapsed = true
             )(
@@ -406,6 +419,7 @@ object GnirsLongslitConfigPanel
                     view = acquisitionTypeView,
                     defaultValue = none,
                     label = "Type".some,
+                    helpId = Some("configuration/gnirs/acquisition-type.md".refined),
                     disabled = disableAdvancedAcqEdit,
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
@@ -422,6 +436,7 @@ object GnirsLongslitConfigPanel
                     view = acquisitionFilterView,
                     defaultValue = none,
                     label = "Filter".some,
+                    helpId = Some("configuration/gnirs/acquisition-filter.md".refined),
                     disabled = disableSimpleEdit,
                     showCustomization = showCustomization,
                     allowRevertCustomization = allowRevertCustomization
