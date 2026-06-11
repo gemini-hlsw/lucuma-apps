@@ -158,7 +158,8 @@ object Igrins2:
 
               override def instrument: Instrument = Instrument.Igrins2
 
-              override def centralWavelength: Option[Wavelength] = Igrins2.CentralWavelength
+              override def centralWavelength: Option[Wavelength] =
+                step.instrumentConfig.centralWavelength.some
             }
 
         }
