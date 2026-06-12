@@ -159,7 +159,7 @@ object reusability:
   given Reusability[WavelengthDither]                   = Reusability.byEq
   given Reusability[ExposureTimeMode]                   = Reusability.byEq
   given [A]: Reusability[Offset.Component[A]]           = Reusability.byEq
-  given Reusability[ImagingVariant]                 = Reusability.byEq
+  given Reusability[ImagingVariant]                     = Reusability.byEq
   // We explicitly leave default binning out of ObservingMode Reusability since we compute it each time, ignoring the server value.
   given Reusability[ObservingMode.GmosNorthLongSlit]    =
     Reusability.by: x =>
@@ -204,6 +204,8 @@ object reusability:
     Reusability.byEq
   given reuseGmosSouthImagingFilter: Reusability[ObservingMode.GmosSouthImaging.ImagingFilter] =
     Reusability.byEq
+
+  given Reusability[ObservingMode.Flamingos2Imaging.ImagingFilter] = Reusability.byEq
 
   given Reusability[ObservingMode] = Reusability:
     case (x: ObservingMode.GmosNorthLongSlit, y: ObservingMode.GmosNorthLongSlit)   =>

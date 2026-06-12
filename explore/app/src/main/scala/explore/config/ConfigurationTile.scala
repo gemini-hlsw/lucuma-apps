@@ -263,6 +263,8 @@ object ConfigurationTile
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosSouthImaging(GmosSouthImagingInput())
+      val EmptyF2ImagingInput: ObservingModeInput         =
+        ObservingModeInput.Flamingos2Imaging(Flamingos2ImagingInput())
 
       for
         ctx        <- useContext(AppContext.ctx)
@@ -440,6 +442,17 @@ object ConfigurationTile
                   .modify
             )
 
+        val optFlamingos2ImagingAligner
+          : Option[Aligner[Flamingos2Imaging, Flamingos2ImagingInput]] =
+          optModeAligner(EmptyF2ImagingInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.flamingos2Imaging,
+              modInput:
+                ObservingModeInput.flamingos2Imaging
+                  .andThen(ObservingModeInput.Flamingos2Imaging.value)
+                  .modify
+            )
+
         val requirementsViewSet: ScienceRequirementsUndoView =
           ScienceRequirementsUndoView(props.obsId, props.requirements)
 
@@ -562,6 +575,20 @@ object ConfigurationTile
                       props.modes.spectroscopy,
                       props.sequenceChanged,
                       props.permissions,
+                      props.units,
+                      props.isStaffOrAdmin
+                    ),
+                  // Flamingos2 Imaging
+                  optFlamingos2ImagingAligner.map: f2ImgAligner =>
+                    Flamingos2ImagingConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      f2ImgAligner,
+                      reqsExposureTimeMode,
+                      revertConfig,
+                      props.sequenceChanged,
+                      !props.permissions.isFullEdit,
                       props.units,
                       props.isStaffOrAdmin
                     ),

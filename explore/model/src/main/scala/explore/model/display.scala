@@ -153,9 +153,9 @@ trait DisplayImplicits:
 
   given Display[GmosSouthGrating] = Display.byShortName(_.longName)
 
-  given Display[GmosNorthFilter] = Display.byShortName(_.longName)
+  given Display[GmosNorthFilter] = Display.by(_.shortName, _.longName)
 
-  given Display[GmosSouthFilter] = Display.byShortName(_.longName)
+  given Display[GmosSouthFilter] = Display.by(_.shortName, _.longName)
 
   given Display[GmosNorthFpu] = Display.byShortName(_.longName)
 

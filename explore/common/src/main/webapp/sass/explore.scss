@@ -1844,7 +1844,7 @@ svg.fa-check.explore-success-icon {
   // Advanced Configuration
   // ------
   .explore-gmos-longslit-upper-grid,
-  .explore-gmos-imaging-upper-grid,
+  .explore-imaging-upper-grid,
   .explore-flamingos2-upper-grid,
   .explore-gnirs-upper-grid {
     display: grid;
@@ -1968,7 +1968,7 @@ svg.fa-check.explore-success-icon {
     }
   }
 
-  .explore-gmos-imaging-lower-grid {
+  .explore-imaging-lower-grid {
     display: grid;
     padding: 0.5em;
     gap: 1em;
@@ -1985,7 +1985,7 @@ svg.fa-check.explore-success-icon {
       }
     }
 
-    .explore-gmos-imaging-filter-grid {
+    .explore-imaging-filter-grid {
       display: grid;
       padding-top: 0.5em;
       gap: 0.5em;
@@ -1995,16 +1995,16 @@ svg.fa-check.explore-success-icon {
         width: 100%;
       }
 
-      .explore-gmos-imaging-filter-grid-header {
+      .explore-imaging-filter-grid-header {
         padding-left: 0.5em;
         background: var(--surface-100);
       }
 
-      .explore-gmos-imaging-filter-grid-action {
+      .explore-imaging-filter-grid-action {
         grid-column: action;
       }
 
-      .explore-gmos-imaging-filter {
+      .explore-imaging-filter {
         grid-column: filter;
       }
 
@@ -2038,7 +2038,7 @@ svg.fa-check.explore-success-icon {
   // on small tiles, we want to stack the form fields
   @container tile (max-width: #{exploreCommon.$tile-medium-cutoff}) {
     .explore-gmos-longslit-upper-grid,
-    .explore-gmos-imaging-upper-grid,
+    .explore-imaging-upper-grid,
     .explore-flamingos2-upper-grid {
       grid-template:
         'col1' auto
@@ -2085,7 +2085,7 @@ svg.fa-check.explore-success-icon {
       }
     }
 
-    .explore-gmos-imaging-lower-grid {
+    .explore-imaging-lower-grid {
       grid-template:
         'filters' auto
         'buttons' auto

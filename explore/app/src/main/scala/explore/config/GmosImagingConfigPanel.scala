@@ -5,15 +5,12 @@ package explore.config
 
 import cats.Eq
 import cats.MonadError
-import cats.Order.given
 import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.types.string.NonEmptyString
-import explore.Icons
 import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
@@ -27,18 +24,12 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.util.Effect
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.math.SignalToNoise
-import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import lucuma.core.util.NewBoolean
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.Button
-import lucuma.react.primereact.Panel
-import lucuma.react.primereact.tooltip.*
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ImagingVariant
@@ -46,23 +37,13 @@ import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.optics.*
 import lucuma.ui.primereact.*
-import lucuma.ui.primereact.given
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
-import lucuma.ui.utils.*
 import lucuma.ui.utils.given
 import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 object GmosImagingConfigPanel {
-  // These displays are allowing the display of the short name in the chips of the
-  // filter multi-select, but long names in the dropdown list. If we decide to only
-  // use the long name everywhere, remove these givens and the itemTemplate in the multi-select.
-  given Display[GmosNorthFilter] = Display.by(_.shortName, _.longName)
-  given Display[GmosSouthFilter] = Display.by(_.shortName, _.longName)
-
-  private object OffsetDialogOpen extends NewBoolean
-
   sealed trait GmosImagingConfigPanel[T <: ObservingMode, Input]:
     def programId: Program.Id
     def obsId: Observation.Id
@@ -143,27 +124,8 @@ object GmosImagingConfigPanel {
     val component =
       ScalaFnComponent[Props]: props =>
         for {
-          ctx                 <- useContext(AppContext.ctx)
-          editState           <- useStateView(ConfigEditState.View)
-          unModdedFiltersView <- useStateView(List.empty[ImagingFilter])
-          offsetDialogOpen    <- useStateView(OffsetDialogOpen(false))
-          _                   <-
-            useEffectWithDeps(filtersLens.get(props.observingMode.get).toList)(
-              unModdedFiltersView.set
-            )
-          excludeFilters      <-
-            // exclude already used filters and spectroscopic filters from the dropdowns
-            useMemo(filtersLens.get(props.observingMode.get))(
-              _.toList.map(filtersFilterLens.get).toSet ++
-                Enumerated[Filter].all
-                  .filter(f => filterTypeGetter(f) === FilterType.Spectroscopic)
-                  .toSet
-            )
-          newFilterView       <- useStateView(Enumerated[Filter].all.headOption)
-          _                   <- useEffectWithDeps(excludeFilters.value): efs =>
-                                   if newFilterView.get.forall(efs.contains) then
-                                     newFilterView.set(Enumerated[Filter].all.filterNot(efs.contains).headOption)
-                                   else Callback.empty
+          ctx       <- useContext(AppContext.ctx)
+          editState <- useStateView(ConfigEditState.View)
         } yield
           import ctx.given
 
@@ -183,11 +145,10 @@ object GmosImagingConfigPanel {
 
           val filtersView: View[NonEmptyList[ImagingFilter]] = filters(props.observingMode)
 
-          val localFiltersView: View[List[ImagingFilter]] =
-            unModdedFiltersView.withOnMod: l =>
-              NonEmptyList
-                .fromList(l.sortBy(filtersFilterLens.get))
-                .fold(Callback.empty)(filtersView.set)
+          val allowedFilters: Set[Filter] =
+            Enumerated[Filter].all
+              .filterNot(f => filterTypeGetter(f) === FilterType.Spectroscopic)
+              .toSet
 
           val initialFilters: NonEmptyList[ImagingFilter] =
             initialFiltersLens.get(props.observingMode.get)
@@ -195,7 +156,7 @@ object GmosImagingConfigPanel {
           val variantView: View[ImagingVariant] = variant(props.observingMode)
 
           React.Fragment(
-            <.div(ExploreStyles.GmosImagingUpperGrid)(
+            <.div(ExploreStyles.ImagingUpperGrid)(
               <.div(LucumaPrimeStyles.FormColumnCompact)(
                 ImagingVariantEditor(variantView, props.readonly)
               ),
@@ -234,102 +195,21 @@ object GmosImagingConfigPanel {
                 )
               )
             ),
-            <.div(ExploreStyles.GmosImagingLowerGrid)(
-              Panel(
-                header = <.span(
-                  "Filters",
-                  HelpIcon("configuration/gmos/imaging-filters.md".refined),
-                  CustomizedGroupAddon(
-                    "original",
-                    filtersView.set(initialFilters),
-                    allowRevertCustomization
-                  ).unless(initialFilters === filtersView.get),
-                  <.span(
-                    Icons.ErrorIcon
-                  ).withTooltip(
-                    content = "At least one filter is required."
-                  ).when(localFiltersView.get.length === 0)
-                ),
-                toggleable = true,
-                collapsed = false
-              )(
-                <.div(ExploreStyles.GmosImagingFilterGrid)(
-                  <.span(), // the action button
-                  <.span("Filter", ExploreStyles.GmosImagingFilterGridHeader),
-                  <.span("Exposure Mode", ExploreStyles.GmosImagingFilterGridHeader),
-                  <.span("Signal/Noise", ExploreStyles.GmosImagingFilterGridHeader),
-                  <.span("Exp. Time", ExploreStyles.GmosImagingFilterGridHeader),
-                  <.span("Number of Exp.", ExploreStyles.GmosImagingFilterGridHeader),
-                  localFiltersView.toListOfViews.zipWithIndex
-                    .toReactFragment(using
-                      (imagingFilterView, idx) =>
-                        val filter = filtersFilterLens.get(imagingFilterView.get)
-                        React.Fragment(
-                          Button(
-                            icon = Icons.Trash,
-                            clazz = ExploreStyles.GmosImagingFilterGridAction,
-                            text = true,
-                            disabled = disableSimpleEdit,
-                            onClick = localFiltersView.mod(
-                              _.filterNot(imf => filtersFilterLens.get(imf) === filter)
-                            )
-                          ).tiny.compact,
-                          <.span(
-                            ExploreStyles.GmosImagingFilter,
-                            FormEnumDropdownView(
-                              id = NonEmptyString.unsafeFrom(s"imgFilterFilter$idx"),
-                              value = imagingFilterView.zoom(filtersFilterLens),
-                              label = "Filter",
-                              clazz = ExploreStyles.GmosImagingFilter,
-                              labelClass = ExploreStyles.HiddenLabel,
-                              disabled = disableSimpleEdit,
-                              exclude = excludeFilters - filter
-                            )
-                          ),
-                          ExposureTimeModeEditor(
-                            instrument = props.instrument.some,
-                            wavelength = none,
-                            exposureTimeMode = imagingFilterView.zoom(filtersEtmLens),
-                            coadds = none,
-                            scienceMode = ScienceMode.Imaging,
-                            readonly = disableSimpleEdit,
-                            units = props.units,
-                            calibrationRole = props.calibrationRole,
-                            idPrefix = NonEmptyString.unsafeFrom(s"imgFilter$idx"),
-                            forGridRow = true
-                          )
-                        )
-                    ),
-                  newFilterView.mapValue((fv: View[Filter]) =>
-                    React.Fragment(
-                      Button(
-                        icon = Icons.ThinPlus,
-                        severity = Button.Severity.Success,
-                        clazz = ExploreStyles.GmosImagingFilterGridAction,
-                        text = true,
-                        disabled = disableSimpleEdit,
-                        onClick = localFiltersView.mod(
-                          _ :+ makeImagingFilter(
-                            fv.get,
-                            // there should always be one, but...
-                            props.requirementsExposureTimeMode.getOrElse(
-                              ExposureTimeMode.SignalToNoiseMode(SignalToNoise.Min, Wavelength.Min)
-                            )
-                          )
-                        )
-                      ).tiny.compact,
-                      FormEnumDropdownView(
-                        id = "imgFilterAdd".refined,
-                        value = fv,
-                        label = "Add Filter",
-                        clazz = ExploreStyles.GmosImagingFilter,
-                        labelClass = ExploreStyles.HiddenLabel,
-                        disabled = disableSimpleEdit,
-                        exclude = excludeFilters.value
-                      )
-                    )
-                  )
-                )
+            <.div(ExploreStyles.ImagingLowerGrid)(
+              ImagingFiltersPanel(
+                instrument = props.instrument,
+                filtersView = filtersView,
+                filterLens = filtersFilterLens,
+                etmLens = filtersEtmLens,
+                initialFilters = initialFilters,
+                allowedFilters = allowedFilters,
+                makeImagingFilter = makeImagingFilter,
+                requirementsExposureTimeMode = props.requirementsExposureTimeMode,
+                units = props.units,
+                calibrationRole = props.calibrationRole,
+                allowRevertCustomization = allowRevertCustomization,
+                readonly = disableSimpleEdit,
+                showCustomization = showCustomization
               ),
               AdvancedConfigButtons(
                 editState = editState,
