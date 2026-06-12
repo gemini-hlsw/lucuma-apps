@@ -28,7 +28,6 @@ import lucuma.core.enums.*
 import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
-import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -67,6 +66,7 @@ object Flamingos2LongslitConfigPanel
                                  unModdedOffsetsView.set
       yield
         import ctx.given
+        import Flamingos2Givens.given
 
         val disableAdvancedEdit      =
           editState.get =!= ConfigEditState.AdvancedEdit || !props.permissions.isFullEdit
@@ -127,11 +127,6 @@ object Flamingos2LongslitConfigPanel
             Flamingos2LongSlitInput.exposureTimeMode.modify
           )
           .view(_.toInput.assign)
-
-        given Enumerated[Option[Flamingos2ReadMode]] =
-          deriveOptionalEnumerated[Flamingos2ReadMode]("Auto")
-        given Display[Option[Flamingos2ReadMode]]    =
-          deriveOptionalDisplay[Flamingos2ReadMode]("Auto")
 
         val deckerView: View[Option[Flamingos2Decker]] = props.observingMode
           .zoom(

@@ -95,6 +95,7 @@ enum ObservingModeSummary derives Order:
   )                                                        extends ObservingModeSummary
   case Igrins2LongSlit(exposureTimeMode: ExposureTimeMode) extends ObservingModeSummary
   case Flamingos2Imaging(
+    variant: ImagingVariant,
     filters: NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]
   )                                                        extends ObservingModeSummary
   case GnirsLongSlit(
@@ -122,7 +123,7 @@ enum ObservingModeSummary derives Order:
     case GmosNorthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosNorthLongSlit
     case GmosSouthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosSouthLongSlit
     case Flamingos2LongSlit(_, _, _, _)         => ObservingModeType.Flamingos2LongSlit
-    case Flamingos2Imaging(_)                   => ObservingModeType.Flamingos2Imaging
+    case Flamingos2Imaging(_, _)                => ObservingModeType.Flamingos2Imaging
     case GmosNorthImaging(_, _, _, _)           => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)           => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit(_)                     => ObservingModeType.Igrins2LongSlit
@@ -183,9 +184,10 @@ enum ObservingModeSummary derives Order:
           explicitRoi = roi.assign
         )
       )
-    case Flamingos2Imaging(filters)                                                        =>
+    case Flamingos2Imaging(variant, filters)                                               =>
       ObservingModeInput.Flamingos2Imaging(
         Flamingos2ImagingInput(
+          variant = variant.toInput.assign,
           filters = filters.toList.map(_.toInput).assign
         )
       )
@@ -249,13 +251,13 @@ enum ObservingModeSummary derives Order:
         s"GMOS-S Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
       case Flamingos2LongSlit(grating, filter, fpu, etm)                                     =>
         s"Flamingos2 Longslit\n${grating.shortName} ${filter.shortName} ${fpu.shortName} (${etm.formatSpec})"
-      case Flamingos2Imaging(filters)                                                        =>
+      case Flamingos2Imaging(variant, filters)                                               =>
         val filterStr =
           filters
             .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
             .toList
             .mkString("\n")
-        s"Flamingos2 Imaging\n$filterStr"
+        s"Flamingos2 Imaging ${variant.variantType.name}\n$filterStr"
       case GmosNorthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr =
           filters
@@ -335,7 +337,7 @@ object ObservingModeSummary:
       case f: ObservingMode.Flamingos2LongSlit =>
         Flamingos2LongSlit(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
       case f: ObservingMode.Flamingos2Imaging  =>
-        Flamingos2Imaging(f.filters)
+        Flamingos2Imaging(f.variant, f.filters)
       case n: ObservingMode.GmosNorthImaging   =>
         GmosNorthImaging(
           n.variant,
@@ -383,9 +385,9 @@ object ObservingModeSummary:
     case GmosSouthImaging(variant, filters, ampReadMode, roi)                            =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"GMOS-S Imaging ${variant.variantType.name} $filterStr ${ampReadMode.shortName} ${roi.shortName}"
-    case Flamingos2Imaging(filters)                                                      =>
+    case Flamingos2Imaging(variant, filters)                                             =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
-      s"Flamingos2 Imaging $filterStr"
+      s"Flamingos2 Imaging ${variant.variantType.name} $filterStr"
     case Igrins2LongSlit(_)                                                              =>
       s"IGRINS-2 Longslit"
     case GnirsLongSlit(filter, fpu, prism, grating, camera, _)                           =>
@@ -394,9 +396,8 @@ object ObservingModeSummary:
         case p                 => s" ${p.shortName}"
       val wavelengthSummary: String =
         f"${filter.centralWavelength.toMicrometers.value}%.2fµm"
-      s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
+      s"GNIRS Longslit ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
     case GhostIfu(resolutionMode, _, _, _)                                               =>
-      // TODO: If we base this on detector readmode and/or binning, how do we display? The detectors can differ
       s"GHOST IFU ${resolutionMode.shortName}"
     case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                =>
       s"Gemini North Visitor: ${name.value}"

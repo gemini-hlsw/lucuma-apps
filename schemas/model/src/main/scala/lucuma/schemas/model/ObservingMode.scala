@@ -494,7 +494,7 @@ object ObservingMode:
 
     given Decoder[GmosNorthImaging] = deriveDecoder
 
-    val variant: Lens[GmosNorthImaging, ImagingVariant]                  =
+    val variant: Lens[GmosNorthImaging, ImagingVariant]                      =
       Focus[GmosNorthImaging](_.variant)
     val initialFilters: Lens[GmosNorthImaging, NonEmptyList[ImagingFilter]]  =
       Focus[GmosNorthImaging](_.initialFilters)
@@ -563,7 +563,7 @@ object ObservingMode:
 
     given Decoder[GmosSouthImaging] = deriveDecoder
 
-    val variant: Lens[GmosSouthImaging, ImagingVariant]                  =
+    val variant: Lens[GmosSouthImaging, ImagingVariant]                      =
       Focus[GmosSouthImaging](_.variant)
     val initialFilters: Lens[GmosSouthImaging, NonEmptyList[ImagingFilter]]  =
       Focus[GmosSouthImaging](_.initialFilters)
@@ -693,17 +693,17 @@ object ObservingMode:
       Focus[Flamingos2LongSlit](_.acquisition)
 
   case class Flamingos2Imaging(
-    initialFilters:         NonEmptyList[Flamingos2Imaging.ImagingFilter],
-    filters:                NonEmptyList[Flamingos2Imaging.ImagingFilter],
-    defaultReadMode:        Flamingos2ReadMode,
-    explicitReadMode:       Option[Flamingos2ReadMode],
-    defaultReads:           Flamingos2Reads,
-    explicitReads:          Option[Flamingos2Reads],
-    defaultDecker:          Flamingos2Decker,
-    explicitDecker:         Option[Flamingos2Decker],
-    defaultReadoutMode:     Flamingos2ReadoutMode,
-    explicitReadoutMode:    Option[Flamingos2ReadoutMode],
-    variant:                ImagingVariant
+    initialFilters:      NonEmptyList[Flamingos2Imaging.ImagingFilter],
+    filters:             NonEmptyList[Flamingos2Imaging.ImagingFilter],
+    defaultReadMode:     Flamingos2ReadMode,
+    explicitReadMode:    Option[Flamingos2ReadMode],
+    defaultReads:        Flamingos2Reads,
+    explicitReads:       Option[Flamingos2Reads],
+    defaultDecker:       Flamingos2Decker,
+    explicitDecker:      Option[Flamingos2Decker],
+    defaultReadoutMode:  Flamingos2ReadoutMode,
+    explicitReadoutMode: Option[Flamingos2ReadoutMode],
+    variant:             ImagingVariant
   ) extends ObservingMode(Instrument.Flamingos2) derives Eq:
     val readMode: Flamingos2ReadMode       =
       explicitReadMode.getOrElse(defaultReadMode)
@@ -762,7 +762,7 @@ object ObservingMode:
       Focus[Flamingos2Imaging](_.defaultReadoutMode)
     val explicitReadoutMode: Lens[Flamingos2Imaging, Option[Flamingos2ReadoutMode]] =
       Focus[Flamingos2Imaging](_.explicitReadoutMode)
-    val variant: Lens[Flamingos2Imaging, ImagingVariant]                        =
+    val variant: Lens[Flamingos2Imaging, ImagingVariant]                            =
       Focus[Flamingos2Imaging](_.variant)
 
   case class Igrins2LongSlit(
