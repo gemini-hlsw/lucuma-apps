@@ -176,15 +176,32 @@ object Flamingos2LongslitConfigPanel
           )(
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               CustomizableEnumSelect(
-                id = "disperser".refined,
-                view = disperserView,
-                defaultValue = props.observingMode.get.initialDisperser,
-                label = "Disperser".some,
-                helpId = Some("configuration/f2/disperser.md".refined),
+                id = "fpu".refined,
+                view = fpuView,
+                defaultValue = props.observingMode.get.initialFpu,
+                label = "FPU".some,
+                helpId = Some("configuration/f2/fpu.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
               ),
+              FormLabel(htmlFor = "decker".refined)("Decker",
+                                                    HelpIcon("configuration/f2/decker.md".refined)
+              ),
+              if (props.isStaff)
+                CustomizableEnumSelectOptional(
+                  id = "decker".refined,
+                  view = deckerView.withDefault(defaultDecker),
+                  defaultValue = defaultDecker.some,
+                  disabled = disableAdvancedEdit,
+                  showCustomization = showCustomization,
+                  allowRevertCustomization = allowRevertCustomization
+                )
+              else
+                <.label(^.id := "decker",
+                        ExploreStyles.FormValue,
+                        deckerView.get.getOrElse(defaultDecker).shortName
+                ),
               CustomizableEnumSelect(
                 id = "filter".refined,
                 view = filterView,
@@ -197,11 +214,11 @@ object Flamingos2LongslitConfigPanel
                 allowRevertCustomization = allowRevertCustomization
               ),
               CustomizableEnumSelect(
-                id = "fpu".refined,
-                view = fpuView,
-                defaultValue = props.observingMode.get.initialFpu,
-                label = "FPU".some,
-                helpId = Some("configuration/f2/fpu.md".refined),
+                id = "disperser".refined,
+                view = disperserView,
+                defaultValue = props.observingMode.get.initialDisperser,
+                label = "Disperser".some,
+                helpId = Some("configuration/f2/disperser.md".refined),
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -215,7 +232,28 @@ object Flamingos2LongslitConfigPanel
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
+              )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact)(
+              ExposureTimeModeEditor(
+                instrument = props.observingMode.get.instrument.some,
+                wavelength = none,
+                exposureTimeMode = exposureTimeMode,
+                coadds = none,
+                scienceMode = ScienceMode.Spectroscopy,
+                readonly = !props.permissions.isFullEdit,
+                units = props.units,
+                calibrationRole = props.calibrationRole,
+                idPrefix = "f2LongSlit".refined
               ),
+              // Per Andy, we'll use the wavelength of the filter as the central wavelength
+              LambdaAndIntervalFormValues(
+                modeData = modeData,
+                centralWavelength = filterView.get.wavelength,
+                units = props.units
+              )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact)(
               <.span(
                 "Spatial Offsets",
                 HelpIcon("configuration/f2/spatial-offsets.md".refined),
@@ -235,44 +273,6 @@ object Flamingos2LongslitConfigPanel
                       clazz = LucumaPrimeStyles.FormField
                     )
                   .toVdomArray
-              )
-            ),
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              ExposureTimeModeEditor(
-                instrument = props.observingMode.get.instrument.some,
-                wavelength = none,
-                exposureTimeMode = exposureTimeMode,
-                coadds = none,
-                scienceMode = ScienceMode.Spectroscopy,
-                readonly = !props.permissions.isFullEdit,
-                units = props.units,
-                calibrationRole = props.calibrationRole,
-                idPrefix = "f2LongSlit".refined
-              )
-            ),
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              FormLabel(htmlFor = "decker".refined)("Decker",
-                                                    HelpIcon("configuration/f2/decker.md".refined)
-              ),
-              if (props.isStaff)
-                CustomizableEnumSelectOptional(
-                  id = "decker".refined,
-                  view = deckerView.withDefault(defaultDecker),
-                  defaultValue = defaultDecker.some,
-                  disabled = disableAdvancedEdit,
-                  showCustomization = showCustomization,
-                  allowRevertCustomization = allowRevertCustomization
-                )
-              else
-                <.label(^.id := "decker",
-                        ExploreStyles.FormValue,
-                        deckerView.get.getOrElse(defaultDecker).shortName
-                ),
-              // Per Andy, we'll use the wavelength of the filter as the central wavelength
-              LambdaAndIntervalFormValues(
-                modeData = modeData,
-                centralWavelength = filterView.get.wavelength,
-                units = props.units
               )
             )
           ),
