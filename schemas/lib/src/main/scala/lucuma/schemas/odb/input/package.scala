@@ -652,7 +652,7 @@ extension (a: ObservingMode.GnirsLongSlit)
     fpu = a.fpu.assign,
     prism = a.prism.assign,
     camera = a.camera.assign,
-    explicitGratingWavelength = a.explicitGratingWavelength.map(_.value.toInput).orUnassign,
+    centralWavelength = a.centralWavelength.value.toInput.assign,
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
@@ -784,14 +784,15 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera)                    =>
+    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength)  =>
       ObservingModeInput.GnirsLongSlit:
         GnirsLongSlitInput(
           filter = filter.assign,
           fpu = fpu.assign,
           prism = prism.assign,
           grating = grating.assign,
-          camera = camera.assign
+          camera = camera.assign,
+          centralWavelength = centralWavelength.value.toInput.assign
         )
     case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter)                         =>
       ObservingModeInput.Visitor:

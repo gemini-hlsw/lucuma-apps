@@ -45,6 +45,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Panel
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
@@ -134,12 +135,12 @@ object GnirsLongslitConfigPanel
           )
           .view(_.assign)
 
-        val gratingWavelengthView: View[Option[GnirsGratingWavelength]] = props.observingMode
+        val centralWavelengthView: View[Wavelength] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitGratingWavelength,
-            GnirsLongSlitInput.explicitGratingWavelength.modify
+            ObservingMode.GnirsLongSlit.centralWavelength.andThen(CentralWavelength.Value),
+            GnirsLongSlitInput.centralWavelength.modify
           )
-          .view(_.map(_.value.toInput).orUnassign)
+          .view(_.toInput.assign)
 
         val cameraView: View[GnirsCamera] = props.observingMode
           .zoom(
@@ -318,16 +319,17 @@ object GnirsLongslitConfigPanel
                 allowRevertCustomization = allowRevertCustomization,
                 useLongName = true
               ),
-              CustomizableInputTextOptional(
-                id = "grating-wavelength".refined,
-                value = gratingWavelengthView.as(GnirsGratingWavelength.Value.mapping[Option]),
-                defaultValue = props.observingMode.get.defaultGratingWavelength.value,
-                label = React.Fragment("Wavelength",
-                                       HelpIcon("configuration/gnirs/wavelength.md".refined)
+              CustomizableInputText(
+                id = "central-wavelength".refined,
+                value = centralWavelengthView,
+                defaultValue = props.observingMode.get.initialCentralWavelength.value,
+                label = React.Fragment(
+                  "Wavelength",
+                  HelpIcon("configuration/gnirs/wavelength.md".refined)
                 ),
                 units = props.units.symbol.some,
-                validFormat = props.units.toInputWedge,
-                changeAuditor = props.units.toAuditor.optional,
+                validFormat = props.units.toInputFormat,
+                changeAuditor = props.units.toAuditor,
                 disabled = disableSimpleEdit,
                 showCustomization = showCustomization,
                 allowRevertCustomization = allowRevertCustomization
@@ -406,8 +408,7 @@ object GnirsLongslitConfigPanel
                   _,
                   prismView.get,
                   cameraView.get,
-                  gratingWavelengthView.get
-                    .getOrElse(props.observingMode.get.defaultGratingWavelength)
+                  GnirsGratingWavelength(centralWavelengthView.get)
                 ),
                 readonly = disableSimpleEdit
               )

@@ -100,7 +100,15 @@ trait ArbBasicConfiguration {
         prism   <- arbitrary[GnirsPrism]
         grating <- arbitrary[GnirsGrating]
         camera  <- arbitrary[GnirsCamera]
-      } yield BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera)
+        cw      <- arbitrary[Wavelength]
+      } yield BasicConfiguration.GnirsLongSlit(
+        filter,
+        fpu,
+        prism,
+        grating,
+        camera,
+        CentralWavelength(cw)
+      )
     )
 
   given Arbitrary[BasicConfiguration.GhostIfu] =
@@ -178,8 +186,8 @@ trait ArbBasicConfiguration {
     Cogen[Unit].contramap(_ => ())
 
   given Cogen[BasicConfiguration.GnirsLongSlit] =
-    Cogen[(GnirsFilter, GnirsFpuSlit, GnirsPrism, GnirsGrating, GnirsCamera)]
-      .contramap(o => (o.filter, o.fpu, o.prism, o.grating, o.camera))
+    Cogen[(GnirsFilter, GnirsFpuSlit, GnirsPrism, GnirsGrating, GnirsCamera, Wavelength)]
+      .contramap(o => (o.filter, o.fpu, o.prism, o.grating, o.camera, o.centralWavelength.value))
 
   given Cogen[BasicConfiguration.GmosNorthImaging] =
     Cogen[NonEmptyList[GmosNorthFilter]]

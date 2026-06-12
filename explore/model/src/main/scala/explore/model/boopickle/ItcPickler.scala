@@ -70,6 +70,8 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[InstrumentOverrides.GmosSpectroscopy] = generatePickler
 
+  given gnirsOverridesPickler: Pickler[InstrumentOverrides.GnirsSpectroscopy] = generatePickler
+
   given Pickler[ItcInstrumentConfig.GmosNorthSpectroscopy] = generatePickler
 
   given Pickler[ItcInstrumentConfig.GmosSouthSpectroscopy] = generatePickler

@@ -227,7 +227,15 @@ final case class Observation(
         case g: ObservingMode.GnirsLongSlit      =>
           List(
             ItcInstrumentConfig
-              .GnirsSpectroscopy(g.grating, g.fpu, g.filter, g.prism, g.camera, g.exposureTimeMode)
+              .GnirsSpectroscopy(
+                g.grating,
+                g.fpu,
+                g.filter,
+                g.prism,
+                g.camera,
+                g.exposureTimeMode,
+                InstrumentOverrides.GnirsSpectroscopy(g.centralWavelength).some
+              )
           )
         case g: ObservingMode.GhostIfu           =>
           val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(

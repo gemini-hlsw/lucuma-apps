@@ -174,8 +174,8 @@ object ObservingModeSubquery
             fpu
             prism
             camera
-            defaultGratingWavelength $WavelengthSubquery
-            explicitGratingWavelength $WavelengthSubquery
+            centralWavelength $WavelengthSubquery
+            initialCentralWavelength $WavelengthSubquery
             defaultDecker
             explicitDecker
             explicitReadMode

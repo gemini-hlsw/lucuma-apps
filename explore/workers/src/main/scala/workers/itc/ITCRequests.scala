@@ -29,7 +29,7 @@ import queries.schemas.itc.syntax.*
 import workers.*
 
 object ITCRequests:
-  val cacheVersion: CacheVersion = CacheVersion(34)
+  val cacheVersion: CacheVersion = CacheVersion(35)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell)  => ItcQueryProblem.SourceTooBright(halfWell)
@@ -124,23 +124,23 @@ object ITCRequests:
       modes
         // Only handle known modes
         .collect:
-          case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _, _)  =>
+          case m @ ItcInstrumentConfig.GmosNorthSpectroscopy(_, _, _, _, _)   =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _, _)  =>
+          case m @ ItcInstrumentConfig.GmosSouthSpectroscopy(_, _, _, _, _)   =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _, _) =>
+          case m @ ItcInstrumentConfig.Flamingos2Spectroscopy(_, _, _, _, _)  =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _)                =>
+          case m @ ItcInstrumentConfig.GmosNorthImaging(_, _)                 =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)                =>
+          case m @ ItcInstrumentConfig.GmosSouthImaging(_, _)                 =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.Flamingos2Imaging(_, _)               =>
+          case m @ ItcInstrumentConfig.Flamingos2Imaging(_, _)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)                =>
+          case m @ ItcInstrumentConfig.Igrins2Spectroscopy(_)                 =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _, _)               =>
+          case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _, _)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
-          case m @ ItcInstrumentConfig.GnirsSpectroscopy(_, _, _, _, _, _)   =>
+          case m @ ItcInstrumentConfig.GnirsSpectroscopy(_, _, _, _, _, _, _) =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode
