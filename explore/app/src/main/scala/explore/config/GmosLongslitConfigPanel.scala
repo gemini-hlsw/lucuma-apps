@@ -318,14 +318,15 @@ object GmosLongslitConfigPanel {
                 ),
                 dithersControl(props.sequenceChanged),
                 ExposureTimeModeEditor(
-                  props.instrument.some,
-                  none,
-                  exposureTimeMode(props.observingMode),
-                  ScienceMode.Spectroscopy,
-                  !props.permissions.isFullEdit,
-                  props.units,
-                  props.calibrationRole,
-                  "gmosLongslit".refined
+                  instrument = props.instrument.some,
+                  wavelength = none,
+                  exposureTimeMode = exposureTimeMode(props.observingMode),
+                  coadds = none,
+                  scienceMode = ScienceMode.Spectroscopy,
+                  readonly = !props.permissions.isFullEdit,
+                  units = props.units,
+                  calibrationRole = props.calibrationRole,
+                  idPrefix = "gmosLongslit".refined
                 )
               ),
               <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -430,14 +431,15 @@ object GmosLongslitConfigPanel {
                   <.div(
                     LucumaPrimeStyles.FormColumnCompact,
                     ExposureTimeModeEditor(
-                      props.observingMode.get.instrument.some,
-                      none,
-                      acquisitionExposureTimeModeView(props.observingMode),
-                      ScienceMode.Imaging,
-                      props.permissions.isReadonly,
-                      props.units,
-                      props.calibrationRole,
-                      "gmosAcq".refined,
+                      instrument = props.observingMode.get.instrument.some,
+                      wavelength = none,
+                      exposureTimeMode = acquisitionExposureTimeModeView(props.observingMode),
+                      coadds = none,
+                      scienceMode = ScienceMode.Imaging,
+                      readonly = props.permissions.isReadonly,
+                      units = props.units,
+                      calibrationRole = props.calibrationRole,
+                      idPrefix = "gmosAcq".refined,
                       forceCount = Some(1.refined)
                     )
                   )

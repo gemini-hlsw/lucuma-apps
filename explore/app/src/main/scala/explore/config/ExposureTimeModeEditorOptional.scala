@@ -47,12 +47,13 @@ case class ExposureTimeModeEditorOptional(
   wavelength:           Option[Wavelength],
   exposureTimeMode:     View[Option[ExposureTimeMode]],
   exposureTimeModeType: View[ExposureTimeModeType],
+  coadds:               Option[View[PosInt]] = none,
   scienceMode:          ScienceMode,
   readonly:             Boolean,
   units:                WavelengthUnits,
   calibrationRole:      Option[CalibrationRole],
   idPrefix:             NonEmptyString,
-  forceCount:           Option[PosInt] = None,
+  forceCount:           Option[PosInt] = none,
   forGridRow:           Boolean = false
 ) extends ReactFnProps[ExposureTimeModeEditorOptional](ExposureTimeModeEditorOptional.component)
 
@@ -164,6 +165,7 @@ object ExposureTimeModeEditorOptional:
             TimeAndCountEditor(
               props.instrument,
               tcModeView,
+              props.coadds,
               props.scienceMode,
               props.readonly,
               props.units,

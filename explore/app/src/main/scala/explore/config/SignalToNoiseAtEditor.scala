@@ -67,7 +67,7 @@ object SignalToNoiseAtEditor
               changeAuditor = props.units.toSNAuditor,
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
-            ExploreStyles.ExposureTimeModeAt
+            Css.Empty
           )
       )
     )

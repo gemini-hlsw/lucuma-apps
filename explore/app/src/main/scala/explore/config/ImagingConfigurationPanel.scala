@@ -93,15 +93,16 @@ object ImagingConfigurationPanel
           disabled = p.readonly
         ),
         ExposureTimeModeEditorOptional(
-          p.instrument,
-          none,
-          p.exposureTimeMode,
-          p.exposureTimeModeType,
-          ScienceMode.Imaging,
-          p.readonly,
-          p.units,
-          p.calibrationRole,
-          "imagingReq".refined
+          instrument = p.instrument,
+          wavelength = none,
+          exposureTimeMode = p.exposureTimeMode,
+          exposureTimeModeType = p.exposureTimeModeType,
+          coadds = none,
+          scienceMode = ScienceMode.Imaging,
+          readonly = p.readonly,
+          units = p.units,
+          calibrationRole = p.calibrationRole,
+          idPrefix = "imagingReq".refined
         )
       )
     )

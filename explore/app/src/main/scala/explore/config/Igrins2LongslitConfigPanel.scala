@@ -160,14 +160,15 @@ object Igrins2LongslitConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
-                props.observingMode.get.instrument.some,
-                none,
-                exposureTimeMode,
-                ScienceMode.Spectroscopy,
-                !props.permissions.isFullEdit,
-                props.units,
-                props.calibrationRole,
-                "ig2LongSlit".refined
+                instrument = props.observingMode.get.instrument.some,
+                wavelength = none,
+                exposureTimeMode = exposureTimeMode,
+                coadds = none,
+                scienceMode = ScienceMode.Spectroscopy,
+                readonly = !props.permissions.isFullEdit,
+                units = props.units,
+                calibrationRole = props.calibrationRole,
+                idPrefix = "ig2LongSlit".refined
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(

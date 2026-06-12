@@ -244,14 +244,15 @@ object Flamingos2LongslitConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
-                props.observingMode.get.instrument.some,
-                none,
-                exposureTimeMode,
-                ScienceMode.Spectroscopy,
-                !props.permissions.isFullEdit,
-                props.units,
-                props.calibrationRole,
-                "f2LongSlit".refined
+                instrument = props.observingMode.get.instrument.some,
+                wavelength = none,
+                exposureTimeMode = exposureTimeMode,
+                coadds = none,
+                scienceMode = ScienceMode.Spectroscopy,
+                readonly = !props.permissions.isFullEdit,
+                units = props.units,
+                calibrationRole = props.calibrationRole,
+                idPrefix = "f2LongSlit".refined
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
@@ -311,14 +312,15 @@ object Flamingos2LongslitConfigPanel
                 <.div(
                   LucumaPrimeStyles.FormColumnCompact,
                   ExposureTimeModeEditor(
-                    props.observingMode.get.instrument.some,
-                    none,
-                    acquisitionExposureTimeView,
-                    ScienceMode.Imaging,
-                    props.permissions.isReadonly,
-                    props.units,
-                    props.calibrationRole,
-                    "f2Acq".refined,
+                    instrument = props.observingMode.get.instrument.some,
+                    wavelength = none,
+                    exposureTimeMode = acquisitionExposureTimeView,
+                    coadds = none,
+                    scienceMode = ScienceMode.Imaging,
+                    readonly = props.permissions.isReadonly,
+                    units = props.units,
+                    calibrationRole = props.calibrationRole,
+                    idPrefix = "f2Acq".refined,
                     forceCount = Some(1.refined)
                   )
                 )

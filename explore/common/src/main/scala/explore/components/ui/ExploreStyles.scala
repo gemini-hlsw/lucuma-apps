@@ -442,7 +442,6 @@ object ExploreStyles:
   // ExposureTimeModeEditor
   val ExposureTimeModeMode: Css          = Css("explore-etm-mode")
   val ExposureTimeModeSignalToNoise: Css = Css("explore-etm-signal-to-noise")
-  val ExposureTimeModeAt: Css            = Css("explore-etm-at")
   val ExposureTimeModeTime: Css          = Css("explore-etm-time")
   val ExposureTimeModeCount: Css         = Css("explore-etm-count")
 
