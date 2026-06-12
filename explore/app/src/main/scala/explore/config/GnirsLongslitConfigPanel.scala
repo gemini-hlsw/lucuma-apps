@@ -263,6 +263,15 @@ object GnirsLongslitConfigPanel
         val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
         val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
 
+        val isTimeAndCountScience: Boolean     =
+          exposureTimeMode.get match
+            case ExposureTimeMode.TimeAndCountMode(_, _, _) => true
+            case _                                          => false
+        val isTimeAndCountAcquisition: Boolean =
+          acquisitionExposureTimeView.get match
+            case ExposureTimeMode.TimeAndCountMode(_, _, _) => true
+            case _                                          => false
+
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
@@ -406,7 +415,8 @@ object GnirsLongslitConfigPanel
                   HelpIcon("configuration/gnirs/coadds.md".refined)
                 ),
                 validFormat = InputValidSplitEpi.posInt,
-                changeAuditor = ChangeAuditor.int
+                changeAuditor = ChangeAuditor.int,
+                disabled = !isTimeAndCountScience
               )(^.autoComplete.off)
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
@@ -426,8 +436,9 @@ object GnirsLongslitConfigPanel
           ),
           <.div(ExploreStyles.GnirsLowerGrid)(
             Panel(
-              header = <.span("Acquisition",
-                              HelpIcon("configuration/gnirs/acquisition-customization.md".refined)
+              header = <.span(
+                "Acquisition",
+                HelpIcon("configuration/gnirs/acquisition-customization.md".refined)
               ),
               toggleable = true,
               collapsed = true
@@ -480,7 +491,7 @@ object GnirsLongslitConfigPanel
                     label = "Coadds",
                     validFormat = InputValidSplitEpi.posInt,
                     changeAuditor = ChangeAuditor.int,
-                    disabled = disableAdvancedAcqEdit
+                    disabled = !isTimeAndCountAcquisition
                   )(^.autoComplete.off)
                 )
               )
