@@ -60,14 +60,15 @@ object TimeAndCountEditor extends ConfigurationFormats:
           props.labelClass,
           props.controlsWrapper
         ),
-        props.coadds.map: coaddsView =>
           props.controlsWrapper(
             FormInputTextView(
               id = props.makeId("Coadds".refined),
               value = coaddsView,
               label = "Coadds",
+              labelClass = props.labelClass,
               validFormat = InputValidSplitEpi.posInt,
-              changeAuditor = ChangeAuditor.int
+              changeAuditor = ChangeAuditor.int,
+              disabled = props.readonly
             )(^.autoComplete.off),
             Css.Empty
           ),
