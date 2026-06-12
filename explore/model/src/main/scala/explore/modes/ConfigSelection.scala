@@ -110,7 +110,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.Flamingos2Imaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.Flamingos2Imaging.apply)
-      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _)      =>
+      case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, _)   =>
         BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera).some
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some

@@ -225,9 +225,21 @@ final case class Observation(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
         case g: ObservingMode.GnirsLongSlit      =>
+          // The central wavelength sent to the ITC is the grating wavelength (the actual detector
+          // centering), mirroring how GMOS sends its configured central wavelength.
+          val centralWavelength: CentralWavelength =
+            CentralWavelength(g.explicitGratingWavelength.getOrElse(g.defaultGratingWavelength).value)
           List(
             ItcInstrumentConfig
-              .GnirsSpectroscopy(g.grating, g.fpu, g.filter, g.prism, g.camera, g.exposureTimeMode)
+              .GnirsSpectroscopy(
+                g.grating,
+                g.fpu,
+                g.filter,
+                g.prism,
+                g.camera,
+                g.exposureTimeMode,
+                InstrumentOverrides.GnirsSpectroscopy(centralWavelength).some
+              )
           )
         case g: ObservingMode.GhostIfu           =>
           val red  = ItcInstrumentConfig.GhostIfu.GhostDetector.Red(

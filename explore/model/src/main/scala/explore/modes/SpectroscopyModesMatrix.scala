@@ -161,6 +161,12 @@ case class SpectroscopyModeRow(
                 ).some
               case i                                                                       =>
                 i.some
+          case Instrument.Gnirs                            =>
+            instrumentConfig match
+              case i: ItcInstrumentConfig.GnirsSpectroscopy =>
+                i.copy(modeOverrides = InstrumentOverrides.GnirsSpectroscopy(cw).some).some
+              case i                                        =>
+                i.some
           case _                                           => none
 
       newConfig.map: i =>
@@ -252,7 +258,8 @@ object SpectroscopyModeRow {
       filter,
       prism,
       camera,
-      placeholderEtm
+      placeholderEtm,
+      none
     )
 
   given Decoder[SpectroscopyModeRow] = c =>

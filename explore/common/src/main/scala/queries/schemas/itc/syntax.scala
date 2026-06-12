@@ -151,23 +151,28 @@ trait syntax:
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                  =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm)     =>
+        case ItcInstrumentConfig
+              .GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm, modeOverrides) =>
           val readMode: GnirsReadMode = etm match
             case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
             case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
-          InstrumentMode
-            .GnirsSpectroscopy(
-              etm,
-              filter.centralWavelength,
-              filter,
-              fpu,
-              prism,
-              grating,
-              camera,
-              readMode,
-              GnirsWellDepth.forCamera(camera)
-            )
-            .rightNec
+          modeOverrides
+            .map(_.centralWavelength.value)
+            .map: (cw: Wavelength) =>
+              InstrumentMode
+                .GnirsSpectroscopy(
+                  etm,
+                  cw,
+                  filter,
+                  fpu,
+                  prism,
+                  grating,
+                  camera,
+                  readMode,
+                  GnirsWellDepth.forCamera(camera)
+                )
+                .rightNec
+            .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
         case g: ItcInstrumentConfig.GhostIfu                                                     =>
