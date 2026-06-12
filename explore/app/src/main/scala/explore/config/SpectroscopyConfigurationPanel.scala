@@ -98,15 +98,16 @@ object SpectroscopyConfigurationPanel extends ConfigurationFormats:
             disabled = p.readonly
           ).clearable(^.autoComplete.off),
           ExposureTimeModeEditorOptional(
-            p.instrument,
-            wv.get,
-            p.exposureTimeMode,
-            p.exposureTimeModeType,
-            ScienceMode.Spectroscopy,
-            p.readonly,
-            p.units,
-            p.calibrationRole,
-            "spectReq".refined
+            instrument = p.instrument,
+            wavelength = wv.get,
+            exposureTimeMode = p.exposureTimeMode,
+            exposureTimeModeType = p.exposureTimeModeType,
+            coadds = none,
+            scienceMode = ScienceMode.Spectroscopy,
+            readonly = p.readonly,
+            units = p.units,
+            calibrationRole = p.calibrationRole,
+            idPrefix = "spectReq".refined
           ),
           Option.when(
             focalPlaneSupported

@@ -40,7 +40,6 @@ import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
-import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Panel
@@ -48,7 +47,6 @@ import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
-import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
@@ -263,15 +261,6 @@ object GnirsLongslitConfigPanel
         val defaultDecker: GnirsDecker       = props.observingMode.get.defaultDecker
         val defaultWellDepth: GnirsWellDepth = props.observingMode.get.defaultWellDepth
 
-        val isTimeAndCountScience: Boolean     =
-          exposureTimeMode.get match
-            case ExposureTimeMode.TimeAndCountMode(_, _, _) => true
-            case _                                          => false
-        val isTimeAndCountAcquisition: Boolean =
-          acquisitionExposureTimeView.get match
-            case ExposureTimeMode.TimeAndCountMode(_, _, _) => true
-            case _                                          => false
-
         React.Fragment(
           <.div(ExploreStyles.GnirsUpperGrid)(
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.GnirsConfigEditor)(
@@ -398,26 +387,16 @@ object GnirsLongslitConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
-                props.observingMode.get.instrument.some,
-                none,
-                exposureTimeMode,
-                ScienceMode.Spectroscopy,
-                !props.permissions.isFullEdit,
-                props.units,
-                props.calibrationRole,
-                "gnirsLongSlit".refined
-              ),
-              FormInputTextView(
-                id = "gnirs-coadds".refined,
-                value = coaddsView,
-                label = React.Fragment(
-                  "Coadds",
-                  HelpIcon("configuration/gnirs/coadds.md".refined)
-                ),
-                validFormat = InputValidSplitEpi.posInt,
-                changeAuditor = ChangeAuditor.int,
-                disabled = !isTimeAndCountScience
-              )(^.autoComplete.off)
+                instrument = props.observingMode.get.instrument.some,
+                wavelength = none,
+                exposureTimeMode = exposureTimeMode,
+                coadds = coaddsView.some,
+                scienceMode = ScienceMode.Spectroscopy,
+                readonly = !props.permissions.isFullEdit,
+                units = props.units,
+                calibrationRole = props.calibrationRole,
+                idPrefix = "gnirsLongSlit".refined
+              )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
               SlitTelescopeConfigsEditor(
@@ -475,24 +454,17 @@ object GnirsLongslitConfigPanel
                 ),
                 <.div(LucumaPrimeStyles.FormColumnCompact)(
                   ExposureTimeModeEditor(
-                    props.observingMode.get.instrument.some,
-                    none,
-                    acquisitionExposureTimeView,
-                    ScienceMode.Imaging,
-                    props.permissions.isReadonly,
-                    props.units,
-                    props.calibrationRole,
-                    "gnirsAcq".refined,
+                    instrument = props.observingMode.get.instrument.some,
+                    wavelength = none,
+                    exposureTimeMode = acquisitionExposureTimeView,
+                    coadds = acquisitionCoaddsView.some,
+                    scienceMode = ScienceMode.Imaging,
+                    readonly = props.permissions.isReadonly,
+                    units = props.units,
+                    calibrationRole = props.calibrationRole,
+                    idPrefix = "gnirsAcq".refined,
                     forceCount = Some(1.refined)
-                  ),
-                  FormInputTextView(
-                    id = "gnirs-acq-coadds".refined,
-                    value = acquisitionCoaddsView,
-                    label = "Coadds",
-                    validFormat = InputValidSplitEpi.posInt,
-                    changeAuditor = ChangeAuditor.int,
-                    disabled = !isTimeAndCountAcquisition
-                  )(^.autoComplete.off)
+                  )
                 )
               )
             ),

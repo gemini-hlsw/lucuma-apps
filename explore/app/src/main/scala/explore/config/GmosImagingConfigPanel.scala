@@ -287,14 +287,15 @@ object GmosImagingConfigPanel {
                             )
                           ),
                           ExposureTimeModeEditor(
-                            props.instrument.some,
-                            none,
-                            imagingFilterView.zoom(filtersEtmLens),
-                            ScienceMode.Imaging,
-                            disableSimpleEdit,
-                            props.units,
-                            props.calibrationRole,
-                            NonEmptyString.unsafeFrom(s"imgFilter$idx"),
+                            instrument = props.instrument.some,
+                            wavelength = none,
+                            exposureTimeMode = imagingFilterView.zoom(filtersEtmLens),
+                            coadds = none,
+                            scienceMode = ScienceMode.Imaging,
+                            readonly = disableSimpleEdit,
+                            units = props.units,
+                            calibrationRole = props.calibrationRole,
+                            idPrefix = NonEmptyString.unsafeFrom(s"imgFilter$idx"),
                             forGridRow = true
                           )
                         )

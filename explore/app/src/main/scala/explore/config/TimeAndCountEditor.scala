@@ -5,6 +5,8 @@ package explore.config
 
 import cats.syntax.all.*
 import crystal.react.View
+import eu.timepit.refined.cats.given
+import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.ui.ExploreStyles
 import explore.itc.renderRequiredForITCIcon
@@ -16,9 +18,11 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
+import lucuma.core.validation.*
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
+import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.clearable
 import lucuma.ui.primereact.given
@@ -27,6 +31,7 @@ import lucuma.ui.syntax.all.given
 case class TimeAndCountEditor(
   instrument:      Option[Instrument],
   options:         View[TimeAndCountModeInfo],
+  coadds:          Option[View[PosInt]] = none,
   scienceMode:     ScienceMode,
   readonly:        Boolean,
   units:           WavelengthUnits,
@@ -55,6 +60,17 @@ object TimeAndCountEditor extends ConfigurationFormats:
           props.labelClass,
           props.controlsWrapper
         ),
+        props.coadds.map: coaddsView =>
+          props.controlsWrapper(
+            FormInputTextView(
+              id = props.makeId("Coadds".refined),
+              value = coaddsView,
+              label = "Coadds",
+              validFormat = InputValidSplitEpi.posInt,
+              changeAuditor = ChangeAuditor.int
+            )(^.autoComplete.off),
+            Css.Empty
+          ),
         Option.when(props.scienceMode === ScienceMode.Spectroscopy):
           props.controlsWrapper(
             FormInputTextView(
@@ -71,6 +87,6 @@ object TimeAndCountEditor extends ConfigurationFormats:
               changeAuditor = props.units.toSNAuditor,
               disabled = props.readonly
             ).clearable(^.autoComplete.off),
-            ExploreStyles.ExposureTimeModeAt
+            Css.Empty
           )
       )
