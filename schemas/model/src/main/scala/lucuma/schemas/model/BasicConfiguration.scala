@@ -86,6 +86,8 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       CentralWavelength(Igrins2CentralWavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       CentralWavelength(GhostCentralWavelength).some
+    case BasicConfiguration.GnirsLongSlit(centralWavelength = cw)     =>
+      cw.some
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.some
     case _                                                            =>
@@ -109,7 +111,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       AGSWavelength(GhostCentralWavelength)
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
-      AGSWavelength(gnirs.centralWavelength)
+      AGSWavelength(gnirs.centralWavelength.value)
     case v: BasicConfiguration.Visitor                                =>
       AGSWavelength(v.centralWavelength.value)
 
@@ -131,7 +133,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       GhostCentralWavelength
     case gnirs: BasicConfiguration.GnirsLongSlit                      =>
-      gnirs.centralWavelength
+      gnirs.centralWavelength.value
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.value
 
@@ -152,12 +154,12 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
         BasicConfiguration.GmosSouthLongSlit(_, _, _, _) | BasicConfiguration.GmosNorthImaging(_) |
         BasicConfiguration.GmosSouthImaging(_) =>
       GuideProbe.GmosOIWFS
-    case BasicConfiguration.Flamingos2Imaging(_)         => GuideProbe.Flamingos2OIWFS
-    case BasicConfiguration.Flamingos2LongSlit(_, _, _)  => GuideProbe.Flamingos2OIWFS
-    case BasicConfiguration.Igrins2LongSlit              => GuideProbe.PWFS2
-    case BasicConfiguration.GhostIfu(_, _, _, _, _)      => GuideProbe.PWFS2
-    case BasicConfiguration.GnirsLongSlit(_, _, _, _, _) => GuideProbe.PWFS2
-    case BasicConfiguration.Visitor(_, _, _)             => GuideProbe.PWFS2
+    case BasicConfiguration.Flamingos2Imaging(_)            => GuideProbe.Flamingos2OIWFS
+    case BasicConfiguration.Flamingos2LongSlit(_, _, _)     => GuideProbe.Flamingos2OIWFS
+    case BasicConfiguration.Igrins2LongSlit                 => GuideProbe.PWFS2
+    case BasicConfiguration.GhostIfu(_, _, _, _, _)         => GuideProbe.PWFS2
+    case BasicConfiguration.GnirsLongSlit(_, _, _, _, _, _) => GuideProbe.PWFS2
+    case BasicConfiguration.Visitor(_, _, _)                => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -252,13 +254,13 @@ object BasicConfiguration:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   case class GnirsLongSlit(
-    filter:  GnirsFilter,
-    fpu:     GnirsFpuSlit,
-    prism:   GnirsPrism,
-    grating: GnirsGrating,
-    camera:  GnirsCamera
-  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
-    lazy val centralWavelength: Wavelength = filter.centralWavelength
+    filter:            GnirsFilter,
+    fpu:               GnirsFpuSlit,
+    prism:             GnirsPrism,
+    grating:           GnirsGrating,
+    camera:            GnirsCamera,
+    centralWavelength: CentralWavelength
+  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq
 
   object GnirsLongSlit:
     given Decoder[GnirsLongSlit] = deriveDecoder

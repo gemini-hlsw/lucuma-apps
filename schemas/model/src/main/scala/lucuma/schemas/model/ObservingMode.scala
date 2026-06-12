@@ -23,7 +23,6 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
-import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
@@ -86,7 +85,8 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.Igrins2LongSlit                   =>
       BasicConfiguration.Igrins2LongSlit
     case g: ObservingMode.GnirsLongSlit                     =>
-      BasicConfiguration.GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera)
+      BasicConfiguration
+        .GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera, g.centralWavelength)
     case g: ObservingMode.GhostIfu                          =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
@@ -815,8 +815,8 @@ object ObservingMode:
     prism:                     GnirsPrism,
     initialCamera:             GnirsCamera,
     camera:                    GnirsCamera,
-    defaultGratingWavelength:  GnirsGratingWavelength,
-    explicitGratingWavelength: Option[GnirsGratingWavelength],
+    initialCentralWavelength:  CentralWavelength,
+    centralWavelength:         CentralWavelength,
     defaultDecker:             GnirsDecker,
     explicitDecker:            Option[GnirsDecker],
     explicitReadMode:          Option[GnirsReadMode],
@@ -829,8 +829,6 @@ object ObservingMode:
     coadds:                    PosInt,
     acquisition:               GnirsLongSlit.Acquisition
   ) extends ObservingMode(Instrument.Gnirs):
-    val gratingWavelength: GnirsGratingWavelength =
-      explicitGratingWavelength.getOrElse(defaultGratingWavelength)
     val decker: GnirsDecker                       =
       explicitDecker.getOrElse(defaultDecker)
     val wellDepth: GnirsWellDepth                 =
@@ -844,7 +842,7 @@ object ObservingMode:
         initialFpu =!= fpu ||
         initialPrism =!= prism ||
         initialCamera =!= camera ||
-        explicitGratingWavelength.exists(_ =!= defaultGratingWavelength) ||
+        initialCentralWavelength =!= centralWavelength ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadMode.isDefined ||
         explicitWellDepth.exists(_ =!= defaultWellDepth) ||
@@ -859,7 +857,7 @@ object ObservingMode:
         fpu = this.initialFpu,
         prism = this.initialPrism,
         camera = this.initialCamera,
-        explicitGratingWavelength = None,
+        centralWavelength = this.initialCentralWavelength,
         explicitDecker = None,
         explicitReadMode = None,
         explicitWellDepth = None,
@@ -919,7 +917,7 @@ object ObservingMode:
         (x.initialFpu, x.fpu),
         (x.initialPrism, x.prism),
         (x.initialCamera, x.camera),
-        (x.defaultGratingWavelength, x.explicitGratingWavelength),
+        (x.initialCentralWavelength, x.centralWavelength),
         (x.defaultDecker, x.explicitDecker),
         x.explicitReadMode,
         (x.defaultWellDepth, x.explicitWellDepth),
@@ -949,10 +947,10 @@ object ObservingMode:
       Focus[GnirsLongSlit](_.initialCamera)
     val camera: Lens[GnirsLongSlit, GnirsCamera]                                        =
       Focus[GnirsLongSlit](_.camera)
-    val defaultGratingWavelength: Lens[GnirsLongSlit, GnirsGratingWavelength]           =
-      Focus[GnirsLongSlit](_.defaultGratingWavelength)
-    val explicitGratingWavelength: Lens[GnirsLongSlit, Option[GnirsGratingWavelength]]  =
-      Focus[GnirsLongSlit](_.explicitGratingWavelength)
+    val initialCentralWavelength: Lens[GnirsLongSlit, CentralWavelength]                =
+      Focus[GnirsLongSlit](_.initialCentralWavelength)
+    val centralWavelength: Lens[GnirsLongSlit, CentralWavelength]                       =
+      Focus[GnirsLongSlit](_.centralWavelength)
     val defaultDecker: Lens[GnirsLongSlit, GnirsDecker]                                 =
       Focus[GnirsLongSlit](_.defaultDecker)
     val explicitDecker: Lens[GnirsLongSlit, Option[GnirsDecker]]                        =

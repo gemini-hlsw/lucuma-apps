@@ -311,30 +311,30 @@ trait DisplayImplicits:
   // TODO This code seems to be duplicated between observe an explore, we should unify.
   // See observe/web/client-model/src/main/scala/observe/ui/model/ObsSummary.scala
   given Display[BasicConfiguration] = Display.byShortName:
-    case BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cwl)                  =>
+    case BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cwl)                       =>
       val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-N ${grating.shortName} @ $cwvStr $filterStr ${fpu.shortName}"
-    case BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cwl)                  =>
+    case BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cwl)                       =>
       val cwvStr    = "%.0fnm".format(cwl.value.toNanometers)
       val filterStr = filter.fold("None")(_.shortName)
       s"GMOS-S ${grating.shortName} @ $cwvStr $filterStr ${fpu.shortName}"
-    case BasicConfiguration.GmosNorthImaging(filters)                                     =>
+    case BasicConfiguration.GmosNorthImaging(filters)                                          =>
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"GMOS-N Imaging $filterStr"
-    case BasicConfiguration.GmosSouthImaging(filters)                                     =>
+    case BasicConfiguration.GmosSouthImaging(filters)                                          =>
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"GMOS-S Imaging $filterStr"
-    case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)                         =>
+    case BasicConfiguration.Flamingos2LongSlit(disperser, _, fpu)                              =>
       s"Flamingos2 ${disperser.shortName} ${fpu.shortName}"
-    case BasicConfiguration.Flamingos2Imaging(filters)                                    =>
+    case BasicConfiguration.Flamingos2Imaging(filters)                                         =>
       val filterStr = filters.map(_.shortName).toList.mkString(", ")
       s"Flamingos2 Imaging $filterStr"
-    case BasicConfiguration.Igrins2LongSlit                                               =>
+    case BasicConfiguration.Igrins2LongSlit                                                    =>
       s"IGRINS-2"
-    case BasicConfiguration.GhostIfu(resolutionMode = rm)                                 =>
+    case BasicConfiguration.GhostIfu(resolutionMode = rm)                                      =>
       s"GHOST IFU ${rm.shortName}"
-    case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(_, fpu, prism, grating, camera) =>
+    case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(_, fpu, prism, grating, camera, cwl) =>
       // For Gnirs Spectroscopy we should return this pattern:
       // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>
       // For example:
@@ -345,8 +345,7 @@ trait DisplayImplicits:
       val prismSummary: String      = prism match
         case GnirsPrism.Mirror => ""
         case p                 => s" ${p.shortName}"
-      val wavelengthSummary: String =
-        f"${gnirsLongSlit.centralWavelength.toMicrometers.value}%.2fµm"
+      val wavelengthSummary: String = f"${cwl.value.toMicrometers.value}%.2fµm"
       s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
       // For Gnirs Imaging we should return this pattern:
       // s"${filter.shortName} ${fpu.shortName} ${acqMirror.shortName} ${camera.shortName}".some
@@ -355,7 +354,7 @@ trait DisplayImplicits:
       // For example:
       // GNIRS SB J/H/K-band imaging
       // GNIRS LB K-band imaging AO:LGS+P1
-    case BasicConfiguration.Visitor(mode, _, _)                                           =>
+    case BasicConfiguration.Visitor(mode, _, _)                                                =>
       mode.shortName
 
   given Display[WavelengthOrder] = Display.byShortName:

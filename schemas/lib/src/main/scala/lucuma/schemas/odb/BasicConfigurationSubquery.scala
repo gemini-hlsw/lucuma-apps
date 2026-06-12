@@ -44,6 +44,7 @@ object BasicConfigurationSubquery
             prism
             grating
             camera
+            centralWavelength $WavelengthSubquery
           }
           ghostIfu {
             resolutionMode

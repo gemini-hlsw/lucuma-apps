@@ -23,7 +23,6 @@ import lucuma.core.model.arb.ArbExposureTimeMode
 import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
-import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
@@ -730,8 +729,8 @@ trait ArbObservingMode {
         prism                     <- arbitrary[GnirsPrism]
         initialCamera             <- arbitrary[GnirsCamera]
         camera                    <- arbitrary[GnirsCamera]
-        defaultGratingWavelength  <- arbitrary[GnirsGratingWavelength]
-        explicitGratingWavelength <- arbitrary[Option[GnirsGratingWavelength]]
+        initialCentralWavelength  <- arbitrary[Wavelength]
+        centralWavelength         <- arbitrary[Wavelength]
         defaultDecker             <- arbitrary[GnirsDecker]
         explicitDecker            <- arbitrary[Option[GnirsDecker]]
         explicitReadMode          <- arbitrary[Option[GnirsReadMode]]
@@ -754,8 +753,8 @@ trait ArbObservingMode {
         prism,
         initialCamera,
         camera,
-        defaultGratingWavelength,
-        explicitGratingWavelength,
+        CentralWavelength(initialCentralWavelength),
+        CentralWavelength(centralWavelength),
         defaultDecker,
         explicitDecker,
         explicitReadMode,
@@ -779,7 +778,7 @@ trait ArbObservingMode {
        (GnirsFpuSlit, GnirsFpuSlit),
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
-       (GnirsGratingWavelength, Option[GnirsGratingWavelength]),
+       (Wavelength, Wavelength),
        (GnirsDecker, Option[GnirsDecker]),
        Option[GnirsReadMode],
        (GnirsWellDepth, Option[GnirsWellDepth]),
@@ -796,7 +795,7 @@ trait ArbObservingMode {
           (o.initialFpu, o.fpu),
           (o.initialPrism, o.prism),
           (o.initialCamera, o.camera),
-          (o.defaultGratingWavelength, o.explicitGratingWavelength),
+          (o.initialCentralWavelength.value, o.centralWavelength.value),
           (o.defaultDecker, o.explicitDecker),
           o.explicitReadMode,
           (o.defaultWellDepth, o.explicitWellDepth),

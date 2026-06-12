@@ -7811,9 +7811,8 @@ type GnirsLongSlit {
   prism: GnirsPrism!
   explicitPrism: GnirsPrism
   initialPrism: GnirsPrism!
-  gratingWavelength: Wavelength!
-  explicitGratingWavelength: Wavelength
-  defaultGratingWavelength: Wavelength!
+  centralWavelength: Wavelength!
+  initialCentralWavelength: Wavelength!
   camera: GnirsCamera!
   initialCamera: GnirsCamera!
   fpu: GnirsFpuSlit!
@@ -7883,8 +7882,8 @@ input GnirsLongSlitInput {
   camera: GnirsCamera
   grating: GnirsGrating
   prism: GnirsPrism
+  centralWavelength: WavelengthInput
   explicitDecker: GnirsDecker
-  explicitGratingWavelength: WavelengthInput
   explicitGrating: GnirsGrating
   explicitPrism: GnirsPrism
   explicitFocusMotorSteps: Int
