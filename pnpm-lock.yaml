@@ -114,8 +114,8 @@ importers:
         specifier: 4.6.0
         version: 4.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-grid-layout:
-        specifier: 1.5.3
-        version: 1.5.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 2.2.3
+        version: 2.2.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-hotkeys-hook:
         specifier: 5.3.2
         version: 5.3.2(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -306,8 +306,8 @@ importers:
         specifier: 19.2.7
         version: 19.2.7(react@19.2.7)
       react-grid-layout:
-        specifier: 1.5.3
-        version: 1.5.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 2.2.3
+        version: 2.2.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       sass:
         specifier: 1.100.0
         version: 1.100.0
@@ -2955,20 +2955,14 @@ packages:
     peerDependencies:
       react: ^19.2.7
 
-  react-draggable@4.5.0:
-    resolution: {integrity: sha512-VC+HBLEZ0XJxnOxVAZsdRi8rD04Iz3SiiKOoYzamjylUcju/hP9np/aZdLHf/7WOD268WMoNJMvYfB5yAK45cw==}
-    peerDependencies:
-      react: '>= 16.3.0'
-      react-dom: '>= 16.3.0'
-
   react-draggable@4.6.0:
     resolution: {integrity: sha512-g4vqY53xhmPrBnZvGP+1YQV0eYnB3o0VLzoi6q2IpwnQrxIZ34tYRKpVtsWIXPg4D/pvLn+oYCW5gOK2cWIrgA==}
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
 
-  react-grid-layout@1.5.3:
-    resolution: {integrity: sha512-KaG6IbjD6fYhagUtIvOzhftXG+ViKZjCjADe86X1KHl7C/dsBN2z0mi14nbvZKTkp0RKiil9RPcJBgq3LnoA8g==}
+  react-grid-layout@2.2.3:
+    resolution: {integrity: sha512-OAEJHBxmfuxQfVtZwRzmsokijGlBgzYIJ7MUlLk/VSa43SaGzu15w5D0P2RDrfX5EvP9POMbL6bFrai/huDzbQ==}
     peerDependencies:
       react: '>= 16.3.0'
       react-dom: '>= 16.3.0'
@@ -3781,7 +3775,7 @@ snapshots:
       '@atlaskit/ds-lib': 7.0.0(react@19.2.7)
       '@atlaskit/platform-feature-flags': 1.1.3(react@19.2.7)
       '@babel/runtime': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
       bind-event-listener: 3.0.0
       react: 19.2.7
@@ -3805,7 +3799,7 @@ snapshots:
       '@babel/helpers': 7.28.6
       '@babel/parser': 7.29.0
       '@babel/template': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
       '@jridgewell/remapping': 2.3.5
       convert-source-map: 2.0.0
@@ -3844,7 +3838,7 @@ snapshots:
       '@babel/helper-optimise-call-expression': 7.27.1
       '@babel/helper-replace-supers': 7.28.6(@babel/core@7.28.6(supports-color@10.2.2))
       '@babel/helper-skip-transparent-expression-wrappers': 7.27.1
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       semver: 6.3.1
     transitivePeerDependencies:
       - supports-color
@@ -3871,14 +3865,14 @@ snapshots:
 
   '@babel/helper-member-expression-to-functions@7.28.5':
     dependencies:
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
 
   '@babel/helper-module-imports@7.28.6':
     dependencies:
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
@@ -3888,7 +3882,7 @@ snapshots:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-module-imports': 7.28.6
       '@babel/helper-validator-identifier': 7.28.5
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -3903,7 +3897,7 @@ snapshots:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-annotate-as-pure': 7.27.3
       '@babel/helper-wrap-function': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -3912,13 +3906,13 @@ snapshots:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-member-expression-to-functions': 7.28.5
       '@babel/helper-optimise-call-expression': 7.27.1
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
   '@babel/helper-skip-transparent-expression-wrappers@7.27.1':
     dependencies:
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
@@ -3932,7 +3926,7 @@ snapshots:
   '@babel/helper-wrap-function@7.28.6':
     dependencies:
       '@babel/template': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
       '@babel/types': 7.29.0
     transitivePeerDependencies:
       - supports-color
@@ -3950,7 +3944,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -3977,7 +3971,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4011,7 +4005,7 @@ snapshots:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/helper-remap-async-to-generator': 7.27.1(@babel/core@7.28.6(supports-color@10.2.2))
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4058,7 +4052,7 @@ snapshots:
       '@babel/helper-globals': 7.28.0
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/helper-replace-supers': 7.28.6(@babel/core@7.28.6(supports-color@10.2.2))
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4072,7 +4066,7 @@ snapshots:
     dependencies:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4129,7 +4123,7 @@ snapshots:
       '@babel/core': 7.28.6(supports-color@10.2.2)
       '@babel/helper-compilation-targets': 7.28.6
       '@babel/helper-plugin-utils': 7.28.6
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4175,7 +4169,7 @@ snapshots:
       '@babel/helper-module-transforms': 7.28.6(@babel/core@7.28.6(supports-color@10.2.2))
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/helper-validator-identifier': 7.28.5
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4215,7 +4209,7 @@ snapshots:
       '@babel/helper-plugin-utils': 7.28.6
       '@babel/plugin-transform-destructuring': 7.28.5(@babel/core@7.28.6(supports-color@10.2.2))
       '@babel/plugin-transform-parameters': 7.27.7(@babel/core@7.28.6(supports-color@10.2.2))
-      '@babel/traverse': 7.29.0
+      '@babel/traverse': 7.29.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - supports-color
 
@@ -4425,7 +4419,7 @@ snapshots:
       '@babel/parser': 7.29.0
       '@babel/types': 7.29.0
 
-  '@babel/traverse@7.29.0':
+  '@babel/traverse@7.29.0(supports-color@10.2.2)':
     dependencies:
       '@babel/code-frame': 7.29.0
       '@babel/generator': 7.29.1
@@ -6617,13 +6611,6 @@ snapshots:
       react: 19.2.7
       scheduler: 0.27.0
 
-  react-draggable@4.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
-    dependencies:
-      clsx: 2.1.1
-      prop-types: 15.8.1
-      react: 19.2.7
-      react-dom: 19.2.7(react@19.2.7)
-
   react-draggable@4.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       clsx: 2.1.1
@@ -6631,14 +6618,14 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
-  react-grid-layout@1.5.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
+  react-grid-layout@2.2.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
       clsx: 2.1.1
       fast-equals: 4.0.3
       prop-types: 15.8.1
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      react-draggable: 4.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-draggable: 4.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react-resizable: 3.1.3(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       resize-observer-polyfill: 1.5.1
 
@@ -6674,7 +6661,7 @@ snapshots:
       prop-types: 15.8.1
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
-      react-draggable: 4.5.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      react-draggable: 4.6.0(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
 
   react-transition-group@4.4.5(react-dom@19.2.7(react@19.2.7))(react@19.2.7):
     dependencies:
