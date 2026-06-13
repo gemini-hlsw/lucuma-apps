@@ -9,7 +9,7 @@
   },
   "license": "BSD-3-Clause",
   "devDependencies": {
-    "graphql": "16.14.1"
+    "graphql": "16.14.2"
   },
   "repository": {
     "type": "git",
