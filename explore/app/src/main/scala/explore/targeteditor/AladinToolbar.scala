@@ -3,6 +3,7 @@
 
 package explore.targeteditor
 
+import cats.effect.IO
 import cats.syntax.all.*
 import crystal.react.ViewOpt
 import explore.Icons
@@ -11,6 +12,7 @@ import explore.model.Constants
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.formats.*
+import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
@@ -25,7 +27,7 @@ import lucuma.ui.syntax.all.given
 
 case class AladinToolbar(
   fov:               Fov,
-  current:           Coordinates,
+  mouseCoords:       SignallingRef[IO, Option[Coordinates]],
   agsState:          AgsState,
   selectedGuideStar: Option[AgsAnalysis.Usable],
   agsOverlay:        Visible,
@@ -74,11 +76,7 @@ object AladinToolbar:
           Constants.Calculating.when(props.agsState.isCalculating),
           Constants.LoadingStars.when(props.agsState.isLoading)
         ),
-        <.label(
-          Icons.MousePointer.withClass(ExploreStyles.Accented),
-          ExploreStyles.AladinCurrentCoords,
-          <.span(ExploreStyles.AladinDetailText, formatCoordinates(props.current))
-        ),
+        AladinMousePosition(props.mouseCoords),
         <.span(
           Button(
             onClick = props.viewOffset.set(Offset.Zero),

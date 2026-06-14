@@ -31,6 +31,7 @@ import explore.model.reusability.given
 import explore.optics.ModelOptics
 import explore.targeteditor.UseAgsCalculation.*
 import explore.utils.tracking.*
+import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.*
@@ -333,11 +334,17 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          case _              =>
                                            // if not found in db, use default and send to cache
                                            applyOptions(AsterismVisualOptions.Default)
-      mouseCoords         <- useState[Option[Coordinates]](none)
+      // Holde the mouse position on a SignallingRef instead of react state to avoid a re-rending loop.
+      mouseSignal         <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
       _                   <- useEffectWithDeps(
-                               obsTargetsCoordsPot.value.toOption.flatMap(_.toOption).flatMap(_.baseOrBlindCoords)
-                             ): oCoords =>
-                               mouseCoords.setState(oCoords)
+                               (obsTargetsCoordsPot.value.toOption
+                                  .flatMap(_.toOption)
+                                  .flatMap(_.baseOrBlindCoords),
+                                mouseSignal.value.value.toOption.isDefined
+                               )
+                             ): (coords, _) =>
+                               import ctx.given
+                               mouseSignal.value.value.toOption.foldMap(_.set(coords).runAsync)
       // Reset offset and gs if asterism change
       _                   <- useEffectWithDeps(props.obsTargets): targets =>
                                val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
@@ -392,17 +399,18 @@ object AladinCell extends ModelOptics with AladinCommon:
             props.fullScreen.set(v) *> userPrefsSetter(props.uid, fullScreen = v.some)
 
       val coordinatesSetter =
-        ((c: Coordinates) => mouseCoords.setState(c.some)).reuseAlways
+        (
+          (c: Coordinates) => mouseSignal.value.value.toOption.foldMap(_.set(c.some).runAsync)
+        ).reuseAlways
 
       val asterismKey = UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids)
 
+      // Update only the `id` field, on the current state
       def storePrefsId(newId: Option[Int]): Callback =
-        options.get.toOption.foldMap: o =>
-          val withId = o.copy(id = newId)
-          options.set(withId.ready) *>
-            props.userPreferences
-              .zoom(UserPreferences.asterismVisualOptions(asterismKey))
-              .set(withId.some)
+        options.mod(_.map(_.copy(id = newId))) *>
+          props.userPreferences
+            .zoom(UserPreferences.asterismVisualOptions(asterismKey))
+            .mod(_.map(_.copy(id = newId)))
 
       val fovSetter = (newFov: Fov) => {
         val ignore = options.get.fold(
@@ -467,10 +475,10 @@ object AladinCell extends ModelOptics with AladinCommon:
           val agsState = props.obsConf
             .flatMap(_.agsState.map(_.get))
             .getOrElse(AgsState.Idle)
-          mouseCoords.value.map: mouseCoords =>
+          mouseSignal.value.value.toOption.map: signal =>
             AladinToolbar(
               Fov(t.fovRA, t.fovDec),
-              mouseCoords,
+              signal,
               agsState,
               guideStar,
               globalPreferences.get.agsOverlay,

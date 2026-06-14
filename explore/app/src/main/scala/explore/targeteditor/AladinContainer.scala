@@ -60,7 +60,6 @@ import java.time.Duration
 import java.time.Instant
 import scala.collection.MapView
 import scala.collection.immutable.SortedMap
-import scala.concurrent.duration.*
 import scala.scalajs.LinkingInfo
 
 case class AladinContainer(
@@ -495,12 +494,7 @@ object AladinContainer extends AladinCommon {
           aladinRef.setState(v.some) *>
             v.onZoomCB(onZoom) *> // re render on zoom
             v.onPositionChangedCB(onPositionChanged) *>
-            v.onMouseMoveCB(s =>
-              props
-                .updateMouseCoordinates(Coordinates(s.ra, s.dec))
-                .rateLimit(200.millis, 1)
-                .void
-            )
+            v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec)))
 
         val baseCoordinatesForAladin: String =
           currentPos.value
