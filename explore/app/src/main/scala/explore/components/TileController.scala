@@ -152,10 +152,18 @@ object TileController:
           cols = currentLayouts.view.mapValues(_._2).toMap,
           layouts = currentLayouts.view.mapValues(_._3).toMap,
           autoSize = true,
-          // Absolute positioning (top/left) instead of CSS transforms has a performance cost but
-          // lets controls on the title work properly.
+          // Position strategy: we use react-grid-layout's default (CSS transforms).
+          // rgl v1 forced us to set `useCSSTransforms = false` because a CSS transform on a grid
+          // item creates a containing block that breaks abosule positioning breaking things like
+          // the combo boxes or the date picker that renders above the tiles.
+          //
+          // See
           // https://github.com/react-grid-layout/react-grid-layout/issues/858#issuecomment-426346399
-          positionStrategy = PositionStrategy.absolute,
+          //
+          // In rgl v2 those overlays are portaled out of the grid-item subtree, so the z-inde
+          // issue seems to be gone and in fact using the default wors and it should be more performant.
+          // If you need to restore the old layout use:
+          // `positionStrategy = PositionStrategy.absolute`.
           margin = (Constants.GridRowPadding, Constants.GridRowPadding),
           containerPadding = (Constants.GridRowPadding, 0),
           rowHeight = Constants.GridRowHeight,
