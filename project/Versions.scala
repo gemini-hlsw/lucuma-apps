@@ -28,7 +28,7 @@ object Versions {
   val http4sJdkHttpClient    = "0.10.0"
   val http4sOtel4s           = "0.18.0"
   val http4sScalaXml         = "0.24.0"
-  val javaTimeJs             = "2.6.0"
+  val javaTimeJs             = "2.7.0"
   val jwt                    = "11.0.4"
   val kittens                = "3.5.0"
   val log4Cats               = "2.8.0"
