@@ -161,6 +161,11 @@ export default defineConfig(async ({ mode }) => {
     root: 'app/src/main/webapp',
     publicDir: publicDir,
     envPrefix: ['VITE_', 'CATS_EFFECT_', 'EXPLORE_'],
+    // "process is not defined" on drag/resize start in the browser breaking resizing
+    // https://github.com/react-grid-layout/react-draggable/issues/806
+    define: {
+      'process.env.DRAGGABLE_DEBUG': 'false',
+    },
     resolve: {
       dedupe: ['react-is'],
       alias: [

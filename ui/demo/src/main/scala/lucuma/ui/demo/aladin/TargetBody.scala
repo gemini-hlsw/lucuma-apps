@@ -120,11 +120,13 @@ object AladinTile {
         ^.width  := "100%",
         ResponsiveReactGridLayout(
           width = s.width.foldMap(_.toInt),
+          breakpoints = layouts.view.mapValues(_._1).toMap,
+          cols = layouts.view.mapValues(_._2).toMap,
+          layouts = layouts.view.mapValues(_._3).toMap,
           containerPadding = (1, 1),
           rowHeight = 30,
-          draggableHandle = ".tileTitle",
-          useCSSTransforms = false, // Not ideal, but fixes flicker on first update (0.18.3).
-          layouts = layouts
+          dragConfig = DragConfig(handle = ".tileTitle"),
+          positionStrategy = PositionStrategy.absolute
         )(
           <.div(
             ^.height := "100%",
