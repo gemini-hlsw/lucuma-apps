@@ -47,6 +47,16 @@ object ModeSignalToNoiseSubquery
             }
           }
         }
+        ... on ItcFlamingos2Imaging {
+          flamingos2ImagingScience {
+            filter
+            results {
+              selected {
+                signalToNoiseAt $SignalToNoiseAtSubquery
+              }
+            }
+          }
+        }
         ... on ItcIgrins2Spectroscopy {
           spectroscopyScience {
             selected {
