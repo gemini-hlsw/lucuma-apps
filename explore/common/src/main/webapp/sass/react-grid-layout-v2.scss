@@ -1,0 +1,39 @@
+/* Explore overrides for react-grid-layout's stylesheet */
+/* Faster transitions for tile movement, default was 200ms*/
+.react-grid-layout {
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+/* do NOT animate width/height, so a tile's size snaps instantly on minimize/maximize */
+.react-grid-item {
+  transition-duration: 150ms;
+  transition-property: left, top;
+  transition-timing-function: ease-out;
+}
+
+.react-grid-item.cssTransforms {
+  transition-property: transform;
+}
+
+.react-grid-item.react-grid-placeholder {
+  background: lightgreen;
+}
+
+/* Always show the resize handle */
+.react-grid-item > .react-resizable-handle {
+  opacity: 1;
+}
+
+/* debugging overlay */
+.rgl-tile-overlay {
+  /* Enable for grid debugging */
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  top: 5px;
+  left: 200px;
+  font-size: smaller;
+  color: yellow;
+  z-index: 100;
+}
