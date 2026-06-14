@@ -103,11 +103,11 @@ trait ArbModeSignalToNoise:
       ]
     ]].contramap: isn =>
       isn match
-        case ModeSignalToNoise.Undefined               => Left(())
-        case s: ModeSignalToNoise.Spectroscopy         => Right(Left(s))
-        case gnm: ModeSignalToNoise.GmosNorthImaging   => Right(Right(Left(gnm)))
-        case gsm: ModeSignalToNoise.GmosSouthImaging   => Right(Right(Right(Left(gsm))))
-        case f2m: ModeSignalToNoise.Flamingos2Imaging  => Right(Right(Right(Right(Left(f2m)))))
-        case gst: ModeSignalToNoise.GhostIfu           => Right(Right(Right(Right(Right(gst)))))
+        case ModeSignalToNoise.Undefined              => Left(())
+        case s: ModeSignalToNoise.Spectroscopy        => Right(Left(s))
+        case gnm: ModeSignalToNoise.GmosNorthImaging  => Right(Right(Left(gnm)))
+        case gsm: ModeSignalToNoise.GmosSouthImaging  => Right(Right(Right(Left(gsm))))
+        case f2i: ModeSignalToNoise.Flamingos2Imaging => Right(Right(Right(Right(Left(f2i)))))
+        case gst: ModeSignalToNoise.GhostIfu          => Right(Right(Right(Right(Right(gst)))))
 
 object ArbModeSignalToNoise extends ArbModeSignalToNoise
