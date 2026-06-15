@@ -12,7 +12,6 @@ import observe.model.CurrentConditions
 import observe.model.enums.ObserveCommandResult
 import observe.server.AbstractGiapiInstrumentController
 import observe.server.GiapiInstrumentController
-import observe.server.GiapiInstrumentController.*
 import observe.server.keywords.GdsClient
 import org.typelevel.log4cats.Logger
 
@@ -50,8 +49,9 @@ object GhostController {
       override val name = "GHOST"
 
       def configuration(config: GhostConfig, conds: CurrentConditions): F[Configuration] =
-        Logger[F].debug(pprint.apply(config.configuration(conds)).toString) *>
-          config.configuration(conds).pure[F]
+        val cfg    = config.configuration(conds)
+        val asList = cfg.config.toList.sortBy(_._1)
+        Logger[F].debug(pprint.apply(asList).toString).as(cfg)
 
       override def applyConfig(cfg: GhostConfig, conds: CurrentConditions): F[Unit] = doApplyConfig(
         configuration(cfg, conds)
