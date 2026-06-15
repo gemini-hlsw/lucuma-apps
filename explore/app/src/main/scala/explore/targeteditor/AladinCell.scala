@@ -334,8 +334,12 @@ object AladinCell extends ModelOptics with AladinCommon:
                                          case _              =>
                                            // if not found in db, use default and send to cache
                                            applyOptions(AsterismVisualOptions.Default)
-      // Holde the mouse position on a SignallingRef instead of react state to avoid a re-rending loop.
+      // Hold the mouse position on a SignallingRef instead of react state to avoid a re-rending loop.
       mouseSignal         <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
+      setMouseCoords      <- useCallbackWithDeps(mouseSignal.value.value.toOption.isDefined): _ =>
+                               import ctx.given
+                               (coords: Option[Coordinates]) =>
+                                 mouseSignal.value.value.toOption.foldMap(_.set(coords).runAsync)
       _                   <- useEffectWithDeps(
                                (obsTargetsCoordsPot.value.toOption
                                   .flatMap(_.toOption)
@@ -343,8 +347,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                 mouseSignal.value.value.toOption.isDefined
                                )
                              ): (coords, _) =>
-                               import ctx.given
-                               mouseSignal.value.value.toOption.foldMap(_.set(coords).runAsync)
+                               setMouseCoords.value(coords)
       // Reset offset and gs if asterism change
       _                   <- useEffectWithDeps(props.obsTargets): targets =>
                                val (_, offsetOnCenter) = offsetViews(props.uid, targets.ids, options)(ctx)
@@ -399,9 +402,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             props.fullScreen.set(v) *> userPrefsSetter(props.uid, fullScreen = v.some)
 
       val coordinatesSetter =
-        (
-          (c: Coordinates) => mouseSignal.value.value.toOption.foldMap(_.set(c.some).runAsync)
-        ).reuseAlways
+        setMouseCoords.map(set => (c: Coordinates) => set(c.some))
 
       val asterismKey = UserPreferences.AsterismKey.fromTargetIds(props.obsTargets.ids)
 
