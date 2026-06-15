@@ -21,6 +21,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
@@ -141,13 +142,31 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
 
-  def targetLabelsMap(scienceTargets: List[TargetWithId]): Map[Target.Id, String] =
+  // Labels shown next to the science targets in the visualization. The IFU slot (IFU1/IFU2) is
+  // taken from the IFU mapping when available, so labels match the patrol-field geometry; when
+  // the mapping is absent (e.g. the sequence has not generated yet) we fall back to asterism order.
+  def targetLabelsMap(
+    scienceTargets: List[TargetWithId],
+    ifuMapping:     Option[GhostIfuMapping]
+  ): Map[Target.Id, String] =
     this match
-      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-        scienceTargets.zip(List("SR-IFU1", "SR-IFU2")).map((t, l) => t.id -> l).toMap
-      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.High)     =>
-        scienceTargets.zip(List("HR-IFU1")).map((t, l) => t.id -> l).toMap
-      case _                                                                          => Map.empty
+      case BasicConfiguration.GhostIfu(resolutionMode = mode) =>
+        val prefix = mode match
+          case GhostResolutionMode.Standard => "SR"
+          case GhostResolutionMode.High     => "HR"
+        val slots: Map[Target.Id, String] =
+          ifuMapping match
+            case Some(GhostIfuMapping.SingleTarget(ifu1))     => Map(ifu1 -> "IFU1")
+            case Some(GhostIfuMapping.TargetPlusSky(ifu1, _)) => Map(ifu1 -> "IFU1")
+            case Some(GhostIfuMapping.SkyPlusTarget(_, ifu2)) => Map(ifu2 -> "IFU2")
+            case Some(GhostIfuMapping.DualTarget(ifu1, ifu2)) => Map(ifu1 -> "IFU1", ifu2 -> "IFU2")
+            case None                                         =>
+              val suffixes = mode match
+                case GhostResolutionMode.Standard => List("IFU1", "IFU2")
+                case GhostResolutionMode.High     => List("IFU1")
+              scienceTargets.zip(suffixes).map((t, s) => t.id -> s).toMap
+        slots.map((id, s) => id -> s"$prefix-$s")
+      case _                                                  => Map.empty
 
   private def fallBackGuideProbe = this match
     case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) |

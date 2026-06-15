@@ -513,7 +513,7 @@ object AladinContainer extends AladinCommon {
 
         val targetLabels: Map[Target.Id, String] =
           props.vizConf
-            .foldMap(_.configuration.targetLabelsMap(props.obsTargets.science))
+            .foldMap(c => c.configuration.targetLabelsMap(props.obsTargets.science, c.ghostIfuMapping))
 
         val scienceTargets: List[SvgTarget] =
           targetCoords
