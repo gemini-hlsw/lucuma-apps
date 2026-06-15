@@ -102,24 +102,7 @@ object ObsQueriesGql:
           ghost {
             static {
               resolutionMode
-              ifuMapping {
-                mappingType
-                singleTarget {
-                  ifu1
-                }
-                targetPlusSky {
-                  ifu1
-                  ifu2 $CoordinatesSubquery
-                }
-                skyPlusTarget {
-                  ifu1 $CoordinatesSubquery
-                  ifu2
-                }
-                dualTarget {
-                  ifu1
-                  ifu2
-                }
-              }
+              ifuMapping $GhostIfuMappingSubquery
               slitViewingCameraExposureTime $TimeSpanSubquery
             }
             science { ...ghostSequenceFields }

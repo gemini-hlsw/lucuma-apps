@@ -67,6 +67,7 @@ object SequenceQueriesGql:
             ghost {
               static {
                 resolutionMode
+                ifuMapping $GhostIfuMappingSubquery
                 slitViewingCameraExposureTime $TimeSpanSubquery
               }
               science { ...ghostSequenceFields }
