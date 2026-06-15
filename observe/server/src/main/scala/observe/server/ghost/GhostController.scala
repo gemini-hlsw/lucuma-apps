@@ -49,23 +49,9 @@ object GhostController {
 
       override val name = "GHOST"
 
-      private val GuidingState: String         = "ghost:sad:dc:ag.command_state"
-      private def guidingState: F[Option[Int]] = client.giapi.getO[Int](GuidingState)
-
-      private def isAGIdle: F[Boolean] =
-        // 2 is idle, and 1 is guiding. We have more intermediate states but we'll
-        // assume we don't want to move focus
-        guidingState.map(_.exists(_ === 2))
-
       def configuration(config: GhostConfig, conds: CurrentConditions): F[Configuration] =
-        for {
-          value      <- guidingState
-          idle       <- isAGIdle
-          baseConfig  = config.configuration(conds)
-          finalConfig = baseConfig |+| config.moveIFUToFocus.when(_ => idle)
-          _          <- Logger[F].debug(s"Guiding check with value: $value isGuiding off: $idle")
-          _          <- Logger[F].debug(pprint.apply(finalConfig).toString)
-        } yield finalConfig
+        Logger[F].debug(pprint.apply(config.configuration(conds)).toString) *>
+          config.configuration(conds).pure[F]
 
       override def applyConfig(cfg: GhostConfig, conds: CurrentConditions): F[Unit] = doApplyConfig(
         configuration(cfg, conds)
