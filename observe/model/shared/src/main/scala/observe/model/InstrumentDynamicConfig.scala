@@ -13,10 +13,12 @@ import io.circe.JsonObject
 import io.circe.syntax.*
 import lucuma.core.enums.Instrument
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.odb.json.flamingos2.given
+import lucuma.odb.json.ghost.transport.given
 import lucuma.odb.json.gmos.given
 import lucuma.odb.json.gnirs.given
 import lucuma.odb.json.igrins2.given
@@ -55,6 +57,10 @@ object InstrumentDynamicConfig:
     type D = GnirsDynamicConfig
   }
 
+  case class Ghost(config: GhostDynamicConfig) extends InstrumentDynamicConfig(Instrument.Ghost) {
+    type D = GhostDynamicConfig
+  }
+
   object GmosNorth:
     given Eq[GmosNorth] = Eq.by(x => (x.instrument, x.config))
 
@@ -70,12 +76,16 @@ object InstrumentDynamicConfig:
   object Gnirs:
     given Eq[Gnirs] = Eq.by(x => (x.instrument, x.config))
 
+  object Ghost:
+    given Eq[Ghost] = Eq.by(x => (x.instrument, x.config))
+
   given Eq[InstrumentDynamicConfig] = Eq.instance:
     case (a: GmosNorth, b: GmosNorth)   => a === b
     case (a: GmosSouth, b: GmosSouth)   => a === b
     case (a: Flamingos2, b: Flamingos2) => a === b
     case (a: Igrins2, b: Igrins2)       => a === b
     case (a: Gnirs, b: Gnirs)           => a === b
+    case (a: Ghost, b: Ghost)           => a === b
     case _                              => false
 
   given Encoder.AsObject[InstrumentDynamicConfig] = Encoder.AsObject.instance: idc =>
@@ -86,7 +96,8 @@ object InstrumentDynamicConfig:
         case InstrumentDynamicConfig.GmosSouth(config)  => config.asJson
         case InstrumentDynamicConfig.Flamingos2(config) => config.asJson
         case InstrumentDynamicConfig.Igrins2(config)    => config.asJson
-        case InstrumentDynamicConfig.Gnirs(config)      => config.asJson)
+        case InstrumentDynamicConfig.Gnirs(config)      => config.asJson
+        case InstrumentDynamicConfig.Ghost(config)      => config.asJson)
     )
 
   given Decoder[InstrumentDynamicConfig] = Decoder.instance: c =>
@@ -113,6 +124,10 @@ object InstrumentDynamicConfig:
           c.downField("config")
             .as[GnirsDynamicConfig]
             .map(InstrumentDynamicConfig.Gnirs(_))
+        case Instrument.Ghost      =>
+          c.downField("config")
+            .as[GhostDynamicConfig]
+            .map(InstrumentDynamicConfig.Ghost(_))
         case i                     =>
           DecodingFailure(
             s"Attempted to decode InstrumentDynamicConfig with unavailable instrument: $i",
@@ -131,3 +146,5 @@ object InstrumentDynamicConfig:
         InstrumentDynamicConfig.Igrins2(c)
       case c: GnirsDynamicConfig                                  =>
         InstrumentDynamicConfig.Gnirs(c)
+      case c: GhostDynamicConfig                                  =>
+        InstrumentDynamicConfig.Ghost(c)
