@@ -1079,6 +1079,12 @@ lazy val setupPnpmAndNode = List(
       "registry-url" -> "https://registry.npmjs.org",
       "cache"        -> "pnpm"
     )
+  ),
+  WorkflowStep.Run(
+    List(
+      "echo \"//npm.fontawesome.com/:_authToken=$FONTAWESOME_NPM_AUTH_TOKEN\" >> ~/.npmrc"
+    ),
+    name = Some("Configure FontAwesome registry auth")
   )
 )
 
