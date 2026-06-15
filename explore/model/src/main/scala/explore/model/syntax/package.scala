@@ -17,6 +17,7 @@ import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Declination
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
@@ -26,6 +27,7 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.ExecutionDigest
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.CalculationState
 import lucuma.core.util.Enumerated
@@ -228,3 +230,21 @@ object all:
         case Engineering(semester, _, _)   => semester.some
         case Monitoring(semester, _, _)    => semester.some
         case Commissioning(semester, _, _) => semester.some
+
+  extension (m: GhostIfuMapping)
+    // Positions for (IFU1, IFU2) slots. Each slot holds either a science target or sky
+    def ifuCoordinates(
+      targets: Map[Target.Id, Coordinates]
+    ): (Option[Coordinates], Option[Coordinates]) =
+      m match
+        case GhostIfuMapping.SingleTarget(ifu1)       => (targets.get(ifu1), none)
+        case GhostIfuMapping.TargetPlusSky(ifu1, sky) => (targets.get(ifu1), sky.some)
+        case GhostIfuMapping.SkyPlusTarget(sky, ifu2) => (sky.some, targets.get(ifu2))
+        case GhostIfuMapping.DualTarget(ifu1, ifu2)   => (targets.get(ifu1), targets.get(ifu2))
+
+    // Sky-IFU position
+    def skyCoordinates: List[Coordinates] =
+      m match
+        case GhostIfuMapping.TargetPlusSky(_, sky) => List(sky)
+        case GhostIfuMapping.SkyPlusTarget(sky, _) => List(sky)
+        case _                                     => Nil

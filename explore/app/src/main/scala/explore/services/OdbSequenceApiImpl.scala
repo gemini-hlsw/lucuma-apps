@@ -14,6 +14,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.schemas.ObservationDB
@@ -30,6 +31,12 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       .query(obsId, includeItc = Input(includeItc))
       .raiseGraphQLErrors
       .map(SequenceData.fromOdbResponse)
+
+  def ghostIfuMapping(obsId: Observation.Id): F[Option[GhostIfuMapping]] =
+    GhostIfuMappingQuery[F]
+      .query(obsId)
+      .raiseGraphQLErrors
+      .map(_.executionConfig.flatMap(_.ghost).map(_.static.ifuMapping))
 
   def replaceGmosNorthSequence(
     obsId:        Observation.Id,

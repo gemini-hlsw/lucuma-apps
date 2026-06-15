@@ -23,6 +23,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
@@ -46,7 +47,8 @@ final case class ObsConfiguration(
   needGuideStar:      Boolean,
   remoteGSName:       Option[NonEmptyString],
   calibrationRole:    Option[CalibrationRole],
-  trackType:          Option[TrackType]
+  trackType:          Option[TrackType],
+  ghostIfuMapping:    Option[GhostIfuMapping]
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -107,5 +109,6 @@ object ObsConfiguration:
       needsAGS,
       none,
       none,
-      trackType
+      trackType,
+      none
     )

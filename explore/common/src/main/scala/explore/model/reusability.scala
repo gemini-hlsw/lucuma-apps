@@ -45,6 +45,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.TimingWindow
 import lucuma.core.model.Tracking
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.itc.ItcCcd
 import lucuma.itc.client.GraphResult
 import lucuma.schemas.ObservationDB.Enums.Existence
@@ -112,6 +113,7 @@ object reusability:
   given Reusability[BlindOffsetCandidate]               = Reusability.byEq
   given Reusability[CatalogTargetResult]                = Reusability.byEq
   given Reusability[BasicConfiguration]                 = Reusability.byEq
+  given Reusability[GhostIfuMapping]                    = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq
   given Reusability[GuideStarCandidate]                 = Reusability.by(_.name.value)
   given Reusability[OffsetPosition]                     = Reusability.byEq

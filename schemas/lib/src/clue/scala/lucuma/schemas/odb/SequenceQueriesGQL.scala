@@ -10,6 +10,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.OffsetSubquery
 // gql: import lucuma.odb.json.sequence.given
 // gql: import lucuma.schemas.decoders.given
+// gql: import lucuma.odb.json.ghost.decoder.given
 
 object SequenceQueriesGql:
   @GraphQL
@@ -122,3 +123,19 @@ object SequenceQueriesGql:
 
     object Data:
       type ExecutionConfig = InstrumentExecutionConfig
+
+  // Fetches the GHOST static-config IFU mapping for an observation.
+  // Uses `futureLimit: 0` so the mapping is the same for every atom.
+  @GraphQL
+  trait GhostIfuMappingQuery extends GraphQLOperation[ObservationDB]:
+    val document = s"""
+        query($$obsId: ObservationId!) {
+          executionConfig(observationId: $$obsId, futureLimit: 0) {
+            ghost {
+              static {
+                ifuMapping $GhostIfuMappingSubquery
+              }
+            }
+          }
+        }
+      """
