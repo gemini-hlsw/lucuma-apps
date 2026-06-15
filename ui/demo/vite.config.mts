@@ -12,6 +12,10 @@ export default defineConfig(({ mode }) => {
       : path.resolve(__dirname, `target/scala-${scalaVersion}/ui_demo-fastopt/`);
   return {
     root: 'src/main/webapp',
+    // https://github.com/react-grid-layout/react-draggable/issues/806
+    define: {
+      'process.env.DRAGGABLE_DEBUG': 'false',
+    },
     resolve: {
       alias: [
         {

@@ -211,26 +211,24 @@ object UserPreferencesQueries:
     def storeLayoutsPreference[F[_]: ApplicativeThrow](
       userId:  Option[User.Id],
       section: GridLayoutSection,
-      layouts: Layouts
+      layouts: ResponsiveLayouts
     )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
       userId.traverse { uid =>
         UserGridLayoutUpsert[F]
           .execute(
-            layouts.layouts.flatMap { bl =>
-              bl.layout.asList.collect {
+            layouts.toList.flatMap: (breakpoint, layout) =>
+              layout.asList.collect:
                 case i if i.i.nonEmpty && i.h > 0 =>
                   LucumaGridLayoutPositionsInsertInput(
                     userId = uid.show.assign,
                     section = section.assign,
-                    breakpointName = bl.name.toGridBreakpointName.assign,
+                    breakpointName = breakpoint.toGridBreakpointName.assign,
                     width = i.w.assign,
                     height = i.h.assign,
                     x = i.x.assign,
                     y = i.y.assign,
                     tile = i.i.assign
                   )
-              }
-            }
           )
           .attempt
       }.void

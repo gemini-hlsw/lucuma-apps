@@ -59,7 +59,7 @@ object TileController:
   private def storeLayouts[F[_]: {MonadThrow, Dispatch}](
     userId:  Option[User.Id],
     section: GridLayoutSection,
-    layouts: Layouts
+    layouts: ResponsiveLayouts
   )(using FetchClient[F, UserPreferencesDB]): Callback =
     GridLayouts.storeLayoutsPreference[F](userId, section, layouts).runAsyncAndForget
 
@@ -144,29 +144,42 @@ object TileController:
             .getOrElse(props.tiles)
         }
 
+        val currentLayouts = currentLayout.get
+
         ResponsiveReactGridLayout(
           width = props.gridWidth.toDouble,
+          breakpoints = currentLayouts.view.mapValues(_._1).toMap,
+          cols = currentLayouts.view.mapValues(_._2).toMap,
+          layouts = currentLayouts.view.mapValues(_._3).toMap,
           autoSize = true,
-          // this has a performance cost but lets controls on the title to work properly
+          // Position strategy: we use react-grid-layout's default (CSS transforms).
+          // rgl v1 forced us to set `useCSSTransforms = false` because a CSS transform on a grid
+          // item creates a containing block that breaks abosule positioning breaking things like
+          // the combo boxes or the date picker that renders above the tiles.
+          //
+          // See
           // https://github.com/react-grid-layout/react-grid-layout/issues/858#issuecomment-426346399
-          useCSSTransforms = false, // this has a performanco cost but see
+          //
+          // In rgl v2 those overlays are portaled out of the grid-item subtree, so the z-inde
+          // issue seems to be gone and in fact using the default wors and it should be more performant.
+          // If you need to restore the old layout use:
+          // `positionStrategy = PositionStrategy.absolute`.
           margin = (Constants.GridRowPadding, Constants.GridRowPadding),
           containerPadding = (Constants.GridRowPadding, 0),
           rowHeight = Constants.GridRowHeight,
-          draggableHandle = s".${ExploreStyles.TileDraggable.htmlClass}",
+          dragConfig = DragConfig(handle = s".${ExploreStyles.TileDraggable.htmlClass}"),
           onBreakpointChange = (bk: BreakpointName, _: Int) =>
             currentLayout
               .mod(_.breakpointProportionalWidth(breakpoint.value, bk))
               .when_(breakpoint.value =!= bk) *>
               breakpoint
                 .setState(bk),
-          onLayoutChange = (m: Layout, newLayouts: Layouts) =>
+          onLayoutChange = (m: Layout, newLayouts: ResponsiveLayouts) =>
             // Store the current layout in the state for debugging
             currentLayout
               .mod(breakpointLayout(breakpoint.value).replace(m)) *>
               storeLayouts(props.userId, props.section, newLayouts)
                 .when_(props.storeLayout),
-          layouts = currentLayout.get,
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
