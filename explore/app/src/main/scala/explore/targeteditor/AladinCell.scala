@@ -28,6 +28,7 @@ import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
+import explore.model.syntax.all.*
 import explore.optics.ModelOptics
 import explore.targeteditor.UseAgsCalculation.*
 import explore.utils.tracking.*
@@ -273,7 +274,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                 props.obsConf.flatMap(_.guidedAcqOffsets),
                                 props.obsConf.flatMap(_.guidedSciOffsets),
                                 candidates.value.toOption.flatten,
-                                props.obsConf.flatMap(_.trackType)
+                                props.obsConf.flatMap(_.trackType),
+                                props.obsConf.flatMap(_.ghostIfuMapping)
                                )
                              ):
                                case (focusedId,
@@ -285,7 +287,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                      acqOffsets,
                                      sciOffsets,
                                      Some(cands),
-                                     trackType
+                                     trackType,
+                                     ghostIfuMapping
                                    ) =>
                                  AgsCalcProps(
                                    focusedId,
@@ -297,7 +300,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    acqOffsets,
                                    sciOffsets,
                                    cands,
-                                   trackType
+                                   trackType,
+                                   ghostIfuMapping.toList.flatMap(_.skyCoordinates)
                                  ).some
                                case _ => none
       // Reference to root

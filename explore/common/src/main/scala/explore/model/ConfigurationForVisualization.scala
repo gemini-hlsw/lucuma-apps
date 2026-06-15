@@ -17,6 +17,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 
@@ -29,7 +30,8 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  trackType:                  Option[TrackType]
+  trackType:                  Option[TrackType],
+  ghostIfuMapping:            Option[GhostIfuMapping]
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguration
   // TODO: Take the calculated average parallactic angle if needed
@@ -71,7 +73,8 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.trackType
+          obsConfig.trackType,
+          obsConfig.ghostIfuMapping
         )
       }
       .orElse:
@@ -89,6 +92,7 @@ object ConfigurationForVisualization:
       None,
       None,
       selectedPosAngle,
+      None,
       None,
       None
     )

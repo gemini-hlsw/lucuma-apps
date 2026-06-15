@@ -25,6 +25,7 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -36,16 +37,18 @@ import workers.WorkerClient
 import java.time.Instant
 
 case class AgsCalcProps(
-  focusedId:     Target.Id,
-  obsTime:       Instant,
-  constraints:   ConstraintSet,
-  agsWavelength: AGSWavelength,
-  observingMode: Option[BasicConfiguration],
-  obsModeType:   ObservingModeType,
-  acqOffsets:    Option[AcquisitionOffsets],
-  sciOffsets:    Option[ScienceOffsets],
-  candidates:    List[GuideStarCandidate],
-  trackType:     Option[TrackType]
+  focusedId:       Target.Id,
+  obsTime:         Instant,
+  constraints:     ConstraintSet,
+  agsWavelength:   AGSWavelength,
+  observingMode:   Option[BasicConfiguration],
+  obsModeType:     ObservingModeType,
+  acqOffsets:      Option[AcquisitionOffsets],
+  sciOffsets:      Option[ScienceOffsets],
+  candidates:      List[GuideStarCandidate],
+  trackType:       Option[TrackType],
+  // Sky-IFU positions (GHOST) the guide probe must keep clear, in addition to the science coords.
+  skyCoords:       List[Coordinates]
 ):
   lazy val guideProbe: Option[GuideProbe] =
     observingMode.map(_.guideProbe(trackType))
@@ -61,7 +64,8 @@ object AgsCalcProps:
      p.acqOffsets,
      p.sciOffsets,
      p.candidates.length,
-     p.trackType
+     p.trackType,
+     p.skyCoords
     )
 
 case class AgsCalculationResults(
@@ -166,6 +170,9 @@ object UseAgsCalculation:
     obsCoords.baseCoords.map { baseCoords =>
       val params = agsParams(props.obsModeType, props.observingMode, props.guideProbe)
 
+      val scienceCoords =
+        obsCoords.scienceCoords ++ props.skyCoords
+
       params
         .map: p =>
           AgsMessage.AgsRequest(
@@ -174,7 +181,7 @@ object UseAgsCalculation:
             props.constraints,
             props.agsWavelength,
             baseCoords,
-            obsCoords.scienceCoords,
+            scienceCoords,
             obsCoords.blindOffsetCoords,
             angles,
             props.acqOffsets,

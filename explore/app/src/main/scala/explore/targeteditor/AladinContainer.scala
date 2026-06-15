@@ -21,6 +21,7 @@ import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
+import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
@@ -368,12 +369,16 @@ object AladinContainer extends AladinCommon {
                                      (obsTargets, obsTimeCoords) =>
                                        obsTargets.science.flatMap: t =>
                                          obsTimeCoords.allTargetsMap.get(t.id)
+        ghostIfuCoords          <- useMemo((props.vizConf.flatMap(_.ghostIfuMapping), props.obsTimeCoords)):
+                                     (ifuMapping, obsTimeCoords) =>
+                                       ifuMapping.map(_.ifuCoordinates(obsTimeCoords.allTargetsMap))
         // Memoized svg for visualization shapes
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
                                      asterismCoords.value,
+                                     ghostIfuCoords.value,
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
