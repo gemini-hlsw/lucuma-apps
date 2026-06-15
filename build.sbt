@@ -1082,7 +1082,7 @@ lazy val setupPnpmAndNode = List(
   ),
   WorkflowStep.Run(
     List(
-      "echo \"//npm.fontawesome.com/:_authToken=$FONTAWESOME_NPM_AUTH_TOKEN\" >> ~/.npmrc"
+      "pnpm config set \"//npm.fontawesome.com/:_authToken\" \"$FONTAWESOME_NPM_AUTH_TOKEN\" --location user"
     ),
     name = Some("Configure FontAwesome registry auth")
   )
