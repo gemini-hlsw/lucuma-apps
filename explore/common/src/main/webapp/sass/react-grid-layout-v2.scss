@@ -1,5 +1,6 @@
 /* Explore overrides for react-grid-layout's stylesheet */
-/* Faster transitions for tile movement, default was 200ms*/
+
+/* Faster transitions for tile movement, default was 200ms */
 .react-grid-layout {
   transition-duration: 150ms;
   transition-timing-function: ease-out;
@@ -12,6 +13,7 @@
   transition-timing-function: ease-out;
 }
 
+/* stylelint-disable selector-class-pattern */
 .react-grid-item.cssTransforms {
   transition-property: transform;
 }
