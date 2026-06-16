@@ -429,6 +429,7 @@ object ExploreLayout:
                                       (tab =!= AppTab.Proposal && tab =!= AppTab.Program) ||
                                         program.programType === ProgramType.Science &&
                                         (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted) ||
+                                        // Also show program for engineering and calibration proposals
                                         (tab === AppTab.Program && (program.programType === ProgramType.Engineering || program.programType === ProgramType.Calibration))
                               ),
                               <.div(
