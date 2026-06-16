@@ -8,6 +8,7 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.refineV
+import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
 import lucuma.ags.GuideStarCandidate
 import lucuma.core.enums.SequenceType
@@ -21,8 +22,10 @@ import org.locationtech.jts.geom.Geometry
 
 import scala.math.*
 
-val canvasWidth  = VdomAttr("width")
-val canvasHeight = VdomAttr("height")
+val canvasWidth      = VdomAttr("width")
+val canvasHeight     = VdomAttr("height")
+val patternUnits     = VdomAttr("patternUnits")
+val patternTransform = VdomAttr("patternTransform")
 
 // The values on the geometry are in microarcseconds
 // They are fairly large and break is some browsers
@@ -149,3 +152,40 @@ def offsetIndicators(
         idx <- refineV[NonNegative](i).toOption
         c   <- baseCoordinates.offsetBy(posAngle, o) if visible
       yield SvgTarget.OffsetIndicator(c, idx, o, oType, css, 4)
+
+private val hatchTile = 15000 // mas (15 arcsec)
+
+// Define a hatch pattern to fill certain svg shapes with diagonal lines.
+def hatchPattern(id: String, colorClass: Css, angleDeg: Int, lineClass: Css): VdomNode =
+  // import the locally to avoid collisions with html
+  import japgolly.scalajs.react.vdom.svg_<^.*
+  <.pattern(
+    ^.id             := id,
+    patternUnits     := "userSpaceOnUse",
+    ^.width          := hatchTile,
+    ^.height         := hatchTile,
+    patternTransform := s"rotate($angleDeg)",
+    <.rect(
+      colorClass,
+      ^.width       := hatchTile,
+      ^.height      := hatchTile,
+      ^.fillOpacity := "0.08"
+    ),
+    <.line(
+      colorClass |+| lineClass,
+      ^.x1          := "0",
+      ^.y1          := "0",
+      ^.x2          := "0",
+      ^.y2          := hatchTile
+    )
+  )
+
+def hatchDefs(hatchLine: Css, hatchLineSel: Css): VdomNode =
+  // import the locally to avoid collisions with html
+  import japgolly.scalajs.react.vdom.svg_<^.*
+  <.defs(
+    hatchPattern("ghost-ifu1-hatch", Css("ghost-ifu1-hatch-color"), 45, hatchLine),
+    hatchPattern("ghost-ifu2-hatch", Css("ghost-ifu2-hatch-color"), -45, hatchLine),
+    hatchPattern("ghost-ifu1-hatch-selected", Css("ghost-ifu1-hatch-color"), 45, hatchLineSel),
+    hatchPattern("ghost-ifu2-hatch-selected", Css("ghost-ifu2-hatch-color"), -45, hatchLineSel)
+  )

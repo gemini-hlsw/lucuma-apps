@@ -79,13 +79,14 @@ object VisualizationStyles:
   val ExtendedVignettingAreaVisible: Css = Css("extended-vignetting-area-visible")
 
   // GHOST-specific styles
-  val GhostScienceArea: Css           = Css("ghost-science-area")
-  val GhostScienceAreaVisible: Css    = Css("ghost-science-area-visible")
-  val GhostCandidatesArea: Css        = Css("ghost-candidates-area")
-  val GhostCandidatesAreaVisible: Css = Css("ghost-candidates-area-visible")
-  val GhostIfu1PatrolField: Css       = Css("ghost-ifu1-patrol-field")
-  val GhostIfu2PatrolField: Css       = Css("ghost-ifu2-patrol-field")
-  val GhostIfuPatrolFieldVisible: Css = Css("ghost-ifu-patrol-field-visible")
+  val GhostScienceArea: Css            = Css("ghost-science-area")
+  val GhostScienceAreaVisible: Css     = Css("ghost-science-area-visible")
+  val GhostCandidatesArea: Css         = Css("ghost-candidates-area")
+  val GhostCandidatesAreaVisible: Css  = Css("ghost-candidates-area-visible")
+  val GhostIfu1PatrolField: Css        = Css("ghost-ifu1-patrol-field")
+  val GhostIfu2PatrolField: Css        = Css("ghost-ifu2-patrol-field")
+  val GhostIfuPatrolFieldVisible: Css  = Css("ghost-ifu-patrol-field-visible")
+  val GhostIfuPatrolFieldSelected: Css = Css("ghost-ifu-patrol-field-selected")
 
   // Debug patrol fields
   val PatrolFieldBase: Css              = Css("patrol-field-base")

@@ -5,6 +5,7 @@ package lucuma.ui.visualization
 
 import cats.data.NonEmptySet
 import cats.implicits.catsKernelOrderingForOrder
+import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
@@ -46,7 +47,9 @@ object GhostGeometry extends PwfsGeometry:
     gs:                      Option[AgsAnalysis.Usable],
     candidatesVisibilityCss: Css,
     ifu1Coords:              Option[Coordinates],
-    ifu2Coords:              Option[Coordinates]
+    ifu2Coords:              Option[Coordinates],
+    ifu1Selected:            Boolean,
+    ifu2Selected:            Boolean
   ): Option[SortedMap[Css, ShapeExpression]] =
     instrumentGeometry(
       referenceCoordinates,
@@ -59,14 +62,16 @@ object GhostGeometry extends PwfsGeometry:
       candidatesVisibilityCss
     ).flatMap: baseGeometries =>
       posAngle(gs, fallbackPosAngle).map: posAngle =>
-        def ifuOffset(c: Option[Coordinates]): Option[Offset] =
-          c.map(c => referenceCoordinates.diff(c).offset)
-
+        // ifu patrol fields are anchored at the base, i.e. offset zero
         val ifus = List(
-          ifuOffset(ifu1Coords).map: o =>
-            (GhostIfu1PatrolField, ghost.GhostIfuPatrolField.ifu1PatrolFieldAt(posAngle, o)),
-          ifuOffset(ifu2Coords).map: o =>
-            (GhostIfu2PatrolField, ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, o))
+          ifu1Coords.map: _ =>
+            (GhostIfu1PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu1Selected),
+             ghost.GhostIfuPatrolField.ifu1PatrolFieldAt(posAngle, Offset.Zero)
+            ),
+          ifu2Coords.map: _ =>
+            (GhostIfu2PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu2Selected),
+             ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
+            )
         ).collect:
           case Some((c, s)) => (c, s)
 

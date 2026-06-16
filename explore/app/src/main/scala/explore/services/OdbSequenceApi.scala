@@ -7,8 +7,8 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
-import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.ghost.GhostIfuMapping
+import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.ui.sequence.SequenceData

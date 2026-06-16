@@ -248,8 +248,6 @@
     stroke: cyan;
     stroke-width: 0.8px;
     stroke-dasharray: 3 3;
-    fill: cyan;
-    fill-opacity: 0.05;
   }
 
   &.ghost-ifu-patrol-field-visible .ghost-ifu1-patrol-field,
@@ -262,15 +260,48 @@
     display: none;
     stroke-width: 0.6px;
     stroke-dasharray: 2;
-    fill-opacity: 0;
   }
 
   .ghost-ifu1-patrol-field {
-    stroke: hsl(300deg 80% 70%);
+    stroke: var(--ghost-ifu1-color);
+    fill: url('#ghost-ifu1-hatch');
   }
 
   .ghost-ifu2-patrol-field {
-    stroke: hsl(40deg 90% 60%);
+    stroke: var(--ghost-ifu2-color);
+    fill: url('#ghost-ifu2-hatch');
+  }
+
+  // The selected ghost patrol field gets a thicker line
+  .ghost-ifu-patrol-field-selected {
+    stroke-width: 1.5px;
+    stroke-dasharray: none;
+  }
+
+  .ghost-ifu1-patrol-field.ghost-ifu-patrol-field-selected {
+    fill: url('#ghost-ifu1-hatch-selected');
+  }
+
+  .ghost-ifu2-patrol-field.ghost-ifu-patrol-field-selected {
+    fill: url('#ghost-ifu2-hatch-selected');
+  }
+
+  .ghost-ifu1-hatch-color {
+    fill: var(--ghost-ifu1-color);
+    stroke: var(--ghost-ifu1-color);
+  }
+
+  .ghost-ifu2-hatch-color {
+    fill: var(--ghost-ifu2-color);
+    stroke: var(--ghost-ifu2-color);
+  }
+
+  .hatch-line {
+    stroke-width: var(--hatch-line-width);
+  }
+
+  .hatch-line-selected {
+    stroke-width: var(--hatch-line-width-selected);
   }
 
   .viz-svg-border {

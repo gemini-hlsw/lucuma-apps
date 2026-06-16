@@ -85,6 +85,9 @@ object SvgVisualizationOverlay {
       case _                     => EmptyVdom
     }
 
+  private val hatchLine    = Css("hatch-line")
+  private val hatchLineSel = Css("hatch-line-selected")
+
   private val component =
     ScalaFnComponent[Props] { p =>
       // Render the svg
@@ -114,6 +117,8 @@ object SvgVisualizationOverlay {
         ^.viewBox    := s"$viewBoxX $viewBoxY $viewBoxW $viewBoxH",
         canvasWidth  := s"${p.width}px",
         canvasHeight := s"${p.height}px",
+        // defs are harmless if unused for non-ghost
+        hatchDefs(hatchLine, hatchLineSel),
         <.g(
           ^.transform := s"scale(1, -1)",
           evald.toNel
