@@ -29,7 +29,6 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  FONTAWESOME_NPM_AUTH_TOKEN: ${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}
   HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
   MUNIT_FLAKY_OK: ${{ vars.MUNIT_FLAKY_OK }}
 
@@ -82,7 +81,7 @@ jobs:
           cache: pnpm
 
       - name: Configure FontAwesome registry auth
-        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user'
+        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
       - name: pnpm install
         run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
@@ -143,7 +142,7 @@ jobs:
           cache: pnpm
 
       - name: Configure FontAwesome registry auth
-        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user'
+        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
       - name: NPM Publish
         if: startsWith(github.ref, 'refs/tags/v')
@@ -233,7 +232,7 @@ jobs:
           cache: pnpm
 
       - name: Configure FontAwesome registry auth
-        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user'
+        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
       - name: pnpm install
         run: pnpm ci --filter explore --filter {ui/tests} --prefer-offline
@@ -315,7 +314,7 @@ jobs:
           cache: pnpm
 
       - name: Configure FontAwesome registry auth
-        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user'
+        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
       - name: pnpm install
         run: pnpm ci --filter observe --prefer-offline
@@ -416,7 +415,7 @@ jobs:
           cache: pnpm
 
       - name: Configure FontAwesome registry auth
-        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user'
+        run: 'pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"'
 
       - name: pnpm install
         run: pnpm ci --filter 'lucuma-apps' --prefer-offline

@@ -1050,13 +1050,11 @@ val navigateChangedCond: String                 =
     changedProjectCond("projectDef")
   )
 
-val faNpmAuthToken = "FONTAWESOME_NPM_AUTH_TOKEN" -> "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}"
-val herokuToken    = "HEROKU_API_KEY"             -> "${{ secrets.HEROKU_API_KEY }}"
-val munitFlakyOk   = "MUNIT_FLAKY_OK"             -> "${{ vars.MUNIT_FLAKY_OK }}"
+val herokuToken  = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
+val munitFlakyOk = "MUNIT_FLAKY_OK" -> "${{ vars.MUNIT_FLAKY_OK }}"
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
-ThisBuild / githubWorkflowEnv += faNpmAuthToken
 ThisBuild / githubWorkflowEnv += herokuToken
 ThisBuild / githubWorkflowEnv += munitFlakyOk
 
@@ -1082,7 +1080,7 @@ lazy val setupPnpmAndNode = List(
   ),
   WorkflowStep.Run(
     List(
-      """pnpm config set "//npm.fontawesome.com/:_authToken" "$FONTAWESOME_NPM_AUTH_TOKEN" --location user"""
+      """pnpm config set "//npm.fontawesome.com/:_authToken" "${{ secrets.FONTAWESOME_NPM_AUTH_TOKEN }}""""
     ),
     name = Some("Configure FontAwesome registry auth")
   )
