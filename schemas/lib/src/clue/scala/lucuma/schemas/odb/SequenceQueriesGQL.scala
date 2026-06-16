@@ -126,7 +126,7 @@ object SequenceQueriesGql:
 
   @GraphQL
   trait GhostIfuMappingQuery extends GraphQLOperation[ObservationDB]:
-    // Uses `futureLimit: 0` so the mapping is the same for every atom.
+    // Uses `futureLimit: 0` because the mapping is the same for every atom.
     val document = s"""
         query($$obsId: ObservationId!) {
           executionConfig(observationId: $$obsId, futureLimit: 0) {
