@@ -39,10 +39,13 @@ import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.Css
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
 
 import scala.collection.immutable.SortedMap
+
+private given Reusability[Map[SlotId, Coordinates]] = Reusability.map
 
 // Hooks for shapes
 def usePatrolFieldShapes(
@@ -225,20 +228,18 @@ def useVisualizationShapes(
   vizConf:         Option[ConfigurationForVisualization],
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
-  asterismCoords:  List[Coordinates],
-  ghostIfuCoords:  Option[(Option[Coordinates], Option[Coordinates])],
+  slotCoords:      Map[SlotId, Coordinates],
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, asterismCoords, ghostIfuCoords, agsOverlay, selectedGS)
+    (vizConf, baseCoordinates, blindOffset, slotCoords, agsOverlay, selectedGS)
   ) {
     (
       vizConf,
       baseCoordinates,
       blindOffset,
-      asterismCoords,
-      ghostIfuCoords,
+      slotCoords,
       agsOverlay,
       selectedGS
     ) =>
@@ -338,10 +339,8 @@ def useVisualizationShapes(
               case _                                               =>
                 Css.Empty
 
-            val (ifu1Coords, ifu2Coords) =
-              ghostIfuCoords.getOrElse(
-                (asterismCoords.headOption, asterismCoords.drop(1).headOption)
-              )
+            val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
+            val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
 
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(

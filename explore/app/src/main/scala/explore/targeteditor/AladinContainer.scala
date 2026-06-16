@@ -21,7 +21,6 @@ import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
-import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
@@ -364,21 +363,12 @@ object AladinContainer extends AladinCommon {
                     .void
                     .when_(offset === Offset.Zero)
                 .getOrEmpty
-        // get the coords for all targets, we need them for ghost
-        asterismCoords          <- useMemo((props.obsTargets, props.obsTimeCoords)):
-                                     (obsTargets, obsTimeCoords) =>
-                                       obsTargets.science.flatMap: t =>
-                                         obsTimeCoords.allTargetsMap.get(t.id)
-        ghostIfuCoords          <- useMemo((props.vizConf.flatMap(_.ghostIfuMapping), props.obsTimeCoords)):
-                                     (ifuMapping, obsTimeCoords) =>
-                                       ifuMapping.map(_.ifuCoordinates(obsTimeCoords.allTargetsMap))
         // Memoized svg for visualization shapes
         shapes                  <- useVisualizationShapes(
                                      props.vizConf,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
-                                     asterismCoords.value,
-                                     ghostIfuCoords.value,
+                                     props.obsTimeCoords.slotCoords,
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
@@ -512,8 +502,7 @@ object AladinContainer extends AladinCommon {
         val isSelectable: Boolean = props.obsTargets.length > 1
 
         val targetLabels: Map[Target.Id, String] =
-          props.vizConf
-            .foldMap(c => c.configuration.targetLabelsMap(props.obsTargets.science, c.ghostIfuMapping))
+          props.vizConf.foldMap(_.targetVisualization.labels)
 
         val scienceTargets: List[SvgTarget] =
           targetCoords

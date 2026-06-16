@@ -28,7 +28,6 @@ import explore.model.boopickle.CatalogPicklers.given
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
-import explore.model.syntax.all.*
 import explore.optics.ModelOptics
 import explore.targeteditor.UseAgsCalculation.*
 import explore.utils.tracking.*
@@ -216,15 +215,22 @@ object AladinCell extends ModelOptics with AladinCommon:
             // get it for the full semester for visualization purposes, with
             // high resolution around the obsTime.
             getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
-      obsTargetsCoordsPot <-
-        useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
-          (targets, at, trPot) =>
-            trPot.map: tr =>
-              // Don't need coords for TOO observations, either
-              if (targets.hasTargetOfOpportunity)
-                ObservationTargetsCoordinatesAt.emptyAt(at)
-              else
-                tr.flatMap(map => ObservationTargetsCoordinatesAt(at, targets, map))
+      obsTargetsCoordsPot <- useMemo(
+                               (props.obsTargets,
+                                props.obsTime,
+                                trackingMapResult.value.value,
+                                props.obsConf.map(_.targetViz)
+                               )
+                             ): (targets, at, trPot, targetViz) =>
+                               // Generic instrument slot layout, resolved to obs-time coords inside
+                               // ObservationTargetsCoordinatesAt alongside base/blind-offset coords.
+                               val slots = targetViz.foldMap(_.slots)
+                               trPot.map: tr =>
+                                 if (targets.hasTargetOfOpportunity)
+                                   ObservationTargetsCoordinatesAt.emptyAt(at)
+                                 else
+                                   tr.flatMap: map =>
+                                     ObservationTargetsCoordinatesAt(at, targets, map, slots)
       oBaseTracking       <-
         useMemo((props.obsTargets, trackingMapResult.value.toOption.flatMap(_.toOption))):
           (obsTargets, trackings) =>
@@ -274,8 +280,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                 props.obsConf.flatMap(_.guidedAcqOffsets),
                                 props.obsConf.flatMap(_.guidedSciOffsets),
                                 candidates.value.toOption.flatten,
-                                props.obsConf.flatMap(_.trackType),
-                                props.obsConf.flatMap(_.ghostIfuMapping)
+                                props.obsConf.flatMap(_.trackType)
                                )
                              ):
                                case (focusedId,
@@ -287,8 +292,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                      acqOffsets,
                                      sciOffsets,
                                      Some(cands),
-                                     trackType,
-                                     ghostIfuMapping
+                                     trackType
                                    ) =>
                                  AgsCalcProps(
                                    focusedId,
@@ -300,8 +304,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    acqOffsets,
                                    sciOffsets,
                                    cands,
-                                   trackType,
-                                   ghostIfuMapping.toList.flatMap(_.skyCoordinates)
+                                   trackType
                                  ).some
                                case _ => none
       // Reference to root

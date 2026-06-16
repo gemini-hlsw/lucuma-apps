@@ -71,6 +71,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
@@ -462,6 +463,16 @@ object ObsTabTiles:
               case Some(_: BasicConfiguration.Visitor) => none
               case None                                => ItcEmptyTile().some
 
+          val targetVisualization: TargetVisualization =
+            basicConfiguration
+              .map(
+                _.targetVisualization(
+                  props.asterismAsNel.map(_.science).orEmpty,
+                  ghostIfuMapping.value.toOption.flatten
+                )
+              )
+              .getOrElse(TargetVisualization.Empty)
+
           val obsConf: ObsConfiguration =
             ObsConfiguration(
               basicConfiguration,
@@ -476,7 +487,7 @@ object ObsTabTiles:
               props.observation.get.selectedGSName,
               props.observation.get.calibrationRole,
               trackType,
-              ghostIfuMapping.value.toOption.flatten
+              targetVisualization
             )
 
           // If we have a telluric group we want to plot the targets together

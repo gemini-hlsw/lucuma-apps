@@ -25,7 +25,6 @@ import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
-import lucuma.core.math.Coordinates
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
@@ -37,18 +36,16 @@ import workers.WorkerClient
 import java.time.Instant
 
 case class AgsCalcProps(
-  focusedId:       Target.Id,
-  obsTime:         Instant,
-  constraints:     ConstraintSet,
-  agsWavelength:   AGSWavelength,
-  observingMode:   Option[BasicConfiguration],
-  obsModeType:     ObservingModeType,
-  acqOffsets:      Option[AcquisitionOffsets],
-  sciOffsets:      Option[ScienceOffsets],
-  candidates:      List[GuideStarCandidate],
-  trackType:       Option[TrackType],
-  // Sky-IFU positions (GHOST) the guide probe must keep clear, in addition to the science coords.
-  skyCoords:       List[Coordinates]
+  focusedId:     Target.Id,
+  obsTime:       Instant,
+  constraints:   ConstraintSet,
+  agsWavelength: AGSWavelength,
+  observingMode: Option[BasicConfiguration],
+  obsModeType:   ObservingModeType,
+  acqOffsets:    Option[AcquisitionOffsets],
+  sciOffsets:    Option[ScienceOffsets],
+  candidates:    List[GuideStarCandidate],
+  trackType:     Option[TrackType]
 ):
   lazy val guideProbe: Option[GuideProbe] =
     observingMode.map(_.guideProbe(trackType))
@@ -64,8 +61,7 @@ object AgsCalcProps:
      p.acqOffsets,
      p.sciOffsets,
      p.candidates.length,
-     p.trackType,
-     p.skyCoords
+     p.trackType
     )
 
 case class AgsCalculationResults(
@@ -170,8 +166,9 @@ object UseAgsCalculation:
     obsCoords.baseCoords.map { baseCoords =>
       val params = agsParams(props.obsModeType, props.observingMode, props.guideProbe)
 
+      // For AGS sky coordinates behave like science coords.
       val scienceCoords =
-        obsCoords.scienceCoords ++ props.skyCoords
+        obsCoords.scienceCoords ++ obsCoords.skyCoords
 
       params
         .map: p =>
