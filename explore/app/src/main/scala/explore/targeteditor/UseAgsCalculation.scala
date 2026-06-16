@@ -166,6 +166,10 @@ object UseAgsCalculation:
     obsCoords.baseCoords.map { baseCoords =>
       val params = agsParams(props.obsModeType, props.observingMode, props.guideProbe)
 
+      // For AGS sky coordinates behave like science coords.
+      val scienceCoords =
+        obsCoords.scienceCoords ++ obsCoords.skyCoords
+
       params
         .map: p =>
           AgsMessage.AgsRequest(
@@ -174,7 +178,7 @@ object UseAgsCalculation:
             props.constraints,
             props.agsWavelength,
             baseCoords,
-            obsCoords.scienceCoords,
+            scienceCoords,
             obsCoords.blindOffsetCoords,
             angles,
             props.acqOffsets,

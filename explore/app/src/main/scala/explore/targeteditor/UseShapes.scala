@@ -39,10 +39,13 @@ import lucuma.core.math.Coordinates
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.Css
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
 
 import scala.collection.immutable.SortedMap
+
+private given Reusability[Map[SlotId, Coordinates]] = Reusability.map
 
 // Hooks for shapes
 def usePatrolFieldShapes(
@@ -63,29 +66,29 @@ def usePatrolFieldShapes(
   ): Option[SingleProbeAgsParams] =
     val guideProbe: GuideProbe = conf.guideProbe(trackType)
     val params                 = conf match
-      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                     =>
+      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                             =>
         AgsParams.GmosLongSlit(fpu.asLeft, port).some
-      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                     =>
+      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                             =>
         AgsParams.GmosLongSlit(fpu.asRight, port).some
-      case BasicConfiguration.GmosNorthImaging(_)                              =>
+      case BasicConfiguration.GmosNorthImaging(_)                                      =>
         AgsParams.GmosImaging(port).some
-      case BasicConfiguration.GmosSouthImaging(_)                              =>
+      case BasicConfiguration.GmosSouthImaging(_)                                      =>
         AgsParams.GmosImaging(port).some
-      case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                    =>
+      case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                            =>
         AgsParams
           .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
           .some
-      case BasicConfiguration.Flamingos2Imaging(_)                             =>
+      case BasicConfiguration.Flamingos2Imaging(_)                                     =>
         none // TODO; We don't have a Gnirs geometry yet.
-      case BasicConfiguration.Igrins2LongSlit                                  =>
+      case BasicConfiguration.Igrins2LongSlit                                          =>
         AgsParams.Igrins2LongSlit().some
       case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
         AgsParams.GnirsLongSlit(fpu, camera, prism, port).some
-      case BasicConfiguration.GhostIfu(_, _, _, _, _)                          =>
+      case BasicConfiguration.GhostIfu(_, _, _, _, _)                                  =>
         AgsParams.GhostIfu().some
-      case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
+      case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)         =>
         AgsParams.MaroonX(port).some
-      case BasicConfiguration.Visitor(agsDiameter = fov)                       =>
+      case BasicConfiguration.Visitor(agsDiameter = fov)                               =>
         AgsParams.Visitor(fov, port).some
 
     params.map: p =>
@@ -225,159 +228,170 @@ def useVisualizationShapes(
   vizConf:         Option[ConfigurationForVisualization],
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
-  asterismCoords:  List[Coordinates],
+  slotCoords:      Map[SlotId, Coordinates],
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS)
-  ) { (vizConf, baseCoordinates, blindOffset, asterismCoords, agsOverlay, selectedGS) =>
-    val candidatesVisibilityCss: Css =
-      ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
+    (vizConf, baseCoordinates, blindOffset, slotCoords, agsOverlay, selectedGS)
+  ) {
+    (
+      vizConf,
+      baseCoordinates,
+      blindOffset,
+      slotCoords,
+      agsOverlay,
+      selectedGS
+    ) =>
+      val candidatesVisibilityCss: Css =
+        ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
 
-    (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
-      conf match
-        case ObservingModeType.Flamingos2LongSlit                                      =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              VisualizationStyles.Flamingos2ProbeArmVisible
+      (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
+        conf match
+          case ObservingModeType.Flamingos2LongSlit                                      =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.Flamingos2ProbeArmVisible
 
-          (probeVisibilityCss,
-           Flamingos2Geometry.f2Geometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.flatMap(_.guidedAcqOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             PortDisposition.Side,
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
-        case ObservingModeType.Flamingos2Imaging                                       =>
-          (Css.Empty, none)
-        case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              Css.Empty
+            (probeVisibilityCss,
+             Flamingos2Geometry.f2Geometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.flatMap(_.guidedAcqOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               PortDisposition.Side,
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
+          case ObservingModeType.Flamingos2Imaging                                       =>
+            (Css.Empty, none)
+          case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
 
-          (probeVisibilityCss,
-           GmosGeometry.gmosGeometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.flatMap(_.guidedAcqOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             PortDisposition.Side,
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
-        case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              VisualizationStyles.GmosCcdVisible
+            (probeVisibilityCss,
+             GmosGeometry.gmosGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.flatMap(_.guidedAcqOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               PortDisposition.Side,
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
+          case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                VisualizationStyles.GmosCcdVisible
 
-          (probeVisibilityCss,
-           GmosGeometry.gmosGeometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.flatMap(_.guidedAcqOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             PortDisposition.Side,
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
-        case ObservingModeType.Igrins2LongSlit                                         =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              Css.Empty
+            (probeVisibilityCss,
+             GmosGeometry.gmosGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.flatMap(_.guidedAcqOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               PortDisposition.Side,
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
+          case ObservingModeType.Igrins2LongSlit                                         =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
 
-          (probeVisibilityCss,
-           Igrins2Geometry.igrins2Geometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
-        case ObservingModeType.GhostIfu                                                =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              Css.Empty
+            (probeVisibilityCss,
+             Igrins2Geometry.igrins2Geometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
+          case ObservingModeType.GhostIfu                                                =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
 
-          (probeVisibilityCss,
-           GhostGeometry.ghostGeometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss,
-             asterismCoords.headOption,
-             asterismCoords.drop(1).headOption
-           )
-          )
-        case ObservingModeType.GnirsLongSlit                                           =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              Css.Empty
+            val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
+            val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
 
-          (probeVisibilityCss,
-           GnirsGeometry.gnirsGeometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
-        case _: VisitorObservingModeType                                               =>
-          val probeVisibilityCss = vizConf.map(_.guideProbe) match
-            case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-              VisualizationStyles.PwfsProbeArmVisible
-            case _                                               =>
-              Css.Empty
+            (probeVisibilityCss,
+             GhostGeometry.ghostGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss,
+               ifu1Coords,
+               ifu2Coords
+             )
+            )
+          case ObservingModeType.GnirsLongSlit                                           =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
 
-          (probeVisibilityCss,
-           VisitorGeometry.visitorGeometry(
-             baseCoords,
-             blindOffset,
-             vizConf.flatMap(_.guidedSciOffsets),
-             vizConf.map(_.posAngle),
-             vizConf.map(_.configuration),
-             vizConf.flatMap(_.trackType),
-             selectedGS,
-             candidatesVisibilityCss
-           )
-          )
+            (probeVisibilityCss,
+             GnirsGeometry.gnirsGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
+          case _: VisitorObservingModeType                                               =>
+            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                VisualizationStyles.PwfsProbeArmVisible
+              case _                                               =>
+                Css.Empty
+
+            (probeVisibilityCss,
+             VisitorGeometry.visitorGeometry(
+               baseCoords,
+               blindOffset,
+               vizConf.flatMap(_.guidedSciOffsets),
+               vizConf.map(_.posAngle),
+               vizConf.map(_.configuration),
+               vizConf.flatMap(_.trackType),
+               selectedGS,
+               candidatesVisibilityCss
+             )
+            )
   }.map(_.value)

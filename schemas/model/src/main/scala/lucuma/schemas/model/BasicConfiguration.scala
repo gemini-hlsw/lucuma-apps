@@ -21,6 +21,7 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
@@ -141,13 +142,34 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
   def guideProbe(trackType: Option[TrackType]): GuideProbe =
     trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
 
-  def targetLabelsMap(scienceTargets: List[TargetWithId]): Map[Target.Id, String] =
+  def targetVisualization(
+    scienceTargets: List[TargetWithId],
+    ifuMapping:     Option[GhostIfuMapping]
+  ): TargetVisualization =
     this match
-      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-        scienceTargets.zip(List("SR-IFU1", "SR-IFU2")).map((t, l) => t.id -> l).toMap
-      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.High)     =>
-        scienceTargets.zip(List("HR-IFU1")).map((t, l) => t.id -> l).toMap
-      case _                                                                          => Map.empty
+      case BasicConfiguration.GhostIfu(resolutionMode = mode) =>
+        val prefix                      = mode match
+          case GhostResolutionMode.Standard => "SR"
+          case GhostResolutionMode.High     => "HR"
+        import SlotId.*
+        val slots: List[InstrumentSlot] =
+          ifuMapping match
+            case Some(GhostIfuMapping.SingleTarget(ifu1))      =>
+              List(InstrumentSlot.Science(ifu1, GhostIfu1))
+            case Some(GhostIfuMapping.TargetPlusSky(ifu1, sk)) =>
+              List(InstrumentSlot.Science(ifu1, GhostIfu1), InstrumentSlot.Sky(sk, GhostIfu2))
+            case Some(GhostIfuMapping.SkyPlusTarget(sk, ifu2)) =>
+              List(InstrumentSlot.Sky(sk, GhostIfu1), InstrumentSlot.Science(ifu2, GhostIfu2))
+            case Some(GhostIfuMapping.DualTarget(ifu1, ifu2))  =>
+              List(InstrumentSlot.Science(ifu1, GhostIfu1), InstrumentSlot.Science(ifu2, GhostIfu2))
+            case None                                          =>
+              val ids = mode match
+                case GhostResolutionMode.Standard => List(GhostIfu1, GhostIfu2)
+                case GhostResolutionMode.High     => List(GhostIfu1)
+              scienceTargets.zip(ids).map((t, id) => InstrumentSlot.Science(t.id, id))
+        TargetVisualization(slots, prefix.some)
+      case _                                                  =>
+        TargetVisualization.Empty
 
   private def fallBackGuideProbe = this match
     case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) |

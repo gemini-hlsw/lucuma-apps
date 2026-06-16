@@ -8,12 +8,16 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.ui.sequence.SequenceData
 
 trait OdbSequenceApi[F[_]]:
   def sequenceData(obsId: Observation.Id, includeItc: Boolean): F[Option[SequenceData]]
+
+  // GHOST IFU mapping derived during sequence generation
+  def ghostIfuMapping(obsId: Observation.Id): F[Option[GhostIfuMapping]]
 
   def replaceGmosNorthSequence(
     obsId:        Observation.Id,

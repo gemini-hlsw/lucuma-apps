@@ -112,6 +112,7 @@ object reusability:
   given Reusability[BlindOffsetCandidate]               = Reusability.byEq
   given Reusability[CatalogTargetResult]                = Reusability.byEq
   given Reusability[BasicConfiguration]                 = Reusability.byEq
+  given Reusability[TargetVisualization]                = Reusability.byEq
   given Reusability[InstrumentConfigAndItcResult]       = Reusability.byEq
   given Reusability[GuideStarCandidate]                 = Reusability.by(_.name.value)
   given Reusability[OffsetPosition]                     = Reusability.byEq

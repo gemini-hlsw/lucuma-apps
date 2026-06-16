@@ -19,6 +19,7 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.TargetVisualization
 
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
 // It is a subset of ObsConfiguration such that can be built out of either the db config
@@ -29,7 +30,8 @@ case class ConfigurationForVisualization private (
   acquisitionOffsets:         Option[NonEmptySet[TelescopeConfig]],
   selectedPosAngle:           Option[Angle],
   selectedPosAngleConstraint: Option[PosAngleConstraint],
-  trackType:                  Option[TrackType]
+  trackType:                  Option[TrackType],
+  targetVisualization:        TargetVisualization
 ) derives Eq:
   // Effective pos angle, either from the AGS, or the default for the conifguration
   // TODO: Take the calculated average parallactic angle if needed
@@ -71,7 +73,8 @@ object ConfigurationForVisualization:
           obsConfig.acquisitionOffsets,
           obsConfig.selectedPA.orElse(obsConfig.fallbackPA),
           obsConfig.posAngleConstraint,
-          obsConfig.trackType
+          obsConfig.trackType,
+          obsConfig.targetViz
         )
       }
       .orElse:
@@ -90,5 +93,6 @@ object ConfigurationForVisualization:
       None,
       selectedPosAngle,
       None,
-      None
+      None,
+      TargetVisualization.Empty
     )

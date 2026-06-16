@@ -48,6 +48,7 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -70,6 +71,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.reusability.given
@@ -251,6 +253,15 @@ object ObsTabTiles:
                     )
                   )
               .map(_.flatten)
+        ghostIfuMapping      <- useEffectKeepResultWithDeps(props.observation.get.observingMode
+                                                              .map(_.toBasicConfiguration.obsModeType),
+                                                            props.asterismAsNel.map(_.science)
+                                ):
+                                  case (obsModeType, _)
+                                      if obsModeType.exists(_ === ObservingModeType.GhostIfu) =>
+                                    import ctx.given
+                                    odbApi.ghostIfuMapping(props.obsId)
+                                  case _ => IO.pure(none)
         // Store guide star selection in a view for fast local updates
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
@@ -449,9 +460,18 @@ object ObsTabTiles:
                   globalPreferences
                 ).some
               // Visitor instruments have no ITC, hide the itc tile.
-              case Some(_: BasicConfiguration.Visitor) =>
-                none
-              case None => ItcEmptyTile().some
+              case Some(_: BasicConfiguration.Visitor) => none
+              case None                                => ItcEmptyTile().some
+
+          val targetVisualization: TargetVisualization =
+            basicConfiguration
+              .map(
+                _.targetVisualization(
+                  props.asterismAsNel.map(_.science).orEmpty,
+                  ghostIfuMapping.value.toOption.flatten
+                )
+              )
+              .getOrElse(TargetVisualization.Empty)
 
           val obsConf: ObsConfiguration =
             ObsConfiguration(
@@ -466,7 +486,8 @@ object ObsTabTiles:
               props.observation.get.needsAGS(props.obsTargets),
               props.observation.get.selectedGSName,
               props.observation.get.calibrationRole,
-              trackType
+              trackType,
+              targetVisualization
             )
 
           // If we have a telluric group we want to plot the targets together

@@ -215,15 +215,22 @@ object AladinCell extends ModelOptics with AladinCommon:
             // get it for the full semester for visualization purposes, with
             // high resolution around the obsTime.
             getMixedResolutionRegionOrTrackingMap(targets.allTargets.toList, s, at)
-      obsTargetsCoordsPot <-
-        useMemo((props.obsTargets, props.obsTime, trackingMapResult.value.value)):
-          (targets, at, trPot) =>
-            trPot.map: tr =>
-              // Don't need coords for TOO observations, either
-              if (targets.hasTargetOfOpportunity)
-                ObservationTargetsCoordinatesAt.emptyAt(at)
-              else
-                tr.flatMap(map => ObservationTargetsCoordinatesAt(at, targets, map))
+      obsTargetsCoordsPot <- useMemo(
+                               (props.obsTargets,
+                                props.obsTime,
+                                trackingMapResult.value.value,
+                                props.obsConf.map(_.targetViz)
+                               )
+                             ): (targets, at, trPot, targetViz) =>
+                               // Generic instrument slot layout, resolved to obs-time coords inside
+                               // ObservationTargetsCoordinatesAt alongside base/blind-offset coords.
+                               val slots = targetViz.foldMap(_.slots)
+                               trPot.map: tr =>
+                                 if (targets.hasTargetOfOpportunity)
+                                   ObservationTargetsCoordinatesAt.emptyAt(at)
+                                 else
+                                   tr.flatMap: map =>
+                                     ObservationTargetsCoordinatesAt(at, targets, map, slots)
       oBaseTracking       <-
         useMemo((props.obsTargets, trackingMapResult.value.toOption.flatMap(_.toOption))):
           (obsTargets, trackings) =>
