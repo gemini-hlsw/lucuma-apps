@@ -193,23 +193,23 @@ object Routing:
       .from(page)
       .map: routingInfo =>
         withProgramSummaries(model): programSummaries =>
-          for
-            programDetails <- programSummaries.zoom(ProgramSummaries.optProgramDetails.some)
-            proposal       <- programDetails.get.proposal
-          yield ProgramTabContents(
-            routingInfo.programId,
-            programSummaries: Undoer,
-            programDetails,
-            programSummaries.model.zoom(ProgramSummaries.configurationRequests),
-            programSummaries.model.zoom(ProgramSummaries.observations),
-            programSummaries.get.obs4ConfigRequests,
-            programSummaries.get.configsWithoutRequests,
-            programSummaries.get.targets,
-            model.rootModel.zoom(RootModel.vault).get,
-            userPreferences(model.rootModel),
-            model.userIsReadonlyCoi,
-            model.userIsPi
-          )
+          programSummaries
+            .zoom(ProgramSummaries.optProgramDetails.some)
+            .map: programDetails =>
+              ProgramTabContents(
+                routingInfo.programId,
+                programSummaries: Undoer,
+                programDetails,
+                programSummaries.model.zoom(ProgramSummaries.configurationRequests),
+                programSummaries.model.zoom(ProgramSummaries.observations),
+                programSummaries.get.obs4ConfigRequests,
+                programSummaries.get.configsWithoutRequests,
+                programSummaries.get.targets,
+                model.rootModel.zoom(RootModel.vault).get,
+                userPreferences(model.rootModel),
+                model.userIsReadonlyCoi,
+                model.userIsPi
+              )
       .orEmpty
 
   // The programs popup will be shown

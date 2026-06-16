@@ -428,7 +428,8 @@ object ExploreLayout:
                                       // Only show Program and Proposal tabs for Science proposals, and Program only for Accepted ones
                                       (tab =!= AppTab.Proposal && tab =!= AppTab.Program) ||
                                         program.programType === ProgramType.Science &&
-                                        (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted)
+                                        (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted) ||
+                                        (tab === AppTab.Program && (program.programType === ProgramType.Engineering || program.programType === ProgramType.Calibration))
                               ),
                               <.div(
                                 LayoutStyles.MainBody,
