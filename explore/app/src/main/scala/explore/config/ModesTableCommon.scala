@@ -198,9 +198,10 @@ trait ModesTableCommon:
     }
 
   def itcCell(
-    c:        Pot[EitherNec[ItcTargetProblem, ItcResult]],
-    col:      ItcColumns,
-    needsItc: Boolean = true
+    c:             Pot[EitherNec[ItcTargetProblem, ItcResult]],
+    col:           ItcColumns,
+    needsItc:      Boolean = true,
+    showTotalTime: Boolean = true
   ): VdomElement = {
     val content: TagMod =
       if (!needsItc)
@@ -251,7 +252,8 @@ trait ModesTableCommon:
               case ItcColumns.Exposures =>
                 r.exposures.toString
               case ItcColumns.Time      =>
-                formatDurationHours(r.duration)
+                if (showTotalTime) formatDurationHours(r.duration)
+                else s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
               case ItcColumns.SN        =>
                 r.snAt.map(_.total.value).foldMap(_.format)
 
@@ -259,7 +261,9 @@ trait ModesTableCommon:
               case ItcColumns.Exposures =>
                 (none, Placement.RightStart)
               case ItcColumns.Time      =>
-                val baseText = s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
+                val baseText =
+                  if (showTotalTime) s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
+                  else formatDurationHours(r.duration)
                 tooltipContent(baseText, ccdWarnings)
               case ItcColumns.SN        =>
                 val baseText = s"${r.snAt.map(_.single.value).foldMap(_.format)} / exposure"

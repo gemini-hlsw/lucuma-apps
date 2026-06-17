@@ -221,10 +221,10 @@ object ItcImagingTile
           column(ExpTimeColId, _.result)
             .withHeader(progressingCellHeader("Time"))
             .withCell: cell =>
-              itcCell(cell.value, ItcColumns.Time)
+              itcCell(cell.value, ItcColumns.Time, showTotalTime = false)
             .withSize(85.toPx),
           snColumns("sn+bg-ccd",
-                    "S/N + Background",
+                    "Signal + Background",
                     _.peakPixelFlux,
                     v => f"$v%.0fe-",
                     85.toPx,
