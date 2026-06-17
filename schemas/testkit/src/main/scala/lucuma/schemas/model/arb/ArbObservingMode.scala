@@ -10,10 +10,12 @@ import eu.timepit.refined.scalacheck.all.given
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.*
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
 import lucuma.core.math.arb.ArbAngle
+import lucuma.core.math.arb.ArbCoordinates
 import lucuma.core.math.arb.ArbOffset
 import lucuma.core.math.arb.ArbWavelength
 import lucuma.core.math.arb.ArbWavelengthDither
@@ -40,6 +42,7 @@ import scala.annotation.targetName
 
 trait ArbObservingMode {
   import ArbAngle.given
+  import ArbCoordinates.given
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
   import ArbImagingVariant.given
@@ -838,6 +841,7 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.GhostIfu] = Arbitrary[ObservingMode.GhostIfu](
     for {
       resolutionMode <- arbitrary[GhostResolutionMode]
+      skyPosition    <- arbitrary[Option[Coordinates]]
       snAt           <- arbitrary[Wavelength]
       stepCount      <- arbitrary[PosInt]
       red            <- arbitrary[ObservingMode.GhostIfu.GhostDetector]
@@ -848,6 +852,7 @@ trait ArbObservingMode {
       explicitIfu2   <- arbitrary[Option[GhostIfu2FiberAgitator]]
     } yield ObservingMode.GhostIfu(
       resolutionMode,
+      skyPosition,
       snAt,
       stepCount,
       red,

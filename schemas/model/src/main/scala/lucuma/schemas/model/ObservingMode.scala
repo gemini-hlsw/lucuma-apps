@@ -16,6 +16,7 @@ import io.circe.generic.semiauto.*
 import io.circe.refined.given
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDither
@@ -26,6 +27,7 @@ import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
+import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.offset.decoder.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
@@ -976,6 +978,7 @@ object ObservingMode:
 
   case class GhostIfu(
     resolutionMode:       GhostResolutionMode,
+    skyPosition:          Option[Coordinates],
     signalToNoiseAt:      Wavelength,
     stepCount:            PosInt,
     red:                  GhostIfu.GhostDetector,
@@ -1004,6 +1007,7 @@ object ObservingMode:
     given Decoder[GhostIfu] = Decoder.instance: c =>
       for {
         resolutionMode       <- c.downField("resolutionMode").as[GhostResolutionMode]
+        skyPosition          <- c.downField("skyPosition").as[Option[Coordinates]]
         stepCount            <- c.downField("stepCount").as[PosInt]
         red                  <- c.downField("red").as[GhostIfu.GhostDetector]
         blue                 <- c.downField("blue").as[GhostIfu.GhostDetector]
@@ -1015,6 +1019,7 @@ object ObservingMode:
           c.downField("explicitIfu2Agitator").as[Option[GhostIfu2FiberAgitator]]
       } yield GhostIfu(
         resolutionMode,
+        skyPosition,
         red.timeAndCount.at, // Temporary: Not yet in the ODB API
         stepCount,
         red,
@@ -1076,6 +1081,9 @@ object ObservingMode:
 
     val resolutionMode: Lens[GhostIfu, GhostResolutionMode] =
       Focus[GhostIfu](_.resolutionMode)
+
+    val skyPosition: Lens[GhostIfu, Option[Coordinates]] =
+      Focus[GhostIfu](_.skyPosition)
 
     val signalToNoiseAt: Lens[GhostIfu, Wavelength] =
       Focus[GhostIfu](_.signalToNoiseAt)
