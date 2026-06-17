@@ -46,5 +46,5 @@ object GmosSouthImagingSequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
       Instrument.GmosSouth
     ):
-  override protected def hiddenColumnIds: Set[ColumnId] =
+  override protected val hiddenColumnIds: Set[ColumnId] =
     Set(SequenceColumns.GratingColumnId, SequenceColumns.FPUColumnId)

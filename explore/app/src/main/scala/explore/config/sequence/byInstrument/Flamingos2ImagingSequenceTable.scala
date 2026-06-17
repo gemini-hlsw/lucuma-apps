@@ -49,5 +49,5 @@ object Flamingos2ImagingSequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
       Instrument.Flamingos2
     ):
-  override protected def hiddenColumnIds: Set[ColumnId] =
+  override protected val hiddenColumnIds: Set[ColumnId] =
     Set(SequenceColumns.GratingColumnId, SequenceColumns.FPUColumnId)
