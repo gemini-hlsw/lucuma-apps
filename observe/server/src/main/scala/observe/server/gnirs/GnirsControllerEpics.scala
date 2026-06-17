@@ -105,8 +105,8 @@ object GnirsControllerEpics extends GnirsEncoders {
     case GnirsFilter.K              => ("K-MK", "Open")
   }
 
-  private def wavelengthNm(w: Wavelength): Double =
-    w.toNanometers.value.value.toDouble
+  private def wavelengthµm(w: Wavelength): Double =
+    w.toMicrometers.value.value.toDouble
 
   private def focusSteps(v: GnirsFocusMotorStepsValue): Int =
     GnirsFocusMotorStepsValue.Value.get(v).value
@@ -268,9 +268,9 @@ object GnirsControllerEpics extends GnirsEncoders {
           ),
           focusParam,
           smartSetDoubleParamF(wavelengthRelTolerance)(
-            wavelengthNm(dc.centralWavelength),
+            wavelengthµm(dc.centralWavelength),
             epicsSys.centralWavelength,
-            epicsSys.configCCCmd.setCentralWavelength(wavelengthNm(dc.centralWavelength))
+            epicsSys.configCCCmd.setCentralWavelength(wavelengthµm(dc.centralWavelength))
           )
         )
 
