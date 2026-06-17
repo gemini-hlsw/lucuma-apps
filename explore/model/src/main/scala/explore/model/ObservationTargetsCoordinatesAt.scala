@@ -17,6 +17,8 @@ import lucuma.schemas.model.SlotId
 
 import java.time.Instant
 
+case class SlotInfo(coordinates: Coordinates, targetId: Option[Target.Id]) derives Eq
+
 // The Coordinates of the observation targets at a given epoch.
 // This class is useful if ToOs are not being considered - as for visualization.
 final case class ObservationTargetsCoordinatesAt(
@@ -25,14 +27,27 @@ final case class ObservationTargetsCoordinatesAt(
   blindOffsetCoords: Option[Coordinates],
   allTargetsMap:     Map[Target.Id, Coordinates],
   scienceTargetsMap: Map[Target.Id, Coordinates],
-  slotCoords:        Map[SlotId, Coordinates],
-  skyCoords:         List[Coordinates]
+  slots:             Map[SlotId, SlotInfo]
 ) derives Eq:
   val scienceCoords: List[Coordinates]       = scienceTargetsMap.values.toList
   // We really should have one of these two things...
   val baseOrBlindCoords: Option[Coordinates] = baseCoords.orElse(blindOffsetCoords)
 
+  // Coordinates of each IFU slot
+  val slotCoords: Map[SlotId, Coordinates] = slots.view.mapValues(_.coordinates).toMap
+
+  // Sky-position slots have no associated target.
+  val skyCoords: List[Coordinates] =
+    slots.values
+      .collect:
+        case SlotInfo(c, None) => c
+      .toList
+
   def forTarget(id: Target.Id): Option[Coordinates] = allTargetsMap.get(id)
+
+  def slotForTarget(id: Target.Id): Option[SlotId] =
+    slots.collectFirst:
+      case (sid, info) if info.targetId.contains(id) => sid
 
 object ObservationTargetsCoordinatesAt:
   def emptyAt(at: Instant): ErrorMsgOr[ObservationTargetsCoordinatesAt] =
@@ -40,7 +55,7 @@ object ObservationTargetsCoordinatesAt:
       .fromInstant(at)
       .toRight(s"Invalid epoch: $at")
       .map: epoch =>
-        ObservationTargetsCoordinatesAt(epoch, None, None, Map.empty, Map.empty, Map.empty, Nil)
+        ObservationTargetsCoordinatesAt(epoch, None, None, Map.empty, Map.empty, Map.empty)
 
   // Will return a Left[String] if there are any ToOs
   def apply(
@@ -63,22 +78,23 @@ object ObservationTargetsCoordinatesAt:
         trackingMap.coordinatesForAt(t.id, at).map(ca => (t.id, ca.coordinates))
       )
     (eEpoch, eScienceMap, eBlindTuple).mapN: (epoch, scienceMap, blindTuple) =>
-      val allMap                                = blindTuple.fold(scienceMap)(scienceMap + _)
-      val base                                  = NonEmptyList
+      val allMap = blindTuple.fold(scienceMap)(scienceMap + _)
+
+      val base = NonEmptyList
         .fromList(scienceMap.values.toList)
         .map(Coordinates.centerOf)
-      val slotCoords: Map[SlotId, Coordinates] =
-        slots.flatMap {
-          case InstrumentSlot.Science(tid, sid) => allMap.get(tid).map(sid -> _)
-          case InstrumentSlot.Sky(c, sid)       => Some(sid -> c)
-        }.toMap
-      val skyCoords: List[Coordinates]                   =
-        slots.collect { case InstrumentSlot.Sky(c, _) => c }
+
+      val slotsMap =
+        slots.flatMap:
+          case InstrumentSlot.Science(tid, sid) =>
+            allMap.get(tid).map(c => sid -> SlotInfo(c, tid.some))
+          case InstrumentSlot.Sky(c, sid)       =>
+            (sid -> SlotInfo(c, none)).some
+
       ObservationTargetsCoordinatesAt(epoch,
                                       base,
                                       blindTuple.map(_._2),
                                       allMap,
                                       scienceMap,
-                                      slotCoords,
-                                      skyCoords
+                                      slotsMap.toMap
       )

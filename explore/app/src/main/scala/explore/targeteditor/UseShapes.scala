@@ -229,17 +229,19 @@ def useVisualizationShapes(
   baseCoordinates: Option[Coordinates],
   blindOffset:     Option[Coordinates],
   slotCoords:      Map[SlotId, Coordinates],
+  selectedSlot:    Option[SlotId],
   agsOverlay:      Boolean,
   selectedGS:      Option[AgsAnalysis.Usable]
 ): HookResult[Option[(Css, Option[SortedMap[Css, ShapeExpression]])]] =
   useMemo(
-    (vizConf, baseCoordinates, blindOffset, slotCoords, agsOverlay, selectedGS)
+    (vizConf, baseCoordinates, blindOffset, slotCoords, selectedSlot, agsOverlay, selectedGS)
   ) {
     (
       vizConf,
       baseCoordinates,
       blindOffset,
       slotCoords,
+      selectedSlot,
       agsOverlay,
       selectedGS
     ) =>
@@ -333,11 +335,12 @@ def useVisualizationShapes(
              )
             )
           case ObservingModeType.GhostIfu                                                =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
-              case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
-                VisualizationStyles.PwfsProbeArmVisible
-              case _                                               =>
-                Css.Empty
+            val probeVisibilityCss = VisualizationStyles.GhostIfuPatrolFieldVisible |+|
+              (vizConf.map(_.guideProbe) match
+                case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
+                  VisualizationStyles.PwfsProbeArmVisible
+                case _                                               =>
+                  Css.Empty)
 
             val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
             val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
@@ -353,7 +356,9 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss,
                ifu1Coords,
-               ifu2Coords
+               ifu2Coords,
+               selectedSlot.contains(SlotId.GhostIfu1),
+               selectedSlot.contains(SlotId.GhostIfu2)
              )
             )
           case ObservingModeType.GnirsLongSlit                                           =>

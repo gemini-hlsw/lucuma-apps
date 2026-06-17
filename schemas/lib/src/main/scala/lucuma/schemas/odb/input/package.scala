@@ -784,7 +784,7 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength)  =>
+    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength) =>
       ObservingModeInput.GnirsLongSlit:
         GnirsLongSlitInput(
           filter = filter.assign,

@@ -369,6 +369,7 @@ object AladinContainer extends AladinCommon {
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
                                      props.obsTimeCoords.slotCoords,
+                                     props.obsTimeCoords.slotForTarget(props.obsTargets.focus.id),
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
