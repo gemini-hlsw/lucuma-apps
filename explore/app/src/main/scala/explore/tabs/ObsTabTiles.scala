@@ -48,7 +48,6 @@ import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
-import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
 import lucuma.core.math.Angle
@@ -62,8 +61,12 @@ import lucuma.core.model.Program
 import lucuma.core.model.Target
 import lucuma.core.model.Tracking
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.model.sequence.ghost.GhostIfuMapping
+import lucuma.core.model.sequence.ghost.GhostIfuMappingSyntax.*
+import lucuma.core.model.sequence.ghost.IfuMappingContext
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Message
 import lucuma.react.resizeDetector.*
@@ -71,6 +74,7 @@ import lucuma.refined.*
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
@@ -253,15 +257,6 @@ object ObsTabTiles:
                     )
                   )
               .map(_.flatten)
-        ghostIfuMapping      <- useEffectKeepResultWithDeps(props.observation.get.observingMode
-                                                              .map(_.toBasicConfiguration.obsModeType),
-                                                            props.asterismAsNel.map(_.science)
-                                ):
-                                  case (obsModeType, _)
-                                      if obsModeType.exists(_ === ObservingModeType.GhostIfu) =>
-                                    import ctx.given
-                                    odbApi.ghostIfuMapping(props.obsId)
-                                  case _ => IO.pure(none)
         // Store guide star selection in a view for fast local updates
         // This is not the ideal place for this but we need to share the selected guide star
         // across the configuration and target tile
@@ -463,12 +458,31 @@ object ObsTabTiles:
               case Some(_: BasicConfiguration.Visitor) => none
               case None                                => ItcEmptyTile().some
 
+          val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
+
+          // Calculate the IFU mapping for ghost
+          // TODO: Add support for explicit base
+          val ghostIfuMapping: Option[GhostIfuMapping] =
+            props.observation.get.observingMode match
+              case Some(ghost: ObservingMode.GhostIfu) =>
+                val ctx = IfuMappingContext(
+                  ghost.resolutionMode,
+                  ghost.skyPosition,
+                  props.posAngleConstraint,
+                  none,
+                  Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
+                )
+                GhostIfuMapping
+                  .derive(ctx, scienceTargets.map(t => (t.id, t.target)))
+                  .toOption
+              case _                                   => none
+
           val targetVisualization: TargetVisualization =
             basicConfiguration
               .map(
                 _.targetVisualization(
-                  props.asterismAsNel.map(_.science).orEmpty,
-                  ghostIfuMapping.value.toOption.flatten
+                  scienceTargets,
+                  ghostIfuMapping
                 )
               )
               .getOrElse(TargetVisualization.Empty)
