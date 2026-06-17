@@ -30,10 +30,12 @@ import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
+import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
+import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
@@ -230,27 +232,34 @@ enum ObservingModeSummary derives Order:
   // For the dropdown for selecting an existing configuration. The line breaks will be a single space in the dropdown,
   // but will be rendered with line breaks in the dropdown panel.
   def dropdownEntry: String =
+    def formatSn(sn: SignalToNoise): String        =
+      f"S/N = ${sn.toBigDecimal}%.0f"
+    def formatAt(wv: Wavelength): String           =
+      f"at ${wv.toNanometers}%.1f nm"
+    def formatCount(time: TimeSpan, count: PosInt) =
+      s"$count x ${time.toSeconds.toInt}s"
+
     extension (etm: ExposureTimeMode)
       def formatSpec: String    = etm match
         case ExposureTimeMode.SignalToNoiseMode(value, at)      =>
-          s"S/N = $value at ${at.toNanometers}nm"
+          s"${formatSn(value)} ${formatAt(at)}"
         case ExposureTimeMode.TimeAndCountMode(time, count, at) =>
-          s"$count x ${time.toSeconds.toInt}s at ${at.toNanometers}nm"
+          s"${formatCount(time, count)} ${formatAt(at)}"
       def formatImaging: String = etm match
-        case ExposureTimeMode.SignalToNoiseMode(value, at)      =>
-          s"S/N = $value"
-        case ExposureTimeMode.TimeAndCountMode(time, count, at) =>
-          s"$count x ${time.toSeconds.toInt}s"
+        case ExposureTimeMode.SignalToNoiseMode(value, _)      =>
+          formatSn(value)
+        case ExposureTimeMode.TimeAndCountMode(time, count, _) =>
+          formatCount(time, count)
 
     this match
       case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
-        val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
+        val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
-        s"GMOS-N Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
+        s"GMOS-N Longslit\n${grating.shortName} $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
       case GmosSouthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
-        val cwvStr    = "%.1fnm".format(centralWavelength.value.toNanometers)
+        val cwvStr    = formatAt(centralWavelength.value)
         val filterStr = filter.fold("None")(_.shortName)
-        s"GMOS-S Longslit\n${grating.shortName} @ $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
+        s"GMOS-S Longslit\n${grating.shortName} $cwvStr $filterStr  ${fpu.shortName} ${ampReadMode.shortName} ${roi.shortName} (${etm.formatSpec})"
       case Flamingos2LongSlit(grating, filter, fpu, etm)                                     =>
         s"Flamingos2 Longslit\n${grating.shortName} ${filter.shortName} ${fpu.shortName} (${etm.formatSpec})"
       case Flamingos2Imaging(variant, filters)                                               =>
@@ -287,7 +296,7 @@ enum ObservingModeSummary derives Order:
           def summary: String =
             val tAndC        = detector.timeAndCount
             val tAndCSummary =
-              s"(${tAndC.count} x ${tAndC.time.toSeconds.toInt}s/step at ${tAndC.at.toNanometers}nm)"
+              s"(${tAndC.count} x ${tAndC.time.toSeconds.toInt}s/step ${formatAt(tAndC.at)})"
             s"${detector.readMode.shortName} ${detector.binning.shortName} $tAndCSummary"
         s"GHOST IFU ${resolutionMode.shortName}\n${steps.value} steps\nBlue: ${blue.summary}\nRed: ${red.summary}"
       case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                  =>
