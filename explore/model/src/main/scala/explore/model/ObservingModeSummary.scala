@@ -99,12 +99,13 @@ enum ObservingModeSummary derives Order:
     filters: NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]
   )                                                        extends ObservingModeSummary
   case GnirsLongSlit(
-    filter:           GnirsFilter,
-    fpu:              GnirsFpuSlit,
-    prism:            GnirsPrism,
-    grating:          GnirsGrating,
-    camera:           GnirsCamera,
-    exposureTimeMode: ExposureTimeMode
+    filter:            GnirsFilter,
+    fpu:               GnirsFpuSlit,
+    prism:             GnirsPrism,
+    grating:           GnirsGrating,
+    camera:            GnirsCamera,
+    centralWavelength: CentralWavelength,
+    exposureTimeMode:  ExposureTimeMode
   )                                                        extends ObservingModeSummary
   case GhostIfu(
     resolutionMode: GhostResolutionMode,
@@ -127,7 +128,7 @@ enum ObservingModeSummary derives Order:
     case GmosNorthImaging(_, _, _, _)           => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)           => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit(_)                     => ObservingModeType.Igrins2LongSlit
-    case GnirsLongSlit(_, _, _, _, _, _)        => ObservingModeType.GnirsLongSlit
+    case GnirsLongSlit(_, _, _, _, _, _, _)     => ObservingModeType.GnirsLongSlit
     case GhostIfu(_, _, _, _)                   => ObservingModeType.GhostIfu
     case Visitor(mode, _, _, _)                 => mode
 
@@ -195,7 +196,7 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput(exposureTimeMode = etm.toInput.assign)
       )
-    case GnirsLongSlit(filter, fpu, prism, grating, camera, etm)                           =>
+    case GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength, etm)        =>
       ObservingModeInput.GnirsLongSlit(
         GnirsLongSlitInput(
           filter = filter.assign,
@@ -203,6 +204,7 @@ enum ObservingModeSummary derives Order:
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,
+          centralWavelength = centralWavelength.value.toInput.assign,
           exposureTimeMode = etm.toInput.assign
         )
       )
@@ -273,12 +275,12 @@ enum ObservingModeSummary derives Order:
         s"GMOS-S Imaging ${variant.variantType.name}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case Igrins2LongSlit(etm)                                                              =>
         s"IGRINS-2 Longslit (${etm.formatSpec})"
-      case GnirsLongSlit(filter, fpu, prism, grating, camera, etm)                           =>
+      case GnirsLongSlit(_, fpu, prism, grating, camera, centralWavelength, etm)             =>
         val prismSummary: String      = prism match
           case GnirsPrism.Mirror => ""
           case p                 => s" ${p.shortName}"
         val wavelengthSummary: String =
-          f"${filter.centralWavelength.toMicrometers.value}%.2fµm"
+          f"${centralWavelength.value.toMicrometers.value}%.2fµm"
         s"GNIRS Longslit\n${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit (${etm.formatSpec})"
       case GhostIfu(resolutionMode, steps, red, blue)                                        =>
         extension (detector: ObservingMode.GhostIfu.GhostDetector)
@@ -359,7 +361,14 @@ object ObservingModeSummary:
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
       case g: ObservingMode.GnirsLongSlit      =>
-        GnirsLongSlit(g.filter, g.fpu, g.prism, g.grating, g.camera, g.exposureTimeMode)
+        GnirsLongSlit(g.filter,
+                      g.fpu,
+                      g.prism,
+                      g.grating,
+                      g.camera,
+                      g.centralWavelength,
+                      g.exposureTimeMode
+        )
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
       case v: ObservingMode.Visitor            =>
@@ -390,12 +399,12 @@ object ObservingModeSummary:
       s"Flamingos2 Imaging ${variant.variantType.name} $filterStr"
     case Igrins2LongSlit(_)                                                              =>
       s"IGRINS-2 Longslit"
-    case GnirsLongSlit(filter, fpu, prism, grating, camera, _)                           =>
+    case GnirsLongSlit(_, fpu, prism, grating, camera, centralWavelength, _)             =>
       val prismSummary: String      = prism match
         case GnirsPrism.Mirror => ""
         case p                 => s" ${p.shortName}"
       val wavelengthSummary: String =
-        f"${filter.centralWavelength.toMicrometers.value}%.2fµm"
+        f"${centralWavelength.value.toMicrometers.value}%.2fµm"
       s"GNIRS Longslit ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
     case GhostIfu(resolutionMode, _, _, _)                                               =>
       s"GHOST IFU ${resolutionMode.shortName}"
