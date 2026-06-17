@@ -274,7 +274,7 @@ object SequenceTile
                               case _                                                        => mismatchError
                       case SequenceData(
                             InstrumentExecutionConfig.Flamingos2(config),
-                            ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)
+                            signalToNoise
                           ) =>
                         sequnceView
                           .zoom(
@@ -284,22 +284,41 @@ object SequenceTile
                           )
                           .toOptionView
                           .map: flamingos2ExecutionView =>
-                            Flamingos2SequenceTable(
-                              visitsViewOpt,
-                              config.static,
-                              flamingos2ExecutionView.flatAcquisition,
-                              flamingos2ExecutionView.flatScience,
-                              acquisitionSn,
-                              scienceSn,
-                              isEditEnabled,
-                              props.isEditingAcquisition,
-                              props.isEditingScience,
-                              props.isUserStaffOrAdmin,
-                              seqType =>
-                                atoms =>
-                                  ctx.odbApi
-                                    .replaceFlamingos2Sequence(props.obsId, seqType, atoms)
-                            )
+                            signalToNoise match
+                              case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
+                                Flamingos2SequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  flamingos2ExecutionView.flatAcquisition,
+                                  flamingos2ExecutionView.flatScience,
+                                  acquisitionSn,
+                                  scienceSn,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  seqType =>
+                                    atoms =>
+                                      ctx.odbApi
+                                        .replaceFlamingos2Sequence(props.obsId, seqType, atoms)
+                                )
+                              case ModeSignalToNoise.Flamingos2Imaging(snPerFilter)         =>
+                                Flamingos2ImagingSequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  flamingos2ExecutionView.flatAcquisition,
+                                  flamingos2ExecutionView.flatScience,
+                                  snPerFilter,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  seqType =>
+                                    atoms =>
+                                      ctx.odbApi
+                                        .replaceFlamingos2Sequence(props.obsId, seqType, atoms)
+                                )
+                              case _                                                        => mismatchError
                       case SequenceData(
                             InstrumentExecutionConfig.Igrins2(config),
                             ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn)

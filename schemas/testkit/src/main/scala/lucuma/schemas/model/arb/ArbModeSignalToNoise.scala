@@ -57,6 +57,14 @@ trait ArbModeSignalToNoise:
     Cogen[List[(lucuma.core.enums.GmosSouthFilter, SignalToNoiseAt)]].contramap: sn =>
       sn.science.toList
 
+  given Arbitrary[ModeSignalToNoise.Flamingos2Imaging] = Arbitrary:
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.Flamingos2Filter, SignalToNoiseAt]]
+    yield ModeSignalToNoise.Flamingos2Imaging(scienceSN)
+
+  given Cogen[ModeSignalToNoise.Flamingos2Imaging] =
+    Cogen[List[(lucuma.core.enums.Flamingos2Filter, SignalToNoiseAt)]].contramap: sn =>
+      sn.science.toList
+
   given Arbitrary[ModeSignalToNoise.GhostIfu] = Arbitrary:
     for
       redSN  <- arbitrary[Option[SignalToNoiseAt]]
@@ -73,6 +81,7 @@ trait ArbModeSignalToNoise:
       arbitrary[ModeSignalToNoise.Spectroscopy],
       arbitrary[ModeSignalToNoise.GmosNorthImaging],
       arbitrary[ModeSignalToNoise.GmosSouthImaging],
+      arbitrary[ModeSignalToNoise.Flamingos2Imaging],
       arbitrary[ModeSignalToNoise.GhostIfu]
     )
 
@@ -85,16 +94,20 @@ trait ArbModeSignalToNoise:
           ModeSignalToNoise.GmosNorthImaging,
           Either[
             ModeSignalToNoise.GmosSouthImaging,
-            ModeSignalToNoise.GhostIfu
+            Either[
+              ModeSignalToNoise.Flamingos2Imaging,
+              ModeSignalToNoise.GhostIfu
+            ]
           ]
         ]
       ]
     ]].contramap: isn =>
       isn match
-        case ModeSignalToNoise.Undefined             => Left(())
-        case s: ModeSignalToNoise.Spectroscopy       => Right(Left(s))
-        case gnm: ModeSignalToNoise.GmosNorthImaging => Right(Right(Left(gnm)))
-        case gsm: ModeSignalToNoise.GmosSouthImaging => Right(Right(Right(Left(gsm))))
-        case gst: ModeSignalToNoise.GhostIfu         => Right(Right(Right(Right(gst))))
+        case ModeSignalToNoise.Undefined              => Left(())
+        case s: ModeSignalToNoise.Spectroscopy        => Right(Left(s))
+        case gnm: ModeSignalToNoise.GmosNorthImaging  => Right(Right(Left(gnm)))
+        case gsm: ModeSignalToNoise.GmosSouthImaging  => Right(Right(Right(Left(gsm))))
+        case f2i: ModeSignalToNoise.Flamingos2Imaging => Right(Right(Right(Right(Left(f2i)))))
+        case gst: ModeSignalToNoise.GhostIfu          => Right(Right(Right(Right(Right(gst)))))
 
 object ArbModeSignalToNoise extends ArbModeSignalToNoise
