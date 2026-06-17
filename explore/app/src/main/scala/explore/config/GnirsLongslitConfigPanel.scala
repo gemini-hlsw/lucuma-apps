@@ -95,7 +95,7 @@ object GnirsLongslitConfigPanel
 
         given acquisitionFilterEnum: Enumerated[Option[GnirsFilter]] =
           deriveOptionalEnumerated[GnirsFilter]("Auto")(using
-            Enumerated.fromNEL(GnirsFilter.acquisition).withTag(_.tag)
+            Enumerated.fromNEL(GnirsFilter.AcquisitionFilters.toNonEmptyList).withTag(_.tag)
           )
         given acquisitionFilterDisplay: Display[Option[GnirsFilter]] =
           deriveOptionalDisplay[GnirsFilter]("Auto")
