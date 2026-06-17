@@ -16,9 +16,11 @@ import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
+import lucuma.react.table.ColumnId
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
 final case class Flamingos2ImagingSequenceTable(
@@ -46,4 +48,6 @@ final case class Flamingos2ImagingSequenceTable(
 object Flamingos2ImagingSequenceTable
     extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
       Instrument.Flamingos2
-    )
+    ):
+  override protected def hiddenColumnIds: Set[ColumnId] =
+    Set(SequenceColumns.GratingColumnId, SequenceColumns.FPUColumnId)

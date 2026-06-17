@@ -12,10 +12,12 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
 import lucuma.itc.SignalToNoiseAt
 import lucuma.react.common.ReactFnProps
+import lucuma.react.table.ColumnId
 import lucuma.schemas.ObservationDB.Enums.GmosSouthFilter
 import lucuma.schemas.model.ExecutionVisits
 import lucuma.ui.sequence.IsEditEnabled
 import lucuma.ui.sequence.IsEditing
+import lucuma.ui.sequence.SequenceColumns
 import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
 
 final case class GmosSouthImagingSequenceTable(
@@ -43,4 +45,6 @@ final case class GmosSouthImagingSequenceTable(
 object GmosSouthImagingSequenceTable
     extends SequenceTableBuilder[gmos.StaticConfig.GmosSouth, gmos.DynamicConfig.GmosSouth](
       Instrument.GmosSouth
-    )
+    ):
+  override protected def hiddenColumnIds: Set[ColumnId] =
+    Set(SequenceColumns.GratingColumnId, SequenceColumns.FPUColumnId)

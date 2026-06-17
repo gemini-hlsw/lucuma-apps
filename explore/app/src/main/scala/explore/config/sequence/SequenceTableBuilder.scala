@@ -67,6 +67,9 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
   private val HeaderColumnId: ColumnId   = ColumnId("header")
   private val ExtraRowColumnId: ColumnId = ColumnId("extraRow")
 
+  // Columns to hide for this table.
+  protected def hiddenColumnIds: Set[ColumnId] = Set.empty
+
   private lazy val ColumnSizes: Map[ColumnId, ColumnSize] = Map(
     HeaderColumnId   -> FixedSize(0.toPx),
     ExtraRowColumnId -> FixedSize(0.toPx)
@@ -102,6 +105,7 @@ private trait SequenceTableBuilder[S, D: Eq](instrument: Instrument)
                   )
       ).withColumnSize(ColumnSizes(ExtraRowColumnId))
     ) ++ SequenceColumns(ColDef, _.step.some, _.index.some)(instrument)
+      .filterNot(col => hiddenColumnIds.exists(_.value === col.id.value))
 
   private lazy val DynTableDef = DynTable(
     ColumnSizes,
