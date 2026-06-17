@@ -131,7 +131,7 @@ sealed trait GhostConfig extends GhostLUT {
 
   def channelConfig: Configuration =
     giapiConfig(GhostBlueBinningRcf, blueConfig.value.binning.spectralBinning) |+|
-      giapiConfig(GhostBlueBinningCcf, blueConfig.value.binning.spectralBinning) |+|
+      giapiConfig(GhostBlueBinningCcf, blueConfig.value.binning.spatialBinning) |+|
       giapiConfig(GhostBlueDuration, blueConfig.value.exposureTime.toMilliseconds.intValue) |+|
       giapiConfig(GhostBlueUnit, 0.001) |+|
       giapiConfig(GhostBlueRequestType, "HARDWARE") |+|
@@ -145,7 +145,7 @@ sealed trait GhostConfig extends GhostLUT {
       giapiConfig(GhostBlueReadMode, blueConfig.value.readMode) |+|
       giapiConfig(GhostBlueCcdRequestType, "CCD_CAMERA_SET") |+|
       giapiConfig(GhostRedBinningRcf, redConfig.value.binning.spectralBinning) |+|
-      giapiConfig(GhostRedBinningCcf, redConfig.value.binning.spectralBinning) |+|
+      giapiConfig(GhostRedBinningCcf, redConfig.value.binning.spatialBinning) |+|
       giapiConfig(GhostRedDuration, redConfig.value.exposureTime.toMilliseconds.intValue) |+|
       giapiConfig(GhostRedUnit, 0.001) |+|
       giapiConfig(GhostRedRequestType, "HARDWARE") |+|
