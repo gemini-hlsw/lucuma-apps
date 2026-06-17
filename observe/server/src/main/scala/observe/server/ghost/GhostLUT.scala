@@ -384,7 +384,7 @@ trait GhostLUT {
 
   private val BiasSVTime: TimeSpan = duration(0.0)
   private val FlatSVTime: TimeSpan = duration(0.1)
-  private val ArcSVTime: TimeSpan  = duration(300.0)
+  private val ArcSVTime: TimeSpan  = duration(450.0)
   val GhostCalibrationSVRepeat     = 2
 
   def svCalibExposureTime(stepCfg: StepConfig): TimeSpan = stepCfg match {
