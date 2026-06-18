@@ -125,7 +125,7 @@ object UseAgsCalculation:
         applyGuideProbe(base, guideProbe)
 
       case ObservingModeType.Flamingos2Imaging =>
-        none
+        applyGuideProbe(AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some, guideProbe)
 
       case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
         val base = observingMode
