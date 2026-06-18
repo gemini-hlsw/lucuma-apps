@@ -10,7 +10,6 @@ import cats.syntax.all.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.GuideProbe
@@ -182,41 +181,10 @@ object GmosGeometry extends WithPwfsGeometry:
             )
 
             val patrolFieldIntersection =
-              conf.flatMap: c =>
-                val agsParams =
-                  (c, c.guideProbe(trackType)) match
-                    case (BasicConfiguration.GmosSouthLongSlit(fpu = fpu), GuideProbe.PWFS1) =>
-                      AgsParams.GmosLongSlit(fpu.asRight, port).withPWFS1.some
-                    case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), GuideProbe.PWFS1) =>
-                      AgsParams.GmosLongSlit(fpu.asLeft, port).withPWFS1.some
-                    case (BasicConfiguration.GmosSouthLongSlit(fpu = fpu), GuideProbe.PWFS2) =>
-                      AgsParams.GmosLongSlit(fpu.asRight, port).withPWFS2.some
-                    case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), GuideProbe.PWFS2) =>
-                      AgsParams.GmosLongSlit(fpu.asLeft, port).withPWFS2.some
-                    case (BasicConfiguration.GmosSouthLongSlit(fpu = fpu), _)                =>
-                      AgsParams.GmosLongSlit(fpu.asRight, port).some
-                    case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), _)                =>
-                      AgsParams.GmosLongSlit(fpu.asLeft, port).some
-                    case (BasicConfiguration.GmosNorthImaging(_) |
-                          BasicConfiguration.GmosSouthImaging(_),
-                          GuideProbe.PWFS1
-                        ) =>
-                      AgsParams.GmosImaging(port).withPWFS1.some
-                    case (BasicConfiguration.GmosNorthImaging(_) |
-                          BasicConfiguration.GmosSouthImaging(_),
-                          GuideProbe.PWFS2
-                        ) =>
-                      AgsParams.GmosImaging(port).withPWFS2.some
-                    case (BasicConfiguration.GmosNorthImaging(_) |
-                          BasicConfiguration.GmosSouthImaging(_),
-                          GuideProbe.GmosOIWFS
-                        ) =>
-                      AgsParams.GmosImaging(port).some
-                    case _                                                                   =>
-                      none
-                agsParams.map: agsParams =>
-                  val calcs = agsParams.posCalculations(positions.value.toNonEmptyList)
-                  PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
+              conf.map: c =>
+                val calcs =
+                  c.agsParams(port, trackType).posCalculations(positions.value.toNonEmptyList)
+                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])

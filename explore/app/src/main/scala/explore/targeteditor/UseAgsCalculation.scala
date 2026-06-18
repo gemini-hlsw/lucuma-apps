@@ -18,19 +18,16 @@ import explore.model.enums.AgsState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import lucuma.ags.*
-import lucuma.core.enums.Flamingos2LyotWheel
-import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.TrackType
-import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Target
-import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.reusability.given
+import lucuma.ui.visualization.agsParams
 import workers.WorkerClient
 
 import java.time.Instant
@@ -46,9 +43,7 @@ case class AgsCalcProps(
   sciOffsets:    Option[ScienceOffsets],
   candidates:    List[GuideStarCandidate],
   trackType:     Option[TrackType]
-):
-  lazy val guideProbe: Option[GuideProbe] =
-    observingMode.map(_.guideProbe(trackType))
+)
 
 object AgsCalcProps:
   given Reusability[AgsCalcProps] = Reusability.by: p =>
@@ -76,86 +71,6 @@ object AgsCalculationResults:
 
 object UseAgsCalculation:
 
-  private def applyGuideProbe(
-    base:       Option[AgsParams],
-    guideProbe: Option[GuideProbe]
-  ): Option[AgsParams] =
-    guideProbe match
-      case Some(GuideProbe.PWFS1) =>
-        base.map:
-          case p: AgsParams.Flamingos2LongSlit => p.withPWFS1
-          case p: AgsParams.Flamingos2Imaging  => p.withPWFS1
-          case p: AgsParams.GhostIfu           => p.withPWFS1
-          case p: AgsParams.GmosImaging        => p.withPWFS1
-          case p: AgsParams.GmosLongSlit       => p.withPWFS1
-          case p: AgsParams.GnirsLongSlit      => p.withPWFS1
-          case p: AgsParams.Igrins2LongSlit    => p.withPWFS1
-          case p: AgsParams.MaroonX            => p.withPWFS1
-          case p: AgsParams.Visitor            => p.withPWFS1
-      case Some(GuideProbe.PWFS2) =>
-        base.map:
-          case p: AgsParams.Flamingos2LongSlit => p.withPWFS2
-          case p: AgsParams.Flamingos2Imaging  => p.withPWFS2
-          case p: AgsParams.GhostIfu           => p.withPWFS2
-          case p: AgsParams.GmosImaging        => p.withPWFS2
-          case p: AgsParams.GmosLongSlit       => p.withPWFS2
-          case p: AgsParams.GnirsLongSlit      => p.withPWFS2
-          case p: AgsParams.Igrins2LongSlit    => p.withPWFS2
-          case p: AgsParams.MaroonX            => p.withPWFS2
-          case p: AgsParams.Visitor            => p.withPWFS2
-
-      case _ => base
-
-  private def agsParams(
-    obsModeType:   ObservingModeType,
-    observingMode: Option[BasicConfiguration],
-    guideProbe:    Option[GuideProbe],
-    port:          PortDisposition = PortDisposition.Side
-  ): Option[AgsParams] =
-    obsModeType match
-      case ObservingModeType.Flamingos2LongSlit =>
-        val base = observingMode
-          .flatMap(_.f2Fpu)
-          .map: fpu =>
-            AgsParams.Flamingos2LongSlit(
-              Flamingos2LyotWheel.F16,
-              Flamingos2FpuMask.Builtin(fpu),
-              port
-            )
-        applyGuideProbe(base, guideProbe)
-
-      case ObservingModeType.Flamingos2Imaging =>
-        none
-
-      case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-        val base = observingMode
-          .flatMap(_.gmosFpuAlternative)
-          .map(AgsParams.GmosLongSlit(_, port))
-        applyGuideProbe(base, guideProbe)
-
-      case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging =>
-        applyGuideProbe(AgsParams.GmosImaging(port).some, guideProbe)
-
-      case ObservingModeType.Igrins2LongSlit =>
-        applyGuideProbe(AgsParams.Igrins2LongSlit().some, guideProbe)
-
-      case ObservingModeType.GhostIfu =>
-        applyGuideProbe(AgsParams.GhostIfu().some, guideProbe)
-
-      case ObservingModeType.GnirsLongSlit =>
-        val base = observingMode.collectFirst:
-          case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
-            AgsParams.GnirsLongSlit(fpu, camera, prism, port)
-        applyGuideProbe(base, guideProbe)
-
-      case _: VisitorObservingModeType =>
-        val base = observingMode.collectFirst:
-          case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX) =>
-            AgsParams.MaroonX(port)
-          case BasicConfiguration.Visitor(agsDiameter = fov)                       =>
-            AgsParams.Visitor(fov, port)
-        applyGuideProbe(base, guideProbe)
-
   private def runAgsQuery(
     props:          AgsCalcProps,
     obsCoords:      ObservationTargetsCoordinatesAt,
@@ -164,7 +79,7 @@ object UseAgsCalculation:
     agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
     obsCoords.baseCoords.map { baseCoords =>
-      val params = agsParams(props.obsModeType, props.observingMode, props.guideProbe)
+      val params = props.observingMode.map(_.agsParams(PortDisposition.Side, props.trackType))
 
       // For AGS sky coordinates behave like science coords.
       val scienceCoords =
