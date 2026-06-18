@@ -406,9 +406,9 @@ object Systems {
 
         def ghostGDS: Resource[F, GdsClient[F]] =
           Resource.pure[F, GdsClient[F]](
-            GdsClient.json(if (settings.systemControl.ghost.command) httpClient
-                           else GdsClient.alwaysOkClient[F],
-                           settings.ghostGds.value
+            GdsClient.xmlrpc(if (settings.systemControl.ghost.command) httpClient
+                             else GdsClient.xmlrpc.alwaysOkClient[F],
+                             settings.ghostGds.value
             )
           )
 
