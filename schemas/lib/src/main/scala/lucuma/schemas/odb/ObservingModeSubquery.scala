@@ -215,6 +215,7 @@ object ObservingModeSubquery
             explicitIfu1Agitator
             defaultIfu2Agitator
             explicitIfu2Agitator
+            skyPosition $CoordinatesSubquery
           }
           visitor {
             mode
