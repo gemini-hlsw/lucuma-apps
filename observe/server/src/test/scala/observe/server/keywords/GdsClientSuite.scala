@@ -18,7 +18,11 @@ import observe.server.keywords.GdsClient.json.KeywordRequest
 import observe.server.keywords.GdsClient.json.OpenObservationRequest
 import org.http4s.*
 import org.http4s.client.Client
+import org.http4s.scalaxml.*
 import org.http4s.syntax.all.*
+
+import scala.xml.Elem
+import scala.xml.XML
 
 class GdsClientSuite extends munit.CatsEffectSuite:
   val uri: Uri    = uri"http://localhost:8888"
@@ -104,6 +108,72 @@ class GdsClientSuite extends munit.CatsEffectSuite:
     val service = HttpRoutes.of[IO]: _ =>
       Response[IO](status).withEntity(body).pure[IO]
     Client.fromHttpApp(service.orNotFound)
+
+  // XML-RPC client tests
+
+  val faultResponse: Elem =
+    <methodResponse>
+      <fault>
+        <value>
+          <struct>
+            <member>
+              <name>faultCode</name>
+              <value><int>1</int></value>
+            </member>
+            <member>
+              <name>faultString</name>
+              <value><string>Something went wrong</string></value>
+            </member>
+          </struct>
+        </value>
+      </fault>
+    </methodResponse>
+
+  def xmlClient(body: Elem): Client[IO] =
+    val service = HttpRoutes.of[IO]: _ =>
+      Response[IO](Status.Ok).withEntity(body).pure[IO]
+    Client.fromHttpApp(service.orNotFound)
+
+  test("xmlrpc openObservation should succeed if the GDS returns a non-fault response"):
+    val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
+    val ks     =
+      KeywordBag(BooleanKeyword(KeywordName.SSA, false), DoubleKeyword(KeywordName.OBJECT, 98.76))
+    assertIO_(client.openObservation(obsId, id, ks))
+
+  test("xmlrpc openObservation should fail if the GDS returns a fault"):
+    val client = GdsClient.xmlrpc(xmlClient(faultResponse), uri)
+    val ks     =
+      KeywordBag(BooleanKeyword(KeywordName.SSA, false), DoubleKeyword(KeywordName.OBJECT, 98.76))
+    interceptIO[ObserveFailure.GdsXmlError](client.openObservation(obsId, id, ks))
+
+  test("xmlrpc setKeywords should succeed if the GDS returns a non-fault response"):
+    val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
+    val ks     = KeywordBag(StringKeyword(KeywordName.INSTRUMENT, "The INSTR."),
+                        Int32Keyword(KeywordName.OBJECT, 123)
+    )
+    assertIO_(client.setKeywords(id, ks))
+
+  test("xmlrpc setKeywords should fail if the GDS returns a fault"):
+    val client = GdsClient.xmlrpc(xmlClient(faultResponse), uri)
+    val ks     = KeywordBag(StringKeyword(KeywordName.INSTRUMENT, "The INSTR."),
+                        Int32Keyword(KeywordName.OBJECT, 123)
+    )
+    interceptIO[ObserveFailure.GdsXmlError](client.setKeywords(id, ks))
+
+  test("xmlrpc closeObservation should succeed if the GDS returns a non-fault response"):
+    val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
+    assertIO_(client.closeObservation(id))
+
+  test("xmlrpc closeObservation should fail if the GDS returns a fault"):
+    val client = GdsClient.xmlrpc(xmlClient(faultResponse), uri)
+    interceptIO[ObserveFailure.GdsXmlError](client.closeObservation(id))
+
+  test("xmlrpc parseError extracts the fault string"):
+    assertEquals(GdsClient.xmlrpc.parseError(faultResponse), Left("Something went wrong"))
+
+  test("xmlrpc parseError should reject a real GDS fault response"):
+    val xml = XML.load(getClass.getResource("/gds-bad-resp.xml"))
+    assert(GdsClient.xmlrpc.parseError(xml).isLeft)
 
   val openObsExpectedJson =
     json"""{

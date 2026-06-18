@@ -374,27 +374,7 @@ object Systems {
         Flamingos2Epics.instance[IO](service, tops).map(Flamingos2ControllerEpics(_))
       else if (settings.instForceError) Flamingos2ControllerSimBad[IO](settings.failAt)
       else Flamingos2ControllerSim[IO]
-    //
-    //    def gpi[F[_]: {Async, Logger}](
-    //      httpClient: Client[F],
-    //      instancename: String
-    //    ): Resource[F, GpiController[F]] = {
-    //      def gpiClient: Resource[F, GpiClient[F]] =
-    //        if (settings.systemControl.gpi.command)
-    //          GpiClient.gpiClient[F](s"gpi-observe-$instanceName", settings.gpiUrl.value.renderString, GpiStatusApply.statusesToMonitor)
-    //        else GpiClient.simulatedGpiClient[F]
-    //
-    //      def gpiGDS(httpClient: Client[F]): Resource[F, GdsClient[F]] =
-    //        Resource.pure[F, GdsClient[F]](
-    //          GdsClient(if (settings.systemControl.gpiGds.command) httpClient
-    //                    else GdsClient.alwaysOkClient[F],
-    //                    settings.gpiGDS
-    //          )
-    //        )
-    //
-    //      (gpiClient, gpiGDS(httpClient)).mapN(GpiController(_, _))
-    //    }
-    //
+
     def ghost[F[_]: {Async, Logger}](
       httpClient:   Client[F],
       instanceName: String
@@ -406,9 +386,9 @@ object Systems {
 
         def ghostGDS: Resource[F, GdsClient[F]] =
           Resource.pure[F, GdsClient[F]](
-            GdsClient.json(if (settings.systemControl.ghost.command) httpClient
-                           else GdsClient.alwaysOkClient[F],
-                           settings.ghostGds.value
+            GdsClient.xmlrpc(if (settings.systemControl.ghost.command) httpClient
+                             else GdsClient.xmlrpc.alwaysOkClient[F],
+                             settings.ghostGds.value
             )
           )
 
@@ -429,7 +409,7 @@ object Systems {
         def igrins2GDS: Resource[F, GdsClient[F]] =
           Resource.pure[F, GdsClient[F]](
             GdsClient.json(if (settings.systemControl.igrins2.command) httpClient
-                           else GdsClient.alwaysOkClient[F],
+                           else GdsClient.json.alwaysOkClient[F],
                            settings.igrins2Gds.value
             )
           )

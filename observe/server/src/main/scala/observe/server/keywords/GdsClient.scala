@@ -21,9 +21,11 @@ import org.http4s.client.middleware.Retry
 import org.http4s.client.middleware.RetryPolicy
 import org.http4s.dsl.io.*
 import org.http4s.implicits.*
+import org.http4s.scalaxml.*
 import org.typelevel.log4cats.Logger
 
 import scala.concurrent.duration.*
+import scala.xml.Elem
 
 /**
  * Gemini Data service client
@@ -56,15 +58,6 @@ object GdsClient:
     Retry(policy)(base)
   }
 
-  /**
-   * Client for testing always returns ok
-   */
-  def alwaysOkClient[F[_]: Async]: Client[F] =
-    val service = HttpRoutes.of[F] { case _ =>
-      Response[F](Status.Ok).withEntity("Success").pure[F]
-    }
-    Client.fromHttpApp(service.orNotFound)
-
   def loggingClient[F[_]: Logger](name: String) =
     new GdsClient[F]:
       override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
@@ -84,6 +77,16 @@ object GdsClient:
         overrideLogMessage(name, "abortObservation")
 
   object json:
+
+    /**
+     * Client for testing always returns ok
+     */
+    def alwaysOkClient[F[_]: Async]: Client[F] =
+      val service = HttpRoutes.of[F] { case _ =>
+        Response[F](Status.Ok).withEntity("Success").pure[F]
+      }
+      Client.fromHttpApp(service.orNotFound)
+
     def apply[F[_]: Temporal](base: Client[F], gdsUri: Uri): GdsClient[F] =
       new GdsClient[F] {
 
@@ -139,3 +142,126 @@ object GdsClient:
 
     given Encoder[IdRequest] =
       Encoder.forProduct1("data_label")(_.id.value)
+
+  object xmlrpc:
+    def apply[F[_]: Async](base: Client[F], gdsUri: Uri): GdsClient[F] =
+      new GdsClient[F] {
+
+        private val client = makeClient(base)
+
+        /**
+         * Set the keywords for an image
+         */
+        override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
+          makeRequest(storeKeywords(id, ks))
+
+        override def openObservation(
+          obsId: Observation.Id,
+          id:    ImageFileId,
+          ks:    KeywordBag
+        ): F[Unit] =
+          makeRequest(openObservationRPC(obsId, id, ks))
+
+        override def closeObservation(id: ImageFileId): F[Unit] =
+          makeRequest(closeObservationRPC(id))
+
+        override def abortObservation(id: ImageFileId): F[Unit] =
+          Async[F].unit
+
+        private def makeRequest(xmlRpc: Elem): F[Unit] =
+          val postRequest = POST(xmlRpc, gdsUri)
+          client
+            .expect[Elem](postRequest)
+            .map(parseError)
+            .ensureOr(v => ObserveFailure.GdsXmlError(v.left.getOrElse(""), gdsUri))(_.isRight)
+            .void
+
+        private def storeKeywords(id: ImageFileId, ks: KeywordBag): Elem =
+          <methodCall>
+            <methodName>HeaderReceiver.storeKeywords</methodName>
+            <params>
+              <param>
+                <value>
+                  <string>{id.value}</string>
+                </value>
+              </param>
+              {keywordsParam(ks)}
+            </params>
+          </methodCall>
+
+        private def openObservationRPC(
+          obsId: Observation.Id,
+          id:    ImageFileId,
+          ks:    KeywordBag
+        ): Elem =
+          <methodCall>
+            <methodName>HeaderReceiver.openObservation</methodName>
+            <params>
+              <param>
+                <value>
+                  <string>{obsId.show}</string>
+                </value>
+              </param>
+              <param>
+                <value>
+                  <string>{id.value}</string>
+                </value>
+              </param>
+              {keywordsParam(ks)}
+            </params>
+          </methodCall>
+
+        private def closeObservationRPC(id: ImageFileId): Elem =
+          <methodCall>
+            <methodName>HeaderReceiver.closeObservation</methodName>
+            <params>
+              <param>
+                <value>
+                  <string>{id.value}</string>
+                </value>
+              </param>
+            </params>
+          </methodCall>
+
+        private def keywordsParam(ks: KeywordBag): Elem =
+          <param>
+            <value>
+              <array>
+                <data>
+                  {
+            ks.keywords.map { k =>
+              <value><string>{
+                s"${k.name.name},${KeywordType.gdsKeywordType(k.keywordType)},${k.value}"
+              }</string></value>
+            }
+          }
+                </data>
+              </array>
+            </value>
+          </param>
+      }
+
+    // Parse an XML-RPC fault response, returning the fault string on the left
+    def parseError(e: Elem): Either[String, Elem] =
+      val v =
+        for {
+          m <- e \\ "methodResponse" \ "fault" \ "value" \ "struct" \\ "member"
+          if (m \ "name").text === "faultString"
+        } yield (m \ "value").text.trim
+      v.headOption.toLeft(e)
+
+    /**
+     * Client for testing always returns ok
+     */
+    def alwaysOkClient[F[_]: Async]: Client[F] =
+      val service = HttpRoutes.of[F]: _ =>
+        val response =
+          <methodResponse>
+            <params>
+              <param>
+                <value><string>Ok</string></value>
+              </param>
+            </params>
+          </methodResponse>
+        Response[F](Status.Ok).withEntity(response).pure[F]
+      Client.fromHttpApp(service.orNotFound)
