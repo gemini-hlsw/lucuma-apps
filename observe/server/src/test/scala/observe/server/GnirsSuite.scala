@@ -26,6 +26,7 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
 import lucuma.core.syntax.timespan.*
 import lucuma.core.util.Timestamp
@@ -43,7 +44,7 @@ class GnirsSuite extends TestCommon {
     coadds = PosInt.unsafeFrom(2),
     filter = GnirsFilter.K,
     decker = GnirsDecker.LongCamLongSlit,
-    fpu = GnirsFpuSlit.LongSlit_0_30.asLeft,
+    fpu = GnirsFpu.Slit(GnirsFpuSlit.LongSlit_0_30),
     acquisitionMirror = GnirsAcquisitionMirrorMode.In,
     camera = GnirsCamera.LongBlue,
     focus = GnirsFocus.Best,

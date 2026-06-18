@@ -35,6 +35,7 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2SVCImages
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
@@ -1106,8 +1107,8 @@ extension (gnirsDynamic: GnirsDynamicConfig)
     coadds = gnirsDynamic.coadds,
     filter = gnirsDynamic.filter,
     decker = gnirsDynamic.decker,
-    fpuSlit = gnirsDynamic.fpu.left.toOption.orUnassign,
-    fpuOther = gnirsDynamic.fpu.toOption.orUnassign,
+    fpuSlit = GnirsFpu.slit.getOption(gnirsDynamic.fpu).orUnassign,
+    fpuOther = GnirsFpu.other.getOption(gnirsDynamic.fpu).orUnassign,
     acquisitionMirrorOut = gnirsDynamic.acquisitionMirror.toInput,
     camera = gnirsDynamic.camera,
     focusMotorSteps = (gnirsDynamic.focus match

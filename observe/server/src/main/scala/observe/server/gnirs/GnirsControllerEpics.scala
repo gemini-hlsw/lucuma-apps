@@ -20,6 +20,7 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMirrorMode
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFocus
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.timespan.*
 import lucuma.core.util.TimeSpan
 import observe.model.ObserveStage
@@ -194,7 +195,7 @@ object GnirsControllerEpics extends GnirsEncoders {
 
       private def slitWidthValue(dc: GnirsDynamicConfig): Option[String] =
         dc.fpu match {
-          case Left(slit)   =>
+          case GnirsFpu.Slit(slit)   =>
             (slit match {
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_10  => "0.10arcsec"
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_15  => "0.15arcsec"
@@ -204,7 +205,7 @@ object GnirsControllerEpics extends GnirsEncoders {
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_675 => "0.68arcsec"
               case lucuma.core.enums.GnirsFpuSlit.LongSlit_1_00  => "1.00arcsec"
             }).some
-          case Right(other) =>
+          case GnirsFpu.Other(other) =>
             (other match {
               case lucuma.core.enums.GnirsFpuOther.Acquisition => "Acq"
               case lucuma.core.enums.GnirsFpuOther.PupilViewer => "PV"
@@ -220,7 +221,7 @@ object GnirsControllerEpics extends GnirsEncoders {
         // The pupil-viewer optic lives in filter wheel 1, so selecting it overrides FW1. Matches
         // seqexec Gnirs.getFilter1: slit == PupilViewer || decker == PupilViewer => Filter1.PupilViewer.
         val pupilViewer: Boolean                           =
-          dc.fpu.toOption.contains(GnirsFpuOther.PupilViewer) ||
+          GnirsFpu.other.getOption(dc.fpu).contains(GnirsFpuOther.PupilViewer) ||
             dc.decker === GnirsDecker.PupilViewer
         val filter1Value: String                           = if (pupilViewer) "PupilViewer" else filterWheel1
         val cameraValue: String                            = encode(dc.camera)
