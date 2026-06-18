@@ -10,7 +10,6 @@ import cats.syntax.all.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.ScienceOffsets
 import lucuma.core.enums.Flamingos2LyotWheel
@@ -177,34 +176,10 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             )
 
             val patrolFieldIntersection =
-              conf.flatMap: c =>
-                val agsParams =
-                  (c, c.guideProbe(trackType)) match
-                    case (BasicConfiguration.Flamingos2LongSlit(fpu = fpu), GuideProbe.PWFS1) =>
-                      AgsParams
-                        .Flamingos2LongSlit(lyotWheel, Flamingos2FpuMask.Builtin(fpu), port)
-                        .withPWFS1
-                        .some
-                    case (BasicConfiguration.Flamingos2LongSlit(fpu = fpu), GuideProbe.PWFS2) =>
-                      AgsParams
-                        .Flamingos2LongSlit(lyotWheel, Flamingos2FpuMask.Builtin(fpu), port)
-                        .withPWFS2
-                        .some
-                    case (BasicConfiguration.Flamingos2LongSlit(fpu = fpu), _)                =>
-                      AgsParams
-                        .Flamingos2LongSlit(lyotWheel, Flamingos2FpuMask.Builtin(fpu), port)
-                        .some
-                    case (_: BasicConfiguration.Flamingos2Imaging, GuideProbe.PWFS1)          =>
-                      AgsParams.Flamingos2Imaging(lyotWheel, port).withPWFS1.some
-                    case (_: BasicConfiguration.Flamingos2Imaging, GuideProbe.PWFS2)          =>
-                      AgsParams.Flamingos2Imaging(lyotWheel, port).withPWFS2.some
-                    case (_: BasicConfiguration.Flamingos2Imaging, _)                         =>
-                      AgsParams.Flamingos2Imaging(lyotWheel, port).some
-                    case _                                                                    =>
-                      none
-                agsParams.map: agsParams =>
-                  val calcs = agsParams.posCalculations(positions.value.toNonEmptyList)
-                  PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
+              conf.map: c =>
+                val calcs =
+                  c.agsParams(port, trackType).posCalculations(positions.value.toNonEmptyList)
+                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
 

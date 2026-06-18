@@ -15,16 +15,13 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis
-import lucuma.ags.AgsParams
 import lucuma.ags.AgsVisualization
 import lucuma.ags.DebugShape
 import lucuma.ags.PatrolFieldVisualization
-import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
-import lucuma.core.enums.TrackType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.flamingos2
@@ -36,9 +33,7 @@ import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
-import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.react.common.Css
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
@@ -58,44 +53,6 @@ def usePatrolFieldShapes(
   anglesToTest:        Option[NonEmptyList[Angle]],
   agsState:            Option[AgsState]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
-
-  def createAgsParams(
-    conf:      BasicConfiguration,
-    port:      PortDisposition,
-    trackType: Option[TrackType]
-  ): Option[SingleProbeAgsParams] =
-    val guideProbe: GuideProbe = conf.guideProbe(trackType)
-    val params                 = conf match
-      case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                             =>
-        AgsParams.GmosLongSlit(fpu.asLeft, port).some
-      case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                             =>
-        AgsParams.GmosLongSlit(fpu.asRight, port).some
-      case BasicConfiguration.GmosNorthImaging(_)                                      =>
-        AgsParams.GmosImaging(port).some
-      case BasicConfiguration.GmosSouthImaging(_)                                      =>
-        AgsParams.GmosImaging(port).some
-      case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                            =>
-        AgsParams
-          .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
-          .some
-      case BasicConfiguration.Flamingos2Imaging(_)                                     =>
-        AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some
-      case BasicConfiguration.Igrins2LongSlit                                          =>
-        AgsParams.Igrins2LongSlit().some
-      case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
-        AgsParams.GnirsLongSlit(fpu, camera, prism, port).some
-      case BasicConfiguration.GhostIfu(_, _, _, _, _)                                  =>
-        AgsParams.GhostIfu().some
-      case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)         =>
-        AgsParams.MaroonX(port).some
-      case BasicConfiguration.Visitor(agsDiameter = fov)                               =>
-        AgsParams.Visitor(fov, port).some
-
-    params.map: p =>
-      guideProbe match
-        case GuideProbe.PWFS1 => p.withPWFS1
-        case GuideProbe.PWFS2 => p.withPWFS2
-        case _                => p
 
   extension (geometryType: GeometryType)
     def css: Css = geometryType match
@@ -138,7 +95,7 @@ def usePatrolFieldShapes(
 
     for
       conf       <- vizConf.map(_.configuration).filter(_ => isVisible)
-      agsParams  <- createAgsParams(conf, PortDisposition.Side, vizConf.flatMap(_.trackType))
+      agsParams   = conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.trackType))
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield

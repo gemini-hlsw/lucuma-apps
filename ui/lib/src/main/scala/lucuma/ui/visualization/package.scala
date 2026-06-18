@@ -10,13 +10,22 @@ import eu.timepit.refined.numeric.NonNegative
 import eu.timepit.refined.refineV
 import japgolly.scalajs.react.vdom.VdomNode
 import japgolly.scalajs.react.vdom.html_<^.VdomAttr
+import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
+import lucuma.ags.SingleProbeAgsParams
+import lucuma.core.enums.Flamingos2LyotWheel
+import lucuma.core.enums.GuideProbe
+import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.TrackType
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.Css
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.aladin.Fov
 import org.locationtech.jts.geom.Geometry
 
@@ -189,3 +198,41 @@ def hatchDefs(hatchLine: Css, hatchLineSel: Css): VdomNode =
     hatchPattern("ghost-ifu1-hatch-selected", Css("ghost-ifu1-hatch-color"), 45, hatchLineSel),
     hatchPattern("ghost-ifu2-hatch-selected", Css("ghost-ifu2-hatch-color"), -45, hatchLineSel)
   )
+
+extension (conf: BasicConfiguration)
+  def agsParams(
+    port:      PortDisposition,
+    trackType: Option[TrackType]
+  ): AgsParams & SingleProbeAgsParams =
+    val base =
+      conf match
+        case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                             =>
+          AgsParams.GmosLongSlit(fpu.asLeft, port)
+        case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                             =>
+          AgsParams.GmosLongSlit(fpu.asRight, port)
+        case BasicConfiguration.GmosNorthImaging(_)                                      =>
+          AgsParams.GmosImaging(port)
+        case BasicConfiguration.GmosSouthImaging(_)                                      =>
+          AgsParams.GmosImaging(port)
+        case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                            =>
+          AgsParams.Flamingos2LongSlit(Flamingos2LyotWheel.F16,
+                                       Flamingos2FpuMask.Builtin(fpu),
+                                       port
+          )
+        case BasicConfiguration.Flamingos2Imaging(_)                                     =>
+          AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port)
+        case BasicConfiguration.Igrins2LongSlit                                          =>
+          AgsParams.Igrins2LongSlit()
+        case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
+          AgsParams.GnirsLongSlit(fpu, camera, prism, port)
+        case BasicConfiguration.GhostIfu(_, _, _, _, _)                                  =>
+          AgsParams.GhostIfu()
+        case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)         =>
+          AgsParams.MaroonX(port)
+        case BasicConfiguration.Visitor(agsDiameter = fov)                               =>
+          AgsParams.Visitor(fov, port)
+
+    conf.guideProbe(trackType) match
+      case GuideProbe.PWFS1 => base.withPWFS1
+      case GuideProbe.PWFS2 => base.withPWFS2
+      case _                => base
