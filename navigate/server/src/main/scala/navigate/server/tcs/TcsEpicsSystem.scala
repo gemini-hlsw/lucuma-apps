@@ -111,7 +111,7 @@ object TcsEpicsSystem {
     val slewCmd: SlewCommandChannels[F]
     val rotatorConfigCmd: Command4Channels[F, Double, String, String, Double]
     val originCmd: Command6Channels[F, Double, Double, Double, Double, Double, Double]
-    val focusOffsetCmd: Command1Channels[F, Double]
+    val focusOffsetCmd: Command2Channels[F, Double, Double]
     val oiwfsProbeTrackingCmd: ProbeTrackingCommandChannels[F]
     val oiwfsProbeCmds: ProbeCommandsChannels[F]
     val m1GuideConfigCmd: Command4Channels[F, String, String, Int, String]
@@ -921,9 +921,13 @@ object TcsEpicsSystem {
 
     override val focusOffsetCommand: FocusOffsetCommand[F, TcsCommands[F]] =
       new FocusOffsetCommand[F, TcsCommands[F]] {
-        override def focusOffset(v: Distance): TcsCommands[F] = addParam(
+        override def focusOffset(v: Distance): TcsCommands[F]  = addParam(
           // En que formato recibe Epics este valor Milimetros, Metros, Micrometros????
           tcsEpics.focusOffsetCmd.setParam1(v.toMillimeters.value.toDouble)
+        )
+        override def focusOffsetB(v: Distance): TcsCommands[F] = addParam(
+          // En que formato recibe Epics este valor Milimetros, Metros, Micrometros????
+          tcsEpics.focusOffsetCmd.setParam2(v.toMillimeters.value.toDouble)
         )
       }
 
@@ -1613,9 +1617,10 @@ object TcsEpicsSystem {
         channels.origin.yc
       )
 
-    override val focusOffsetCmd: Command1Channels[F, Double] = Command1Channels(
+    override val focusOffsetCmd: Command2Channels[F, Double, Double] = Command2Channels(
       channels.telltale,
-      channels.focusOffset
+      channels.focusOffset,
+      channels.focusOffsetB
     )
 
     override val oiwfsProbeTrackingCmd: ProbeTrackingCommandChannels[F] =
@@ -2061,7 +2066,8 @@ object TcsEpicsSystem {
   }
 
   trait FocusOffsetCommand[F[_], +S] {
-    def focusOffset(v: Distance): S
+    def focusOffset(v:  Distance): S
+    def focusOffsetB(v: Distance): S
   }
 
   trait InstrumentOffsetCommand[F[_], +S] {

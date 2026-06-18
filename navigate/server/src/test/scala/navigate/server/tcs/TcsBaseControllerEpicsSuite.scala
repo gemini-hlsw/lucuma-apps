@@ -519,6 +519,14 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assert(rs.m2Baffles.centralBaffle.connected)
       assertEquals(rs.m2Baffles.centralBaffle.value, m2Baffles.central.encode[String].some)
 
+      // Focus offset
+      assert(rs.focusOffset.connected)
+      assertEquals(rs.focusOffset.value.flatMap(_.toDoubleOption),
+                   instrumentSpecifics.focusOffset.toMillimeters.value.toDouble.some
+      )
+      assert(rs.focusOffsetB.connected)
+      assertEquals(rs.focusOffsetB.value.flatMap(_.toDoubleOption), 0.0.some)
+
     }
   }
 

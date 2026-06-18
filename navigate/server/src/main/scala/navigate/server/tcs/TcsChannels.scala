@@ -41,6 +41,7 @@ case class TcsChannels[F[_]](
   rotator:                 RotatorChannels[F],
   origin:                  OriginChannels[F],
   focusOffset:             Channel[F, String],
+  focusOffsetB:            Channel[F, String],
   p1ProbeTracking:         ProbeTrackingChannels[F],
   p1Probe:                 ProbeChannels[F],
   p2ProbeTracking:         ProbeTrackingChannels[F],
@@ -896,6 +897,7 @@ object TcsChannels {
       rot  <- buildRotatorChannels(service, tcsTop)
       org  <- buildOriginChannels(service, tcsTop)
       foc  <- service.getChannel[String](tcsTop.value, "dtelFocus.A")
+      focB <- service.getChannel[String](tcsTop.value, "dtelFocus.B")
       p1g  <- buildProbeTrackingChannels(service, tcsTop, "Pwfs1")
       p1p  <- buildProbeChannels(service, s"${tcsTop.value.value}pwfs1")
       p2g  <- buildProbeTrackingChannels(service, tcsTop, "Pwfs2")
@@ -971,6 +973,7 @@ object TcsChannels {
       rot,
       org,
       foc,
+      focB,
       p1g,
       p1p,
       p2g,
