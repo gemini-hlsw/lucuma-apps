@@ -364,6 +364,9 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   protected def setFocusOffset(offset: Distance): TcsCommands[F] => TcsCommands[F] =
     (x: TcsCommands[F]) => x.focusOffsetCommand.focusOffset(offset)
 
+  protected def setFocusOffsetB(offset: Distance): TcsCommands[F] => TcsCommands[F] =
+    (x: TcsCommands[F]) => x.focusOffsetCommand.focusOffsetB(offset)
+
   protected def setOrigin(origin: Origin): TcsCommands[F] => TcsCommands[F] =
     (x: TcsCommands[F]) => x.originCommand.originX(origin.x).originCommand.originY(origin.y)
 
@@ -606,6 +609,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
   ): TcsCommands[F] => TcsCommands[F] =
     setRotatorIaa(config.iaa)
       .compose(setFocusOffset(config.focusOffset))
+      .compose(setFocusOffsetB(Distance.Zero))
       .compose(setOrigin(config.origin))
 
   private val RotMoveTimeout = FiniteDuration(60, SECONDS)

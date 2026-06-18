@@ -382,6 +382,7 @@ object TestTcsEpicsSystem {
     rotator:              RotatorChannelState,
     origin:               OriginChannelState,
     focusOffset:          TestChannel.State[String],
+    focusOffsetB:         TestChannel.State[String],
     pwfs1Tracking:        ProbeTrackingState,
     pwfs1Probe:           ProbeState,
     pwfs2Tracking:        ProbeTrackingState,
@@ -501,6 +502,7 @@ object TestTcsEpicsSystem {
       yc = TestChannel.State.default
     ),
     focusOffset = TestChannel.State.default,
+    focusOffsetB = TestChannel.State.default,
     pwfs1Tracking = ProbeTrackingState(
       nodAchopA = TestChannel.State.of("Off"),
       nodAchopB = TestChannel.State.of("Off"),
@@ -1169,6 +1171,7 @@ object TestTcsEpicsSystem {
       rotator = buildRotatorChannels(s),
       origin = buildOriginChannels(s),
       focusOffset = new TestChannel[F, State, String](s, Focus[State](_.focusOffset)),
+      focusOffsetB = new TestChannel[F, State, String](s, Focus[State](_.focusOffsetB)),
       p1ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs1Tracking)),
       p1Probe = buildProbeChannels(s, Focus[State](_.pwfs1Probe)),
       p2ProbeTracking = buildProbeTrackingChannels(s, Focus[State](_.pwfs2Tracking)),
