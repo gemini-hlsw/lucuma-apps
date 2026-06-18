@@ -74,8 +74,8 @@ object ObsSummaryTile
         groupId
           .flatMap(id => props.groups.get.get(id))
           .flatMap:
-            case g if g.isTelluricCalibration => obsGroup(g.parentId, groups)
-            case g                            => g.some
+            case g if g.isObsCalibration => obsGroup(g.parentId, groups)
+            case g                       => g.some
 
       def getObsRows(
         obs:      Observation,

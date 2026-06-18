@@ -504,15 +504,15 @@ object ObsTabTiles:
               targetVisualization
             )
 
-          // If we have a telluric group we want to plot the targets together
-          val telluricGroup: Map[ObjectPlotData.Id, ObjectPlotData] =
+          // If we have an observation calibration group we want to plot the targets together
+          val obsCalibrationGroup: Map[ObjectPlotData.Id, ObjectPlotData] =
             (for {
               gid   <- props.observation.get.groupId
               group <- props.programSummaries.groups.get(gid)
-              if group.isTelluricCalibration
+              if group.isObsCalibration
             } yield props.programSummaries.groupsChildren
               .getOrElse(gid.some, Nil)
-              // Collect siblings, aka the tellurics
+              // Collect siblings, aka the calibrations
               .collect:
                 case Left(obs) if obs.id =!= props.obsId => obs
               .flatMap: siblings =>
@@ -539,7 +539,7 @@ object ObsTabTiles:
           val plotData: Option[PlotData] =
             props.scienceTargetsForTracking.map: ts =>
               val scienceName =
-                if (telluricGroup.nonEmpty)
+                if (observationCalibrationGroup.nonEmpty)
                   ts.map(_.name.value).toList.mkString(", ")
                 else
                   props.obsId.show
@@ -553,7 +553,7 @@ object ObsTabTiles:
                       obsConf.configuration.foldMap(conf => List(conf.siteFor)),
                       elevationOnly = props.observation.get.isCalibration
                     )
-                ) ++ telluricGroup
+                ) ++ observationCalibrationGroup
 
           val skyPlotTile: Option[Tile[?]] =
             plotData.map: pd =>
@@ -564,7 +564,7 @@ object ObsTabTiles:
                 props.observation.get.observingMode.map(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
-                telluricGroup.isEmpty,
+                observationCalibrationGroup.isEmpty,
                 props.observation.get.schedulingConstraints.timingWindows,
                 globalPreferences.get,
                 Constants.NoTargetSelected,

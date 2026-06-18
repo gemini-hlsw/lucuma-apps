@@ -19,11 +19,11 @@ trait ObsGroupHelper:
     focusedGroupId.orElse:
       focusedObsId.flatMap(observations.get.get(_)).flatMap(_.groupId)
 
-  // If it's a telluric calibration group, switch to its parent group.
+  // If it's an observation calibration group, switch to its parent group.
   def resolveGroupId(groupId: Option[Group.Id]): Option[Group.Id] =
     val group: Option[Group] = groupId.flatMap(groups.get.get(_))
     group
-      .filterNot(_.isTelluricCalibration)
+      .filterNot(_.isObsCalibration)
       .map(_.id)
       .orElse(group.flatMap(_.parentId))
 
