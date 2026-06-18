@@ -58,15 +58,6 @@ object GdsClient:
     Retry(policy)(base)
   }
 
-  /**
-   * Client for testing always returns ok
-   */
-  def alwaysOkClient[F[_]: Async]: Client[F] =
-    val service = HttpRoutes.of[F] { case _ =>
-      Response[F](Status.Ok).withEntity("Success").pure[F]
-    }
-    Client.fromHttpApp(service.orNotFound)
-
   def loggingClient[F[_]: Logger](name: String) =
     new GdsClient[F]:
       override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
@@ -86,6 +77,16 @@ object GdsClient:
         overrideLogMessage(name, "abortObservation")
 
   object json:
+
+    /**
+     * Client for testing always returns ok
+     */
+    def alwaysOkClient[F[_]: Async]: Client[F] =
+      val service = HttpRoutes.of[F] { case _ =>
+        Response[F](Status.Ok).withEntity("Success").pure[F]
+      }
+      Client.fromHttpApp(service.orNotFound)
+
     def apply[F[_]: Temporal](base: Client[F], gdsUri: Uri): GdsClient[F] =
       new GdsClient[F] {
 
