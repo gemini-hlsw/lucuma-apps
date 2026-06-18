@@ -305,7 +305,8 @@ private trait SequenceTableBuilder[S, D: Eq](protected val instrument: Instrumen
           cell.row.original.value match
             case Left(_)        => // Header
               cell.column.id match
-                case id if id == HeaderColumnId => TagMod(^.colSpan := cols.length)
+                case id if id == HeaderColumnId =>
+                  TagMod(^.colSpan := table.getVisibleLeafColumns().length)
                 case _                          => ^.display.none
             case Right(stepRow) =>
               cell.column.id match
