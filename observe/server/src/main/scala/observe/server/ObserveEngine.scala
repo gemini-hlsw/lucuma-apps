@@ -239,7 +239,8 @@ object ObserveEngine {
       st.selected.gmosNorth,
       st.selected.flamingos2,
       st.selected.igrins2,
-      st.selected.gnirs
+      st.selected.gnirs,
+      st.selected.ghost
     ).flattenOption
 
   private def systemsBeingConfigured[F[_]](st: EngineState[F]): Set[Subsystem] =

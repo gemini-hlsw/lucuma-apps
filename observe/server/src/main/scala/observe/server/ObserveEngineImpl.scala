@@ -727,6 +727,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
         List(
           qState.selected.gmosSouth.map(x => Instrument.GmosSouth -> x.obsId),
           qState.selected.gmosNorth.map(x => Instrument.GmosNorth -> x.obsId),
+          qState.selected.ghost.map(x => Instrument.Ghost -> x.obsId),
           qState.selected.flamingos2.map(x => Instrument.Flamingos2 -> x.obsId),
           qState.selected.igrins2.map(x => Instrument.Igrins2 -> x.obsId),
           qState.selected.gnirs.map(x => Instrument.Gnirs -> x.obsId)
