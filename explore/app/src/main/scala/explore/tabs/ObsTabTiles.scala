@@ -539,7 +539,7 @@ object ObsTabTiles:
           val plotData: Option[PlotData] =
             props.scienceTargetsForTracking.map: ts =>
               val scienceName =
-                if (observationCalibrationGroup.nonEmpty)
+                if (obsCalibrationGroup.nonEmpty)
                   ts.map(_.name.value).toList.mkString(", ")
                 else
                   props.obsId.show
@@ -553,7 +553,7 @@ object ObsTabTiles:
                       obsConf.configuration.foldMap(conf => List(conf.siteFor)),
                       elevationOnly = props.observation.get.isCalibration
                     )
-                ) ++ observationCalibrationGroup
+                ) ++ obsCalibrationGroup
 
           val skyPlotTile: Option[Tile[?]] =
             plotData.map: pd =>
@@ -564,7 +564,7 @@ object ObsTabTiles:
                 props.observation.get.observingMode.map(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
-                observationCalibrationGroup.isEmpty,
+                obsCalibrationGroup.isEmpty,
                 props.observation.get.schedulingConstraints.timingWindows,
                 globalPreferences.get,
                 Constants.NoTargetSelected,
