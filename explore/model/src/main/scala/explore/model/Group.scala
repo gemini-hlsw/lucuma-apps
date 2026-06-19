@@ -5,7 +5,6 @@ package explore.model
 
 import cats.Eq
 import cats.derived.*
-import cats.syntax.eq.*
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
@@ -37,10 +36,12 @@ case class Group(
       Decoder:
   def isAnd: Boolean = minimumRequired.isEmpty
 
-  // Observations that need telluric calibration are placed by the ODB in an auto-generated AND group
-  // together with their telluric calibration observations.
-  def isTelluricCalibration: Boolean =
-    system && calibrationRoles === List(CalibrationRole.Telluric)
+  // Observations that need telluric calibration are placed by the ODB in an auto-generated AND
+  // group (an "observation calibration group") together with their calibration observations.
+  def isObsCalibration: Boolean =
+    system && calibrationRoles
+      .intersect(List(CalibrationRole.Telluric, CalibrationRole.DaytimePinhole))
+      .nonEmpty
 
 object Group:
   type Id = lucuma.core.model.Group.Id

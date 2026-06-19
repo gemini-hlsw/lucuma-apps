@@ -153,13 +153,13 @@ case class ObsTree(
   private val deleteText: Option[String]                             =
     selectedObsIdSet.map(observationsText).orElse(focusedGroupId.map(groupText))
 
-  // For a little way we have an orphan telluric when the group is dissolved
-  private def isOrphanTelluric(g: Group): Boolean =
-    g.isTelluricCalibration &&
+  // For a little way we have an orphan observation calibration when the group is dissolved
+  private def isOrphanObservationCalibration(g: Group): Boolean =
+    g.isObsCalibration &&
       !groupsChildren.get(g.id.some).orEmpty.exists(_.left.exists(_.calibrationRole.isEmpty))
 
   private def isVisibleInTree(value: Either[Observation, Group]): Boolean =
-    value.fold(_ => true, g => !isOrphanTelluric(g))
+    value.fold(_ => true, g => !isOrphanObservationCalibration(g))
 
   private def createNode(
     value:        Either[Observation, Group],
@@ -170,8 +170,8 @@ case class ObsTree(
       Tree.Id(value.fold(_.id.toString, _.id.toString)),
       value,
       children = value.toOption
-        // Telluric calibration group children are not shown as tree nodes but within the badge.
-        .filterNot(_.isTelluricCalibration)
+        // Observation calibration group children are not shown as tree nodes but within the badge.
+        .filterNot(_.isObsCalibration)
         .map: group =>
           groupsChildren
             .get(group.id.some)
@@ -188,13 +188,13 @@ case class ObsTree(
     dragOverPath: List[Group.Id]
   ): List[Node[Either[Observation, Group]]] =
     rootElements
-      .filter(_.fold(_ => true, g => !g.system || g.isTelluricCalibration))
+      .filter(_.fold(_ => true, g => !g.system || g.isObsCalibration))
       .filter(isVisibleInTree)
       .map(createNode(_, dragging, dragOverPath))
 
   private val systemTreeNodes: List[Node[Either[Observation, Group]]] =
     rootElements
-      .filter(_.fold(_ => false, g => g.system && !g.isTelluricCalibration))
+      .filter(_.fold(_ => false, g => g.system && !g.isObsCalibration))
       .map(createNode(_, dragging = none, dragOverPath = List.empty))
 
 object ObsTree:
@@ -306,7 +306,7 @@ object ObsTree:
                   .orEmpty
                   .filter:
                     case Left(_)      => true
-                    case Right(group) => !group.system || group.isTelluricCalibration
+                    case Right(group) => !group.system || group.isObsCalibration
 
               // Group indices may not be continuous. So, we compute position and then the index based on the actual children of the group.
               val newParentGroupPosIndex: Int =
@@ -367,7 +367,7 @@ object ObsTree:
             .set(props.groups)(none)
             .showToastCB(s"Deleted group ${groupId.shortName}")
 
-        // This can be invoked for a single observation or for a telluric group.
+        // This can be invoked for a single observation or for an observation calibration group.
         def renderObsCard(
           item:         Either[Observation, Group],
           inSystemTree: Boolean
@@ -494,9 +494,9 @@ object ObsTree:
                     if !expandedGroups.contains(group.id) then Operations.All
                     else Operations.ReorderOnExpandedGroup
                   ),
-              // Telluric calibration groups are rendered as observations, which can be dragged.
-              canDrag = _ => !inSystemTree || group.isTelluricCalibration,
-              canDrop = _ => !inSystemTree && !group.isTelluricCalibration,
+              // Observation calibration groups are rendered as observations, which can be dragged.
+              canDrag = _ => !inSystemTree || group.isObsCalibration,
+              canDrop = _ => !inSystemTree && !group.isObsCalibration,
               onDropTargetDrop = onDragDrop(_)
             ),
             (dndScope.dragOver.headOption.map(_.data), dndScope.dragging.map(_.value)).tupled
@@ -511,17 +511,17 @@ object ObsTree:
 
         def renderItem(nodeValue: Either[Observation, Group], inSystemTree: Boolean): VdomNode =
           nodeValue match
-            case Right(group) if group.isTelluricCalibration =>
+            case Right(group) if group.isObsCalibration =>
               renderObsCard(group.asRight, inSystemTree)
-            case Right(group)                                => renderGroup(group, inSystemTree)
-            case Left(obs)                                   => renderObsCard(obs.asLeft, inSystemTree)
+            case Right(group)                           => renderGroup(group, inSystemTree)
+            case Left(obs)                              => renderObsCard(obs.asLeft, inSystemTree)
 
         val expandFocusedGroup: Callback = props.expandedGroups.mod(_ ++ props.focusedGroupId)
 
         val isSystemGroupFocused: Boolean =
           props.resolvedActiveGroupId
             .flatMap(props.groups.get.get(_))
-            .exists(g => g.system && !g.isTelluricCalibration)
+            .exists(g => g.system && !g.isObsCalibration)
 
         val tree: VdomNode =
           if (props.deckShown.get === DeckShown.Shown) {

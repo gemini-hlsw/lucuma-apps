@@ -179,8 +179,9 @@ object all:
       case _                                  => true
 
     def needsITC: Boolean = cr match
-      case CalibrationRole.Twilight => false
-      case _                        => true
+      case CalibrationRole.Twilight       => false
+      case CalibrationRole.DaytimePinhole => false
+      case _                              => true
 
   extension (cr: Option[CalibrationRole]) def needsITC: Boolean = cr.fold(true)(_.needsITC)
 

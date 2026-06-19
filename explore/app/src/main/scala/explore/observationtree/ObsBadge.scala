@@ -19,6 +19,7 @@ import explore.model.syntax.all.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
 import lucuma.core.model.Program
@@ -92,6 +93,12 @@ object ObsBadge:
   private def obsIdentifier(obs: Observation): String =
     obs.reference.fold(s"[${obs.id.show}]")(ref => s"[${ref.observationIndex}]")
 
+  // Daytime pinhole calibrations have no meaningful target, so we label them by role.
+  private def badgeTitle(obs: Observation): String =
+    obs.calibrationRole match
+      case Some(CalibrationRole.DaytimePinhole) => "Daytime Pinhole"
+      case _                                    => obs.title
+
   private val component = ScalaFnComponent[Props]: props =>
     for
       ctx     <- useContext(AppContext.ctx)
@@ -153,7 +160,7 @@ object ObsBadge:
       val header =
         <.div(ExploreStyles.ObsBadgeHeader)(
           <.div(ExploreStyles.ObsBadgeTargetAndId)(
-            <.div(obs.title).when(layout.showTitle),
+            <.div(badgeTitle(obs)).when(layout.showTitle),
             <.div(obs.basicConfiguration.map(_.shortName).getOrElse("-"))
               .when(layout.showConfiguration === Section.Header),
             <.div(
@@ -283,7 +290,7 @@ object ObsBadge:
                             .orEmpty
                       )(^.onClick ==> (e => e.preventDefaultCB *> e.stopPropagationCB)),
                       <.span(ExploreStyles.ObsBadgeAssociatedObsContent)(
-                        <.span(childObs.title),
+                        <.span(badgeTitle(childObs)),
                         <.span(
                           obsIdentifier(childObs),
                           childObs.execution.digest.programTimeEstimate.value
