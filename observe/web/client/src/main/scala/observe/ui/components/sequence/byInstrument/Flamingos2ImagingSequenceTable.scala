@@ -1,0 +1,55 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package observe.ui.components.sequence.byInstrument
+
+import cats.syntax.option.*
+import crystal.react.View
+import japgolly.scalajs.react.*
+import lucuma.core.enums.Flamingos2Filter
+import lucuma.core.enums.Instrument
+import lucuma.core.model.Observation
+import lucuma.core.model.sequence.ExecutionConfig
+import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.flamingos2.Flamingos2StaticConfig
+import lucuma.itc.SignalToNoiseAt
+import lucuma.react.common.*
+import lucuma.schemas.model.ExecutionVisits
+import lucuma.ui.sequence.SelectedRowId
+import lucuma.ui.sequence.byInstrument.ImagingSequenceTable
+import observe.model.ExecutionState
+import observe.model.StepProgress
+import observe.model.odb.RecordedVisit
+import observe.ui.components.sequence.SequenceTable
+import observe.ui.components.sequence.SequenceTableBuilder
+import observe.ui.model.ObservationRequests
+import observe.ui.model.enums.ClientMode
+
+final case class Flamingos2ImagingSequenceTable(
+  clientMode:           ClientMode,
+  obsId:                Observation.Id,
+  config:               ExecutionConfig.Flamingos2,
+  snPerFilter:          Map[Flamingos2Filter, SignalToNoiseAt],
+  visits:               View[Option[ExecutionVisits]],
+  executionState:       ExecutionState,
+  currentRecordedVisit: Option[RecordedVisit],
+  progress:             Option[StepProgress],
+  selectedRowId:        Option[SelectedRowId],
+  setSelectedRowId:     SelectedRowId => Callback,
+  requests:             ObservationRequests,
+  isPreview:            Boolean,
+  onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
+) extends ReactFnProps(Flamingos2ImagingSequenceTable.component)
+    with SequenceTable[Flamingos2StaticConfig, Flamingos2DynamicConfig](Instrument.Flamingos2)
+    with ImagingSequenceTable[Flamingos2DynamicConfig, Flamingos2Filter]:
+  lazy val toInstrumentVisits =
+    case ExecutionVisits.Flamingos2(visits) => visits
+
+  val filterFromDynamicConfig: Flamingos2DynamicConfig => Option[Flamingos2Filter] =
+    _.filter.some
+
+object Flamingos2ImagingSequenceTable
+    extends SequenceTableBuilder[Flamingos2StaticConfig, Flamingos2DynamicConfig](
+      Instrument.Flamingos2
+    )
