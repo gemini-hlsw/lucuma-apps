@@ -5,6 +5,7 @@ package observe.server.ghost
 
 import cats.effect.Async
 import cats.effect.Ref
+import cats.effect.std.MapRef
 import cats.syntax.all.*
 import lucuma.core.util.TimeSpan
 import observe.model.CurrentConditions
@@ -12,16 +13,18 @@ import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
 import observe.server.InstrumentControllerSim
 import observe.server.keywords.GdsClient
+import observe.server.keywords.KeywordBag
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
 
 final case class GhostControllerSim[F[_]: {Async, Logger}] private (
-  sim:       InstrumentControllerSim[F],
-  configRef: Ref[F, Option[GhostConfig]]
+  sim:         InstrumentControllerSim[F],
+  configRef:   Ref[F, Option[GhostConfig]],
+  accumulator: MapRef[F, ImageFileId, Option[KeywordBag]]
 ) extends GhostController[F] {
 
-  override def gdsClient: GdsClient[F] = GdsClient.loggingClient("GHOST")
+  override def gdsClient: GdsClient[F] = GdsClient.simulatedClient("GHOST", accumulator)
 
   override def stopObserve: F[Unit] = sim.stopObserve
 
@@ -51,18 +54,18 @@ final case class GhostControllerSim[F[_]: {Async, Logger}] private (
 
 object GhostControllerSim {
   def apply[F[_]: {Async, Logger}]: F[GhostController[F]] =
-    Ref
-      .of[F, Option[GhostConfig]](none)
-      .map { configRef =>
-        GhostControllerSim(
-          InstrumentControllerSim.unsafeWithTimes(
-            "GHOST",
-            TimeSpan.Zero,
-            TimeSpan.unsafeFromDuration(1500, ChronoUnit.MILLIS),
-            TimeSpan.unsafeFromDuration(5, ChronoUnit.SECONDS)
-          ),
-          configRef
-        )
-      }
+    for {
+      cfgRef <- Ref.of[F, Option[GhostConfig]](none)
+      accRef <- MapRef.apply[F, ImageFileId, KeywordBag]
+    } yield GhostControllerSim(
+      InstrumentControllerSim.unsafeWithTimes(
+        "GHOST",
+        TimeSpan.Zero,
+        TimeSpan.unsafeFromDuration(1500, ChronoUnit.MILLIS),
+        TimeSpan.unsafeFromDuration(5, ChronoUnit.SECONDS)
+      ),
+      cfgRef,
+      accRef
+    )
 
 }

@@ -5,23 +5,26 @@ package observe.server.igrins2
 
 import cats.effect.Async
 import cats.effect.Ref
+import cats.effect.std.MapRef
 import cats.syntax.all.*
 import fs2.Stream
 import lucuma.core.util.TimeSpan
 import observe.model.dhs.ImageFileId
 import observe.server.InstrumentControllerSim
 import observe.server.keywords.GdsClient
+import observe.server.keywords.KeywordBag
 import org.typelevel.log4cats.Logger
 
 import java.time.temporal.ChronoUnit
 import scala.concurrent.duration.*
 
 final case class Igrins2ControllerSim[F[_]: {Async, Logger}] private (
-  sim:       InstrumentControllerSim[F],
-  configRef: Ref[F, Option[Igrins2Config]]
+  sim:         InstrumentControllerSim[F],
+  configRef:   Ref[F, Option[Igrins2Config]],
+  accumulator: MapRef[F, ImageFileId, Option[KeywordBag]]
 ) extends Igrins2Controller[F]:
 
-  override def gdsClient: GdsClient[F] = GdsClient.loggingClient("IGRINS-2")
+  override def gdsClient: GdsClient[F] = GdsClient.simulatedClient("IGRINS-2", accumulator)
 
   override def applyConfig(config: Igrins2Config): F[Unit] =
     configRef.set(config.some) *>
@@ -61,16 +64,16 @@ final case class Igrins2ControllerSim[F[_]: {Async, Logger}] private (
   override def dcIsWritingMEF: F[Boolean] = false.pure[F]
 
 object Igrins2ControllerSim:
-  def apply[F[_]: {Async, Logger}]: F[Igrins2Controller[F]] =
-    Ref
-      .of[F, Option[Igrins2Config]](none)
-      .map: configRef =>
-        Igrins2ControllerSim(
-          InstrumentControllerSim.unsafeWithTimes(
-            "IGRINS-2",
-            TimeSpan.Zero,
-            TimeSpan.unsafeFromDuration(1500, ChronoUnit.MILLIS),
-            TimeSpan.unsafeFromDuration(5, ChronoUnit.SECONDS)
-          ),
-          configRef
-        )
+  def apply[F[_]: {Async, Logger}]: F[Igrins2Controller[F]] = for {
+    cfgRef <- Ref.of[F, Option[Igrins2Config]](none)
+    accRef <- MapRef.apply[F, ImageFileId, KeywordBag]
+  } yield Igrins2ControllerSim(
+    InstrumentControllerSim.unsafeWithTimes(
+      "IGRINS-2",
+      TimeSpan.Zero,
+      TimeSpan.unsafeFromDuration(1500, ChronoUnit.MILLIS),
+      TimeSpan.unsafeFromDuration(5, ChronoUnit.SECONDS)
+    ),
+    cfgRef,
+    accRef
+  )
