@@ -146,26 +146,42 @@ object ObservationSequence
                   onBreakpointFlip
                 )
               case _                                                        => mismatchError
-          case SequenceData(
-                InstrumentExecutionConfig.Flamingos2(config),
-                ModeSignalToNoise.Spectroscopy(acquisitonSN, scienceSN)
-              ) =>
-            Flamingos2SequenceTable(
-              props.clientMode,
-              props.obsId,
-              config,
-              acquisitonSN,
-              scienceSN,
-              props.visits,
-              props.executionState.get,
-              props.currentRecordedVisit,
-              props.progress,
-              props.selectedRowId,
-              props.setSelectedRowId,
-              props.requests,
-              isPreview = false,
-              onBreakpointFlip
-            )
+          case SequenceData(InstrumentExecutionConfig.Flamingos2(config), signalToNoise)  =>
+            signalToNoise match
+              case ModeSignalToNoise.Spectroscopy(acquisitonSN, scienceSN) =>
+                Flamingos2SequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  acquisitonSN,
+                  scienceSN,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip
+                )
+              case ModeSignalToNoise.Flamingos2Imaging(snByFilter)         =>
+                Flamingos2ImagingSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  snByFilter,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip
+                )
+              case _                                                       => mismatchError
           case SequenceData(
                 InstrumentExecutionConfig.Igrins2(config),
                 ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN)
