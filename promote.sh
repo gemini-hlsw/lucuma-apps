@@ -14,7 +14,7 @@ SKIP_SLACK=false
 DEBUG=false
 DEBUG_CURL=()
 
-all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE")
+all_systems=("Explore" "SSO" "ITC" "ODB" "RESOURCE" "ResourceUI")
 docker_systems=("SSO" "ITC" "ODB" "RESOURCE")
 
 # Parse optional arguments
@@ -83,6 +83,36 @@ map_firebase_deploy_env() {
   esac
 }
 
+# Resolve the GitHub deployment environment for a system. Most systems use the
+# shared map_github_deploy_env mapping, but systems with a github_env_prefix
+# (e.g. ResourceUI -> resource-ui-dev) build the environment from that prefix.
+get_github_deploy_env() {
+  local system=$1
+  local env=$2
+  if [ -n "${github_env_prefix["$system"]}" ]; then
+    echo "${github_env_prefix["$system"]}-${env}"
+  else
+    map_github_deploy_env "$env"
+  fi
+}
+
+# Resolve the GitHub deployment task for a system, defaulting to deploy:<system>.
+get_github_task() {
+  local system=$1
+  echo "${github_task["$system"]:-deploy:${system}}"
+}
+
+# Resolve the Firebase hosting site for the Resource UI in a given environment.
+get_resource_ui_firebase_site() {
+  local env=$1
+  case $env in
+    "dev") echo "resource-ae0b7-dev" ;;
+    "staging") echo "resource-ae0b7-staging" ;;
+    "production") echo "resource-ae0b7" ;;
+    *) echo "resource-ae0b7-${env}" ;;
+  esac
+}
+
 # Slack notification functions
 get_github_deployment_shas() {
   local system=$1
@@ -96,7 +126,8 @@ get_github_deployment_shas() {
   fi
 
   local repo_name=${repo["$system"]}
-  local deploy_env=$(map_github_deploy_env "$env")
+  local deploy_env=$(get_github_deploy_env "$system" "$env")
+  local task=$(get_github_task "$system")
 
   # Secure curl options handling
   local curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json")
@@ -108,7 +139,7 @@ get_github_deployment_shas() {
   local curl_output
   local curl_success
   if curl_output=$(curl "${curl_opts[@]}" \
-    "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&task=deploy:${system}&per_page=1"); then
+    "https://api.github.com/repos/$repo_name/deployments?environment=${deploy_env}&task=${task}&per_page=1"); then
     curl_success=true
   else
     curl_success=false
@@ -131,8 +162,9 @@ record_github_deployment() {
   local system=$1
 
   local repo_name=${repo["$system"]}
-  local orig_env=$(map_github_deploy_env "$SOURCE_ENV")
-  local deploy_env=$(map_github_deploy_env "$TARGET_ENV")
+  local orig_env=$(get_github_deploy_env "$system" "$SOURCE_ENV")
+  local deploy_env=$(get_github_deploy_env "$system" "$TARGET_ENV")
+  local task=$(get_github_task "$system")
 
   # Secure curl options handling
   local curl_opts=("-s" "--fail-with-body" "-H" "Accept: application/vnd.github.v3+json" "-H" "Authorization: Bearer $GPP_GITHUB_TOKEN")
@@ -142,12 +174,12 @@ record_github_deployment() {
   if [[ ${docker_image_shas_object["$system"]} ]]; then payload_object=", \"payload\": { \"docker_image_shas\": ${docker_image_shas_object["$system"]} }"; fi
 
   echo "  Creating deployment record for $system in $TARGET_ENV environment..."
-  if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}\"""; fi
+  if [ "$DEBUG" = true ]; then echo "  ** Debug: curl "${curl_opts[@]}" -X POST \"https://api.github.com/repos/$repo_name/deployments\" -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"$task\"$payload_object}\"""; fi
 
   local curl_output
   local curl_success
   if curl_output=$(curl "${curl_opts[@]}" -X POST "https://api.github.com/repos/$repo_name/deployments" \
-    -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"deploy:$system\"$payload_object}" \
+    -d "{\"ref\":\"${source_sha["$system"]}\",\"auto_merge\":false,\"original_environment\":\"$orig_env\",\"environment\":\"$deploy_env\",\"description\":\"Promotion from $SOURCE_ENV to $TARGET_ENV\",\"required_contexts\": [],\"task\":\"$task\"$payload_object}" \
     ); then
     curl_success=true
   else
@@ -265,7 +297,7 @@ send_slack_notification() {
   local message="✅ $service deployed from $source_env → $target_env\nTime: $timestamp"
 
   # Include changes link for SSO, ODB and Explore
-  if [ "$service" = "SSO" ] || [ "$service" = "ODB" ] || [ "$service" = "Explore" ]; then
+  if [ "$service" = "SSO" ] || [ "$service" = "ODB" ] || [ "$service" = "Explore" ] || [ "$service" = "ResourceUI" ]; then
     if [ -n "$compare_link" ]; then
       message="✅ $service deployed from $source_env → $target_env\nChanges: $compare_link"
     else
@@ -450,6 +482,8 @@ declare -A repo
 declare -A image_name
 declare -A process_types
 declare -A backup
+declare -A github_task
+declare -A github_env_prefix
 declare -A source_sha
 declare -A docker_image_shas_object
 declare -A target_sha
@@ -477,6 +511,11 @@ image_name["RESOURCE"]="lucuma-resource"
 process_types["RESOURCE"]="web"
 backup["RESOURCE"]=false
 
+repo["ResourceUI"]="gemini-hlsw/lucuma-ts"
+github_env_prefix["ResourceUI"]="resource-ui"
+github_task["ResourceUI"]="deploy"
+backup["ResourceUI"]=false
+
 echo "##### Checking for changes between $SOURCE_ENV and $TARGET_ENV"
 echo
 
@@ -488,7 +527,7 @@ fi
 
 echo
 
-if [ "$promote["SSO"]" = false ] && [ "$promote["ITC"]" = false ] && [ "$promote["ODB"]" = false ] && [ "$PROMOTE_HASURA" = false ] && [ "$promote["Explore"]" = false ]; then
+if [ "$promote["SSO"]" = false ] && [ "$promote["ITC"]" = false ] && [ "$promote["ODB"]" = false ] && [ "$PROMOTE_HASURA" = false ] && [ "$promote["Explore"]" = false ] && [ "$promote["ResourceUI"]" = false ]; then
   echo "##### No changes detected - nothing to promote!"
   echo "All services are already up to date between $SOURCE_ENV and $TARGET_ENV"
   exit 0
@@ -580,6 +619,28 @@ if [ "${promote["Explore"]}" = true ]; then
   send_slack_notification "Explore" "$SOURCE_ENV" "$TARGET_ENV"
 else
   echo "## Skipping Explore promotion (no changes)"
+  echo
+fi
+
+# Promote Resource UI Firebase hosting (resource-ae0b7 project)
+if [ "${promote["ResourceUI"]}" = true ]; then
+  echo "## Promote Resource UI from $SOURCE_ENV to $TARGET_ENV"
+
+  source_site=$(get_resource_ui_firebase_site "$SOURCE_ENV")
+  target_site=$(get_resource_ui_firebase_site "$TARGET_ENV")
+  if firebase hosting:clone "$source_site:live" "$target_site:live"; then
+    echo "  ✓ Resource UI promoted successfully"
+  else
+    echo "  ! Resource UI promotion FAILED"
+    exit 1
+  fi
+  echo "  Recording deployment to GitHub..."
+
+  record_github_deployment "ResourceUI"
+
+  send_slack_notification "ResourceUI" "$SOURCE_ENV" "$TARGET_ENV"
+else
+  echo "## Skipping Resource UI promotion (no changes)"
   echo
 fi
 
