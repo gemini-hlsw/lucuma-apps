@@ -28,7 +28,7 @@ case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB]) extends ODBQu
   override def querySequence(obsId: Observation.Id, includeItc: Boolean): IO[SequenceData] =
     SequenceQueriesGql
       .SequenceQuery[IO]
-      .query(obsId, includeItc.assign)
+      .query(obsId, includeItc)
       .raiseGraphQLErrors
       .adaptError:
         case ResponseException(errors, _) =>

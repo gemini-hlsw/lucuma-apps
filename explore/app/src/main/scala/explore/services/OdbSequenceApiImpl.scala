@@ -7,7 +7,6 @@ import cats.MonadThrow
 import cats.syntax.all.*
 import clue.*
 import clue.FetchClient
-import clue.data.Input
 import clue.syntax.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
@@ -27,7 +26,7 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
     extends OdbSequenceApi[F]:
   def sequenceData(obsId: Observation.Id, includeItc: Boolean): F[Option[SequenceData]] =
     SequenceQuery[F]
-      .query(obsId, includeItc = Input(includeItc))
+      .query(obsId, includeItc)
       .raiseGraphQLErrors
       .map(SequenceData.fromOdbResponse)
 

@@ -13,7 +13,7 @@ object SequenceQueriesGql:
   @GraphQL
   trait SequenceQuery extends GraphQLOperation[ObservationDB]:
     val document = s"""
-        query($$obsId: ObservationId!, $$includeItc: Boolean = true) {
+        query($$obsId: ObservationId!, $$includeItc: Boolean!) {
           observation(observationId: $$obsId) @include(if: $$includeItc) {
             signalToNoise:itc $ModeSignalToNoiseSubquery
           }

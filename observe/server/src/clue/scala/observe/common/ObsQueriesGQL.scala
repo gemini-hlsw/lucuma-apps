@@ -20,7 +20,7 @@ object ObsQueriesGql:
   @GraphQL
   trait ObsQuery extends GraphQLOperation[ObservationDB]:
     val document = s"""
-      query($$obsId: ObservationId!, $$skipTargets: Boolean! = false) {
+      query($$obsId: ObservationId!, $$skipTargets: Boolean!) {
         observation(observationId: $$obsId) {
           id
           title
