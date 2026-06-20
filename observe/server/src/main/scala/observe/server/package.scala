@@ -116,7 +116,7 @@ object Length {
   given (using eq: Eq[Quantity[Long, Micrometer]]): Eq[Length] = eq
 }
 
-protected val EmptyTargetEnvironment: ObsQuery.Data.Observation.TargetEnvironment =
+val EmptyTargetEnvironment: ObsQuery.Data.Observation.TargetEnvironment =
   ObsQuery.Data.Observation.TargetEnvironment(
     asterism = List.empty,
     guideEnvironment =
