@@ -64,16 +64,14 @@ import scala.concurrent.duration.FiniteDuration
 
 import encoders.given
 import ScienceFoldPositionCodex.given
-import TcsChannels.{
-  AgMechChannels,
-  ProbeChannels,
-  ProbeTrackingChannels,
-  ProbeTrackingStateChannels,
-  PwfsMechCmdChannels,
-  SlewChannels,
-  TargetChannels,
-  WfsChannels
-}
+import TcsChannels.AgMechChannels
+import TcsChannels.ProbeChannels
+import TcsChannels.ProbeTrackingChannels
+import TcsChannels.ProbeTrackingStateChannels
+import TcsChannels.PwfsMechCmdChannels
+import TcsChannels.SlewChannels
+import TcsChannels.TargetChannels
+import TcsChannels.WfsChannels
 
 trait TcsEpicsSystem[F[_]] {
   // TcsCommands accumulates the list of channels that need to be written to set parameters.

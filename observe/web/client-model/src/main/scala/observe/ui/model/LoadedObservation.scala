@@ -35,9 +35,9 @@ object LoadedObservations extends NewType[Map[Observation.Id, Pot[LoadedObservat
 type LoadedObservations = LoadedObservations.Type
 
 case class LoadedObservation private (
-  isRefreshing: Boolean = false, // Waiting for the server. Used when resyncing after disconnect.
-  sequenceData: Pot[SequenceData] = Pot.pending,
-  visits:       Pot[Option[ExecutionVisits]] = Pot.pending
+  isRefreshing: Boolean,
+  sequenceData: Pot[SequenceData],
+  visits:       Pot[Option[ExecutionVisits]]
 ) derives Eq:
   private def potFromEither[A](e: Either[Throwable, A]): Pot[A] =
     e.toTry.toPot
@@ -74,9 +74,11 @@ case class LoadedObservation private (
       case ExecutionVisits.Ghost(visits)      => visits.last.id
 
 object LoadedObservation:
-  def apply(): LoadedObservation = new LoadedObservation()
+  def apply(): LoadedObservation =
+    new LoadedObservation(isRefreshing = false, sequenceData = Pot.pending, visits = Pot.pending)
 
-  val isRefreshing: Lens[LoadedObservation, Boolean]                = Focus[LoadedObservation](_.isRefreshing)
+  val isRefreshing: Lens[LoadedObservation, Boolean]                =
+    Focus[LoadedObservation](_.isRefreshing)
   val sequenceData: Lens[LoadedObservation, Pot[SequenceData]]      =
     Focus[LoadedObservation](_.sequenceData)
   val visits: Lens[LoadedObservation, Pot[Option[ExecutionVisits]]] =

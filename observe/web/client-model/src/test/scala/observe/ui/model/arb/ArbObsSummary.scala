@@ -6,6 +6,7 @@ package observe.ui.model.arb
 import cats.Order.given
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.string.NonEmptyString
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.model.Attachment
@@ -44,6 +45,7 @@ trait ArbObsSummary:
       attachmentIds      <- arbitrary[List[Attachment.Id]]
       observingMode      <- arbitrary[Option[ObservingMode]]
       observationTime    <- arbitrary[Option[Instant]]
+      calRole            <- arbitrary[Option[CalibrationRole]]
       posAngleConstraint <- arbitrary[PosAngleConstraint]
       obsReference       <- arbitrary[Option[ObservationReference]]
       workflowState      <- arbitrary[ObservationWorkflowState]
@@ -58,6 +60,7 @@ trait ArbObsSummary:
       SortedSet.from(attachmentIds),
       observingMode,
       observationTime,
+      calRole,
       posAngleConstraint,
       obsReference,
       workflowState
@@ -75,6 +78,7 @@ trait ArbObsSummary:
        List[Attachment.Id],
        Option[ObservingMode],
        Option[Instant],
+       Option[CalibrationRole],
        PosAngleConstraint,
        Option[ObservationReference],
        ObservationWorkflowState
@@ -91,6 +95,7 @@ trait ArbObsSummary:
          s.attachmentIds.toList,
          s.observingMode,
          s.observationTime,
+         s.calibrationRole,
          s.posAngleConstraint,
          s.obsReference,
          s.workflowState

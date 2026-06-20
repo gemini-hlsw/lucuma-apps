@@ -13,6 +13,7 @@ import io.circe.Decoder
 import io.circe.HCursor
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObservationWorkflowState
@@ -45,6 +46,7 @@ case class ObsSummary(
   attachmentIds:      SortedSet[Attachment.Id],
   observingMode:      Option[ObservingMode],
   observationTime:    Option[Instant],
+  calibrationRole:    Option[CalibrationRole],
   posAngleConstraint: PosAngleConstraint,
   obsReference:       Option[ObservationReference],
   workflowState:      ObservationWorkflowState
@@ -121,6 +123,7 @@ object ObsSummary:
   val attachmentIds      = Focus[ObsSummary](_.attachmentIds)
   val observingMode      = Focus[ObsSummary](_.observingMode)
   val observationTime    = Focus[ObsSummary](_.observationTime)
+  val calibrationRole    = Focus[ObsSummary](_.calibrationRole)
   val posAngleConstraint = Focus[ObsSummary](_.posAngleConstraint)
   val obsReference       = Focus[ObsSummary](_.obsReference)
 
@@ -140,6 +143,7 @@ object ObsSummary:
       attachmentIds      <- c.get[List[AttachmentIdWrapper]]("attachments")
       observingMode      <- c.get[Option[ObservingMode]]("observingMode")
       observationTime    <- c.get[Option[Timestamp]]("observationTime")
+      calibrationRole    <- c.get[Option[CalibrationRole]]("calibrationRole")
       posAngleConstraint <- c.get[PosAngleConstraint]("posAngleConstraint")
       obsReference       <-
         c.get[Option[HCursor]]("reference")
@@ -159,6 +163,7 @@ object ObsSummary:
       SortedSet.from(attachmentIds.map(_.id)),
       observingMode,
       observationTime.map(_.toInstant),
+      calibrationRole,
       posAngleConstraint,
       obsReference,
       workflowState

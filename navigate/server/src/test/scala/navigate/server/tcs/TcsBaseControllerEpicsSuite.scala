@@ -110,16 +110,14 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
 import TcsBaseController.*
-import TestTcsEpicsSystem.{
-  GuideConfigState,
-  ProbeState,
-  ProbeTrackingState,
-  ProbeTrackingStateState,
-  State,
-  TargetChannelsState,
-  WfsChannelState,
-  WfsObserveChannelState
-}
+import TestTcsEpicsSystem.GuideConfigState
+import TestTcsEpicsSystem.ProbeState
+import TestTcsEpicsSystem.ProbeTrackingState
+import TestTcsEpicsSystem.ProbeTrackingStateState
+import TestTcsEpicsSystem.State
+import TestTcsEpicsSystem.TargetChannelsState
+import TestTcsEpicsSystem.WfsChannelState
+import TestTcsEpicsSystem.WfsObserveChannelState
 import encoders.given
 
 class TcsBaseControllerEpicsSuite extends CatsEffectSuite {

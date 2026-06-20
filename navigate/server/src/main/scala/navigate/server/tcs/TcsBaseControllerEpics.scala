@@ -121,13 +121,11 @@ import org.typelevel.log4cats.Logger
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
 
-import TcsBaseController.{
-  AcCommands,
-  EquinoxDefault,
-  FixedSystem,
-  PwfsMechanismCommands,
-  SystemDefault
-}
+import TcsBaseController.AcCommands
+import TcsBaseController.EquinoxDefault
+import TcsBaseController.FixedSystem
+import TcsBaseController.PwfsMechanismCommands
+import TcsBaseController.SystemDefault
 import ScienceFoldPositionCodex.*
 
 /* This class implements the common TCS commands */

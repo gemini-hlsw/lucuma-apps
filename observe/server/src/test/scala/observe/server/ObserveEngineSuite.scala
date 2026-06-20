@@ -29,7 +29,6 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.refined.given
-import lucuma.schemas.model.ModeSignalToNoise
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.FirstScienceTarget
 import observe.common.test.*
@@ -559,12 +558,13 @@ class ObserveEngineSuite extends TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      defaultTargetEnvironment.copy(
-        firstScienceTarget = Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName))
-      ),
+      defaultTargetEnvironment
+        .copy(
+          firstScienceTarget = Some(FirstScienceTarget(Target.Id.fromLong(1).get, targetName))
+        )
+        .some,
       reqConditions,
-      List.empty,
-      ModeSignalToNoise.Spectroscopy(none, none)
+      List.empty
     )
 
     (obs, stepList)
@@ -698,10 +698,9 @@ class ObserveEngineSuite extends TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      defaultTargetEnvironment,
+      defaultTargetEnvironment.some,
       reqConditions,
-      List.empty,
-      ModeSignalToNoise.Spectroscopy(none, none)
+      List.empty
     )
 
     (obs, stepList)

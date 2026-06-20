@@ -3,8 +3,6 @@
 
 package observe.model.arb
 
-import lucuma.core.math.SignalToNoise
-import lucuma.core.math.arb.ArbSignalToNoise
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
@@ -28,7 +26,6 @@ import org.scalacheck.Gen
 import ArbDhsTypes.given
 import ArbInstrumentDynamicConfig.given
 import ArbNsRunningState.given
-import ArbSignalToNoise.given
 import ArbStepState.given
 import ArbSubsystem.given
 
@@ -61,7 +58,6 @@ trait ArbNodAndShuffleStep {
         d  <- arbitrary[InstrumentDynamicConfig]
         t  <- arbitrary[StepConfig]
         tc <- arbitrary[TelescopeConfig]
-        sn <- arbitrary[Option[SignalToNoise]]
         s  <- arbitrary[StepState]
         f  <- arbitrary[Option[dhs.ImageFileId]]
         cs <- arbitrary[Map[Subsystem, ActionStatus]]
@@ -72,7 +68,6 @@ trait ArbNodAndShuffleStep {
         instConfig = d,
         stepConfig = t,
         telescopeConfig = tc,
-        signalToNoise = sn,
         status = s,
         fileId = f,
         configStatus = cs,
@@ -88,7 +83,6 @@ trait ArbNodAndShuffleStep {
         InstrumentDynamicConfig,
         StepConfig,
         TelescopeConfig,
-        Option[SignalToNoise],
         StepState,
         Option[dhs.ImageFileId],
         List[(Subsystem, ActionStatus)],
@@ -99,7 +93,6 @@ trait ArbNodAndShuffleStep {
        s.instConfig,
        s.stepConfig,
        s.telescopeConfig,
-       s.signalToNoise,
        s.status,
        s.fileId,
        s.configStatus.toList,

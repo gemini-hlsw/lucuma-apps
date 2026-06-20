@@ -7,6 +7,7 @@ import cats.effect.Sync
 import cats.syntax.all.*
 import clue.FetchClient
 import clue.syntax.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.Observation
 import lucuma.schemas.ObservationDB
 import observe.common.ObsQueriesGql.*
@@ -19,20 +20,27 @@ trait OdbProxy[F[_]] private[odb] () extends OdbCommands[F] {
 }
 
 object OdbProxy {
+
   def apply[F[_]](
     evCmds: OdbCommands[F]
   )(using FetchClient[F, ObservationDB])(using F: Sync[F]): OdbProxy[F] =
     new OdbProxy[F] {
       def read(oid: Observation.Id): F[OdbObservationData] =
-        ObsQuery[F]
+        ObsCalibrationRoleQuery[F]
           .query(oid)
           .raiseGraphQLErrors
-          .flatMap: data =>
-            (data.observation, data.executionConfig).tupled
-              .fold(
-                F.raiseError[OdbObservationData]:
-                  ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
-              )((obs, ec) => OdbObservationData(obs, ec).pure[F])
+          .map(_.observation.flatMap(_.calibrationRole))
+          .flatMap: calibrationRole =>
+            val skipTargets: Boolean = calibrationRole.contains_(CalibrationRole.DaytimePinhole)
+            ObsQuery[F]
+              .query(oid, skipTargets)
+              .raiseGraphQLErrors
+              .flatMap: data =>
+                (data.observation, data.executionConfig).tupled
+                  .fold(
+                    F.raiseError[OdbObservationData]:
+                      ObserveFailure.Unexpected(s"OdbProxy: Unable to read observation $oid")
+                  )((obs, ec) => OdbObservationData(obs, ec).pure[F])
 
       def resetAcquisition(obsId: Observation.Id): F[Unit] =
         ResetAcquisitionMutation[F].execute(obsId = obsId).void

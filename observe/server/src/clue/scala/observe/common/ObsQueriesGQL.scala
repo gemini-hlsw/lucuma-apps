@@ -6,8 +6,9 @@ package observe.common
 import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
+import lucuma.core.math.Coordinates
 import lucuma.core.model
-import lucuma.core.model.sequence.InstrumentExecutionConfig
+import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.odb.*
 // gql: import io.circe.refined.*
 // gql: import lucuma.schemas.decoders.given
@@ -15,10 +16,11 @@ import lucuma.schemas.odb.*
 
 object ObsQueriesGql:
 
+  // Query observations with targets.
   @GraphQL
   trait ObsQuery extends GraphQLOperation[ObservationDB]:
     val document = s"""
-      query($$obsId: ObservationId!) {
+      query($$obsId: ObservationId!, $$skipTargets: Boolean! = false) {
         observation(observationId: $$obsId) {
           id
           title
@@ -28,7 +30,7 @@ object ObsQueriesGql:
             name
             goa { proprietaryMonths }
           }
-          targetEnvironment {
+          targetEnvironment @skip(if: $$skipTargets) {
             asterism $TargetWithIdSubquery
             firstScienceTarget {
               targetId: id
@@ -52,106 +54,9 @@ object ObsQueriesGql:
           }
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery
-          signalToNoise:itc $ModeSignalToNoiseSubquery
         }
 
-        executionConfig(observationId: $$obsId, futureLimit: 100) {
-          instrument
-          gmosNorth {
-            static {
-              stageMode
-              detector
-              mosPreImaging
-              nodAndShuffle { ...nodAndShuffleFields }
-            }
-            acquisition { ...gmosNorthSequenceFields }
-            science { ...gmosNorthSequenceFields }
-          }
-          gmosSouth {
-            static {
-              stageMode
-              detector
-              mosPreImaging
-              nodAndShuffle { ...nodAndShuffleFields }
-            }
-            acquisition { ...gmosSouthSequenceFields }
-            science { ...gmosSouthSequenceFields }
-          }
-          flamingos2 {
-            static {
-              mosPreImaging
-              useElectronicOffsetting
-            }
-            acquisition { ...flamingos2SequenceFields }
-            science { ...flamingos2SequenceFields }
-          }
-          igrins2 {
-            static {
-              saveSVCImages
-              offsetMode
-            }
-            science { ...igrins2SequenceFields }
-          }
-          gnirs {
-            static {
-              wellDepth
-            }
-            acquisition { ...gnirsSequenceFields }
-            science { ...gnirsSequenceFields }
-          }
-          ghost {
-            static {
-              resolutionMode
-              ifuMapping $GhostIfuMappingSubquery
-              slitViewingCameraExposureTime $TimeSpanSubquery
-            }
-            science { ...ghostSequenceFields }
-          }
-        }
-      }
-
-      fragment nodAndShuffleFields on GmosNodAndShuffle {
-        posA $OffsetSubquery
-        posB $OffsetSubquery
-        eOffset
-        shuffleOffset
-        shuffleCycles
-      }
-
-      fragment gmosNorthSequenceFields on GmosNorthExecutionSequence {
-        nextAtom $GmosNorthAtomSubquery
-        possibleFuture $GmosNorthAtomSubquery
-        hasMore
-      }
-
-      fragment gmosSouthSequenceFields on GmosSouthExecutionSequence {
-        nextAtom $GmosSouthAtomSubquery
-        possibleFuture $GmosSouthAtomSubquery
-        hasMore
-      }
-
-      fragment flamingos2SequenceFields on Flamingos2ExecutionSequence {
-        nextAtom $Flamingos2AtomSubquery
-        possibleFuture $Flamingos2AtomSubquery
-        hasMore
-      }
-
-      fragment igrins2SequenceFields on Igrins2ExecutionSequence {
-        nextAtom $Igrins2AtomSubquery
-        possibleFuture $Igrins2AtomSubquery
-        hasMore
-      }
-
-      fragment gnirsSequenceFields on GnirsExecutionSequence {
-        nextAtom $GnirsAtomSubquery
-        possibleFuture $GnirsAtomSubquery
-        hasMore
-      }
-
-      fragment ghostSequenceFields on GhostExecutionSequence {
-        nextAtom $GhostAtomSubquery
-        possibleFuture $GhostAtomSubquery
-        hasMore
+        executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
       }
     """
 
@@ -159,10 +64,20 @@ object ObsQueriesGql:
       object Observation:
         type ConstraintSet = model.ConstraintSet
         type TimingWindows = model.TimingWindow
-        object TargetEnvironment {
-          type ExplicitBase = lucuma.core.math.Coordinates
+        object TargetEnvironment:
+          type Asterism     = TargetWithId
+          type ExplicitBase = Coordinates
+
+  // Lightweight query to determine the skipTargets parameter in the query above.
+  @GraphQL
+  trait ObsCalibrationRoleQuery extends GraphQLOperation[ObservationDB]:
+    val document = """
+      query($obsId: ObservationId!) {
+        observation(observationId: $obsId) {
+          calibrationRole
         }
-      type ExecutionConfig = InstrumentExecutionConfig
+      }
+      """
 
   @GraphQL
   trait ResetAcquisitionMutation extends GraphQLOperation[ObservationDB]:

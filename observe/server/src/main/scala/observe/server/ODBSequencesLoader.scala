@@ -53,7 +53,8 @@ object ODBSequencesLoader {
         SequenceData.GmosNorth(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,
@@ -64,7 +65,8 @@ object ODBSequencesLoader {
         SequenceData.GmosSouth(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,
@@ -75,7 +77,8 @@ object ODBSequencesLoader {
         SequenceData.Flamingos2(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,
@@ -86,7 +89,8 @@ object ODBSequencesLoader {
         SequenceData.Igrins2(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,
@@ -97,7 +101,8 @@ object ODBSequencesLoader {
         SequenceData.Ghost(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,
@@ -108,7 +113,8 @@ object ODBSequencesLoader {
         SequenceData.Gnirs(
           observer = observer,
           overrides = SystemOverrides.AllEnabled,
-          targetEnvironment = odbData.observation.targetEnvironment,
+          targetEnvironment =
+            odbData.observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
           constraintSet = odbData.observation.constraintSet,
           staticCfg = ec.static,
           seq = seqState,

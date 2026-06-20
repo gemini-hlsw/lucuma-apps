@@ -406,7 +406,10 @@ object MainApp extends ServerEventHandler:
                 )(_ =>
                   provideApiCtx(
                     ResyncingPopup,
-                    ObservationSyncer(rootModelData.zoom(RootModelData.loadedObservations)),
+                    ObservationSyncer(
+                      rootModelData.zoom(RootModelData.loadedObservations),
+                      rootModelData.get.readyObservationsMap
+                    ),
                     router(RootModel(clientConfigPot.get, rootModelData))
                   )
                 )

@@ -34,7 +34,8 @@ import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-import spectralDefinition.{IntegratedSpectralDefinitionEditor, SurfaceSpectralDefinitionEditor}
+import spectralDefinition.IntegratedSpectralDefinitionEditor
+import spectralDefinition.SurfaceSpectralDefinitionEditor
 
 case class SourceProfileEditor(
   programId:       Program.Id,

@@ -6,7 +6,6 @@ package observe.server
 import cats.syntax.eq.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
@@ -33,13 +32,12 @@ sealed trait StepGen[F[_]]:
   def instConfig: D
   def config: StepConfig
   def telescopeConfig: CoreTelescopeConfig
-  def signalToNoise: Option[SignalToNoise]
   def breakpoint: Breakpoint
   def statusGen: StepStatusGen = StepStatusGen.Null
 
   def isSameAs(other: StepGen[F]): Boolean =
     atomId === other.atomId && sequenceType === other.sequenceType && id === other.id && dataId === other.dataId && resources === other.resources &&
-      config === other.config && telescopeConfig === other.telescopeConfig && signalToNoise === other.signalToNoise &&
+      config === other.config && telescopeConfig === other.telescopeConfig &&
       ((this, other) match
         case (a: StepGen.GmosNorth[F], b: StepGen.GmosNorth[F])   =>
           a.instConfig === b.instConfig
@@ -68,7 +66,6 @@ object StepGen:
     instConfig: D,
     config: StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise: Option[SignalToNoise],
     breakpoint: Breakpoint
   ) => Aux[F, D]
 
@@ -90,7 +87,6 @@ object StepGen:
     instConfig:      gmos.DynamicConfig.GmosNorth,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = gmos.DynamicConfig.GmosNorth
@@ -106,7 +102,6 @@ object StepGen:
     instConfig:      gmos.DynamicConfig.GmosSouth,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = gmos.DynamicConfig.GmosSouth
@@ -122,7 +117,6 @@ object StepGen:
     instConfig:      Flamingos2DynamicConfig,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Flamingos2DynamicConfig
@@ -138,7 +132,6 @@ object StepGen:
     instConfig:      Igrins2DynamicConfig,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = Igrins2DynamicConfig
@@ -154,7 +147,6 @@ object StepGen:
     instConfig:      GnirsDynamicConfig,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = GnirsDynamicConfig
@@ -170,7 +162,6 @@ object StepGen:
     instConfig:      GhostDynamicConfig,
     config:          StepConfig,
     telescopeConfig: CoreTelescopeConfig,
-    signalToNoise:   Option[SignalToNoise],
     breakpoint:      Breakpoint
   ) extends StepGen[F]:
     type D = GhostDynamicConfig

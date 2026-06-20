@@ -13,6 +13,7 @@ import crystal.react.*
 import crystal.react.hooks.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CalibrationRole
 import lucuma.core.model.Observation
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -23,25 +24,36 @@ import observe.queries.ObsQueriesGQL
 import observe.ui.model.AppContext
 import observe.ui.model.LoadedObservation
 import observe.ui.model.LoadedObservations
+import observe.ui.model.ObsSummary
 import observe.ui.model.reusability.given
 import observe.ui.services.ODBQueryApi
 import observe.ui.services.SequenceApi
 import org.typelevel.log4cats.Logger
 
 // Renderless component that reloads observation summaries and sequences when observations are selected.
-case class ObservationSyncer(loadedObservations: View[LoadedObservations])
-    extends ReactFnProps(ObservationSyncer)
+case class ObservationSyncer(
+  loadedObservations:   View[LoadedObservations],
+  readyObservationsMap: Map[Observation.Id, ObsSummary]
+) extends ReactFnProps(ObservationSyncer)
 
 object ObservationSyncer
     extends ReactFnComponent[ObservationSyncer](props =>
+      def includeItc(obsId: Observation.Id, obsMap: Map[Observation.Id, ObsSummary]): Boolean =
+        obsMap
+          .get(obsId)
+          .flatMap(_.calibrationRole)
+          .forall: role =>
+            role != CalibrationRole.Twilight && role != CalibrationRole.DaytimePinhole
+
       def updateSequence(
         obsId:       Observation.Id,
         obs:         View[LoadedObservation],
-        odbQueryApi: ODBQueryApi[IO]
+        odbQueryApi: ODBQueryApi[IO],
+        obsMap:      Map[Observation.Id, ObsSummary]
       )(using Logger[IO]): IO[Unit] = {
         val refreshSequence: IO[Unit] =
           odbQueryApi
-            .querySequence(obsId)
+            .querySequence(obsId, includeItc(obsId, obsMap))
             .attempt
             .flatMap: seqData =>
               obs.async.mod(_.withSequenceData(seqData))
@@ -60,7 +72,8 @@ object ObservationSyncer
       def observationUpdater(
         obsId:       Observation.Id,
         obs:         View[LoadedObservation],
-        odbQueryApi: ODBQueryApi[IO]
+        odbQueryApi: ODBQueryApi[IO],
+        obsMap:      Map[Observation.Id, ObsSummary]
       )(using
         StreamingClient[IO, ObservationDB],
         Logger[IO]
@@ -82,7 +95,7 @@ object ObservationSyncer
         val requerySignal: Resource[IO, fs2.Stream[IO, Unit]] =
           (obsChangedSubscription, datasetChangedSubscription).mapN(_.merge(_))
 
-        updateSequence(obsId, obs, odbQueryApi)
+        updateSequence(obsId, obs, odbQueryApi, obsMap)
           .reRunOnResourceSignals:
             requerySignal
       }
@@ -99,36 +112,48 @@ object ObservationSyncer
         odbQueryApi            <- useContext(ODBQueryApi.ctx)
         subscribedObservations <- useRef(Map.empty[Observation.Id, IO[Unit]]) // Cancel effects
         _                      <-
-          useEffectWithDeps(props.loadedObservations.get.readyObsIds): readyObsIds =>
+          useEffectWithDeps(
+            (props.loadedObservations.get.readyObsIds, props.readyObservationsMap.nonEmpty)
+          ): (readyObsIds, obsListReady) =>
             import ctx.given
 
-            val toSubscribe: Set[Observation.Id] =
-              readyObsIds -- subscribedObservations.value.keySet
+            // Don't start sequence queries until the obs list is loaded so that calibration roles
+            // are known and includeItc is set correctly.
+            if !obsListReady then IO.unit
+            else
+              val toSubscribe: Set[Observation.Id] =
+                readyObsIds -- subscribedObservations.value.keySet
 
-            val toUnsubscribe: Set[Observation.Id] =
-              subscribedObservations.value.keySet -- readyObsIds
+              val toUnsubscribe: Set[Observation.Id] =
+                subscribedObservations.value.keySet -- readyObsIds
 
-            val subEffects: Set[IO[Unit]] =
-              toSubscribe.map: obsId =>
-                loadedObsView(obsId)
-                  .fold(IO.unit): obsView =>
-                    for
-                      (_, canceller) <- observationUpdater(obsId, obsView, odbQueryApi)
-                                          .map(_.compile.drain)
-                                          .flatMap(_.background)
-                                          .allocated
-                      _              <- subscribedObservations.modAsync(_ + (obsId -> canceller))
-                    yield ()
+              val subEffects: Set[IO[Unit]] =
+                toSubscribe.map: obsId =>
+                  loadedObsView(obsId)
+                    .fold(IO.unit): obsView =>
+                      for
+                        (_, canceller) <-
+                          observationUpdater(
+                            obsId,
+                            obsView,
+                            odbQueryApi,
+                            props.readyObservationsMap
+                          )
+                            .map(_.compile.drain)
+                            .flatMap(_.background)
+                            .allocated
+                        _              <- subscribedObservations.modAsync(_ + (obsId -> canceller))
+                      yield ()
 
-            val unsubscribeEffects: Set[IO[Unit]] =
-              toUnsubscribe.map: obsId =>
-                for
-                  cancel <- subscribedObservations.getAsync.map(_.get(obsId))
-                  _      <- subscribedObservations.modAsync(_ - obsId)
-                  _      <- cancel.foldMap(identity)
-                yield ()
+              val unsubscribeEffects: Set[IO[Unit]] =
+                toUnsubscribe.map: obsId =>
+                  for
+                    cancel <- subscribedObservations.getAsync.map(_.get(obsId))
+                    _      <- subscribedObservations.modAsync(_ - obsId)
+                    _      <- cancel.foldMap(identity)
+                  yield ()
 
-            (subEffects ++ unsubscribeEffects).toList.parSequence_
+              (subEffects ++ unsubscribeEffects).toList.parSequence_
         odbConnectionStatus    <- useStreamOnMount(ctx.odbClient.statusStream.changes)
         _                      <-
           useEffectWhenDepsReadyOrChange(odbConnectionStatus.toPot):
@@ -140,7 +165,7 @@ object ObservationSyncer
                 loadedObsView(obsId)
                   .fold(IO.unit): obsView =>
                     obsView.async.mod(_.reset) >>
-                      updateSequence(obsId, obsView, odbQueryApi)
+                      updateSequence(obsId, obsView, odbQueryApi, props.readyObservationsMap)
             case _                                => // On disconnect, do nothing.
               IO.unit
       yield EmptyVdom

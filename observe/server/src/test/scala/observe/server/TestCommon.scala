@@ -57,7 +57,6 @@ import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.TimeSpan
-import lucuma.schemas.model.ModeSignalToNoise
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
@@ -357,7 +356,7 @@ object TestCommon {
         None,
         ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
       ),
-      defaultTargetEnvironment,
+      defaultTargetEnvironment.some,
       ConstraintSet(
         ImageQuality.Preset.PointOne,
         CloudExtinction.Preset.PointOne,
@@ -365,8 +364,7 @@ object TestCommon {
         WaterVapor.Median,
         ElevationRange.ByAirMass.Default
       ),
-      List.empty,
-      ModeSignalToNoise.Spectroscopy(none, none)
+      List.empty
     )
 
   /** Builds an OdbObservationData for testing with GmosNorth execution config. */
@@ -421,7 +419,6 @@ object TestCommon {
       instConfig = dynamicCfg1,
       config = stepCfg1,
       telescopeConfig = telescopeCfg1,
-      signalToNoise = none,
       breakpoint = Breakpoint.Disabled
     )
 
@@ -449,7 +446,6 @@ object TestCommon {
       instConfig = dynamicCfg1,
       config = stepCfg1,
       telescopeConfig = telescopeCfg1,
-      signalToNoise = none,
       breakpoint = Breakpoint.Disabled
     )
 

@@ -9,7 +9,6 @@ import cats.derived.*
 import cats.syntax.all.*
 import io.circe.*
 import lucuma.core.enums.Breakpoint
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.TelescopeConfig
@@ -28,7 +27,6 @@ enum ObserveStep(
   val instConfig:      InstrumentDynamicConfig,
   val stepConfig:      StepConfig,
   val telescopeConfig: TelescopeConfig,
-  val signalToNoise:   Option[SignalToNoise],
   val status:          StepState,
   val fileId:          Option[ImageFileId],
   val configStatus:    Map[Subsystem, ActionStatus]
@@ -40,7 +38,6 @@ enum ObserveStep(
     override val instConfig:      InstrumentDynamicConfig,
     override val stepConfig:      StepConfig,
     override val telescopeConfig: TelescopeConfig,
-    override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
     override val configStatus:    Map[Subsystem, ActionStatus],
@@ -50,7 +47,6 @@ enum ObserveStep(
         instConfig,
         stepConfig,
         telescopeConfig,
-        signalToNoise,
         status,
         fileId,
         configStatus
@@ -61,7 +57,6 @@ enum ObserveStep(
     override val instConfig:      InstrumentDynamicConfig,
     override val stepConfig:      StepConfig,
     override val telescopeConfig: TelescopeConfig,
-    override val signalToNoise:   Option[SignalToNoise],
     override val status:          StepState,
     override val fileId:          Option[ImageFileId],
     override val configStatus:    Map[Subsystem, ActionStatus],
@@ -72,7 +67,6 @@ enum ObserveStep(
         instConfig,
         stepConfig,
         telescopeConfig,
-        signalToNoise,
         status,
         fileId,
         configStatus
@@ -81,21 +75,12 @@ enum ObserveStep(
 object ObserveStep:
   // Derivation doesn't generate instances for subtypes.
   given Eq[Standard]      = Eq.by: x =>
-    (x.id,
-     x.instConfig,
-     x.stepConfig,
-     x.telescopeConfig,
-     x.signalToNoise,
-     x.status,
-     x.fileId,
-     x.configStatus
-    )
+    (x.id, x.instConfig, x.stepConfig, x.telescopeConfig, x.status, x.fileId, x.configStatus)
   given Eq[NodAndShuffle] = Eq.by: x =>
     (x.id,
      x.instConfig,
      x.stepConfig,
      x.telescopeConfig,
-     x.signalToNoise,
      x.status,
      x.fileId,
      x.configStatus,
