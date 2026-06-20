@@ -7,7 +7,7 @@
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.2.0",
     "@react-hook/resize-observer": "2.0.2",
     "@tanstack/react-table": "8.21.3",
-    "@tanstack/react-virtual": "3.14.2",
+    "@tanstack/react-virtual": "3.14.3",
     "@vitejs/plugin-react": "6.0.2",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
