@@ -9,7 +9,9 @@ import fs2.Stream
 import munit.CatsEffectSuite
 import navigate.server.ApplyCommandResult
 
-import GeminiApplyCommand.{ApplyValChange, CarValChange, Event}
+import GeminiApplyCommand.ApplyValChange
+import GeminiApplyCommand.CarValChange
+import GeminiApplyCommand.Event
 
 class GeminiApplyCommandSuite extends CatsEffectSuite {
 

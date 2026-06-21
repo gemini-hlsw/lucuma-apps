@@ -9,7 +9,10 @@ import monocle.Lens
 import observe.model.ActionType
 import observe.model.enums.ActionStatus
 
-import Result.{Error, PartialVal, PauseContext, RetVal}
+import Result.Error
+import Result.PartialVal
+import Result.PauseContext
+import Result.RetVal
 
 case class Action[F[_]](
   kind:            ActionType,

@@ -21,7 +21,7 @@ trait ODBQueryApi[F[_]: Sync]:
   ): F[Option[ExecutionVisits]] =
     Sync[F].delay(???)
 
-  def querySequence(@unused obsId: Observation.Id): F[SequenceData] =
+  def querySequence(@unused obsId: Observation.Id, @unused includeItc: Boolean): F[SequenceData] =
     Sync[F].delay(???)
 
 object ODBQueryApi:

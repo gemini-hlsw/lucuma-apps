@@ -21,6 +21,7 @@ object ObservationSummarySubquery
           subtitle
           instrument
           observationTime
+          calibrationRole
           posAngleConstraint $PosAngleConstraintSubquery
           constraintSet $ConstraintSetSubquery
           timingWindows $TimingWindowSubquery

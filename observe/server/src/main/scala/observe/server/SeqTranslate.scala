@@ -16,7 +16,6 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.ExecutionConfig
@@ -36,7 +35,6 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Scalars.Timestamp
-import lucuma.schemas.model.ModeSignalToNoise
 import mouse.all.*
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
@@ -101,14 +99,13 @@ object SeqTranslate {
     private val overriddenSystems = new Systems.OverriddenSystems[F](systemss)
 
     private def translateStep[S, D](
-      observation:   OdbObservation,
-      atomId:        Atom.Id,
-      sequenceType:  SequenceType,
-      step:          OdbStep[D],
-      signalToNoise: Option[SignalToNoise],
-      dataIdx:       PosInt,
-      insStep:       InstrumentStep[F],
-      mkStepGen:     StepGen.Factory[F, D]
+      observation:  OdbObservation,
+      atomId:       Atom.Id,
+      sequenceType: SequenceType,
+      step:         OdbStep[D],
+      dataIdx:      PosInt,
+      insStep:      InstrumentStep[F],
+      mkStepGen:    StepGen.Factory[F, D]
     ): StepGen[F] = {
 
       def buildStep(
@@ -187,7 +184,6 @@ object SeqTranslate {
           instConfig = step.instrumentConfig,
           config = step.stepConfig,
           telescopeConfig = step.telescopeConfig,
-          signalToNoise = signalToNoise,
           breakpoint = step.breakpoint
         )
 
@@ -242,29 +238,6 @@ object SeqTranslate {
         case SequenceType.Science     =>
           nextStepFromExecutionSequence(execConfig.science, SequenceType.Science)
 
-    def stepSignalToNoise[D](
-      modeSignalToNoise: ModeSignalToNoise,
-      instrumentConfig:  D,
-      sequenceType:      SequenceType
-    ): Option[SignalToNoise] =
-      (modeSignalToNoise, instrumentConfig) match
-        case (ModeSignalToNoise.Spectroscopy(acquisition, science),
-              _: gmos.DynamicConfig | Flamingos2DynamicConfig
-            ) =>
-          sequenceType match
-            case SequenceType.Acquisition => acquisition.map(_.single.value)
-            case SequenceType.Science     => science.map(_.single.value)
-        case (ModeSignalToNoise.GmosNorthImaging(snByFilter),
-              gnConfig: gmos.DynamicConfig.GmosNorth
-            ) =>
-          gnConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
-        case (ModeSignalToNoise.GmosSouthImaging(snByFilter),
-              gsConfig: gmos.DynamicConfig.GmosSouth
-            ) =>
-          gsConfig.filter.flatMap(snByFilter.get(_)).map(_.single.value)
-        // Step/SN mismatch or unsupported instrument
-        case _ => none
-
     private def buildStep[S, D](
       observation:     OdbObservation,
       obsTime:         Timestamp,
@@ -286,7 +259,7 @@ object SeqTranslate {
           insStepBuilder
             .build(overriddenSystems,
                    step.stepConfig.stepType,
-                   observation.targetEnvironment,
+                   observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
                    executionConfig.static,
                    step,
                    obsTime
@@ -297,7 +270,6 @@ object SeqTranslate {
                 atomId,
                 seqType,
                 step,
-                stepSignalToNoise(observation.signalToNoise, step.instrumentConfig, seqType),
                 startIdx,
                 insStep,
                 mkStepGen
@@ -467,7 +439,7 @@ object SeqTranslate {
             inst,
             systemss.guideDb
           )(
-            observation.targetEnvironment,
+            observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
@@ -476,7 +448,7 @@ object SeqTranslate {
         } else { (ov: SystemOverrides) =>
           TcsSouth
             .fromConfig[F](overriddenSystems.tcsSouth(ov), subs, None, inst, systemss.guideDb)(
-              observation.targetEnvironment,
+              observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
               telescopeConfig,
               LightPath(lsource, inst.sfName),
               inst.centralWavelength,
@@ -493,7 +465,7 @@ object SeqTranslate {
             inst,
             systemss.guideDb
           )(
-            observation.targetEnvironment,
+            observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
             telescopeConfig,
             LightPath(lsource, inst.sfName),
             inst.centralWavelength,
@@ -502,7 +474,7 @@ object SeqTranslate {
         } else { (ov: SystemOverrides) =>
           TcsNorth
             .fromConfig[F](overriddenSystems.tcsNorth(ov), subs, none, inst, systemss.guideDb)(
-              observation.targetEnvironment,
+              observation.targetEnvironment.getOrElse(EmptyTargetEnvironment),
               telescopeConfig,
               LightPath(lsource, inst.sfName),
               inst.centralWavelength,
@@ -745,7 +717,7 @@ object SeqTranslate {
                 executionConfig,
                 stepIdFrom,
                 instrumentStepBuilders.gmosSouth,
-                StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _, _)
+                StepGen.GmosSouth[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Flamingos2(executionConfig) =>
               buildStep[Flamingos2StaticConfig, Flamingos2DynamicConfig](
@@ -754,7 +726,7 @@ object SeqTranslate {
                 executionConfig,
                 stepIdFrom,
                 instrumentStepBuilders.flamingos2,
-                StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _, _)
+                StepGen.Flamingos2[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Igrins2(executionConfig)    =>
               buildStep(
@@ -763,7 +735,7 @@ object SeqTranslate {
                 executionConfig,
                 stepIdFrom,
                 instrumentStepBuilders.igrins2,
-                StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _, _)
+                StepGen.Igrins2[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Ghost(executionConfig)      =>
               buildStep(
@@ -772,7 +744,7 @@ object SeqTranslate {
                 executionConfig,
                 stepIdFrom,
                 instrumentStepBuilders.ghost,
-                StepGen.Ghost[F](_, _, _, _, _, _, _, _, _, _, _, _)
+                StepGen.Ghost[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Gnirs(executionConfig)      =>
               buildStep(
@@ -781,7 +753,7 @@ object SeqTranslate {
                 executionConfig,
                 stepIdFrom,
                 instrumentStepBuilders.gnirs,
-                StepGen.Gnirs[F](_, _, _, _, _, _, _, _, _, _, _, _)
+                StepGen.Gnirs[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Visitor(_)                  => ???
           }

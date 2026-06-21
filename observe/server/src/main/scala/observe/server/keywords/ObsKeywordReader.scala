@@ -138,7 +138,8 @@ object ObsKeywordReader {
         .getOrElse("parked")
 
       override def pwfs1Guide: F[Option[StepGuideState]] =
-        obsCfg.targetEnvironment.guideEnvironment.guideTargets
+        obsCfg.targetEnvironment
+          .foldMap(_.guideEnvironment.guideTargets)
           .exists(_.probe === GuideProbe.PWFS1)
           .option(step.telescopeConfig.guiding)
           .pure[F]
@@ -148,7 +149,8 @@ object ObsKeywordReader {
           .map(decodeGuide)
 
       override def pwfs2Guide: F[Option[StepGuideState]] =
-        obsCfg.targetEnvironment.guideEnvironment.guideTargets
+        obsCfg.targetEnvironment
+          .foldMap(_.guideEnvironment.guideTargets)
           .exists(_.probe === GuideProbe.PWFS2)
           .option(step.telescopeConfig.guiding)
           .pure[F]
@@ -158,7 +160,8 @@ object ObsKeywordReader {
           .map(decodeGuide)
 
       override def oiwfsGuide: F[Option[StepGuideState]] =
-        obsCfg.targetEnvironment.guideEnvironment.guideTargets
+        obsCfg.targetEnvironment
+          .foldMap(_.guideEnvironment.guideTargets)
           .exists(x => x.probe === GuideProbe.GmosOIWFS || x.probe === GuideProbe.Flamingos2OIWFS)
           .option(step.telescopeConfig.guiding)
           .pure[F]

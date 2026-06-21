@@ -31,7 +31,6 @@ val DummyStepGen = StepGen.GmosNorth[IO](
   instConfig = null,
   config = null,
   telescopeConfig = null,
-  signalToNoise = null,
   breakpoint = null
 )
 

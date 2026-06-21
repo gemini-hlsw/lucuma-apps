@@ -30,7 +30,6 @@ import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.Timestamp
-import lucuma.schemas.model.ModeSignalToNoise
 import monocle.Lens
 import monocle.syntax.all.focus
 import observe.common.EventsGQL.RecordDatasetMutation.Data.RecordDataset.Dataset
@@ -226,7 +225,7 @@ object TestOdbProxy {
                     None,
                     ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
                   ),
-                  TestCommon.defaultTargetEnvironment,
+                  TestCommon.defaultTargetEnvironment.some,
                   ConstraintSet(
                     ImageQuality.Preset.TwoPointZero,
                     CloudExtinction.Preset.TwoPointZero,
@@ -234,8 +233,7 @@ object TestOdbProxy {
                     WaterVapor.Wet,
                     ElevationRange.ByAirMass.Default
                   ),
-                  List.empty,
-                  ModeSignalToNoise.Spectroscopy(none, none)
+                  List.empty
                 ),
                 buildExecutionConfig(
                   i,

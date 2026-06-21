@@ -18,6 +18,7 @@ import fs2.Stream
 import lucuma.core.enums.Breakpoint
 import lucuma.core.math.units.Micrometer
 import lucuma.core.util.TimeSpan
+import observe.common.ObsQueriesGql.ObsQuery
 import observe.model.CurrentConditions
 import observe.model.Observer
 import observe.model.Operator
@@ -113,5 +114,11 @@ object Length {
   }
 
   given (using eq: Eq[Quantity[Long, Micrometer]]): Eq[Length] = eq
-
 }
+
+val EmptyTargetEnvironment: ObsQuery.Data.Observation.TargetEnvironment =
+  ObsQuery.Data.Observation.TargetEnvironment(
+    asterism = List.empty,
+    guideEnvironment =
+      ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment(guideTargets = List.empty)
+  )

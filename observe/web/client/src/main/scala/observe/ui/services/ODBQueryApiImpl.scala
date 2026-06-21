@@ -25,10 +25,10 @@ case class ODBQueryApiImpl()(using FetchClient[IO, ObservationDB]) extends ODBQu
       .raiseGraphQLErrors
       .map(_.observation.flatMap(_.execution))
 
-  override def querySequence(obsId: Observation.Id): IO[SequenceData] =
+  override def querySequence(obsId: Observation.Id, includeItc: Boolean): IO[SequenceData] =
     SequenceQueriesGql
       .SequenceQuery[IO]
-      .query(obsId)
+      .query(obsId, includeItc)
       .raiseGraphQLErrors
       .adaptError:
         case ResponseException(errors, _) =>
