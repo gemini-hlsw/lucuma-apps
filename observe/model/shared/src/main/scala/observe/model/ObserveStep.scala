@@ -22,6 +22,8 @@ import monocle.syntax.all.*
 import observe.model.dhs.*
 import observe.model.enums.*
 
+// TODO Move this class to the server project. It is not shared anymore.
+// Implies a small change to store the paused step id in SequenceView.
 enum ObserveStep(
   val id:              Step.Id,
   val instConfig:      InstrumentDynamicConfig,
