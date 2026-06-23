@@ -87,7 +87,7 @@ jobs:
         run: pnpm fetch
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --offline
+        run: pnpm ci --offline
 
       - name: Check that workflows are up to date
         run: sbt -v -J-Xmx6g githubWorkflowCheck
@@ -241,7 +241,7 @@ jobs:
         run: pnpm fetch
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --offline
+        run: pnpm ci --offline
 
       - name: Link Explore
         run: sbt -v -J-Xmx6g explore_app/buildJsModule
@@ -326,7 +326,7 @@ jobs:
         run: pnpm fetch
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --offline
+        run: pnpm ci --offline
 
       - name: Login to Docker Hub
         run: echo ${{ secrets.DOCKER_HUB_TOKEN }} | docker login --username nlsoftware --password-stdin
@@ -430,7 +430,7 @@ jobs:
         run: pnpm fetch
 
       - name: pnpm install
-        run: pnpm install --frozen-lockfile --offline
+        run: pnpm ci --offline
 
       - name: Import CSS files
         run: sbt -v -J-Xmx6g '++ ${{ matrix.scala }}' ui_css/lucumaCss

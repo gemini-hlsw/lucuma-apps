@@ -1094,7 +1094,7 @@ lazy val setupNodePnpmInstall =
       name = Some("Populate pnpm store")
     ),
     WorkflowStep.Run(
-      List("pnpm install --frozen-lockfile --offline"),
+      List("pnpm ci --offline"),
       name = Some("pnpm install")
     )
   )
