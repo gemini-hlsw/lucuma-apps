@@ -13,6 +13,7 @@ import explore.model.TargetList
 import explore.model.itc.ItcQueryProblem
 import explore.model.itc.ItcTarget
 import explore.model.itc.ItcTargetProblem
+import explore.modes.InstrumentOverrides
 import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.Flamingos2ReadMode
@@ -157,19 +158,19 @@ trait syntax:
             case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
             case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
           modeOverrides
-            .map(_.centralWavelength.value)
-            .map: (cw: Wavelength) =>
+            .map: (overrides: InstrumentOverrides.GnirsSpectroscopy) =>
               InstrumentMode
                 .GnirsSpectroscopy(
                   etm,
-                  cw,
+                  overrides.centralWavelength.value,
                   filter,
                   fpu,
                   prism,
                   grating,
                   camera,
                   readMode,
-                  GnirsWellDepth.forCamera(camera)
+                  GnirsWellDepth.forCamera(camera),
+                  overrides.coadds
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
