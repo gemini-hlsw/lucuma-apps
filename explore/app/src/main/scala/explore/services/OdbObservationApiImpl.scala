@@ -308,6 +308,12 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     )
     SetGuideTargetName[F].execute(input).processErrors.void
 
+  def guideTargetName(obsId: Observation.Id): F[Option[NonEmptyString]] =
+    ObservationLoadedElements[F]
+      .query(obsId)
+      .processErrors
+      .map(_.observation.flatMap(_.targetEnvironment.guideTargetName))
+
   def createConfigurationRequest(
     obsId:         Observation.Id,
     justification: Option[NonEmptyString]
