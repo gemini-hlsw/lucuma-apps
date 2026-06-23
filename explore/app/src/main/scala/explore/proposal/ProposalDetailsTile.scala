@@ -537,7 +537,7 @@ object ProposalDetailsBody:
                   label = React.Fragment("Regular Proposal Type",
                                          HelpIcon("proposal/main/proposal-type.md".refined)
                   ),
-                  value = geminiView.get.scienceSubtype, // ..orNull,
+                  value = geminiView.get.scienceSubtype,
                   onChange = v => geminiView.mod(GeminiProposalType.toScienceSubtype(v)),
                   disabled = props.readonly,
                   modifiers = List(^.id := "proposalType")
