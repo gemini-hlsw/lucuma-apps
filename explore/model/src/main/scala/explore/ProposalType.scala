@@ -12,6 +12,7 @@ import io.circe.Decoder
 import io.circe.refined.*
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
+import lucuma.core.enums.SubaruCallForProposalsType
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
 import lucuma.core.util.TimeSpan
@@ -23,13 +24,52 @@ import monocle.Optional
 import monocle.Prism
 import monocle.macros.GenPrism
 
-// Define the ProposalType trait
-sealed trait ProposalType derives Eq {
+// The proposal type, discriminated by observatory. Exactly one variant applies
+// to a given proposal. `GeminiProposalType` is itself a sub-hierarchy of the
+// various Gemini science subtypes.
+sealed trait ProposalType derives Eq
+
+object ProposalType:
+  val geminiProposalType: Prism[ProposalType, GeminiProposalType] =
+    GenPrism[ProposalType, GeminiProposalType]
+  val keckProposalType: Prism[ProposalType, KeckProposalType]     =
+    GenPrism[ProposalType, KeckProposalType]
+  val subaruProposalType: Prism[ProposalType, SubaruProposalType] =
+    GenPrism[ProposalType, SubaruProposalType]
+
+// Exchange proposal requesting time at Keck.
+case class KeckProposalType(partnerSplits: List[PartnerSplit]) extends ProposalType derives Eq
+
+object KeckProposalType:
+  val partnerSplits: Lens[KeckProposalType, List[PartnerSplit]] =
+    Focus[KeckProposalType](_.partnerSplits)
+
+  given Decoder[KeckProposalType] = c =>
+    c.downField("partnerSplits").as[List[PartnerSplit]].map(KeckProposalType(_))
+
+// Exchange proposal requesting time at Subaru.
+case class SubaruProposalType(
+  cfpType:       SubaruCallForProposalsType,
+  partnerSplits: List[PartnerSplit]
+) extends ProposalType derives Eq
+
+object SubaruProposalType:
+  val partnerSplits: Lens[SubaruProposalType, List[PartnerSplit]] =
+    Focus[SubaruProposalType](_.partnerSplits)
+
+  given Decoder[SubaruProposalType] = c =>
+    for {
+      cfpType       <- c.downField("cfpType").as[SubaruCallForProposalsType]
+      partnerSplits <- c.downField("partnerSplits").as[List[PartnerSplit]]
+    } yield SubaruProposalType(cfpType, partnerSplits)
+
+// The Gemini proposal type, further discriminated by science subtype.
+sealed trait GeminiProposalType extends ProposalType derives Eq {
   val scienceSubtype: ScienceSubtype
 }
 
-object ProposalType:
-  def toScienceSubtype(s: ScienceSubtype): ProposalType => ProposalType =
+object GeminiProposalType:
+  def toScienceSubtype(s: ScienceSubtype): GeminiProposalType => GeminiProposalType =
     s match
       case ScienceSubtype.Classical => {
         case Queue(_, _, minTime, splits, aeon, jwst, lt, _) =>
@@ -52,26 +92,27 @@ object ProposalType:
       }
       case _                        => identity
 
-  val toOActivation: Optional[ProposalType, ToOActivation] = Optional[ProposalType, ToOActivation] {
-    case d: DemoScience        => d.toOActivation.some
-    case d: DirectorsTime      => d.toOActivation.some
-    case d: FastTurnaround     => d.toOActivation.some
-    case d: LargeProgram       => d.toOActivation.some
-    case d: Queue              => d.toOActivation.some
-    case d: SystemVerification => d.toOActivation.some
-    case _                     => none
-  }(a => {
-    case d: DemoScience        => d.copy(toOActivation = a)
-    case d: DirectorsTime      => d.copy(toOActivation = a)
-    case d: FastTurnaround     => d.copy(toOActivation = a)
-    case d: LargeProgram       => d.copy(toOActivation = a)
-    case d: Queue              => d.copy(toOActivation = a)
-    case d: SystemVerification => d.copy(toOActivation = a)
-    case i                     => i
-  })
+  val toOActivation: Optional[GeminiProposalType, ToOActivation] =
+    Optional[GeminiProposalType, ToOActivation] {
+      case d: DemoScience        => d.toOActivation.some
+      case d: DirectorsTime      => d.toOActivation.some
+      case d: FastTurnaround     => d.toOActivation.some
+      case d: LargeProgram       => d.toOActivation.some
+      case d: Queue              => d.toOActivation.some
+      case d: SystemVerification => d.toOActivation.some
+      case _                     => none
+    }(a => {
+      case d: DemoScience        => d.copy(toOActivation = a)
+      case d: DirectorsTime      => d.copy(toOActivation = a)
+      case d: FastTurnaround     => d.copy(toOActivation = a)
+      case d: LargeProgram       => d.copy(toOActivation = a)
+      case d: Queue              => d.copy(toOActivation = a)
+      case d: SystemVerification => d.copy(toOActivation = a)
+      case i                     => i
+    })
 
-  val partnerSplits: Optional[ProposalType, List[PartnerSplit]] =
-    Optional[ProposalType, List[PartnerSplit]] {
+  val partnerSplits: Optional[GeminiProposalType, List[PartnerSplit]] =
+    Optional[GeminiProposalType, List[PartnerSplit]] {
       case c: Classical => c.partnerSplits.some
       case q: Queue     => q.partnerSplits.some
       case _            => none
@@ -81,8 +122,8 @@ object ProposalType:
       case i            => i
     })
 
-  val minPercentTime: Optional[ProposalType, IntPercent] =
-    Optional[ProposalType, IntPercent] {
+  val minPercentTime: Optional[GeminiProposalType, IntPercent] =
+    Optional[GeminiProposalType, IntPercent] {
       case c: Classical          => c.minPercentTime.some
       case d: DemoScience        => d.minPercentTime.some
       case d: DirectorsTime      => d.minPercentTime.some
@@ -102,8 +143,8 @@ object ProposalType:
       case i                     => i
     })
 
-  val minPercentTotalTime: Optional[ProposalType, IntPercent] =
-    Optional[ProposalType, IntPercent] {
+  val minPercentTotalTime: Optional[GeminiProposalType, IntPercent] =
+    Optional[GeminiProposalType, IntPercent] {
       case l: LargeProgram => l.minPercentTotalTime.some
       case _               => none
     }(a => {
@@ -111,8 +152,8 @@ object ProposalType:
       case i               => i
     })
 
-  val totalTime: Optional[ProposalType, TimeSpan] =
-    Optional[ProposalType, TimeSpan] {
+  val totalTime: Optional[GeminiProposalType, TimeSpan] =
+    Optional[GeminiProposalType, TimeSpan] {
       case l: LargeProgram => l.totalTime.some
       case _               => none
     }(a => {
@@ -120,8 +161,8 @@ object ProposalType:
       case i               => i
     })
 
-  val aeonMultiFacility: Optional[ProposalType, Boolean] =
-    Optional[ProposalType, Boolean] {
+  val aeonMultiFacility: Optional[GeminiProposalType, Boolean] =
+    Optional[GeminiProposalType, Boolean] {
       case c: Classical    => c.aeonMultiFacility.some
       case l: LargeProgram => l.aeonMultiFacility.some
       case q: Queue        => q.aeonMultiFacility.some
@@ -133,8 +174,8 @@ object ProposalType:
       case i               => i
     })
 
-  val jwstSynergy: Optional[ProposalType, Boolean] =
-    Optional[ProposalType, Boolean] {
+  val jwstSynergy: Optional[GeminiProposalType, Boolean] =
+    Optional[GeminiProposalType, Boolean] {
       case c: Classical    => c.jwstSynergy.some
       case l: LargeProgram => l.jwstSynergy.some
       case q: Queue        => q.jwstSynergy.some
@@ -146,8 +187,8 @@ object ProposalType:
       case i               => i
     })
 
-  val usLongTerm: Optional[ProposalType, Boolean] =
-    Optional[ProposalType, Boolean] {
+  val usLongTerm: Optional[GeminiProposalType, Boolean] =
+    Optional[GeminiProposalType, Boolean] {
       case c: Classical => c.usLongTerm.some
       case q: Queue     => q.usLongTerm.some
       case _            => none
@@ -157,8 +198,8 @@ object ProposalType:
       case i            => i
     })
 
-  val considerForBand3: Optional[ProposalType, ConsiderForBand3] =
-    Optional[ProposalType, ConsiderForBand3] {
+  val considerForBand3: Optional[GeminiProposalType, ConsiderForBand3] =
+    Optional[GeminiProposalType, ConsiderForBand3] {
       case q: Queue => q.considerForBand3.some
       case _        => none
     }(a => {
@@ -166,7 +207,7 @@ object ProposalType:
       case i        => i
     })
 
-  // Define the Classical case class implementing ProposalType
+  // Define the Classical case class implementing GeminiProposalType
   case class Classical(
     scienceSubtype:    ScienceSubtype,
     minPercentTime:    IntPercent,
@@ -174,7 +215,7 @@ object ProposalType:
     aeonMultiFacility: Boolean,
     jwstSynergy:       Boolean,
     usLongTerm:        Boolean
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object Classical {
     val minPercentTime: Lens[Classical, IntPercent] = Focus[Classical](_.minPercentTime)
@@ -186,12 +227,12 @@ object ProposalType:
       Classical(ScienceSubtype.Classical, 100.refined, List.empty, false, false, false)
   }
 
-  // Define the DemoScience case class implementing ProposalType
+  // Define the DemoScience case class implementing GeminiProposalType
   case class DemoScience(
     scienceSubtype: ScienceSubtype,
     toOActivation:  ToOActivation,
     minPercentTime: IntPercent
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object DemoScience {
     val minPercentTime: Lens[DemoScience, IntPercent]   = Focus[DemoScience](_.minPercentTime)
@@ -201,12 +242,12 @@ object ProposalType:
       DemoScience(ScienceSubtype.DemoScience, ToOActivation.None, 100.refined)
   }
 
-  // Define the DirectorsTime case class implementing ProposalType
+  // Define the DirectorsTime case class implementing GeminiProposalType
   case class DirectorsTime(
     scienceSubtype: ScienceSubtype,
     toOActivation:  ToOActivation,
     minPercentTime: IntPercent
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object DirectorsTime {
     val minPercentTime: Lens[DirectorsTime, IntPercent]   = Focus[DirectorsTime](_.minPercentTime)
@@ -216,14 +257,14 @@ object ProposalType:
       DirectorsTime(ScienceSubtype.DirectorsTime, ToOActivation.None, 100.refined)
   }
 
-  // Define the FastTurnaround case class implementing ProposalType
+  // Define the FastTurnaround case class implementing GeminiProposalType
   case class FastTurnaround(
     scienceSubtype: ScienceSubtype,
     toOActivation:  ToOActivation,
     minPercentTime: IntPercent,
     reviewerId:     Option[ProgramUser.Id],
     mentorId:       Option[ProgramUser.Id]
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object FastTurnaround {
     val minPercentTime: Lens[FastTurnaround, IntPercent]         = Focus[FastTurnaround](_.minPercentTime)
@@ -239,7 +280,7 @@ object ProposalType:
       reviewerId.replace(id)(Default)
   }
 
-  // Define the LargeProgram case class implementing ProposalType
+  // Define the LargeProgram case class implementing GeminiProposalType
   case class LargeProgram(
     scienceSubtype:      ScienceSubtype,
     toOActivation:       ToOActivation,
@@ -248,7 +289,7 @@ object ProposalType:
     totalTime:           TimeSpan,
     aeonMultiFacility:   Boolean,
     jwstSynergy:         Boolean
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object LargeProgram {
     val minPercentTime: Lens[LargeProgram, IntPercent]      = Focus[LargeProgram](_.minPercentTime)
@@ -271,16 +312,16 @@ object ProposalType:
       )
   }
 
-  // Define the PoorWeather case class implementing ProposalType
+  // Define the PoorWeather case class implementing GeminiProposalType
   case class PoorWeather(
     scienceSubtype: ScienceSubtype
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object PoorWeather {
     val Default: PoorWeather = PoorWeather(ScienceSubtype.PoorWeather)
   }
 
-  // Define the Queue case class implementing ProposalType
+  // Define the Queue case class implementing GeminiProposalType
   case class Queue(
     scienceSubtype:    ScienceSubtype,
     toOActivation:     ToOActivation,
@@ -290,7 +331,7 @@ object ProposalType:
     jwstSynergy:       Boolean,
     usLongTerm:        Boolean,
     considerForBand3:  ConsiderForBand3
-  ) extends ProposalType derives Eq
+  ) extends GeminiProposalType derives Eq
 
   object Queue {
     val minPercentTime: Lens[Queue, IntPercent]         = Focus[Queue](_.minPercentTime)
@@ -312,12 +353,12 @@ object ProposalType:
       )
   }
 
-  // Define the SystemVerification case class implementing ProposalType
+  // Define the SystemVerification case class implementing GeminiProposalType
   case class SystemVerification(
     scienceSubtype: ScienceSubtype,
     toOActivation:  ToOActivation,
     minPercentTime: IntPercent
-  ) extends ProposalType
+  ) extends GeminiProposalType
 
   object SystemVerification {
     val minPercentTime: Lens[SystemVerification, IntPercent]   =
@@ -329,19 +370,26 @@ object ProposalType:
       SystemVerification(ScienceSubtype.SystemVerification, ToOActivation.None, 100.refined)
   }
 
-  val classical: Prism[ProposalType, Classical]                   = GenPrism[ProposalType, Classical]
-  val directorsTime: Prism[ProposalType, DirectorsTime]           = GenPrism[ProposalType, DirectorsTime]
-  val demoScience: Prism[ProposalType, DemoScience]               = GenPrism[ProposalType, DemoScience]
-  val fastTurnaround: Prism[ProposalType, FastTurnaround]         = GenPrism[ProposalType, FastTurnaround]
-  val largeProgram: Prism[ProposalType, LargeProgram]             = GenPrism[ProposalType, LargeProgram]
-  val poorWeather: Prism[ProposalType, PoorWeather]               = GenPrism[ProposalType, PoorWeather]
-  val queue: Prism[ProposalType, Queue]                           = GenPrism[ProposalType, Queue]
-  val systemVerification: Prism[ProposalType, SystemVerification] =
-    GenPrism[ProposalType, SystemVerification]
+  val classical: Prism[GeminiProposalType, Classical]                   =
+    GenPrism[GeminiProposalType, Classical]
+  val directorsTime: Prism[GeminiProposalType, DirectorsTime]           =
+    GenPrism[GeminiProposalType, DirectorsTime]
+  val demoScience: Prism[GeminiProposalType, DemoScience]               =
+    GenPrism[GeminiProposalType, DemoScience]
+  val fastTurnaround: Prism[GeminiProposalType, FastTurnaround]         =
+    GenPrism[GeminiProposalType, FastTurnaround]
+  val largeProgram: Prism[GeminiProposalType, LargeProgram]             =
+    GenPrism[GeminiProposalType, LargeProgram]
+  val poorWeather: Prism[GeminiProposalType, PoorWeather]               =
+    GenPrism[GeminiProposalType, PoorWeather]
+  val queue: Prism[GeminiProposalType, Queue]                           =
+    GenPrism[GeminiProposalType, Queue]
+  val systemVerification: Prism[GeminiProposalType, SystemVerification] =
+    GenPrism[GeminiProposalType, SystemVerification]
 
-  given Decoder[ProposalType] = {
+  given Decoder[GeminiProposalType] = {
 
-    def toProposalType(tpe: ScienceSubtype, c: ACursor): Decoder.Result[ProposalType] =
+    def toProposalType(tpe: ScienceSubtype, c: ACursor): Decoder.Result[GeminiProposalType] =
       tpe match
         case ScienceSubtype.Classical          =>
           for {

@@ -84,7 +84,12 @@ trait ObservationDB {
     type BrightnessSurfaceUnits              = Units Of Brightness[Surface]
     type CalculationState                    = lucuma.core.util.CalculationState
     type CalibrationRole                     = enums.CalibrationRole
-    type CallForProposalsType                = enums.CallForProposalsType
+    type GeminiCallForProposalsType          = enums.GeminiCallForProposalsType
+    type SubaruCallForProposalsType          = enums.SubaruCallForProposalsType
+    type Observatory                         = enums.Observatory
+    type ExchangePartner                     = enums.ExchangePartner
+    type KeckInstrument                      = enums.KeckInstrument
+    type SubaruInstrument                    = enums.SubaruInstrument
     type CatalogName                         = enums.CatalogName
     type ChargeClass                         = enums.ChargeClass
     type CloudExtinctionPreset               = CloudExtinction.Preset

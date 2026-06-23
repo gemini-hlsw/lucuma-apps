@@ -28,6 +28,7 @@ import explore.model.reusability.given
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.EducationalStatus
+import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.Gender
 import lucuma.core.enums.Partner
 import lucuma.core.enums.ProgramUserRole
@@ -200,12 +201,14 @@ object ProgramUsersTable:
     ColDef(column.id, accessor, column.header)
 
   val partnerLinkOptions: List[PartnerLink] =
-    PartnerLink.HasNonPartner :: Enumerated[Partner].all.map { p =>
-      PartnerLink.HasPartner(p)
-    }
+    PartnerLink.HasNonPartner :: (Enumerated[Partner].all.map { p =>
+      PartnerLink.HasGeminiPartner(p)
+    } ++ Enumerated[ExchangePartner].all.map { ep =>
+      PartnerLink.HasExchangePartner(ep)
+    })
 
   private def partnerItem(pl: PartnerLink): VdomNode = pl match {
-    case PartnerLink.HasPartner(p) =>
+    case PartnerLink.HasGeminiPartner(p)    =>
       <.div(
         ExploreStyles.PartnerFlagItem,
         <.img(
@@ -218,8 +221,9 @@ object ProgramUsersTable:
           case p          => p.shortName
         }
       )
-    case PartnerLink.HasNonPartner => <.div("No Partner")
-    case _                         => "Unspecified Partner"
+    case PartnerLink.HasExchangePartner(ep) => ep.tag.capitalize
+    case PartnerLink.HasNonPartner          => <.div("No Partner")
+    case _                                  => "Unspecified Partner"
   }
 
   private def partnerSelector(
