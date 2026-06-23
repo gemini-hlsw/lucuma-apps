@@ -117,7 +117,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             prism,
             camera,
             _,
-            Some(InstrumentOverrides.GnirsSpectroscopy(cw))
+            Some(InstrumentOverrides.GnirsSpectroscopy(cw, _))
           ) =>
         BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, cw).some
       case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, None)
