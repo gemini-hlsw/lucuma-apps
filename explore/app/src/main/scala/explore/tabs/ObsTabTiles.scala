@@ -294,6 +294,17 @@ object ObsTabTiles:
                                         Callback.empty
                                     }
                                   }
+        // Some of the fields of an observation are expensive and we can
+        // load them on demand. For now it is only the guideStar selection name
+        _                    <- useEffectWithDeps(props.obsId): obsId =>
+                                  import ctx.given
+                                  odbApi
+                                    .guideTargetName(obsId)
+                                    .flatMap: name =>
+                                      (props.selectedGSName.set(name) >>
+                                        guideStarSelection.set(
+                                          name.fold(GuideStarSelection.Default)(RemoteGSSelection.apply)
+                                        )).toAsync
         roleLayouts          <- useState(roleLayout(props.userPreferences.get, props.calibrationRole))
         _                    <- useEffectWithDeps(props.calibrationRole): role =>
                                   roleLayouts.setState(roleLayout(props.userPreferences.get, role))

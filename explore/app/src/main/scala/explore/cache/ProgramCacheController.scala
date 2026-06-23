@@ -26,6 +26,7 @@ import japgolly.scalajs.react.*
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnProps
+import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.TargetWithId
 import monocle.Optional
 import org.typelevel.log4cats.Logger
@@ -197,11 +198,35 @@ object ProgramCacheController
                 oid => updateGroupTimeRange(oid.some)
               )
 
+            // Picks the edited observation ids from the delta to drive a `guideTargetName`
+            // re-fetch, keeping remote changes current with the local cache.
+            val obsEditIdPipe: Pipe[
+              IO,
+              ObsQueriesGQL.ProgramObservationsDelta.Data.ObservationEdit,
+              Observation.Id
+            ] =
+              _.filter(_.meta.exists(_.existence === Existence.Present)).map(_.observationId)
+
+            val guideTargetNameUpdate
+              : Pipe[IO, Observation.Id, ProgramSummaries => ProgramSummaries] =
+              keyedSwitchEvalMap(
+                identity,
+                oid =>
+                  odbApi
+                    .guideTargetName(oid)
+                    .map: name =>
+                      ProgramSummaries.observations.modify:
+                        _.updatedWith(oid)(_.map(Observation.selectedGSName.replace(name)))
+              )
+
             val updateObservations: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
               props.odbApi
                 .programObservationsDeltaSubscription(props.programId)
                 .map:
-                  _.map(modifyObservations(_))
+                  _.broadcastThrough(
+                    _.map(modifyObservations(_)),
+                    obsEditIdPipe.andThen(guideTargetNameUpdate)
+                  )
 
             val updateGroups: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
               props.odbApi

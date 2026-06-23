@@ -185,7 +185,8 @@ case class ProgramSummaries(
           .map(o =>
             // if it exists, we want to keep the existing calculated values
             Observation.calculatedValues
-              .replace(Observation.calculatedValues.get(o))(observation)
+              .replace(Observation.calculatedValues.get(o))
+              .andThen(Observation.selectedGSName.replace(o.selectedGSName))(observation)
           )
           .orElse(
             // if it doesn't exist, insert it but apply any orphaned calculated values
