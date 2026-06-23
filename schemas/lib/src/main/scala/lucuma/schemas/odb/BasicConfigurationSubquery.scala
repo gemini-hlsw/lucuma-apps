@@ -9,8 +9,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.BasicConfiguration
 
 @GraphQLType("ObservingMode")
-object BasicConfigurationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]:
+object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]:
   override val subquery: String = s"""
         {
           instrument
@@ -40,6 +39,11 @@ object BasicConfigurationSubquery
             disperser
             filter
             fpu
+          }
+          flamingos2Imaging {
+            filters {
+              filter
+            }
           }
           igrins2LongSlit {
             offsetMode

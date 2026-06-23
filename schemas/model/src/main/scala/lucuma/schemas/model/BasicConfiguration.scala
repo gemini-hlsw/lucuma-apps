@@ -248,12 +248,12 @@ object BasicConfiguration:
 
   object GmosNorthImaging:
     // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
-    private val gmosNorthFilterFromObj: Decoder[GmosNorthFilter] =
+    private val gmosNorthFilterFromFilters: Decoder[GmosNorthFilter] =
       Decoder.instance(_.downField("filter").as[GmosNorthFilter])
-    given Decoder[GmosNorthImaging]                             =
+    given Decoder[GmosNorthImaging]                                  =
       Decoder.instance(
         _.downField("filters")
-          .as(using Decoder.decodeNonEmptyList(using gmosNorthFilterFromObj))
+          .as(using Decoder.decodeNonEmptyList(using gmosNorthFilterFromFilters))
           .map(GmosNorthImaging(_))
       )
 
@@ -263,12 +263,12 @@ object BasicConfiguration:
 
   object GmosSouthImaging:
     // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
-    private val gmosSouthFilterFromObj: Decoder[GmosSouthFilter] =
+    private val gmosSouthFilterFromFilters: Decoder[GmosSouthFilter] =
       Decoder.instance(_.downField("filter").as[GmosSouthFilter])
-    given Decoder[GmosSouthImaging]                             =
+    given Decoder[GmosSouthImaging]                                  =
       Decoder.instance(
         _.downField("filters")
-          .as(using Decoder.decodeNonEmptyList(using gmosSouthFilterFromObj))
+          .as(using Decoder.decodeNonEmptyList(using gmosSouthFilterFromFilters))
           .map(GmosSouthImaging(_))
       )
 
@@ -286,7 +286,15 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq
 
   object Flamingos2Imaging:
-    given Decoder[Flamingos2Imaging] = deriveDecoder
+    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
+    private val flamingos2FilterFromFilters: Decoder[Flamingos2Filter] =
+      Decoder.instance(_.downField("filter").as[Flamingos2Filter])
+    given Decoder[Flamingos2Imaging]                                   =
+      Decoder.instance(
+        _.downField("filters")
+          .as(using Decoder.decodeNonEmptyList(using flamingos2FilterFromFilters))
+          .map(Flamingos2Imaging(_))
+      )
 
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
