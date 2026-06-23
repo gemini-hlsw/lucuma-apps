@@ -5,10 +5,13 @@ package lucuma.ui.sequence
 
 import cats.Eq
 import cats.derived.*
+import cats.syntax.eq.*
 import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
+import lucuma.core.enums.GnirsDecker
+import lucuma.core.enums.GnirsFpuOther
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
 import lucuma.core.math.SignalToNoise
@@ -16,10 +19,9 @@ import lucuma.core.model.Visit
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
-import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
-import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
 import lucuma.react.SizePx
@@ -119,9 +121,10 @@ extension [D](instrumentConfig: D)
       case gmos.DynamicConfig.GmosNorth(_, _, _, _, _, _, None)                       => true
       case gmos.DynamicConfig.GmosSouth(_, _, _, _, _, _, None)                       => true
       case Flamingos2DynamicConfig(_, _, Flamingos2FpuMask.Imaging, _, _, _, _, _, _) => true
-      case GnirsDynamicConfig(_, _, _, _, _, _, _, _, _)                              => false
-      case Igrins2DynamicConfig(_)                                                    => false
-      case GhostDynamicConfig(_, _, _, _)                                             => false
+      // GNIRS acquisition images use the acquisition mirror (FPU) and decker. There may be
+      // more than one when the acquisition has offsets.
+      case GnirsDynamicConfig(decker = decker, fpu = fpu)                             =>
+        decker === GnirsDecker.Acquisition && fpu === GnirsFpu.Other(GnirsFpuOther.Acquisition)
       case _                                                                          => false
 
 extension [D](step: Step[D])
