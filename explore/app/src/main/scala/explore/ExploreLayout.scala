@@ -217,6 +217,35 @@ object ExploreLayout:
 
                                     act.mod(_.openedProgram(programId))
                                   case _                            => Callback.empty
+        // When the user has no programs of their own and no program is specified in the
+        // URL, automatically create a new program for them and navigate to it. (If a
+        // program *is* specified in the URL but is inaccessible, we instead show the
+        // ProgramsPopup with an explanatory message - see below.)
+        creatingProgram      <- useStateView(false)
+        // Set if the automatic program creation above fails, so that we fall back to
+        // showing the ProgramsPopup with a message.
+        programCreateFailed  <- useStateView(false)
+        _                    <- useEffectWithDeps(
+                                  props.model.programSummariesValue.toOption.map: pss =>
+                                    (pss.programs.isEmpty, routingInfo.flatMap(_.optProgramId))
+                                ):
+                                  case Some((true, None)) =>
+                                    import ctx.given
+                                    IO.unlessA(creatingProgram.get)(
+                                      odbApi
+                                        .createProgram(none)
+                                        .flatMap(pi =>
+                                          ctx
+                                            .replacePage(
+                                              (AppTab.Observations, pi.id, Focused.None).some
+                                            )
+                                            .toAsync
+                                        )
+                                        .switching(creatingProgram.async)
+                                        .onError(_ => programCreateFailed.set(true).toAsync)
+                                    )
+                                  case _                  =>
+                                    IO.unit
         // Reset the program cache when there's an error signal.
         _                    <- useEffectStreamResourceOnMount:
                                   ctx.resetProgramCacheTopic.subscribeAwaitUnbounded.map:
@@ -298,7 +327,23 @@ object ExploreLayout:
                 val (showProgsPopupPot, msg, isSubmitted, isNotAccepted, proposalReference)
                   : (Pot[Boolean], Option[String], Boolean, Boolean, Option[ProposalReference]) =
                   programSummaries.toOption.fold((pending, none, false, false, none)): pss =>
-                    routingInfo.optProgramId.fold((true.ready, none, false, false, none)): id =>
+                    routingInfo.optProgramId.fold(
+                      // No program id in the URL. If the user has no programs, we are
+                      // auto-creating one and routing to it (see effect above), so keep
+                      // showing the loading indicator - unless that creation failed, in
+                      // which case fall back to the selection popup with a message.
+                      // Otherwise (the user has programs) show the selection popup.
+                      if (pss.programs.isEmpty)
+                        if (programCreateFailed.get)
+                          (true.ready,
+                           "Unable to create a new program. Please try again.".some,
+                           false,
+                           false,
+                           none
+                          )
+                        else (pending, none, false, false, none)
+                      else (true.ready, none, false, false, none)
+                    ): id =>
                       if (pss.programs.get(id).exists(!_.deleted))
                         (false.ready,
                          none,

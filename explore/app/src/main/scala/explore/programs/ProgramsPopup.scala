@@ -159,7 +159,7 @@ object ProgramsPopup:
         resizable = true,
         clazz = LucumaPrimeStyles.Dialog.Large |+| ExploreStyles.ProgramsPopup,
         header = <.span(ExploreStyles.ProgramsPopupTitle)(
-          "Programs",
+          "Proposals & Programs",
           Button(
             text = false,
             icon = Icons.Filter,
@@ -182,7 +182,7 @@ object ProgramsPopup:
               )
             ),
             Button(
-              label = "Program",
+              label = "Proposal",
               icon = Icons.New,
               severity = Button.Severity.Success,
               disabled = isAdding.get.value,
