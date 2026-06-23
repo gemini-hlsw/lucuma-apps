@@ -4,12 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.math.ProperMotion
 import lucuma.odb.json.propermotion.decoder.given
 import lucuma.schemas.ObservationDB
 
-object ProperMotionSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ProperMotion]("ProperMotion"):
+@GraphQLType("ProperMotion")
+object ProperMotionSubquery extends GraphQLSubquery.Typed[ObservationDB, ProperMotion]:
   override val subquery: String = """
         {
           ra {

@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.UserInvitation
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("UserInvitation")
 object UserInvitationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, UserInvitation]("UserInvitation"):
+    extends GraphQLSubquery.Typed[ObservationDB, UserInvitation]:
   override val subquery: String = """
     {
       id

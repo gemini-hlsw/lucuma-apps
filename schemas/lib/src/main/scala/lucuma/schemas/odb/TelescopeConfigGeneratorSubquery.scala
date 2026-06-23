@@ -4,15 +4,15 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.TelescopeConfigGenerator
 import lucuma.schemas.odb.*
 
+@GraphQLType("TelescopeConfigGenerator")
 object TelescopeConfigGeneratorSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Option[TelescopeConfigGenerator]](
-      "TelescopeConfigGenerator"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, Option[TelescopeConfigGenerator]]:
   override val subquery: String = s"""
     {
       generatorType

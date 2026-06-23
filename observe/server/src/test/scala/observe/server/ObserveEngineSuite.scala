@@ -564,7 +564,7 @@ class ObserveEngineSuite extends TestCommon {
         )
         .some,
       reqConditions,
-      List.empty
+      ODBObservation.SchedulingConstraints(List.empty)
     )
 
     (obs, stepList)
@@ -700,7 +700,7 @@ class ObserveEngineSuite extends TestCommon {
       ),
       defaultTargetEnvironment.some,
       reqConditions,
-      List.empty
+      ODBObservation.SchedulingConstraints(List.empty)
     )
 
     (obs, stepList)

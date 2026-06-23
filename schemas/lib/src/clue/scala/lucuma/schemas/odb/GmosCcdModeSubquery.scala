@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-abstract class GmosCcdModeSubquery extends GraphQLSubquery[ObservationDB]("GmosCcdMode"):
+@GraphQLType("GmosCcdMode")
+abstract class GmosCcdModeSubquery extends GraphQLSubquery[ObservationDB]:
   override val subquery: String = """
         {
           xBin

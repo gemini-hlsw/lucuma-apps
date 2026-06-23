@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.ghost.GhostIfuMapping
 import lucuma.odb.json.ghost.decoder.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("GhostIfuMapping")
 object GhostIfuMappingSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GhostIfuMapping]("GhostIfuMapping"):
+    extends GraphQLSubquery.Typed[ObservationDB, GhostIfuMapping]:
   override val subquery: String = """
     {
       mappingType

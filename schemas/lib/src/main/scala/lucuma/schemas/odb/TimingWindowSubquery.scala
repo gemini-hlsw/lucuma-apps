@@ -4,12 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.model.TimingWindow
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
+@GraphQLType("TimingWindow")
 object TimingWindowSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, TimingWindow]("TimingWindow"):
+    extends GraphQLSubquery.Typed[ObservationDB, TimingWindow]:
   override val subquery: String = s"""
         {
           inclusion

@@ -4,6 +4,7 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.Configuration
 import lucuma.odb.json.configurationrequest.query.given
@@ -13,8 +14,9 @@ import lucuma.schemas.odb.DecSubquery
 import lucuma.schemas.odb.RASubquery
 
 @GraphQL
+@GraphQLType("Configuration")
 object ConfigurationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Configuration]("Configuration"):
+    extends GraphQLSubquery.Typed[ObservationDB, Configuration]:
   override val subquery: String = s"""
     {
       conditions {

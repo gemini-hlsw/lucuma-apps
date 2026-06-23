@@ -4,13 +4,15 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.model.ExposureTimeMode
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.odb.*
 
+@GraphQLType("ExposureTimeMode")
 object ExposureTimeModeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ExposureTimeMode]("ExposureTimeMode"):
+    extends GraphQLSubquery.Typed[ObservationDB, ExposureTimeMode]:
   override val subquery: String = s"""
     {
       signalToNoise {

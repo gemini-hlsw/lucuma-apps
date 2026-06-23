@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Proposal
 import explore.model.PartnerSplit
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("Proposal"):
+@GraphQLType("Proposal")
+object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
   override val subquery: String = s"""
     {
       call $CallForProposalsSubquery
@@ -73,8 +75,9 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
   """
 
 @GraphQL
+@GraphQLType("PartnerSplit")
 object PartnerSplitSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, PartnerSplit]("PartnerSplit"):
+    extends GraphQLSubquery.Typed[ObservationDB, PartnerSplit]:
   override val subquery: String = """
     {
       partner

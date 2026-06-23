@@ -4,16 +4,16 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.ConfigurationRequest
 import lucuma.odb.json.configurationrequest.query.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("ConfigurationRequest")
 object ConfigurationRequestSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ConfigurationRequest](
-      "ConfigurationRequest"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, ConfigurationRequest]:
   override val subquery: String = s"""
     {
       id

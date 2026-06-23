@@ -247,14 +247,30 @@ object BasicConfiguration:
   ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
 
   object GmosNorthImaging:
-    given Decoder[GmosNorthImaging] = deriveDecoder
+    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
+    private val gmosNorthFilterFromObj: Decoder[GmosNorthFilter] =
+      Decoder.instance(_.downField("filter").as[GmosNorthFilter])
+    given Decoder[GmosNorthImaging]                             =
+      Decoder.instance(
+        _.downField("filters")
+          .as(using Decoder.decodeNonEmptyList(using gmosNorthFilterFromObj))
+          .map(GmosNorthImaging(_))
+      )
 
   case class GmosSouthImaging(
     filters: NonEmptyList[GmosSouthFilter]
   ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
 
   object GmosSouthImaging:
-    given Decoder[GmosSouthImaging] = deriveDecoder
+    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
+    private val gmosSouthFilterFromObj: Decoder[GmosSouthFilter] =
+      Decoder.instance(_.downField("filter").as[GmosSouthFilter])
+    given Decoder[GmosSouthImaging]                             =
+      Decoder.instance(
+        _.downField("filters")
+          .as(using Decoder.decodeNonEmptyList(using gmosSouthFilterFromObj))
+          .map(GmosSouthImaging(_))
+      )
 
   case class Flamingos2LongSlit(
     disperser: Flamingos2Disperser,

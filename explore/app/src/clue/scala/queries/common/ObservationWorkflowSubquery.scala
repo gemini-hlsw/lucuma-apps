@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.ObservationWorkflow
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("ObservationWorkflow")
 object ObservationWorkflowSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ObservationWorkflow]("ObservationWorkflow"):
+    extends GraphQLSubquery.Typed[ObservationDB, ObservationWorkflow]:
   override val subquery: String = s"""
     {
       state

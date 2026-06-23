@@ -4,12 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.model.PosAngleConstraint
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
+@GraphQLType("PosAngleConstraint")
 object PosAngleConstraintSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, PosAngleConstraint]("PosAngleConstraint"):
+    extends GraphQLSubquery.Typed[ObservationDB, PosAngleConstraint]:
   override val subquery: String = s"""
         {
           mode

@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.model.BasicConfiguration
 
+@GraphQLType("ObservingMode")
 object BasicConfigurationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]("ObservingMode"):
+    extends GraphQLSubquery.Typed[ObservationDB, BasicConfiguration]:
   override val subquery: String = s"""
         {
           instrument
@@ -25,10 +27,14 @@ object BasicConfigurationSubquery
             centralWavelength $WavelengthSubquery
           }
           gmosNorthImaging {
-            filters
+            filters {
+              filter
+            }
           }
           gmosSouthImaging {
-            filters
+            filters {
+              filter
+            }
           }
           flamingos2LongSlit {
             disperser

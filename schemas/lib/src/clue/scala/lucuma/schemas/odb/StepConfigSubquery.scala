@@ -4,13 +4,15 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.StepConfig
 import lucuma.odb.json.stepconfig.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object StepConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, StepConfig]("StepConfig"):
+@GraphQLType("StepConfig")
+object StepConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, StepConfig]:
   override val subquery: String = """
         {
           stepType

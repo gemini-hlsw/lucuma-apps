@@ -4,6 +4,7 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.SequenceDigest
@@ -15,10 +16,9 @@ import lucuma.schemas.odb.OffsetSubquery
 import lucuma.schemas.odb.TimeSpanSubquery
 
 @GraphQL
+@GraphQLType("CalculatedExecutionDigest")
 object CalculatedDigestSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ExecutionDigest]]](
-      "CalculatedExecutionDigest"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ExecutionDigest]]]:
   override val subquery: String = s"""
     {
       calculationState
@@ -35,8 +35,9 @@ object CalculatedDigestSubquery
   """
 
 @GraphQL
+@GraphQLType("SequenceDigest")
 object SequenceDigestSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, SequenceDigest]("SequenceDigest"):
+    extends GraphQLSubquery.Typed[ObservationDB, SequenceDigest]:
   override val subquery: String = s"""
       {
         observeClass

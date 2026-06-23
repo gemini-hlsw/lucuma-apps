@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.StepEstimate
 import lucuma.odb.json.timeaccounting.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("StepEstimate")
 object StepEstimateSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, StepEstimate]("StepEstimate"):
+    extends GraphQLSubquery.Typed[ObservationDB, StepEstimate]:
   override val subquery: String = """
         {
           configChange {

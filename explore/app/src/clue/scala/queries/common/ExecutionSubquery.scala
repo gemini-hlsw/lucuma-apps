@@ -4,12 +4,14 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Execution
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object ExecutionSubquery extends GraphQLSubquery.Typed[ObservationDB, Execution]("Execution") {
+@GraphQLType("Execution")
+object ExecutionSubquery extends GraphQLSubquery.Typed[ObservationDB, Execution] {
   override val subquery: String = s"""
     {
       digest $CalculatedDigestSubquery

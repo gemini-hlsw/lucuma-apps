@@ -4,6 +4,7 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.ProgramTimeRange
 import lucuma.core.util.CalculatedValue
@@ -11,10 +12,9 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
 @GraphQL
+@GraphQLType("CalculatedCategorizedTimeRange")
 object CalculatedProgramTimeRangeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ProgramTimeRange]]](
-      "CategorizedTimeRange"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[Option[ProgramTimeRange]]]:
   override val subquery: String = s"""
     {
       calculationState

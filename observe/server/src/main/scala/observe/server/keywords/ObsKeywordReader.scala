@@ -104,7 +104,7 @@ object ObsKeywordReader {
       )
 
       override def timingWindows: F[List[(Int, TimingWindowKeywords)]] =
-        obsCfg.timingWindows.zipWithIndex
+        obsCfg.schedulingConstraints.timingWindows.zipWithIndex
           .map { case (w, i) =>
             i -> TimingWindowKeywords(
               w.start.toString,

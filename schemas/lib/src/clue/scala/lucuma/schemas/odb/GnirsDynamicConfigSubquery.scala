@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.odb.json.gnirs.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("GnirsDynamic")
 object GnirsDynamicConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GnirsDynamicConfig]("GnirsDynamic"):
+    extends GraphQLSubquery.Typed[ObservationDB, GnirsDynamicConfig]:
   override val subquery: String = s"""
     {
       exposure $TimeSpanSubquery

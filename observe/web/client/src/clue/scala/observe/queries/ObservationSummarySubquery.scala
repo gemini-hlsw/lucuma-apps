@@ -4,14 +4,16 @@
 package observe.queries
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import observe.ui.model.ObsSummary
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
 import clue.annotation.GraphQL
 
 @GraphQL
+@GraphQLType("Observation")
 object ObservationSummarySubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ObsSummary]("Observation"):
+    extends GraphQLSubquery.Typed[ObservationDB, ObsSummary]:
 
   override val subquery: String = s"""
         {

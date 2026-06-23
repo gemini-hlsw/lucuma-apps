@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.model.SiderealTracking
 import lucuma.odb.json.target.decoder.given
 import lucuma.schemas.ObservationDB
 
-object SiderealSubquery extends GraphQLSubquery.Typed[ObservationDB, SiderealTracking]("Sidereal") {
+@GraphQLType("Sidereal")
+object SiderealSubquery extends GraphQLSubquery.Typed[ObservationDB, SiderealTracking] {
   override val subquery: String = s"""
     {
       ra $RASubquery

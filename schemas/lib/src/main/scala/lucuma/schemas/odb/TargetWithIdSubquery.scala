@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.TargetWithId
 
-object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetWithId]("Target"):
+@GraphQLType("Target")
+object TargetWithIdSubquery extends GraphQLSubquery.Typed[ObservationDB, TargetWithId]:
   override val subquery: String = s"""  
     {
       id

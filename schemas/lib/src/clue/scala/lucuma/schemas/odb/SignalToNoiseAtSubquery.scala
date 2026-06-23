@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("SignalToNoiseAt")
 object SignalToNoiseAtSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, SignalToNoiseAt]("SignalToNoiseAt"):
+    extends GraphQLSubquery.Typed[ObservationDB, SignalToNoiseAt]:
   override val subquery: String = s"""
     {
       wavelength $WavelengthSubquery

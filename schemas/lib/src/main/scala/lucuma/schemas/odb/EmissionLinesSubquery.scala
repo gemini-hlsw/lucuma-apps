@@ -4,15 +4,18 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import io.circe.Decoder
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.model.SpectralDefinition
 import lucuma.odb.json.sourceprofile.given
 import lucuma.schemas.ObservationDB
 
-class EmissionLinesSubquery[T](rootType: String)(using
+// The shared selection is validated against every concrete root type the subclasses use.
+@GraphQLType("EmissionLinesIntegrated", "EmissionLinesSurface")
+class EmissionLinesSubquery[T](using
   Decoder[SpectralDefinition.EmissionLines[T]]
-) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.EmissionLines[T]](rootType):
+) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.EmissionLines[T]]:
   override val subquery: String = s"""
         {
           lines {
@@ -30,7 +33,6 @@ class EmissionLinesSubquery[T](rootType: String)(using
         }
       """
 
-object EmissionLinesIntegratedSubquery
-    extends EmissionLinesSubquery[Integrated]("EmissionLinesIntegrated")
+object EmissionLinesIntegratedSubquery extends EmissionLinesSubquery[Integrated]
 
-object EmissionLinesSurfaceSubquery extends EmissionLinesSubquery[Surface]("EmissionLinesSurface")
+object EmissionLinesSurfaceSubquery extends EmissionLinesSubquery[Surface]

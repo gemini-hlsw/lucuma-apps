@@ -4,12 +4,14 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Attachment
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachment]("Attachment"):
+@GraphQLType("Attachment")
+object AttachmentSubquery extends GraphQLSubquery.Typed[ObservationDB, Attachment]:
   override val subquery: String = s"""
     {
       id

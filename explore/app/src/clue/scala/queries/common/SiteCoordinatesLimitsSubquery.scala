@@ -4,6 +4,7 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.SiteCoordinatesLimits
 import lucuma.schemas.ObservationDB
@@ -12,10 +13,9 @@ import lucuma.schemas.odb.DecSubquery
 import lucuma.odb.json.limits.decoder.given
 
 @GraphQL
+@GraphQLType("CoordinateLimits")
 object SiteCoordinatesLimitsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, SiteCoordinatesLimits](
-      "CoordinatesLimits"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, SiteCoordinatesLimits]:
   override val subquery: String = s"""
     {
       raStart $RASubquery

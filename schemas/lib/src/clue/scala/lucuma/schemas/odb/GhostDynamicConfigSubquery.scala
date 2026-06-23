@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.odb.json.ghost.decoder.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("GhostDynamic")
 object GhostDynamicConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GhostDynamicConfig]("GhostDynamic"):
+    extends GraphQLSubquery.Typed[ObservationDB, GhostDynamicConfig]:
   override val subquery: String = s"""
     {
       red {
