@@ -79,7 +79,9 @@ trait OdbObservationApi[F[_]]:
     groupId:    Option[Group.Id],
     groupIndex: NonNegShort
   ): F[Unit]
-  def setGuideTargetName(obsId:          Observation.Id, targetName: Option[NonEmptyString]): F[Unit]
+  def setGuideTargetName(obsId: Observation.Id, targetName: Option[NonEmptyString]): F[Unit]
+  def guideTargetName(obsId:    Observation.Id): F[Option[NonEmptyString]]
+
   def createConfigurationRequest(
     obsId:         Observation.Id,
     justification: Option[NonEmptyString]
@@ -89,7 +91,7 @@ trait OdbObservationApi[F[_]]:
     observingMode:      Input[ObservingModeInput],
     posAngleConstraint: Input[PosAngleConstraintInput] = Input.ignore
   ): F[Option[ObservingMode]]
-  def setObservationWorkflowState(obsId: Observation.Id, st:         ObservationWorkflowState): F[Unit]
+  def setObservationWorkflowState(obsId: Observation.Id, st: ObservationWorkflowState): F[Unit]
   def resolveObservationReference(
     obsRef: ObservationReference
   ): F[Option[(Program.Id, Observation.Id)]]

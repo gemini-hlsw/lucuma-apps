@@ -10,6 +10,7 @@ import lucuma.schemas.odb.*
 // gql: import lucuma.odb.json.configurationrequest.query.given
 // gql: import lucuma.odb.json.sequence.given
 // gql: import lucuma.schemas.decoders.given
+// gql: import io.circe.refined.given
 
 object ObsQueriesGQL:
   @GraphQL
@@ -134,6 +135,23 @@ object ObsQueriesGQL:
         observation(observationReference: $input) {
           id
           program { id }
+        }
+      }
+    """
+
+  // some of the components of ObservationSubquery are quite expensive to read in bulk
+  // We can split the query into two parts, one for the bulk of the observation data and one for
+  // observation specific parts that can be delayed until the obs is selected
+  //
+  // One such element is guide target name which tracing shows as very expensive
+  @GraphQL
+  trait ObservationLoadedElements extends GraphQLOperation[ObservationDB]:
+    val document = """
+      query($obsId: ObservationId!) {
+        observation(observationId: $obsId) {
+          targetEnvironment {
+            guideTargetName
+          }
         }
       }
     """

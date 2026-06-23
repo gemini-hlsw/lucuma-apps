@@ -22,7 +22,6 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
           posAngleConstraint $PosAngleConstraintSubquery
           targetEnvironment {
             asterism { id }
-            guideTargetName
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
