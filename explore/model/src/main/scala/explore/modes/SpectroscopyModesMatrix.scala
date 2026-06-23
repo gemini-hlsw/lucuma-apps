@@ -164,9 +164,7 @@ case class SpectroscopyModeRow(
           case Instrument.Gnirs                            =>
             instrumentConfig match
               case i: ItcInstrumentConfig.GnirsSpectroscopy =>
-                i.copy(modeOverrides =
-                  InstrumentOverrides.GnirsSpectroscopy(cw, coadds = 1.refined).some
-                ).some
+                i.copy(modeOverrides = InstrumentOverrides.GnirsSpectroscopy(cw).some).some
               case i                                        =>
                 i.some
           case _                                           => none
