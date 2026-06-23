@@ -55,6 +55,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.math.skycalc.averageParallacticAngle
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.IntCentiPercent
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
@@ -324,8 +325,14 @@ object ObsTabTiles:
           val basicConfiguration: Option[BasicConfiguration] =
             props.observation.get.observingMode.map(_.toBasicConfiguration)
 
-          val itcOdbConfiguration: List[ItcInstrumentConfig] =
-            props.observation.get.toInstrumentConfig(props.obsTargets)
+          // ETM normalized to science requirements so it matches the table rows on ===.
+          val revertedInstrumentConfig: List[ItcInstrumentConfig] =
+            val rowEtm: ExposureTimeMode =
+              props.observation.get.scienceRequirements.exposureTimeMode
+                .getOrElse(ItcInstrumentConfig.PlaceholderEtm)
+            props.observation.get
+              .toInstrumentConfig(props.obsTargets)
+              .map(_.setSingleExposureTimeMode(rowEtm))
 
           val obsTimeView: View[Option[Instant]] =
             props.observation.model.zoom(Observation.observationTime)
@@ -690,7 +697,7 @@ object ObsTabTiles:
               optAsterismCoords,
               obsConf,
               selectedConfig,
-              itcOdbConfiguration,
+              revertedInstrumentConfig,
               props.modes,
               customSedTimestamps,
               props.obsTargets,
