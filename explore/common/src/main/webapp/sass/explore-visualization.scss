@@ -33,6 +33,10 @@ $brightness: var(--aladin-image-brightness);
     position: relative;
   }
 
+  .aladin-container-body.ifu2-hover-cursor canvas {
+    cursor: crosshair !important;
+  }
+
   .viz-guides {
     display: none;
   }

@@ -419,8 +419,8 @@ object AladinContainer extends AladinCommon {
                                            .eval
                                        Resource.pure(
                                          signal.discrete
-                                           // check if the mouse is over the ifu2 shape
-                                           .map(_.exists(m => ifu2Shape.contains(base.diff(m).offset)))
+                                           .map:
+                                             _.exists(m => m =!= base && ifu2Shape.contains(base.diff(m).offset))
                                            .changes
                                            .evalMap(h => ifu2Hovered.set(h).to[IO])
                                        )
@@ -664,7 +664,10 @@ object AladinContainer extends AladinCommon {
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
 
-        <.div.withRef(resize.ref)(ExploreStyles.AladinContainerBody)(
+        <.div.withRef(resize.ref)(
+          ExploreStyles.AladinContainerBody |+|
+            ExploreStyles.Ifu2HoverCursor.when_(ifu2Hovered.get)
+        )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin
           // will take it as 1. This height ends up being a denominator, which, if low,
