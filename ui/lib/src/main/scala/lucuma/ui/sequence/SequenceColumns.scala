@@ -5,6 +5,7 @@ package lucuma.ui.sequence
 
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -257,6 +258,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       cell = _.value.orEmpty
     )
 
+  private lazy val gcalCol: colDef.TypeFor[Option[NonEmptyString]] =
+    colDef(
+      SequenceColumns.GCalColumnId,
+      _.getStep.flatMap(_.gcal),
+      header = "GCal",
+      cell = _.value.map(_.value).orEmpty
+    )
+
   private def ghostDetectorCols(
     getter:     SequenceRow[D] => Option[GhostDetector],
     countId:    ColumnId,
@@ -389,6 +398,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       gratingCol,
       filterCol,
       readModeCol,
+      gcalCol,
       snCol
     )
 
@@ -420,6 +430,7 @@ object SequenceColumns:
   val YBinColumnId: ColumnId          = ColumnId("ybin")
   val ROIColumnId: ColumnId           = ColumnId("roi")
   val ReadModeColumnId: ColumnId      = ColumnId("readMode")
+  val GCalColumnId: ColumnId          = ColumnId("gcal")
   val FowlerSamplesColumnId: ColumnId = ColumnId("fowlerSamples")
   val SNColumnId: ColumnId            = ColumnId("sn")
 
@@ -490,6 +501,7 @@ object SequenceColumns:
         GratingColumnId  -> Resizable(50.toPx, min = 50.toPx, max = 70.toPx),
         FilterColumnId   -> Resizable(50.toPx, min = 30.toPx, max = 70.toPx),
         ReadModeColumnId -> Resizable(90.toPx, min = 75.toPx, max = 120.toPx),
+        GCalColumnId     -> Resizable(180.toPx, min = 120.toPx, max = 350.toPx),
         SNColumnId       -> Resizable(75.toPx, min = 75.toPx, max = 130.toPx)
       )
 

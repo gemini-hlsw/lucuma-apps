@@ -8,6 +8,7 @@ import cats.data.Ior
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Igrins2FowlerSamples
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.ObserveClass
@@ -76,6 +77,14 @@ sealed trait SequenceRow[+D]:
 
   lazy val stepTypeDisplay: Option[StepTypeDisplay] =
     stepConfig.flatMap(StepTypeDisplay.fromStepConfig)
+
+  // Single-string summary of Lamp, Filter, IR Shutter and Diffuser, when stepConfig is a Gcal.
+  lazy val gcal: Option[NonEmptyString] = stepConfig.collect:
+    case StepConfig.Gcal(lamp, filter, diffuser, shutter) =>
+      val lampName = lamp.fold(_.shortName, _.toSortedSet.toList.map(_.shortName).mkString("+"))
+      NonEmptyString.unsafeFrom(
+        List(lampName, filter.shortName, shutter.shortName, diffuser.shortName).mkString(", ")
+      )
 
   lazy val offset: Option[Offset] = telescopeConfig.map(_.offset)
 
