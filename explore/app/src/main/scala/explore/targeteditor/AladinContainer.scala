@@ -5,12 +5,18 @@ package explore.targeteditor
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
+import fs2.Stream
+import cats.effect.IO
+import cats.effect.Resource
 import cats.syntax.all.*
+import crystal.react.*
+import crystal.react.hooks.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
+import explore.model.AppContext
 import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
@@ -21,15 +27,19 @@ import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
+import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.ghost
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
@@ -48,6 +58,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.aladin.*
 import lucuma.ui.reusability
@@ -72,6 +83,7 @@ case class AladinContainer(
   globalPreferences:      GlobalPreferences,
   options:                AsterismVisualOptions,
   updateMouseCoordinates: Coordinates => Callback,
+  mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
@@ -325,9 +337,26 @@ object AladinContainer extends AladinCommon {
   ): Option[Coordinates] =
     base.flatMap(_.offsetBy(Angle.Angle0, offset))
 
+  // The pos angle at which to draw the IFU2 patrol field for hover-detection,
+  // Essentially a mix of the abes posangle plus the decision to show the ifu2 patrol field
+  private def ifu2HoverPosAngle(
+    vizConf: Option[ConfigurationForVisualization],
+    coords:  ObservationTargetsCoordinatesAt,
+    gs:      Option[AgsAnalysis.Usable]
+  ): Option[Angle] =
+    vizConf.flatMap: viz =>
+      viz.configuration match
+        case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
+          Option.when(coords.slotCoords.get(SlotId.GhostIfu2).isEmpty):
+            gs.map(_.posAngle)
+              .getOrElse(viz.posAngle)
+        case _                                                                          => none
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for {
+        ctx                     <- useContext(AppContext.ctx)
+        ifu2Hovered             <- useStateView(false)
         currentPos              <-
           useState[Option[Coordinates]](
             positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords,
@@ -373,6 +402,28 @@ object AladinContainer extends AladinCommon {
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
+        // Track mouse hover over the IFU2 patrol field, off the React render path.
+        _                       <- useEffectStreamResourceWithDeps(
+                                     (props.obsTimeCoords.baseOrBlindCoords,
+                                      ifu2HoverPosAngle(props.vizConf, props.obsTimeCoords, props.selectedGuideStar)
+                                     )
+                                   ): (baseCoords, ifu2PosAngle) =>
+                                     import ctx.given
+                                     (baseCoords, ifu2PosAngle, props.mouseCoords).tupled.fold(
+                                       // Not the single-target case (or no mouse signal): clear hover
+                                       Resource.pure(Stream.eval(ifu2Hovered.set(false).to[IO]))
+                                     ): (base, posAngle, signal) =>
+                                       val ifu2Shape =
+                                         ghost.GhostIfuPatrolField
+                                           .ifu2PatrolFieldAt(posAngle, Offset.Zero)
+                                           .eval
+                                       Resource.pure(
+                                         signal.discrete
+                                           // check if the mouse is over the ifu2 shape
+                                           .map(_.exists(m => ifu2Shape.contains(base.diff(m).offset)))
+                                           .changes
+                                           .evalMap(h => ifu2Hovered.set(h).to[IO])
+                                       )
         // patrol field shapes for debugging
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
@@ -662,7 +713,10 @@ object AladinContainer extends AladinCommon {
                resize.height,
                fov.value,
                shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
-               shapes.map(_._1 |+| staleCss)
+               shapes.map(
+                 _._1 |+| staleCss |+|
+                   VisualizationStyles.GhostIfu2PatrolFieldHovered.when_(ifu2Hovered.get)
+               )
               )
                 .mapN(
                   SvgVisualizationOverlay(

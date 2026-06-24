@@ -469,6 +469,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           globalPreferences.get,
           opts,
           coordinatesSetter,
+          mouseSignal.value.value.toOption,
           fovSetter,
           offsetChangeInAladin.reuseAlways,
           guideStar,

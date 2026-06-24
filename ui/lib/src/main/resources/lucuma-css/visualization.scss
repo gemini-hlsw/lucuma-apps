@@ -286,6 +286,13 @@
     fill: url('#ghost-ifu2-hatch-selected');
   }
 
+  // Emphasize the (empty) IFU2 patrol field while the mouse hovers over it
+  &.ghost-ifu2-patrol-field-hovered .ghost-ifu2-patrol-field {
+    stroke-width: 1.5px;
+    stroke-dasharray: none;
+    fill: url('#ghost-ifu2-hatch-selected');
+  }
+
   .ghost-ifu1-hatch-color {
     fill: var(--ghost-ifu1-color);
     stroke: var(--ghost-ifu1-color);
