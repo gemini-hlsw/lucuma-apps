@@ -29,7 +29,6 @@ import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
-import lucuma.refined.*
 
 import scala.collection.immutable.SortedSet
 
