@@ -234,7 +234,7 @@ final case class Observation(
                 g.prism,
                 g.camera,
                 g.exposureTimeMode,
-                InstrumentOverrides.GnirsSpectroscopy(g.centralWavelength).some
+                InstrumentOverrides.GnirsSpectroscopy(g.centralWavelength, g.coadds).some
               )
           )
         case g: ObservingMode.GhostIfu           =>
