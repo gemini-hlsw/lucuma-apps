@@ -35,29 +35,31 @@ case class Proposal(
     private def pi: Option[ProgramUser]            =
       users.find(_.role === ProgramUserRole.Pi)
     private def hasPi(partner: Partner): Boolean   =
-      pi.exists(_.partnerLink.partnerOption.exists(_ === partner))
+      pi.exists(_.partnerLink.geminiPartnerOption.exists(_ === partner))
     private def hasUser(partner: Partner): Boolean =
-      users.exists(_.partnerLink.partnerOption.exists(_ === partner))
+      users.exists(_.partnerLink.geminiPartnerOption.exists(_ === partner))
 
   private def cfPError(users: List[ProgramUser]): List[String] =
     call.fold(List("Call for Proposal is required."))(cfp =>
       val piAffiliation = users.pi.fold(PartnerLink.HasUnspecifiedPartner)(_.partnerLink)
       val partnerError  = piAffiliation match
-        case PartnerLink.HasPartner(partner)   =>
+        case PartnerLink.HasGeminiPartner(partner) =>
           Option.when(!cfp.partners.exists(_.partner === partner)) {
             "PI partner not valid for this Call for Proposal."
           }
-        case PartnerLink.HasNonPartner         =>
-          Option.when(!cfp.allowsNonPartnerPi) {
+        case PartnerLink.HasNonPartner             =>
+          Option.when(cfp.gemini.exists(!_.allowsNonPartnerPi)) {
             "Non-partner PI is not allowed for this Call for Proposal."
           }
+        // Exchange-partner PIs are not yet supported in Explore.
+        case PartnerLink.HasExchangePartner(_)     => none
         // This gets checked in usersAndTimesErrors
-        case PartnerLink.HasUnspecifiedPartner => none
+        case PartnerLink.HasUnspecifiedPartner     => none
       val band3Error    = Option.when(
         proposalType.exists:
-          case ProposalType.Queue(considerForBand3 = considerForBand3) =>
+          case GeminiProposalType.Queue(considerForBand3 = considerForBand3) =>
             considerForBand3 === ConsiderForBand3.Unset
-          case _                                                       =>
+          case _                                                             =>
             false
       )("Band 3 consideration must be specified before the proposal can be submitted.")
       List(partnerError, band3Error).flattenOption
@@ -65,7 +67,9 @@ case class Proposal(
 
   // if this is None, either a CfP has not been selected or they are not required for the proposal type
   private lazy val partnerSplits: Option[List[PartnerSplit]] =
-    proposalType.flatMap(pt => ProposalType.partnerSplits.getOption(pt))
+    proposalType
+      .flatMap(ProposalType.geminiProposalType.getOption)
+      .flatMap(GeminiProposalType.partnerSplits.getOption)
 
   private def usersAndTimesErrors(users: List[ProgramUser]): List[String] =
     val partnerError       = Option.unless(users.forall(_.partnerLink.isSet)) {
@@ -114,8 +118,10 @@ case class Proposal(
       affiliationMismatches
     ).flatten
 
-  private lazy val fastTurnaround: Option[ProposalType.FastTurnaround] =
-    proposalType.flatMap(ProposalType.fastTurnaround.getOption)
+  private lazy val fastTurnaround: Option[GeminiProposalType.FastTurnaround] =
+    proposalType
+      .flatMap(ProposalType.geminiProposalType.getOption)
+      .flatMap(GeminiProposalType.fastTurnaround.getOption)
 
   private lazy val isFastTurnaround: Boolean = fastTurnaround.isDefined
 
@@ -172,25 +178,36 @@ case class Proposal(
   ).flatten
 
 object Proposal:
-  val call: Lens[Proposal, Option[CallForProposal]]        =
+  val call: Lens[Proposal, Option[CallForProposal]]                  =
     Focus[Proposal](_.call)
-  val category: Lens[Proposal, Option[TacCategory]]        =
+  val category: Lens[Proposal, Option[TacCategory]]                  =
     Focus[Proposal](_.category)
-  val proposalType: Lens[Proposal, Option[ProposalType]]   =
+  val proposalType: Lens[Proposal, Option[ProposalType]]             =
     Focus[Proposal](_.proposalType)
-  val reference: Lens[Proposal, Option[ProposalReference]] =
+  // Focuses the Gemini proposal type, discarding any non-Gemini type on set.
+  val geminiProposalType: Lens[Proposal, Option[GeminiProposalType]] =
+    Lens[Proposal, Option[GeminiProposalType]](
+      _.proposalType.flatMap(ProposalType.geminiProposalType.getOption)
+    )(optGpt => _.copy(proposalType = optGpt))
+  val reference: Lens[Proposal, Option[ProposalReference]]           =
     Focus[Proposal](_.reference)
 
   given Decoder[Proposal] = c =>
     for {
       call     <- c.downField("call").as[Option[CallForProposal]]
       category <- c.downField("category").as[Option[TacCategory]]
-      pte      <- c.downField("type").as[Option[ProposalType]]
+      gemini   <- c.downField("gemini").as[Option[GeminiProposalType]]
+      keck     <- c.downField("keck").as[Option[KeckProposalType]]
+      subaru   <- c.downField("subaru").as[Option[SubaruProposalType]]
       r        <-
         c.downField("reference")
           .downField("label")
           .success
           .traverse(_.as[Option[ProposalReference]])
-    } yield Proposal(call, category, pte, r.flatten)
+    } yield Proposal(call,
+                     category,
+                     (gemini: Option[ProposalType]).orElse(keck).orElse(subaru),
+                     r.flatten
+    )
 
   val Default = Proposal(None, None, None, None)

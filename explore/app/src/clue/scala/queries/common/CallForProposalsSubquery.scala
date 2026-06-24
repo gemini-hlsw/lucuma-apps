@@ -16,21 +16,35 @@ object CallForProposalsSubquery
       id
       semester
       title
-      cfpType: type
-      nonPartnerDeadline
+      observatory
+      gemini {
+        cfpType: type
+        coordinateLimits {
+          north $SiteCoordinatesLimitsSubquery
+          south $SiteCoordinatesLimitsSubquery
+        }
+        instruments
+        proprietaryMonths
+        allowsNonPartnerPi
+        nonPartnerDeadline
+        exchangePartners
+      }
+      keck {
+        instruments
+        coordinateLimits $SiteCoordinatesLimitsSubquery
+      }
+      subaru {
+        cfpType: type
+        instruments
+        coordinateLimits $SiteCoordinatesLimitsSubquery
+      }
       active {
         start
         end
       }
       partners {
-        partner
+        partner: geminiPartner
         submissionDeadline
-      }
-      allowsNonPartnerPi
-      instruments
-      coordinateLimits {
-        north $SiteCoordinatesLimitsSubquery
-        south $SiteCoordinatesLimitsSubquery
       }
     }
   """

@@ -335,12 +335,14 @@ extension (etm: ExposureTimeMode)
 extension (pl: PartnerLink)
   def toInput: PartnerLinkInput =
     pl match
-      case PartnerLink.HasPartner(p)         =>
-        PartnerLinkInput(PartnerLinkType.HasPartner.assign, p.assign)
+      case PartnerLink.HasGeminiPartner(p)   =>
+        PartnerLinkInput(geminiPartner = p.assign)
+      case PartnerLink.HasExchangePartner(p) =>
+        PartnerLinkInput(exchangePartner = p.assign)
       case PartnerLink.HasNonPartner         =>
-        PartnerLinkInput(PartnerLinkType.HasNonPartner.assign, none.orUnassign)
+        PartnerLinkInput(linkType = PartnerLinkType.HasNonPartner.assign)
       case PartnerLink.HasUnspecifiedPartner =>
-        PartnerLinkInput(PartnerLinkType.HasUnspecifiedPartner.assign, none.orUnassign)
+        PartnerLinkInput(linkType = PartnerLinkType.HasUnspecifiedPartner.assign)
 
 extension [A](arc: Arc[A])
   def arcType: ArcType = arc match

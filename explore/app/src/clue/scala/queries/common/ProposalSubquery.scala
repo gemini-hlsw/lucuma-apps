@@ -18,7 +18,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
       reference {
         label
       }
-      type {
+      gemini {
         scienceSubtype
         ... on Classical {
           minPercentTime
@@ -61,6 +61,13 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]("
           toOActivation
           minPercentTime
         }
+      }
+      keck {
+        partnerSplits $PartnerSplitSubquery
+      }
+      subaru {
+        cfpType: type
+        partnerSplits $PartnerSplitSubquery
       }
     }
   """

@@ -5,7 +5,7 @@ package explore.optics
 
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.scalacheck.all.given
-import explore.model.ProposalType
+import explore.model.GeminiProposalType
 import explore.model.arb.ArbPartnerSplit.given
 import explore.model.arb.ArbProposalType.given
 import explore.optics.ModelOptics.*
@@ -22,7 +22,7 @@ class ModelOpticsSuite extends DisciplineSuite:
   import ArbTarget.given
 
   checkAll("targetRV", OptionalTests(TargetRV))
-  checkAll("toOActivation", OptionalTests(ProposalType.toOActivation))
-  checkAll("partnerSplits", OptionalTests(ProposalType.partnerSplits))
-  checkAll("minPercentTime", OptionalTests(ProposalType.minPercentTime))
-  checkAll("totalTime", OptionalTests(ProposalType.totalTime))
+  checkAll("toOActivation", OptionalTests(GeminiProposalType.toOActivation))
+  checkAll("partnerSplits", OptionalTests(GeminiProposalType.partnerSplits))
+  checkAll("minPercentTime", OptionalTests(GeminiProposalType.minPercentTime))
+  checkAll("totalTime", OptionalTests(GeminiProposalType.totalTime))

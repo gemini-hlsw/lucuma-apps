@@ -223,7 +223,8 @@ object ProposalAttachmentsTable extends ProposalAttachmentUtils {
               .filterNot(
                 // Fast turnaround proposals do not have a team attachment
                 _ === AttachmentType.Team && pt
-                  .exists(t => t.scienceSubtype === ScienceSubtype.FastTurnaround)
+                  .flatMap(ProposalType.geminiProposalType.getOption)
+                  .exists(_.scienceSubtype === ScienceSubtype.FastTurnaround)
               )
               .map(pat => pas.find(_.attachmentType === pat).toRight(pat))
       .useReactTableBy: (_, _, _, action, urlMap, cols, rows) =>

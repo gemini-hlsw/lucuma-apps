@@ -4,13 +4,17 @@
 package explore.model.arb
 
 import eu.timepit.refined.scalacheck.all.*
+import explore.model.GeminiProposalType
+import explore.model.GeminiProposalType.*
+import explore.model.KeckProposalType
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.ProposalType
-import explore.model.ProposalType.*
+import explore.model.SubaruProposalType
 import explore.model.arb.ArbPartnerSplit.given
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
+import lucuma.core.enums.SubaruCallForProposalsType
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
 import lucuma.core.util.TimeSpan
@@ -237,7 +241,7 @@ trait ArbProposalType:
       )
     ].contramap(p => (p.scienceSubtype, p.toOActivation, p.minPercentTime))
 
-  given Arbitrary[ProposalType] =
+  given Arbitrary[GeminiProposalType] =
     Arbitrary {
       Gen.oneOf(
         arbitrary[Classical],
@@ -251,7 +255,7 @@ trait ArbProposalType:
       )
     }
 
-  given Cogen[ProposalType] =
+  given Cogen[GeminiProposalType] =
     Cogen[Either[
       Classical,
       Either[DemoScience, Either[DirectorsTime, Either[
@@ -267,6 +271,42 @@ trait ArbProposalType:
       case p: PoorWeather        => Right(Right(Right(Right(Right(Left(p))))))
       case q: Queue              => Right(Right(Right(Right(Right(Right(Left(q)))))))
       case s: SystemVerification => Right(Right(Right(Right(Right(Right(Right(s)))))))
+    }
+
+  given Arbitrary[KeckProposalType] =
+    Arbitrary {
+      arbitrary[List[PartnerSplit]].map(KeckProposalType(_))
+    }
+
+  given Cogen[KeckProposalType] =
+    Cogen[List[PartnerSplit]].contramap(_.partnerSplits)
+
+  given Arbitrary[SubaruProposalType] =
+    Arbitrary {
+      for {
+        cfpType       <- arbitrary[SubaruCallForProposalsType]
+        partnerSplits <- arbitrary[List[PartnerSplit]]
+      } yield SubaruProposalType(cfpType, partnerSplits)
+    }
+
+  given Cogen[SubaruProposalType] =
+    Cogen[(SubaruCallForProposalsType, List[PartnerSplit])]
+      .contramap(p => (p.cfpType, p.partnerSplits))
+
+  given Arbitrary[ProposalType] =
+    Arbitrary {
+      Gen.oneOf(
+        arbitrary[GeminiProposalType],
+        arbitrary[KeckProposalType],
+        arbitrary[SubaruProposalType]
+      )
+    }
+
+  given Cogen[ProposalType] =
+    Cogen[Either[GeminiProposalType, Either[KeckProposalType, SubaruProposalType]]].contramap {
+      case g: GeminiProposalType => Left(g)
+      case k: KeckProposalType   => Right(Left(k))
+      case s: SubaruProposalType => Right(Right(s))
     }
 
 object ArbProposalType extends ArbProposalType

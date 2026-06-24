@@ -22,12 +22,13 @@ import explore.model.AttachmentList
 import explore.model.CallForProposal
 import explore.model.Constants
 import explore.model.ExploreGridLayouts
+import explore.model.GeminiProposalType
+import explore.model.GeminiProposalType.FastTurnaround
 import explore.model.ProgramDetails
 import explore.model.ProgramUser
 import explore.model.Proposal
 import explore.model.ProposalTabTileIds
 import explore.model.ProposalType
-import explore.model.ProposalType.FastTurnaround
 import explore.model.enums.GridLayoutSection
 import explore.model.layout.LayoutsMap
 import explore.users.AddProgramUserButton
@@ -135,11 +136,19 @@ object ProposalEditor
             props.proposal.model
               .zoom(Proposal.proposalType)
               .toOptionView
-              .flatMap(_.zoom(ProposalType.fastTurnaround).toOptionView)
+              .flatMap(
+                _.zoom(
+                  ProposalType.geminiProposalType.andThen(GeminiProposalType.fastTurnaround)
+                ).toOptionView
+              )
 
-          val classicalView: ViewOpt[ProposalType.Classical] =
+          val classicalView: ViewOpt[GeminiProposalType.Classical] =
             props.proposal.model
-              .zoom(Proposal.proposalType.some.andThen(ProposalType.classical))
+              .zoom(
+                Proposal.proposalType.some
+                  .andThen(ProposalType.geminiProposalType)
+                  .andThen(GeminiProposalType.classical)
+              )
 
           def reviewerMentorRemoteUpdate(
             reviewer: Input[ProgramUser.Id],
@@ -150,7 +159,7 @@ object ProposalEditor
                 UpdateProposalInput(
                   programId = props.programId.assign,
                   SET = ProposalPropertiesInput(
-                    `type` = ProposalTypeInput
+                    gemini = GeminiProposalTypeInput
                       .FastTurnaround:
                         FastTurnaroundInput(reviewerId = reviewer, mentorId = mentor)
                       .assign

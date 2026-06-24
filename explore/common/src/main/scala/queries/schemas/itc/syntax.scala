@@ -28,6 +28,7 @@ import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
+import lucuma.refined.*
 
 import scala.collection.immutable.SortedSet
 
@@ -169,7 +170,8 @@ trait syntax:
                   grating,
                   camera,
                   readMode,
-                  GnirsWellDepth.forCamera(camera)
+                  GnirsWellDepth.forCamera(camera),
+                  1.refined // TODO: Temporary fix
                 )
                 .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
