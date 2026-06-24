@@ -50,6 +50,25 @@ object MouseMoved:
       p.y
     )
 
+case class AladinClick(
+  ra:         RightAscension,
+  dec:        Declination,
+  x:          Double,
+  y:          Double,
+  isDragging: Boolean
+):
+  def coordinates: Coordinates = Coordinates(ra, dec)
+
+object AladinClick:
+  def fromJs(p: JsClick): AladinClick =
+    AladinClick(
+      RightAscension.fromDoubleDegrees(p.ra),
+      Declination.fromDoubleDegrees(p.dec).getOrElse(Declination.Zero),
+      p.x,
+      p.y,
+      p.isDragging
+    )
+
 enum CooFrame:
   case J2000    extends CooFrame
   case J2000d   extends CooFrame

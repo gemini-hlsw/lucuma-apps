@@ -361,6 +361,8 @@ object AladinContainer extends AladinCommon {
       for {
         ctx                     <- useContext(AppContext.ctx)
         ifu2Hovered             <- useStateView(false)
+        // Hold the last click position on a SignallingRef instead of react state
+        clickSignal             <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
         currentPos              <-
           useState[Option[Coordinates]](
             positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords,
@@ -428,6 +430,29 @@ object AladinContainer extends AladinCommon {
                                            .changes
                                            .evalMap(h => ifu2Hovered.set(h).to[IO])
                                        )
+        // Detect clicks inside the IFU2 patrol field
+        _                       <- useEffectStreamResourceWithDeps(
+                                     (props.obsTimeCoords.baseOrBlindCoords,
+                                      ifu2HoverPosAngle(props.vizConf, props.obsTimeCoords, props.selectedGuideStar),
+                                      clickSignal.value.value.toOption.isDefined
+                                     )
+                                   ): (baseCoords, ifu2PosAngle, _) =>
+                                     (baseCoords, ifu2PosAngle, clickSignal.value.value.toOption).tupled
+                                       .fold(
+                                         Resource.pure(Stream.empty.covary[IO])
+                                       ): (base, posAngle, signal) =>
+                                         val ifu2Shape =
+                                           ghost.GhostIfuPatrolField
+                                             .ifu2PatrolFieldAt(posAngle, Offset.Zero)
+                                             .eval
+                                         Resource.pure(
+                                           signal.discrete.unNone
+                                             .filter(c => c =!= base && ifu2Shape.contains(base.diff(c).offset))
+                                             .evalMap(c =>
+                                               IO.println(s"Clicked inside IFU2 patrol field at $c") *>
+                                                 signal.set(none)
+                                             )
+                                         )
         // patrol field shapes for debugging
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
@@ -541,11 +566,19 @@ object AladinContainer extends AladinCommon {
             (fov.setState(v.some) *> props.updateFov(v)).unless_(ignore)
           }
 
+        // Record the last non-drag click
+        val onAladinClick: AladinClick => Callback = c =>
+          import ctx.given
+          clickSignal.value.value.toOption
+            .foldMap(_.set(c.coordinates.some).runAsync)
+            .unless_(c.isDragging)
+
         val includeSvg: Aladin => Callback = (v: Aladin) =>
           aladinRef.setState(v.some) *>
             v.onZoomCB(onZoom) *> // re render on zoom
             v.onPositionChangedCB(onPositionChanged) *>
-            v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec)))
+            v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec))) *>
+            v.onClickCB(onAladinClick)
 
         val baseCoordinatesForAladin: String =
           currentPos.value

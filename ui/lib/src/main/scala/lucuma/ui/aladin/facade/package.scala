@@ -31,6 +31,14 @@ trait JsMouseMoved extends js.Object:
   val y: Double
 
 @js.native
+trait JsClick extends js.Object:
+  val ra: Double
+  val dec: Double
+  val x: Double
+  val y: Double
+  val isDragging: Boolean
+
+@js.native
 trait AladinColor extends js.Object
 
 @js.native

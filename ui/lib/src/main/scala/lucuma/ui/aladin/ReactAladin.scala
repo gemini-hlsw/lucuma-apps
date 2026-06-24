@@ -60,6 +60,9 @@ extension (a: Aladin)
   def onMouseMoveCB(cb: MouseMoved => Callback): Callback =
     Callback(a.on("mouseMove", (t: JsMouseMoved) => cb(MouseMoved.fromJs(t)).runNow()))
 
+  def onClickCB(cb: AladinClick => Callback): Callback =
+    Callback(a.on("click", (t: JsClick) => cb(AladinClick.fromJs(t)).runNow()))
+
   def pixelScale: PixelScale =
     PixelScale(a.getSize()(0) / a.getFov()(0), a.getSize()(1) / a.getFov()(1))
 
