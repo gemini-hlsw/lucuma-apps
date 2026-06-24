@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.math.Declination
 import lucuma.odb.json.declination.decoder.given
 import lucuma.schemas.ObservationDB
 
-object DecSubquery extends GraphQLSubquery.Typed[ObservationDB, Declination]("Declination"):
+@GraphQLType("Declination")
+object DecSubquery extends GraphQLSubquery.Typed[ObservationDB, Declination]:
   override val subquery: String = """
         {
           microarcseconds

@@ -4,15 +4,18 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import io.circe.Decoder
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.core.model.SpectralDefinition
 import lucuma.odb.json.sourceprofile.given
 import lucuma.schemas.ObservationDB
 
-class BandNormalizedSubquery[T](rootType: String)(using
+// The shared selection is validated against every concrete root type the subclasses use.
+@GraphQLType("BandNormalizedIntegrated", "BandNormalizedSurface")
+class BandNormalizedSubquery[T](using
   Decoder[SpectralDefinition.BandNormalized[T]]
-) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.BandNormalized[T]](rootType):
+) extends GraphQLSubquery.Typed[ObservationDB, SpectralDefinition.BandNormalized[T]]:
   override val subquery: String = s"""
         {
           sed $UnnormalizedSEDSubquery
@@ -20,8 +23,6 @@ class BandNormalizedSubquery[T](rootType: String)(using
         }
       """
 
-object BandNormalizedIntegratedSubquery
-    extends BandNormalizedSubquery[Integrated]("BandNormalizedIntegrated")
+object BandNormalizedIntegratedSubquery extends BandNormalizedSubquery[Integrated]
 
-object BandNormalizedSurfaceSubquery
-    extends BandNormalizedSubquery[Surface]("BandNormalizedSurface")
+object BandNormalizedSurfaceSubquery extends BandNormalizedSubquery[Surface]

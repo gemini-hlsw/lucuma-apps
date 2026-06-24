@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.CallForProposal
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("CallForProposals")
 object CallForProposalsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CallForProposal]("CallForProposal"):
+    extends GraphQLSubquery.Typed[ObservationDB, CallForProposal]:
   override val subquery: String = s"""
     {
       id

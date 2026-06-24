@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.ProgramDetails
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("Program")
 object ProgramDetailsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ProgramDetails]("Program"):
+    extends GraphQLSubquery.Typed[ObservationDB, ProgramDetails]:
   override val subquery: String = s"""
     {
       name

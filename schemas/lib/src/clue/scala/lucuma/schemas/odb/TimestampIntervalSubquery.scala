@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.util.TimestampInterval
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
 @GraphQL
+@GraphQLType("TimestampInterval")
 object TimestampIntervalSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, TimestampInterval]("TimestampInterval"):
+    extends GraphQLSubquery.Typed[ObservationDB, TimestampInterval]:
   override val subquery: String = """
         {
           start

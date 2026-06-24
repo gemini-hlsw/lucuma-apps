@@ -4,12 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.model.ConstraintSet
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
+@GraphQLType("ConstraintSet")
 object ConstraintSetSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ConstraintSet]("ConstraintSet"):
+    extends GraphQLSubquery.Typed[ObservationDB, ConstraintSet]:
   override val subquery: String = """
         {
           cloudExtinction

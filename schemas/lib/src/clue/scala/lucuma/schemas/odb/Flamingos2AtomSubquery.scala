@@ -4,6 +4,7 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
@@ -12,10 +13,9 @@ import lucuma.odb.json.sequence.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("Flamingos2Atom")
 object Flamingos2AtomSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Atom[Flamingos2DynamicConfig]](
-      "Flamingos2Atom"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, Atom[Flamingos2DynamicConfig]]:
   override val subquery: String = s"""
         {
           id

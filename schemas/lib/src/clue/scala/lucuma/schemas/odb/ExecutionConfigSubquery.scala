@@ -4,6 +4,7 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.odb.json.sequence.given
@@ -12,8 +13,9 @@ import lucuma.schemas.ObservationDB
 // Clue does not support fragment definitions inside subqueries, so the per-sequence
 // fields (`nextAtom`/`possibleFuture`/`hasMore`) and the nod & shuffle fields are inlined.
 @GraphQL
+@GraphQLType("ExecutionConfig")
 object ExecutionConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, InstrumentExecutionConfig]("ExecutionConfig"):
+    extends GraphQLSubquery.Typed[ObservationDB, InstrumentExecutionConfig]:
   override val subquery: String = s"""
     {
       instrument

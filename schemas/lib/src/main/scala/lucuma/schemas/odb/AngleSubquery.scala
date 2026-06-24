@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.math.Angle
 import lucuma.odb.json.angle.decoder.given
 import lucuma.schemas.ObservationDB
 
-object AngleSubquery extends GraphQLSubquery.Typed[ObservationDB, Angle]("Angle"):
+@GraphQLType("Angle")
+object AngleSubquery extends GraphQLSubquery.Typed[ObservationDB, Angle]:
   override val subquery: String = """
         {
           microarcseconds

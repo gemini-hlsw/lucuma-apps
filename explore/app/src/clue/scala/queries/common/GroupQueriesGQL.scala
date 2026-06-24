@@ -5,6 +5,7 @@ package queries.common
 
 import clue.GraphQLOperation
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Group
 import lucuma.schemas.ObservationDB
@@ -12,7 +13,8 @@ import lucuma.schemas.odb.TimeSpanSubquery
 
 object GroupQueriesGQL:
 
-  object GroupSubQuery extends GraphQLSubquery.Typed[ObservationDB, Group]("Group"):
+  @GraphQLType("Group")
+  object GroupSubQuery extends GraphQLSubquery.Typed[ObservationDB, Group]:
     override val subquery: String = s"""
       {
         id

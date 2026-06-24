@@ -4,12 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 // gql: import io.circe.refined.*
 
 @GraphQL
-abstract class FluxDensitySubquery extends GraphQLSubquery[ObservationDB]("FluxDensityEntry"):
+@GraphQLType("FluxDensityEntry")
+abstract class FluxDensitySubquery extends GraphQLSubquery[ObservationDB]:
   // FIXME Replace wavelength when subqueries can contain subqueries
   override val subquery: String = """
         {

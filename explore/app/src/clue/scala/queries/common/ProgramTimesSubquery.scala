@@ -4,12 +4,14 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.ProgramTimes
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object ProgramTimesSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramTimes]("Program") {
+@GraphQLType("Program")
+object ProgramTimesSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramTimes] {
   override val subquery: String = s"""
     {
       timeEstimateRange $CalculatedProgramTimeRangeSubquery

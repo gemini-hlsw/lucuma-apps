@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.ModeSignalToNoise
 
 @GraphQL
+@GraphQLType("Itc")
 object ModeSignalToNoiseSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ModeSignalToNoise]("Itc"):
+    extends GraphQLSubquery.Typed[ObservationDB, ModeSignalToNoise]:
   override val subquery: String = s"""
     {
       itcType

@@ -4,12 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.math.RadialVelocity
 import lucuma.odb.json.radialvelocity.decoder.given
 import lucuma.schemas.ObservationDB
 
+@GraphQLType("RadialVelocity")
 object RadialVelocitySubquery
-    extends GraphQLSubquery.Typed[ObservationDB, RadialVelocity]("RadialVelocity"):
+    extends GraphQLSubquery.Typed[ObservationDB, RadialVelocity]:
   // Use metersPerSecond rather than centimetersPerSecond because the latter is a Long
   // and loses precision.
   override val subquery: String = """

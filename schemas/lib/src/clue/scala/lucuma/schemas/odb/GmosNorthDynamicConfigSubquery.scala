@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.gmos
 import lucuma.odb.json.gmos.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("GmosNorthDynamic")
 object GmosNorthDynamicConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, gmos.DynamicConfig.GmosNorth]("GmosNorthDynamic"):
+    extends GraphQLSubquery.Typed[ObservationDB, gmos.DynamicConfig.GmosNorth]:
   override val subquery: String = s"""
     {
       exposure $TimeSpanSubquery

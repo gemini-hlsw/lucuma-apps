@@ -4,14 +4,14 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
-import clue.annotation.GraphQL
+import clue.annotation.GraphQLType
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.SlitTelescopeConfigsDecoders.given
 
-@GraphQL
+@GraphQLType("SlitTelescopeConfigs")
 object SlitTelescopeConfigsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, SlitTelescopeConfigs]("SlitTelescopeConfigs"):
+    extends GraphQLSubquery.Typed[ObservationDB, SlitTelescopeConfigs]:
   override val subquery: String = s"""
         {
           offsetMode

@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.odb.json.flamingos2.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("Flamingos2Dynamic")
 object Flamingos2DynamicConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Flamingos2DynamicConfig]("Flamingos2Dynamic"):
+    extends GraphQLSubquery.Typed[ObservationDB, Flamingos2DynamicConfig]:
   override val subquery: String = s"""
     {
       exposure $TimeSpanSubquery

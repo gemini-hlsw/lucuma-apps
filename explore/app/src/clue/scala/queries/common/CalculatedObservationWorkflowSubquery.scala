@@ -4,6 +4,7 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.model.ObservationWorkflow
 import lucuma.core.util.CalculatedValue
@@ -11,10 +12,9 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 
 @GraphQL
+@GraphQLType("CalculatedObservationWorkflow")
 object CalculatedObservationWorkflowSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[ObservationWorkflow]](
-      "CalculatedObservationWorkflow"
-    ):
+    extends GraphQLSubquery.Typed[ObservationDB, CalculatedValue[ObservationWorkflow]]:
   override val subquery: String = s"""
     {
       calculationState

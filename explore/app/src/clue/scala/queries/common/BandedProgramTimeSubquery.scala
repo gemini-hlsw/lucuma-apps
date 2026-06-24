@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.BandedProgramTime
 import lucuma.schemas.ObservationDB
 
 @GraphQL
+@GraphQLType("BandedTime")
 object BandedProgramTimeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, BandedProgramTime]("BandedTime"):
+    extends GraphQLSubquery.Typed[ObservationDB, BandedProgramTime]:
   override val subquery: String = s"""
         {
           band

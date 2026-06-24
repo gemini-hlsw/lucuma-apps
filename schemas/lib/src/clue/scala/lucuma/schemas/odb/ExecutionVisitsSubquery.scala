@@ -4,14 +4,16 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.ExecutionVisits
 
 @GraphQL
+@GraphQLType("Execution")
 object ExecutionVisitsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Option[ExecutionVisits]]("Execution"):
+    extends GraphQLSubquery.Typed[ObservationDB, Option[ExecutionVisits]]:
   override val subquery: String = s"""
     {
       visits(OFFSET: $$visitIdOffset) {

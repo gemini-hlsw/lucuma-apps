@@ -4,16 +4,18 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import io.circe.Decoder
 import lucuma.core.enums.Band
 import lucuma.core.math.BrightnessUnits.*
 import lucuma.odb.json.sourceprofile.*
 import lucuma.schemas.ObservationDB
 
+// The shared selection is validated against every concrete root type the subclasses use.
+@GraphQLType("BandBrightnessIntegrated", "BandBrightnessSurface")
 class BandBrightnessSubquery[T](
-  rootType:                 String,
   override val dataDecoder: Decoder[(Band, BrightnessMeasure[T])]
-) extends GraphQLSubquery[ObservationDB](rootType):
+) extends GraphQLSubquery[ObservationDB]:
   override type Data = (Band, BrightnessMeasure[T])
 
   override val subquery: String = """
@@ -25,13 +27,7 @@ class BandBrightnessSubquery[T](
         }
       """
 object BandBrightnessIntegratedSubquery
-    extends BandBrightnessSubquery[Integrated](
-      "BandBrightnessIntegrated",
-      CodecBandBrightness[Integrated]
-    )
+    extends BandBrightnessSubquery[Integrated](CodecBandBrightness[Integrated])
 
 object BandBrightnessSurfaceSubquery
-    extends BandBrightnessSubquery[Surface](
-      "BandBrightnessSurface",
-      CodecBandBrightness[Surface]
-    )
+    extends BandBrightnessSubquery[Surface](CodecBandBrightness[Surface])

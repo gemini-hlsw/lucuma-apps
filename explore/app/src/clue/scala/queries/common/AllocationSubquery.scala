@@ -4,13 +4,15 @@
 package queries.common
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import explore.model.Allocation
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.TimeSpanSubquery
 
 @GraphQL
-object AllocationSubquery extends GraphQLSubquery.Typed[ObservationDB, Allocation]("Allocation"):
+@GraphQLType("Allocation")
+object AllocationSubquery extends GraphQLSubquery.Typed[ObservationDB, Allocation]:
   override val subquery: String = s"""
     {
       category

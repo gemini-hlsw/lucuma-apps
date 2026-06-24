@@ -53,7 +53,9 @@ object ObsQueriesGql:
             explicitBase $CoordinatesSubquery
           }
           constraintSet $ConstraintSetSubquery
-          timingWindows $TimingWindowSubquery
+          schedulingConstraints {
+            timingWindows $TimingWindowSubquery
+          }
         }
 
         executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery

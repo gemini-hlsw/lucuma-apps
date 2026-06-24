@@ -4,11 +4,13 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import lucuma.core.math.RightAscension
 import lucuma.odb.json.rightascension.decoder.given
 import lucuma.schemas.ObservationDB
 
-object RASubquery extends GraphQLSubquery.Typed[ObservationDB, RightAscension]("RightAscension"):
+@GraphQLType("RightAscension")
+object RASubquery extends GraphQLSubquery.Typed[ObservationDB, RightAscension]:
   override val subquery: String = """
         {
           microseconds

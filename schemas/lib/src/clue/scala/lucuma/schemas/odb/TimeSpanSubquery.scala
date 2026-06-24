@@ -4,13 +4,15 @@
 package lucuma.schemas.odb
 
 import clue.GraphQLSubquery
+import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
 import lucuma.core.util.TimeSpan
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.ObservationDB
 
 @GraphQL
-object TimeSpanSubquery extends GraphQLSubquery.Typed[ObservationDB, TimeSpan]("TimeSpan"):
+@GraphQLType("TimeSpan")
+object TimeSpanSubquery extends GraphQLSubquery.Typed[ObservationDB, TimeSpan]:
   override val subquery: String = """
         {
           microseconds
