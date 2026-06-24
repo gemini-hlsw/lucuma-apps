@@ -7,7 +7,7 @@ object Versions {
   val catsRetry              = "4.0.0"
   val catsTestkitScalaTest   = "2.1.5"
   val catsTime               = "0.6.0"
-  val circe                  = "0.14.15"
+  val circe                  = "0.14.16"
   val circeRefined           = "0.15.1"
   val coulomb                = "0.9.1"
   val clue                   = "0.55.0"
