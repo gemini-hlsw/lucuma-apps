@@ -21,6 +21,7 @@ import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.enums.WavelengthUnits
+import explore.model.syntax.all.*
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
 import explore.utils.*
@@ -82,6 +83,7 @@ object GnirsLongslitConfigPanel
           disableAdvancedEdit && !props.permissions.isOnlyForOngoing
         val showCustomization: Boolean        = props.calibrationRole.isEmpty
         val allowRevertCustomization: Boolean = props.permissions.isFullEdit
+        val showAcquisitionConfig: Boolean    = props.calibrationRole.needsAcquisitionConfig
 
         given readModeEnum: Enumerated[Option[GnirsReadMode]] =
           deriveOptionalEnumerated[GnirsReadMode]("Auto")
@@ -468,7 +470,7 @@ object GnirsLongslitConfigPanel
                   )
                 )
               )
-            ),
+            ).when(showAcquisitionConfig),
             AdvancedConfigButtons(
               editState = editState,
               isCustomized = props.observingMode.get.isCustomized,
