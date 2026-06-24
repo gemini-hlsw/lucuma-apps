@@ -183,7 +183,14 @@ object all:
       case CalibrationRole.DaytimePinhole => false
       case _                              => true
 
-  extension (cr: Option[CalibrationRole]) def needsITC: Boolean = cr.fold(true)(_.needsITC)
+    def needsAcquisitionConfig: Boolean = cr match
+      case CalibrationRole.Twilight       => false
+      case CalibrationRole.DaytimePinhole => false
+      case _                              => true
+
+  extension (cr: Option[CalibrationRole])
+    def needsITC: Boolean               = cr.forall(_.needsITC)
+    def needsAcquisitionConfig: Boolean = cr.forall(_.needsAcquisitionConfig)
 
   extension (bc: ObservingModeType)
     def defaultPosAngleOptions: PosAngleOptions =

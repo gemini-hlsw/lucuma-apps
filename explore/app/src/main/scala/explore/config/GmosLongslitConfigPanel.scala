@@ -20,6 +20,7 @@ import explore.model.ExploreModelValidators
 import explore.model.Observation
 import explore.model.display.given
 import explore.model.enums.WavelengthUnits
+import explore.model.syntax.all.*
 import explore.modes.ModeWavelength
 import explore.modes.SpectroscopyModesMatrix
 import explore.syntax.ui.*
@@ -210,6 +211,7 @@ object GmosLongslitConfigPanel {
           val disableAdvancedAcqEdit   = disableAdvancedEdit && !props.permissions.isOnlyForOngoing
           val showCustomization        = props.calibrationRole.isEmpty
           val allowRevertCustomization = props.permissions.isFullEdit
+          val showAcquisitionConfig    = props.calibrationRole.needsAcquisitionConfig
 
           val centralWavelengthView    = centralWavelength(props.observingMode)
           val initialCentralWavelength = initialCentralWavelengthLens.get(props.observingMode.get)
@@ -444,7 +446,7 @@ object GmosLongslitConfigPanel {
                     )
                   )
                 )
-              ),
+              ).when(showAcquisitionConfig),
               AdvancedConfigButtons(
                 editState = editState,
                 isCustomized = isCustomized(props.observingMode),

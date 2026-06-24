@@ -249,7 +249,7 @@ object ExploreGridLayouts:
       )
     )
 
-    lazy val twilightRemovedIds =
+    lazy val TwilightRemovedIds =
       List(
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.ItcId,
@@ -259,16 +259,16 @@ object ExploreGridLayouts:
 
     lazy val twilightMedium =
       layoutMedium.asList
-        .filterNot(l => twilightRemovedIds.contains(l.i))
+        .filterNot(l => TwilightRemovedIds.contains(l.i))
 
-    lazy val specPhotoRemovedIds =
+    lazy val SpecPhotoRemovedIds =
       List(ObsTabTileIds.FinderChartsId, ObsTabTileIds.NotesId, ObsTabTileIds.TimingWindowsId).map(
         _.id.value
       )
 
     lazy val specPhotoMedium =
       layoutMedium.asList
-        .filterNot(l => specPhotoRemovedIds.contains(l.i))
+        .filterNot(l => SpecPhotoRemovedIds.contains(l.i))
 
     lazy val sequenceMedium: Layout = Layout(
       List(
@@ -283,18 +283,32 @@ object ExploreGridLayouts:
       )
     )
 
-    lazy val telluricRemovedIds =
+    lazy val TelluricRemovedIds =
       List(
         ObsTabTileIds.FinderChartsId,
         ObsTabTileIds.NotesId,
         ObsTabTileIds.TimingWindowsId
       ).map(_.id.value)
 
+    // Pinhole observations have no targets and can't be edited, so only Configuration
+    // (and the separately rendered Sequence tile) are shown.
+    lazy val DaytimePinholeRemovedIds =
+      List(
+        ObsTabTileIds.NotesId,
+        ObsTabTileIds.TargetId,
+        ObsTabTileIds.FinderChartsId,
+        ObsTabTileIds.PlotId,
+        ObsTabTileIds.ConstraintsId,
+        ObsTabTileIds.TimingWindowsId,
+        ObsTabTileIds.ItcId
+      ).map(_.id.value)
+
     def removedTiles(role: Option[CalibrationRole]) =
       role match
-        case Some(CalibrationRole.Twilight)           => twilightRemovedIds
-        case Some(CalibrationRole.SpectroPhotometric) => specPhotoRemovedIds
-        case Some(CalibrationRole.Telluric)           => telluricRemovedIds
+        case Some(CalibrationRole.Twilight)           => TwilightRemovedIds
+        case Some(CalibrationRole.SpectroPhotometric) => SpecPhotoRemovedIds
+        case Some(CalibrationRole.Telluric)           => TelluricRemovedIds
+        case Some(CalibrationRole.DaytimePinhole)     => DaytimePinholeRemovedIds
         case _                                        => Nil
 
     lazy val defaultObsLayouts: LayoutsMap =
