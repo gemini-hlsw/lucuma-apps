@@ -49,7 +49,8 @@ object GhostGeometry extends PwfsGeometry:
     ifu1Coords:              Option[Coordinates],
     ifu2Coords:              Option[Coordinates],
     ifu1Selected:            Boolean,
-    ifu2Selected:            Boolean
+    ifu2Selected:            Boolean,
+    showIfu2Area:            Boolean
   ): Option[SortedMap[Css, ShapeExpression]] =
     instrumentGeometry(
       referenceCoordinates,
@@ -68,7 +69,7 @@ object GhostGeometry extends PwfsGeometry:
             (GhostIfu1PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu1Selected),
              ghost.GhostIfuPatrolField.ifu1PatrolFieldAt(posAngle, Offset.Zero)
             ),
-          ifu2Coords.map: _ =>
+          Option.when(ifu2Coords.isDefined || showIfu2Area):
             (GhostIfu2PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu2Selected),
              ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
             )

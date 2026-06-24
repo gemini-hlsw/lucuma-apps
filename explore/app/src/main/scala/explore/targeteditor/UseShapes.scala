@@ -19,6 +19,7 @@ import lucuma.ags.AgsVisualization
 import lucuma.ags.DebugShape
 import lucuma.ags.PatrolFieldVisualization
 import lucuma.core.enums.Flamingos2LyotWheel
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
@@ -34,6 +35,7 @@ import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.react.common.Css
+import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
@@ -323,6 +325,13 @@ def useVisualizationShapes(
             val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
             val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
 
+            val forceShowIfu2 = vizConf
+              .map(_.configuration)
+              .exists:
+                case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
+                  true
+                case _                                                                          => false
+
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(
                baseCoords,
@@ -336,7 +345,8 @@ def useVisualizationShapes(
                ifu1Coords,
                ifu2Coords,
                selectedSlot.contains(SlotId.GhostIfu1),
-               selectedSlot.contains(SlotId.GhostIfu2)
+               selectedSlot.contains(SlotId.GhostIfu2),
+               forceShowIfu2
              )
             )
           case ObservingModeType.GnirsLongSlit                                           =>
