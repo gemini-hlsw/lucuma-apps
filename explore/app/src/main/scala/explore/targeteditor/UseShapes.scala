@@ -325,7 +325,9 @@ def useVisualizationShapes(
             val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
             val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
 
-            val forceShowIfu2 = vizConf
+            // Only force the (empty) IFU2 patrol field once IFU1 is assigned, i.e. the mode is
+            // accepted with a science target. Otherwise the preview would show IFU2 but not IFU1.
+            val forceShowIfu2 = ifu1Coords.isDefined && vizConf
               .map(_.configuration)
               .exists:
                 case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>

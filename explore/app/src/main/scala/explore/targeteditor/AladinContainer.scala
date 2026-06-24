@@ -347,7 +347,11 @@ object AladinContainer extends AladinCommon {
     vizConf.flatMap: viz =>
       viz.configuration match
         case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-          Option.when(coords.slotCoords.get(SlotId.GhostIfu2).isEmpty):
+          // Only when IFU1 is assigned (mode accepted) and IFU2 has no sky position yet.
+          Option.when(
+            coords.slotCoords.get(SlotId.GhostIfu1).isDefined &&
+              coords.slotCoords.get(SlotId.GhostIfu2).isEmpty
+          ):
             gs.map(_.posAngle)
               .getOrElse(viz.posAngle)
         case _                                                                          => none
