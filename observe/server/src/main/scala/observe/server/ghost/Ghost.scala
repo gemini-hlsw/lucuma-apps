@@ -135,7 +135,7 @@ object Ghost {
           Ghost(systems.ghost(sysOverrides), conditionsRef, cfg)
 
         override def instrumentHeader(client: KeywordsClient[F]): Header[F] = GhostHeader.header(
-          client,
+          systems.systems.ghost.gdsClient,
           systems.systems.tcsKeywordReader,
           GhostKeywordsReader(cfg, conditionsRef),
           step
