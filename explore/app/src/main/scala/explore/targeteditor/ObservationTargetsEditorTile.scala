@@ -97,40 +97,11 @@ final case class ObservationTargetsEditorTile(
 object ObservationTargetsEditorTile
     extends TileComponent[ObservationTargetsEditorTile](
       { (props, tileSize) =>
-        import props.given
-
-        // Save the time here. this works for the obs and target tabs
-        // It's OK to save the viz time for executed observations, I think.
-        val obsTimeView: View[Instant] =
-          View(
-            props.obsTime.get.getOrElse(Instant.now),
-            (f, cb) =>
-              val oldValue = props.obsTime.get
-              val newValue = f(oldValue.getOrElse(Instant.now)).some
-              props.obsTime.set(newValue) >>
-                cb(oldValue.getOrElse(Instant.now), newValue.getOrElse(Instant.now))
-          ).withOnMod: ct =>
-            props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
-
-        val obsDurationView: View[Option[TimeSpan]] =
-          props.obsDuration.withOnMod: t =>
-            props.odbApi.updateVisualizationDuration(props.obsIds.toList, t).runAsync
-
-        val obsTimeAndDurationView: View[(Instant, Option[TimeSpan])] =
-          View(
-            (props.obsTime.get.getOrElse(Instant.now), props.obsDuration.get),
-            (mod, cb) =>
-              val oldValue = (props.obsTime.get.getOrElse(Instant.now), props.obsDuration.get)
-              val newValue = mod(oldValue)
-              props.obsTime.set(newValue._1.some) >> props.obsDuration
-                .set(newValue._2) >> cb(oldValue, newValue)
-          ).withOnMod: tuple =>
-            props.odbApi
-              .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
-              .runAsync
-
         for
           ctx              <- useContext(AppContext.ctx)
+          // Memoize the effective observation time (from odb or now)
+          // so we don't feed react-datepicker a fresh Instant.now on every render
+          obsTimeOrNow     <- useMemo(props.obsTime.get)(_.getOrElse(Instant.now))
           columnVisibility <- useStateView(TargetColumns.DefaultVisibility)
           // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
           adding           <- useStateView(AreAdding(false))
@@ -173,6 +144,38 @@ object ObservationTargetsEditorTile
           fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
           import ctx.given
+
+          // The effective instant to display. Memoized in the hook above
+          val obsTime: Instant = obsTimeOrNow.value
+
+          // Save the time here. this works for the obs and target tabs
+          // It's OK to save the viz time for executed observations, I think.
+          val obsTimeView: View[Instant] =
+            View(
+              obsTime,
+              (f, cb) =>
+                val newValue = f(obsTime).some
+                props.obsTime.set(newValue) >>
+                  cb(obsTime, newValue.getOrElse(obsTime))
+            ).withOnMod: ct =>
+              props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
+
+          val obsDurationView: View[Option[TimeSpan]] =
+            props.obsDuration.withOnMod: t =>
+              props.odbApi.updateVisualizationDuration(props.obsIds.toList, t).runAsync
+
+          val obsTimeAndDurationView: View[(Instant, Option[TimeSpan])] =
+            View(
+              (obsTime, props.obsDuration.get),
+              (mod, cb) =>
+                val oldValue = (obsTime, props.obsDuration.get)
+                val newValue = mod(oldValue)
+                props.obsTime.set(newValue._1.some) >> props.obsDuration
+                  .set(newValue._2) >> cb(oldValue, newValue)
+            ).withOnMod: tuple =>
+              props.odbApi
+                .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
+                .runAsync
 
           val obsTimeEditor = ObsTimeEditor(
             obsTimeView,
