@@ -48,6 +48,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.SiderealTracking
@@ -712,7 +713,10 @@ object AladinContainer extends AladinCommon {
 
         val skyPositionTargets: List[SvgTarget] =
           props.obsTimeCoords.skyCoords.map: c =>
-            SvgTarget.SkyPositionTarget(c, Css.Empty, TargetSize, "IFU2 sky".some)
+            // Should we show the coordinates?
+            val raStr  = MathValidators.truncatedRA.reverseGet(c.ra)
+            val decStr = MathValidators.truncatedDec.reverseGet(c.dec)
+            SvgTarget.SkyPositionTarget(c, Css.Empty, TargetSize, s"IFU2 sky: $raStr $decStr".some)
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget

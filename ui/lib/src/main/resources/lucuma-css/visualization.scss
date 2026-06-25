@@ -2,6 +2,11 @@
 
 .visualization-tooltip {
   animation: fadeIn 250ms;
+
+  .p-tooltip-text {
+    border: 1px solid var(--text-color);
+    font-size: smaller;
+  }
 }
 
 .visualization-tooltip-target {
