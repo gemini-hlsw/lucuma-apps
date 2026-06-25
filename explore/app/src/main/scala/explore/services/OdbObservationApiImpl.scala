@@ -21,6 +21,7 @@ import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.Group
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
@@ -166,6 +167,25 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         )
       .processErrors
       .void
+  }
+
+  def updateGhostIfu2SkyPosition(
+    obsIds:      List[Observation.Id],
+    skyPosition: Option[Coordinates]
+  ): F[Unit] = {
+    val editInput = ObservationPropertiesInput(observingMode =
+      ObservingModeInput
+        .GhostIfu(
+          GhostIfuInput(skyPosition =
+            skyPosition
+              .map(c => CoordinatesInput(ra = c.ra.toInput.assign, dec = c.dec.toInput.assign))
+              .orUnassign
+          )
+        )
+        .assign
+    )
+
+    updateObservations(obsIds, editInput)
   }
 
   def updateNotes(

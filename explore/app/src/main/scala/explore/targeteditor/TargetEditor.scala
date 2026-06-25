@@ -465,6 +465,13 @@ object TargetEditor:
               NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
+        // Sets the IFU2 sky position on the observation
+        val assignIfu2SkyPosition: Option[Coordinates => IO[Unit]] =
+          props.obsInfo.current
+            .filterNot(_ => props.readonly)
+            .map: obsIds =>
+              coords => ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, coords.some)
+
         React.Fragment(
           TargetCloneSelector(
             props.obsInfo,
@@ -485,6 +492,7 @@ object TargetEditor:
                 props.guideStarSelection,
                 props.blindOffsetInfo,
                 props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
+                assignIfu2SkyPosition,
                 props.isStaffOrAdmin,
                 props.readonly
               )

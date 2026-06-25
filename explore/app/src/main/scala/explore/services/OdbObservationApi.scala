@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Group
@@ -50,6 +51,11 @@ trait OdbObservationApi[F[_]]:
   def updatePosAngle(
     obsIds:             List[Observation.Id],
     posAngleConstraint: PosAngleConstraint
+  ): F[Unit]
+  // Sets (or, with None, clears) the GHOST IFU2 sky position on the given observations.
+  def updateGhostIfu2SkyPosition(
+    obsIds:      List[Observation.Id],
+    skyPosition: Option[Coordinates]
   ): F[Unit]
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]

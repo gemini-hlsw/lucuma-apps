@@ -7,6 +7,7 @@ import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
 import fs2.Stream
 import cats.effect.IO
+import cats.effect.Ref
 import cats.effect.Resource
 import cats.syntax.all.*
 import crystal.react.*
@@ -84,6 +85,7 @@ case class AladinContainer(
   options:                AsterismVisualOptions,
   updateMouseCoordinates: Coordinates => Callback,
   mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
+  assignIfu2SkyPosition:  Option[Coordinates => IO[Unit]],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
@@ -430,29 +432,39 @@ object AladinContainer extends AladinCommon {
                                            .changes
                                            .evalMap(h => ifu2Hovered.set(h).to[IO])
                                        )
-        // Detect clicks inside the IFU2 patrol field
+        // When clicking on the IFU2 patrol field, assign the sky position to the IFU2 slot.
         _                       <- useEffectStreamResourceWithDeps(
                                      (props.obsTimeCoords.baseOrBlindCoords,
                                       ifu2HoverPosAngle(props.vizConf, props.obsTimeCoords, props.selectedGuideStar),
                                       clickSignal.value.value.toOption.isDefined
                                      )
                                    ): (baseCoords, ifu2PosAngle, _) =>
-                                     (baseCoords, ifu2PosAngle, clickSignal.value.value.toOption).tupled
+                                     (baseCoords,
+                                      ifu2PosAngle,
+                                      clickSignal.value.value.toOption,
+                                      props.assignIfu2SkyPosition
+                                     ).tupled
                                        .fold(
                                          Resource.pure(Stream.empty.covary[IO])
-                                       ): (base, posAngle, signal) =>
+                                       ): (base, posAngle, signal, assign) =>
                                          val ifu2Shape =
                                            ghost.GhostIfuPatrolField
                                              .ifu2PatrolFieldAt(posAngle, Offset.Zero)
                                              .eval
-                                         Resource.pure(
-                                           signal.discrete.unNone
-                                             .filter(c => c =!= base && ifu2Shape.contains(base.diff(c).offset))
-                                             .evalMap(c =>
-                                               IO.println(s"Clicked inside IFU2 patrol field at $c") *>
-                                                 signal.set(none)
-                                             )
-                                         )
+                                         Resource
+                                           .eval(Ref.of[IO, Boolean](false))
+                                           .map: submitting =>
+                                             signal.discrete.unNone
+                                               .filter(c => c =!= base && ifu2Shape.contains(base.diff(c).offset))
+                                               .evalMap: c =>
+                                                 submitting
+                                                   .getAndSet(true)
+                                                   .flatMap {
+                                                     case true  => IO.unit // submit in flight; ignore
+                                                     case false =>
+                                                       assign(c).handleErrorWith(_ => submitting.set(false))
+                                                   }
+                                                   .guarantee(signal.set(none))
         // patrol field shapes for debugging
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
