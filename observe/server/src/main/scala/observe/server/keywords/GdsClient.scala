@@ -101,7 +101,7 @@ object GdsClient:
     ): F[Unit] = Logger[F].debug(s"Simulated GDS $name for file [$id], Opening observation")
 
     override def closeObservation(id: ImageFileId): F[Unit] =
-      accumulator(id).get.flatMap { kso =>
+      accumulator(id).flatModify { kso =>
         val finalKeywords: SortedMap[String, String] = kso
           .map(ks =>
             SortedMap.from(
@@ -112,10 +112,13 @@ object GdsClient:
             )
           )
           .orEmpty
-        Logger[F].debug(
-          s"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
-              .map { case (k, v) => s"$k: $v" }
-              .mkString("\n")}"
+        (
+          none,
+          Logger[F].debug(
+            s"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
+                .map { case (k, v) => s"$k: $v" }
+                .mkString("\n")}"
+          )
         )
       }
 
