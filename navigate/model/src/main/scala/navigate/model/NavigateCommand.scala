@@ -54,7 +54,7 @@ object NavigateCommand {
   case class EcsVentGatesMove(gateEast: Double, gateWest: Double)            extends NavigateCommand
   case class EnableGuide(config: TelescopeGuideConfig)                       extends NavigateCommand
   case class InstSpecifics(instrumentSpecificsParams: InstrumentSpecifics)   extends NavigateCommand
-  case class LightPathConfig(from: LightSource, to: LightSink)           extends NavigateCommand
+  case class LightPathConfig(from: LightSource, to: LightSink)               extends NavigateCommand
   case class McsFollow(enable: Boolean)                                      extends NavigateCommand
   case class Odgw1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Odgw2Follow(enable: Boolean)                                    extends NavigateCommand

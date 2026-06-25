@@ -4,7 +4,9 @@
 package observe.server.keywords
 
 import cats.effect.Async
+import cats.effect.Concurrent
 import cats.effect.kernel.Temporal
+import cats.effect.std.MapRef
 import cats.syntax.all.*
 import io.circe.Encoder
 import io.circe.Json
@@ -24,6 +26,7 @@ import org.http4s.implicits.*
 import org.http4s.scalaxml.*
 import org.typelevel.log4cats.Logger
 
+import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
 import scala.xml.Elem
 
@@ -75,6 +78,53 @@ object GdsClient:
 
       override def abortObservation(id: ImageFileId): F[Unit] =
         overrideLogMessage(name, "abortObservation")
+
+  def simulatedClient[F[_]: {Concurrent, Logger}](
+    name:        String,
+    accumulator: MapRef[F, ImageFileId, Option[KeywordBag]]
+  ): GdsClient[F] = new GdsClient[F] {
+    override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
+      accumulator(id).flatModify { oldKeywordBag =>
+        val newKeywordBag: KeywordBag = oldKeywordBag.fold(ks)(_.combine(ks))
+
+        (
+          newKeywordBag.some,
+          Logger[F].trace:
+            s"Simulated GDS $name for file [$id], Accumulating keywords: ${ks.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
+        )
+      }
+
+    override def openObservation(
+      obsId: Observation.Id,
+      id:    ImageFileId,
+      ks:    KeywordBag
+    ): F[Unit] = Logger[F].debug(s"Simulated GDS $name for file [$id], Opening observation")
+
+    override def closeObservation(id: ImageFileId): F[Unit] =
+      accumulator(id).flatModify { kso =>
+        val finalKeywords: SortedMap[String, String] = kso
+          .map(ks =>
+            SortedMap.from(
+              ks.keywords.map(k =>
+                k.name.name.padTo(8, ' ') -> // FITS Keys are 8 characters long
+                  s"${k.value} [${KeywordType.dhsKeywordType(k.keywordType)}]"
+              )
+            )
+          )
+          .orEmpty
+        (
+          none,
+          Logger[F].debug(
+            s"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
+                .map { case (k, v) => s"$k: $v" }
+                .mkString("\n")}"
+          )
+        )
+      }
+
+    override def abortObservation(id: ImageFileId): F[Unit] =
+      Logger[F].debug(s"Simulated GDS $name for file [$id], Aborting observation")
+  }
 
   object json:
 
