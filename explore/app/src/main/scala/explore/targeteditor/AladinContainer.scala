@@ -769,8 +769,7 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              // Highlight the hovered interactive region as its own overlay (decoupled
-              // from the shapes hook). The scss selector `.<hoverCss> .<shapeCss>` lights it up.
+              // Interactive regions like ifu2 for ghost
               hoveredSlot.get
                 .flatMap(slot => props.interactiveRegions.find(_.slot === slot))
                 .flatMap: region =>

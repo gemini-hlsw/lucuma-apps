@@ -6,7 +6,7 @@ package explore.targeteditor
 import boopickle.DefaultBasic.*
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.kernel.Order.catsKernelOrderingForOrder
+import cats.Order.given
 import cats.syntax.all.*
 import clue.FetchClient
 import crystal.*
@@ -245,18 +245,12 @@ object AladinCell extends ModelOptics with AladinCommon:
             // We should have trackings for all the targets, so we'll ignore errors here.
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
       // Pending sky-position changes for optimistic updates, keyed by slot:
-      // Some(coords) = pending assignment, None = pending clear. Each entry is dropped
-      // once the subscription reflects it (see reconciliation below). Keyed by slot so
-      // concurrent pending changes on different slots don't clobber each other.
       optimisticSky       <- useStateView(SortedMap.empty[SlotId, Option[Coordinates]])
-      // The resolved obs-time coords straight from the subscription (no optimistic overlay),
-      // and the set of slots it currently has a position for.
-      realObsCoords        = obsTargetsCoordsPot.value.toOption.flatMap(_.toOption)
-      realSlots            =
-        realObsCoords.fold(SortedSet.empty[SlotId])(c => SortedSet.from(c.slotCoords.keys))
-      // Drop each pending entry once reality matches its expectation: the slot is present
-      // for a pending set, or absent for a pending clear. Presence-based, so this covers the
-      // add/remove transitions used today but NOT changing an already-set position.
+      // set of slots we currently have a position for.
+      realSlots            = obsTargetsCoordsPot.value.toOption
+                               .flatMap(_.toOption)
+                               .fold(SortedSet.empty[SlotId])(c => SortedSet.from(c.slotCoords.keys))
+      // reconcile local state with the remote values for slot assignments
       _                   <- useEffectWithDeps((optimisticSky.get, realSlots)): (pending, real) =>
                                def settled(slot: SlotId, expected: Option[Coordinates]): Boolean =
                                  expected.fold(!real.contains(slot))(_ => real.contains(slot))
@@ -481,7 +475,7 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val agsResultsList = agsResults.constrained.toOption.getOrElse(List.empty)
 
-      // Apply the optimistic sky changes (pending sets and clears) over the subscription coords.
+      // Apply the optimistic sky changes.
       def mergedCoords(
         obsCoords: ObservationTargetsCoordinatesAt
       ): ObservationTargetsCoordinatesAt =

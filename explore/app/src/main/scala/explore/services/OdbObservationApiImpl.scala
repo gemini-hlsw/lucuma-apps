@@ -17,11 +17,11 @@ import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.Group
-import lucuma.core.math.Coordinates
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program

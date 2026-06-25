@@ -62,8 +62,7 @@ case class ConfigurationForVisualization private (
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
 
-  // True only for GHOST single-target (Standard) mode — the one place this match lives.
-  def isGhostStandard: Boolean =
+  def isGhostSingleTarget: Boolean =
     configuration match
       case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) => true
       case _                                                                          => false

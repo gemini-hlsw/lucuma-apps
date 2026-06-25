@@ -28,7 +28,6 @@ object GhostGeometry extends PwfsGeometry:
   def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
     SortedMap((GhostScienceArea, ghost.scienceArea.fovAt(posAngle, offset)))
 
-  // Single source for the IFU2 patrol-field shape; used both to draw it and to hit-test clicks.
   def ifu2PatrolFieldShape(posAngle: Angle): ShapeExpression =
     ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
 

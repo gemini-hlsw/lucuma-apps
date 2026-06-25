@@ -291,10 +291,7 @@
     fill: url('#ghost-ifu2-hatch-selected');
   }
 
-  // Emphasize the (empty) IFU2 patrol field while the mouse hovers over it.
-  // `display: inline` is required because the hover highlight is drawn in its own
-  // decoupled overlay, which does not carry the `ghost-ifu-patrol-field-visible`
-  // toggle that normally unhides this shape.
+  // Emphasize the IFU2 patrol field while the mouse hovers over it.
   &.ghost-ifu2-patrol-field-hovered .ghost-ifu2-patrol-field {
     display: inline;
     stroke-width: 1.5px;

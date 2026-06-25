@@ -325,7 +325,7 @@ def useVisualizationShapes(
 
             // Only force the (empty) IFU2 patrol field once IFU1 is assigned, i.e. the mode is
             // accepted with a science target. Otherwise the preview would show IFU2 but not IFU1.
-            val forceShowIfu2 = ifu1Coords.isDefined && vizConf.exists(_.isGhostStandard)
+            val forceShowIfu2 = ifu1Coords.isDefined && vizConf.exists(_.isGhostSingleTarget)
 
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(
