@@ -88,4 +88,11 @@ object SvgTarget:
     title:       Option[String] = None
   ) extends SelectableProgramTarget derives Eq
 
+  final case class SkyPositionTarget(
+    coordinates: Coordinates,
+    css:         Css,
+    side:        Double,
+    title:       Option[String] = None
+  ) extends SvgTarget derives Eq
+
   given Reusability[SvgTarget] = Reusability.byEq

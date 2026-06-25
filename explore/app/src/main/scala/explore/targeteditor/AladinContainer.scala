@@ -710,6 +710,10 @@ object AladinContainer extends AladinCommon {
                       _ => List.empty
                 )
 
+        val skyPositionTargets: List[SvgTarget] =
+          props.obsTimeCoords.skyCoords.map: c =>
+            SvgTarget.SkyPositionTarget(c, Css.Empty, TargetSize, "IFU2 sky".some)
+
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
 
@@ -742,7 +746,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    candidates ++ blindOffsets ++ scienceTargets ++
+                    candidates ++ blindOffsets ++ scienceTargets ++ skyPositionTargets ++
                       basePosition(Css.Empty) ++ configOffsets
                   )
                 ),

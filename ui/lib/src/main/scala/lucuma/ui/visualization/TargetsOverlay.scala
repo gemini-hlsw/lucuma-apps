@@ -121,6 +121,15 @@ object TargetsOverlay
                   title.map(<.title(_))
                 )
 
+              case (offP, offQ, SvgTarget.SkyPositionTarget(_, css, sidePx, title)) =>
+                val pointCss = VisualizationStyles.SkyPositionTarget |+| css
+                val side     = scale(maxP * sidePx)
+                val cx       = scale(offP)
+                val cy       = scale(offQ)
+                val points   =
+                  s"$cx,${cy - side} ${cx + side},$cy $cx,${cy + side} ${cx - side},$cy"
+                <.polygon(pointCss, ^.points := points, title.map(<.title(_)))
+
               case (offP,
                     offQ,
                     SvgTarget.ScienceTarget(_, css, selectedCss, sidePx, selected, title)

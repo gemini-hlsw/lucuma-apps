@@ -367,6 +367,12 @@
     stroke-width: 1px;
   }
 
+  .sky-position-target {
+    fill: hsl(40deg 90% 60% / 40%);
+    stroke: hsl(40deg 90% 60%);
+    stroke-width: 1px;
+  }
+
   .arrow-between-targets {
     stroke: hsl(195deg 100% 50%);
     stroke-width: 1px;
