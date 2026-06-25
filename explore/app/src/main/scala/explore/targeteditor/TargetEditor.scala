@@ -466,7 +466,7 @@ object TargetEditor:
               NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
-        // Assigns a sky position to a slot. The only place a GHOST-specific mutation is named.
+        // Assigns a sky position to a slot
         val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
           props.obsInfo.current
             .filterNot(_ => props.readonly)
@@ -474,7 +474,20 @@ object TargetEditor:
               (slot, coords) =>
                 slot match
                   case SlotId.GhostIfu2 =>
-                    ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, coords.some)
+                    ctx.odbApi
+                      .updateGhostIfu2SkyPosition(obsIds.idSet.toList, coords.some)
+                      .toastErrors
+                  case _                => IO.unit
+
+        // Resets a slot's sky position
+        val resetSky: Option[SlotId => IO[Unit]] =
+          props.obsInfo.current
+            .filterNot(_ => props.readonly)
+            .map: obsIds =>
+              slot =>
+                slot match
+                  case SlotId.GhostIfu2 =>
+                    ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, none).toastErrors
                   case _                => IO.unit
 
         React.Fragment(
@@ -498,6 +511,7 @@ object TargetEditor:
                 props.blindOffsetInfo,
                 props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
                 assignSky,
+                resetSky,
                 props.isStaffOrAdmin,
                 props.readonly
               )

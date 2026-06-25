@@ -58,6 +58,7 @@ $brightness: var(--aladin-image-brightness);
     .visitor-candidates-area {
       display: inline;
     }
+
   }
 
   .p-tieredmenu.p-component.explore-aladin-settings-menu {
@@ -216,6 +217,13 @@ $brightness: var(--aladin-image-brightness);
 
   .targets-overlay-svg {
     isolation: isolate;
+
+    // A sky-position marker in pending mode
+    .sky-position-pending {
+      // Should be 0.5 but for now it will be 1 until the subscription bug is fixed
+      opacity: 1;
+      stroke-dasharray: 2;
+    }
 
     .blind-offset-target {
       stroke: hsl(300deg 100% 25%);

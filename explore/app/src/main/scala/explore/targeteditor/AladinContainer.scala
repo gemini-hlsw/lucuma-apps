@@ -86,6 +86,7 @@ case class AladinContainer(
   updateMouseCoordinates: Coordinates => Callback,
   mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
   interactiveRegions:     List[InteractiveRegion],
+  pendingSlots:           Set[SlotId],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
@@ -435,8 +436,7 @@ object AladinContainer extends AladinCommon {
                                              signal.discrete.unNone
                                                .map: c =>
                                                  evaluated.collectFirst:
-                                                   case (s, onClick)
-                                                       if c =!= base && s.contains(base.diff(c).offset) =>
+                                                   case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
                                                      onClick(c)
                                                .unNone
                                                .evalMap: act =>
@@ -697,8 +697,10 @@ object AladinContainer extends AladinCommon {
           props.obsTimeCoords.skySlots.map: (slot, c) =>
             val raStr  = MathValidators.truncatedRA.reverseGet(c.ra)
             val decStr = MathValidators.truncatedDec.reverseGet(c.dec)
+            // Dim/dash the marker while its assignment is still optimistic (mutation in flight).
+            val css    = ExploreStyles.SkyPositionPending.when_(props.pendingSlots.contains(slot))
             SvgTarget
-              .SkyPositionTarget(c, Css.Empty, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
+              .SkyPositionTarget(c, css, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
