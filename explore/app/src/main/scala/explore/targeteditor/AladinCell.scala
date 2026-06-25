@@ -45,10 +45,10 @@ import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.*
-import lucuma.schemas.model.SlotId
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.syntax.minimizeEphemeris
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
 import lucuma.ui.aladin.AladinFullScreenControl

@@ -5,7 +5,6 @@ package explore.targeteditor
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
-import fs2.Stream
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
@@ -29,6 +28,7 @@ import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
+import fs2.Stream
 import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*

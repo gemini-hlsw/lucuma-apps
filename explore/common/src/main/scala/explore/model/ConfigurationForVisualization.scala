@@ -11,13 +11,13 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.enums.GhostResolutionMode
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.TargetVisualization
