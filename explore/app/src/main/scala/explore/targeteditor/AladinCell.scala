@@ -22,6 +22,7 @@ import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
 import explore.events.*
 import explore.model.*
+import explore.model.InteractiveRegion
 import explore.model.WorkerClients.*
 import explore.model.boopickle.*
 import explore.model.boopickle.CatalogPicklers.given
@@ -43,6 +44,7 @@ import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.*
+import lucuma.schemas.model.SlotId
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
@@ -71,7 +73,7 @@ case class AladinCell(
   guideStarSelection:    View[GuideStarSelection],
   blindOffsetInfo:       Option[(Observation.Id, View[BlindOffset])],
   allTargets:            View[TargetList], // for blind offset, no undo
-  assignIfu2SkyPosition: Option[Coordinates => IO[Unit]],
+  assignSky:             Option[(SlotId, Coordinates) => IO[Unit]],
   isStaffOrAdmin:        Boolean,
   blindOffsetReadonly:   Boolean
 ) extends ReactFnProps(AladinCell.component):
@@ -460,6 +462,13 @@ object AladinCell extends ModelOptics with AladinCommon:
         trackingMap: RegionOrTrackingMap,
         obsCoords:   ObservationTargetsCoordinatesAt
       ): VdomNode =
+        val interactiveRegions: List[InteractiveRegion] =
+          InteractiveRegion.forViz(
+            props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
+            obsCoords,
+            guideStar,
+            props.assignSky
+          )
         AladinContainer(
           props.obsTargets,
           props.obsTime,
@@ -471,7 +480,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           opts,
           coordinatesSetter,
           mouseSignal.value.value.toOption,
-          props.assignIfu2SkyPosition,
+          interactiveRegions,
           fovSetter,
           offsetChangeInAladin.reuseAlways,
           guideStar,

@@ -21,6 +21,7 @@ import explore.model.AppContext
 import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
+import explore.model.InteractiveRegion
 import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
 import explore.model.RegionOrTrackingMap
@@ -34,12 +35,10 @@ import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.ags.AgsAnalysis
-import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
-import lucuma.core.geom.ghost
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
@@ -86,7 +85,7 @@ case class AladinContainer(
   options:                AsterismVisualOptions,
   updateMouseCoordinates: Coordinates => Callback,
   mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
-  assignIfu2SkyPosition:  Option[Coordinates => IO[Unit]],
+  interactiveRegions:     List[InteractiveRegion],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
@@ -137,6 +136,10 @@ object AladinContainer extends AladinCommon {
     Reusability.by(u => (u.target, u.posAngle))
 
   private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
+
+  // ShapeExpression has no Eq; key region reuse on (slot, posAngle) like AgsAnalysis.Usable.
+  private given Reusability[InteractiveRegion] =
+    Reusability.by(r => (r.slot, r.posAngle))
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -340,30 +343,11 @@ object AladinContainer extends AladinCommon {
   ): Option[Coordinates] =
     base.flatMap(_.offsetBy(Angle.Angle0, offset))
 
-  // The pos angle at which to draw the IFU2 patrol field for hover-detection,
-  // Essentially a mix of the abes posangle plus the decision to show the ifu2 patrol field
-  private def ifu2HoverPosAngle(
-    vizConf: Option[ConfigurationForVisualization],
-    coords:  ObservationTargetsCoordinatesAt,
-    gs:      Option[AgsAnalysis.Usable]
-  ): Option[Angle] =
-    vizConf.flatMap: viz =>
-      viz.configuration match
-        case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-          // Only when IFU1 is assigned (mode accepted) and IFU2 has no sky position yet.
-          Option.when(
-            coords.slotCoords.get(SlotId.GhostIfu1).isDefined &&
-              coords.slotCoords.get(SlotId.GhostIfu2).isEmpty
-          ):
-            gs.map(_.posAngle)
-              .getOrElse(viz.posAngle)
-        case _                                                                          => none
-
   private val component =
     ScalaFnComponent[Props]: props =>
       for {
         ctx                     <- useContext(AppContext.ctx)
-        ifu2Hovered             <- useStateView(false)
+        hoveredSlot             <- useStateView(none[SlotId])
         // Hold the last click position on a SignallingRef instead of react state
         clickSignal             <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
         currentPos              <-
@@ -411,59 +395,57 @@ object AladinContainer extends AladinCommon {
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
-        // Track mouse hover over the IFU2 patrol field, off the React render path.
+        // Track which interactive region (if any) the mouse is over, off the React render path.
         _                       <- useEffectStreamResourceWithDeps(
-                                     (props.obsTimeCoords.baseOrBlindCoords,
-                                      ifu2HoverPosAngle(props.vizConf, props.obsTimeCoords, props.selectedGuideStar)
-                                     )
-                                   ): (baseCoords, ifu2PosAngle) =>
+                                     (props.obsTimeCoords.baseOrBlindCoords, props.interactiveRegions)
+                                   ): (baseCoords, regions) =>
                                      import ctx.given
-                                     (baseCoords, ifu2PosAngle, props.mouseCoords).tupled.fold(
-                                       // Not the single-target case (or no mouse signal): clear hover
-                                       Resource.pure(Stream.eval(ifu2Hovered.set(false).to[IO]))
-                                     ): (base, posAngle, signal) =>
-                                       val ifu2Shape =
-                                         ghost.GhostIfuPatrolField
-                                           .ifu2PatrolFieldAt(posAngle, Offset.Zero)
-                                           .eval
+                                     (baseCoords, props.mouseCoords).tupled.fold(
+                                       Resource.pure(Stream.eval(hoveredSlot.set(none).to[IO]))
+                                     ): (base, signal) =>
+                                       val evaluated = regions.map(r => r.slot -> r.shape.eval)
                                        Resource.pure(
                                          signal.discrete
-                                           .map:
-                                             _.exists(m => m =!= base && ifu2Shape.contains(base.diff(m).offset))
+                                           .map: mouseOpt =>
+                                             mouseOpt.flatMap: m =>
+                                               Option
+                                                 .unless(m === base)(())
+                                                 .flatMap: _ =>
+                                                   evaluated.collectFirst:
+                                                     case (slot, s) if s.contains(base.diff(m).offset) =>
+                                                       slot
                                            .changes
-                                           .evalMap(h => ifu2Hovered.set(h).to[IO])
+                                           .evalMap(slot => hoveredSlot.set(slot).to[IO])
                                        )
-        // When clicking on the IFU2 patrol field, assign the sky position to the IFU2 slot.
+        // When clicking inside an interactive region, run its onClick (e.g. assign a sky position).
         _                       <- useEffectStreamResourceWithDeps(
                                      (props.obsTimeCoords.baseOrBlindCoords,
-                                      ifu2HoverPosAngle(props.vizConf, props.obsTimeCoords, props.selectedGuideStar),
+                                      props.interactiveRegions,
                                       clickSignal.value.value.toOption.isDefined
                                      )
-                                   ): (baseCoords, ifu2PosAngle, _) =>
-                                     (baseCoords,
-                                      ifu2PosAngle,
-                                      clickSignal.value.value.toOption,
-                                      props.assignIfu2SkyPosition
-                                     ).tupled
+                                   ): (baseCoords, regions, _) =>
+                                     (baseCoords, clickSignal.value.value.toOption).tupled
                                        .fold(
                                          Resource.pure(Stream.empty.covary[IO])
-                                       ): (base, posAngle, signal, assign) =>
-                                         val ifu2Shape =
-                                           ghost.GhostIfuPatrolField
-                                             .ifu2PatrolFieldAt(posAngle, Offset.Zero)
-                                             .eval
+                                       ): (base, signal) =>
+                                         val evaluated = regions.map(r => r.shape.eval -> r.onClick)
                                          Resource
                                            .eval(Ref.of[IO, Boolean](false))
                                            .map: submitting =>
                                              signal.discrete.unNone
-                                               .filter(c => c =!= base && ifu2Shape.contains(base.diff(c).offset))
-                                               .evalMap: c =>
+                                               .map: c =>
+                                                 evaluated.collectFirst:
+                                                   case (s, onClick)
+                                                       if c =!= base && s.contains(base.diff(c).offset) =>
+                                                     onClick(c)
+                                               .unNone
+                                               .evalMap: act =>
                                                  submitting
                                                    .getAndSet(true)
                                                    .flatMap {
                                                      case true  => IO.unit // submit in flight; ignore
                                                      case false =>
-                                                       assign(c).handleErrorWith(_ => submitting.set(false))
+                                                       act.handleErrorWith(_ => submitting.set(false))
                                                    }
                                                    .guarantee(signal.set(none))
         // patrol field shapes for debugging
@@ -712,18 +694,18 @@ object AladinContainer extends AladinCommon {
                 )
 
         val skyPositionTargets: List[SvgTarget] =
-          props.obsTimeCoords.skyCoords.map: c =>
-            // Should we show the coordinates?
+          props.obsTimeCoords.skySlots.map: (slot, c) =>
             val raStr  = MathValidators.truncatedRA.reverseGet(c.ra)
             val decStr = MathValidators.truncatedDec.reverseGet(c.dec)
-            SvgTarget.SkyPositionTarget(c, Css.Empty, TargetSize, s"IFU2 sky: $raStr $decStr".some)
+            SvgTarget
+              .SkyPositionTarget(c, Css.Empty, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
 
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
 
         <.div.withRef(resize.ref)(
           ExploreStyles.AladinContainerBody |+|
-            ExploreStyles.Ifu2HoverCursor.when_(ifu2Hovered.get)
+            ExploreStyles.RegionHoverCursor.when_(hoveredSlot.get.isDefined)
         )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin
@@ -773,10 +755,7 @@ object AladinContainer extends AladinCommon {
                resize.height,
                fov.value,
                shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
-               shapes.map(
-                 _._1 |+| staleCss |+|
-                   VisualizationStyles.GhostIfu2PatrolFieldHovered.when_(ifu2Hovered.get)
-               )
+               shapes.map(_._1 |+| staleCss)
               )
                 .mapN(
                   SvgVisualizationOverlay(
@@ -788,6 +767,22 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              // Highlight the hovered interactive region as its own overlay (decoupled
+              // from the shapes hook). The scss selector `.<hoverCss> .<shapeCss>` lights it up.
+              hoveredSlot.get
+                .flatMap(slot => props.interactiveRegions.find(_.slot === slot))
+                .flatMap: region =>
+                  (resize.width, resize.height, fov.value)
+                    .mapN(
+                      SvgVisualizationOverlay(
+                        _,
+                        _,
+                        _,
+                        screenOffset,
+                        NonEmptyMap.of(region.shapeCss -> region.shape),
+                        region.hoverCss
+                      )
+                    ),
               // Patrol field shapes for debugging
               Option.when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
                 (resize.width,

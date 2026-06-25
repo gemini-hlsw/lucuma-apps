@@ -227,7 +227,7 @@ object ExploreStyles:
   val AladinFullScreen: Css       = Css("aladin-full-screen")
   val AladinRangeControl: Css     = Css("aladin-range-control")
 
-  val Ifu2HoverCursor: Css = Css("ifu2-hover-cursor")
+  val RegionHoverCursor: Css = Css("region-hover-cursor")
 
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")

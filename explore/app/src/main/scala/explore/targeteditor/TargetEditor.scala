@@ -54,6 +54,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Message
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
@@ -465,12 +466,16 @@ object TargetEditor:
               NonEmptyList.one(TargetSource.FromHorizons[IO](ctx.horizonsClient))
           )
 
-        // Sets the IFU2 sky position on the observation
-        val assignIfu2SkyPosition: Option[Coordinates => IO[Unit]] =
+        // Assigns a sky position to a slot. The only place a GHOST-specific mutation is named.
+        val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
           props.obsInfo.current
             .filterNot(_ => props.readonly)
             .map: obsIds =>
-              coords => ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, coords.some)
+              (slot, coords) =>
+                slot match
+                  case SlotId.GhostIfu2 =>
+                    ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, coords.some)
+                  case _                => IO.unit
 
         React.Fragment(
           TargetCloneSelector(
@@ -492,7 +497,7 @@ object TargetEditor:
                 props.guideStarSelection,
                 props.blindOffsetInfo,
                 props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
-                assignIfu2SkyPosition,
+                assignSky,
                 props.isStaffOrAdmin,
                 props.readonly
               )

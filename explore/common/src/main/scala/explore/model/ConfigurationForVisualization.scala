@@ -17,6 +17,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.TargetVisualization
@@ -60,6 +61,12 @@ case class ConfigurationForVisualization private (
 
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
+
+  // True only for GHOST single-target (Standard) mode — the one place this match lives.
+  def isGhostStandard: Boolean =
+    configuration match
+      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) => true
+      case _                                                                          => false
 
 object ConfigurationForVisualization:
   def fromObsConfiguration(

@@ -19,7 +19,6 @@ import lucuma.ags.AgsVisualization
 import lucuma.ags.DebugShape
 import lucuma.ags.PatrolFieldVisualization
 import lucuma.core.enums.Flamingos2LyotWheel
-import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.PortDisposition
@@ -35,7 +34,6 @@ import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.react.common.Css
-import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
 import lucuma.ui.visualization.*
@@ -327,12 +325,7 @@ def useVisualizationShapes(
 
             // Only force the (empty) IFU2 patrol field once IFU1 is assigned, i.e. the mode is
             // accepted with a science target. Otherwise the preview would show IFU2 but not IFU1.
-            val forceShowIfu2 = ifu1Coords.isDefined && vizConf
-              .map(_.configuration)
-              .exists:
-                case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
-                  true
-                case _                                                                          => false
+            val forceShowIfu2 = ifu1Coords.isDefined && vizConf.exists(_.isGhostStandard)
 
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(
