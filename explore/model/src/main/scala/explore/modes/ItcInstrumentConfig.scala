@@ -378,6 +378,13 @@ object ItcInstrumentConfig:
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
 
+    private val cameraStr: String = camera.pixelScale match
+      case GnirsPixelScale.PixelScale_0_05 => "LC"
+      case GnirsPixelScale.PixelScale_0_15 => "SC"
+
+    override def instrumentLabel: String =
+      s"${instrument.longName} $cameraStr"
+
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)
 
