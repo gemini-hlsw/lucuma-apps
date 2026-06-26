@@ -48,8 +48,8 @@ final case class Ghost[F[_]: {Logger, Async}](
 
   override val gdsClient: GdsClient[F] = controller.gdsClient
 
-  override def openObservation(obsId: Observation.Id, id: ImageFileId): F[Unit] =
-    gdsClient.openObservation(obsId, id, KeywordBag.empty)
+  override def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+    gdsClient.openImage(obsId, id, KeywordBag.empty)
 
   override val keywordsClient: KeywordsClient[F] = this
 

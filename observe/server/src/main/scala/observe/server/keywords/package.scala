@@ -28,7 +28,7 @@ package keywords {
 
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit]
 
-    def openObservation(obsId: Observation.Id, id: ImageFileId): F[Unit]
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit]
 
     def closeImage(id: ImageFileId): F[Unit]
 
@@ -43,7 +43,7 @@ package keywords {
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
       dhsClient.setKeywords(id, keywords, finalFlag)
 
-    def openObservation(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit] =
       F.unit
 
     def closeImage(id: ImageFileId): F[Unit] =
@@ -85,11 +85,11 @@ package keywords {
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
       gdsClient.setKeywords(id, keywords)
 
-    def openObservation(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit] =
       F.unit
 
     def closeImage(id: ImageFileId): F[Unit] =
-      gdsClient.closeObservation(id)
+      gdsClient.closeImage(id)
 
     def keywordsBundler: KeywordsBundler[F] = GdsInstrument.kb[F]
 
