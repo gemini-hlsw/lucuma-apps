@@ -23,6 +23,7 @@ import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Scalars.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.model.CurrentConditions
+import observe.model.Observation
 import observe.model.SystemOverrides
 import observe.model.dhs.ImageFileId
 import observe.model.enums.ObserveCommandResult
@@ -31,6 +32,7 @@ import observe.server.InstrumentSystem.*
 import observe.server.keywords.GdsClient
 import observe.server.keywords.GdsInstrument
 import observe.server.keywords.Header
+import observe.server.keywords.KeywordBag
 import observe.server.keywords.KeywordsClient
 import org.typelevel.log4cats.Logger
 
@@ -45,6 +47,9 @@ final case class Ghost[F[_]: {Logger, Async}](
   val readOutTimeExtra: TimeSpan = 420.secondTimeSpan
 
   override val gdsClient: GdsClient[F] = controller.gdsClient
+
+  override def openObservation(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+    gdsClient.openObservation(obsId, id, KeywordBag.empty)
 
   override val keywordsClient: KeywordsClient[F] = this
 
@@ -135,7 +140,7 @@ object Ghost {
           Ghost(systems.ghost(sysOverrides), conditionsRef, cfg)
 
         override def instrumentHeader(client: KeywordsClient[F]): Header[F] = GhostHeader.header(
-          systems.systems.ghost.gdsClient,
+          client,
           systems.systems.tcsKeywordReader,
           GhostKeywordsReader(cfg, conditionsRef),
           step

@@ -132,6 +132,7 @@ trait ObserveActions {
     for {
       d <- sendDataStart(obsEnv.odb, obsEnv.obsId, stepId, fileId)
       _ <- notifyObserveStart(obsEnv)
+      _ <- obsEnv.inst.keywordsClient.openObservation(obsEnv.obsId, fileId)
       _ <- obsEnv
              .headers(obsEnv.ctx)
              .traverse(_.sendBefore(obsEnv.obsId, fileId, d.reference, obsEnv.environment))
