@@ -80,7 +80,8 @@ object TcsConfigRetriever {
 
     private def decodeNodChopOption(s: Int): Boolean = s =!= 0
 
-    private def getDefocusB: F[Length] = epicsSys.defocusB.map(Length.fromDoubleMillimeters)
+    private def getDefocusB: F[Length] =
+      epicsSys.defocusB.map(Length.fromDoubleMillimeters).attempt.map(_.getOrElse(Length.Zero))
 
     private def getNodChopTrackingConfig(
       g: TcsEpics.ProbeGuideConfig[F]
