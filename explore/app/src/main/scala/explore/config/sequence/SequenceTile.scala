@@ -342,7 +342,7 @@ object SequenceTile
                               props.isUserStaffOrAdmin,
                               seqType => ctx.odbApi.replaceIgrins2Sequence(props.obsId, seqType, _)
                             )
-                      case SequenceData(InstrumentExecutionConfig.Ghost(config), _) =>
+                      case SequenceData(InstrumentExecutionConfig.Ghost(config), _)             =>
                         sequnceView
                           .zoom(
                             SequenceData.config
@@ -382,7 +382,8 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
-                                  seqType => ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
+                                  seqType =>
+                                    ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
                               // Daytime Pinholes have no signal to noise
                               case ModeSignalToNoise.Undefined                              =>
@@ -397,10 +398,11 @@ object SequenceTile
                                   props.isEditingAcquisition,
                                   props.isEditingScience,
                                   props.isUserStaffOrAdmin,
-                                  seqType => ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
+                                  seqType =>
+                                    ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
                                 )
                               case _                                                        => mismatchError
-                      case _                                                        => mismatchError.some
+                      case _                                                                    => mismatchError.some
                   }
                   .getOrElse:
                     Message(

@@ -28,6 +28,9 @@ object GhostGeometry extends PwfsGeometry:
   def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
     SortedMap((GhostScienceArea, ghost.scienceArea.fovAt(posAngle, offset)))
 
+  def ifu2PatrolFieldShape(posAngle: Angle): ShapeExpression =
+    ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
+
   override protected def candidatesAreaCss: Css = GhostCandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
@@ -49,7 +52,8 @@ object GhostGeometry extends PwfsGeometry:
     ifu1Coords:              Option[Coordinates],
     ifu2Coords:              Option[Coordinates],
     ifu1Selected:            Boolean,
-    ifu2Selected:            Boolean
+    ifu2Selected:            Boolean,
+    showIfu2Area:            Boolean
   ): Option[SortedMap[Css, ShapeExpression]] =
     instrumentGeometry(
       referenceCoordinates,
@@ -68,9 +72,9 @@ object GhostGeometry extends PwfsGeometry:
             (GhostIfu1PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu1Selected),
              ghost.GhostIfuPatrolField.ifu1PatrolFieldAt(posAngle, Offset.Zero)
             ),
-          ifu2Coords.map: _ =>
+          Option.when(ifu2Coords.isDefined || showIfu2Area):
             (GhostIfu2PatrolField |+| GhostIfuPatrolFieldSelected.when_(ifu2Selected),
-             ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
+             ifu2PatrolFieldShape(posAngle)
             )
         ).collect:
           case Some((c, s)) => (c, s)

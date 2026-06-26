@@ -11,6 +11,7 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
+import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
@@ -19,6 +20,8 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.InstrumentSlot
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
@@ -60,6 +63,16 @@ case class ConfigurationForVisualization private (
 
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
+
+  // Standard resolution can be one or two targets; it's a single science target (with IFU2
+  // free for a sky position) only when no science target is mapped to IFU2.
+  def isGhostSingleTarget: Boolean =
+    configuration match
+      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
+        !targetVisualization.slots.exists:
+          case InstrumentSlot.Science(_, SlotId.GhostIfu2) => true
+          case _                                           => false
+      case _                                                                          => false
 
 object ConfigurationForVisualization:
   def fromObsConfiguration(

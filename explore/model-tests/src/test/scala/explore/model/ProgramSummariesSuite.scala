@@ -68,7 +68,10 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
       val ps1     = ps.upsertObs(obs2as1)
       assertEquals(psCalcValues(ps1, obs1.id), obsCalcValues(obs1))
       assertEquals(ps1.observations(obs1.id).selectedGSName, obs1.selectedGSName)
-      assertSameExceptCalculatedValues(ps1, Observation.selectedGSName.replace(obs1.selectedGSName)(obs2as1))
+      assertSameExceptCalculatedValues(
+        ps1,
+        Observation.selectedGSName.replace(obs1.selectedGSName)(obs2as1)
+      )
 
   test("Update observation calculated values"):
     forAll:

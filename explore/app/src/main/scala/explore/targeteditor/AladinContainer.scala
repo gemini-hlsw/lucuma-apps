@@ -5,15 +5,22 @@ package explore.targeteditor
 
 import cats.data.NonEmptyList
 import cats.data.NonEmptyMap
+import cats.effect.IO
+import cats.effect.Ref
+import cats.effect.Resource
 import cats.syntax.all.*
+import crystal.react.*
+import crystal.react.hooks.*
 import eu.timepit.refined.*
 import eu.timepit.refined.numeric.NonNegative
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
 import explore.model.AladinMouseScroll
+import explore.model.AppContext
 import explore.model.AsterismVisualOptions
 import explore.model.ConfigurationForVisualization
 import explore.model.GlobalPreferences
+import explore.model.InteractiveRegion
 import explore.model.ObservationTargets
 import explore.model.ObservationTargetsCoordinatesAt
 import explore.model.RegionOrTrackingMap
@@ -21,6 +28,8 @@ import explore.model.RegionOrTrackingMap.*
 import explore.model.enums.AgsState
 import explore.model.enums.Visible
 import explore.model.reusability.given
+import fs2.Stream
+import fs2.concurrent.SignallingRef
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.Reusability.*
 import japgolly.scalajs.react.feature.ReactFragment
@@ -30,6 +39,7 @@ import lucuma.core.enums.GuideSpeed
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.math.Angle
@@ -37,6 +47,7 @@ import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.SiderealTracking
@@ -48,6 +59,7 @@ import lucuma.react.common.ReactFnProps
 import lucuma.react.resizeDetector.hooks.*
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.aladin.*
 import lucuma.ui.reusability
@@ -72,6 +84,9 @@ case class AladinContainer(
   globalPreferences:      GlobalPreferences,
   options:                AsterismVisualOptions,
   updateMouseCoordinates: Coordinates => Callback,
+  mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
+  interactiveRegions:     List[InteractiveRegion],
+  pendingSlots:           Set[SlotId],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
   selectedGuideStar:      Option[AgsAnalysis.Usable],
@@ -122,6 +137,10 @@ object AladinContainer extends AladinCommon {
     Reusability.by(u => (u.target, u.posAngle))
 
   private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
+
+  // ShapeExpression has no Eq; key region reuse on (slot, posAngle) like AgsAnalysis.Usable.
+  private given Reusability[InteractiveRegion] =
+    Reusability.by(r => (r.slot, r.posAngle))
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -328,6 +347,10 @@ object AladinContainer extends AladinCommon {
   private val component =
     ScalaFnComponent[Props]: props =>
       for {
+        ctx                     <- useContext(AppContext.ctx)
+        hoveredSlot             <- useStateView(none[SlotId])
+        // Hold the last click position on a SignallingRef instead of react state
+        clickSignal             <- useEffectResultOnMount(SignallingRef.of[IO, Option[Coordinates]](none))
         currentPos              <-
           useState[Option[Coordinates]](
             positionFromBaseAndOffset(props.obsTimeCoords.baseOrBlindCoords,
@@ -373,6 +396,58 @@ object AladinContainer extends AladinCommon {
                                      props.globalPreferences.agsOverlay,
                                      props.selectedGuideStar
                                    )
+        // Track which interactive region (if any) the mouse is over, off the React render path.
+        _                       <- useEffectStreamResourceWithDeps(
+                                     (props.obsTimeCoords.baseOrBlindCoords, props.interactiveRegions)
+                                   ): (baseCoords, regions) =>
+                                     import ctx.given
+                                     (baseCoords, props.mouseCoords).tupled.fold(
+                                       Resource.pure(Stream.eval(hoveredSlot.set(none).to[IO]))
+                                     ): (base, signal) =>
+                                       val evaluated = regions.map(r => r.slot -> r.shape.eval)
+                                       Resource.pure(
+                                         signal.discrete
+                                           .map: mouseOpt =>
+                                             mouseOpt.flatMap: m =>
+                                               Option
+                                                 .unless(m === base)(())
+                                                 .flatMap: _ =>
+                                                   evaluated.collectFirst:
+                                                     case (slot, s) if s.contains(base.diff(m).offset) =>
+                                                       slot
+                                           .changes
+                                           .evalMap(slot => hoveredSlot.set(slot).to[IO])
+                                       )
+        // When clicking inside an interactive region, run its onClick (e.g. assign a sky position).
+        _                       <- useEffectStreamResourceWithDeps(
+                                     (props.obsTimeCoords.baseOrBlindCoords,
+                                      props.interactiveRegions,
+                                      clickSignal.value.value.toOption.isDefined
+                                     )
+                                   ): (baseCoords, regions, _) =>
+                                     (baseCoords, clickSignal.value.value.toOption).tupled
+                                       .fold(
+                                         Resource.pure(Stream.empty.covary[IO])
+                                       ): (base, signal) =>
+                                         val evaluated = regions.map(r => r.shape.eval -> r.onClick)
+                                         Resource
+                                           .eval(Ref.of[IO, Boolean](false))
+                                           .map: submitting =>
+                                             signal.discrete.unNone
+                                               .map: c =>
+                                                 evaluated.collectFirst:
+                                                   case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
+                                                     onClick(c)
+                                               .unNone
+                                               .evalMap: act =>
+                                                 submitting
+                                                   .getAndSet(true)
+                                                   .flatMap {
+                                                     case true  => IO.unit // submit in flight; ignore
+                                                     case false =>
+                                                       act.handleErrorWith(_ => submitting.set(false))
+                                                   }
+                                                   .guarantee(signal.set(none))
         // patrol field shapes for debugging
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
@@ -486,11 +561,19 @@ object AladinContainer extends AladinCommon {
             (fov.setState(v.some) *> props.updateFov(v)).unless_(ignore)
           }
 
+        // Record the last non-drag click
+        val onAladinClick: AladinClick => Callback = c =>
+          import ctx.given
+          clickSignal.value.value.toOption
+            .foldMap(_.set(c.coordinates.some).runAsync)
+            .unless_(c.isDragging)
+
         val includeSvg: Aladin => Callback = (v: Aladin) =>
           aladinRef.setState(v.some) *>
             v.onZoomCB(onZoom) *> // re render on zoom
             v.onPositionChangedCB(onPositionChanged) *>
-            v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec)))
+            v.onMouseMoveCB(s => props.updateMouseCoordinates(Coordinates(s.ra, s.dec))) *>
+            v.onClickCB(onAladinClick)
 
         val baseCoordinatesForAladin: String =
           currentPos.value
@@ -610,10 +693,22 @@ object AladinContainer extends AladinCommon {
                       _ => List.empty
                 )
 
+        val skyPositionTargets: List[SvgTarget] =
+          props.obsTimeCoords.skySlots.map: (slot, c) =>
+            val raStr  = MathValidators.truncatedRA.reverseGet(c.ra)
+            val decStr = MathValidators.truncatedDec.reverseGet(c.dec)
+            // Dim/dash the marker while its assignment is still optimistic (mutation in flight).
+            val css    = ExploreStyles.SkyPositionPending.when_(props.pendingSlots.contains(slot))
+            SvgTarget
+              .SkyPositionTarget(c, css, TargetSize, s"${slot.shortName} sky: $raStr $decStr".some)
+
         // Use explicit reusability that excludes target changes
         given Reusability[AladinOptions] = reusability.withoutTarget
 
-        <.div.withRef(resize.ref)(ExploreStyles.AladinContainerBody)(
+        <.div.withRef(resize.ref)(
+          ExploreStyles.AladinContainerBody |+|
+            ExploreStyles.RegionHoverCursor.when_(hoveredSlot.get.isDefined)
+        )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin
           // will take it as 1. This height ends up being a denominator, which, if low,
@@ -639,7 +734,7 @@ object AladinContainer extends AladinCommon {
                     screenOffset,
                     _,
                     // Order matters
-                    candidates ++ blindOffsets ++ scienceTargets ++
+                    candidates ++ blindOffsets ++ scienceTargets ++ skyPositionTargets ++
                       basePosition(Css.Empty) ++ configOffsets
                   )
                 ),
@@ -674,6 +769,21 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              // Interactive regions like ifu2 for ghost
+              hoveredSlot.get
+                .flatMap(slot => props.interactiveRegions.find(_.slot === slot))
+                .flatMap: region =>
+                  (resize.width, resize.height, fov.value)
+                    .mapN(
+                      SvgVisualizationOverlay(
+                        _,
+                        _,
+                        _,
+                        screenOffset,
+                        NonEmptyMap.of(region.shapeCss -> region.shape),
+                        region.hoverCss
+                      )
+                    ),
               // Patrol field shapes for debugging
               Option.when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
                 (resize.width,

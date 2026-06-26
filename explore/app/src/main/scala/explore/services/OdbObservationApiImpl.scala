@@ -17,6 +17,7 @@ import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.ElevationRange
@@ -166,6 +167,25 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         )
       .processErrors
       .void
+  }
+
+  def updateGhostIfu2SkyPosition(
+    obsIds:      List[Observation.Id],
+    skyPosition: Option[Coordinates]
+  ): F[Unit] = {
+    val editInput = ObservationPropertiesInput(observingMode =
+      ObservingModeInput
+        .GhostIfu(
+          GhostIfuInput(skyPosition =
+            skyPosition
+              .map(c => CoordinatesInput(ra = c.ra.toInput.assign, dec = c.dec.toInput.assign))
+              .orUnassign
+          )
+        )
+        .assign
+    )
+
+    updateObservations(obsIds, editInput)
   }
 
   def updateNotes(

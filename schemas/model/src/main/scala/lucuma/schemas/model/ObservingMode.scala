@@ -807,35 +807,35 @@ object ObservingMode:
       Focus[Igrins2LongSlit](_.explicitOffsets)
 
   case class GnirsLongSlit(
-    initialGrating:            GnirsGrating,
-    grating:                   GnirsGrating,
-    initialFilter:             GnirsFilter,
-    filter:                    GnirsFilter,
-    initialFpu:                GnirsFpuSlit,
-    fpu:                       GnirsFpuSlit,
-    initialPrism:              GnirsPrism,
-    prism:                     GnirsPrism,
-    initialCamera:             GnirsCamera,
-    camera:                    GnirsCamera,
-    initialCentralWavelength:  CentralWavelength,
-    centralWavelength:         CentralWavelength,
-    defaultDecker:             GnirsDecker,
-    explicitDecker:            Option[GnirsDecker],
-    explicitReadMode:          Option[GnirsReadMode],
-    defaultWellDepth:          GnirsWellDepth,
-    explicitWellDepth:         Option[GnirsWellDepth],
-    explicitFocusMotorSteps:   Option[GnirsFocusMotorStepsValue],
-    defaultTelescopeConfigs:   SlitTelescopeConfigs,
-    explicitTelescopeConfigs:  Option[SlitTelescopeConfigs],
-    exposureTimeMode:          ExposureTimeMode,
-    coadds:                    PosInt,
-    acquisition:               GnirsLongSlit.Acquisition
+    initialGrating:           GnirsGrating,
+    grating:                  GnirsGrating,
+    initialFilter:            GnirsFilter,
+    filter:                   GnirsFilter,
+    initialFpu:               GnirsFpuSlit,
+    fpu:                      GnirsFpuSlit,
+    initialPrism:             GnirsPrism,
+    prism:                    GnirsPrism,
+    initialCamera:            GnirsCamera,
+    camera:                   GnirsCamera,
+    initialCentralWavelength: CentralWavelength,
+    centralWavelength:        CentralWavelength,
+    defaultDecker:            GnirsDecker,
+    explicitDecker:           Option[GnirsDecker],
+    explicitReadMode:         Option[GnirsReadMode],
+    defaultWellDepth:         GnirsWellDepth,
+    explicitWellDepth:        Option[GnirsWellDepth],
+    explicitFocusMotorSteps:  Option[GnirsFocusMotorStepsValue],
+    defaultTelescopeConfigs:  SlitTelescopeConfigs,
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
+    exposureTimeMode:         ExposureTimeMode,
+    coadds:                   PosInt,
+    acquisition:              GnirsLongSlit.Acquisition
   ) extends ObservingMode(Instrument.Gnirs):
-    val decker: GnirsDecker                       =
+    val decker: GnirsDecker                    =
       explicitDecker.getOrElse(defaultDecker)
-    val wellDepth: GnirsWellDepth                 =
+    val wellDepth: GnirsWellDepth              =
       explicitWellDepth.getOrElse(defaultWellDepth)
-    val telescopeConfigs: SlitTelescopeConfigs    =
+    val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =

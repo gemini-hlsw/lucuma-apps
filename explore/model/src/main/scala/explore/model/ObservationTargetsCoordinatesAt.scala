@@ -36,12 +36,14 @@ final case class ObservationTargetsCoordinatesAt(
   // Coordinates of each IFU slot
   val slotCoords: Map[SlotId, Coordinates] = slots.view.mapValues(_.coordinates).toMap
 
-  // Sky-position slots have no associated target.
-  val skyCoords: List[Coordinates] =
-    slots.values
+  // Sky-position slots have no associated target, paired with their slot id.
+  val skySlots: List[(SlotId, Coordinates)] =
+    slots.toList
       .collect:
-        case SlotInfo(c, None) => c
-      .toList
+        case (sid, SlotInfo(c, None)) => sid -> c
+
+  // Sky-position coordinates only (used by AGS).
+  val skyCoords: List[Coordinates] = skySlots.map(_._2)
 
   def forTarget(id: Target.Id): Option[Coordinates] = allTargetsMap.get(id)
 

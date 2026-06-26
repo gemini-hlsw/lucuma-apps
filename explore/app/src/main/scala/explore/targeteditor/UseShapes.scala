@@ -323,6 +323,10 @@ def useVisualizationShapes(
             val ifu1Coords = slotCoords.get(SlotId.GhostIfu1)
             val ifu2Coords = slotCoords.get(SlotId.GhostIfu2)
 
+            // Only force the (empty) IFU2 patrol field once IFU1 is assigned, i.e. the mode is
+            // accepted with a science target. Otherwise the preview would show IFU2 but not IFU1.
+            val forceShowIfu2 = ifu1Coords.isDefined && vizConf.exists(_.isGhostSingleTarget)
+
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(
                baseCoords,
@@ -336,7 +340,8 @@ def useVisualizationShapes(
                ifu1Coords,
                ifu2Coords,
                selectedSlot.contains(SlotId.GhostIfu1),
-               selectedSlot.contains(SlotId.GhostIfu2)
+               selectedSlot.contains(SlotId.GhostIfu2),
+               forceShowIfu2
              )
             )
           case ObservingModeType.GnirsLongSlit                                           =>

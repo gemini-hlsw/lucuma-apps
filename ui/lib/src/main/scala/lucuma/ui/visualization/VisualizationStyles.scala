@@ -10,6 +10,7 @@ object VisualizationStyles:
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")
   val CircleTarget: Css               = Css("circle-target")
   val CrosshairTarget                 = Css("crosshair-target")
+  val SkyPositionTarget               = Css("sky-position-target")
   val BlindOffsetTarget               = Css("blind-offset-target")
   val ArrowBetweenTargets             = Css("arrow-between-targets")
   val OffsetPosition                  = Css("offset-position")
@@ -87,6 +88,7 @@ object VisualizationStyles:
   val GhostIfu2PatrolField: Css        = Css("ghost-ifu2-patrol-field")
   val GhostIfuPatrolFieldVisible: Css  = Css("ghost-ifu-patrol-field-visible")
   val GhostIfuPatrolFieldSelected: Css = Css("ghost-ifu-patrol-field-selected")
+  val GhostIfu2PatrolFieldHovered: Css = Css("ghost-ifu2-patrol-field-hovered")
 
   // Debug patrol fields
   val PatrolFieldBase: Css              = Css("patrol-field-base")

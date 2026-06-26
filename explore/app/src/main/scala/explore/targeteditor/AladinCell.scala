@@ -6,6 +6,7 @@ package explore.targeteditor
 import boopickle.DefaultBasic.*
 import cats.data.NonEmptyList
 import cats.effect.IO
+import cats.Order.given
 import cats.syntax.all.*
 import clue.FetchClient
 import crystal.*
@@ -22,6 +23,7 @@ import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
 import explore.events.*
 import explore.model.*
+import explore.model.InteractiveRegion
 import explore.model.WorkerClients.*
 import explore.model.boopickle.*
 import explore.model.boopickle.CatalogPicklers.given
@@ -46,6 +48,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Message
 import lucuma.react.primereact.hooks.all.*
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.syntax.minimizeEphemeris
 import lucuma.ui.aladin.AladinFullScreen as UIFullScreen
 import lucuma.ui.aladin.AladinFullScreenControl
@@ -59,7 +62,10 @@ import org.typelevel.log4cats.Logger
 import queries.schemas.UserPreferencesDB
 
 import java.time.Instant
+import scala.collection.immutable.SortedMap
+import scala.collection.immutable.SortedSet
 import scala.concurrent.duration.*
+import scala.scalajs.LinkingInfo
 
 case class AladinCell(
   uid:                 User.Id,
@@ -71,6 +77,8 @@ case class AladinCell(
   guideStarSelection:  View[GuideStarSelection],
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])],
   allTargets:          View[TargetList], // for blind offset, no undo
+  assignSky:           Option[(SlotId, Coordinates) => IO[Unit]],
+  resetSky:            Option[SlotId => IO[Unit]],
   isStaffOrAdmin:      Boolean,
   blindOffsetReadonly: Boolean
 ) extends ReactFnProps(AladinCell.component):
@@ -236,6 +244,19 @@ object AladinCell extends ModelOptics with AladinCommon:
           (obsTargets, trackings) =>
             // We should have trackings for all the targets, so we'll ignore errors here.
             trackings.flatMap(obsTargets.asterismTracking).flatMap(_.toOption)
+      // Pending sky-position changes for optimistic updates, keyed by slot:
+      optimisticSky       <- useStateView(SortedMap.empty[SlotId, Option[Coordinates]])
+      // set of slots we currently have a position for.
+      realSlots            = obsTargetsCoordsPot.value.toOption
+                               .flatMap(_.toOption)
+                               .fold(SortedSet.empty[SlotId])(c => SortedSet.from(c.slotCoords.keys))
+      // reconcile local state with the remote values for slot assignments
+      _                   <- useEffectWithDeps((optimisticSky.get, realSlots)): (pending, real) =>
+                               def settled(slot: SlotId, expected: Option[Coordinates]): Boolean =
+                                 expected.fold(!real.contains(slot))(_ => real.contains(slot))
+                               val reconciled                                                    = pending.toList.collect:
+                                 case (slot, expected) if settled(slot, expected) => slot
+                               optimisticSky.mod(_ -- reconciled).whenA(reconciled.nonEmpty)
       candidates          <-
         useEffectResultWithDeps(
           (props.siderealDiscretizedObsTime,
@@ -454,21 +475,82 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val agsResultsList = agsResults.constrained.toOption.getOrElse(List.empty)
 
+      // Apply the optimistic sky changes.
+      def mergedCoords(
+        obsCoords: ObservationTargetsCoordinatesAt
+      ): ObservationTargetsCoordinatesAt =
+        optimisticSky.get.foldLeft(obsCoords): (acc, entry) =>
+          val (slot, oc) = entry
+          oc match
+            case Some(c) =>
+              if acc.slotCoords.contains(slot) then acc
+              else acc.copy(slots = acc.slots.updated(slot, SlotInfo(c, None)))
+            case None    =>
+              acc.copy(slots = acc.slots.removed(slot))
+
+      // TODO: This is temporary and unstyled. remove for prod
+      def renderResetSky(obsCoords: ObservationTargetsCoordinatesAt): VdomNode =
+        props.resetSky
+          .filter(_ => obsCoords.skySlots.nonEmpty)
+          .fold(EmptyVdom): reset =>
+            if LinkingInfo.developmentMode then
+              <.div(
+                obsCoords.skySlots
+                  .toTagMod(using
+                    (slot, _) =>
+                      Button(
+                        label = s"Reset ${slot.shortName} sky",
+                        icon = Icons.Trash,
+                        severity = Button.Severity.Secondary,
+                        disabled = props.blindOffsetReadonly,
+                        onClick =
+                          // ureset upstream and local
+                          (optimisticSky.mod(_.updated(slot, none)).to[IO] *>
+                            reset(slot).onError { case _ =>
+                              optimisticSky.mod(_.removed(slot)).to[IO]
+                            }).runAsync
+                      )
+                  )
+              )
+            else EmptyVdom
+
       def renderAladin(
         opts:        AsterismVisualOptions,
         trackingMap: RegionOrTrackingMap,
-        obsCoords:   ObservationTargetsCoordinatesAt
+        realCoords:  ObservationTargetsCoordinatesAt // subscription coords
       ): VdomNode =
+        val assignSkyOptimistic: Option[(SlotId, Coordinates) => IO[Unit]] =
+          props.assignSky.map: assign =>
+            (slot, c) =>
+              optimisticSky.mod(_.updated(slot, c.some)).to[IO] *>
+                assign(slot, c).onError { case _ => optimisticSky.mod(_.removed(slot)).to[IO] }
+
+        // Slots whose assignment is still in flight
+        val pendingSlots: Set[SlotId] = optimisticSky.get.keySet
+
+        // Build clickable regions for the aladin component, in practice the only one so far is ghost ifu2 sky
+        val interactiveRegions: List[InteractiveRegion] =
+          InteractiveRegion.forViz(
+            props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
+            realCoords,
+            guideStar,
+            assignSkyOptimistic
+          )
+
+        val mergedForMarker: ObservationTargetsCoordinatesAt = mergedCoords(realCoords)
         AladinContainer(
           props.obsTargets,
           props.obsTime,
           props.obsConf.flatMap(_.obsDuration),
           trackingMap,
-          obsCoords,
+          mergedForMarker,
           props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
           globalPreferences.get,
           opts,
           coordinatesSetter,
+          mouseSignal.value.value.toOption,
+          interactiveRegions,
+          pendingSlots,
           fovSetter,
           offsetChangeInAladin.reuseAlways,
           guideStar,
@@ -544,7 +626,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                   options.get.renderPot(opt =>
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
-                                   renderAgsOverlay(opt)
+                                   renderAgsOverlay(opt),
+                                   renderResetSky(mergedCoords(co)) // TODO: this is temporary
                     )
                   )
                 ),

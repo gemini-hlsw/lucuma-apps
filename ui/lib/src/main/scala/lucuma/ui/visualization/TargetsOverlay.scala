@@ -13,6 +13,7 @@ import lucuma.react.common.Css
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.Tooltip
+import lucuma.react.primereact.tooltip.*
 import lucuma.ui.aladin.Fov
 import lucuma.ui.syntax.all.given
 
@@ -120,6 +121,25 @@ object TargetsOverlay
                   ),
                   title.map(<.title(_))
                 )
+
+              case (offP, offQ, SvgTarget.SkyPositionTarget(_, css, sidePx, title)) =>
+                val pointCss  = VisualizationStyles.SkyPositionTarget |+| css
+                val side      = scale(maxP * sidePx)
+                val cx        = scale(offP)
+                val cy        = scale(offQ)
+                val points    =
+                  s"$cx,${cy - side} ${cx + side},$cy $cx,${cy + side} ${cx - side},$cy"
+                val hitSide   = side + scale(maxP * 5.0)
+                val hitPoints =
+                  s"$cx,${cy - hitSide} ${cx + hitSide},$cy $cx,${cy + hitSide} ${cx - hitSide},$cy"
+                <.g(VisualizationStyles.VisualizationTooltipTarget)(
+                  <.polygon(pointCss, ^.points := points),
+                  <.polygon(
+                    ^.points         := hitPoints,
+                    ^.fill           := "transparent",
+                    ^.pointerEvents  := "all"
+                  )
+                ).withTooltipOptions(content = title.getOrElse("<>"))
 
               case (offP,
                     offQ,

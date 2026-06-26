@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.Group
@@ -28,8 +29,8 @@ import queries.common.ObsQueriesGQL.ProgramObservationsDelta
 import java.time.Instant
 
 trait OdbObservationApi[F[_]]:
-  def updateObservations(input:               UpdateObservationsInput): F[Unit]
-  def updateObservations(obsIds:              List[Observation.Id], input: ObservationPropertiesInput): F[Unit]
+  def updateObservations(input:  UpdateObservationsInput): F[Unit]
+  def updateObservations(obsIds: List[Observation.Id], input: ObservationPropertiesInput): F[Unit]
   def updateObservationConstraintSet(
     obsIds:      List[Observation.Id],
     constraints: ConstraintSet
@@ -51,6 +52,12 @@ trait OdbObservationApi[F[_]]:
     obsIds:             List[Observation.Id],
     posAngleConstraint: PosAngleConstraint
   ): F[Unit]
+  // Sets the GHOST IFU2 sky position on the given observations. None to clear
+  def updateGhostIfu2SkyPosition(
+    obsIds:      List[Observation.Id],
+    skyPosition: Option[Coordinates]
+  ): F[Unit]
+
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]
   def createObservationWithTargets(programId: Program.Id, targetIds:       Set[Target.Id]): F[Observation]

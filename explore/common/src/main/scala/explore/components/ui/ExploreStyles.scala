@@ -227,6 +227,10 @@ object ExploreStyles:
   val AladinFullScreen: Css       = Css("aladin-full-screen")
   val AladinRangeControl: Css     = Css("aladin-range-control")
 
+  val RegionHoverCursor: Css = Css("region-hover-cursor")
+
+  val SkyPositionPending: Css = Css("sky-position-pending")
+
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")
   val VisualizationStale: Css         = Css("visualization-stale")
