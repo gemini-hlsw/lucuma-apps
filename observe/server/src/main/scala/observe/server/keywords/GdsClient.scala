@@ -25,6 +25,7 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.scalaxml.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
@@ -89,18 +90,17 @@ object GdsClient:
 
         (
           newKeywordBag.some,
-          Logger[F].trace:
-            s"Simulated GDS $name for file [$id], Accumulating keywords: ${ks.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
+          trace"Simulated GDS $name for file [$id], Accumulating keywords: ${ks.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
         )
       }
 
-    override def openObservation(
+    override def openImage(
       obsId: Observation.Id,
       id:    ImageFileId,
       ks:    KeywordBag
-    ): F[Unit] = Logger[F].debug(s"Simulated GDS $name for file [$id], Opening observation")
+    ): F[Unit] = debug"Simulated GDS $name for file [$id], Opening observation"
 
-    override def closeObservation(id: ImageFileId): F[Unit] =
+    override def closeImage(id: ImageFileId): F[Unit] =
       accumulator(id).flatModify { kso =>
         val finalKeywords: SortedMap[String, String] = kso
           .map(ks =>
@@ -114,16 +114,14 @@ object GdsClient:
           .orEmpty
         (
           none,
-          Logger[F].debug(
-            s"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
-                .map { case (k, v) => s"$k: $v" }
-                .mkString("\n")}"
-          )
+          debug"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
+              .map { case (k, v) => s"$k: $v" }
+              .mkString("\n")}"
         )
       }
 
-    override def abortObservation(id: ImageFileId): F[Unit] =
-      Logger[F].debug(s"Simulated GDS $name for file [$id], Aborting observation")
+    override def abortImage(id: ImageFileId): F[Unit] =
+      debug"Simulated GDS $name for file [$id], Aborting observation"
   }
 
   object json:
