@@ -36,7 +36,7 @@ class GdsClientSuite extends munit.CatsEffectSuite:
       KeywordBag(BooleanKeyword(KeywordName.SSA: KeywordName, false),
                  DoubleKeyword(KeywordName.OBJECT, 98.76)
       )
-    assertIOBoolean(client.openObservation(obsId, id, ks).attempt.map(_.isRight))
+    assertIOBoolean(client.openImage(obsId, id, ks).attempt.map(_.isRight))
 
   test("openObservation should throw exception if http client returns a bad status"):
     val obsId = Observation.Id(1L.refined)
@@ -45,25 +45,25 @@ class GdsClientSuite extends munit.CatsEffectSuite:
     badStatuses.traverse_ : status =>
       val client = GdsClient.json(httpClient(status, "Error"), uri)
 
-      interceptIO[ObserveFailure.GdsException](client.openObservation(obsId, id, ks))
+      interceptIO[ObserveFailure.GdsException](client.openImage(obsId, id, ks))
 
-  test("closeObservation should succeed if http client returns Status.Ok"):
+  test("closeImage should succeed if http client returns Status.Ok"):
     val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
-    assertIO_(client.closeObservation(id))
+    assertIO_(client.closeImage(id))
 
-  test("closeObservation should throw exception if http client returns a bad status"):
+  test("closeImage should throw exception if http client returns a bad status"):
     badStatuses.traverse_ : status =>
       val client = GdsClient.json(httpClient(status, "Error"), uri)
-      interceptIO[ObserveFailure.GdsException](client.closeObservation(id))
+      interceptIO[ObserveFailure.GdsException](client.closeImage(id))
 
-  test("abortObservation should succeed if http client returns Status.Ok"):
+  test("abortImage should succeed if http client returns Status.Ok"):
     val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
-    assertIO_(client.abortObservation(id))
+    assertIO_(client.abortImage(id))
 
-  test("abortObservation should throw exception if http client returns a bad status"):
+  test("abortImage should throw exception if http client returns a bad status"):
     badStatuses.traverse_ : status =>
       val client = GdsClient.json(httpClient(status, "Error"), uri)
-      interceptIO[ObserveFailure.GdsException](client.abortObservation(id))
+      interceptIO[ObserveFailure.GdsException](client.abortImage(id))
 
   test("setKeywords should succeed if http client returns Status.Ok"):
     val client = GdsClient.json(httpClient(Status.Ok, "Success"), uri)
@@ -138,13 +138,13 @@ class GdsClientSuite extends munit.CatsEffectSuite:
     val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
     val ks     =
       KeywordBag(BooleanKeyword(KeywordName.SSA, false), DoubleKeyword(KeywordName.OBJECT, 98.76))
-    assertIO_(client.openObservation(obsId, id, ks))
+    assertIO_(client.openImage(obsId, id, ks))
 
   test("xmlrpc openObservation should fail if the GDS returns a fault"):
     val client = GdsClient.xmlrpc(xmlClient(faultResponse), uri)
     val ks     =
       KeywordBag(BooleanKeyword(KeywordName.SSA, false), DoubleKeyword(KeywordName.OBJECT, 98.76))
-    interceptIO[ObserveFailure.GdsXmlError](client.openObservation(obsId, id, ks))
+    interceptIO[ObserveFailure.GdsXmlError](client.openImage(obsId, id, ks))
 
   test("xmlrpc setKeywords should succeed if the GDS returns a non-fault response"):
     val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
@@ -160,13 +160,13 @@ class GdsClientSuite extends munit.CatsEffectSuite:
     )
     interceptIO[ObserveFailure.GdsXmlError](client.setKeywords(id, ks))
 
-  test("xmlrpc closeObservation should succeed if the GDS returns a non-fault response"):
+  test("xmlrpc closeImage should succeed if the GDS returns a non-fault response"):
     val client = GdsClient.xmlrpc(GdsClient.xmlrpc.alwaysOkClient[IO], uri)
-    assertIO_(client.closeObservation(id))
+    assertIO_(client.closeImage(id))
 
-  test("xmlrpc closeObservation should fail if the GDS returns a fault"):
+  test("xmlrpc closeImage should fail if the GDS returns a fault"):
     val client = GdsClient.xmlrpc(xmlClient(faultResponse), uri)
-    interceptIO[ObserveFailure.GdsXmlError](client.closeObservation(id))
+    interceptIO[ObserveFailure.GdsXmlError](client.closeImage(id))
 
   test("xmlrpc parseError extracts the fault string"):
     assertEquals(GdsClient.xmlrpc.parseError(faultResponse), Left("Something went wrong"))

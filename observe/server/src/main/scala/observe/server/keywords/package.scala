@@ -28,18 +28,23 @@ package keywords {
 
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit]
 
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit]
+
     def closeImage(id: ImageFileId): F[Unit]
 
     def keywordsBundler: KeywordsBundler[F]
   }
 
-  abstract class DhsInstrument[F[_]: Monad] extends KeywordsClient[F] {
+  abstract class DhsInstrument[F[_]: Monad as F] extends KeywordsClient[F] {
     val dhsClient: DhsClient[F]
 
     val dhsInstrumentName: String
 
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
       dhsClient.setKeywords(id, keywords, finalFlag)
+
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+      F.unit
 
     def closeImage(id: ImageFileId): F[Unit] =
       dhsClient.setKeywords(id,
@@ -74,14 +79,17 @@ package keywords {
         def bundleKeywords(ks: List[KeywordBag => F[KeywordBag]]): F[KeywordBag] =
           GdsInstrument.bundleKeywords(ks)
 
-  abstract class GdsInstrument[F[_]: Monad] extends KeywordsClient[F]:
+  abstract class GdsInstrument[F[_]: Monad as F] extends KeywordsClient[F]:
     val gdsClient: GdsClient[F]
 
     def setKeywords(id: ImageFileId, keywords: KeywordBag, finalFlag: Boolean): F[Unit] =
       gdsClient.setKeywords(id, keywords)
 
+    def openImage(obsId: Observation.Id, id: ImageFileId): F[Unit] =
+      F.unit
+
     def closeImage(id: ImageFileId): F[Unit] =
-      gdsClient.closeObservation(id)
+      gdsClient.closeImage(id)
 
     def keywordsBundler: KeywordsBundler[F] = GdsInstrument.kb[F]
 

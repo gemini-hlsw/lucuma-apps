@@ -25,6 +25,7 @@ import org.http4s.dsl.io.*
 import org.http4s.implicits.*
 import org.http4s.scalaxml.*
 import org.typelevel.log4cats.Logger
+import org.typelevel.log4cats.syntax.*
 
 import scala.collection.immutable.SortedMap
 import scala.concurrent.duration.*
@@ -40,11 +41,11 @@ sealed trait GdsClient[F[_]] extends Http4sClientDsl[F]:
    */
   def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit]
 
-  def openObservation(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag): F[Unit]
+  def openImage(obsId: Observation.Id, id: ImageFileId, ks: KeywordBag): F[Unit]
 
-  def closeObservation(id: ImageFileId): F[Unit]
+  def closeImage(id: ImageFileId): F[Unit]
 
-  def abortObservation(id: ImageFileId): F[Unit]
+  def abortImage(id: ImageFileId): F[Unit]
 
 object GdsClient:
   private def makeClient[F[_]](base: Client[F])(implicit timer: Temporal[F]) = {
@@ -66,17 +67,17 @@ object GdsClient:
       override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
         overrideLogMessage(name, "setKeywords")
 
-      override def openObservation(
+      override def openImage(
         obsId: Observation.Id,
         id:    ImageFileId,
         ks:    KeywordBag
       ): F[Unit] =
         overrideLogMessage(name, "openObservation")
 
-      override def closeObservation(id: ImageFileId): F[Unit] =
+      override def closeImage(id: ImageFileId): F[Unit] =
         overrideLogMessage(name, "closeObservation")
 
-      override def abortObservation(id: ImageFileId): F[Unit] =
+      override def abortImage(id: ImageFileId): F[Unit] =
         overrideLogMessage(name, "abortObservation")
 
   def simulatedClient[F[_]: {Concurrent, Logger}](
@@ -89,18 +90,17 @@ object GdsClient:
 
         (
           newKeywordBag.some,
-          Logger[F].trace:
-            s"Simulated GDS $name for file [$id], Accumulating keywords: ${ks.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
+          trace"Simulated GDS $name for file [$id], Accumulating keywords: ${ks.keywords.map(k => s"${k.name} = ${k.value}").mkString(", ")}"
         )
       }
 
-    override def openObservation(
+    override def openImage(
       obsId: Observation.Id,
       id:    ImageFileId,
       ks:    KeywordBag
-    ): F[Unit] = Logger[F].debug(s"Simulated GDS $name for file [$id], Opening observation")
+    ): F[Unit] = debug"Simulated GDS $name for file [$id], Opening observation"
 
-    override def closeObservation(id: ImageFileId): F[Unit] =
+    override def closeImage(id: ImageFileId): F[Unit] =
       accumulator(id).flatModify { kso =>
         val finalKeywords: SortedMap[String, String] = kso
           .map(ks =>
@@ -114,16 +114,14 @@ object GdsClient:
           .orEmpty
         (
           none,
-          Logger[F].debug(
-            s"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
-                .map { case (k, v) => s"$k: $v" }
-                .mkString("\n")}"
-          )
+          debug"Simulated GDS $name for file [$id], Closing observation. Final keywords: \n${finalKeywords
+              .map { case (k, v) => s"$k: $v" }
+              .mkString("\n")}"
         )
       }
 
-    override def abortObservation(id: ImageFileId): F[Unit] =
-      Logger[F].debug(s"Simulated GDS $name for file [$id], Aborting observation")
+    override def abortImage(id: ImageFileId): F[Unit] =
+      debug"Simulated GDS $name for file [$id], Aborting observation"
   }
 
   object json:
@@ -148,17 +146,18 @@ object GdsClient:
         override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
           makeRequest("keywords", KeywordRequest(id, ks).asJson)
 
-        override def openObservation(
+        override def openImage(
           obsId: Observation.Id,
           id:    ImageFileId,
           ks:    KeywordBag
         ): F[Unit] =
+          // Maybe this should be a no-op
           makeRequest("open-observation", OpenObservationRequest(obsId, id, ks).asJson)
 
-        override def closeObservation(id: ImageFileId): F[Unit] =
+        override def closeImage(id: ImageFileId): F[Unit] =
           makeRequest("close-observation", IdRequest(id).asJson)
 
-        override def abortObservation(id: ImageFileId): F[Unit] =
+        override def abortImage(id: ImageFileId): F[Unit] =
           makeRequest("abort-observation", IdRequest(id).asJson)
 
         private def makeRequest(path: String, body: Json): F[Unit] = {
@@ -205,17 +204,17 @@ object GdsClient:
         override def setKeywords(id: ImageFileId, ks: KeywordBag): F[Unit] =
           makeRequest(storeKeywords(id, ks))
 
-        override def openObservation(
+        override def openImage(
           obsId: Observation.Id,
           id:    ImageFileId,
           ks:    KeywordBag
         ): F[Unit] =
           makeRequest(openObservationRPC(obsId, id, ks))
 
-        override def closeObservation(id: ImageFileId): F[Unit] =
+        override def closeImage(id: ImageFileId): F[Unit] =
           makeRequest(closeObservationRPC(id))
 
-        override def abortObservation(id: ImageFileId): F[Unit] =
+        override def abortImage(id: ImageFileId): F[Unit] =
           Async[F].unit
 
         private def makeRequest(xmlRpc: Elem): F[Unit] =
