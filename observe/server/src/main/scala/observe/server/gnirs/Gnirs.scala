@@ -39,7 +39,7 @@ final case class Gnirs[F[_]: {Async, Logger}](
 
   override val resource: Instrument = Instrument.Gnirs
 
-  override val contributorName: String = "gnirs"
+  override val contributorName: String = "ngnirsdc1"
 
   override val dhsInstrumentName: String = "GNIRS"
 
