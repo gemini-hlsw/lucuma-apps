@@ -16,27 +16,37 @@ import lucuma.react.common.style.Css
 import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupMenu
 import lucuma.react.primereact.PopupMenuRef
+import lucuma.ui.reusability.given
 
 case class ScienceBandPopupMenu(
   currentBand:           Option[ScienceBand],
   allocatedScienceBands: NonEmptySet[ScienceBand],
   onSelect:              ScienceBand => Callback,
   menuRef:               PopupMenuRef
-) extends ReactFnProps(ScienceBandPopupMenu.component):
-  val menuItems = allocatedScienceBands.toNonEmptyList.toList.map: b =>
-    val isCurrent = currentBand.exists(_ === b)
-    // We need to always have an icon to keep the items consistent.
-    val iconClass = if (isCurrent) Css.Empty else ExploreStyles.Hidden
-    MenuItem.Item(
-      icon = Icons.Checkmark.withClass(iconClass),
-      label = b.longName,
-      command = if (isCurrent) Callback.empty else onSelect(b)
-    )
+) extends ReactFnProps(ScienceBandPopupMenu.component)
 
 object ScienceBandPopupMenu:
   private type Props = ScienceBandPopupMenu
 
+  private def menuItems(
+    currentBand: Option[ScienceBand],
+    bands:       NonEmptySet[ScienceBand],
+    onSelect:    ScienceBand => Callback
+  ): List[MenuItem] =
+    bands.toNonEmptyList.toList.map: b =>
+      val isCurrent = currentBand.exists(_ === b)
+      // We need to always have an icon to keep the items consistent.
+      val iconClass = if (isCurrent) Css.Empty else ExploreStyles.Hidden
+      MenuItem.Item(
+        icon = Icons.Checkmark.withClass(iconClass),
+        label = b.longName,
+        command = if (isCurrent) Callback.empty else onSelect(b)
+      )
+
   private val component =
     ScalaFnComponent[Props]: p =>
-      PopupMenu(model = p.menuItems, clazz = ExploreStyles.ScienceBandPopupMenu)
-        .withRef(p.menuRef.ref)
+      // Keep a stable menu model
+      useMemo((p.currentBand, p.allocatedScienceBands))((currentBand, bands) =>
+        menuItems(currentBand, bands, p.onSelect)
+      ).map: items =>
+        PopupMenu(model = items, clazz = ExploreStyles.ScienceBandPopupMenu).withRef(p.menuRef.ref)

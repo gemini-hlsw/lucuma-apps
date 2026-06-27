@@ -48,6 +48,7 @@ import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.effect.*
+import lucuma.ui.reusability.given
 import lucuma.ui.undo.UndoSetter
 
 case class AddTargetButton(
@@ -134,20 +135,22 @@ object AddTargetButton
                  disabled = disabled
           ).tiny.compact
 
-      for
-        ctx           <- useContext(AppContext.ctx)
-        popupState    <- useStateView(PopupState.Closed)
-        onSelected    <- useStateView((_: TargetWithOptId) => Callback.empty)
-        sources       <- useStateView:
-                           // we'll always set this before opening the popup
-                           NonEmptyMap.one(
-                             TargetType.Sidereal,
-                             NonEmptyList.one[TargetSource[IO]]:
-                               TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
-                           )
-        actionButtons <- useStateView(List.empty[Button]) // we'll always set this, too
-        blindRef      <- usePopupMenuRef
-      yield
+      // Build the reusable menu content.
+      def menuItems(
+        ctx:               AppContext[IO],
+        onSelected:        View[TargetWithOptId => Callback],
+        sources:           View[NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]]],
+        popupState:        View[PopupState],
+        actionButtons:     View[List[Button]],
+        blindOffsetInfo:   Option[(Observation.Id, View[BlindOffset])],
+        hasTargets:        Boolean,
+        hasScienceTargets: Boolean
+      ): (
+        List[Action],
+        List[Action],
+        TargetWithOptId => Callback,
+        NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]]
+      ) =
         import ctx.given
 
         def insertTargetCB(targetWithOptId: TargetWithOptId): Callback =
@@ -190,22 +193,6 @@ object AddTargetButton
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 
-        val observations: List[Observation] =
-          props.obsIds.toList.map(props.obsAndTargets.get._1.get).flattenOption
-
-        // all observations have the same science targets, but that's not true of blind offsets
-        val hasTargets: Boolean =
-          observations.headOption.forall(_.scienceTargetIds.nonEmpty) || observations.exists(
-            _.blindOffset.useBlindOffset
-          )
-
-        // only allow blind offsets if there is a science target.
-        val hasScienceTargets: Boolean =
-          observations.headOption.exists(_.scienceTargetIds.nonEmpty)
-
-        val hasTargetOfOpportunity: Boolean =
-          observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
-
         val programSource =
           TargetSource.FromProgram[IO](props.obsAndTargets.get._2, filterToOs = hasTargets)
 
@@ -224,7 +211,7 @@ object AddTargetButton
           )
 
         val blindOffsetActions: List[Action] =
-          props.blindOffsetInfo
+          blindOffsetInfo
             .fold(List.empty)((obsId, blindOffset) =>
               List(
                 Option.unless(blindOffset.get.isAutomatic)(
@@ -253,9 +240,6 @@ object AddTargetButton
               ).flattenOption
             )
 
-        val showBlindOffsetButton =
-          props.readOnly && props.allowBlindOffset && blindOffsetActions.nonEmpty
-
         val actionItems: List[Action] = List(
           Action(
             "Target Search",
@@ -280,6 +264,50 @@ object AddTargetButton
         ) ++
           blindOffsetActions
 
+        (actionItems, blindOffsetActions, insertTargetCB, all)
+
+      for
+        ctx              <- useContext(AppContext.ctx)
+        popupState       <- useStateView(PopupState.Closed)
+        onSelected       <- useStateView((_: TargetWithOptId) => Callback.empty)
+        sources          <- useStateView:
+                              // we'll always set this before opening the popup
+                              NonEmptyMap.one(
+                                TargetType.Sidereal,
+                                NonEmptyList.one[TargetSource[IO]]:
+                                  TargetSource.FromProgram[IO](props.obsAndTargets.get._2)
+                              )
+        actionButtons    <- useStateView(List.empty[Button]) // we'll always set this, too
+        blindRef         <- usePopupMenuRef
+        // Derivations for menu content to detect when to rebuild the items
+        observations      = props.obsIds.toList.map(props.obsAndTargets.get._1.get).flattenOption
+        hasTargets        =
+          observations.headOption.forall(_.scienceTargetIds.nonEmpty) ||
+            observations.exists(_.blindOffset.useBlindOffset)
+        hasScienceTargets = observations.headOption.exists(_.scienceTargetIds.nonEmpty)
+        blindOffsetInfo   = props.blindOffsetInfo
+        menus            <-
+          useMemo(
+            (hasTargets, hasScienceTargets, blindOffsetInfo.map(b => (b._1, b._2.get.isAutomatic)))
+          ): (hasTargets, hasScienceTargets, _) =>
+            menuItems(ctx,
+                      onSelected,
+                      sources,
+                      popupState,
+                      actionButtons,
+                      blindOffsetInfo,
+                      hasTargets,
+                      hasScienceTargets
+            )
+      yield
+        val (actionItems, blindOffsetActions, insertTargetCB, all) = menus.value
+
+        val hasTargetOfOpportunity: Boolean =
+          observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
+
+        val showBlindOffsetButton =
+          props.readOnly && props.allowBlindOffset && blindOffsetActions.nonEmpty
+
         val closePopup = popupState.set(PopupState.Closed)
 
         val buttonList: List[Button] = actionItems.tail.map(_.toButton(closePopup))
@@ -298,7 +326,7 @@ object AddTargetButton
             ).tiny.compact
           else
             SplitButton(
-              model = actionItems.map(_.toMenuItem),
+              model = menus.map(_._1.map(_.toMenuItem)),
               onClick = onSelected.set(insertTargetCB) >> sources.set(all) >>
                 actionButtons.set(buttonList) >>
                 popupState.set(PopupState.Open),
@@ -323,6 +351,7 @@ object AddTargetButton
             selectNewIcon = Icons.New,
             onSelected = onSelected.get
           ),
-          PopupMenu(model = blindOffsetActions.map(_.toMenuItem)).withRef(blindRef.ref)
+          PopupMenu(model = menus.map(_._2.map(_.toMenuItem)))
+            .withRef(blindRef.ref)
         )
     )

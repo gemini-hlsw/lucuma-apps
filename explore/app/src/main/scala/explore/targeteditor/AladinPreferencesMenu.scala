@@ -15,6 +15,7 @@ import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.components.ui.ExploreStyles
 import explore.model.*
 import explore.model.enums.Visible
+import explore.model.reusability.given
 import explore.optics.ModelOptics
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
@@ -29,6 +30,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 import monocle.Lens
+import org.scalajs.dom.HTMLElement
 
 import scala.scalajs.LinkingInfo
 
@@ -52,235 +54,247 @@ object AladinPreferencesMenu extends ModelOptics with AladinCommon:
           .getOrElse(y) // Ignore invalid updates
     )
 
+  // Build a list of menu items to make them Reusable
+  private def menuItems(
+    props: Props,
+    ctx:   AppContext[IO],
+    root:  Reusable[Option[HTMLElement]]
+  ): List[MenuItem] =
+    import ctx.given
+
+    def prefsSetter(
+      saturation: Option[Int] = None,
+      brightness: Option[Int] = None
+    ): Callback =
+      AsterismPreferences
+        .updateAladinPreferences[IO](
+          props.targetPreferences.get.id,
+          props.uid,
+          props.tids,
+          saturation = saturation,
+          brightness = brightness
+        )
+        .flatMap(id => props.targetPreferences.zoom(AsterismVisualOptions.id).set(id).to[IO])
+        .runAsync
+        .void
+
+    def visiblePropView(
+      get:   Lens[GlobalPreferences, Visible],
+      onMod: Visible => Callback
+    ) =
+      props.globalPreferences
+        .zoom(get)
+        .withOnMod(onMod)
+        .as(Visible.Value)
+
+    val agsCandidatesView =
+      visiblePropView(
+        GlobalPreferences.showCatalog,
+        v => userPrefsSetter(props.uid, showCatalog = v.some)
+      )
+
+    val agsOverlayView =
+      visiblePropView(
+        GlobalPreferences.agsOverlay,
+        v => userPrefsSetter(props.uid, agsOverlay = v.some)
+      )
+
+    val scienceOffsetsView =
+      visiblePropView(
+        GlobalPreferences.scienceOffsets,
+        v => userPrefsSetter(props.uid, scienceOffsets = v.some)
+      )
+
+    val acquisitionOffsetsView =
+      visiblePropView(
+        GlobalPreferences.acquisitionOffsets,
+        v => userPrefsSetter(props.uid, acquisitionOffsets = v.some)
+      )
+
+    def cssVarView(
+      varLens:        Lens[AsterismVisualOptions, AsterismVisualOptions.ImageFilterRange],
+      variableName:   String,
+      updateCallback: Int => Callback
+    ) =
+      props.targetPreferences
+        .zoom(varLens)
+        .withOnMod(s => setVariable(root, variableName, s) *> updateCallback(s))
+
+    val saturationView =
+      cssVarView(AsterismVisualOptions.saturation,
+                 "saturation",
+                 s => prefsSetter(saturation = s.some)
+      )
+    val brightnessView =
+      cssVarView(AsterismVisualOptions.brightness,
+                 "brightness",
+                 s => prefsSetter(brightness = s.some)
+      )
+
+    val allowMouseZoomView =
+      props.globalPreferences
+        .zoom(GlobalPreferences.aladinMouseScroll)
+        .withOnMod(z =>
+          GlobalUserPreferences.storeAladinPreferences[IO](props.uid, z.some).runAsync
+        )
+
+    val agsVizView = props.globalPreferences.zoom(GlobalPreferences.agsVisibility)
+
+    val showBaseView         = agsVizView.zoom(AGSVisibility.showBase).as(Visible.Value)
+    val showBlindOffsetView  =
+      agsVizView.zoom(AGSVisibility.showBlindOffset).as(Visible.Value)
+    val showSciOffsetView    =
+      agsVizView.zoom(AGSVisibility.showScienceOffset).as(Visible.Value)
+    val showAcqOffsetView    = agsVizView.zoom(AGSVisibility.showAcqOffset).as(Visible.Value)
+    val showIntersectionView =
+      agsVizView.zoom(AGSVisibility.showIntersection).as(Visible.Value)
+    val showAllAngles        = agsVizView.zoom(AGSVisibility.showAllAngles).as(Visible.Value)
+    val showNoZonesView      = agsVizView.zoom(AGSVisibility.showNoZones).as(Visible.Value)
+
+    def menuItem(content: VdomNode): MenuItem =
+      MenuItem.Custom(
+        <.div(^.onClick ==> (e => e.stopPropagationCB >> e.preventDefaultCB))(content)
+      )
+
+    List(
+      menuItem(
+        CheckboxView(
+          id = "ags-candidates".refined,
+          value = agsCandidatesView,
+          label = "Show Catalog"
+        )
+      ),
+      menuItem(
+        CheckboxView(
+          id = "ags-overlay".refined,
+          value = agsOverlayView,
+          label = "AGS"
+        )
+      ),
+      menuItem(
+        CheckboxView(
+          id = "science-offsets".refined,
+          value = scienceOffsetsView,
+          label = "Sci. Offsets"
+        )
+      ),
+      menuItem(
+        CheckboxView(
+          id = "acq-offsets".refined,
+          value = acquisitionOffsetsView,
+          label = "Acq. Offsets"
+        )
+      ),
+      MenuItem.Separator
+    ) ++
+      Option
+        .when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
+          List(
+            MenuItem.SubMenu(
+              label = "Patrol Fields",
+              expanded = false,
+              icon = Icons.ObjectIntersect
+            )(
+              List(
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-base".refined,
+                    value = showBaseView,
+                    label = <.span(ExploreStyles.PatrolFieldBase, "Base")
+                  )
+                ),
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-blind".refined,
+                    value = showBlindOffsetView,
+                    label = <.span(ExploreStyles.PatrolFieldBlindOffset, "Blind Offset")
+                  )
+                ),
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-acq".refined,
+                    value = showAcqOffsetView,
+                    label = <.span(ExploreStyles.PatrolFieldAcqOffset, "Acq. Offset")
+                  )
+                ),
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-sci".refined,
+                    value = showSciOffsetView,
+                    label = <.span(ExploreStyles.PatrolFieldSciOffset, "Sci. Offset")
+                  )
+                ),
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-intersection".refined,
+                    value = showIntersectionView,
+                    label = <.span(ExploreStyles.PatrolFieldIntersection, "Intersection")
+                  )
+                ),
+                menuItem(
+                  CheckboxView(
+                    id = "patrol-field-no-zones".refined,
+                    value = showNoZonesView,
+                    label = <.span(ExploreStyles.PatrolFieldNoZones, "No-Zones")
+                  )
+                )
+              ) ++ Option
+                .when(LinkingInfo.developmentMode)(
+                  List(
+                    MenuItem.Separator,
+                    menuItem(
+                      CheckboxView(
+                        id = "patrol-field-all-angles".refined,
+                        value = showAllAngles,
+                        label = "All PAs"
+                      )
+                    )
+                  )
+                )
+                .toList
+                .flatten*
+            ),
+            MenuItem.Separator
+          )
+        )
+        .toList
+        .flatten ++
+      List(
+        menuItem(
+          SliderView(
+            id = "saturation".refined,
+            label = "Saturation",
+            clazz = ExploreStyles.AladinRangeControl,
+            value = saturationView
+              .zoom(unsafeRangeLens)
+          )
+        ),
+        menuItem(
+          SliderView(
+            id = "brightness".refined,
+            label = "Brightness",
+            clazz = ExploreStyles.AladinRangeControl,
+            value = brightnessView.zoom(unsafeRangeLens)
+          )
+        ),
+        MenuItem.Separator,
+        menuItem(
+          CheckboxView(
+            id = "allow-zoom".refined,
+            value = allowMouseZoomView.as(AladinMouseScroll.Value),
+            label = "Scroll to zoom"
+          )
+        )
+      )
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx  <- useContext(AppContext.ctx)
-        root <- useMemo(())(_ => domRoot)
-      yield
-        import ctx.given
-
-        def prefsSetter(
-          saturation: Option[Int] = None,
-          brightness: Option[Int] = None
-        ): Callback =
-          AsterismPreferences
-            .updateAladinPreferences[IO](
-              props.targetPreferences.get.id,
-              props.uid,
-              props.tids,
-              saturation = saturation,
-              brightness = brightness
-            )
-            .flatMap(id => props.targetPreferences.zoom(AsterismVisualOptions.id).set(id).to[IO])
-            .runAsync
-            .void
-
-        def visiblePropView(
-          get:   Lens[GlobalPreferences, Visible],
-          onMod: Visible => Callback
-        ) =
-          props.globalPreferences
-            .zoom(get)
-            .withOnMod(onMod)
-            .as(Visible.Value)
-
-        val agsCandidatesView =
-          visiblePropView(
-            GlobalPreferences.showCatalog,
-            v => userPrefsSetter(props.uid, showCatalog = v.some)
-          )
-
-        val agsOverlayView =
-          visiblePropView(
-            GlobalPreferences.agsOverlay,
-            v => userPrefsSetter(props.uid, agsOverlay = v.some)
-          )
-
-        val scienceOffsetsView =
-          visiblePropView(
-            GlobalPreferences.scienceOffsets,
-            v => userPrefsSetter(props.uid, scienceOffsets = v.some)
-          )
-
-        val acquisitionOffsetsView =
-          visiblePropView(
-            GlobalPreferences.acquisitionOffsets,
-            v => userPrefsSetter(props.uid, acquisitionOffsets = v.some)
-          )
-
-        def cssVarView(
-          varLens:        Lens[AsterismVisualOptions, AsterismVisualOptions.ImageFilterRange],
-          variableName:   String,
-          updateCallback: Int => Callback
-        ) =
-          props.targetPreferences
-            .zoom(varLens)
-            .withOnMod(s => setVariable(root, variableName, s) *> updateCallback(s))
-
-        val saturationView =
-          cssVarView(AsterismVisualOptions.saturation,
-                     "saturation",
-                     s => prefsSetter(saturation = s.some)
-          )
-        val brightnessView =
-          cssVarView(AsterismVisualOptions.brightness,
-                     "brightness",
-                     s => prefsSetter(brightness = s.some)
-          )
-
-        val allowMouseZoomView =
-          props.globalPreferences
-            .zoom(GlobalPreferences.aladinMouseScroll)
-            .withOnMod(z =>
-              GlobalUserPreferences.storeAladinPreferences[IO](props.uid, z.some).runAsync
-            )
-
-        val agsVizView = props.globalPreferences.zoom(GlobalPreferences.agsVisibility)
-
-        val showBaseView         = agsVizView.zoom(AGSVisibility.showBase).as(Visible.Value)
-        val showBlindOffsetView  = agsVizView.zoom(AGSVisibility.showBlindOffset).as(Visible.Value)
-        val showSciOffsetView    = agsVizView.zoom(AGSVisibility.showScienceOffset).as(Visible.Value)
-        val showAcqOffsetView    = agsVizView.zoom(AGSVisibility.showAcqOffset).as(Visible.Value)
-        val showIntersectionView = agsVizView.zoom(AGSVisibility.showIntersection).as(Visible.Value)
-        val showAllAngles        = agsVizView.zoom(AGSVisibility.showAllAngles).as(Visible.Value)
-        val showNoZonesView      = agsVizView.zoom(AGSVisibility.showNoZones).as(Visible.Value)
-
-        def menuItem(content: VdomNode): MenuItem =
-          MenuItem.Custom(
-            <.div(^.onClick ==> (e => e.stopPropagationCB >> e.preventDefaultCB))(content)
-          )
-
-        val menuItems = List(
-          menuItem(
-            CheckboxView(
-              id = "ags-candidates".refined,
-              value = agsCandidatesView,
-              label = "Show Catalog"
-            )
-          ),
-          menuItem(
-            CheckboxView(
-              id = "ags-overlay".refined,
-              value = agsOverlayView,
-              label = "AGS"
-            )
-          ),
-          menuItem(
-            CheckboxView(
-              id = "science-offsets".refined,
-              value = scienceOffsetsView,
-              label = "Sci. Offsets"
-            )
-          ),
-          menuItem(
-            CheckboxView(
-              id = "acq-offsets".refined,
-              value = acquisitionOffsetsView,
-              label = "Acq. Offsets"
-            )
-          ),
-          MenuItem.Separator
-        ) ++
-          Option
-            .when(LinkingInfo.developmentMode || props.isStaffOrAdmin)(
-              List(
-                MenuItem.SubMenu(
-                  label = "Patrol Fields",
-                  expanded = false,
-                  icon = Icons.ObjectIntersect
-                )(
-                  List(
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-base".refined,
-                        value = showBaseView,
-                        label = <.span(ExploreStyles.PatrolFieldBase, "Base")
-                      )
-                    ),
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-blind".refined,
-                        value = showBlindOffsetView,
-                        label = <.span(ExploreStyles.PatrolFieldBlindOffset, "Blind Offset")
-                      )
-                    ),
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-acq".refined,
-                        value = showAcqOffsetView,
-                        label = <.span(ExploreStyles.PatrolFieldAcqOffset, "Acq. Offset")
-                      )
-                    ),
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-sci".refined,
-                        value = showSciOffsetView,
-                        label = <.span(ExploreStyles.PatrolFieldSciOffset, "Sci. Offset")
-                      )
-                    ),
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-intersection".refined,
-                        value = showIntersectionView,
-                        label = <.span(ExploreStyles.PatrolFieldIntersection, "Intersection")
-                      )
-                    ),
-                    menuItem(
-                      CheckboxView(
-                        id = "patrol-field-no-zones".refined,
-                        value = showNoZonesView,
-                        label = <.span(ExploreStyles.PatrolFieldNoZones, "No-Zones")
-                      )
-                    )
-                  ) ++ Option
-                    .when(LinkingInfo.developmentMode)(
-                      List(
-                        MenuItem.Separator,
-                        menuItem(
-                          CheckboxView(
-                            id = "patrol-field-all-angles".refined,
-                            value = showAllAngles,
-                            label = "All PAs"
-                          )
-                        )
-                      )
-                    )
-                    .toList
-                    .flatten*
-                ),
-                MenuItem.Separator
-              )
-            )
-            .toList
-            .flatten ++
-          List(
-            menuItem(
-              SliderView(
-                id = "saturation".refined,
-                label = "Saturation",
-                clazz = ExploreStyles.AladinRangeControl,
-                value = saturationView
-                  .zoom(unsafeRangeLens)
-              )
-            ),
-            menuItem(
-              SliderView(
-                id = "brightness".refined,
-                label = "Brightness",
-                clazz = ExploreStyles.AladinRangeControl,
-                value = brightnessView.zoom(unsafeRangeLens)
-              )
-            ),
-            MenuItem.Separator,
-            menuItem(
-              CheckboxView(
-                id = "allow-zoom".refined,
-                value = allowMouseZoomView.as(AladinMouseScroll.Value),
-                label = "Scroll to zoom"
-              )
-            )
-          )
-
-        PopupTieredMenu(model = menuItems, clazz = ExploreStyles.AladinSettingsMenu)
-          .withRef(props.menuRef.ref)
+        ctx   <- useContext(AppContext.ctx)
+        root  <- useMemo(())(_ => domRoot)
+        // Memoize the menu model for TieredMenu
+        items <-
+          useMemo((props.globalPreferences.get, props.targetPreferences.get, props.isStaffOrAdmin)):
+            (_, _, _) => menuItems(props, ctx, root)
+      yield PopupTieredMenu(model = items, clazz = ExploreStyles.AladinSettingsMenu)
+        .withRef(props.menuRef.ref)

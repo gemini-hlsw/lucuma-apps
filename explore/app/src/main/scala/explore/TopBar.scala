@@ -17,6 +17,7 @@ import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
+import explore.model.reusability.given
 import explore.programs.ProgramsPopup
 import explore.users.RedeemInvitationsPopup
 import explore.users.UserPreferencesPopup
@@ -31,6 +32,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.Image
 import lucuma.react.primereact.MenuItem
+import lucuma.react.primereact.PopupMenuRef
 import lucuma.react.primereact.PopupTieredMenu
 import lucuma.react.primereact.Toolbar
 import lucuma.react.primereact.hooks.all.*
@@ -45,6 +47,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
+import lucuma.ui.reusability.given
 import lucuma.ui.undo.UndoStacks
 import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
@@ -74,9 +77,201 @@ object TopBar:
   private object IsUserPropertiesOpen    extends NewBoolean
   private object IsReedemInvitationsOpen extends NewBoolean
 
+  // Create menu items with dependencies on inputs for a reusable list of items.
+  private def menuItems(
+    props:              Props,
+    ctx:                AppContext[IO],
+    menuRef:            PopupMenuRef,
+    openAbout:          Callback,
+    openManagePrograms: Callback,
+    openUserPrefs:      Callback,
+    openRedeem:         Callback
+  ): List[MenuItem] =
+    import ctx.given
+
+    val user  = props.vault.get.user
+    val role  = user.role
+    val level = props.globalPreferences.get.logLevel
+
+    def logout: IO[Unit] = ctx.sso.logout >> props.onLogout
+
+    def setLogLevel(l: LogLevel): Callback =
+      UserPreferencesQueries.LogLevelPreference
+        .updateLogLevel[IO](user.id, l)
+        .runAsync
+
+    val recentPrograms =
+      val stored = props.globalPreferences.get.lastOpenPrograms
+      props.programId.fold(stored)(pid => pid :: stored.filterNot(_ === pid))
+
+    val recentProgramsItem: List[MenuItem] =
+      if recentPrograms.isEmpty then List.empty
+      else
+        val x =
+          recentPrograms
+            .map: programId =>
+              val progRef = (AppTab.Observations, programId, Focused.None).some
+              val name    =
+                for {
+                  pis <- props.programInfos.get
+                  p   <- pis.get(programId)
+                  n   <- p.name
+                } yield n.value
+
+              val isCurrent = props.programId.exists(_ === programId)
+
+              MenuItem.Custom(
+                <.a(
+                  LucumaPrimeStyles.MenuItemLink,
+                  ^.href := ctx.pageUrl(progRef),
+                  ^.onClick ==> (e =>
+                    e.preventDefaultCB >> e.stopPropagationCB >>
+                      (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(isCurrent)
+                  )
+                )(
+                  <.div(ExploreStyles.RecentProgramId)(programId.show),
+                  name.map(n => <.div(ExploreStyles.RecentProgramName, ^.title := n)(n))
+                ),
+                clazz = ExploreStyles.RecentProgramLink |+|
+                  LucumaPrimeStyles.Disabled.when_(isCurrent)
+              )
+        List(
+          MenuItem.SubMenu(
+            label = "Recent Progs",
+            icon = Icons.ListRadioSolid
+          )(x*)
+        )
+
+    val firstItems =
+      MenuItem.Item(
+        label = "About Explore",
+        icon = Icons.Info,
+        command = openAbout
+      ) +:
+        (if props.programId.isDefined then
+           List(
+             MenuItem.Item(
+               label = "Manage Programs",
+               icon = Icons.ListCheck,
+               command = openManagePrograms
+             )
+           ) ::: recentProgramsItem
+         else recentProgramsItem)
+
+    val lastCommonItems = List(
+      MenuItem.Separator.some,
+      MenuItem
+        .Item(
+          label = "Login with ORCID",
+          icon = Image(
+            src = Resources.OrcidLogo,
+            clazz = ExploreStyles.OrcidIconMenu |+| LoginStyles.LoginOrcidIcon
+          ),
+          visible = role === GuestRole,
+          command = ctx.sso.switchToORCID.runAsync
+        )
+        .some,
+      MenuItem.Item(label = "Logout", icon = Icons.Logout, command = logout.runAsync).some
+    ).flattenOption
+
+    val lastItems =
+      lastCommonItems :::
+        (if LinkingInfo.developmentMode then
+           List(
+             // Used to test pwa toast via message, you can't see it on the same tab
+             // Click on one but will be visible in other explore tabs
+             MenuItem
+               .Item(
+                 label = "Test PWA Toast",
+                 icon = Icons.CloudArrowUp,
+                 command =
+                   ctx.broadcastChannel.postMessage(ExploreEvent.PWATestToast).runAsyncAndForget
+               )
+               .some,
+             MenuItem
+               .SubMenu(
+                 label = "Log Level",
+                 icon = Icons.BarCodeReadSolid,
+                 visible = ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
+               )(
+                 MenuItem.Item(
+                   label = "Info",
+                   command = setLogLevel(LogLevel.Info),
+                   disabled = level === LogLevel.Info,
+                   icon = Icons.Info
+                 ),
+                 MenuItem.Item(
+                   label = "Debug",
+                   command = setLogLevel(LogLevel.Debug),
+                   disabled = level === LogLevel.Debug,
+                   icon = Icons.Bug
+                 ),
+                 MenuItem.Item(
+                   label = "Trace",
+                   command = setLogLevel(LogLevel.Trace),
+                   disabled = level === LogLevel.Trace,
+                   icon = Icons.PencilSolid
+                 )
+               )
+               .some,
+             ThemeSubMenu(props.theme).some
+           ).flattenOption
+         else List.empty)
+
+    if role =!= GuestRole then
+      firstItems :::
+        List(
+          MenuItem
+            .Item(
+              label = "User Preferences",
+              icon = Icons.UserGears,
+              command = openUserPrefs
+            ),
+          MenuItem
+            .Item(
+              label = "Redeem invitations",
+              icon = Icons.UserGroupSimple,
+              command = openRedeem
+            ),
+          MenuItem
+            .Item(
+              label = "User Manual",
+              icon = Icons.BookOpen,
+              command = Callback(
+                window.open("https://www.gemini.edu/files/software/gpp/Explore_Manual.pdf",
+                            "_blank"
+                )
+              )
+            ),
+          MenuItem
+            .Item(
+              label = "Help Desk",
+              icon = Icons.ArrowUpRightFromSquareSolid,
+              command = Callback(
+                window.open("https://noirlab.atlassian.net/servicedesk/customer/portal/12",
+                            "_blank"
+                )
+              )
+            ),
+          MenuItem
+            .Item(
+              label = "Feedback",
+              icon = Icons.MessageLines,
+              command = Callback(
+                // entry.315019327 is a field we prepopulate with the sw version
+                window.open(
+                  "https://docs.google.com/forms/d/e/1FAIpQLSfZMCjT2SvOG2bICKbUaZuCTp67glt_Z7n_J03nS-O-2b-_NQ/viewform?usp=pp_url&entry.315019327=" +
+                    URLEncoder.encode(ctx.version.value, StandardCharsets.UTF_8),
+                  "_blank"
+                )
+              )
+            )
+        ) ::: lastItems
+    else firstItems ::: lastItems
+
   private val component =
     ScalaFnComponent[Props]: props =>
-      for {
+      for
         ctx                     <- useContext(AppContext.ctx)
         helpCtx                 <- useContext(HelpContext.ctx)
         isProgramsOpen          <- useState(IsProgramOpen(false))
@@ -84,190 +279,27 @@ object TopBar:
         isUserPropertiesOpen    <- useState(IsUserPropertiesOpen(false))
         isReedemInvitationsOpen <- useState(IsReedemInvitationsOpen(false))
         menuRef                 <- usePopupMenuRef
-      } yield
-        import ctx.given
-
-        val user  = props.vault.get.user
-        val role  = user.role
-        val level = props.globalPreferences.get.logLevel
-
-        def logout: IO[Unit] = ctx.sso.logout >> props.onLogout
-
-        def setLogLevel(l: LogLevel): Callback =
-          UserPreferencesQueries.LogLevelPreference
-            .updateLogLevel[IO](user.id, l)
-            .runAsync
-
-        val recentPrograms =
-          val stored = props.globalPreferences.get.lastOpenPrograms
-          props.programId.fold(stored)(pid => pid :: stored.filterNot(_ === pid))
-
-        val recentProgramsItem: List[MenuItem] =
-          if recentPrograms.isEmpty then List.empty
-          else
-            val x =
-              recentPrograms
-                .map: programId =>
-                  val progRef = (AppTab.Observations, programId, Focused.None).some
-                  val name    =
-                    for {
-                      pis <- props.programInfos.get
-                      p   <- pis.get(programId)
-                      n   <- p.name
-                    } yield n.value
-
-                  val isCurrent = props.programId.exists(_ === programId)
-
-                  MenuItem.Custom(
-                    <.a(
-                      LucumaPrimeStyles.MenuItemLink,
-                      ^.href := ctx.pageUrl(progRef),
-                      ^.onClick ==> (e =>
-                        e.preventDefaultCB >> e.stopPropagationCB >>
-                          (menuRef.hide(e) >> ctx.pushPage(progRef)).unless_(isCurrent)
-                      )
-                    )(
-                      <.div(ExploreStyles.RecentProgramId)(programId.show),
-                      name.map(n => <.div(ExploreStyles.RecentProgramName, ^.title := n)(n))
-                    ),
-                    clazz = ExploreStyles.RecentProgramLink |+|
-                      LucumaPrimeStyles.Disabled.when_(isCurrent)
-                  )
-            List(
-              MenuItem.SubMenu(
-                label = "Recent Progs",
-                icon = Icons.ListRadioSolid
-              )(x*)
-            )
-
-        val firstItems =
-          MenuItem.Item(
-            label = "About Explore",
-            icon = Icons.Info,
-            command = isAboutOpen.set(IsAboutOpen(true))
-          ) +:
-            (if props.programId.isDefined then
-               List(
-                 MenuItem.Item(
-                   label = "Manage Programs",
-                   icon = Icons.ListCheck,
-                   command = isProgramsOpen.setState(IsProgramOpen(true))
-                 )
-               ) ::: recentProgramsItem
-             else recentProgramsItem)
-
-        val lastCommonItems = List(
-          MenuItem.Separator.some,
-          MenuItem
-            .Item(
-              label = "Login with ORCID",
-              icon = Image(
-                src = Resources.OrcidLogo,
-                clazz = ExploreStyles.OrcidIconMenu |+| LoginStyles.LoginOrcidIcon
-              ),
-              visible = role === GuestRole,
-              command = ctx.sso.switchToORCID.runAsync
-            )
-            .some,
-          MenuItem.Item(label = "Logout", icon = Icons.Logout, command = logout.runAsync).some
-        ).flattenOption
-
-        val lastItems =
-          lastCommonItems :::
-            (if LinkingInfo.developmentMode then
-               List(
-                 // Used to test pwa toast via message, you can't see it on the same tab
-                 // Click on one but will be visible in other explore tabs
-                 MenuItem
-                   .Item(
-                     label = "Test PWA Toast",
-                     icon = Icons.CloudArrowUp,
-                     command =
-                       ctx.broadcastChannel.postMessage(ExploreEvent.PWATestToast).runAsyncAndForget
-                   )
-                   .some,
-                 MenuItem
-                   .SubMenu(
-                     label = "Log Level",
-                     icon = Icons.BarCodeReadSolid,
-                     visible =
-                       ctx.environment =!= ExecutionEnvironment.Production && role =!= GuestRole
-                   )(
-                     MenuItem.Item(
-                       label = "Info",
-                       command = setLogLevel(LogLevel.Info),
-                       disabled = level === LogLevel.Info,
-                       icon = Icons.Info
-                     ),
-                     MenuItem.Item(
-                       label = "Debug",
-                       command = setLogLevel(LogLevel.Debug),
-                       disabled = level === LogLevel.Debug,
-                       icon = Icons.Bug
-                     ),
-                     MenuItem.Item(
-                       label = "Trace",
-                       command = setLogLevel(LogLevel.Trace),
-                       disabled = level === LogLevel.Trace,
-                       icon = Icons.PencilSolid
-                     )
-                   )
-                   .some,
-                 ThemeSubMenu(props.theme).some
-               ).flattenOption
-             else List.empty)
-
-        val menuItems =
-          if role =!= GuestRole then
-            firstItems :::
-              List(
-                MenuItem
-                  .Item(
-                    label = "User Preferences",
-                    icon = Icons.UserGears,
-                    command = isUserPropertiesOpen.setState(IsUserPropertiesOpen(true))
-                  ),
-                MenuItem
-                  .Item(
-                    label = "Redeem invitations",
-                    icon = Icons.UserGroupSimple,
-                    command = isReedemInvitationsOpen.setState(IsReedemInvitationsOpen(true))
-                  ),
-                MenuItem
-                  .Item(
-                    label = "User Manual",
-                    icon = Icons.BookOpen,
-                    command = Callback(
-                      window.open("https://www.gemini.edu/files/software/gpp/Explore_Manual.pdf",
-                                  "_blank"
-                      )
-                    )
-                  ),
-                MenuItem
-                  .Item(
-                    label = "Help Desk",
-                    icon = Icons.ArrowUpRightFromSquareSolid,
-                    command = Callback(
-                      window.open("https://noirlab.atlassian.net/servicedesk/customer/portal/12",
-                                  "_blank"
-                      )
-                    )
-                  ),
-                MenuItem
-                  .Item(
-                    label = "Feedback",
-                    icon = Icons.MessageLines,
-                    command = Callback(
-                      // entry.315019327 is a field we prepopulate with the sw version
-                      window.open(
-                        "https://docs.google.com/forms/d/e/1FAIpQLSfZMCjT2SvOG2bICKbUaZuCTp67glt_Z7n_J03nS-O-2b-_NQ/viewform?usp=pp_url&entry.315019327=" +
-                          URLEncoder.encode(ctx.version.value, StandardCharsets.UTF_8),
-                        "_blank"
-                      )
-                    )
-                  )
-              ) ::: lastItems
-          else firstItems ::: lastItems
+        // Rebuild the menu when the role/prefs/program/theme or program infos change.
+        menuItems               <- useMemo(
+                                     (props.vault.get,
+                                      props.globalPreferences.get,
+                                      props.programId,
+                                      props.theme.get,
+                                      props.programInfos.get
+                                     )
+                                   ): (_, _, _, _, _) =>
+                                     menuItems(
+                                       props,
+                                       ctx,
+                                       menuRef,
+                                       openAbout = isAboutOpen.set(IsAboutOpen(true)),
+                                       openManagePrograms = isProgramsOpen.setState(IsProgramOpen(true)),
+                                       openUserPrefs = isUserPropertiesOpen.setState(IsUserPropertiesOpen(true)),
+                                       openRedeem =
+                                         isReedemInvitationsOpen.setState(IsReedemInvitationsOpen(true))
+                                     )
+      yield
+        val user = props.vault.get.user
 
         React.Fragment(
           Toolbar(
@@ -299,7 +331,8 @@ object TopBar:
               )
             )
           ),
-          PopupTieredMenu(model = menuItems, clazz = ExploreStyles.TopMenu).withRef(menuRef.ref),
+          PopupTieredMenu(model = menuItems, clazz = ExploreStyles.TopMenu)
+            .withRef(menuRef.ref),
           if isAboutOpen.get.value then
             About(
               "Explore".refined,
