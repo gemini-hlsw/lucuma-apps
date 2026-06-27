@@ -9987,8 +9987,6 @@ type SpectroscopyConfigOptionGnirs {
   """
   fpuSlit: GnirsFpuSlit
 
-  fpu: GnirsFpuSlit @deprecated(reason: "Use `fpuSlit` instead.")
-
   """
   IFU FPU, when this option is an integral field unit configuration. Exactly one
   of `fpuSlit` / `fpuIfu` is present.
