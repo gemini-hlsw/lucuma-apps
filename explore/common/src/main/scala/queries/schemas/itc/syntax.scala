@@ -158,18 +158,19 @@ trait syntax:
           val readMode: GnirsReadMode = etm match
             case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
             case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
-          // ITC only supports the long-slit FPU; IFU configs are not calculable.
+          // ITC supports the spectroscopy FPUs (long slit and IFU); the other FPUs
+          // (acquisition mirror, pupil viewer, pinholes) are not calculable.
           modeOverrides
             .map: (overrides: InstrumentOverrides.GnirsSpectroscopy) =>
-              GnirsFpu.slit
+              GnirsFpu.spectroscopy
                 .getOption(fpu)
-                .map: slitWidth =>
+                .map: spectroscopyFpu =>
                   InstrumentMode
                     .GnirsSpectroscopy(
                       etm,
                       overrides.centralWavelength.value,
                       filter,
-                      GnirsFpu.Spectroscopy.Slit(slitWidth),
+                      spectroscopyFpu,
                       prism,
                       grating,
                       camera,
