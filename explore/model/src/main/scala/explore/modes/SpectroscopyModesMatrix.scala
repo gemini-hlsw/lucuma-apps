@@ -19,6 +19,7 @@ import eu.timepit.refined.types.string.*
 import explore.model.SupportedInstruments
 import explore.model.syntax.all.*
 import io.circe.Decoder
+import io.circe.DecodingFailure
 import io.circe.refined.*
 import lucuma.core.enums.*
 import lucuma.core.math.Angle
@@ -31,6 +32,7 @@ import lucuma.core.model.ImageQuality
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gmos.longslit.DefaultRoi
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
 import lucuma.odb.json.angle.decoder.given
@@ -231,11 +233,12 @@ object SpectroscopyModeRow {
       disperser <- c.downField("disperser").as[Flamingos2Disperser]
       filter    <- c.downField("filter").as[Flamingos2Filter]
       fpu       <- c.downField("fpu").as[Flamingos2Fpu]
-    } yield ItcInstrumentConfig.Flamingos2Spectroscopy(disperser,
-                                                       filter,
-                                                       fpu,
-                                                       Flamingos2ReadMode.Bright,
-                                                       placeholderEtm
+    } yield ItcInstrumentConfig.Flamingos2Spectroscopy(
+      disperser,
+      filter,
+      fpu,
+      Flamingos2ReadMode.Bright,
+      placeholderEtm
     )
 
   private given Decoder[ItcInstrumentConfig.GhostIfu] = c =>
@@ -250,7 +253,12 @@ object SpectroscopyModeRow {
   private given Decoder[ItcInstrumentConfig.GnirsSpectroscopy] = c =>
     for {
       grating <- c.downField("grating").as[GnirsGrating]
-      fpu     <- c.downField("fpu").as[GnirsFpuSlit]
+      fpuSlit <- c.downField("fpuSlit").as[Option[GnirsFpuSlit]]
+      fpuIfu  <- c.downField("fpuIfu").as[Option[GnirsFpuIfu]]
+      fpu     <- fpuSlit
+                   .map(GnirsFpu.Spectroscopy.Slit(_))
+                   .orElse(fpuIfu.map(GnirsFpu.Spectroscopy.Ifu(_)))
+                   .toRight(DecodingFailure("GNIRS option has neither fpuSlit nor fpuIfu", c.history))
       filter  <- c.downField("filter").as[GnirsFilter]
       prism   <- c.downField("prism").as[GnirsPrism]
       camera  <- c.downField("camera").as[GnirsCamera]

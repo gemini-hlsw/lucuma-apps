@@ -39,6 +39,7 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.UnnormalizedSED
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Gid
 import lucuma.core.util.Of
 import lucuma.itc.Error
@@ -81,6 +82,15 @@ trait ItcPicklers extends CommonPicklers {
   given Pickler[ItcInstrumentConfig.Flamingos2Imaging] = generatePickler
 
   given Pickler[ItcInstrumentConfig.GpiSpectroscopy] = generatePickler
+
+  given Pickler[GnirsFpu.Spectroscopy.Slit]  = generatePickler
+  given Pickler[GnirsFpu.Spectroscopy.Ifu]   = generatePickler
+  given Pickler[GnirsFpu.Other] = generatePickler
+  given Pickler[GnirsFpu]       =
+    compositePickler[GnirsFpu]
+      .addConcreteType[GnirsFpu.Spectroscopy.Slit]
+      .addConcreteType[GnirsFpu.Spectroscopy.Ifu]
+      .addConcreteType[GnirsFpu.Other]
 
   given Pickler[ItcInstrumentConfig.GnirsSpectroscopy] = generatePickler
 
