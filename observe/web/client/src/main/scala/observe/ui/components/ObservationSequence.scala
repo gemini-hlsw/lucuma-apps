@@ -74,7 +74,7 @@ object ObservationSequence
         )
 
         props.sequenceData match // TODO Show visits even if sequence data is not available
-          case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise) =>
+          case SequenceData(InstrumentExecutionConfig.GmosNorth(config), signalToNoise)  =>
             signalToNoise match
               case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosNorthSpectroscopySequenceTable(
@@ -128,7 +128,7 @@ object ObservationSequence
                   onBreakpointFlip
                 )
               case _                                                        => mismatchError
-          case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise) =>
+          case SequenceData(InstrumentExecutionConfig.GmosSouth(config), signalToNoise)  =>
             signalToNoise match
               case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
                 GmosSouthSpectroscopySequenceTable(
@@ -182,7 +182,7 @@ object ObservationSequence
                   onBreakpointFlip
                 )
               case _                                                        => mismatchError
-          case SequenceData(InstrumentExecutionConfig.Flamingos2(config), signalToNoise)  =>
+          case SequenceData(InstrumentExecutionConfig.Flamingos2(config), signalToNoise) =>
             signalToNoise match
               case ModeSignalToNoise.Spectroscopy(acquisitonSN, scienceSN) =>
                 Flamingos2SequenceTable(
@@ -238,7 +238,7 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
-          case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                 =>
+          case SequenceData(InstrumentExecutionConfig.Ghost(config), _)                  =>
             GhostSequenceTable(
               props.clientMode,
               props.obsId,
@@ -255,7 +255,7 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
-          case SequenceData(InstrumentExecutionConfig.Gnirs(config), _)                 =>
+          case SequenceData(InstrumentExecutionConfig.Gnirs(config), _)                  =>
             GnirsSequenceTable(
               props.clientMode,
               props.obsId,
@@ -272,5 +272,5 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
-          case _                                                                        => mismatchError
+          case _                                                                         => mismatchError
     )

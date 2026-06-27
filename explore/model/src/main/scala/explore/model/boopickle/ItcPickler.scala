@@ -83,10 +83,10 @@ trait ItcPicklers extends CommonPicklers {
 
   given Pickler[ItcInstrumentConfig.GpiSpectroscopy] = generatePickler
 
-  given Pickler[GnirsFpu.Spectroscopy.Slit]  = generatePickler
-  given Pickler[GnirsFpu.Spectroscopy.Ifu]   = generatePickler
-  given Pickler[GnirsFpu.Other] = generatePickler
-  given Pickler[GnirsFpu]       =
+  given Pickler[GnirsFpu.Spectroscopy.Slit] = generatePickler
+  given Pickler[GnirsFpu.Spectroscopy.Ifu]  = generatePickler
+  given Pickler[GnirsFpu.Other]             = generatePickler
+  given Pickler[GnirsFpu]                   =
     compositePickler[GnirsFpu]
       .addConcreteType[GnirsFpu.Spectroscopy.Slit]
       .addConcreteType[GnirsFpu.Spectroscopy.Ifu]
