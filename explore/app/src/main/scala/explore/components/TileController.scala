@@ -96,6 +96,16 @@ object TileController:
         case r                                                                          => r
       }(p)
 
+  // Layout equality over the geometry the controlles govern (i/x/y/w/h), ignoring `minH` and other
+  // constraints react-grid-layout manages internally.
+  private def layoutEquiv(a: Layout, b: Layout): Boolean =
+    a.asList
+      .map(i => (i.i, i.x, i.y, i.w, i.h))
+      .corresponds(b.asList.map(i => (i.i, i.x, i.y, i.w, i.h)))(_ === _)
+
+  private def layoutEquiv(a: Option[Layout], b: Option[Layout]): Boolean =
+    (a, b).mapN(layoutEquiv).getOrElse(false)
+
   private val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -112,6 +122,8 @@ object TileController:
         // Update the current layout if it changes upstream
         _             <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                            (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
+        // Layout replaced by the last `onLayoutChange`
+        lastReplaced  <- useState(none[(BreakpointName, Layout)])
       yield
         import ctx.given
 
@@ -175,11 +187,23 @@ object TileController:
               breakpoint
                 .setState(bk),
           onLayoutChange = (m: Layout, newLayouts: ResponsiveLayouts) =>
-            // Store the current layout in the state for debugging
-            currentLayout
-              .mod(breakpointLayout(breakpoint.value).replace(m)) *>
-              storeLayouts(props.userId, props.section, newLayouts)
-                .when_(props.storeLayout),
+            // react-grid-layout's compaction isn't idempotent for mixed-width layouts, it
+            // re-emits two equivalent layouts in alternation.
+            // Storing each verbatim feeds the oscillation back as a new `layouts` prop -> infinite
+            // re-compaction ("Maximum update depth exceeded").
+            val bp           = breakpoint.value
+            val current      = currentLayout.get.get(bp).map(_._3)
+            // compare the reported layout with the current one to avoid storing the same layout twice
+            val isFixedPoint = layoutEquiv(current, m.some)
+            // detect if there is a cicle and ignore, avoiding to update the local state
+            val isCycle      =
+              lastReplaced.value.exists((b, l) => b === bp && layoutEquiv(l.some, m.some))
+            Callback.when(!isFixedPoint && !isCycle)(
+              current.map(c => lastReplaced.setState((bp, c).some)).getOrEmpty >>
+                currentLayout.mod(breakpointLayout(bp).replace(m))
+            ) >> storeLayouts(props.userId, props.section, newLayouts)
+              .when_(props.storeLayout)
+          ,
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
