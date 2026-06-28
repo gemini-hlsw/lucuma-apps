@@ -41,7 +41,8 @@ case class TileController(
   section:          GridLayoutSection,
   renderBackButton: Option[VdomNode] = None,
   clazz:            Option[Css] = None,
-  storeLayout:      Boolean = true
+  storeLayout:      Boolean = true,
+  onLayoutPersist:  Option[LayoutsMap => Callback] = None
 ) extends ReactFnProps(TileController.component):
   val tiles: List[TileState[?]] =
     tileDefs.map: t =>
@@ -96,8 +97,7 @@ object TileController:
         case r                                                                          => r
       }(p)
 
-  // Layout equality over the geometry the controlles govern (i/x/y/w/h), ignoring `minH` and other
-  // constraints react-grid-layout manages internally.
+  // Geometry equality (i/x/y/w/h), ignoring rgl-managed constraints like `minH`.
   private def layoutEquiv(a: Layout, b: Layout): Boolean =
     a.asList
       .map(i => (i.i, i.x, i.y, i.w, i.h))
@@ -128,20 +128,23 @@ object TileController:
         import ctx.given
 
         def setSizeState(id: Tile.TileId) = (st: TileSizeState) =>
-          currentLayout
-            .zoom(allTiles)
-            .mod:
-              case l if l.i === id.value =>
-                if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
-                else if (st === TileSizeState.Maximized)
-                  val defaultHeight =
-                    unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
-                  l.copy(
-                    h = defaultHeight,
-                    minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
-                  )
-                else l
-              case l                     => l
+          // Compute the new layout once so the local write and optimistic persist match.
+          val f: LayoutItem => LayoutItem = {
+            case l if l.i === id.value =>
+              if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
+              else if (st === TileSizeState.Maximized)
+                val defaultHeight =
+                  unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
+                l.copy(
+                  h = defaultHeight,
+                  minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
+                )
+              else l
+            case l                     => l
+          }
+          val newLayoutsMap: LayoutsMap   = allTiles.modify(f)(currentLayout.get)
+          currentLayout.set(newLayoutsMap) >>
+            props.onLayoutPersist.fold(Callback.empty)(_(newLayoutsMap))
 
         val tilesWithBackButton: List[TileState[?]] = {
           val topTile =
@@ -191,16 +194,18 @@ object TileController:
             // re-emits two equivalent layouts in alternation.
             // Storing each verbatim feeds the oscillation back as a new `layouts` prop -> infinite
             // re-compaction ("Maximum update depth exceeded").
-            val bp           = breakpoint.value
-            val current      = currentLayout.get.get(bp).map(_._3)
+            val bp            = breakpoint.value
+            val current       = currentLayout.get.get(bp).map(_._3)
             // compare the reported layout with the current one to avoid storing the same layout twice
-            val isFixedPoint = layoutEquiv(current, m.some)
-            // detect if there is a cicle and ignore, avoiding to update the local state
-            val isCycle      =
+            val isFixedPoint  = layoutEquiv(current, m.some)
+            // detect if there is a cycle and ignore, avoiding to update the local state
+            val isCycle       =
               lastReplaced.value.exists((b, l) => b === bp && layoutEquiv(l.some, m.some))
+            val newLayoutsMap = breakpointLayout(bp).replace(m).apply(currentLayout.get)
             Callback.when(!isFixedPoint && !isCycle)(
               current.map(c => lastReplaced.setState((bp, c).some)).getOrEmpty >>
-                currentLayout.mod(breakpointLayout(bp).replace(m))
+                currentLayout.set(newLayoutsMap) >>
+                props.onLayoutPersist.map(_(newLayoutsMap)).getOrEmpty
             ) >> storeLayouts(props.userId, props.section, newLayouts)
               .when_(props.storeLayout)
           ,

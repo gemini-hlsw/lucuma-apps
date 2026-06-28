@@ -731,6 +731,15 @@ object ObsTabTiles:
           val tiles =
             alltiles.filterNot(t => removedIds.contains(t.id))
 
+          // Optimistic write of layout changes
+          def persistLayout(
+            section: GridLayoutSection
+          ): LayoutsMap => Callback =
+            layoutsMap =>
+              props.userPreferences
+                .zoom(UserPreferences.gridLayouts)
+                .mod(_.updated(section, layoutsMap))
+
           React.Fragment(
             TileController(
               props.vault.userId,
@@ -739,7 +748,8 @@ object ObsTabTiles:
               layout,
               tiles,
               section,
-              props.backButton.some
+              props.backButton.some,
+              onLayoutPersist = persistLayout(section).some
             ),
             if isVisitorMode then EmptyVdom // Visitors have no sequences
             else
@@ -751,6 +761,7 @@ object ObsTabTiles:
                 List(sequenceTile),
                 GridLayoutSection.ObservationsSequenceLayout,
                 renderBackButton = none,
-                clazz = ExploreStyles.SequenceTileController.some
+                clazz = ExploreStyles.SequenceTileController.some,
+                onLayoutPersist = persistLayout(GridLayoutSection.ObservationsSequenceLayout).some
               )
           )
