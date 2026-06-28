@@ -15,8 +15,7 @@ import lucuma.schemas.odb.RASubquery
 
 @GraphQL
 @GraphQLType("Configuration")
-object ConfigurationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Configuration]:
+object ConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, Configuration]:
   override val subquery: String = s"""
     {
       conditions {
@@ -60,6 +59,15 @@ object ConfigurationSubquery
         }
         gmosSouthImaging {
           filters
+        }
+        gnirsLongSlit {
+          grating
+          camera
+          prism
+        }
+        gnirsIfu {
+          grating
+          fpu
         }
         visitor {
           mode
