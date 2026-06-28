@@ -33,6 +33,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
@@ -43,7 +44,7 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
-import lucuma.schemas.ObservationDB.Types.GnirsLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
 import lucuma.schemas.ObservationDB.Types.VisitorInput
@@ -100,9 +101,9 @@ enum ObservingModeSummary derives Order:
     variant: ImagingVariant,
     filters: NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]
   )                                                        extends ObservingModeSummary
-  case GnirsLongSlit(
+  case GnirsSpectroscopy(
     filter:            GnirsFilter,
-    fpu:               GnirsFpuSlit,
+    fpu:               GnirsFpu.Spectroscopy,
     prism:             GnirsPrism,
     grating:           GnirsGrating,
     camera:            GnirsCamera,
@@ -130,7 +131,8 @@ enum ObservingModeSummary derives Order:
     case GmosNorthImaging(_, _, _, _)           => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)           => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit(_)                     => ObservingModeType.Igrins2LongSlit
-    case GnirsLongSlit(_, _, _, _, _, _, _)     => ObservingModeType.GnirsLongSlit
+    case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(_)) => ObservingModeType.GnirsLongSlit
+    case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(_))  => ObservingModeType.GnirsIfu
     case GhostIfu(_, _, _, _)                   => ObservingModeType.GhostIfu
     case Visitor(mode, _, _, _)                 => mode
 
@@ -198,11 +200,12 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput(exposureTimeMode = etm.toInput.assign)
       )
-    case GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength, etm)        =>
-      ObservingModeInput.GnirsLongSlit(
-        GnirsLongSlitInput(
+    case GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength, etm)        =>
+      ObservingModeInput.GnirsSpectroscopy(
+        GnirsSpectroscopyInput(
           filter = filter.assign,
-          fpu = fpu.assign,
+          fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(fpu).orUnassign,
+          fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).orUnassign,
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,
@@ -284,13 +287,16 @@ enum ObservingModeSummary derives Order:
         s"GMOS-S Imaging ${variant.variantType.name}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case Igrins2LongSlit(etm)                                                              =>
         s"IGRINS-2 Longslit (${etm.formatSpec})"
-      case GnirsLongSlit(_, fpu, prism, grating, camera, centralWavelength, etm)             =>
+      case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, etm)             =>
         val prismSummary: String      = prism match
           case GnirsPrism.Mirror => ""
           case p                 => s" ${p.shortName}"
         val wavelengthSummary: String =
           f"${centralWavelength.value.toMicrometers.value}%.2fµm"
-        s"GNIRS Longslit\n${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit (${etm.formatSpec})"
+        val fpuSummary: String        = fpu match
+          case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
+          case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
+        s"GNIRS Spectroscopy\n${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary (${etm.formatSpec})"
       case GhostIfu(resolutionMode, steps, red, blue)                                        =>
         extension (detector: ObservingMode.GhostIfu.GhostDetector)
           def summary: String =
@@ -369,8 +375,8 @@ object ObservingModeSummary:
         )
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
-      case g: ObservingMode.GnirsLongSlit      =>
-        GnirsLongSlit(g.filter,
+      case g: ObservingMode.GnirsSpectroscopy      =>
+        GnirsSpectroscopy(g.filter,
                       g.fpu,
                       g.prism,
                       g.grating,
@@ -408,13 +414,16 @@ object ObservingModeSummary:
       s"Flamingos2 Imaging ${variant.variantType.name} $filterStr"
     case Igrins2LongSlit(_)                                                              =>
       s"IGRINS-2 Longslit"
-    case GnirsLongSlit(_, fpu, prism, grating, camera, centralWavelength, _)             =>
+    case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, _)             =>
       val prismSummary: String      = prism match
         case GnirsPrism.Mirror => ""
         case p                 => s" ${p.shortName}"
       val wavelengthSummary: String =
         f"${centralWavelength.value.toMicrometers.value}%.2fµm"
-      s"GNIRS Longslit ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
+      val fpuSummary: String        = fpu match
+        case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
+        case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
+      s"GNIRS Spectroscopy ${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
     case GhostIfu(resolutionMode, _, _, _)                                               =>
       s"GHOST IFU ${resolutionMode.shortName}"
     case Visitor(VisitorObservingModeType.VisitorNorth, _, _, Some(name))                =>

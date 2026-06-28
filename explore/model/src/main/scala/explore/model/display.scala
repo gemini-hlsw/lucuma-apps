@@ -21,6 +21,7 @@ import lucuma.core.model.ImageQuality
 import lucuma.core.model.Semester
 import lucuma.core.model.SpectralDefinition
 import lucuma.core.model.UnnormalizedSED
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.validation.InputValidSplitEpi
@@ -334,7 +335,7 @@ trait DisplayImplicits:
       s"IGRINS-2"
     case BasicConfiguration.GhostIfu(resolutionMode = rm)                                      =>
       s"GHOST IFU ${rm.shortName}"
-    case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(_, fpu, prism, grating, camera, cwl) =>
+    case gnirsLongSlit @ BasicConfiguration.GnirsSpectroscopy(_, fpu, prism, grating, camera, cwl) =>
       // For Gnirs Spectroscopy we should return this pattern:
       // GNIRS <CAM> <GRATING> @ <WAVELENGTH> <PRISM IF NOT MIRROR> <FPU><IF Altair AO:mode>
       // For example:
@@ -346,7 +347,10 @@ trait DisplayImplicits:
         case GnirsPrism.Mirror => ""
         case p                 => s" ${p.shortName}"
       val wavelengthSummary: String = f"${cwl.value.toMicrometers.value}%.2fµm"
-      s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit"
+      val fpuSummary: String        = fpu match
+        case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
+        case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
+      s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary"
       // For Gnirs Imaging we should return this pattern:
       // s"${filter.shortName} ${fpu.shortName} ${acqMirror.shortName} ${camera.shortName}".some
       // GNIRS Imaging:

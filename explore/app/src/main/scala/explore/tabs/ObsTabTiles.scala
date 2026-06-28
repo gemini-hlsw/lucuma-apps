@@ -463,7 +463,7 @@ object ObsTabTiles:
                   Some(_: BasicConfiguration.Flamingos2LongSlit) |
                   Some(_: BasicConfiguration.Igrins2LongSlit.type) |
                   Some(_: BasicConfiguration.GhostIfu) |
-                  Some(_: BasicConfiguration.GnirsLongSlit) =>
+                  Some(_: BasicConfiguration.GnirsSpectroscopy) =>
                 ItcSpectroscopyTile(
                   props.vault.userId,
                   props.observation.get,

@@ -39,7 +39,6 @@ import lucuma.core.model.SourceProfile
 import lucuma.core.model.Target
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.model.sequence.gmos.GmosCcdMode
-import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.Enumerated
@@ -225,12 +224,12 @@ final case class Observation(
           List(
             ItcInstrumentConfig.Igrins2Spectroscopy(i.exposureTimeMode)
           )
-        case g: ObservingMode.GnirsLongSlit      =>
+        case g: ObservingMode.GnirsSpectroscopy  =>
           List(
             ItcInstrumentConfig
               .GnirsSpectroscopy(
                 g.grating,
-                GnirsFpu.Spectroscopy.Slit(g.fpu),
+                g.fpu,
                 g.filter,
                 g.prism,
                 g.camera,
