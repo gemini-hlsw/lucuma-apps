@@ -13,16 +13,16 @@ importers:
         version: 3.8.4
       stylelint:
         specifier: 17.14.0
-        version: 17.14.0
+        version: 17.14.0(supports-color@10.2.2)
       stylelint-color-format:
         specifier: 1.1.0
-        version: 1.1.0(stylelint@17.14.0)
+        version: 1.1.0(stylelint@17.14.0(supports-color@10.2.2))
       stylelint-config-standard-scss:
         specifier: 17.0.0
-        version: 17.0.0(postcss@8.5.15)(stylelint@17.14.0)
+        version: 17.0.0(postcss@8.5.15)(stylelint@17.14.0(supports-color@10.2.2))
       stylelint-value-no-unknown-custom-properties:
         specifier: 6.1.1
-        version: 6.1.1(stylelint@17.14.0)
+        version: 6.1.1(stylelint@17.14.0(supports-color@10.2.2))
 
   explore:
     dependencies:
@@ -33,8 +33,8 @@ importers:
         specifier: 2.1.5
         version: 2.1.5
       '@atlaskit/pragmatic-drag-and-drop-hitbox':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: 2.0.0
+        version: 2.0.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration':
         specifier: 2.1.1
         version: 2.1.1(@types/react@19.2.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -276,8 +276,8 @@ importers:
         specifier: 2.1.5
         version: 2.1.5
       '@atlaskit/pragmatic-drag-and-drop-hitbox':
-        specifier: 1.2.0
-        version: 1.2.0
+        specifier: 2.0.0
+        version: 2.0.0
       '@react-hook/resize-observer':
         specifier: 2.0.2
         version: 2.0.2(react@19.2.7)
@@ -354,11 +354,11 @@ packages:
   '@atlaskit/pragmatic-drag-and-drop-auto-scroll@2.1.5':
     resolution: {integrity: sha512-InLvVhZAHPBfv3CxuG4AfOQuhNJjaFy69YBfodPMWtRFQNQAKa9Yb3vL9Ho6qsD9qKUBuJa4A5k7QddaXQ4Eyw==}
 
-  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
-    resolution: {integrity: sha512-JWt6eVp6Br2FPHRM8s0dUIHQk/jFInGP1f3ti5CdtM1Ji5/pt8Akm44wDC063Gv2i5RGseixtbW0z/t6RYtbdg==}
-
   '@atlaskit/pragmatic-drag-and-drop-hitbox@1.2.0':
     resolution: {integrity: sha512-eWJvvuHZOC4Yk+Li7QpS+JM2F/I50/3PhMvEcyvcHbXI0FP0kCDD1MiF8Hv7uSOxpk5JNqKoOmK8e1ncOzTgqA==}
+
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@2.0.0':
+    resolution: {integrity: sha512-vkXCB/23pT8YgYU8biGmR9uu0fr9oWoaq2GMSKyiNPk3reA12XVrCdgB2SLBoB24Ic1FOm9PdaQJ9ZSUQdCVpw==}
 
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
     resolution: {integrity: sha512-lo4x9p7DAq3WeCknHXqkCNmzSMvyKfucl1BFF6K22BjdiRd+DavBwt4aGUQBGnIPGwZgNKrjmwAFj9xuYdLZDQ==}
@@ -376,6 +376,9 @@ packages:
 
   '@atlaskit/pragmatic-drag-and-drop@1.8.1':
     resolution: {integrity: sha512-uXWNPpL8n4OmTVbduH7nq8pk8htqGo/prR5cYEE8sVCPJGAUMWn6lzvWTfI+4VCeQvHiDRODVz4YzH06OVAxhw==}
+
+  '@atlaskit/pragmatic-drag-and-drop@2.0.1':
+    resolution: {integrity: sha512-5iSbCveKuWYh0HijDxfSsYKD2VE0UPObI9jO1pqq+RBk9LzaoOYeKyW0Fobv/6db8HAPcyT3vhRy8bmk5TMcMw==}
 
   '@atlaskit/tokens@13.0.0':
     resolution: {integrity: sha512-uvokC3FBpcK/RiNdhohFw5N3RxPNKzDcLaitpIVV0v61YH3N4FtHz3yL/uoRL5XE+3RrD3g8+GXlgIOiPsuftQ==}
@@ -3721,14 +3724,14 @@ snapshots:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6
 
-  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.1.0':
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.2.0':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
       '@babel/runtime': 7.28.6
 
-  '@atlaskit/pragmatic-drag-and-drop-hitbox@1.2.0':
+  '@atlaskit/pragmatic-drag-and-drop-hitbox@2.0.0':
     dependencies:
-      '@atlaskit/pragmatic-drag-and-drop': 1.8.1
+      '@atlaskit/pragmatic-drag-and-drop': 2.0.1
       '@babel/runtime': 7.28.6
 
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll@2.0.2':
@@ -3740,7 +3743,7 @@ snapshots:
   '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-migration@2.1.1(@types/react@19.2.10)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
-      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
+      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.2.0
       '@atlaskit/pragmatic-drag-and-drop-react-beautiful-dnd-autoscroll': 2.0.2
       '@atlaskit/tokens': 13.0.0(react@19.2.7)
       '@babel/runtime': 7.28.6
@@ -3756,7 +3759,7 @@ snapshots:
   '@atlaskit/pragmatic-drag-and-drop-react-drop-indicator@3.2.16(react@19.2.7)':
     dependencies:
       '@atlaskit/pragmatic-drag-and-drop': 1.8.1
-      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.1.0
+      '@atlaskit/pragmatic-drag-and-drop-hitbox': 1.2.0
       '@atlaskit/tokens': 13.0.0(react@19.2.7)
       '@babel/runtime': 7.28.6
       '@compiled/react': 0.20.0(react@19.2.7)
@@ -3765,6 +3768,12 @@ snapshots:
       - supports-color
 
   '@atlaskit/pragmatic-drag-and-drop@1.8.1':
+    dependencies:
+      '@babel/runtime': 7.28.6
+      bind-event-listener: 3.0.0
+      raf-schd: 4.0.3
+
+  '@atlaskit/pragmatic-drag-and-drop@2.0.1':
     dependencies:
       '@babel/runtime': 7.28.6
       bind-event-listener: 3.0.0
@@ -7066,39 +7075,39 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  stylelint-color-format@1.1.0(stylelint@17.14.0):
+  stylelint-color-format@1.1.0(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
       color: 3.2.1
       style-search: 0.1.0
-      stylelint: 17.14.0
+      stylelint: 17.14.0(supports-color@10.2.2)
 
-  stylelint-config-recommended-scss@17.0.0(postcss@8.5.15)(stylelint@17.14.0):
+  stylelint-config-recommended-scss@17.0.0(postcss@8.5.15)(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
       postcss-scss: 4.0.9(postcss@8.5.15)
-      stylelint: 17.14.0
-      stylelint-config-recommended: 18.0.0(stylelint@17.14.0)
-      stylelint-scss: 7.0.0(stylelint@17.14.0)
+      stylelint: 17.14.0(supports-color@10.2.2)
+      stylelint-config-recommended: 18.0.0(stylelint@17.14.0(supports-color@10.2.2))
+      stylelint-scss: 7.0.0(stylelint@17.14.0(supports-color@10.2.2))
     optionalDependencies:
       postcss: 8.5.15
 
-  stylelint-config-recommended@18.0.0(stylelint@17.14.0):
+  stylelint-config-recommended@18.0.0(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
-      stylelint: 17.14.0
+      stylelint: 17.14.0(supports-color@10.2.2)
 
-  stylelint-config-standard-scss@17.0.0(postcss@8.5.15)(stylelint@17.14.0):
+  stylelint-config-standard-scss@17.0.0(postcss@8.5.15)(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
-      stylelint: 17.14.0
-      stylelint-config-recommended-scss: 17.0.0(postcss@8.5.15)(stylelint@17.14.0)
-      stylelint-config-standard: 40.0.0(stylelint@17.14.0)
+      stylelint: 17.14.0(supports-color@10.2.2)
+      stylelint-config-recommended-scss: 17.0.0(postcss@8.5.15)(stylelint@17.14.0(supports-color@10.2.2))
+      stylelint-config-standard: 40.0.0(stylelint@17.14.0(supports-color@10.2.2))
     optionalDependencies:
       postcss: 8.5.15
 
-  stylelint-config-standard@40.0.0(stylelint@17.14.0):
+  stylelint-config-standard@40.0.0(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
-      stylelint: 17.14.0
-      stylelint-config-recommended: 18.0.0(stylelint@17.14.0)
+      stylelint: 17.14.0(supports-color@10.2.2)
+      stylelint-config-recommended: 18.0.0(stylelint@17.14.0(supports-color@10.2.2))
 
-  stylelint-scss@7.0.0(stylelint@17.14.0):
+  stylelint-scss@7.0.0(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
       css-tree: 3.2.1
       is-plain-object: 5.0.0
@@ -7108,15 +7117,15 @@ snapshots:
       postcss-resolve-nested-selector: 0.1.6
       postcss-selector-parser: 7.1.1
       postcss-value-parser: 4.2.0
-      stylelint: 17.14.0
+      stylelint: 17.14.0(supports-color@10.2.2)
 
-  stylelint-value-no-unknown-custom-properties@6.1.1(stylelint@17.14.0):
+  stylelint-value-no-unknown-custom-properties@6.1.1(stylelint@17.14.0(supports-color@10.2.2)):
     dependencies:
       postcss-value-parser: 4.2.0
       resolve: 1.22.11
-      stylelint: 17.14.0
+      stylelint: 17.14.0(supports-color@10.2.2)
 
-  stylelint@17.14.0:
+  stylelint@17.14.0(supports-color@10.2.2):
     dependencies:
       '@csstools/css-calc': 3.2.1(@csstools/css-parser-algorithms@4.0.0(@csstools/css-tokenizer@4.0.0))(@csstools/css-tokenizer@4.0.0)
       '@csstools/css-parser-algorithms': 4.0.0(@csstools/css-tokenizer@4.0.0)
