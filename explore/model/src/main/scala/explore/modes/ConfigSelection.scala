@@ -14,6 +14,7 @@ import lucuma.core.enums.Instrument
 import lucuma.core.enums.ScienceMode
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.model.ExposureTimeMode
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.itc.ItcGhostDetector
 import lucuma.refined.*
 import lucuma.schemas.model.BasicConfiguration
@@ -119,19 +120,24 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             _,
             Some(InstrumentOverrides.GnirsSpectroscopy(cw, _))
           ) =>
-        BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, cw).some
+        // Only the long-slit FPU maps to an observing mode; IFU is display-only.
+        GnirsFpu.slit
+          .getOption(fpu)
+          .map(slit => BasicConfiguration.GnirsLongSlit(filter, slit, prism, grating, camera, cw))
       case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, None)
           if withFallbackWavelength =>
-        BasicConfiguration
-          .GnirsLongSlit(
-            filter,
-            fpu,
-            prism,
-            grating,
-            camera,
-            CentralWavelength(filter.centralWavelength)
-          )
-          .some
+        GnirsFpu.slit
+          .getOption(fpu)
+          .map: slit =>
+            BasicConfiguration
+              .GnirsLongSlit(
+                filter,
+                slit,
+                prism,
+                grating,
+                camera,
+                CentralWavelength(filter.centralWavelength)
+              )
       case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
         BasicConfiguration.Igrins2LongSlit.some
       case ItcInstrumentConfig.GhostIfu(

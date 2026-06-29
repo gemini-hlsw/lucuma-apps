@@ -15,6 +15,7 @@ import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
@@ -360,7 +361,7 @@ object ItcInstrumentConfig:
 
   case class GnirsSpectroscopy(
     grating:                    GnirsGrating,
-    fpu:                        GnirsFpuSlit,
+    fpu:                        GnirsFpu,
     filter:                     GnirsFilter,
     prism:                      GnirsPrism,
     camera:                     GnirsCamera,
@@ -369,7 +370,7 @@ object ItcInstrumentConfig:
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GnirsGrating
     type Filter   = GnirsFilter
-    type FPU      = GnirsFpuSlit
+    type FPU      = GnirsFpu
     type Override = InstrumentOverrides.GnirsSpectroscopy
     val gratingDisplay: Display[Grating] = Display.byShortName(_.shortName)
     val filterStr: String                = filter.shortName
@@ -378,12 +379,17 @@ object ItcInstrumentConfig:
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
 
-    private val cameraStr: String = camera.pixelScale match
-      case GnirsPixelScale.PixelScale_0_05 => "LC"
-      case GnirsPixelScale.PixelScale_0_15 => "SC"
+    // IFU rows are labeled with the IFU short name ("LR-IFU" / "HR-IFU"); slit
+    // rows with the camera ("SC" / "LC").
+    private val ifuOrCameraStr: String = fpu match
+      case GnirsFpu.Spectroscopy.Ifu(ifu) => ifu.shortName
+      case _                 =>
+        camera.pixelScale match
+          case GnirsPixelScale.PixelScale_0_05 => "LC"
+          case GnirsPixelScale.PixelScale_0_15 => "SC"
 
     override def instrumentLabel: String =
-      s"${instrument.longName} $cameraStr"
+      s"${instrument.longName} $ifuOrCameraStr"
 
     def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
       copy(exposureTimeMode = etm)

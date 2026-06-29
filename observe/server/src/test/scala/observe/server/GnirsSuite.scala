@@ -44,7 +44,7 @@ class GnirsSuite extends TestCommon {
     coadds = PosInt.unsafeFrom(2),
     filter = GnirsFilter.K,
     decker = GnirsDecker.LongCamLongSlit,
-    fpu = GnirsFpu.Slit(GnirsFpuSlit.LongSlit_0_30),
+    fpu = GnirsFpu.Spectroscopy.Slit(GnirsFpuSlit.LongSlit_0_30),
     acquisitionMirror = GnirsAcquisitionMirrorMode.In,
     camera = GnirsCamera.LongBlue,
     focus = GnirsFocus.Best,

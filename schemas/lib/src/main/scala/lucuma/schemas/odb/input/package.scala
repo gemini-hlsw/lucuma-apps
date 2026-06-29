@@ -1111,6 +1111,7 @@ extension (gnirsDynamic: GnirsDynamicConfig)
     decker = gnirsDynamic.decker,
     fpuSlit = GnirsFpu.slit.getOption(gnirsDynamic.fpu).orUnassign,
     fpuOther = GnirsFpu.other.getOption(gnirsDynamic.fpu).orUnassign,
+    fpuIfu = GnirsFpu.ifu.getOption(gnirsDynamic.fpu).orUnassign,
     acquisitionMirrorOut = gnirsDynamic.acquisitionMirror.toInput,
     camera = gnirsDynamic.camera,
     focusMotorSteps = (gnirsDynamic.focus match

@@ -25,6 +25,7 @@ import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
@@ -157,22 +158,27 @@ trait syntax:
           val readMode: GnirsReadMode = etm match
             case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
             case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
+          // ITC only supports the long-slit FPU; IFU configs are not calculable.
           modeOverrides
             .map: (overrides: InstrumentOverrides.GnirsSpectroscopy) =>
-              InstrumentMode
-                .GnirsSpectroscopy(
-                  etm,
-                  overrides.centralWavelength.value,
-                  filter,
-                  fpu,
-                  prism,
-                  grating,
-                  camera,
-                  readMode,
-                  GnirsWellDepth.forCamera(camera),
-                  overrides.coadds
-                )
-                .rightNec
+              GnirsFpu.slit
+                .getOption(fpu)
+                .map: slitWidth =>
+                  InstrumentMode
+                    .GnirsSpectroscopy(
+                      etm,
+                      overrides.centralWavelength.value,
+                      filter,
+                      GnirsFpu.Spectroscopy.Slit(slitWidth),
+                      prism,
+                      grating,
+                      camera,
+                      readMode,
+                      GnirsWellDepth.forCamera(camera),
+                      overrides.coadds
+                    )
+                    .rightNec
+                .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec

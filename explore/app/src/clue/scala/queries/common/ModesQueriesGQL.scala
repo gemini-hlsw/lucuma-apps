@@ -70,7 +70,8 @@ object ModesQueriesGQL:
             binning
           }
           gnirs {
-            fpu
+            fpuSlit
+            fpuIfu
             grating
             filter
             prism

@@ -10,6 +10,7 @@ import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsDecker
 import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.GnirsFpuOther
+import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsGrating
 import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.GnirsReadMode
@@ -61,6 +62,8 @@ trait GnirsEncoders {
     case GnirsDecker.ShortCamCrossDispersed => "SCXD"
     case GnirsDecker.LongCamLongSlit        => "LCLong"
     case GnirsDecker.LongCamCrossDispersed  => "LCXD"
+    case GnirsDecker.LowResolutionIfu       => ??? // TODO
+    case GnirsDecker.HighResolutionIfu      => ??? // TODO
   }
 }
 
@@ -195,22 +198,23 @@ object GnirsControllerEpics extends GnirsEncoders {
 
       private def slitWidthValue(dc: GnirsDynamicConfig): Option[String] =
         dc.fpu match {
-          case GnirsFpu.Slit(slit)   =>
+          case GnirsFpu.Spectroscopy.Slit(slit) =>
             (slit match {
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_10  => "0.10arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_15  => "0.15arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_20  => "0.20arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_30  => "0.30arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_45  => "0.45arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_0_675 => "0.68arcsec"
-              case lucuma.core.enums.GnirsFpuSlit.LongSlit_1_00  => "1.00arcsec"
+              case GnirsFpuSlit.LongSlit_0_10  => "0.10arcsec"
+              case GnirsFpuSlit.LongSlit_0_15  => "0.15arcsec"
+              case GnirsFpuSlit.LongSlit_0_20  => "0.20arcsec"
+              case GnirsFpuSlit.LongSlit_0_30  => "0.30arcsec"
+              case GnirsFpuSlit.LongSlit_0_45  => "0.45arcsec"
+              case GnirsFpuSlit.LongSlit_0_675 => "0.68arcsec"
+              case GnirsFpuSlit.LongSlit_1_00  => "1.00arcsec"
             }).some
-          case GnirsFpu.Other(other) =>
+          case GnirsFpu.Spectroscopy.Ifu(_)     => none // TODO
+          case GnirsFpu.Other(other)            =>
             (other match {
-              case lucuma.core.enums.GnirsFpuOther.Acquisition => "Acq"
-              case lucuma.core.enums.GnirsFpuOther.PupilViewer => "PV"
-              case lucuma.core.enums.GnirsFpuOther.Pinhole1    => "SmPinholes"
-              case lucuma.core.enums.GnirsFpuOther.Pinhole3    => "LgPinholes"
+              case GnirsFpuOther.Acquisition => "Acq"
+              case GnirsFpuOther.PupilViewer => "PV"
+              case GnirsFpuOther.Pinhole1    => "SmPinholes"
+              case GnirsFpuOther.Pinhole3    => "LgPinholes"
             }).some
         }
 

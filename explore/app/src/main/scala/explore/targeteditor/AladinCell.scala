@@ -4,9 +4,9 @@
 package explore.targeteditor
 
 import boopickle.DefaultBasic.*
+import cats.Order.given
 import cats.data.NonEmptyList
 import cats.effect.IO
-import cats.Order.given
 import cats.syntax.all.*
 import clue.FetchClient
 import crystal.*
