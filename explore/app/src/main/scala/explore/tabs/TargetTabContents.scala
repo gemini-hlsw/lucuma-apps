@@ -19,6 +19,7 @@ import explore.model.GuideStarSelection.AgsSelection
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.SelectedPanel
+import explore.model.layout.*
 import explore.model.reusability.given
 import explore.model.syntax.all.*
 import explore.observationtree.AsterismGroupObsList
@@ -671,7 +672,11 @@ object TargetTabContents extends TwoPanels:
               props.userPreferences.get.targetTabLayout,
               tiles,
               GridLayoutSection.TargetLayout,
-              backButton.some
+              backButton.some,
+              onLayoutPersist = Some((lm: LayoutsMap) =>
+                props.userPreferences
+                  .zoom(UserPreferences.gridLayouts)
+                  .mod(_.updated(GridLayoutSection.TargetLayout, lm)))
             ).withKey(key.value): VdomNode
             // withKey is required for the controller to clear it's state between the different
             // layouts or it can get into an invalid state.
