@@ -190,6 +190,18 @@ object TileController:
               breakpoint
                 .setState(bk),
           onLayoutChange = (m: Layout, newLayouts: ResponsiveLayouts) =>
+            // ileController handles how we use react-grid-layout, it passes the layout in, and gets
+            // changes back via onLayoutChange. when we remove a tile (like for visitors) it compacts
+            // the layout (for example changes the y if a tile is removed), then reports the result
+            // via onLayoutChange
+            //
+            // TileController writes this new layout back into its own state, what seems to happen
+            // is we get into a loop where the tile fed back is different (after compactation) so
+            // it is written back as state and that gets into this loop that show itself as
+            // a React maximum update cycle
+            //
+            // The fix is to skip the write-back when the reported layout is the same as we have
+            //
             // react-grid-layout's compaction isn't idempotent for mixed-width layouts, it
             // re-emits two equivalent layouts in alternation.
             // Storing each verbatim feeds the oscillation back as a new `layouts` prop -> infinite
