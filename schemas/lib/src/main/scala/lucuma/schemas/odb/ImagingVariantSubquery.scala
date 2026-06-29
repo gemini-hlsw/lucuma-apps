@@ -11,8 +11,7 @@ import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.odb.*
 
 @GraphQLType("ImagingVariant")
-object ImagingVariantSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ImagingVariant]:
+object ImagingVariantSubquery extends GraphQLSubquery.Typed[ObservationDB, ImagingVariant]:
   override val subquery: String = s"""
     {
       variantType

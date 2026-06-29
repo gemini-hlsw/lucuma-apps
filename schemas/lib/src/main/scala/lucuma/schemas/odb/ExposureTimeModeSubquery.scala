@@ -11,8 +11,7 @@ import lucuma.schemas.decoders.given
 import lucuma.schemas.odb.*
 
 @GraphQLType("ExposureTimeMode")
-object ExposureTimeModeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ExposureTimeMode]:
+object ExposureTimeModeSubquery extends GraphQLSubquery.Typed[ObservationDB, ExposureTimeMode]:
   override val subquery: String = s"""
     {
       signalToNoise {

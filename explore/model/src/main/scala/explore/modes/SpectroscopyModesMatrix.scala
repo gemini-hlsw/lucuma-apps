@@ -99,7 +99,9 @@ case class SpectroscopyModeRow(
 
   val enabled =
     (focalPlane === FocalPlane.SingleSlit ||
-      (focalPlane === FocalPlane.IFU && instrumentConfig.instrument === Instrument.Ghost) ||
+      (focalPlane === FocalPlane.IFU &&
+        (instrumentConfig.instrument === Instrument.Ghost ||
+          instrumentConfig.instrument === Instrument.Gnirs)) ||
       instrumentConfig.instrument === Instrument.MaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
 

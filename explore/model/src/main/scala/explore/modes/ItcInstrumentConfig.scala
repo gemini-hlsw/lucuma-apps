@@ -379,11 +379,18 @@ object ItcInstrumentConfig:
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
 
-    // IFU rows are labeled with the IFU short name ("LR-IFU" / "HR-IFU"); slit
+    // GNIRS IFU can be sent to the ITC, but there is no GNIRS IFU observing mode
+    // yet, so it cannot be accepted as a configuration (only the long slit can).
+    override def canBeAccepted: Boolean = GnirsFpu.ifu.getOption(fpu).isEmpty
+
+    // IFU rows are labeled with the IFU resolution ("LR IFU" / "HR IFU"); slit
     // rows with the camera ("SC" / "LC").
     private val ifuOrCameraStr: String = fpu match
-      case GnirsFpu.Spectroscopy.Ifu(ifu) => ifu.shortName
-      case _                 =>
+      case GnirsFpu.Spectroscopy.Ifu(ifu) =>
+        ifu match
+          case GnirsFpuIfu.LowResolution  => "LR IFU"
+          case GnirsFpuIfu.HighResolution => "HR IFU"
+      case _                              =>
         camera.pixelScale match
           case GnirsPixelScale.PixelScale_0_05 => "LC"
           case GnirsPixelScale.PixelScale_0_15 => "SC"
