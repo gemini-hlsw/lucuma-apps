@@ -267,7 +267,6 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}
           entryPoint: ./explore
           projectId: explore-gemini
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
           target: dev
           channelId: live
 
