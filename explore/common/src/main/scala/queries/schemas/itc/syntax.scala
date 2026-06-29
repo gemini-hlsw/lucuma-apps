@@ -169,7 +169,7 @@ trait syntax:
                       etm,
                       overrides.centralWavelength.value,
                       filter,
-                      slitWidth,
+                      GnirsFpu.Spectroscopy.Slit(slitWidth),
                       prism,
                       grating,
                       camera,
