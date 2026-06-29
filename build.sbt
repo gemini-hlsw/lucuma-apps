@@ -1163,7 +1163,6 @@ def firebaseDeploy(name: String, cond: String, live: Boolean) = WorkflowStep.Use
   name = Some(name),
   cond = Some(cond),
   params = Map(
-    "repoToken"              -> "${{ secrets.GITHUB_TOKEN }}",
     "firebaseServiceAccount" -> "${{ secrets.FIREBASE_SERVICE_ACCOUNT_EXPLORE_GEMINI }}",
     "projectId"              -> "explore-gemini",
     "target"                 -> "dev",
