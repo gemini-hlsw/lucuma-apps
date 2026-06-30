@@ -14,13 +14,11 @@ import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.BlindOffset
 import explore.model.Constants
-import explore.model.ErrorMsgOr
 import explore.model.ObsIdSet
 import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
-import explore.model.RegionOrCoordinatesAt
 import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
@@ -74,7 +72,8 @@ case class TargetTable(
   readOnly:         Boolean,
   blindOffset:      Option[View[BlindOffset]] = None,
   columnVisibility: View[ColumnVisibility],
-  skyPositions:     List[(SlotId, Coordinates)] = Nil
+  skyPositions:     List[(SlotId, Coordinates)] = Nil,
+  clearSkyPosition: Option[Callback] = None
 ) extends ReactFnProps(TargetTable.component)
 
 object TargetTable:
@@ -83,7 +82,8 @@ object TargetTable:
   case class TableMeta(
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
-    onAsterismUpdate: OnAsterismUpdateParams => Callback
+    onAsterismUpdate: OnAsterismUpdateParams => Callback,
+    clearSkyPosition: Option[Callback]
   )
 
   private val ColDef = ColumnDef[AsterismRow].WithTableMeta[TableMeta]
@@ -122,20 +122,6 @@ object TargetTable:
       acceptLabel = "Yes, delete",
       accept = api.deleteBlindOffsetTarget(obsId).runAsync >>
         blindOffset.foldMap(_.set(BlindOffset(false, None, BlindOffsetType.Automatic))),
-      position = DialogPosition.Top,
-      acceptClass = PrimeStyles.ButtonSmall,
-      rejectClass = PrimeStyles.ButtonSmall,
-      icon = Icons.SkullCrossBones(^.color.red)
-    )
-
-  private def clearSkyPosition(
-    obsIds: ObsIdSet
-  )(using api: OdbObservationApi[IO], logger: Logger[IO]): Callback =
-    ConfirmDialog.confirmDialog(
-      message = <.div("Clear the sky position? This action cannot be undone."),
-      header = "Sky position delete",
-      acceptLabel = "Yes, clear",
-      accept = api.updateGhostIfu2SkyPosition(obsIds.toList, none).runAsync,
       position = DialogPosition.Top,
       acceptClass = PrimeStyles.ButtonSmall,
       rejectClass = PrimeStyles.ButtonSmall,
@@ -200,9 +186,7 @@ object TargetTable:
                                         onClickE = (e: ReactMouseEvent) =>
                                           e.preventDefaultCB >>
                                             e.stopPropagationCB >>
-                                            cell.table.options.meta.foldMap(m =>
-                                              clearSkyPosition(m.obsIds)
-                                            )
+                                            cell.table.options.meta.flatMap(_.clearSkyPosition).orEmpty
                                       ).tiny.compact
                                     else EmptyVdom,
                               size = 35.toPx,
@@ -228,9 +212,18 @@ object TargetTable:
         vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                         IO(vizTime.getOrElse(Instant.now()))
         rowsPot    <-
-          useEffectKeepResultWithDeps((vizTime.value.toOption, props.obsTargets, props.site)):
-            (vt, optObsTargets, site) =>
+          useEffectKeepResultWithDeps(
+            (vizTime.value.toOption, props.obsTargets, props.site, props.skyPositions)
+          ):
+            (vt, optObsTargets, site, skyPositions) =>
               import ctx.given
+
+              val vizInstant = vt.getOrElse(Instant.now())
+              val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
+                AsterismRow.SkyRow(
+                  slot,
+                  CoordinatesAt(vizInstant, coords).asRight.asRight[String].some
+                )
 
               optObsTargets.foldMap: obsTargets =>
                 ObservationRegionsOrCoordinatesAt
@@ -241,19 +234,13 @@ object TargetTable:
                       .map { case (twi, loc) =>
                         AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
                       }
+                      .appendedAll(skyRows)
         tableState <- useMemo(props.columnVisibility.get): columnVisibility =>
                         PartialTableState(columnVisibility = columnVisibility)
         table      <- useReactTableWithStateStore:
                         import ctx.given
 
-                        val vt: Instant                = vizTime.value.toOption.getOrElse(Instant.now())
-                        val skyRows: List[AsterismRow] =
-                          props.skyPositions.map: (slot, coords) =>
-                            val loc: ErrorMsgOr[RegionOrCoordinatesAt] =
-                              CoordinatesAt(vt, coords).asRight.asRight
-                            AsterismRow.SkyRow(slot, loc.some)
-                        val allRows                    =
-                          rowsPot.value.map(_.toOption.orEmpty ++ skyRows)
+                        val allRows = rowsPot.value.map(_.toOption.orEmpty)
 
                         TableOptionsWithStateStore(
                           TableOptions(
@@ -265,19 +252,13 @@ object TargetTable:
                             columnResizeMode = ColumnResizeMode.OnChange,
                             state = tableState,
                             onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
-                            meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
+                            meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate, props.clearSkyPosition)
                           ),
                           TableStore(props.userId, TableId.AsterismTargets)
                         )
         adding     <- useStateView(AreAdding(false))
       yield
-        val vt: Instant     = vizTime.value.toOption.getOrElse(Instant.now())
-        val skyRows         =
-          props.skyPositions.map: (slot, coords) =>
-            val loc: ErrorMsgOr[RegionOrCoordinatesAt] =
-              CoordinatesAt(vt, coords).asRight.asRight
-            AsterismRow.SkyRow(slot, loc.some)
-        val allRowsForEmpty = rowsPot.value.map(_.toOption.orEmpty ++ skyRows)
+        val allRowsForEmpty = rowsPot.value.map(_.toOption.orEmpty)
 
         if (allRowsForEmpty.isEmpty)
           if (props.readOnly)

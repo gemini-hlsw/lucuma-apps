@@ -3,15 +3,14 @@
 
 package explore.targeteditor
 
-import lucuma.core.math.Coordinates
-import lucuma.ui.syntax.*
 import crystal.react.*
-import japgolly.scalajs.react.React
-import japgolly.scalajs.react.*
-import lucuma.core.math.RightAscension
-import lucuma.core.math.Declination
 import explore.components.HelpIcon
+import japgolly.scalajs.react.*
+import japgolly.scalajs.react.React
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.math.Coordinates
+import lucuma.core.math.Declination
+import lucuma.core.math.RightAscension
 import lucuma.core.math.validation.MathValidators
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
@@ -19,6 +18,7 @@ import lucuma.refined.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
+import lucuma.ui.syntax.*
 import lucuma.ui.syntax.all.given
 
 case class SkyPositionEditor(

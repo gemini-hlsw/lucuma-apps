@@ -8,10 +8,10 @@ import cats.derived.*
 import explore.model.ErrorMsgOr
 import explore.model.RegionOrCoordinatesAt
 import explore.targets.MotionCorrectedTarget
-import japgolly.scalajs.react.Reusability
 import japgolly.scalajs.react.ReactCats.*
-import lucuma.schemas.model.SlotId
+import japgolly.scalajs.react.Reusability
 import lucuma.core.model.Target
+import lucuma.schemas.model.SlotId
 
 // Rows for the targets table that supports showing both targets and sky positions.
 enum AsterismRow derives Eq:

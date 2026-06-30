@@ -44,16 +44,17 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
 import monocle.Iso
+import monocle.Lens
 import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
-import lucuma.schemas.model.SlotId
 
 final case class ObservationTargetsEditorTile(
   userId:              Option[User.Id],
@@ -80,7 +81,7 @@ final case class ObservationTargetsEditorTile(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
-  skyPositions:        List[(SlotId, Coordinates)] = Nil,
+  ghostSkyPosition:    Option[View[Option[Coordinates]]] = None,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None
@@ -150,6 +151,11 @@ object ObservationTargetsEditorTile
 
           // The effective instant to display. Memoized in the hook above
           val obsTime: Instant = obsTimeOrNow.value
+
+          val skyPositions: List[(SlotId, Coordinates)] =
+            props.ghostSkyPosition.flatMap(v => v.get.map(SlotId.GhostIfu2 -> _)).toList
+
+          val clearSkyCallback: Option[Callback] = props.ghostSkyPosition.map(_.set(None))
 
           // Sky selection: combines skySelected and props.focusedTargetId
           val selectedAsterismSelection: View[Option[AsterismSelection]] =
@@ -281,29 +287,22 @@ object ObservationTargetsEditorTile
                 props.readonly || obsEditInfo.allAreExecuted,
                 props.blindOffsetInfo.map(_._2),
                 columnVisibility,
-                skyPositions = props.skyPositions
+                skyPositions = skyPositions,
+                clearSkyPosition = clearSkyCallback
               ),
               if skySelected.get.isDefined then
-                skySelected.get.flatMap: slot =>
-                  props.skyPositions
-                    .find(_._1 === slot)
-                    .map: (_, currentCoords) =>
-                      val skyCoordsView: View[Coordinates] =
-                        View[Coordinates](
-                          currentCoords,
-                          (mod, cb) =>
-                            val nv = mod(currentCoords)
-                            cb(currentCoords, nv)
-                        ).withOnMod: coords =>
-                          props.odbApi
-                            .updateGhostIfu2SkyPosition(props.obsIds.toList, coords.some)
-                            .runAsync
-                      <.div(
-                        ExploreStyles.TargetTileEditor,
-                        SkyPositionEditor(skyCoordsView,
-                                          props.readonly || obsEditInfo.allAreExecuted
+                props.ghostSkyPosition.flatMap: view =>
+                  view.get.map: _ =>
+                    val skyCoordsView: View[Coordinates] =
+                      view.zoom(
+                        Lens[Option[Coordinates], Coordinates](_.getOrElse(Coordinates.Zero))(c =>
+                          _ => Some(c)
                         )
                       )
+                    <.div(
+                      ExploreStyles.TargetTileEditor,
+                      SkyPositionEditor(skyCoordsView, props.readonly || obsEditInfo.allAreExecuted)
+                    )
               else
                 (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
                  props.focusedTargetId

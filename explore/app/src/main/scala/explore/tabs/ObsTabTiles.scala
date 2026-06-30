@@ -76,7 +76,6 @@ import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
-import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
@@ -91,6 +90,7 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
+import monocle.Optional
 
 case class ObsTabTiles(
   vault:            Option[UserVault],
@@ -190,6 +190,11 @@ case class ObsTabTiles(
 
 object ObsTabTiles:
   private type Props = ObsTabTiles
+
+  private val ghostSkyPositionLens: Optional[Observation, Option[Coordinates]] =
+    Observation.observingMode.some
+      .andThen(ObservingMode.ghostIfu)
+      .andThen(ObservingMode.GhostIfu.skyPosition)
 
   def roleLayout(
     userPreferences: UserPreferences,
@@ -481,14 +486,16 @@ object ObsTabTiles:
 
           val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
 
+          val ghostSkyPositionView: Option[View[Option[Coordinates]]] =
+            props.observation.model
+              .zoom(ghostSkyPositionLens)
+              .toOptionView
+              .map:
+                _.withOnMod: coords =>
+                  ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
+
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
-          val skyPositions: List[(SlotId, lucuma.core.math.Coordinates)] =
-            props.observation.get.observingMode match
-              case Some(ghost: ObservingMode.GhostIfu) =>
-                ghost.skyPosition.map(SlotId.GhostIfu2 -> _).toList
-              case _                                   => Nil
-
           val ghostIfuMapping: Option[GhostIfuMapping] =
             props.observation.get.observingMode match
               case Some(ghost: ObservingMode.GhostIfu) =>
@@ -662,7 +669,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
-              skyPositions = skyPositions,
+              ghostSkyPosition = ghostSkyPositionView,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some
