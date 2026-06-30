@@ -53,6 +53,7 @@ import org.typelevel.log4cats.Logger
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
+import lucuma.schemas.model.SlotId
 
 final case class ObservationTargetsEditorTile(
   userId:              Option[User.Id],
@@ -141,12 +142,41 @@ object ObservationTargetsEditorTile
                                   preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
                                 props.setTarget(tid, SetRouteVia.HistoryReplace)
                               case _    => Callback.empty
+          skySelected  <- useStateView(none[SlotId])
           fullScreen   <- useStateView(AladinFullScreen.Normal)
         yield
           import ctx.given
 
           // The effective instant to display. Memoized in the hook above
           val obsTime: Instant = obsTimeOrNow.value
+
+          // Sky selection: combines skySelected and props.focusedTargetId
+          val selectedAsterismSelection: View[Option[AsterismSelection]] =
+            View(
+              skySelected.get
+                .map(AsterismSelection.Sky.apply)
+                .orElse(
+                  props.focusedTargetId.map(AsterismSelection.Target.apply)
+                ),
+              (mod, cb) =>
+                val current = skySelected.get
+                  .map(AsterismSelection.Sky.apply)
+                  .orElse(
+                    props.focusedTargetId.map(AsterismSelection.Target.apply)
+                  )
+                mod(current) match
+                  case Some(AsterismSelection.Target(tid)) =>
+                    skySelected.set(None) >>
+                      props.setTarget(tid.some, SetRouteVia.HistoryPush) >>
+                      cb(current, Some(AsterismSelection.Target(tid)))
+                  case Some(AsterismSelection.Sky(slot))   =>
+                    skySelected.set(Some(slot)) >>
+                      cb(current, Some(AsterismSelection.Sky(slot)))
+                  case None                                =>
+                    skySelected.set(None) >>
+                      props.setTarget(None, SetRouteVia.HistoryPush) >>
+                      cb(current, None)
+            )
 
           // Save the time here. this works for the obs and target tabs
           // It's OK to save the viz time for executed observations, I think.
@@ -158,7 +188,9 @@ object ObservationTargetsEditorTile
                 props.obsTime.set(newValue) >>
                   cb(obsTime, newValue.getOrElse(obsTime))
             ).withOnMod: ct =>
-              props.odbApi.updateVisualizationTime(props.obsIds.toList, ct.some).runAsync
+              props.odbApi
+                .updateVisualizationTimeAndDuration(props.obsIds.toList, ct.some)
+                .runAsync
 
           val obsDurationView: View[Option[TimeSpan]] =
             props.obsDuration.withOnMod: t =>
@@ -176,6 +208,14 @@ object ObservationTargetsEditorTile
               props.odbApi
                 .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
                 .runAsync
+
+          val skyPositions: List[(lucuma.schemas.model.SlotId, lucuma.core.math.Coordinates)] =
+            props.obsConf.configuration
+              .flatMap(config =>
+                config.toMaybeGhostIfu
+                  .flatMap(_.skyPosition.map(lucuma.schemas.model.SlotId.GhostIfu2 -> _))
+              )
+              .toList
 
           val obsTimeEditor = ObsTimeEditor(
             obsTimeView,
@@ -214,45 +254,16 @@ object ObservationTargetsEditorTile
                 )
             )
 
-          val selectedTargetView: View[Option[Target.Id]] =
-            View(
-              props.focusedTargetId,
-              (mod, cb) =>
-                val oldValue = props.focusedTargetId
-                val newValue = mod(props.focusedTargetId)
-                props.setTarget(newValue, SetRouteVia.HistoryPush) >> cb(oldValue, newValue)
-            ).withOnMod: tid =>
-              props.obsIds.single.traverse_ : obsId =>
-                ObservationPreferences.upsertPreferredTarget[IO](obsId, tid).runAsync
-
-          val editWarningMsg: Option[String] =
-            if (obsEditInfo.allAreOngoing)
-              if (obsEditInfo.editing.length > 1)
-                "All of the current observations are ongoing. Asterism is readonly.".some
-              else "The current observation is ongoing. Asterism is readonly.".some
-            else if (obsEditInfo.allAreCompleted)
-              if (obsEditInfo.editing.length > 1)
-                "All of the current observations have been completed. Asterism is readonly.".some
-              else "The current observation has been completed. Asterism is readonly.".some
-            else if (obsEditInfo.allAreExecuted)
-              if (obsEditInfo.editing.length > 1)
-                "All of the current observations have been executed. Asterism is readonly.".some
-              else "The current observation has been executed. Asterism is readonly.".some
-            else if (obsEditInfo.executed.isDefined)
-              "Adding and removing targets will only affect the unexecuted observations.".some
-            else none
-
           val body =
             <.div(ExploreStyles.AladinFullScreen.when(fullScreen.get.value))(
               editWarningMsg.map(msg => <.div(ExploreStyles.SharedEditWarning, msg)),
-              // the 'getOrElse doesn't matter. Controls will be readonly if all are executed
               TargetTable(
                 props.userId,
                 props.programId,
                 obsEditInfo.unExecuted.getOrElse(props.obsIds),
                 obsTargets,
                 props.obsAndTargets,
-                selectedTargetView,
+                selectedAsterismSelection,
                 props.onAsterismUpdate,
                 props.obsTime.get,
                 distinctSite,
@@ -265,7 +276,7 @@ object ObservationTargetsEditorTile
                props.focusedTargetId
               )
                 .mapN: (targets, focusedTargetId) =>
-                  val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
+                  val selectedTargetOpt: Option[UndoSetter[TargetWithMetadata]] =
                     props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
 
                   val obsInfo = props.obsInfo(focusedTargetId)

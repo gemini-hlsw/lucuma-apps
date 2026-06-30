@@ -172,7 +172,21 @@ object TargetTable:
                             )
                           )
                           .toList ++
-                          TargetColumns.Builder.ForProgram(ColDef, _.regionOrCoords).AllColumns
+                          TargetColumns.Builder
+                            .ForProgram(
+                              ColDef,
+                              _ match
+                                case AsterismRow.TargetRow(mct) => mct.target.some
+                                case _                          => none,
+                              _ match
+                                case AsterismRow.TargetRow(mct) => mct.disposition.some
+                                case _                          => none,
+                              _ match
+                                case AsterismRow.TargetRow(mct)  => mct.target.name.value
+                                case AsterismRow.SkyRow(slot, _) => s"${slot.shortName} Sky",
+                              (r: AsterismRow) => r.location
+                            )
+                            .AllColumns
         vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                         IO(vizTime.getOrElse(Instant.now()))
         rowsPot    <-

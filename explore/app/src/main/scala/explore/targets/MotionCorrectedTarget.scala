@@ -3,6 +3,8 @@
 
 package explore.targets
 
+import cats.Eq
+import cats.derived.*
 import explore.model.ErrorMsgOr
 import explore.model.RegionOrCoordinatesAt
 import lucuma.core.enums.TargetDisposition
@@ -13,7 +15,7 @@ import lucuma.schemas.model.TargetWithMetadata
 case class MotionCorrectedTarget(
   targetWithId:   TargetWithId,
   regionOrCoords: Option[ErrorMsgOr[RegionOrCoordinatesAt]]
-) extends TargetWithMetadata:
+) extends TargetWithMetadata derives Eq:
   val id: Target.Id                  = targetWithId.id
   val target: Target                 = targetWithId.target
   val disposition: TargetDisposition = targetWithId.disposition

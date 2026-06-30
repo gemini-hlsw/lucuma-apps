@@ -1,0 +1,63 @@
+// Copyright (c) 2016-2025 Association of Universities for Research in Astronomy, Inc. (AURA)
+// For license information see LICENSE or https://opensource.org/licenses/BSD-3-Clause
+
+package explore.targeteditor
+
+import crystal.react.*
+import explore.components.ui.ExploreStyles
+import lucuma.core.math.Coordinates
+import lucuma.core.math.validation.given
+import lucuma.react.common.*
+import lucuma.ui.primereact.FormInputTextView
+import lucuma.react.syntax.*
+import lucuma.ui.primereact.*
+import lucuma.ui.syntax.*
+import lucuma.ui.syntax.all.given
+import lucuma.ui.input.ChangeAuditor
+import lucuma.react.common.*
+import crystal.react.*
+import japgolly.scalajs.react.React
+import lucuma.refined.*
+import japgolly.scalajs.react.*
+import lucuma.core.math.RightAscension
+import lucuma.core.math.Declination
+import lucuma.ui.syntax.all.*
+import lucuma.ui.syntax.all.given
+import explore.components.HelpIcon
+import explore.syntax.ui.*
+import japgolly.scalajs.react.vdom.html_<^.*
+
+case class SkyPositionEditor(
+  coordinates: View[Coordinates],
+  readonly:    Boolean
+) extends ReactFnProps[SkyPositionEditor](SkyPositionEditor)
+
+object SkyPositionEditor
+    extends ReactFnComponent[SkyPositionEditor](props =>
+      val coordsRAView: View[RightAscension] =
+        props.coordinates.zoom(Coordinates.rightAscension)
+
+      val coordsDecView: View[Declination] =
+        props.coordinates.zoom(Coordinates.declination)
+
+      React.Fragment(
+        FormInputTextView(
+          id = "sky-ra".refined,
+          value = coordsRAView,
+          label = React.Fragment("RA", HelpIcon("target/main/coordinates.md".refined)),
+          validFormat = MathValidators.truncatedRA,
+          changeAuditor = ChangeAuditor.accept,
+          validateOnPaste = false,
+          disabled = props.readonly
+        ),
+        FormInputTextView(
+          id = "sky-dec".refined,
+          value = coordsDecView,
+          label = React.Fragment("Dec", HelpIcon("target/main/coordinates.md".refined)),
+          validFormat = MathValidators.truncatedDec,
+          changeAuditor = ChangeAuditor.accept,
+          validateOnPaste = false,
+          disabled = props.readonly
+        )
+      )
+    )
