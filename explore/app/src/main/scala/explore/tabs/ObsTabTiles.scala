@@ -76,6 +76,7 @@ import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
@@ -643,6 +644,9 @@ object ObsTabTiles:
                 setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
               else Callback.empty
 
+          // Only ghost has sky positions. this is the only place where we know it is ghost related but it is abstracted away downstream
+          val slotSkyPositions = ghostSkyPositionView.map(SlotId.GhostIfu2 -> _).toList
+
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
               props.vault.userId,
@@ -669,7 +673,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
-              ghostSkyPosition = ghostSkyPositionView,
+              slotSkyPositions = slotSkyPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some

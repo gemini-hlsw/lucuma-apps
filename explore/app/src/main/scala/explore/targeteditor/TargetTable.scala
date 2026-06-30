@@ -73,7 +73,7 @@ case class TargetTable(
   blindOffset:      Option[View[BlindOffset]] = None,
   columnVisibility: View[ColumnVisibility],
   skyPositions:     List[(SlotId, Coordinates)] = Nil,
-  clearSkyPosition: Option[Callback] = None
+  clearSkyPosition: SlotId => Option[Callback] = _ => None
 ) extends ReactFnProps(TargetTable.component)
 
 object TargetTable:
@@ -83,7 +83,7 @@ object TargetTable:
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
     onAsterismUpdate: OnAsterismUpdateParams => Callback,
-    clearSkyPosition: Option[Callback]
+    clearSkyPosition: SlotId => Option[Callback]
   )
 
   private val ColDef = ColumnDef[AsterismRow].WithTableMeta[TableMeta]
@@ -176,19 +176,21 @@ object TargetTable:
                                           )
                                     ).tiny.compact
                                   case AsterismRow.SkyRow(slot, _) =>
-                                    if slot === SlotId.GhostIfu2 then
-                                      Button(
-                                        text = true,
-                                        clazz =
-                                          ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                                        icon = Icons.Trash,
-                                        tooltip = "Clear sky position",
-                                        onClickE = (e: ReactMouseEvent) =>
-                                          e.preventDefaultCB >>
-                                            e.stopPropagationCB >>
-                                            cell.table.options.meta.flatMap(_.clearSkyPosition).orEmpty
-                                      ).tiny.compact
-                                    else EmptyVdom,
+                                    cell.table.options.meta
+                                      .flatMap(_.clearSkyPosition(slot)) match
+                                      case Some(cb) =>
+                                        Button(
+                                          text = true,
+                                          clazz =
+                                            ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                          icon = Icons.Trash,
+                                          tooltip = "Clear sky position",
+                                          onClickE = (e: ReactMouseEvent) =>
+                                            e.preventDefaultCB >>
+                                              e.stopPropagationCB >>
+                                              cb
+                                        ).tiny.compact
+                                      case None     => EmptyVdom,
                               size = 35.toPx,
                               enableSorting = false
                             )
