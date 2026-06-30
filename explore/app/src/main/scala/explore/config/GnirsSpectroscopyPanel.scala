@@ -13,10 +13,12 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
+import cats.data.NonEmptyList
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.SlitTelescopeConfigsEditor
+import explore.config.offsets.TelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
@@ -34,6 +36,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
@@ -54,7 +57,7 @@ import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.given
 
-final case class GnirsLongslitConfigPanel(
+final case class GnirsSpectroscopyPanel(
   programId:       Program.Id,
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
@@ -65,10 +68,10 @@ final case class GnirsLongslitConfigPanel(
   permissions:     ConfigEditPermissions,
   isStaffOrAdmin:  Boolean,
   units:           WavelengthUnits
-) extends ReactFnProps(GnirsLongslitConfigPanel)
+) extends ReactFnProps(GnirsSpectroscopyPanel)
 
-object GnirsLongslitConfigPanel
-    extends ReactFnComponent[GnirsLongslitConfigPanel](props =>
+object GnirsSpectroscopyPanel
+    extends ReactFnComponent[GnirsSpectroscopyPanel](props =>
       for
         ctx       <- useContext(AppContext.ctx)
         modeData  <- useModeData(props.confMatrix, props.observingMode.get)
@@ -191,10 +194,21 @@ object GnirsLongslitConfigPanel
 
         val slitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsSpectroscopy.explicitTelescopeConfigs,
-            GnirsSpectroscopyInput.explicitTelescopeConfigs.modify
+            ObservingMode.GnirsSpectroscopy.explicitTelescopeConfigsSlit,
+            GnirsSpectroscopyInput.explicitTelescopeConfigsSlit.modify
           )
           .view(_.map(_.toInput).orUnassign)
+
+        val ifuTelescopeConfigsView: View[NonEmptyList[TelescopeConfig]] = props.observingMode
+          .zoom(
+            ObservingMode.GnirsSpectroscopy.explicitTelescopeConfigsIfu,
+            GnirsSpectroscopyInput.explicitTelescopeConfigsIfu.modify
+          )
+          .view(_.map(_.toList.map(_.toInput)).orUnassign)
+          .removeOptionality(
+            props.observingMode.get.defaultTelescopeConfigsIfu
+              .getOrElse(NonEmptyList.one(TelescopeConfig.Default))
+          )
 
         val focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] = props.observingMode
           .zoom(
@@ -211,8 +225,9 @@ object GnirsLongslitConfigPanel
         val focusMotorStepsViewOpt: Option[View[GnirsFocusMotorStepsValue]] =
           focusMotorStepsView.toOptionView
 
-        val acquisition
-          : Aligner[ObservingMode.GnirsSpectroscopy.Acquisition, GnirsSpectroscopyAcquisitionInput] =
+        val acquisition: Aligner[ObservingMode.GnirsSpectroscopy.Acquisition,
+                                 GnirsSpectroscopyAcquisitionInput
+        ] =
           props.observingMode.zoom(
             ObservingMode.GnirsSpectroscopy.acquisition,
             forceAssign(GnirsSpectroscopyInput.acquisition.modify)(
@@ -429,21 +444,36 @@ object GnirsLongslitConfigPanel
                 readonly = !props.permissions.isFullEdit,
                 units = props.units,
                 calibrationRole = props.calibrationRole,
-                idPrefix = "gnirsLongSlit".refined
+                idPrefix = "gnirsSpectroscopy".refined
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              SlitTelescopeConfigsEditor(
-                explicitValue = slitTelescopeConfigsView,
-                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
-                defaultForMode = defaultSlitTelescopeConfigs(
-                  _,
-                  prismView.get,
-                  cameraView.get,
-                  GnirsGratingWavelength(centralWavelengthView.get)
-                ),
-                readonly = disableSimpleEdit
-              )
+              props.observingMode.get.fpu match
+                case _: GnirsFpu.Spectroscopy.Slit =>
+                  SlitTelescopeConfigsEditor(
+                    explicitValue = slitTelescopeConfigsView,
+                    defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
+                      .getOrElse(
+                        defaultSlitTelescopeConfigs(
+                          SlitOffsetMode.NodAlongSlit,
+                          prismView.get,
+                          cameraView.get,
+                          GnirsGratingWavelength(centralWavelengthView.get)
+                        )
+                      ),
+                    defaultForMode = defaultSlitTelescopeConfigs(
+                      _,
+                      prismView.get,
+                      cameraView.get,
+                      GnirsGratingWavelength(centralWavelengthView.get)
+                    ),
+                    readonly = disableSimpleEdit
+                  )
+                case _: GnirsFpu.Spectroscopy.Ifu  =>
+                  TelescopeConfigsEditor(
+                    telescopeConfigs = ifuTelescopeConfigsView,
+                    readonly = disableSimpleEdit
+                  )
             )
           ),
           <.div(ExploreStyles.GnirsLowerGrid)(

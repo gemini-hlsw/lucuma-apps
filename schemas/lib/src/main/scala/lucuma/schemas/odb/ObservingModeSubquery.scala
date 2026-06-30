@@ -185,8 +185,10 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
-            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
-            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            defaultTelescopeConfigsSlit $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigsSlit $SlitTelescopeConfigsSubquery
+            defaultTelescopeConfigsIfu $TelescopeConfigSubquery
+            explicitTelescopeConfigsIfu $TelescopeConfigSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             coadds
             acquisition {

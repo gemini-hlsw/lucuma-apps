@@ -8258,9 +8258,20 @@ type GnirsSpectroscopy {
   explicitWellDepth: GnirsWellDepth
   defaultWellDepth: GnirsWellDepth!
   explicitFocusMotorSteps: Int
-  telescopeConfigs: SlitTelescopeConfigs!
-  defaultTelescopeConfigs: SlitTelescopeConfigs!
-  explicitTelescopeConfigs: SlitTelescopeConfigs
+
+  """
+  Long-slit telescope configs. Present iff the FPU is a long slit (`fpuSlit`); null for IFU.
+  """
+  telescopeConfigsSlit: SlitTelescopeConfigs
+  defaultTelescopeConfigsSlit: SlitTelescopeConfigs
+  explicitTelescopeConfigsSlit: SlitTelescopeConfigs
+
+  """
+  IFU telescope configs (full p/q offsets). Present iff the FPU is an IFU (`fpuIfu`); null for long slit.
+  """
+  telescopeConfigsIfu: [TelescopeConfig!]
+  defaultTelescopeConfigsIfu: [TelescopeConfig!]
+  explicitTelescopeConfigsIfu: [TelescopeConfig!]
   acquisition: GnirsSpectroscopyAcquisition!
 
   """Telluric type configuration for this observation."""
@@ -8326,7 +8337,14 @@ input GnirsSpectroscopyInput {
   explicitFocusMotorSteps: Int
   explicitReadMode: GnirsReadMode
   explicitWellDepth: GnirsWellDepth
-  explicitTelescopeConfigs: SlitTelescopeConfigsInput
+
+  """
+  Long-slit telescope configs. Only valid with a long-slit FPU (`fpuSlit`).
+  """
+  explicitTelescopeConfigsSlit: SlitTelescopeConfigsInput
+
+  """IFU telescope configs. Only valid with an IFU FPU (`fpuIfu`)."""
+  explicitTelescopeConfigsIfu: [TelescopeConfigInput!]
   acquisition: GnirsSpectroscopyAcquisitionInput
 
   """

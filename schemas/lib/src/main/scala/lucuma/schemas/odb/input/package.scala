@@ -660,7 +660,9 @@ extension (a: ObservingMode.GnirsSpectroscopy)
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
-    explicitTelescopeConfigs = a.explicitTelescopeConfigs.map(_.toInput).orUnassign,
+    explicitTelescopeConfigsSlit = a.explicitTelescopeConfigsSlit.map(_.toInput).orUnassign,
+    explicitTelescopeConfigsIfu =
+      a.explicitTelescopeConfigsIfu.map(_.toList.map(_.toInput)).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
     coadds = a.coadds.assign,
     acquisition = a.acquisition.toInput.assign
@@ -717,7 +719,7 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
-    case o: ObservingMode.GnirsSpectroscopy      =>
+    case o: ObservingMode.GnirsSpectroscopy  =>
       ObservingModeInput.GnirsSpectroscopy(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
@@ -803,7 +805,13 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength) =>
+    case BasicConfiguration.GnirsSpectroscopy(filter,
+                                              fpu,
+                                              prism,
+                                              grating,
+                                              camera,
+                                              centralWavelength
+        ) =>
       ObservingModeInput.GnirsSpectroscopy:
         GnirsSpectroscopyInput(
           filter = filter.assign,

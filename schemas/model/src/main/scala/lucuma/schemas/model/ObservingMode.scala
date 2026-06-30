@@ -25,12 +25,14 @@ import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
 import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.offset.decoder.given
+import lucuma.odb.json.stepconfig.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength
 import lucuma.odb.json.wavelength.decoder.given
@@ -825,36 +827,41 @@ object ObservingMode:
       Focus[Igrins2LongSlit](_.explicitOffsets)
 
   case class GnirsSpectroscopy(
-    initialGrating:           GnirsGrating,
-    grating:                  GnirsGrating,
-    initialFilter:            GnirsFilter,
-    filter:                   GnirsFilter,
-    initialFpu:               GnirsFpu.Spectroscopy,
-    fpu:                      GnirsFpu.Spectroscopy,
-    initialPrism:             GnirsPrism,
-    prism:                    GnirsPrism,
-    initialCamera:            GnirsCamera,
-    camera:                   GnirsCamera,
-    initialCentralWavelength: CentralWavelength,
-    centralWavelength:        CentralWavelength,
-    defaultDecker:            GnirsDecker,
-    explicitDecker:           Option[GnirsDecker],
-    explicitReadMode:         Option[GnirsReadMode],
-    defaultWellDepth:         GnirsWellDepth,
-    explicitWellDepth:        Option[GnirsWellDepth],
-    explicitFocusMotorSteps:  Option[GnirsFocusMotorStepsValue],
-    defaultTelescopeConfigs:  SlitTelescopeConfigs,
-    explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
-    exposureTimeMode:         ExposureTimeMode,
-    coadds:                   PosInt,
-    acquisition:              GnirsSpectroscopy.Acquisition
+    initialGrating:               GnirsGrating,
+    grating:                      GnirsGrating,
+    initialFilter:                GnirsFilter,
+    filter:                       GnirsFilter,
+    initialFpu:                   GnirsFpu.Spectroscopy,
+    fpu:                          GnirsFpu.Spectroscopy,
+    initialPrism:                 GnirsPrism,
+    prism:                        GnirsPrism,
+    initialCamera:                GnirsCamera,
+    camera:                       GnirsCamera,
+    initialCentralWavelength:     CentralWavelength,
+    centralWavelength:            CentralWavelength,
+    defaultDecker:                GnirsDecker,
+    explicitDecker:               Option[GnirsDecker],
+    explicitReadMode:             Option[GnirsReadMode],
+    defaultWellDepth:             GnirsWellDepth,
+    explicitWellDepth:            Option[GnirsWellDepth],
+    explicitFocusMotorSteps:      Option[GnirsFocusMotorStepsValue],
+    // Slit configs are present for a long-slit FPU, IFU configs for an IFU FPU (mutually exclusive).
+    defaultTelescopeConfigsSlit:  Option[SlitTelescopeConfigs],
+    explicitTelescopeConfigsSlit: Option[SlitTelescopeConfigs],
+    defaultTelescopeConfigsIfu:   Option[NonEmptyList[TelescopeConfig]],
+    explicitTelescopeConfigsIfu:  Option[NonEmptyList[TelescopeConfig]],
+    exposureTimeMode:             ExposureTimeMode,
+    coadds:                       PosInt,
+    acquisition:                  GnirsSpectroscopy.Acquisition
   ) extends ObservingMode(Instrument.Gnirs.some):
-    val decker: GnirsDecker                    =
+    val decker: GnirsDecker                                        =
       explicitDecker.getOrElse(defaultDecker)
-    val wellDepth: GnirsWellDepth              =
+    val wellDepth: GnirsWellDepth                                  =
       explicitWellDepth.getOrElse(defaultWellDepth)
-    val telescopeConfigs: SlitTelescopeConfigs =
-      explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+    val telescopeConfigsSlit: Option[SlitTelescopeConfigs]         =
+      explicitTelescopeConfigsSlit.orElse(defaultTelescopeConfigsSlit)
+    val telescopeConfigsIfu: Option[NonEmptyList[TelescopeConfig]] =
+      explicitTelescopeConfigsIfu.orElse(defaultTelescopeConfigsIfu)
 
     def isCustomized: Boolean =
       initialGrating =!= grating ||
@@ -867,7 +874,8 @@ object ObservingMode:
         explicitReadMode.isDefined ||
         explicitWellDepth.exists(_ =!= defaultWellDepth) ||
         explicitFocusMotorSteps.isDefined ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        explicitTelescopeConfigsSlit.exists(e => !defaultTelescopeConfigsSlit.contains_(e)) ||
+        explicitTelescopeConfigsIfu.exists(e => !defaultTelescopeConfigsIfu.contains_(e)) ||
         acquisition.isCustomized
 
     def revertCustomizations: GnirsSpectroscopy =
@@ -882,7 +890,8 @@ object ObservingMode:
         explicitReadMode = None,
         explicitWellDepth = None,
         explicitFocusMotorSteps = None,
-        explicitTelescopeConfigs = None,
+        explicitTelescopeConfigsSlit = None,
+        explicitTelescopeConfigsIfu = None,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -950,31 +959,36 @@ object ObservingMode:
 
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
-        initialGrating           <- c.downField("initialGrating").as[GnirsGrating]
-        grating                  <- c.downField("grating").as[GnirsGrating]
-        initialFilter            <- c.downField("initialFilter").as[GnirsFilter]
-        filter                   <- c.downField("filter").as[GnirsFilter]
-        initialFpu               <- fpuFrom(c, "initialFpuSlit", "initialFpuIfu")
-        fpu                      <- fpuFrom(c, "fpuSlit", "fpuIfu")
-        initialPrism             <- c.downField("initialPrism").as[GnirsPrism]
-        prism                    <- c.downField("prism").as[GnirsPrism]
-        initialCamera            <- c.downField("initialCamera").as[GnirsCamera]
-        camera                   <- c.downField("camera").as[GnirsCamera]
-        initialCentralWavelength <- c.downField("initialCentralWavelength").as[CentralWavelength]
-        centralWavelength        <- c.downField("centralWavelength").as[CentralWavelength]
-        defaultDecker            <- c.downField("defaultDecker").as[GnirsDecker]
-        explicitDecker           <- c.downField("explicitDecker").as[Option[GnirsDecker]]
-        explicitReadMode         <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
-        defaultWellDepth         <- c.downField("defaultWellDepth").as[GnirsWellDepth]
-        explicitWellDepth        <- c.downField("explicitWellDepth").as[Option[GnirsWellDepth]]
-        explicitFocusMotorSteps  <-
+        initialGrating               <- c.downField("initialGrating").as[GnirsGrating]
+        grating                      <- c.downField("grating").as[GnirsGrating]
+        initialFilter                <- c.downField("initialFilter").as[GnirsFilter]
+        filter                       <- c.downField("filter").as[GnirsFilter]
+        initialFpu                   <- fpuFrom(c, "initialFpuSlit", "initialFpuIfu")
+        fpu                          <- fpuFrom(c, "fpuSlit", "fpuIfu")
+        initialPrism                 <- c.downField("initialPrism").as[GnirsPrism]
+        prism                        <- c.downField("prism").as[GnirsPrism]
+        initialCamera                <- c.downField("initialCamera").as[GnirsCamera]
+        camera                       <- c.downField("camera").as[GnirsCamera]
+        initialCentralWavelength     <- c.downField("initialCentralWavelength").as[CentralWavelength]
+        centralWavelength            <- c.downField("centralWavelength").as[CentralWavelength]
+        defaultDecker                <- c.downField("defaultDecker").as[GnirsDecker]
+        explicitDecker               <- c.downField("explicitDecker").as[Option[GnirsDecker]]
+        explicitReadMode             <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
+        defaultWellDepth             <- c.downField("defaultWellDepth").as[GnirsWellDepth]
+        explicitWellDepth            <- c.downField("explicitWellDepth").as[Option[GnirsWellDepth]]
+        explicitFocusMotorSteps      <-
           c.downField("explicitFocusMotorSteps").as[Option[GnirsFocusMotorStepsValue]]
-        defaultTelescopeConfigs  <- c.downField("defaultTelescopeConfigs").as[SlitTelescopeConfigs]
-        explicitTelescopeConfigs <-
-          c.downField("explicitTelescopeConfigs").as[Option[SlitTelescopeConfigs]]
-        exposureTimeMode         <- c.downField("exposureTimeMode").as[ExposureTimeMode]
-        coadds                   <- c.downField("coadds").as[PosInt]
-        acquisition              <- c.downField("acquisition").as[Acquisition]
+        defaultTelescopeConfigsSlit  <-
+          c.downField("defaultTelescopeConfigsSlit").as[Option[SlitTelescopeConfigs]]
+        explicitTelescopeConfigsSlit <-
+          c.downField("explicitTelescopeConfigsSlit").as[Option[SlitTelescopeConfigs]]
+        defaultTelescopeConfigsIfu   <-
+          c.downField("defaultTelescopeConfigsIfu").as[Option[NonEmptyList[TelescopeConfig]]]
+        explicitTelescopeConfigsIfu  <-
+          c.downField("explicitTelescopeConfigsIfu").as[Option[NonEmptyList[TelescopeConfig]]]
+        exposureTimeMode             <- c.downField("exposureTimeMode").as[ExposureTimeMode]
+        coadds                       <- c.downField("coadds").as[PosInt]
+        acquisition                  <- c.downField("acquisition").as[Acquisition]
       yield GnirsSpectroscopy(
         initialGrating,
         grating,
@@ -994,8 +1008,10 @@ object ObservingMode:
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
-        defaultTelescopeConfigs,
-        explicitTelescopeConfigs,
+        defaultTelescopeConfigsSlit,
+        explicitTelescopeConfigsSlit,
+        defaultTelescopeConfigsIfu,
+        explicitTelescopeConfigsIfu,
         exposureTimeMode,
         coadds,
         acquisition
@@ -1012,57 +1028,63 @@ object ObservingMode:
         (x.defaultDecker, x.explicitDecker),
         x.explicitReadMode,
         (x.defaultWellDepth, x.explicitWellDepth),
-        (x.defaultTelescopeConfigs, x.explicitTelescopeConfigs),
+        (x.defaultTelescopeConfigsSlit, x.explicitTelescopeConfigsSlit),
+        (x.defaultTelescopeConfigsIfu, x.explicitTelescopeConfigsIfu),
         x.exposureTimeMode,
         x.coadds,
         x.acquisition
       )
 
-    val initialGrating: Lens[GnirsSpectroscopy, GnirsGrating]                               =
+    val initialGrating: Lens[GnirsSpectroscopy, GnirsGrating]                                      =
       Focus[GnirsSpectroscopy](_.initialGrating)
-    val grating: Lens[GnirsSpectroscopy, GnirsGrating]                                      =
+    val grating: Lens[GnirsSpectroscopy, GnirsGrating]                                             =
       Focus[GnirsSpectroscopy](_.grating)
-    val initialFilter: Lens[GnirsSpectroscopy, GnirsFilter]                                 =
+    val initialFilter: Lens[GnirsSpectroscopy, GnirsFilter]                                        =
       Focus[GnirsSpectroscopy](_.initialFilter)
-    val filter: Lens[GnirsSpectroscopy, GnirsFilter]                                        =
+    val filter: Lens[GnirsSpectroscopy, GnirsFilter]                                               =
       Focus[GnirsSpectroscopy](_.filter)
-    val initialFpu: Lens[GnirsSpectroscopy, GnirsFpu.Spectroscopy]                          =
+    val initialFpu: Lens[GnirsSpectroscopy, GnirsFpu.Spectroscopy]                                 =
       Focus[GnirsSpectroscopy](_.initialFpu)
-    val fpu: Lens[GnirsSpectroscopy, GnirsFpu.Spectroscopy]                                 =
+    val fpu: Lens[GnirsSpectroscopy, GnirsFpu.Spectroscopy]                                        =
       Focus[GnirsSpectroscopy](_.fpu)
-    val initialPrism: Lens[GnirsSpectroscopy, GnirsPrism]                                   =
+    val initialPrism: Lens[GnirsSpectroscopy, GnirsPrism]                                          =
       Focus[GnirsSpectroscopy](_.initialPrism)
-    val prism: Lens[GnirsSpectroscopy, GnirsPrism]                                          =
+    val prism: Lens[GnirsSpectroscopy, GnirsPrism]                                                 =
       Focus[GnirsSpectroscopy](_.prism)
-    val initialCamera: Lens[GnirsSpectroscopy, GnirsCamera]                                 =
+    val initialCamera: Lens[GnirsSpectroscopy, GnirsCamera]                                        =
       Focus[GnirsSpectroscopy](_.initialCamera)
-    val camera: Lens[GnirsSpectroscopy, GnirsCamera]                                        =
+    val camera: Lens[GnirsSpectroscopy, GnirsCamera]                                               =
       Focus[GnirsSpectroscopy](_.camera)
-    val initialCentralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                =
+    val initialCentralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                       =
       Focus[GnirsSpectroscopy](_.initialCentralWavelength)
-    val centralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                       =
+    val centralWavelength: Lens[GnirsSpectroscopy, CentralWavelength]                              =
       Focus[GnirsSpectroscopy](_.centralWavelength)
-    val defaultDecker: Lens[GnirsSpectroscopy, GnirsDecker]                                 =
+    val defaultDecker: Lens[GnirsSpectroscopy, GnirsDecker]                                        =
       Focus[GnirsSpectroscopy](_.defaultDecker)
-    val explicitDecker: Lens[GnirsSpectroscopy, Option[GnirsDecker]]                        =
+    val explicitDecker: Lens[GnirsSpectroscopy, Option[GnirsDecker]]                               =
       Focus[GnirsSpectroscopy](_.explicitDecker)
-    val explicitReadMode: Lens[GnirsSpectroscopy, Option[GnirsReadMode]]                    =
+    val explicitReadMode: Lens[GnirsSpectroscopy, Option[GnirsReadMode]]                           =
       Focus[GnirsSpectroscopy](_.explicitReadMode)
-    val defaultWellDepth: Lens[GnirsSpectroscopy, GnirsWellDepth]                           =
+    val defaultWellDepth: Lens[GnirsSpectroscopy, GnirsWellDepth]                                  =
       Focus[GnirsSpectroscopy](_.defaultWellDepth)
-    val explicitWellDepth: Lens[GnirsSpectroscopy, Option[GnirsWellDepth]]                  =
+    val explicitWellDepth: Lens[GnirsSpectroscopy, Option[GnirsWellDepth]]                         =
       Focus[GnirsSpectroscopy](_.explicitWellDepth)
-    val explicitFocusMotorSteps: Lens[GnirsSpectroscopy, Option[GnirsFocusMotorStepsValue]] =
+    val explicitFocusMotorSteps: Lens[GnirsSpectroscopy, Option[GnirsFocusMotorStepsValue]]        =
       Focus[GnirsSpectroscopy](_.explicitFocusMotorSteps)
-    val defaultTelescopeConfigs: Lens[GnirsSpectroscopy, SlitTelescopeConfigs]              =
-      Focus[GnirsSpectroscopy](_.defaultTelescopeConfigs)
-    val explicitTelescopeConfigs: Lens[GnirsSpectroscopy, Option[SlitTelescopeConfigs]]     =
-      Focus[GnirsSpectroscopy](_.explicitTelescopeConfigs)
-    val exposureTimeMode: Lens[GnirsSpectroscopy, ExposureTimeMode]                         =
+    val defaultTelescopeConfigsSlit: Lens[GnirsSpectroscopy, Option[SlitTelescopeConfigs]]         =
+      Focus[GnirsSpectroscopy](_.defaultTelescopeConfigsSlit)
+    val explicitTelescopeConfigsSlit: Lens[GnirsSpectroscopy, Option[SlitTelescopeConfigs]]        =
+      Focus[GnirsSpectroscopy](_.explicitTelescopeConfigsSlit)
+    val defaultTelescopeConfigsIfu: Lens[GnirsSpectroscopy, Option[NonEmptyList[TelescopeConfig]]] =
+      Focus[GnirsSpectroscopy](_.defaultTelescopeConfigsIfu)
+    val explicitTelescopeConfigsIfu
+      : Lens[GnirsSpectroscopy, Option[NonEmptyList[TelescopeConfig]]] =
+      Focus[GnirsSpectroscopy](_.explicitTelescopeConfigsIfu)
+    val exposureTimeMode: Lens[GnirsSpectroscopy, ExposureTimeMode]                                =
       Focus[GnirsSpectroscopy](_.exposureTimeMode)
-    val coadds: Lens[GnirsSpectroscopy, PosInt]                                             =
+    val coadds: Lens[GnirsSpectroscopy, PosInt]                                                    =
       Focus[GnirsSpectroscopy](_.coadds)
-    val acquisition: Lens[GnirsSpectroscopy, GnirsSpectroscopy.Acquisition]                 =
+    val acquisition: Lens[GnirsSpectroscopy, GnirsSpectroscopy.Acquisition]                        =
       Focus[GnirsSpectroscopy](_.acquisition)
 
   case class GhostIfu(
@@ -1096,11 +1118,7 @@ object ObservingMode:
     given Decoder[GhostIfu] = Decoder.instance: c =>
       for {
         resolutionMode       <- c.downField("resolutionMode").as[GhostResolutionMode]
-        skyPosition          <- c.downField("skyPosition").as[Option[Coordinates]]
-        stepCount            <- c.downField("stepCount").as[PosInt]
-        red                  <- c.downField("red").as[GhostIfu.GhostDetector]
         blue                 <- c.downField("blue").as[GhostIfu.GhostDetector]
-        defaultIfu1Agitator  <- c.downField("defaultIfu1Agitator").as[GhostIfu1FiberAgitator]
         explicitIfu1Agitator <-
           c.downField("explicitIfu1Agitator").as[Option[GhostIfu1FiberAgitator]]
         defaultIfu2Agitator  <- c.downField("defaultIfu2Agitator").as[GhostIfu2FiberAgitator]
