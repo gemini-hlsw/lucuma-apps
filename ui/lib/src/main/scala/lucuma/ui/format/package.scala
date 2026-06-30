@@ -63,8 +63,10 @@ extension (ts: TimeSpan)
   def formatSeconds: String = formatDurationSeconds(ts)
   def formatHours: String   = formatDurationHours(ts)
 
-def format(time: TimeSpan, count: PosInt): String =
-  s"$count × ${formatDurationSeconds(time)} = ${formatDurationHours(time *| count.value)}"
+def formatTC(time: TimeSpan, count: PosInt, coadds: Option[PosInt]): String =
+  val coaddsStr: String = coadds.map(c => s" × ${c.value} coadds").orEmpty
+  val coaddsValue: Int  = coadds.map(_.value).getOrElse(1)
+  s"$count × ${formatDurationSeconds(time)}$coaddsStr = ${formatDurationHours(time *| count.value *| coaddsValue)}"
 
 def formatSN(sn: SignalToNoise): String = f"${sn.toBigDecimal.toDouble}%.1f"
 
