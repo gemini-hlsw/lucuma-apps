@@ -174,12 +174,19 @@ object TileController:
               .when_(breakpoint.value =!= bk) *>
               breakpoint
                 .setState(bk),
-          onLayoutChange = (m: Layout, newLayouts: ResponsiveLayouts) =>
-            // Store the current layout in the state for debugging
-            currentLayout
-              .mod(breakpointLayout(breakpoint.value).replace(m)) *>
-              storeLayouts(props.userId, props.section, newLayouts)
-                .when_(props.storeLayout),
+          // We deliberately do NOT feed `onLayoutChange` back into `currentLayout`.
+          // `onLayoutChange` fires both on user gestures and on react-grid-layout's internal
+          // compaction, which isn't idempotent for mixed-width layouts: it alternates between two
+          // equivalent layouts. Writing those back into the `layouts` prop re-triggers compaction
+          // forever ("Maximum update depth exceeded"). Persisting is fine here (it's an async,
+          // non-rendering DB write); we capture genuine user changes via onDragStop/onResizeStop.
+          onLayoutChange = (_: Layout, newLayouts: ResponsiveLayouts) =>
+            storeLayouts(props.userId, props.section, newLayouts)
+              .when_(props.storeLayout),
+          onDragStop = (m: Layout, _, _, _, _, _) =>
+            currentLayout.mod(breakpointLayout(breakpoint.value).replace(m)),
+          onResizeStop = (m: Layout, _, _, _, _, _) =>
+            currentLayout.mod(breakpointLayout(breakpoint.value).replace(m)),
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
