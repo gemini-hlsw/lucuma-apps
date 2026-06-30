@@ -46,6 +46,7 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
@@ -301,11 +302,50 @@ object ObservationTargetsEditorTile
                               c => _ => Some(c)
                             )
                           )
+                        val readonly = props.readonly || obsEditInfo.allAreExecuted
+
+                        val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
+                          Some: (s, coords) =>
+                            props.slotSkyPositions
+                              .collectFirst { case (`s`, v) => v }
+                              .foldMap(_.set(Some(coords)).to[IO])
+
+                        val resetSky: Option[SlotId => IO[Unit]] =
+                          Some: s =>
+                            props.slotSkyPositions
+                              .collectFirst { case (`s`, v) => v }
+                              .foldMap(_.set(None).to[IO])
+
                         <.div(
                           ExploreStyles.TargetTileEditor,
-                          SkyPositionEditor(skyCoordsView,
-                                            props.readonly || obsEditInfo.allAreExecuted
-                          )
+                          (ObservationTargets.fromIdsAndTargets(targetIds,
+                                                                props.allTargets.get
+                          ),
+                           props.userId
+                          ).mapN: (targets, uid) =>
+                            <.div(ExploreStyles.TargetGrid)(
+                              AladinCell(
+                                uid,
+                                targets,
+                                obsTime,
+                                props.obsConf.some,
+                                fullScreen,
+                                props.userPreferences,
+                                props.guideStarSelection,
+                                props.blindOffsetInfo,
+                                props.obsAndTargets.model
+                                  .zoom(ObservationsAndTargets.targets),
+                                assignSky,
+                                resetSky,
+                                props.isStaffOrAdmin,
+                                readonly
+                              ),
+                              <.div(LucumaPrimeStyles.FormColumnVeryCompact,
+                                    ExploreStyles.TargetForm
+                              )(
+                                SkyPositionEditor(skyCoordsView, readonly)
+                              )
+                            )
                         )
               else
                 (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
