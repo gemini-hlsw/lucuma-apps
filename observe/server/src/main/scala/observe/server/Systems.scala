@@ -10,6 +10,7 @@ import cats.effect.Resource
 import cats.effect.Temporal
 import cats.effect.kernel.Ref
 import cats.effect.std.SecureRandom
+import cats.effect.std.UUIDGen
 import cats.syntax.all.*
 import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
@@ -375,7 +376,7 @@ object Systems {
       else if (settings.instForceError) Flamingos2ControllerSimBad[IO](settings.failAt)
       else Flamingos2ControllerSim[IO]
 
-    def ghost[F[_]: {Async, Logger}](
+    def ghost[F[_]: {Async, Logger, UUIDGen}](
       httpClient:   Client[F],
       instanceName: String
     ): Resource[F, GhostController[F]] =
@@ -396,7 +397,7 @@ object Systems {
       } else
         Resource.eval(GhostControllerSim[F])
 
-    def igrins2[F[_]: {Async, Logger}](
+    def igrins2[F[_]: {Async, Logger, UUIDGen}](
       httpClient:   Client[F],
       instanceName: String
     ): Resource[F, Igrins2Controller[F]] =

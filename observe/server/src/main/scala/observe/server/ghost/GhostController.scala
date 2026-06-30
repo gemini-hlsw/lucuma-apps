@@ -48,10 +48,26 @@ object GhostController {
 
       override val name = "GHOST"
 
+      // 2 is idle, 1 is guiding. There are intermediate states too, which we
+      // conservatively treat as "guiding" so we don't move the IFUs off target.
+      private val GuidingStateItem = "ghost:sad:dc:ag.command_state"
+      private val AGIdleValue      = 2
+
+      private def isAGIdle: F[Boolean] =
+        client.giapi.getO[Int](GuidingStateItem).map(_.contains(AGIdleValue))
+
       def configuration(config: GhostConfig, conds: CurrentConditions): F[Configuration] =
-        val cfg    = config.configuration(conds)
-        val asList = cfg.config.toList.sortBy(_._1)
-        Logger[F].debug(pprint.apply(asList).toString).as(cfg)
+        for {
+          idle      <- isAGIdle
+          baseConfig = config.configuration(conds)
+          cfg        = baseConfig |+| (if (idle) config.moveIFUToFocus else Configuration.Zero)
+          asList     = cfg.config.toList.sortBy(_._1)
+          _         <- Logger[F].info(
+                         if (idle) "GHOST AG idle: will send a MOVE_TO to GHOST IFU bFocus and rFocus"
+                         else "GHOST AG guiding: will NOT move GHOST IFU bFocus and rFocus"
+                       )
+          _         <- Logger[F].debug(pprint.apply(asList).toString)
+        } yield cfg
 
       override def applyConfig(cfg: GhostConfig, conds: CurrentConditions): F[Unit] = doApplyConfig(
         configuration(cfg, conds)
