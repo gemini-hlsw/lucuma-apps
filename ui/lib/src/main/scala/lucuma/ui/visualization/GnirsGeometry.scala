@@ -19,6 +19,7 @@ import lucuma.core.geom.gnirs.scienceArea
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.react.common.style.Css
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.ui.visualization.VisualizationStyles.*
@@ -55,8 +56,11 @@ object GnirsGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
       .collect:
-        case BasicConfiguration.GnirsLongSlit(fpu = fpu, camera = camera, prism = prism) =>
-          GnirsGeometry(fpu, camera, prism)
+        // Only the long slit has a science-area/AGS geometry today; IFU viz is deferred.
+        case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(slit),
+                                                  camera = camera,
+                                                  prism = prism) =>
+          GnirsGeometry(slit, camera, prism)
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,

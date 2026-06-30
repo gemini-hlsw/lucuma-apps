@@ -13,7 +13,6 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbAngle
 import lucuma.core.math.arb.ArbWavelength
-import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.itc.ItcGhostDetector
 import lucuma.itc.arb.ArbItcGhostDetector.given
 import lucuma.schemas.model.BasicConfiguration
@@ -25,6 +24,20 @@ import org.scalacheck.Gen
 
 trait ArbBasicConfiguration {
   import ArbAngle.given
+  import lucuma.core.model.sequence.gnirs.GnirsFpu
+  import lucuma.core.util.arb.ArbEnumerated.given
+
+  given Arbitrary[GnirsFpu.Spectroscopy] = Arbitrary(
+    Gen.oneOf(
+      arbitrary[GnirsFpuSlit].map(GnirsFpu.Spectroscopy.Slit(_)),
+      arbitrary[GnirsFpuIfu].map(GnirsFpu.Spectroscopy.Ifu(_))
+    )
+  )
+
+  given Cogen[GnirsFpu.Spectroscopy] =
+    Cogen[Either[GnirsFpuSlit, GnirsFpuIfu]].contramap:
+      case GnirsFpu.Spectroscopy.Slit(s) => Left(s)
+      case GnirsFpu.Spectroscopy.Ifu(i)  => Right(i)
   import ArbWavelength.given
 
   given Arbitrary[BasicConfiguration.GmosNorthLongSlit] =
@@ -92,16 +105,16 @@ trait ArbBasicConfiguration {
       Gen.const(BasicConfiguration.Igrins2LongSlit)
     )
 
-  given Arbitrary[BasicConfiguration.GnirsLongSlit] =
-    Arbitrary[BasicConfiguration.GnirsLongSlit](
+  given Arbitrary[BasicConfiguration.GnirsSpectroscopy] =
+    Arbitrary[BasicConfiguration.GnirsSpectroscopy](
       for {
         filter  <- arbitrary[GnirsFilter]
-        fpu     <- arbitrary[GnirsFpuSlit]
+        fpu     <- arbitrary[GnirsFpu.Spectroscopy]
         prism   <- arbitrary[GnirsPrism]
         grating <- arbitrary[GnirsGrating]
         camera  <- arbitrary[GnirsCamera]
         cw      <- arbitrary[Wavelength]
-      } yield BasicConfiguration.GnirsLongSlit(
+      } yield BasicConfiguration.GnirsSpectroscopy(
         filter,
         fpu,
         prism,
@@ -137,7 +150,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GmosSouthLongSlit],
       arbitrary[BasicConfiguration.GmosNorthImaging],
       arbitrary[BasicConfiguration.GmosSouthImaging],
-      arbitrary[BasicConfiguration.GnirsLongSlit],
+      arbitrary[BasicConfiguration.GnirsSpectroscopy],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
       arbitrary[BasicConfiguration.Flamingos2Imaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
@@ -185,8 +198,8 @@ trait ArbBasicConfiguration {
   given Cogen[BasicConfiguration.Igrins2LongSlit.type] =
     Cogen[Unit].contramap(_ => ())
 
-  given Cogen[BasicConfiguration.GnirsLongSlit] =
-    Cogen[(GnirsFilter, GnirsFpuSlit, GnirsPrism, GnirsGrating, GnirsCamera, Wavelength)]
+  given Cogen[BasicConfiguration.GnirsSpectroscopy] =
+    Cogen[(GnirsFilter, GnirsFpu.Spectroscopy, GnirsPrism, GnirsGrating, GnirsCamera, Wavelength)]
       .contramap(o => (o.filter, o.fpu, o.prism, o.grating, o.camera, o.centralWavelength.value))
 
   given Cogen[BasicConfiguration.GmosNorthImaging] =
@@ -221,7 +234,7 @@ trait ArbBasicConfiguration {
             Either[
               BasicConfiguration.GhostIfu,
               Either[
-                BasicConfiguration.GnirsLongSlit,
+                BasicConfiguration.GnirsSpectroscopy,
                 Either[
                   BasicConfiguration.GmosNorthImaging,
                   Either[
@@ -244,7 +257,8 @@ trait ArbBasicConfiguration {
         case n: BasicConfiguration.GmosNorthLongSlit  => n.asLeft.asRight.asRight
         case s: BasicConfiguration.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight
         case g: BasicConfiguration.GhostIfu           => g.asLeft.asRight.asRight.asRight.asRight
-        case i: BasicConfiguration.GnirsLongSlit      => i.asLeft.asRight.asRight.asRight.asRight.asRight
+        case i: BasicConfiguration.GnirsSpectroscopy  =>
+          i.asLeft.asRight.asRight.asRight.asRight.asRight
         case n: BasicConfiguration.GmosNorthImaging   =>
           n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.GmosSouthImaging   =>

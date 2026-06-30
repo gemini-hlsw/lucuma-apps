@@ -628,8 +628,8 @@ extension (o: ObservingMode.Igrins2LongSlit)
     explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign
   )
 
-extension (a: ObservingMode.GnirsLongSlit.Acquisition)
-  def toInput: GnirsLongSlitAcquisitionInput = GnirsLongSlitAcquisitionInput(
+extension (a: ObservingMode.GnirsSpectroscopy.Acquisition)
+  def toInput: GnirsSpectroscopyAcquisitionInput = GnirsSpectroscopyAcquisitionInput(
     explicitAcquisitionType = a.explicitAcquisitionMode.map(_.acquisitionType).orUnassign,
     skyOffset = a.explicitAcquisitionMode
       .flatMap(GnirsAcquisitionMode.skyOffset.getOption)
@@ -648,11 +648,12 @@ extension (a: SlitTelescopeConfigs)
       case SlitTelescopeConfigs.ToSky(value)     =>
         SlitTelescopeConfigsInput(toSky = value.toList.map(_.toInput).assign)
 
-extension (a: ObservingMode.GnirsLongSlit)
-  def toInput: GnirsLongSlitInput = GnirsLongSlitInput(
+extension (a: ObservingMode.GnirsSpectroscopy)
+  def toInput: GnirsSpectroscopyInput = GnirsSpectroscopyInput(
     grating = a.grating.assign,
     filter = a.filter.assign,
-    fpu = a.fpu.assign,
+    fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(a.fpu).orUnassign,
+    fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(a.fpu).orUnassign,
     prism = a.prism.assign,
     camera = a.camera.assign,
     centralWavelength = a.centralWavelength.value.toInput.assign,
@@ -705,8 +706,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
-    case o: ObservingMode.GnirsLongSlit      =>
-      ObservingModeInput.GnirsLongSlit(o.toInput)
+    case o: ObservingMode.GnirsSpectroscopy      =>
+      ObservingModeInput.GnirsSpectroscopy(o.toInput)
     case o: ObservingMode.GhostIfu           =>
       ObservingModeInput.GhostIfu(o.toInput)
     case v: ObservingMode.Visitor            =>
@@ -787,11 +788,12 @@ extension (i: BasicConfiguration)
           red = red.toInput.assign,
           blue = blue.toInput.assign
         )
-    case BasicConfiguration.GnirsLongSlit(filter, fpu, prism, grating, camera, centralWavelength) =>
-      ObservingModeInput.GnirsLongSlit:
-        GnirsLongSlitInput(
+    case BasicConfiguration.GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength) =>
+      ObservingModeInput.GnirsSpectroscopy:
+        GnirsSpectroscopyInput(
           filter = filter.assign,
-          fpu = fpu.assign,
+          fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(fpu).orUnassign,
+          fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).orUnassign,
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,

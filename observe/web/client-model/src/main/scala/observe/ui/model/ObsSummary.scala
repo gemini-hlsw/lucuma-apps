@@ -24,6 +24,7 @@ import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
 import lucuma.core.model.TimingWindow
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
 import lucuma.schemas.decoders.given
@@ -75,7 +76,7 @@ case class ObsSummary(
           resolutionMode.shortName.some
         case BasicConfiguration.Visitor(mode, _, _)                   =>
           mode.instrument.shortName.some
-        case gnirsLongSlit @ BasicConfiguration.GnirsLongSlit(
+        case gnirsLongSlit @ BasicConfiguration.GnirsSpectroscopy(
               _,
               fpu,
               prism,
@@ -94,7 +95,10 @@ case class ObsSummary(
             case GnirsPrism.Mirror => ""
             case p                 => s" ${p.shortName}"
           val wavelengthSummary: String = f"${cwl.value.toMicrometers.value}%.2fµm"
-          s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary ${fpu.shortName} slit".some
+          val fpuSummary: String        = fpu match
+            case GnirsFpu.Spectroscopy.Slit(s) => s"${s.shortName} slit"
+            case GnirsFpu.Spectroscopy.Ifu(i)  => i.shortName
+          s"${camera.shortName} ${grating.longName} @ $wavelengthSummary$prismSummary $fpuSummary".some
           // For Gnirs Imaging we should return this pattern:
           // s"${filter.shortName} ${fpu.shortName} ${acqMirror.shortName} ${camera.shortName}".some
           // GNIRS Imaging:

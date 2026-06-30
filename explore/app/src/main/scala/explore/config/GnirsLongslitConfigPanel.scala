@@ -36,6 +36,7 @@ import lucuma.core.model.Program
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
 import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
 import lucuma.core.optics.syntax.lens.*
@@ -57,7 +58,7 @@ final case class GnirsLongslitConfigPanel(
   programId:       Program.Id,
   obsId:           Observation.Id,
   calibrationRole: Option[CalibrationRole],
-  observingMode:   Aligner[ObservingMode.GnirsLongSlit, GnirsLongSlitInput],
+  observingMode:   Aligner[ObservingMode.GnirsSpectroscopy, GnirsSpectroscopyInput],
   revertConfig:    IO[Unit],
   confMatrix:      SpectroscopyModesMatrix,
   sequenceChanged: Callback,
@@ -104,92 +105,101 @@ object GnirsLongslitConfigPanel
 
         val filterView: View[GnirsFilter] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.filter,
-            GnirsLongSlitInput.filter.modify
+            ObservingMode.GnirsSpectroscopy.filter,
+            GnirsSpectroscopyInput.filter.modify
           )
           .view(_.assign)
 
         val deckerView: View[Option[GnirsDecker]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitDecker,
-            GnirsLongSlitInput.explicitDecker.modify
+            ObservingMode.GnirsSpectroscopy.explicitDecker,
+            GnirsSpectroscopyInput.explicitDecker.modify
           )
           .view(_.orUnassign)
 
-        val fpuView: View[GnirsFpuSlit] = props.observingMode
-          .zoom(
-            ObservingMode.GnirsLongSlit.fpu,
-            GnirsLongSlitInput.fpu.modify
+        // The FPU is the long slit or the IFU; edit whichever the mode currently has.
+        // (The kind is fixed at acceptance, so only one of these is present.)
+        val fpuSlitViewOpt: Option[View[GnirsFpuSlit]] = props.observingMode
+          .zoomOpt(
+            ObservingMode.GnirsSpectroscopy.fpu.andThen(GnirsFpu.Spectroscopy.slit),
+            GnirsSpectroscopyInput.fpuSlit.modify
           )
-          .view(_.assign)
+          .map(_.view(_.assign))
+
+        val fpuIfuViewOpt: Option[View[GnirsFpuIfu]] = props.observingMode
+          .zoomOpt(
+            ObservingMode.GnirsSpectroscopy.fpu.andThen(GnirsFpu.Spectroscopy.ifu),
+            GnirsSpectroscopyInput.fpuIfu.modify
+          )
+          .map(_.view(_.assign))
 
         val prismView: View[GnirsPrism] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.prism,
-            GnirsLongSlitInput.prism.modify
+            ObservingMode.GnirsSpectroscopy.prism,
+            GnirsSpectroscopyInput.prism.modify
           )
           .view(_.assign)
 
         val gratingView: View[GnirsGrating] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.grating,
-            GnirsLongSlitInput.grating.modify
+            ObservingMode.GnirsSpectroscopy.grating,
+            GnirsSpectroscopyInput.grating.modify
           )
           .view(_.assign)
 
         val centralWavelengthView: View[Wavelength] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.centralWavelength.andThen(CentralWavelength.Value),
-            GnirsLongSlitInput.centralWavelength.modify
+            ObservingMode.GnirsSpectroscopy.centralWavelength.andThen(CentralWavelength.Value),
+            GnirsSpectroscopyInput.centralWavelength.modify
           )
           .view(_.toInput.assign)
 
         val cameraView: View[GnirsCamera] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.camera,
-            GnirsLongSlitInput.camera.modify
+            ObservingMode.GnirsSpectroscopy.camera,
+            GnirsSpectroscopyInput.camera.modify
           )
           .view(_.assign)
 
         val readModeView: View[Option[GnirsReadMode]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitReadMode,
-            GnirsLongSlitInput.explicitReadMode.modify
+            ObservingMode.GnirsSpectroscopy.explicitReadMode,
+            GnirsSpectroscopyInput.explicitReadMode.modify
           )
           .view(_.orUnassign)
 
         val wellDepthView: View[Option[GnirsWellDepth]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitWellDepth,
-            GnirsLongSlitInput.explicitWellDepth.modify
+            ObservingMode.GnirsSpectroscopy.explicitWellDepth,
+            GnirsSpectroscopyInput.explicitWellDepth.modify
           )
           .view(_.orUnassign)
 
         val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.exposureTimeMode,
-            GnirsLongSlitInput.exposureTimeMode.modify
+            ObservingMode.GnirsSpectroscopy.exposureTimeMode,
+            GnirsSpectroscopyInput.exposureTimeMode.modify
           )
           .view(_.toInput.assign)
 
         val coaddsView: View[PosInt] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.coadds,
-            GnirsLongSlitInput.coadds.modify
+            ObservingMode.GnirsSpectroscopy.coadds,
+            GnirsSpectroscopyInput.coadds.modify
           )
           .view(_.assign)
 
         val slitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitTelescopeConfigs,
-            GnirsLongSlitInput.explicitTelescopeConfigs.modify
+            ObservingMode.GnirsSpectroscopy.explicitTelescopeConfigs,
+            GnirsSpectroscopyInput.explicitTelescopeConfigs.modify
           )
           .view(_.map(_.toInput).orUnassign)
 
         val focusMotorStepsView: View[Option[GnirsFocusMotorStepsValue]] = props.observingMode
           .zoom(
-            ObservingMode.GnirsLongSlit.explicitFocusMotorSteps,
-            GnirsLongSlitInput.explicitFocusMotorSteps.modify
+            ObservingMode.GnirsSpectroscopy.explicitFocusMotorSteps,
+            GnirsSpectroscopyInput.explicitFocusMotorSteps.modify
           )
           .view(_.map(_.value.value).orUnassign)
 
@@ -202,11 +212,11 @@ object GnirsLongslitConfigPanel
           focusMotorStepsView.toOptionView
 
         val acquisition
-          : Aligner[ObservingMode.GnirsLongSlit.Acquisition, GnirsLongSlitAcquisitionInput] =
+          : Aligner[ObservingMode.GnirsSpectroscopy.Acquisition, GnirsSpectroscopyAcquisitionInput] =
           props.observingMode.zoom(
-            ObservingMode.GnirsLongSlit.acquisition,
-            forceAssign(GnirsLongSlitInput.acquisition.modify)(
-              GnirsLongSlitAcquisitionInput()
+            ObservingMode.GnirsSpectroscopy.acquisition,
+            forceAssign(GnirsSpectroscopyInput.acquisition.modify)(
+              GnirsSpectroscopyAcquisitionInput()
             )
           )
 
@@ -214,9 +224,9 @@ object GnirsLongslitConfigPanel
         val acquisitionModeView: View[Option[GnirsAcquisitionMode]] =
           acquisition
             .zoom(
-              ObservingMode.GnirsLongSlit.Acquisition.explicitAcquisitionMode,
-              GnirsLongSlitAcquisitionInput.explicitAcquisitionType
-                .disjointZip(GnirsLongSlitAcquisitionInput.skyOffset)
+              ObservingMode.GnirsSpectroscopy.Acquisition.explicitAcquisitionMode,
+              GnirsSpectroscopyAcquisitionInput.explicitAcquisitionType
+                .disjointZip(GnirsSpectroscopyAcquisitionInput.skyOffset)
                 .modify
             )
             .view:
@@ -240,24 +250,24 @@ object GnirsLongslitConfigPanel
         val acquisitionCoaddsView: View[PosInt] =
           acquisition
             .zoom(
-              ObservingMode.GnirsLongSlit.Acquisition.coadds,
-              GnirsLongSlitAcquisitionInput.coadds.modify
+              ObservingMode.GnirsSpectroscopy.Acquisition.coadds,
+              GnirsSpectroscopyAcquisitionInput.coadds.modify
             )
             .view(_.assign)
 
         val acquisitionFilterView: View[Option[GnirsFilter]] =
           acquisition
             .zoom(
-              ObservingMode.GnirsLongSlit.Acquisition.explicitFilter,
-              GnirsLongSlitAcquisitionInput.explicitFilter.modify
+              ObservingMode.GnirsSpectroscopy.Acquisition.explicitFilter,
+              GnirsSpectroscopyAcquisitionInput.explicitFilter.modify
             )
             .view(_.orUnassign)
 
         val acquisitionExposureTimeView: View[ExposureTimeMode] =
           acquisition
             .zoom(
-              ObservingMode.GnirsLongSlit.Acquisition.exposureTimeMode,
-              GnirsLongSlitAcquisitionInput.exposureTimeMode.modify
+              ObservingMode.GnirsSpectroscopy.Acquisition.exposureTimeMode,
+              GnirsSpectroscopyAcquisitionInput.exposureTimeMode.modify
             )
             .view(_.toInput.assign)
 
@@ -289,17 +299,37 @@ object GnirsLongslitConfigPanel
                 allowRevertCustomization = allowRevertCustomization,
                 useLongName = true
               ),
-              CustomizableEnumSelect(
-                id = "fpu".refined,
-                view = fpuView,
-                defaultValue = props.observingMode.get.initialFpu,
-                label = "FPU".some,
-                helpId = Some("configuration/gnirs/fpu.md".refined),
-                disabled = disableAdvancedEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                useLongName = true
-              ),
+              fpuSlitViewOpt
+                .map[VdomNode]: v =>
+                  CustomizableEnumSelect(
+                    id = "fpu".refined,
+                    view = v,
+                    defaultValue = GnirsFpu.Spectroscopy.slit
+                      .getOption(props.observingMode.get.initialFpu)
+                      .getOrElse(v.get),
+                    label = "FPU".some,
+                    helpId = Some("configuration/gnirs/fpu.md".refined),
+                    disabled = disableAdvancedEdit,
+                    showCustomization = showCustomization,
+                    allowRevertCustomization = allowRevertCustomization,
+                    useLongName = true
+                  )
+                .orElse:
+                  fpuIfuViewOpt.map[VdomNode]: v =>
+                    CustomizableEnumSelect(
+                      id = "fpu".refined,
+                      view = v,
+                      defaultValue = GnirsFpu.Spectroscopy.ifu
+                        .getOption(props.observingMode.get.initialFpu)
+                        .getOrElse(v.get),
+                      label = "FPU".some,
+                      helpId = Some("configuration/gnirs/fpu.md".refined),
+                      disabled = disableAdvancedEdit,
+                      showCustomization = showCustomization,
+                      allowRevertCustomization = allowRevertCustomization,
+                      useLongName = true
+                    )
+                .getOrElse(EmptyVdom),
               CustomizableEnumSelect(
                 id = "prism".refined,
                 view = prismView,

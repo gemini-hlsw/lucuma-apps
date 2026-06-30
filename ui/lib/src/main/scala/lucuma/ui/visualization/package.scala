@@ -14,6 +14,7 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuideStarCandidate
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
+import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
@@ -223,8 +224,13 @@ extension (conf: BasicConfiguration)
           AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port)
         case BasicConfiguration.Igrins2LongSlit                                          =>
           AgsParams.Igrins2LongSlit()
-        case BasicConfiguration.GnirsLongSlit(fpu = fpu, prism = prism, camera = camera) =>
-          AgsParams.GnirsLongSlit(fpu, camera, prism, port)
+        case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>
+          // AGS for the GNIRS IFU is not yet modeled in lucuma-ags; fall back to the
+          // long-slit probe params (IFU support deferred). Slit width barely affects the
+          // probe reachability, so a placeholder is used when the FPU is an IFU.
+          import lucuma.core.model.sequence.gnirs.GnirsFpu
+          val slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).getOrElse(GnirsFpuSlit.LongSlit_1_00)
+          AgsParams.GnirsLongSlit(slit, camera, prism, port)
         case BasicConfiguration.GhostIfu(_, _, _, _, _)                                  =>
           AgsParams.GhostIfu()
         case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)         =>

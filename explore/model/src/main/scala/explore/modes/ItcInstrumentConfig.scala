@@ -379,10 +379,6 @@ object ItcInstrumentConfig:
     val hasFilter                        = true
     val mode                             = ScienceMode.Spectroscopy
 
-    // GNIRS IFU can be sent to the ITC, but there is no GNIRS IFU observing mode
-    // yet, so it cannot be accepted as a configuration (only the long slit can).
-    override def canBeAccepted: Boolean = GnirsFpu.ifu.getOption(fpu).isEmpty
-
     // IFU rows are labeled with the IFU resolution ("LR IFU" / "HR IFU"); slit
     // rows with the camera ("SC" / "LC").
     private val ifuOrCameraStr: String = fpu match

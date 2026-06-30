@@ -120,19 +120,19 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             _,
             Some(InstrumentOverrides.GnirsSpectroscopy(cw, _))
           ) =>
-        // Only the long-slit FPU maps to an observing mode; IFU is display-only.
-        GnirsFpu.slit
+        // Both the long slit and the IFU map to an observing mode (distinguished by the FPU).
+        GnirsFpu.spectroscopy
           .getOption(fpu)
-          .map(slit => BasicConfiguration.GnirsLongSlit(filter, slit, prism, grating, camera, cw))
+          .map(spec => BasicConfiguration.GnirsSpectroscopy(filter, spec, prism, grating, camera, cw))
       case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, None)
           if withFallbackWavelength =>
-        GnirsFpu.slit
+        GnirsFpu.spectroscopy
           .getOption(fpu)
-          .map: slit =>
+          .map: spec =>
             BasicConfiguration
-              .GnirsLongSlit(
+              .GnirsSpectroscopy(
                 filter,
-                slit,
+                spec,
                 prism,
                 grating,
                 camera,

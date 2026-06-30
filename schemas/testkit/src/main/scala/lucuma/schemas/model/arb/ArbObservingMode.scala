@@ -42,6 +42,20 @@ import scala.annotation.targetName
 
 trait ArbObservingMode {
   import ArbAngle.given
+  import lucuma.core.model.sequence.gnirs.GnirsFpu
+  import lucuma.core.util.arb.ArbEnumerated.given
+
+  given Arbitrary[GnirsFpu.Spectroscopy] = Arbitrary(
+    Gen.oneOf(
+      arbitrary[GnirsFpuSlit].map(GnirsFpu.Spectroscopy.Slit(_)),
+      arbitrary[GnirsFpuIfu].map(GnirsFpu.Spectroscopy.Ifu(_))
+    )
+  )
+
+  given Cogen[GnirsFpu.Spectroscopy] =
+    Cogen[Either[GnirsFpuSlit, GnirsFpuIfu]].contramap:
+      case GnirsFpu.Spectroscopy.Slit(s) => Left(s)
+      case GnirsFpu.Spectroscopy.Ifu(i)  => Right(i)
   import ArbCoordinates.given
   import ArbEnumerated.given
   import ArbExposureTimeMode.given
@@ -697,14 +711,14 @@ trait ArbObservingMode {
       )
 
   @targetName("gnirsLongSlitAcquisitionArbitrary")
-  given Arbitrary[ObservingMode.GnirsLongSlit.Acquisition] =
-    Arbitrary[ObservingMode.GnirsLongSlit.Acquisition](
+  given Arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition] =
+    Arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition](
       for {
         explicitAcquisitionMode <- arbitrary[Option[GnirsAcquisitionMode]]
         explicitFilter          <- arbitrary[Option[GnirsFilter]]
         exposureTimeMode        <- arbitrary[ExposureTimeMode]
         coadds                  <- arbitrary[PosInt]
-      } yield ObservingMode.GnirsLongSlit.Acquisition(
+      } yield ObservingMode.GnirsSpectroscopy.Acquisition(
         explicitAcquisitionMode,
         explicitFilter,
         exposureTimeMode,
@@ -713,21 +727,21 @@ trait ArbObservingMode {
     )
 
   @targetName("gnirsLongSlitAcquisitionCogen")
-  given Cogen[ObservingMode.GnirsLongSlit.Acquisition] =
+  given Cogen[ObservingMode.GnirsSpectroscopy.Acquisition] =
     Cogen[
       (Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)
     ].contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
 
-  given Arbitrary[ObservingMode.GnirsLongSlit] =
+  given Arbitrary[ObservingMode.GnirsSpectroscopy] =
     import ArbNewType.given
-    Arbitrary[ObservingMode.GnirsLongSlit](
+    Arbitrary[ObservingMode.GnirsSpectroscopy](
       for {
         initialGrating           <- arbitrary[GnirsGrating]
         grating                  <- arbitrary[GnirsGrating]
         initialFilter            <- arbitrary[GnirsFilter]
         filter                   <- arbitrary[GnirsFilter]
-        initialFpu               <- arbitrary[GnirsFpuSlit]
-        fpu                      <- arbitrary[GnirsFpuSlit]
+        initialFpu               <- arbitrary[GnirsFpu.Spectroscopy]
+        fpu                      <- arbitrary[GnirsFpu.Spectroscopy]
         initialPrism             <- arbitrary[GnirsPrism]
         prism                    <- arbitrary[GnirsPrism]
         initialCamera            <- arbitrary[GnirsCamera]
@@ -744,8 +758,8 @@ trait ArbObservingMode {
         explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
         exposureTimeMode         <- arbitrary[ExposureTimeMode]
         coadds                   <- arbitrary[PosInt]
-        acquisition              <- arbitrary[ObservingMode.GnirsLongSlit.Acquisition]
-      } yield ObservingMode.GnirsLongSlit(
+        acquisition              <- arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition]
+      } yield ObservingMode.GnirsSpectroscopy(
         initialGrating,
         grating,
         initialFilter,
@@ -773,12 +787,12 @@ trait ArbObservingMode {
     )
 
   // We exceed the max number of fields for contramap, so we use tuples.
-  given Cogen[ObservingMode.GnirsLongSlit] =
+  given Cogen[ObservingMode.GnirsSpectroscopy] =
     import ArbNewType.given
     Cogen[
       ((GnirsGrating, GnirsGrating),
        (GnirsFilter, GnirsFilter),
-       (GnirsFpuSlit, GnirsFpuSlit),
+       (GnirsFpu.Spectroscopy, GnirsFpu.Spectroscopy),
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
        (Wavelength, Wavelength),
@@ -788,7 +802,7 @@ trait ArbObservingMode {
        Option[GnirsFocusMotorStepsValue],
        (SlitTelescopeConfigs, Option[SlitTelescopeConfigs]),
        ExposureTimeMode,
-       (PosInt, ObservingMode.GnirsLongSlit.Acquisition)
+       (PosInt, ObservingMode.GnirsSpectroscopy.Acquisition)
       )
     ]
       .contramap: o =>
@@ -913,7 +927,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Flamingos2Imaging],
       arbitrary[ObservingMode.Igrins2LongSlit],
-      arbitrary[ObservingMode.GnirsLongSlit],
+      arbitrary[ObservingMode.GnirsSpectroscopy],
       arbitrary[ObservingMode.GhostIfu],
       arbitrary[ObservingMode.Visitor]
     )
@@ -921,7 +935,7 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode] =
     Cogen[Either[
-      ObservingMode.GnirsLongSlit,
+      ObservingMode.GnirsSpectroscopy,
       Either[
         ObservingMode.Igrins2LongSlit,
         Either[
@@ -944,7 +958,7 @@ trait ArbObservingMode {
       ]
     ]]
       .contramap {
-        case g: ObservingMode.GnirsLongSlit      => g.asLeft
+        case g: ObservingMode.GnirsSpectroscopy      => g.asLeft
         case i: ObservingMode.Igrins2LongSlit    => i.asLeft.asRight
         case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight.asRight
         case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight.asRight

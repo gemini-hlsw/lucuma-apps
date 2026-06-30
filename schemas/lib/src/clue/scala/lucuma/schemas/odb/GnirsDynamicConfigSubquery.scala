@@ -23,6 +23,7 @@ object GnirsDynamicConfigSubquery
       decker
       fpuSlit
       fpuOther
+      fpuIfu
       acquisitionMirrorOut {
         prism
         grating

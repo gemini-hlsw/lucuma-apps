@@ -164,15 +164,17 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
           }
-          gnirsLongSlit {
+          gnirsSpectroscopy {
             initialGrating
             initialFilter
-            initialFpu
+            initialFpuSlit
+            initialFpuIfu
             initialPrism
             initialCamera
             grating
             filter
-            fpu
+            fpuSlit
+            fpuIfu
             prism
             camera
             centralWavelength $WavelengthSubquery

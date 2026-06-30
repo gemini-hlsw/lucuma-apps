@@ -22,6 +22,7 @@ import lucuma.core.model.Target
 import lucuma.core.model.probes
 import lucuma.core.model.sequence.ghost.CentralWavelength as GhostCentralWavelength
 import lucuma.core.model.sequence.ghost.GhostIfuMapping
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
@@ -60,7 +61,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
     case _: BasicConfiguration.GmosSouthImaging   => Site.GS
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
-    case _: BasicConfiguration.GnirsLongSlit      => Site.GN
+    case _: BasicConfiguration.GnirsSpectroscopy      => Site.GN
     case BasicConfiguration.Igrins2LongSlit       => Site.GN
     case v: BasicConfiguration.Visitor            => v.site
 
@@ -72,7 +73,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
     case _: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
-    case _: BasicConfiguration.GnirsLongSlit      => ObservingModeType.GnirsLongSlit
+    case g: BasicConfiguration.GnirsSpectroscopy      => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
     case v: BasicConfiguration.Visitor            => v.mode
 
@@ -87,7 +88,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       CentralWavelength(Igrins2CentralWavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       CentralWavelength(GhostCentralWavelength).some
-    case BasicConfiguration.GnirsLongSlit(centralWavelength = cw)     =>
+    case BasicConfiguration.GnirsSpectroscopy(centralWavelength = cw)     =>
       cw.some
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.some
@@ -111,7 +112,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(Igrins2CentralWavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       AGSWavelength(GhostCentralWavelength)
-    case gnirs: BasicConfiguration.GnirsLongSlit                      =>
+    case gnirs: BasicConfiguration.GnirsSpectroscopy                      =>
       AGSWavelength(gnirs.centralWavelength.value)
     case v: BasicConfiguration.Visitor                                =>
       AGSWavelength(v.centralWavelength.value)
@@ -133,7 +134,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       Igrins2CentralWavelength
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       GhostCentralWavelength
-    case gnirs: BasicConfiguration.GnirsLongSlit                      =>
+    case gnirs: BasicConfiguration.GnirsSpectroscopy                      =>
       gnirs.centralWavelength.value
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.value
@@ -180,7 +181,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(_, _, _)     => GuideProbe.Flamingos2OIWFS
     case BasicConfiguration.Igrins2LongSlit                 => GuideProbe.PWFS2
     case BasicConfiguration.GhostIfu(_, _, _, _, _)         => GuideProbe.PWFS2
-    case BasicConfiguration.GnirsLongSlit(_, _, _, _, _, _) => GuideProbe.PWFS2
+    case BasicConfiguration.GnirsSpectroscopy(_, _, _, _, _, _) => GuideProbe.PWFS2
     case BasicConfiguration.Visitor(_, _, _)                => GuideProbe.PWFS2
 
 object BasicConfiguration:
@@ -208,8 +209,8 @@ object BasicConfiguration:
                                 c.downField("igrins2LongSlit")
                                   .as[Igrins2LongSlit.type]
                                   .orElse:
-                                    c.downField("gnirsLongSlit")
-                                      .as[GnirsLongSlit]
+                                    c.downField("gnirsSpectroscopy")
+                                      .as[GnirsSpectroscopy]
                                       .orElse:
                                         c.downField("ghostIfu")
                                           .as[GhostIfu]
@@ -299,17 +300,36 @@ object BasicConfiguration:
   case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
-  case class GnirsLongSlit(
+  case class GnirsSpectroscopy(
     filter:            GnirsFilter,
-    fpu:               GnirsFpuSlit,
+    fpu:               GnirsFpu.Spectroscopy,
     prism:             GnirsPrism,
     grating:           GnirsGrating,
     camera:            GnirsCamera,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq
+  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
+    // The long slit and the IFU are the same observing mode with distinct types.
+    def gnirsObsModeType: ObservingModeType =
+      fpu match
+        case _: GnirsFpu.Spectroscopy.Slit => ObservingModeType.GnirsLongSlit
+        case _: GnirsFpu.Spectroscopy.Ifu  => ObservingModeType.GnirsIfu
 
-  object GnirsLongSlit:
-    given Decoder[GnirsLongSlit] = deriveDecoder
+  object GnirsSpectroscopy:
+    given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
+      for
+        filter  <- c.downField("filter").as[GnirsFilter]
+        fpu     <- c.downField("fpuSlit").as[Option[GnirsFpuSlit]].flatMap: slit =>
+                     c.downField("fpuIfu").as[Option[GnirsFpuIfu]].flatMap: ifu =>
+                       (slit, ifu) match
+                         case (Some(s), None) => GnirsFpu.Spectroscopy.Slit(s).asRight
+                         case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
+                         case _               =>
+                           DecodingFailure("GNIRS spectroscopy: exactly one of fpuSlit / fpuIfu expected", c.history).asLeft
+        prism   <- c.downField("prism").as[GnirsPrism]
+        grating <- c.downField("grating").as[GnirsGrating]
+        camera  <- c.downField("camera").as[GnirsCamera]
+        cw      <- c.downField("centralWavelength").as[CentralWavelength]
+      yield GnirsSpectroscopy(filter, fpu, prism, grating, camera, cw)
 
   case class GhostIfu(
     resolutionMode:  GhostResolutionMode,
