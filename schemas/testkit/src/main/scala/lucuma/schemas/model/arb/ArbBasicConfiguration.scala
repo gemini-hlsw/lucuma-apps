@@ -13,6 +13,8 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.math.arb.ArbAngle
 import lucuma.core.math.arb.ArbWavelength
+import lucuma.core.util.TimeSpan
+import lucuma.core.util.arb.ArbTimeSpan.given
 import lucuma.itc.ItcGhostDetector
 import lucuma.itc.arb.ArbItcGhostDetector.given
 import lucuma.schemas.model.BasicConfiguration
@@ -144,6 +146,22 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.Visitor(mode, CentralWavelength(cw), gsms)
     )
 
+  given Arbitrary[BasicConfiguration.KeckExchange] =
+    Arbitrary[BasicConfiguration.KeckExchange](
+      for {
+        keckInstrument <- arbitrary[KeckInstrument]
+        requested      <- arbitrary[TimeSpan]
+      } yield BasicConfiguration.KeckExchange(keckInstrument, requested)
+    )
+
+  given Arbitrary[BasicConfiguration.SubaruExchange] =
+    Arbitrary[BasicConfiguration.SubaruExchange](
+      for {
+        subaruInstrument <- arbitrary[SubaruInstrument]
+        requested        <- arbitrary[TimeSpan]
+      } yield BasicConfiguration.SubaruExchange(subaruInstrument, requested)
+    )
+
   given Arbitrary[BasicConfiguration] = Arbitrary[BasicConfiguration](
     Gen.oneOf(
       arbitrary[BasicConfiguration.GmosNorthLongSlit],
@@ -155,7 +173,9 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.Flamingos2Imaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
       arbitrary[BasicConfiguration.GhostIfu],
-      arbitrary[BasicConfiguration.Visitor]
+      arbitrary[BasicConfiguration.Visitor],
+      arbitrary[BasicConfiguration.KeckExchange],
+      arbitrary[BasicConfiguration.SubaruExchange]
     )
   )
 
@@ -222,6 +242,14 @@ trait ArbBasicConfiguration {
     Cogen[(VisitorObservingModeType, Wavelength, Angle)]
       .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter))
 
+  given Cogen[BasicConfiguration.KeckExchange] =
+    Cogen[(KeckInstrument, TimeSpan)]
+      .contramap(o => (o.keckInstrument, o.totalRequestTime))
+
+  given Cogen[BasicConfiguration.SubaruExchange] =
+    Cogen[(SubaruInstrument, TimeSpan)]
+      .contramap(o => (o.subaruInstrument, o.totalRequestTime))
+
   given Cogen[BasicConfiguration] =
     Cogen[Either[
       BasicConfiguration.Igrins2LongSlit.type,
@@ -241,7 +269,13 @@ trait ArbBasicConfiguration {
                     BasicConfiguration.GmosSouthImaging,
                     Either[
                       BasicConfiguration.Flamingos2Imaging,
-                      BasicConfiguration.Visitor
+                      Either[
+                        BasicConfiguration.Visitor,
+                        Either[
+                          BasicConfiguration.KeckExchange,
+                          BasicConfiguration.SubaruExchange
+                        ]
+                      ]
                     ]
                   ]
                 ]
@@ -266,7 +300,11 @@ trait ArbBasicConfiguration {
         case f: BasicConfiguration.Flamingos2Imaging  =>
           f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: BasicConfiguration.Visitor            =>
-          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case k: BasicConfiguration.KeckExchange       =>
+          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: BasicConfiguration.SubaruExchange     =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 
 }
 

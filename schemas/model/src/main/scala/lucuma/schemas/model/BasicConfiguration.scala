@@ -27,8 +27,10 @@ import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWav
 import lucuma.core.model.sequence.visitors.AlopekeCentralWavelength
 import lucuma.core.model.sequence.visitors.MaroonXCentralWavelength
 import lucuma.core.model.sequence.visitors.ZorroCentralWavelength
+import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
+import lucuma.odb.json.time.decoder.given
 import lucuma.odb.json.wavelength.decoder.given
 import lucuma.schemas.decoders.given
 import monocle.Prism
@@ -41,9 +43,7 @@ import monocle.macros.GenPrism
 // We could almost just use an ItcInstrumentConfig directly instead, except that
 // to create the configuration we need to allow muiltiple filters for imaging,
 // but the ItcInstrumentConfig only allows one.
-sealed abstract class BasicConfiguration(val instrument: Instrument)
-    extends Product
-    with Serializable derives Eq:
+sealed trait BasicConfiguration extends Product with Serializable derives Eq:
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case BasicConfiguration.GmosNorthLongSlit(_, _, fpu, _) => fpu.asLeft.some
     case BasicConfiguration.GmosSouthLongSlit(_, _, fpu, _) => fpu.asRight.some
@@ -53,17 +53,19 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case BasicConfiguration.Flamingos2LongSlit(fpu = fpu) => fpu.some
     case _                                                => none
 
-  def siteFor: Site = this match
-    case _: BasicConfiguration.Flamingos2Imaging  => Site.GS
-    case _: BasicConfiguration.Flamingos2LongSlit => Site.GS
-    case _: BasicConfiguration.GhostIfu           => Site.GS
-    case _: BasicConfiguration.GmosNorthImaging   => Site.GN
-    case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN
-    case _: BasicConfiguration.GmosSouthImaging   => Site.GS
-    case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS
-    case _: BasicConfiguration.GnirsSpectroscopy      => Site.GN
-    case BasicConfiguration.Igrins2LongSlit       => Site.GN
-    case v: BasicConfiguration.Visitor            => v.site
+  def siteFor: Option[Site] = this match
+    case _: BasicConfiguration.Flamingos2Imaging  => Site.GS.some
+    case _: BasicConfiguration.Flamingos2LongSlit => Site.GS.some
+    case _: BasicConfiguration.GhostIfu           => Site.GS.some
+    case _: BasicConfiguration.GmosNorthImaging   => Site.GN.some
+    case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN.some
+    case _: BasicConfiguration.GmosSouthImaging   => Site.GS.some
+    case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS.some
+    case _: BasicConfiguration.GnirsSpectroscopy  => Site.GN.some
+    case BasicConfiguration.Igrins2LongSlit       => Site.GN.some
+    case v: BasicConfiguration.Visitor            => v.site.some
+    case _: BasicConfiguration.KeckExchange       => none
+    case _: BasicConfiguration.SubaruExchange     => none
 
   def obsModeType: ObservingModeType = this match
     case _: BasicConfiguration.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
@@ -73,9 +75,11 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
     case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
     case _: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
-    case g: BasicConfiguration.GnirsSpectroscopy      => g.gnirsObsModeType
+    case g: BasicConfiguration.GnirsSpectroscopy  => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
     case v: BasicConfiguration.Visitor            => v.mode
+    case _: BasicConfiguration.KeckExchange       => ObservingModeType.ExchangeKeck
+    case _: BasicConfiguration.SubaruExchange     => ObservingModeType.ExchangeSubaru
 
   def centralWv: Option[CentralWavelength] = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -88,7 +92,7 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       CentralWavelength(Igrins2CentralWavelength).some
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       CentralWavelength(GhostCentralWavelength).some
-    case BasicConfiguration.GnirsSpectroscopy(centralWavelength = cw)     =>
+    case BasicConfiguration.GnirsSpectroscopy(centralWavelength = cw) =>
       cw.some
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.some
@@ -112,10 +116,14 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       AGSWavelength(Igrins2CentralWavelength)
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       AGSWavelength(GhostCentralWavelength)
-    case gnirs: BasicConfiguration.GnirsSpectroscopy                      =>
+    case gnirs: BasicConfiguration.GnirsSpectroscopy                  =>
       AGSWavelength(gnirs.centralWavelength.value)
     case v: BasicConfiguration.Visitor                                =>
       AGSWavelength(v.centralWavelength.value)
+    case _: BasicConfiguration.KeckExchange                           =>
+      AGSWavelength(Wavelength.Min)
+    case _: BasicConfiguration.SubaruExchange                         =>
+      AGSWavelength(Wavelength.Min)
 
   def conditionsWavelength: Wavelength = this match
     case BasicConfiguration.GmosNorthLongSlit(centralWavelength = cw) =>
@@ -134,14 +142,17 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
       Igrins2CentralWavelength
     case BasicConfiguration.GhostIfu(_, _, _, _, _)                   =>
       GhostCentralWavelength
-    case gnirs: BasicConfiguration.GnirsSpectroscopy                      =>
+    case gnirs: BasicConfiguration.GnirsSpectroscopy                  =>
       gnirs.centralWavelength.value
     case v: BasicConfiguration.Visitor                                =>
       v.centralWavelength.value
+    case _: BasicConfiguration.KeckExchange                           =>
+      Wavelength.Min
+    case _: BasicConfiguration.SubaruExchange                         =>
+      Wavelength.Min
 
-  // Let's always return a fallback for viz
-  def guideProbe(trackType: Option[TrackType]): GuideProbe =
-    trackType.flatMap(probes.guideProbe(obsModeType, _)).getOrElse(fallBackGuideProbe)
+  def guideProbe(trackType: Option[TrackType]): Option[GuideProbe] =
+    trackType.flatMap(probes.guideProbe(obsModeType, _))
 
   def targetVisualization(
     scienceTargets: List[TargetWithId],
@@ -171,18 +182,6 @@ sealed abstract class BasicConfiguration(val instrument: Instrument)
         TargetVisualization(slots, prefix.some)
       case _                                                  =>
         TargetVisualization.Empty
-
-  private def fallBackGuideProbe = this match
-    case BasicConfiguration.GmosNorthLongSlit(_, _, _, _) |
-        BasicConfiguration.GmosSouthLongSlit(_, _, _, _) | BasicConfiguration.GmosNorthImaging(_) |
-        BasicConfiguration.GmosSouthImaging(_) =>
-      GuideProbe.GmosOIWFS
-    case BasicConfiguration.Flamingos2Imaging(_)            => GuideProbe.Flamingos2OIWFS
-    case BasicConfiguration.Flamingos2LongSlit(_, _, _)     => GuideProbe.Flamingos2OIWFS
-    case BasicConfiguration.Igrins2LongSlit                 => GuideProbe.PWFS2
-    case BasicConfiguration.GhostIfu(_, _, _, _, _)         => GuideProbe.PWFS2
-    case BasicConfiguration.GnirsSpectroscopy(_, _, _, _, _, _) => GuideProbe.PWFS2
-    case BasicConfiguration.Visitor(_, _, _)                => GuideProbe.PWFS2
 
 object BasicConfiguration:
   given Decoder[BasicConfiguration] =
@@ -218,17 +217,23 @@ object BasicConfiguration:
                                             c.downField("visitor")
                                               .as[Visitor]
                                               .orElse:
-                                                DecodingFailure(
-                                                  "Could not decode BasicConfiguration",
-                                                  c.history
-                                                ).asLeft
+                                                c.downField("exchangeKeck")
+                                                  .as[KeckExchange]
+                                                  .orElse:
+                                                    c.downField("exchangeSubaru")
+                                                      .as[SubaruExchange]
+                                                      .orElse:
+                                                        DecodingFailure(
+                                                          "Could not decode BasicConfiguration",
+                                                          c.history
+                                                        ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
     filter:            Option[GmosNorthFilter],
     fpu:               GmosNorthFpu,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object GmosNorthLongSlit:
     given Decoder[GmosNorthLongSlit] = deriveDecoder
@@ -238,14 +243,14 @@ object BasicConfiguration:
     filter:            Option[GmosSouthFilter],
     fpu:               GmosSouthFpu,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object GmosSouthLongSlit:
     given Decoder[GmosSouthLongSlit] = deriveDecoder
 
   case class GmosNorthImaging(
     filters: NonEmptyList[GmosNorthFilter]
-  ) extends BasicConfiguration(Instrument.GmosNorth) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object GmosNorthImaging:
     // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
@@ -260,7 +265,7 @@ object BasicConfiguration:
 
   case class GmosSouthImaging(
     filters: NonEmptyList[GmosSouthFilter]
-  ) extends BasicConfiguration(Instrument.GmosSouth) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object GmosSouthImaging:
     // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
@@ -277,14 +282,14 @@ object BasicConfiguration:
     disperser: Flamingos2Disperser,
     filter:    Flamingos2Filter,
     fpu:       Flamingos2Fpu
-  ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object Flamingos2LongSlit:
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
   case class Flamingos2Imaging(
     filters: NonEmptyList[Flamingos2Filter]
-  ) extends BasicConfiguration(Instrument.Flamingos2) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object Flamingos2Imaging:
     // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
@@ -297,7 +302,7 @@ object BasicConfiguration:
           .map(Flamingos2Imaging(_))
       )
 
-  case object Igrins2LongSlit extends BasicConfiguration(Instrument.Igrins2) derives Eq:
+  case object Igrins2LongSlit extends BasicConfiguration derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
 
   case class GnirsSpectroscopy(
@@ -307,7 +312,7 @@ object BasicConfiguration:
     grating:           GnirsGrating,
     camera:            GnirsCamera,
     centralWavelength: CentralWavelength
-  ) extends BasicConfiguration(Instrument.Gnirs) derives Eq:
+  ) extends BasicConfiguration derives Eq:
     // The long slit and the IFU are the same observing mode with distinct types.
     def gnirsObsModeType: ObservingModeType =
       fpu match
@@ -318,13 +323,20 @@ object BasicConfiguration:
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
         filter  <- c.downField("filter").as[GnirsFilter]
-        fpu     <- c.downField("fpuSlit").as[Option[GnirsFpuSlit]].flatMap: slit =>
-                     c.downField("fpuIfu").as[Option[GnirsFpuIfu]].flatMap: ifu =>
-                       (slit, ifu) match
-                         case (Some(s), None) => GnirsFpu.Spectroscopy.Slit(s).asRight
-                         case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
-                         case _               =>
-                           DecodingFailure("GNIRS spectroscopy: exactly one of fpuSlit / fpuIfu expected", c.history).asLeft
+        fpu     <- c.downField("fpuSlit")
+                     .as[Option[GnirsFpuSlit]]
+                     .flatMap: slit =>
+                       c.downField("fpuIfu")
+                         .as[Option[GnirsFpuIfu]]
+                         .flatMap: ifu =>
+                           (slit, ifu) match
+                             case (Some(s), None) => GnirsFpu.Spectroscopy.Slit(s).asRight
+                             case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
+                             case _               =>
+                               DecodingFailure(
+                                 "GNIRS spectroscopy: exactly one of fpuSlit / fpuIfu expected",
+                                 c.history
+                               ).asLeft
         prism   <- c.downField("prism").as[GnirsPrism]
         grating <- c.downField("grating").as[GnirsGrating]
         camera  <- c.downField("camera").as[GnirsCamera]
@@ -337,7 +349,7 @@ object BasicConfiguration:
     signalToNoiseAt: Wavelength,
     red:             ItcGhostDetector,
     blue:            ItcGhostDetector
-  ) extends BasicConfiguration(Instrument.Ghost) derives Eq
+  ) extends BasicConfiguration derives Eq
 
   object GhostIfu:
     given Decoder[ItcGhostDetector] = Decoder.instance:
@@ -369,7 +381,7 @@ object BasicConfiguration:
     mode:              VisitorObservingModeType,
     centralWavelength: CentralWavelength,
     agsDiameter:       Angle
-  ) extends BasicConfiguration(mode.instrument) derives Eq:
+  ) extends BasicConfiguration derives Eq:
     def site: Site = mode match
       case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField |
           VisitorObservingModeType.MaroonX | VisitorObservingModeType.VisitorNorth =>
@@ -410,6 +422,30 @@ object BasicConfiguration:
         gsms <- c.downField("agsDiameter").as[Angle]
       yield Visitor(mode, CentralWavelength(cw), gsms)
 
+  case class KeckExchange(
+    keckInstrument:   KeckInstrument,
+    totalRequestTime: TimeSpan
+  ) extends BasicConfiguration derives Eq
+
+  object KeckExchange:
+    given Decoder[KeckExchange] = Decoder.instance: c =>
+      for
+        keckInstrument   <- c.downField("keckInstrument").as[KeckInstrument]
+        totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
+      yield KeckExchange(keckInstrument, totalRequestTime)
+
+  case class SubaruExchange(
+    subaruInstrument: SubaruInstrument,
+    totalRequestTime: TimeSpan
+  ) extends BasicConfiguration derives Eq
+
+  object SubaruExchange:
+    given Decoder[SubaruExchange] = Decoder.instance: c =>
+      for
+        subaruInstrument <- c.downField("subaruInstrument").as[SubaruInstrument]
+        totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
+      yield SubaruExchange(subaruInstrument, totalRequestTime)
+
   val gmosNorthLongSlit: Prism[BasicConfiguration, GmosNorthLongSlit] =
     GenPrism[BasicConfiguration, GmosNorthLongSlit]
 
@@ -436,3 +472,9 @@ object BasicConfiguration:
 
   val visitor: Prism[BasicConfiguration, Visitor] =
     GenPrism[BasicConfiguration, Visitor]
+
+  val keckExchange: Prism[BasicConfiguration, KeckExchange] =
+    GenPrism[BasicConfiguration, KeckExchange]
+
+  val subaruExchange: Prism[BasicConfiguration, SubaruExchange] =
+    GenPrism[BasicConfiguration, SubaruExchange]

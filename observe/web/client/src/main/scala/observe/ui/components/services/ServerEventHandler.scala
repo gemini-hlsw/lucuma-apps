@@ -123,7 +123,7 @@ trait ServerEventHandler:
   ): LoadedObservation => LoadedObservation =
     loadedObservation =>
       loadedObservation.sequenceData.toOption
-        .map(_.config.instrument)
+        .flatMap(_.config.instrument)
         .collect:
           case Instrument.Flamingos2 =>
             removeFutureAtomFromLoadedObservation(

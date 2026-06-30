@@ -80,7 +80,7 @@ trait PwfsGeometry extends WithPwfsGeometry:
 
           val patrolFieldIntersection =
             conf
-              .map(c => agsParamsFor(c.guideProbe(trackType)))
+              .flatMap(c => c.guideProbe(trackType).map(agsParamsFor))
               .map: params =>
                 val calcs = params.posCalculations(positions.value.toNonEmptyList)
                 PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField

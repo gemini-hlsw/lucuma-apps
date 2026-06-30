@@ -918,6 +918,28 @@ trait ArbObservingMode {
     Cogen[(VisitorObservingModeType, Wavelength, Long)]
       .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter.toMicroarcseconds))
 
+  given Arbitrary[ObservingMode.KeckExchange] = Arbitrary[ObservingMode.KeckExchange](
+    for {
+      keckInstrument   <- arbitrary[KeckInstrument]
+      totalRequestTime <- arbitrary[TimeSpan]
+    } yield ObservingMode.KeckExchange(keckInstrument, totalRequestTime)
+  )
+
+  given Cogen[ObservingMode.KeckExchange] =
+    Cogen[(KeckInstrument, TimeSpan)]
+      .contramap(o => (o.keckInstrument, o.totalRequestTime))
+
+  given Arbitrary[ObservingMode.SubaruExchange] = Arbitrary[ObservingMode.SubaruExchange](
+    for {
+      subaruInstrument <- arbitrary[SubaruInstrument]
+      totalRequestTime <- arbitrary[TimeSpan]
+    } yield ObservingMode.SubaruExchange(subaruInstrument, totalRequestTime)
+  )
+
+  given Cogen[ObservingMode.SubaruExchange] =
+    Cogen[(SubaruInstrument, TimeSpan)]
+      .contramap(o => (o.subaruInstrument, o.totalRequestTime))
+
   given Arbitrary[ObservingMode] = Arbitrary[ObservingMode](
     Gen.oneOf(
       arbitrary[ObservingMode.GmosNorthLongSlit],
@@ -929,7 +951,9 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.Igrins2LongSlit],
       arbitrary[ObservingMode.GnirsSpectroscopy],
       arbitrary[ObservingMode.GhostIfu],
-      arbitrary[ObservingMode.Visitor]
+      arbitrary[ObservingMode.Visitor],
+      arbitrary[ObservingMode.KeckExchange],
+      arbitrary[ObservingMode.SubaruExchange]
     )
   )
 
@@ -946,10 +970,16 @@ trait ArbObservingMode {
               ObservingMode.GmosSouthLongSlit,
               Either[
                 ObservingMode.GmosNorthImaging,
-                Either[ObservingMode.GmosSouthImaging,
-                       Either[ObservingMode.GhostIfu, Either[ObservingMode.Flamingos2Imaging,
-                                                             ObservingMode.Visitor
-                       ]]
+                Either[
+                  ObservingMode.GmosSouthImaging,
+                  Either[
+                    ObservingMode.GhostIfu,
+                    Either[ObservingMode.Flamingos2Imaging,
+                           Either[ObservingMode.Visitor, Either[ObservingMode.KeckExchange,
+                                                                ObservingMode.SubaruExchange
+                           ]]
+                    ]
+                  ]
                 ]
               ]
             ]
@@ -971,7 +1001,11 @@ trait ArbObservingMode {
         case f: ObservingMode.Flamingos2Imaging  =>
           f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: ObservingMode.Visitor            =>
-          v.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case k: ObservingMode.KeckExchange       =>
+          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case s: ObservingMode.SubaruExchange     =>
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }

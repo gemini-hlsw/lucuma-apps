@@ -204,41 +204,42 @@ extension (conf: BasicConfiguration)
   def agsParams(
     port:      PortDisposition,
     trackType: Option[TrackType]
-  ): AgsParams & SingleProbeAgsParams =
+  ): Option[AgsParams & SingleProbeAgsParams] =
     val base =
       conf match
-        case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                             =>
-          AgsParams.GmosLongSlit(fpu.asLeft, port)
-        case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                             =>
-          AgsParams.GmosLongSlit(fpu.asRight, port)
-        case BasicConfiguration.GmosNorthImaging(_)                                      =>
-          AgsParams.GmosImaging(port)
-        case BasicConfiguration.GmosSouthImaging(_)                                      =>
-          AgsParams.GmosImaging(port)
-        case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                            =>
-          AgsParams.Flamingos2LongSlit(Flamingos2LyotWheel.F16,
-                                       Flamingos2FpuMask.Builtin(fpu),
-                                       port
-          )
-        case BasicConfiguration.Flamingos2Imaging(_)                                     =>
-          AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port)
-        case BasicConfiguration.Igrins2LongSlit                                          =>
-          AgsParams.Igrins2LongSlit()
+        case BasicConfiguration.GmosNorthLongSlit(fpu = fpu)                                 =>
+          AgsParams.GmosLongSlit(fpu.asLeft, port).some
+        case BasicConfiguration.GmosSouthLongSlit(fpu = fpu)                                 =>
+          AgsParams.GmosLongSlit(fpu.asRight, port).some
+        case BasicConfiguration.GmosNorthImaging(_)                                          =>
+          AgsParams.GmosImaging(port).some
+        case BasicConfiguration.GmosSouthImaging(_)                                          =>
+          AgsParams.GmosImaging(port).some
+        case BasicConfiguration.Flamingos2LongSlit(fpu = fpu)                                =>
+          AgsParams
+            .Flamingos2LongSlit(Flamingos2LyotWheel.F16, Flamingos2FpuMask.Builtin(fpu), port)
+            .some
+        case BasicConfiguration.Flamingos2Imaging(_)                                         =>
+          AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some
+        case BasicConfiguration.Igrins2LongSlit                                              =>
+          AgsParams.Igrins2LongSlit().some
         case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>
           // AGS for the GNIRS IFU is not yet modeled in lucuma-ags; fall back to the
           // long-slit probe params (IFU support deferred). Slit width barely affects the
           // probe reachability, so a placeholder is used when the FPU is an IFU.
           import lucuma.core.model.sequence.gnirs.GnirsFpu
           val slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).getOrElse(GnirsFpuSlit.LongSlit_1_00)
-          AgsParams.GnirsLongSlit(slit, camera, prism, port)
-        case BasicConfiguration.GhostIfu(_, _, _, _, _)                                  =>
-          AgsParams.GhostIfu()
-        case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)         =>
-          AgsParams.MaroonX(port)
-        case BasicConfiguration.Visitor(agsDiameter = fov)                               =>
-          AgsParams.Visitor(fov, port)
+          AgsParams.GnirsLongSlit(slit, camera, prism, port).some
+        case BasicConfiguration.GhostIfu(_, _, _, _, _)                                      =>
+          AgsParams.GhostIfu().some
+        case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)             =>
+          AgsParams.MaroonX(port).some
+        case BasicConfiguration.Visitor(agsDiameter = fov)                                   =>
+          AgsParams.Visitor(fov, port).some
+        case BasicConfiguration.KeckExchange(_, _) | BasicConfiguration.SubaruExchange(_, _) =>
+          none
 
     conf.guideProbe(trackType) match
-      case GuideProbe.PWFS1 => base.withPWFS1
-      case GuideProbe.PWFS2 => base.withPWFS2
-      case _                => base
+      case Some(GuideProbe.PWFS1) => base.map(_.withPWFS1)
+      case Some(GuideProbe.PWFS2) => base.map(_.withPWFS2)
+      case _                      => base

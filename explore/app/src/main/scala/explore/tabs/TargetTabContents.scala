@@ -96,7 +96,7 @@ case class TargetTabContents(
           .map: obsId =>
             programSummaries.get.observations
               .get(obsId)
-              .flatMap(_.observingMode.map(_.siteFor))
+              .flatMap(_.observingMode.flatMap(_.siteFor))
           .flattenOption
 
   private val obsAndTargets: UndoSetter[ObservationsAndTargets] =
@@ -564,7 +564,7 @@ object TargetTabContents extends TwoPanels:
                 props.userId,
                 TargetTabTileIds.ElevationPlot.id,
                 plotData,
-                configuration.map(_.siteFor),
+                configuration.flatMap(_.siteFor),
                 obsTimeView.get,
                 none,
                 plotData.value.size === 1,

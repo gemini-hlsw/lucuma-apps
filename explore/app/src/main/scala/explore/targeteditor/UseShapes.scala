@@ -18,6 +18,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.ags.AgsVisualization
 import lucuma.ags.DebugShape
 import lucuma.ags.PatrolFieldVisualization
+import lucuma.core.enums.ExchangeObservingModeType
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
@@ -95,7 +96,7 @@ def usePatrolFieldShapes(
 
     for
       conf       <- vizConf.map(_.configuration).filter(_ => isVisible)
-      agsParams   = conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.trackType))
+      agsParams  <- conf.agsParams(PortDisposition.Side, vizConf.flatMap(_.trackType))
       baseCoords <- baseCoordinates
       paAngles   <- allAngles
     yield
@@ -157,30 +158,30 @@ def usePatrolFieldShapes(
           List.empty
 
       // We need a hidden achor centered at 0, 0
-      val anchor: (Css, ShapeExpression) =
+      val anchor: Option[ShapeExpression] =
         conf.obsModeType match
           case ObservingModeType.Flamingos2LongSlit                                      =>
-            (VisualizationStyles.Anchor,
-             flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
-            )
+            flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16).some
           case ObservingModeType.Flamingos2Imaging                                       =>
-            (VisualizationStyles.Anchor,
-             flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16)
-            )
+            flamingos2.candidatesArea.candidatesArea(Flamingos2LyotWheel.F16).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-            (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+            gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-            (VisualizationStyles.Anchor, gmos.candidatesArea.candidatesArea)
+            gmos.candidatesArea.candidatesArea.some
           case ObservingModeType.Igrins2LongSlit                                         =>
-            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+            pwfs.patrolField.patrolField.some
           case ObservingModeType.GhostIfu                                                =>
-            (VisualizationStyles.Anchor, ghost.scienceArea.fov)
+            ghost.scienceArea.fov.some
           case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu              =>
-            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+            pwfs.patrolField.patrolField.some
           case _: VisitorObservingModeType                                               =>
-            (VisualizationStyles.Anchor, pwfs.patrolField.patrolField)
+            pwfs.patrolField.patrolField.some
+          case _: ExchangeObservingModeType                                              =>
+            none // We won't get this far for exchange observations, anyway
 
-      SortedMap.from(anchor :: (individualFields ++ intersections))
+      SortedMap.from(
+        anchor.map((VisualizationStyles.Anchor, _)).toList ++ (individualFields ++ intersections)
+      )
   }.map(_.value)
 
 def useVisualizationShapes(
@@ -207,7 +208,7 @@ def useVisualizationShapes(
       val candidatesVisibilityCss: Css =
         ExploreStyles.GuideStarCandidateVisible.when_(agsOverlay)
 
-      (vizConf.map(_.configuration.obsModeType), baseCoordinates).mapN: (conf, baseCoords) =>
+      (vizConf.map(_.configuration.obsModeType), baseCoordinates).flatMapN: (conf, baseCoords) =>
         conf match
           case ObservingModeType.Flamingos2LongSlit                                      =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
@@ -229,7 +230,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case ObservingModeType.Flamingos2Imaging                                       =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -250,7 +251,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -271,7 +272,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -292,7 +293,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case ObservingModeType.Igrins2LongSlit                                         =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -311,7 +312,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case ObservingModeType.GhostIfu                                                =>
             val probeVisibilityCss = VisualizationStyles.GhostIfuPatrolFieldVisible |+|
               (vizConf.map(_.guideProbe) match
@@ -343,7 +344,7 @@ def useVisualizationShapes(
                selectedSlot.contains(SlotId.GhostIfu2),
                forceShowIfu2
              )
-            )
+            ).some
           case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu              =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -362,7 +363,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
           case _: VisitorObservingModeType                                               =>
             val probeVisibilityCss = vizConf.map(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
@@ -381,5 +382,7 @@ def useVisualizationShapes(
                selectedGS,
                candidatesVisibilityCss
              )
-            )
+            ).some
+          case _: ExchangeObservingModeType                                              =>
+            none
   }.map(_.value)

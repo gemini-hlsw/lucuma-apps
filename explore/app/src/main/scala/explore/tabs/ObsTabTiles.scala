@@ -148,7 +148,7 @@ case class ObsTabTiles(
   def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
     optTracking.flatMap(_.at(obsTime))
 
-  def site: Option[Site] = observation.get.observingMode.map(_.siteFor)
+  def site: Option[Site] = observation.get.observingMode.flatMap(_.siteFor)
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -239,7 +239,7 @@ object ObsTabTiles:
         obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
                                   vizTime => IO(vizTime.getOrElse(Instant.now()))
         trackingOptMapPot    <-
-          useEffectKeepResultWithDeps(props.observation.get.observingMode.map(_.siteFor),
+          useEffectKeepResultWithDeps(props.observation.get.observingMode.flatMap(_.siteFor),
                                       obsTimeOrNowPot.value.toOption,
                                       props.asterismAsNel.map(_.science)
           ): (site, obsTime, targets) =>
@@ -367,7 +367,7 @@ object ObsTabTiles:
           val trackType = optAsterismTracking.map(_.trackType)
 
           val averagePA: Option[AveragePABasis] =
-            (basicConfiguration.map(_.siteFor), optAsterismTracking, obsDuration, setupTime)
+            (basicConfiguration.flatMap(_.siteFor), optAsterismTracking, obsDuration, setupTime)
               .flatMapN: (site, baseTracking, fullDuration, setupDuration) =>
                 // science duration is the obsDuration - setup time
                 fullDuration
@@ -472,9 +472,11 @@ object ObsTabTiles:
                   customSedTimestamps,
                   globalPreferences
                 ).some
-              // Visitor instruments have no ITC, hide the itc tile.
-              case Some(_: BasicConfiguration.Visitor) => none
-              case None                                => ItcEmptyTile().some
+              // Visitor & exchange instruments have no ITC, hide the itc tile.
+              case Some(_: BasicConfiguration.Visitor) | Some(_: BasicConfiguration.KeckExchange) |
+                  Some(_: BasicConfiguration.SubaruExchange) =>
+                none
+              case None => ItcEmptyTile().some
 
           val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
 
@@ -543,7 +545,7 @@ object ObsTabTiles:
                   .map: nel =>
                     val name: NonEmptyString =
                       NonEmptyString.from(s"${siblings.title}".take(100)).getOrElse("-".refined)
-                    val sites                = siblings.observingMode.toList.map(_.siteFor)
+                    val sites                = siblings.observingMode.toList.map(_.siteFor).flattenOption
 
                     ObjectPlotData.Id(siblings.id.asLeft) ->
                       ObjectPlotData(name,
@@ -568,7 +570,7 @@ object ObsTabTiles:
                     ObjectPlotData(
                       NonEmptyString.from(scienceName).getOrElse("-".refined),
                       ts,
-                      obsConf.configuration.foldMap(conf => List(conf.siteFor)),
+                      obsConf.configuration.flatMap(_.siteFor).foldMap(List(_)),
                       elevationOnly = props.observation.get.isCalibration
                     )
                 ) ++ obsCalibrationGroup
@@ -579,7 +581,7 @@ object ObsTabTiles:
                 props.vault.userId,
                 ObsTabTileIds.PlotId.id,
                 pd,
-                props.observation.get.observingMode.map(_.siteFor),
+                props.observation.get.observingMode.flatMap(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
                 obsCalibrationGroup.isEmpty,

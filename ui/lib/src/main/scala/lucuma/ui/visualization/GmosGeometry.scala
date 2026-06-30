@@ -94,11 +94,11 @@ object GmosGeometry extends WithPwfsGeometry:
     conf
       .map: c =>
         c.guideProbe(trackType) match
-          case GuideProbe.GmosOIWFS                =>
+          case Some(GuideProbe.GmosOIWFS)                      =>
             oiwfsCandidatesArea(posAngle, extraCss)
-          case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
+          case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
             pwfsCandidatesArea(GmosCandidatesArea, posAngle, extraCss)
-          case _                                   =>
+          case _                                               =>
             SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(posAngle, extraCss))
 
@@ -111,8 +111,9 @@ object GmosGeometry extends WithPwfsGeometry:
     port:            PortDisposition
   ): SortedMap[Css, ShapeExpression] =
     mode
-      .flatMap: c =>
-        (c, c.guideProbe(trackType)) match
+      .flatMap(c => c.guideProbe(trackType).map((c, _)))
+      .flatMap: (c, probe) =>
+        (c, probe) match
           case (_, p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2))                          =>
             pwfsProbeShapes(p, guideStarOffset, offsetPos).some
           case (BasicConfiguration.GmosNorthLongSlit(fpu = fpu), GuideProbe.GmosOIWFS) =>
@@ -181,10 +182,12 @@ object GmosGeometry extends WithPwfsGeometry:
             )
 
             val patrolFieldIntersection =
-              conf.map: c =>
-                val calcs =
-                  c.agsParams(port, trackType).posCalculations(positions.value.toNonEmptyList)
-                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
+              conf
+                .flatMap: c =>
+                  c.agsParams(port, trackType)
+                .map: params =>
+                  val calcs = params.posCalculations(positions.value.toNonEmptyList)
+                  PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
         baseShapes ++ probe.getOrElse(SortedMap.empty[Css, ShapeExpression])

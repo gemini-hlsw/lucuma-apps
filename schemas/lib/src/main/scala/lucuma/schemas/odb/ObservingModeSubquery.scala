@@ -227,5 +227,10 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             name
             totalRequestTime $TimeSpanSubquery
           }
+          exchange {
+            keckInstrument
+            subaruInstrument
+            totalRequestTime $TimeSpanSubquery
+          }
         }
       """

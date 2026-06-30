@@ -79,11 +79,11 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     configuration
       .map: c =>
         c.guideProbe(trackType) match
-          case GuideProbe.Flamingos2OIWFS          =>
+          case Some(GuideProbe.Flamingos2OIWFS)                =>
             oiwfsCandidatesArea(lw, posAngle, extraCss)
-          case GuideProbe.PWFS2 | GuideProbe.PWFS1 =>
+          case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
             pwfsCandidatesArea(Flamingos2CandidatesArea, posAngle, extraCss)
-          case _                                   =>
+          case _                                               =>
             SortedMap.empty[Css, ShapeExpression]
       .getOrElse(oiwfsCandidatesArea(lw, posAngle, extraCss))
 
@@ -99,11 +99,11 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     configuration match
       case _: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging =>
         configuration.guideProbe(trackType) match
-          case GuideProbe.Flamingos2OIWFS                =>
+          case Some(GuideProbe.Flamingos2OIWFS)                  =>
             flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
+          case (Some(GuideProbe.PWFS1) | Some(GuideProbe.PWFS2)) =>
             pwfs.patrolField.patrolFieldAt(posAngle, offset)
-          case _                                         =>
+          case _                                                 =>
             ShapeExpression.Empty
       case _                                                                                  =>
         ShapeExpression.Empty
@@ -122,17 +122,19 @@ object Flamingos2Geometry extends WithPwfsGeometry:
       case Some(
             m @ (_: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging)
           ) =>
-        m.guideProbe(trackType) match
-          case GuideProbe.Flamingos2OIWFS                =>
-            SortedMap(
-              (Flamingos2ProbeArm,
-               flamingos2.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, lyotWheel, port)
+        m.guideProbe(trackType).fold(SortedMap.empty[Css, ShapeExpression]) { p =>
+          p match
+            case GuideProbe.Flamingos2OIWFS          =>
+              SortedMap(
+                (Flamingos2ProbeArm,
+                 flamingos2.probeArm.shapeAt(posAngle, guideStarOffset, offsetPos, lyotWheel, port)
+                )
               )
-            )
-          case p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
-            pwfsProbeShapes(p, guideStarOffset, offsetPos)
-          case _                                         =>
-            SortedMap.empty
+            case GuideProbe.PWFS1 | GuideProbe.PWFS2 =>
+              pwfsProbeShapes(p, guideStarOffset, offsetPos)
+            case _                                   =>
+              SortedMap.empty
+        }
       case _ =>
         SortedMap.empty
 
@@ -176,10 +178,12 @@ object Flamingos2Geometry extends WithPwfsGeometry:
             )
 
             val patrolFieldIntersection =
-              conf.map: c =>
-                val calcs =
-                  c.agsParams(port, trackType).posCalculations(positions.value.toNonEmptyList)
-                PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
+              conf
+                .flatMap: c =>
+                  c.agsParams(port, trackType)
+                .map: params =>
+                  val calcs = params.posCalculations(positions.value.toNonEmptyList)
+                  PatrolFieldIntersection -> calcs.head._2.intersectionPatrolField
 
             patrolFieldIntersection.fold(probeShape)(probeShape + _)
 

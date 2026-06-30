@@ -756,6 +756,8 @@ object SeqTranslate {
                 StepGen.Gnirs[F](_, _, _, _, _, _, _, _, _, _, _)
               )
             case InstrumentExecutionConfig.Visitor(_)                  => ???
+            case InstrumentExecutionConfig.Exchange                    =>
+              throw new NotImplementedError("Exchange instrument not supported")
           }
         }
         .getOrElse(

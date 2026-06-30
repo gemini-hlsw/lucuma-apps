@@ -58,7 +58,7 @@ case class ConfigurationForVisualization private (
   def agsWavelength: AGSWavelength =
     configuration.agsWavelength
 
-  def guideProbe: GuideProbe =
+  def guideProbe: Option[GuideProbe] =
     configuration.guideProbe(trackType)
 
   def conditionsWavelength: Wavelength =

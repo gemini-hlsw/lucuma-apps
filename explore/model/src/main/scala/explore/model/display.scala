@@ -360,6 +360,10 @@ trait DisplayImplicits:
       // GNIRS LB K-band imaging AO:LGS+P1
     case BasicConfiguration.Visitor(mode, _, _)                                                =>
       mode.shortName
+    case BasicConfiguration.KeckExchange(keckInstrument, _)                                    =>
+      s"Keck Exchange: ${keckInstrument.longName}"
+    case BasicConfiguration.SubaruExchange(subaruInstrument, _)                                =>
+      s"Subaru Exchange: ${subaruInstrument.longName}"
 
   given Display[WavelengthOrder] = Display.byShortName:
     case WavelengthOrder.Increasing => "Increasing"

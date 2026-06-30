@@ -82,7 +82,7 @@ final case class ObsConfiguration(
     configuration.map(_.obsModeType)
 
   def guideProbe: Option[GuideProbe] =
-    configuration.map(_.guideProbe(trackType))
+    configuration.flatMap(_.guideProbe(trackType))
 
   def guidedAcqOffsets =
     acquisitionOffsets.flatMap(_.asAcqOffsets)

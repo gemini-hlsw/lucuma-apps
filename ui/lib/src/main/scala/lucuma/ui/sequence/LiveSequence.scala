@@ -17,7 +17,7 @@ final case class LiveSequence(
 ):
   val isReady: Boolean                       = visits.isReady && sequence.isReady
   val sequenceInstrument: Option[Instrument] =
-    sequence.toOption.flatMap(_.get).map(_.config.instrument)
+    sequence.toOption.flatMap(_.get).flatMap(_.config.instrument)
 
 object LiveSequence:
   given Reusability[LiveSequence] =

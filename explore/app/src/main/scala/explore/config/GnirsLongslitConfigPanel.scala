@@ -421,7 +421,7 @@ object GnirsLongslitConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
-                instrument = props.observingMode.get.instrument.some,
+                instrument = props.observingMode.get.instrument,
                 wavelength = none,
                 exposureTimeMode = exposureTimeMode,
                 coadds = coaddsView.some,
@@ -487,7 +487,7 @@ object GnirsLongslitConfigPanel
                 ),
                 <.div(LucumaPrimeStyles.FormColumnCompact)(
                   ExposureTimeModeEditor(
-                    instrument = props.observingMode.get.instrument.some,
+                    instrument = props.observingMode.get.instrument,
                     wavelength = none,
                     exposureTimeMode = acquisitionExposureTimeView,
                     coadds = acquisitionCoaddsView.some,

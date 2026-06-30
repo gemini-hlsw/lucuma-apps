@@ -40,8 +40,9 @@ import monocle.Lens
 import monocle.Prism
 import monocle.macros.GenPrism
 
-sealed abstract class ObservingMode(val instrument: Instrument) extends Product with Serializable
-    derives Eq {
+sealed abstract class ObservingMode(val instrument: Option[Instrument])
+    extends Product
+    with Serializable derives Eq {
   def isCustomized: Boolean
 
   def obsModeType: ObservingModeType = this match
@@ -52,49 +53,53 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
     case _: ObservingMode.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
-    case g: ObservingMode.GnirsSpectroscopy      =>
+    case g: ObservingMode.GnirsSpectroscopy  =>
       g.fpu match
         case _: GnirsFpu.Spectroscopy.Slit => ObservingModeType.GnirsLongSlit
         case _: GnirsFpu.Spectroscopy.Ifu  => ObservingModeType.GnirsIfu
     case _: ObservingMode.GhostIfu           => ObservingModeType.GhostIfu
     case v: ObservingMode.Visitor            => v.mode
+    case _: ObservingMode.KeckExchange       => ObservingModeType.ExchangeKeck
+    case _: ObservingMode.SubaruExchange     => ObservingModeType.ExchangeSubaru
 
   def gmosFpuAlternative: Option[Either[GmosNorthFpu, GmosSouthFpu]] = this match
     case o: ObservingMode.GmosNorthLongSlit => o.fpu.asLeft.some
     case o: ObservingMode.GmosSouthLongSlit => o.fpu.asRight.some
     case _                                  => none
 
-  def siteFor: Site = this match
-    case _: ObservingMode.GmosNorthLongSlit  => Site.GN
-    case _: ObservingMode.GmosSouthLongSlit  => Site.GS
-    case _: ObservingMode.GmosNorthImaging   => Site.GN
-    case _: ObservingMode.GmosSouthImaging   => Site.GS
-    case _: ObservingMode.Flamingos2Imaging  => Site.GS
-    case _: ObservingMode.Flamingos2LongSlit => Site.GS
-    case _: ObservingMode.Igrins2LongSlit    => Site.GN
-    case _: ObservingMode.GnirsSpectroscopy      => Site.GN
-    case _: ObservingMode.GhostIfu           => Site.GS
+  def siteFor: Option[Site] = this match
+    case _: ObservingMode.GmosNorthLongSlit  => Site.GN.some
+    case _: ObservingMode.GmosSouthLongSlit  => Site.GS.some
+    case _: ObservingMode.GmosNorthImaging   => Site.GN.some
+    case _: ObservingMode.GmosSouthImaging   => Site.GS.some
+    case _: ObservingMode.Flamingos2Imaging  => Site.GS.some
+    case _: ObservingMode.Flamingos2LongSlit => Site.GS.some
+    case _: ObservingMode.Igrins2LongSlit    => Site.GN.some
+    case _: ObservingMode.GnirsSpectroscopy  => Site.GN.some
+    case _: ObservingMode.GhostIfu           => Site.GS.some
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
+    case _: ObservingMode.KeckExchange       => none
+    case _: ObservingMode.SubaruExchange     => none
 
   def toBasicConfiguration: BasicConfiguration = this match
-    case n: ObservingMode.GmosNorthLongSlit                 =>
+    case n: ObservingMode.GmosNorthLongSlit                        =>
       BasicConfiguration.GmosNorthLongSlit(n.grating, n.filter, n.fpu, n.centralWavelength)
-    case s: ObservingMode.GmosSouthLongSlit                 =>
+    case s: ObservingMode.GmosSouthLongSlit                        =>
       BasicConfiguration.GmosSouthLongSlit(s.grating, s.filter, s.fpu, s.centralWavelength)
-    case ObservingMode.GmosNorthImaging(filters = filters)  =>
+    case ObservingMode.GmosNorthImaging(filters = filters)         =>
       BasicConfiguration.GmosNorthImaging(filters.map(_.filter))
-    case ObservingMode.GmosSouthImaging(filters = filters)  =>
+    case ObservingMode.GmosSouthImaging(filters = filters)         =>
       BasicConfiguration.GmosSouthImaging(filters.map(_.filter))
-    case ObservingMode.Flamingos2Imaging(filters = filters) =>
+    case ObservingMode.Flamingos2Imaging(filters = filters)        =>
       BasicConfiguration.Flamingos2Imaging(filters.map(_.filter))
-    case f: ObservingMode.Flamingos2LongSlit                =>
+    case f: ObservingMode.Flamingos2LongSlit                       =>
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
-    case _: ObservingMode.Igrins2LongSlit                   =>
+    case _: ObservingMode.Igrins2LongSlit                          =>
       BasicConfiguration.Igrins2LongSlit
-    case g: ObservingMode.GnirsSpectroscopy                     =>
+    case g: ObservingMode.GnirsSpectroscopy                        =>
       BasicConfiguration
         .GnirsSpectroscopy(g.filter, g.fpu, g.prism, g.grating, g.camera, g.centralWavelength)
-    case g: ObservingMode.GhostIfu                          =>
+    case g: ObservingMode.GhostIfu                                 =>
       val red  = ItcGhostDetector(
         timeAndCount = g.red.timeAndCount,
         binning = g.red.binning,
@@ -111,8 +116,12 @@ sealed abstract class ObservingMode(val instrument: Instrument) extends Product 
                                   red = red,
                                   blue = blue
       )
-    case v: ObservingMode.Visitor                           =>
+    case v: ObservingMode.Visitor                                  =>
       BasicConfiguration.Visitor(v.mode, v.centralWavelength, v.agsDiameter)
+    case ObservingMode.KeckExchange(keckInstrument, requested)     =>
+      BasicConfiguration.KeckExchange(keckInstrument, requested)
+    case ObservingMode.SubaruExchange(subaruInstrument, requested) =>
+      BasicConfiguration.SubaruExchange(subaruInstrument, requested)
 
   def agsWavelength: AGSWavelength = toBasicConfiguration.agsWavelength
 
@@ -151,6 +160,10 @@ object ObservingMode:
           .orElse:
             c.downField("visitor").as[Visitor]
           .orElse:
+            c.downField("exchange").as[ObservingMode.KeckExchange]
+          .orElse:
+            c.downField("exchange").as[ObservingMode.SubaruExchange]
+          .orElse:
             DecodingFailure("Could not decode ObservingMode", c.history).asLeft
 
   case class GmosNorthLongSlit(
@@ -178,7 +191,7 @@ object ObservingMode:
     explicitOffsets:           Option[NonEmptyList[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode,
     acquisition:               GmosNorthLongSlit.Acquisition
-  ) extends ObservingMode(Instrument.GmosNorth) derives Eq:
+  ) extends ObservingMode(Instrument.GmosNorth.some) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
     val yBin: GmosYBinning                                =
@@ -329,7 +342,7 @@ object ObservingMode:
     explicitOffsets:           Option[NonEmptyList[Offset.Q]],
     exposureTimeMode:          ExposureTimeMode,
     acquisition:               GmosSouthLongSlit.Acquisition
-  ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
+  ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
     val xBin: GmosXBinning                                =
       explicitXBin.getOrElse(defaultXBin)
     val yBin: GmosYBinning                                =
@@ -467,7 +480,7 @@ object ObservingMode:
     explicitAmpGain:     Option[GmosAmpGain],
     defaultRoi:          GmosRoi,
     explicitRoi:         Option[GmosRoi]
-  ) extends ObservingMode(Instrument.GmosNorth) derives Eq:
+  ) extends ObservingMode(Instrument.GmosNorth.some) derives Eq:
     lazy val bin: GmosBinning             = explicitBin.getOrElse(defaultBin)
     lazy val ampReadMode: GmosAmpReadMode = explicitAmpReadMode.getOrElse(defaultAmpReadMode)
     lazy val ampGain: GmosAmpGain         = explicitAmpGain.getOrElse(defaultAmpGain)
@@ -536,7 +549,7 @@ object ObservingMode:
     explicitAmpGain:     Option[GmosAmpGain],
     defaultRoi:          GmosRoi,
     explicitRoi:         Option[GmosRoi]
-  ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
+  ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
     lazy val bin: GmosBinning             = explicitBin.getOrElse(defaultBin)
     lazy val ampReadMode: GmosAmpReadMode = explicitAmpReadMode.getOrElse(defaultAmpReadMode)
     lazy val ampGain: GmosAmpGain         = explicitAmpGain.getOrElse(defaultAmpGain)
@@ -610,7 +623,7 @@ object ObservingMode:
     explicitOffsets:     Option[NonEmptyList[Offset]],
     exposureTimeMode:    ExposureTimeMode,
     acquisition:         Flamingos2LongSlit.Acquisition
-  ) extends ObservingMode(Instrument.GmosSouth) derives Eq:
+  ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
     val decker: Flamingos2Decker           =
       explicitDecker.getOrElse(defaultDecker)
     val readoutMode: Flamingos2ReadoutMode =
@@ -711,7 +724,7 @@ object ObservingMode:
     defaultReadoutMode:  Flamingos2ReadoutMode,
     explicitReadoutMode: Option[Flamingos2ReadoutMode],
     variant:             ImagingVariant
-  ) extends ObservingMode(Instrument.Flamingos2) derives Eq:
+  ) extends ObservingMode(Instrument.Flamingos2.some) derives Eq:
     val readMode: Flamingos2ReadMode       =
       explicitReadMode.getOrElse(defaultReadMode)
     val reads: Flamingos2Reads             =
@@ -780,7 +793,7 @@ object ObservingMode:
     explicitSaveSVCImages: Option[Boolean],
     defaultOffsets:        NonEmptyList[Offset],
     explicitOffsets:       Option[NonEmptyList[Offset]]
-  ) extends ObservingMode(Instrument.Igrins2) derives Eq:
+  ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
     val offsetMode: SlitOffsetMode    = explicitOffsetMode.getOrElse(defaultOffsetMode)
     val saveSVCImages: Boolean        = explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
     val offsets: NonEmptyList[Offset] = explicitOffsets.getOrElse(defaultOffsets)
@@ -835,7 +848,7 @@ object ObservingMode:
     exposureTimeMode:         ExposureTimeMode,
     coadds:                   PosInt,
     acquisition:              GnirsSpectroscopy.Acquisition
-  ) extends ObservingMode(Instrument.Gnirs):
+  ) extends ObservingMode(Instrument.Gnirs.some):
     val decker: GnirsDecker                    =
       explicitDecker.getOrElse(defaultDecker)
     val wellDepth: GnirsWellDepth              =
@@ -917,7 +930,11 @@ object ObservingMode:
     }
 
     // Reads the FPU from the mutually-exclusive fpuSlit / fpuIfu fields (current + initial).
-    private def fpuFrom(c: ACursor, slitField: String, ifuField: String): Decoder.Result[GnirsFpu.Spectroscopy] =
+    private def fpuFrom(
+      c:         ACursor,
+      slitField: String,
+      ifuField:  String
+    ): Decoder.Result[GnirsFpu.Spectroscopy] =
       for
         slit <- c.downField(slitField).as[Option[GnirsFpuSlit]]
         ifu  <- c.downField(ifuField).as[Option[GnirsFpuIfu]]
@@ -925,7 +942,10 @@ object ObservingMode:
                   case (Some(s), None) => GnirsFpu.Spectroscopy.Slit(s).asRight
                   case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
                   case _               =>
-                    DecodingFailure(s"GNIRS spectroscopy: exactly one of $slitField / $ifuField expected", c.history).asLeft
+                    DecodingFailure(
+                      s"GNIRS spectroscopy: exactly one of $slitField / $ifuField expected",
+                      c.history
+                    ).asLeft
       yield fpu
 
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
@@ -947,23 +967,41 @@ object ObservingMode:
         explicitReadMode         <- c.downField("explicitReadMode").as[Option[GnirsReadMode]]
         defaultWellDepth         <- c.downField("defaultWellDepth").as[GnirsWellDepth]
         explicitWellDepth        <- c.downField("explicitWellDepth").as[Option[GnirsWellDepth]]
-        explicitFocusMotorSteps  <- c.downField("explicitFocusMotorSteps").as[Option[GnirsFocusMotorStepsValue]]
+        explicitFocusMotorSteps  <-
+          c.downField("explicitFocusMotorSteps").as[Option[GnirsFocusMotorStepsValue]]
         defaultTelescopeConfigs  <- c.downField("defaultTelescopeConfigs").as[SlitTelescopeConfigs]
-        explicitTelescopeConfigs <- c.downField("explicitTelescopeConfigs").as[Option[SlitTelescopeConfigs]]
+        explicitTelescopeConfigs <-
+          c.downField("explicitTelescopeConfigs").as[Option[SlitTelescopeConfigs]]
         exposureTimeMode         <- c.downField("exposureTimeMode").as[ExposureTimeMode]
         coadds                   <- c.downField("coadds").as[PosInt]
         acquisition              <- c.downField("acquisition").as[Acquisition]
       yield GnirsSpectroscopy(
-        initialGrating, grating, initialFilter, filter, initialFpu, fpu,
-        initialPrism, prism, initialCamera, camera,
-        initialCentralWavelength, centralWavelength,
-        defaultDecker, explicitDecker, explicitReadMode,
-        defaultWellDepth, explicitWellDepth, explicitFocusMotorSteps,
-        defaultTelescopeConfigs, explicitTelescopeConfigs,
-        exposureTimeMode, coadds, acquisition
+        initialGrating,
+        grating,
+        initialFilter,
+        filter,
+        initialFpu,
+        fpu,
+        initialPrism,
+        prism,
+        initialCamera,
+        camera,
+        initialCentralWavelength,
+        centralWavelength,
+        defaultDecker,
+        explicitDecker,
+        explicitReadMode,
+        defaultWellDepth,
+        explicitWellDepth,
+        explicitFocusMotorSteps,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
+        exposureTimeMode,
+        coadds,
+        acquisition
       )
 
-    given Eq[GnirsSpectroscopy]      = Eq.by: x => // We use tuples since there are too many fields.
+    given Eq[GnirsSpectroscopy] = Eq.by: x => // We use tuples since there are too many fields.
       (
         (x.initialGrating, x.grating),
         (x.initialFilter, x.filter),
@@ -1024,7 +1062,7 @@ object ObservingMode:
       Focus[GnirsSpectroscopy](_.exposureTimeMode)
     val coadds: Lens[GnirsSpectroscopy, PosInt]                                             =
       Focus[GnirsSpectroscopy](_.coadds)
-    val acquisition: Lens[GnirsSpectroscopy, GnirsSpectroscopy.Acquisition]                     =
+    val acquisition: Lens[GnirsSpectroscopy, GnirsSpectroscopy.Acquisition]                 =
       Focus[GnirsSpectroscopy](_.acquisition)
 
   case class GhostIfu(
@@ -1038,7 +1076,7 @@ object ObservingMode:
     explicitIfu1Agitator: Option[GhostIfu1FiberAgitator],
     defaultIfu2Agitator:  GhostIfu2FiberAgitator,
     explicitIfu2Agitator: Option[GhostIfu2FiberAgitator]
-  ) extends ObservingMode(Instrument.Ghost) derives Eq:
+  ) extends ObservingMode(Instrument.Ghost.some) derives Eq:
     val ifu1Agitator: GhostIfu1FiberAgitator = explicitIfu1Agitator.getOrElse(defaultIfu1Agitator)
     val ifu2Agitator: GhostIfu2FiberAgitator = explicitIfu2Agitator.getOrElse(defaultIfu2Agitator)
     def isCustomized: Boolean                =
@@ -1154,6 +1192,72 @@ object ObservingMode:
     val explicitIfu2Agitator: Lens[GhostIfu, Option[GhostIfu2FiberAgitator]] =
       Focus[GhostIfu](_.explicitIfu2Agitator)
 
+  case class Visitor(
+    mode:              VisitorObservingModeType,
+    centralWavelength: CentralWavelength,
+    agsDiameter:       Angle,
+    name:              Option[NonEmptyString],
+    totalRequestTime:  Option[TimeSpan]
+  ) extends ObservingMode(mode.instrument.some) derives Eq:
+    def isCustomized: Boolean = false
+
+  object Visitor:
+    val mode: Lens[Visitor, VisitorObservingModeType]       =
+      Focus[Visitor](_.mode)
+    val centralWavelength: Lens[Visitor, CentralWavelength] =
+      Focus[Visitor](_.centralWavelength)
+    val agsDiameter: Lens[Visitor, Angle]                   =
+      Focus[Visitor](_.agsDiameter)
+    val name: Lens[Visitor, Option[NonEmptyString]]         =
+      Focus[Visitor](_.name)
+    val totalRequestTime: Lens[Visitor, Option[TimeSpan]]   =
+      Focus[Visitor](_.totalRequestTime)
+
+    given Decoder[Visitor] = Decoder.instance: c =>
+      for
+        mode <- c.downField("mode").as[VisitorObservingModeType]
+        cw   <- c.downField("centralWavelength").as[Wavelength]
+        gsms <- c.downField("agsDiameter").as[Angle]
+        name <- c.downField("name").as[Option[NonEmptyString]]
+        trt  <- c.downField("totalRequestTime").as[Option[TimeSpan]]
+      yield Visitor(mode, CentralWavelength(cw), gsms, name, trt)
+
+  case class KeckExchange(
+    keckInstrument:   KeckInstrument,
+    totalRequestTime: TimeSpan
+  ) extends ObservingMode(none) derives Eq:
+    val isCustomized: Boolean = false
+
+  object KeckExchange:
+    val keckInstrument: Lens[KeckExchange, KeckInstrument] =
+      Focus[KeckExchange](_.keckInstrument)
+    val totalRequestTime: Lens[KeckExchange, TimeSpan]     =
+      Focus[KeckExchange](_.totalRequestTime)
+
+    given Decoder[KeckExchange] = Decoder.instance: c =>
+      for
+        keckInstrument   <- c.downField("keckInstrument").as[KeckInstrument]
+        totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
+      yield KeckExchange(keckInstrument, totalRequestTime)
+
+  case class SubaruExchange(
+    subaruInstrument: SubaruInstrument,
+    totalRequestTime: TimeSpan
+  ) extends ObservingMode(none) derives Eq:
+    val isCustomized: Boolean = false
+
+  object SubaruExchange:
+    val subaruInstrument: Lens[SubaruExchange, SubaruInstrument] =
+      Focus[SubaruExchange](_.subaruInstrument)
+    val totalRequestTime: Lens[SubaruExchange, TimeSpan]         =
+      Focus[SubaruExchange](_.totalRequestTime)
+
+    given Decoder[SubaruExchange] = Decoder.instance: c =>
+      for
+        subaruInstrument <- c.downField("subaruInstrument").as[SubaruInstrument]
+        totalRequestTime <- c.downField("totalRequestTime").as[TimeSpan]
+      yield SubaruExchange(subaruInstrument, totalRequestTime)
+
   val gmosNorthLongSlit: Prism[ObservingMode, GmosNorthLongSlit] =
     GenPrism[ObservingMode, GmosNorthLongSlit]
 
@@ -1181,35 +1285,11 @@ object ObservingMode:
   val ghostIfu: Prism[ObservingMode, GhostIfu] =
     GenPrism[ObservingMode, GhostIfu]
 
-  case class Visitor(
-    mode:              VisitorObservingModeType,
-    centralWavelength: CentralWavelength,
-    agsDiameter:       Angle,
-    name:              Option[NonEmptyString],
-    totalRequestTime:  Option[TimeSpan]
-  ) extends ObservingMode(mode.instrument) derives Eq:
-    def isCustomized: Boolean = false
-
-  object Visitor:
-    val mode: Lens[Visitor, VisitorObservingModeType]       =
-      Focus[Visitor](_.mode)
-    val centralWavelength: Lens[Visitor, CentralWavelength] =
-      Focus[Visitor](_.centralWavelength)
-    val agsDiameter: Lens[Visitor, Angle]                   =
-      Focus[Visitor](_.agsDiameter)
-    val name: Lens[Visitor, Option[NonEmptyString]]         =
-      Focus[Visitor](_.name)
-    val totalRequestTime: Lens[Visitor, Option[TimeSpan]]   =
-      Focus[Visitor](_.totalRequestTime)
-
-    given Decoder[Visitor] = Decoder.instance: c =>
-      for
-        mode <- c.downField("mode").as[VisitorObservingModeType]
-        cw   <- c.downField("centralWavelength").as[Wavelength]
-        gsms <- c.downField("agsDiameter").as[Angle]
-        name <- c.downField("name").as[Option[NonEmptyString]]
-        trt  <- c.downField("totalRequestTime").as[Option[TimeSpan]]
-      yield Visitor(mode, CentralWavelength(cw), gsms, name, trt)
-
   val visitor: Prism[ObservingMode, Visitor] =
     GenPrism[ObservingMode, Visitor]
+
+  val keckExchange: Prism[ObservingMode, KeckExchange] =
+    GenPrism[ObservingMode, KeckExchange]
+
+  val subaruExchange: Prism[ObservingMode, SubaruExchange] =
+    GenPrism[ObservingMode, SubaruExchange]
