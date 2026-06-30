@@ -79,7 +79,7 @@ object ResidentVisitorConfigPanel
             ExploreStyles.VisitorUpperGrid,
             LucumaPrimeStyles.FormColumnCompact,
             FormLabel(htmlFor = "visitor-instrument-name".refined)("Instrument Name"),
-            <.div(^.id := "visitor-instrument-name", mode.instrument.longName),
+            <.div(^.id := "visitor-instrument-name", mode.mode.instrument.longName),
             FormInputTextView(
               id = "visitor-central-wavelength".refined,
               value = centralWavelengthView,
@@ -102,7 +102,7 @@ object ResidentVisitorConfigPanel
             )(^.autoComplete.off),
             exposureTimeMode.asView.map: tcView =>
               TimeAndCountModeEditor(
-                instrument = mode.instrument.some,
+                instrument = mode.instrument,
                 value = tcView,
                 readonly = !props.permissions.isFullEdit,
                 calibrationRole = none,

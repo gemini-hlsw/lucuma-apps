@@ -87,7 +87,7 @@ case class AladinCell(
 
   // This matters for non-sidereals - not sure what to default to.
   // Probably doesn't matters, since we don't do much if there isn't a configuration.
-  val site: Site = obsConf.flatMap(_.configuration).map(_.siteFor).getOrElse(Site.GN)
+  val site: Site = obsConf.flatMap(_.configuration).flatMap(_.siteFor).getOrElse(Site.GN)
 
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, obsConf.flatMap(_.posAngleConstraint))

@@ -690,6 +690,17 @@ extension (o: ObservingMode.GhostIfu)
     explicitIfu2Agitator = o.explicitIfu2Agitator.orUnassign
   )
 
+extension (o: ObservingMode.KeckExchange)
+  def toInput: ExchangeInput = ExchangeInput(
+    keckInstrument = o.keckInstrument.assign,
+    totalRequestTime = o.totalRequestTime.toInput.assign
+  )
+
+extension (o: ObservingMode.SubaruExchange)
+  def toInput: ExchangeInput      = ExchangeInput(
+    subaruInstrument = o.subaruInstrument.assign,
+    totalRequestTime = o.totalRequestTime.toInput.assign
+  )
 extension (b: ObservingMode)
   def toInput: ObservingModeInput = b match
     case o: ObservingMode.GmosNorthLongSlit  =>
@@ -719,6 +730,10 @@ extension (b: ObservingMode)
           name = v.name.orUnassign,
           totalRequestTime = v.totalRequestTime.map(_.toInput).orUnassign
         )
+    case o: ObservingMode.KeckExchange       =>
+      ObservingModeInput.Exchange(o.toInput)
+    case o: ObservingMode.SubaruExchange     =>
+      ObservingModeInput.Exchange(o.toInput)
 
 extension (i: BasicConfiguration)
   def toInput: ObservingModeInput = i match
@@ -806,6 +821,20 @@ extension (i: BasicConfiguration)
           centralWavelength = centralWavelength.value.toInput.assign,
           agsDiameter = agsDiameter.toInput.assign
         )
+    case BasicConfiguration.KeckExchange(keckInstrument, totalRequestTime)                        =>
+      ObservingModeInput.Exchange(
+        ExchangeInput(
+          keckInstrument = keckInstrument.assign,
+          totalRequestTime = totalRequestTime.toInput.assign
+        )
+      )
+    case BasicConfiguration.SubaruExchange(subaruInstrument, totalRequestTime)                    =>
+      ObservingModeInput.Exchange(
+        ExchangeInput(
+          subaruInstrument = subaruInstrument.assign,
+          totalRequestTime = totalRequestTime.toInput.assign
+        )
+      )
 
 extension (er: ElevationRange)
   def toInput: ElevationRangeInput =

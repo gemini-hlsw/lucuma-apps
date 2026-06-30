@@ -284,7 +284,7 @@ object ObsTabContents extends TwoPanels:
                       ObjectPlotData(
                         NonEmptyString.unsafeFrom(s"${obs.title} (${obs.id.toString})"),
                         targets,
-                        obs.basicConfiguration.foldMap(conf => List(conf.siteFor))
+                        obs.basicConfiguration.flatMap(_.siteFor).foldMap(List(_))
                       )
               .flattenOption
               .toMap

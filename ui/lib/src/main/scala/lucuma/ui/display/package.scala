@@ -58,6 +58,10 @@ given Display[SequenceType] = Display.byShortName:
   case SequenceType.Acquisition => "Acquisition"
   case SequenceType.Science     => "Science"
 
+given Display[KeckInstrument] = Display.byShortName(_.tag.capitalize)
+
+given Display[SubaruInstrument] = Display.byShortName(_.tag.capitalize)
+
 given Display[VisitorObservingModeType] = Display.byShortName: mode =>
   val subMode = mode match
     case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>

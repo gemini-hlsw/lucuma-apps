@@ -205,7 +205,7 @@ object GhostIfuConfigPanel
             <.div(
               LucumaPrimeStyles.FormColumnCompact,
               TimeAndCountModeEditor(
-                instrument = mode.instrument.some,
+                instrument = mode.instrument,
                 value = timeAndCountView,
                 readonly = !props.permissions.isFullEdit,
                 calibrationRole = props.calibrationRole,

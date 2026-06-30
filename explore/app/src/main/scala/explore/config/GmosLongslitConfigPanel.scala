@@ -320,7 +320,7 @@ object GmosLongslitConfigPanel {
                 ),
                 dithersControl(props.sequenceChanged),
                 ExposureTimeModeEditor(
-                  instrument = props.instrument.some,
+                  instrument = props.instrument,
                   wavelength = none,
                   exposureTimeMode = exposureTimeMode(props.observingMode),
                   coadds = none,
@@ -433,7 +433,7 @@ object GmosLongslitConfigPanel {
                   <.div(
                     LucumaPrimeStyles.FormColumnCompact,
                     ExposureTimeModeEditor(
-                      instrument = props.observingMode.get.instrument.some,
+                      instrument = props.observingMode.get.instrument,
                       wavelength = none,
                       exposureTimeMode = acquisitionExposureTimeModeView(props.observingMode),
                       coadds = none,

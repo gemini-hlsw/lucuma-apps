@@ -44,6 +44,8 @@ object ODBSequencesLoader {
           (Breakpoints.fromExecutionConfig(ec), initialSequenceType(ec))
         case InstrumentExecutionConfig.Visitor(_)     =>
           ???
+        case InstrumentExecutionConfig.Exchange       =>
+          throw new NotImplementedError("Exchange instrument not supported")
 
     val seqState: SequenceState[F] =
       SequenceState.init(odbData.observation.id, seqType, initialBreakpoints)
@@ -122,6 +124,8 @@ object ODBSequencesLoader {
           visitStartDone = false
         )
       case InstrumentExecutionConfig.Visitor(_)     => ???
+      case InstrumentExecutionConfig.Exchange       =>
+        throw new NotImplementedError("Exchange instrument not supported")
 
     instrumentSequenceLens.replace(seqData.some)(st)
 

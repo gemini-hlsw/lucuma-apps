@@ -27,7 +27,9 @@ import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsGrating
 import lucuma.core.enums.GnirsPrism
+import lucuma.core.enums.KeckInstrument
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.SubaruInstrument
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.SignalToNoise
@@ -37,6 +39,7 @@ import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Display
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.ObservationDB.Types.ExchangeInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2ImagingInput
 import lucuma.schemas.ObservationDB.Types.Flamingos2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.GhostIfuInput
@@ -122,6 +125,12 @@ enum ObservingModeSummary derives Order:
     agsDiameter:       Angle,
     name:              Option[NonEmptyString]
   )                                                        extends ObservingModeSummary
+  case KeckExchange(
+    keckInstrument: KeckInstrument
+  )                                                        extends ObservingModeSummary
+  case SubaruExchange(
+    subaruInstrument: SubaruInstrument
+  )                                                        extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
     case GmosNorthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosNorthLongSlit
@@ -135,6 +144,8 @@ enum ObservingModeSummary derives Order:
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(_))  => ObservingModeType.GnirsIfu
     case GhostIfu(_, _, _, _)                   => ObservingModeType.GhostIfu
     case Visitor(mode, _, _, _)                 => mode
+    case KeckExchange(_)                        => ObservingModeType.ExchangeKeck
+    case SubaruExchange(_)                      => ObservingModeType.ExchangeSubaru
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
@@ -231,6 +242,20 @@ enum ObservingModeSummary derives Order:
           name = name.orUnassign
         )
       )
+    case KeckExchange(keckInstrument)                                                      =>
+      ObservingModeInput.Exchange(
+        ExchangeInput(
+          keckInstrument = keckInstrument.assign,
+          totalRequestTime = TimeSpan.Zero.toInput.assign
+        )
+      )
+    case SubaruExchange(subaruInstrument)                                                  =>
+      ObservingModeInput.Exchange(
+        ExchangeInput(
+          subaruInstrument = subaruInstrument.assign,
+          totalRequestTime = TimeSpan.Zero.toInput.assign
+        )
+      )
 
   // For the dropdown for selecting an existing configuration. The line breaks will be a single space in the dropdown,
   // but will be rendered with line breaks in the dropdown panel.
@@ -311,6 +336,10 @@ enum ObservingModeSummary derives Order:
         s"Gemini South Visitor: ${name.value}"
       case Visitor(mode, _, _, _)                                                            =>
         mode.shortName
+      case KeckExchange(keckInstrument)                                                      =>
+        s"Keck Exchange: ${keckInstrument.longName}"
+      case SubaruExchange(subaruInstrument)                                                  =>
+        s"Subaru Exchange: ${subaruInstrument.longName}"
 
 object ObservingModeSummary:
   // These are needed for derviving ObservingModeSummary's Order instance, but actual order is immaterial
@@ -388,6 +417,10 @@ object ObservingModeSummary:
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
       case v: ObservingMode.Visitor            =>
         Visitor(v.mode, v.centralWavelength, v.agsDiameter, v.name)
+      case k: ObservingMode.KeckExchange       =>
+        KeckExchange(k.keckInstrument)
+      case s: ObservingMode.SubaruExchange     =>
+        SubaruExchange(s.subaruInstrument)
 
   // TODO Can we unify this logic with the one in explore/model/src/main/scala/explore/model/display.scala
   // and/or observe/web/client-model/src/main/scala/observe/ui/model/ObsSummary.scala?
@@ -432,6 +465,10 @@ object ObservingModeSummary:
       s"Gemini South Visitor: ${name.value}"
     case Visitor(mode, _, _, _)                                                          =>
       mode.shortName
+    case KeckExchange(keckInstrument)                                                    =>
+      s"Keck Exchange: ${keckInstrument.longName}"
+    case SubaruExchange(subaruInstrument)                                                =>
+      s"Subaru Exchange: ${subaruInstrument.longName}"
 
   object GmosNorthImaging:
     given Order[GmosNorthImaging] =

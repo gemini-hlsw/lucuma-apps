@@ -79,7 +79,7 @@ object UseAgsCalculation:
     agsClient:      WorkerClient[IO, AgsMessage.Request]
   )(ctx: AppContext[IO]): IO[Unit] =
     obsCoords.baseCoords.map { baseCoords =>
-      val params = props.observingMode.map(_.agsParams(PortDisposition.Side, props.trackType))
+      val params = props.observingMode.flatMap(_.agsParams(PortDisposition.Side, props.trackType))
 
       // For AGS sky coordinates behave like science coords.
       val scienceCoords =

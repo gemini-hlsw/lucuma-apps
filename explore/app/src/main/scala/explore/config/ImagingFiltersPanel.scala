@@ -36,7 +36,7 @@ import lucuma.ui.utils.*
 import monocle.Lens
 
 case class ImagingFiltersPanel[ImagingFilter, Filter](
-  instrument:                   Instrument,
+  instrument:                   Option[Instrument],
   filtersView:                  View[NonEmptyList[ImagingFilter]],
   filterLens:                   Lens[ImagingFilter, Filter],
   etmLens:                      Lens[ImagingFilter, ExposureTimeMode],
@@ -136,7 +136,7 @@ object ImagingFiltersPanel:
                       )
                     ),
                     ExposureTimeModeEditor(
-                      instrument = props.instrument.some,
+                      instrument = props.instrument,
                       wavelength = none,
                       exposureTimeMode = imagingFilterView.zoom(props.etmLens),
                       coadds = none,

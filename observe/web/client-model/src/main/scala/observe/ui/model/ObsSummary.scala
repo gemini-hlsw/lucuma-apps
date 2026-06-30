@@ -30,6 +30,7 @@ import lucuma.core.util.Timestamp
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ObservingMode
+import lucuma.ui.display.given
 import monocle.Focus
 import org.typelevel.cats.time.*
 
@@ -106,6 +107,10 @@ case class ObsSummary(
           // For example:
           // GNIRS SB J/H/K-band imaging
           // GNIRS LB K-band imaging AO:LGS+P1
+        case BasicConfiguration.KeckExchange(keckInstrument, _)       =>
+          keckInstrument.longName.some
+        case BasicConfiguration.SubaruExchange(subaruInstrument, _)   =>
+          subaruInstrument.longName.some
 
   lazy val instrumentConfigurationSummary: String =
     s"${instrument.shortName} ${configurationSummary.orEmpty}"

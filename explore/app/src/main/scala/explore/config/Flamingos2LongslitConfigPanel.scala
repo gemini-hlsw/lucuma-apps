@@ -238,7 +238,7 @@ object Flamingos2LongslitConfigPanel
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
-                instrument = props.observingMode.get.instrument.some,
+                instrument = props.observingMode.get.instrument,
                 wavelength = none,
                 exposureTimeMode = exposureTimeMode,
                 coadds = none,
@@ -309,7 +309,7 @@ object Flamingos2LongslitConfigPanel
                 <.div(
                   LucumaPrimeStyles.FormColumnCompact,
                   ExposureTimeModeEditor(
-                    instrument = props.observingMode.get.instrument.some,
+                    instrument = props.observingMode.get.instrument,
                     wavelength = none,
                     exposureTimeMode = acquisitionExposureTimeView,
                     coadds = none,

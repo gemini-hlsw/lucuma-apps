@@ -89,7 +89,7 @@ final case class Observation(
   lazy val basicConfiguration: Option[BasicConfiguration] =
     observingMode.map(_.toBasicConfiguration)
 
-  val site: Option[Site] = observingMode.map(_.siteFor)
+  val site: Option[Site] = observingMode.flatMap(_.siteFor)
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =
     observingMode.map(ObservingModeSummary.fromObservingMode)
@@ -188,6 +188,7 @@ final case class Observation(
       case _ => none
 
   // Imaging modes can return multiple configs due to multiple filters.
+  // And exchange modes return an empty list.
   def toInstrumentConfig(targets: TargetList): List[ItcInstrumentConfig] =
     import ObservingMode.*
     val modeOverride: Option[InstrumentOverrides.GmosSpectroscopy] = toModeOverride(targets)
@@ -257,6 +258,8 @@ final case class Observation(
             )
           )
         case _: ObservingMode.Visitor            => List.empty
+        case _: ObservingMode.KeckExchange       => List.empty
+        case _: ObservingMode.SubaruExchange     => List.empty
 
   lazy val constraintsSummary: String =
     s"${constraints.imageQuality.toImageQuality.label} ${constraints.cloudExtinction.toCloudExtinction.label}" +
