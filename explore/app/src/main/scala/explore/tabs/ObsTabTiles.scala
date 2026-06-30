@@ -76,6 +76,7 @@ import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
@@ -482,6 +483,12 @@ object ObsTabTiles:
 
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
+          val skyPositions: List[(SlotId, lucuma.core.math.Coordinates)] =
+            props.observation.get.observingMode match
+              case Some(ghost: ObservingMode.GhostIfu) =>
+                ghost.skyPosition.map(SlotId.GhostIfu2 -> _).toList
+              case _                                   => Nil
+
           val ghostIfuMapping: Option[GhostIfuMapping] =
             props.observation.get.observingMode match
               case Some(ghost: ObservingMode.GhostIfu) =>
@@ -655,6 +662,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
+              skyPositions = skyPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some

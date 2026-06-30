@@ -8,6 +8,8 @@ import cats.derived.*
 import explore.model.ErrorMsgOr
 import explore.model.RegionOrCoordinatesAt
 import explore.targets.MotionCorrectedTarget
+import japgolly.scalajs.react.Reusability
+import japgolly.scalajs.react.ReactCats.*
 import lucuma.schemas.model.SlotId
 import lucuma.core.model.Target
 
@@ -17,14 +19,24 @@ enum AsterismRow derives Eq:
   case SkyRow(slot: SlotId, coords: Option[ErrorMsgOr[RegionOrCoordinatesAt]])
 
   // Stable id used by the table's getRowId usable for targets and sky pos
+  def rowKey: String = this match
+    case TargetRow(mct)  => mct.id.toString
+    case SkyRow(slot, _) => s"sky-${slot.tag}"
+
+  def location: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = this match
+    case TargetRow(mct) => mct.regionOrCoords
+    case SkyRow(_, c)   => c
+
   def toSelection: AsterismSelection = this match
     case TargetRow(mct)  => AsterismSelection.Target(mct.id)
     case SkyRow(slot, _) => AsterismSelection.Sky(slot)
 
-  def asAsterismSelection: AsterismSelection = toSelection
-
-  def asAsterismRow: AsterismRow = this
+object AsterismRow:
+  given Reusability[AsterismRow] = Reusability.byEq
 
 enum AsterismSelection derives Eq:
-  case Target(id: Target.Id)
+  case Target(id: lucuma.core.model.Target.Id)
   case Sky(slot: SlotId)
+
+object AsterismSelection:
+  given Reusability[AsterismSelection] = Reusability.byEq

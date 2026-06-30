@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.common.UserPreferencesQueries.ObservationPreferences
 import explore.components.*
 import explore.components.ColumnSelectorInTitle
 import explore.components.ui.ExploreStyles
@@ -37,6 +36,7 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ProgramType
+import lucuma.core.math.Coordinates
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
 import lucuma.core.model.Target
@@ -44,6 +44,7 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
@@ -80,6 +81,7 @@ final case class ObservationTargetsEditorTile(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
+  skyPositions:        List[(SlotId, Coordinates)] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None
@@ -189,7 +191,7 @@ object ObservationTargetsEditorTile
                   cb(obsTime, newValue.getOrElse(obsTime))
             ).withOnMod: ct =>
               props.odbApi
-                .updateVisualizationTimeAndDuration(props.obsIds.toList, ct.some)
+                .updateVisualizationTimeAndDuration(props.obsIds.toList, ct.some, none)
                 .runAsync
 
           val obsDurationView: View[Option[TimeSpan]] =
@@ -209,13 +211,22 @@ object ObservationTargetsEditorTile
                 .updateVisualizationTimeAndDuration(props.obsIds.toList, tuple._1.some, tuple._2)
                 .runAsync
 
-          val skyPositions: List[(lucuma.schemas.model.SlotId, lucuma.core.math.Coordinates)] =
-            props.obsConf.configuration
-              .flatMap(config =>
-                config.toMaybeGhostIfu
-                  .flatMap(_.skyPosition.map(lucuma.schemas.model.SlotId.GhostIfu2 -> _))
-              )
-              .toList
+          val editWarningMsg: Option[String] =
+            if (obsEditInfo.allAreOngoing)
+              if (obsEditInfo.editing.size > 1)
+                "All of the current observations are ongoing. Asterism is readonly.".some
+              else "The current observation is ongoing. Asterism is readonly.".some
+            else if (obsEditInfo.allAreCompleted)
+              if (obsEditInfo.editing.size > 1)
+                "All of the current observations have been completed. Asterism is readonly.".some
+              else "The current observation has been completed. Asterism is readonly.".some
+            else if (obsEditInfo.allAreExecuted)
+              if (obsEditInfo.editing.size > 1)
+                "All of the current observations have been executed. Asterism is readonly.".some
+              else "The current observation has been executed. Asterism is readonly.".some
+            else if (obsEditInfo.executed.isDefined)
+              "Adding and removing targets will only affect the unexecuted observations.".some
+            else none
 
           val obsTimeEditor = ObsTimeEditor(
             obsTimeView,
@@ -270,44 +281,67 @@ object ObservationTargetsEditorTile
                 fullScreen.get,
                 props.readonly || obsEditInfo.allAreExecuted,
                 props.blindOffsetInfo.map(_._2),
-                columnVisibility
+                columnVisibility,
+                skyPositions = props.skyPositions
               ),
-              (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
-               props.focusedTargetId
-              )
-                .mapN: (targets, focusedTargetId) =>
-                  val selectedTargetOpt: Option[UndoSetter[TargetWithMetadata]] =
-                    props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
-
-                  val obsInfo = props.obsInfo(focusedTargetId)
-
-                  <.div(
-                    ExploreStyles.TargetTileEditor,
-                    (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
-                      TargetEditor(
-                        props.programId,
-                        props.programType,
-                        userId,
-                        targetWithId,
-                        props.obsAndTargets,
-                        targets.focusOn(focusedTargetId),
-                        props.obsTime.get,
-                        props.obsConf.some,
-                        props.searching,
-                        onClone = props.onCloneTarget,
-                        obsInfo = obsInfo,
-                        fullScreen = fullScreen,
-                        userPreferences = props.userPreferences,
-                        guideStarSelection = props.guideStarSelection,
-                        attachments = props.attachments,
-                        authToken = props.authToken,
-                        readonly = props.readonly,
-                        allowEditingOngoing = props.allowEditingOngoing,
-                        isStaffOrAdmin = props.isStaffOrAdmin,
-                        invalidateSequence = props.sequenceChanged,
-                        blindOffsetInfo = props.blindOffsetInfo
+              if skySelected.get.isDefined then
+                skySelected.get.flatMap: slot =>
+                  props.skyPositions
+                    .find(_._1 === slot)
+                    .map: (_, currentCoords) =>
+                      val skyCoordsView: View[Coordinates] =
+                        View[Coordinates](
+                          currentCoords,
+                          (mod, cb) =>
+                            val nv = mod(currentCoords)
+                            cb(currentCoords, nv)
+                        ).withOnMod: coords =>
+                          props.odbApi
+                            .updateGhostIfu2SkyPosition(props.obsIds.toList, coords.some)
+                            .runAsync
+                      <.div(
+                        ExploreStyles.TargetTileEditor,
+                        SkyPositionEditor(skyCoordsView,
+                                          props.readonly || obsEditInfo.allAreExecuted
+                        )
                       )
-                  ).some
+              else
+                (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
+                 props.focusedTargetId
+                )
+                  .mapN: (targets, focusedTargetId) =>
+                    val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
+                      props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
+
+                    val obsInfo = props.obsInfo(focusedTargetId)
+
+                    <.div(
+                      ExploreStyles.TargetTileEditor,
+                      (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
+                        TargetEditor(
+                          props.programId,
+                          props.programType,
+                          userId,
+                          targetWithId,
+                          props.obsAndTargets,
+                          targets.focusOn(focusedTargetId),
+                          props.obsTime.get,
+                          props.obsConf.some,
+                          props.searching,
+                          onClone = props.onCloneTarget,
+                          obsInfo = obsInfo,
+                          fullScreen = fullScreen,
+                          userPreferences = props.userPreferences,
+                          guideStarSelection = props.guideStarSelection,
+                          attachments = props.attachments,
+                          authToken = props.authToken,
+                          readonly = props.readonly,
+                          allowEditingOngoing = props.allowEditingOngoing,
+                          isStaffOrAdmin = props.isStaffOrAdmin,
+                          invalidateSequence = props.sequenceChanged,
+                          blindOffsetInfo = props.blindOffsetInfo
+                        )
+                    ).some
             )
 
           TileContents(title, body)

@@ -14,11 +14,13 @@ import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.BlindOffset
 import explore.model.Constants
+import explore.model.ErrorMsgOr
 import explore.model.ObsIdSet
 import explore.model.ObservationRegionsOrCoordinatesAt
 import explore.model.ObservationTargets
 import explore.model.ObservationsAndTargets
 import explore.model.OnAsterismUpdateParams
+import explore.model.RegionOrCoordinatesAt
 import explore.model.enums.TableId
 import explore.model.reusability.given
 import explore.services.OdbAsterismApi
@@ -29,9 +31,9 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.math.Coordinates
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
-import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
@@ -41,6 +43,8 @@ import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.CoordinatesAt
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.LucumaStyles
@@ -62,14 +66,15 @@ case class TargetTable(
   // Targets are not modified here, we only modify which ones belong to the ObservationTargets.
   obsTargets:       Option[ObservationTargets],
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
-  selectedTarget:   View[Option[Target.Id]],
+  selectedTarget:   View[Option[AsterismSelection]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
   vizTime:          Option[Instant],
   site:             Option[Site],
   fullScreen:       AladinFullScreen,
   readOnly:         Boolean,
   blindOffset:      Option[View[BlindOffset]] = None,
-  columnVisibility: View[ColumnVisibility]
+  columnVisibility: View[ColumnVisibility],
+  skyPositions:     List[(SlotId, Coordinates)] = Nil
 ) extends ReactFnProps(TargetTable.component)
 
 object TargetTable:
@@ -81,7 +86,7 @@ object TargetTable:
     onAsterismUpdate: OnAsterismUpdateParams => Callback
   )
 
-  private val ColDef = ColumnDef[MotionCorrectedTarget].WithTableMeta[TableMeta]
+  private val ColDef = ColumnDef[AsterismRow].WithTableMeta[TableMeta]
 
   private val DeleteColumnId: ColumnId = ColumnId("delete")
 
@@ -146,27 +151,31 @@ object TargetTable:
                           .unless(readOnly)(
                             ColDef(
                               DeleteColumnId,
-                              _.id,
+                              _ => (),
                               "",
                               cell =>
-                                Button(
-                                  text = true,
-                                  clazz = ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                                  icon = Icons.Trash,
-                                  tooltip = "Delete",
-                                  onClickE = (e: ReactMouseEvent) =>
-                                    e.preventDefaultCB >>
-                                      e.stopPropagationCB >>
-                                      cell.table.options.meta.foldMap(m =>
-                                        deleteTarget(
-                                          m.obsIds,
-                                          m.obsAndTargets,
-                                          cell.row.original.targetWithId,
-                                          m.onAsterismUpdate,
-                                          props.blindOffset
-                                        )
-                                      )
-                                ).tiny.compact,
+                                cell.row.original match
+                                  case AsterismRow.TargetRow(mct) =>
+                                    Button(
+                                      text = true,
+                                      clazz =
+                                        ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                      icon = Icons.Trash,
+                                      tooltip = "Delete",
+                                      onClickE = (e: ReactMouseEvent) =>
+                                        e.preventDefaultCB >>
+                                          e.stopPropagationCB >>
+                                          cell.table.options.meta.foldMap(m =>
+                                            deleteTarget(
+                                              m.obsIds,
+                                              m.obsAndTargets,
+                                              mct.targetWithId,
+                                              m.onAsterismUpdate,
+                                              props.blindOffset
+                                            )
+                                          )
+                                    ).tiny.compact
+                                  case AsterismRow.SkyRow(_, _)   => EmptyVdom,
                               size = 35.toPx,
                               enableSorting = false
                             )
@@ -199,17 +208,29 @@ object TargetTable:
                   .build(obsTargets, vt, site)
                   .map: rorc =>
                     // we want the blind offset last (sc-7428)
-                    (rorc.science ++ rorc.blindOffset.toList).map(MotionCorrectedTarget.apply)
+                    (rorc.science ++ rorc.blindOffset.toList)
+                      .map { case (twi, loc) =>
+                        AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
+                      }
         tableState <- useMemo(props.columnVisibility.get): columnVisibility =>
                         PartialTableState(columnVisibility = columnVisibility)
         table      <- useReactTableWithStateStore:
                         import ctx.given
 
+                        val vt: Instant                = vizTime.value.toOption.getOrElse(Instant.now())
+                        val skyRows: List[AsterismRow] =
+                          props.skyPositions.map: (slot, coords) =>
+                            val loc: ErrorMsgOr[RegionOrCoordinatesAt] =
+                              CoordinatesAt(vt, coords).asRight.asRight
+                            AsterismRow.SkyRow(slot, loc.some)
+                        val allRows                    =
+                          rowsPot.value.map(_.toOption.orEmpty ++ skyRows)
+
                         TableOptionsWithStateStore(
                           TableOptions(
                             cols,
-                            rowsPot.value.map(_.toOption.orEmpty),
-                            getRowId = (row, _, _) => RowId(row.id.toString),
+                            allRows,
+                            getRowId = (row, _, _) => RowId(row.rowKey),
                             enableSorting = true,
                             enableColumnResizing = true,
                             columnResizeMode = ColumnResizeMode.OnChange,
@@ -221,7 +242,15 @@ object TargetTable:
                         )
         adding     <- useStateView(AreAdding(false))
       yield
-        if (rowsPot.value.map(_.toOption.orEmpty).isEmpty)
+        val vt: Instant     = vizTime.value.toOption.getOrElse(Instant.now())
+        val skyRows         =
+          props.skyPositions.map: (slot, coords) =>
+            val loc: ErrorMsgOr[RegionOrCoordinatesAt] =
+              CoordinatesAt(vt, coords).asRight.asRight
+            AsterismRow.SkyRow(slot, loc.some)
+        val allRowsForEmpty = rowsPot.value.map(_.toOption.orEmpty ++ skyRows)
+
+        if (allRowsForEmpty.isEmpty)
           if (props.readOnly)
             <.div(LucumaStyles.HVCenter)(Constants.NoTargets)
           else
@@ -250,8 +279,8 @@ object TargetTable:
               rowMod = rowTagMod: row =>
                 TagMod(
                   ExploreStyles.TableRowSelected
-                    .when_(props.selectedTarget.get.exists(_ === row.original.id)),
-                  ^.onClick --> props.selectedTarget.set(row.original.id.some)
+                    .when_(props.selectedTarget.get.exists(_ === row.original.toSelection)),
+                  ^.onClick --> props.selectedTarget.set(row.original.toSelection.some)
                 ),
               cellMod = cellTagMod(cell => ColumnClasses.get(cell.column.id).orEmpty)
             )

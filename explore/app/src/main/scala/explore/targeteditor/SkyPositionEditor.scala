@@ -4,7 +4,8 @@
 package explore.targeteditor
 
 import crystal.react.*
-import explore.components.ui.ExploreStyles
+import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.validation.given
 import lucuma.react.common.*
@@ -26,6 +27,14 @@ import lucuma.ui.syntax.all.given
 import explore.components.HelpIcon
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.math.validation.MathValidators
+import lucuma.react.common.ReactFnComponent
+import lucuma.react.common.ReactFnProps
+import lucuma.refined.*
+import lucuma.ui.input.ChangeAuditor
+import lucuma.ui.primereact.FormInputTextView
+import lucuma.ui.primereact.given
+import lucuma.ui.syntax.all.given
 
 case class SkyPositionEditor(
   coordinates: View[Coordinates],
