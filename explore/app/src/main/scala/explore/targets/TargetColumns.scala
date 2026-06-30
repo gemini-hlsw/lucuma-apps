@@ -142,11 +142,11 @@ object TargetColumns:
         case TargetDisposition.Calibration => "Calibration"
         case TargetDisposition.BlindOffset => "Blind Offset"
 
-      private given Order[TargetDisposition] = Order.by(_.ordinal)
+      def getTypeLabel(d: D): String = getDisposition(d).map(_.shortName).orEmpty
 
       lazy val TypeColumn: colDef.Type =
-        colDef(TypeColumnId, d => getDisposition(d), BaseColNames(TypeColumnId))
-          .withCell(_.value.map(_.shortName).orEmpty)
+        colDef(TypeColumnId, d => getTypeLabel(d), BaseColNames(TypeColumnId))
+          .withCell(_.value)
           .withSize(100.toPx)
           .sortable
 
@@ -273,6 +273,10 @@ object TargetColumns:
       def getTarget(d: D): Option[Target]             = getTargetFn(d)
       def getDisposition(d: D): Option[TargetDisposition] = getDispositionFn(d)
       def getName(d: D): String                       = getNameFn(d)
+
+      override def getTypeLabel(d: D): String =
+        if getTargetFn(d).isEmpty then "Sky"
+        else super.getTypeLabel(d)
 
       def icon(d: D): VdomNode =
         getTargetFn(d) match
