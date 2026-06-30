@@ -17,7 +17,6 @@ import explore.model.*
 import explore.model.enums.AppTab
 import explore.model.enums.GridLayoutSection
 import explore.model.enums.SelectedPanel
-import explore.model.layout.*
 import explore.model.reusability.given
 import explore.modes.ScienceModes
 import explore.observationtree.*
@@ -312,11 +311,7 @@ object ObsTabContents extends TwoPanels:
             ExploreGridLayouts.sectionLayout(GridLayoutSection.ObservationListLayout),
             props.userPreferences.get.observationListTabLayout,
             List(obsSummaryTableTile, skyPlotTile),
-            GridLayoutSection.ObservationListLayout,
-            onLayoutPersist = Some((lm: LayoutsMap) =>
-              props.userPreferences
-                .zoom(UserPreferences.gridLayouts)
-                .mod(_.updated(GridLayoutSection.ObservationListLayout, lm)))
+            GridLayoutSection.ObservationListLayout
           )
 
         def obsEditorTiles(obsId: Observation.Id, resize: UseResizeDetectorReturn): VdomNode = {

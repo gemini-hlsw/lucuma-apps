@@ -41,8 +41,7 @@ case class TileController(
   section:          GridLayoutSection,
   renderBackButton: Option[VdomNode] = None,
   clazz:            Option[Css] = None,
-  storeLayout:      Boolean = true,
-  onLayoutPersist:  Option[LayoutsMap => Callback] = None
+  storeLayout:      Boolean = true
 ) extends ReactFnProps(TileController.component):
   val tiles: List[TileState[?]] =
     tileDefs.map: t =>
@@ -97,15 +96,6 @@ object TileController:
         case r                                                                          => r
       }(p)
 
-  // Geometry equality (i/x/y/w/h), ignoring rgl-managed constraints like `minH`.
-  private def layoutEquiv(a: Layout, b: Layout): Boolean =
-    a.asList
-      .map(i => (i.i, i.x, i.y, i.w, i.h))
-      .corresponds(b.asList.map(i => (i.i, i.x, i.y, i.w, i.h)))(_ === _)
-
-  private def layoutEquiv(a: Option[Layout], b: Option[Layout]): Boolean =
-    (a, b).mapN(layoutEquiv).getOrElse(false)
-
   private val component =
     ScalaFnComponent[Props]: props =>
       for
@@ -122,29 +112,24 @@ object TileController:
         // Update the current layout if it changes upstream
         _             <- useEffectWithDeps((props.tiles.map(_.tileProps.hidden), props.layoutMap)):
                            (_, layout) => currentLayout.set(updateResizableState(props.tiles, layout))
-        // Layout replaced by the last `onLayoutChange`
-        lastReplaced  <- useState(none[(BreakpointName, Layout)])
       yield
         import ctx.given
 
         def setSizeState(id: Tile.TileId) = (st: TileSizeState) =>
-          // Compute the new layout once so the local write and optimistic persist match.
-          val f: LayoutItem => LayoutItem = {
-            case l if l.i === id.value =>
-              if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
-              else if (st === TileSizeState.Maximized)
-                val defaultHeight =
-                  unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
-                l.copy(
-                  h = defaultHeight,
-                  minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
-                )
-              else l
-            case l                     => l
-          }
-          val newLayoutsMap: LayoutsMap   = allTiles.modify(f)(currentLayout.get)
-          currentLayout.set(newLayoutsMap) >>
-            props.onLayoutPersist.fold(Callback.empty)(_(newLayoutsMap))
+          currentLayout
+            .zoom(allTiles)
+            .mod:
+              case l if l.i === id.value =>
+                if (st === TileSizeState.Minimized) l.copy(h = 1, minH = 1)
+                else if (st === TileSizeState.Maximized)
+                  val defaultHeight =
+                    unsafeTileHeight(id).headOption(props.defaultLayout).getOrElse(1)
+                  l.copy(
+                    h = defaultHeight,
+                    minH = scala.math.max(l.minH.getOrElse(1), defaultHeight)
+                  )
+                else l
+              case l                     => l
 
         val tilesWithBackButton: List[TileState[?]] = {
           val topTile =
@@ -190,37 +175,11 @@ object TileController:
               breakpoint
                 .setState(bk),
           onLayoutChange = (m: Layout, newLayouts: ResponsiveLayouts) =>
-            // ileController handles how we use react-grid-layout, it passes the layout in, and gets
-            // changes back via onLayoutChange. when we remove a tile (like for visitors) it compacts
-            // the layout (for example changes the y if a tile is removed), then reports the result
-            // via onLayoutChange
-            //
-            // TileController writes this new layout back into its own state, what seems to happen
-            // is we get into a loop where the tile fed back is different (after compactation) so
-            // it is written back as state and that gets into this loop that show itself as
-            // a React maximum update cycle
-            //
-            // The fix is to skip the write-back when the reported layout is the same as we have
-            //
-            // react-grid-layout's compaction isn't idempotent for mixed-width layouts, it
-            // re-emits two equivalent layouts in alternation.
-            // Storing each verbatim feeds the oscillation back as a new `layouts` prop -> infinite
-            // re-compaction ("Maximum update depth exceeded").
-            val bp            = breakpoint.value
-            val current       = currentLayout.get.get(bp).map(_._3)
-            // compare the reported layout with the current one to avoid storing the same layout twice
-            val isFixedPoint  = layoutEquiv(current, m.some)
-            // detect if there is a cycle and ignore, avoiding to update the local state
-            val isCycle       =
-              lastReplaced.value.exists((b, l) => b === bp && layoutEquiv(l.some, m.some))
-            val newLayoutsMap = breakpointLayout(bp).replace(m).apply(currentLayout.get)
-            Callback.when(!isFixedPoint && !isCycle)(
-              current.map(c => lastReplaced.setState((bp, c).some)).getOrEmpty >>
-                currentLayout.set(newLayoutsMap) >>
-                props.onLayoutPersist.map(_(newLayoutsMap)).getOrEmpty
-            ) >> storeLayouts(props.userId, props.section, newLayouts)
-              .when_(props.storeLayout)
-          ,
+            // Store the current layout in the state for debugging
+            currentLayout
+              .mod(breakpointLayout(breakpoint.value).replace(m)) *>
+              storeLayouts(props.userId, props.section, newLayouts)
+                .when_(props.storeLayout),
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>
