@@ -3,29 +3,14 @@
 
 package explore.targeteditor
 
-import crystal.react.*
-import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.Coordinates
-import lucuma.core.math.validation.given
-import lucuma.react.common.*
-import lucuma.ui.primereact.FormInputTextView
-import lucuma.react.syntax.*
-import lucuma.ui.primereact.*
 import lucuma.ui.syntax.*
-import lucuma.ui.syntax.all.given
-import lucuma.ui.input.ChangeAuditor
-import lucuma.react.common.*
 import crystal.react.*
 import japgolly.scalajs.react.React
-import lucuma.refined.*
 import japgolly.scalajs.react.*
 import lucuma.core.math.RightAscension
 import lucuma.core.math.Declination
-import lucuma.ui.syntax.all.*
-import lucuma.ui.syntax.all.given
 import explore.components.HelpIcon
-import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.math.validation.MathValidators
 import lucuma.react.common.ReactFnComponent

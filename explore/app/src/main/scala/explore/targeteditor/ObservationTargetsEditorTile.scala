@@ -44,7 +44,6 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
-import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given

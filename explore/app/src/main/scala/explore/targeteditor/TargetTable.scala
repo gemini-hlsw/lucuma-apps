@@ -128,6 +128,20 @@ object TargetTable:
       icon = Icons.SkullCrossBones(^.color.red)
     )
 
+  private def clearSkyPosition(
+    obsIds: ObsIdSet
+  )(using api: OdbObservationApi[IO], logger: Logger[IO]): Callback =
+    ConfirmDialog.confirmDialog(
+      message = <.div("Clear the sky position? This action cannot be undone."),
+      header = "Sky position delete",
+      acceptLabel = "Yes, clear",
+      accept = api.updateGhostIfu2SkyPosition(obsIds.toList, none).runAsync,
+      position = DialogPosition.Top,
+      acceptClass = PrimeStyles.ButtonSmall,
+      rejectClass = PrimeStyles.ButtonSmall,
+      icon = Icons.SkullCrossBones(^.color.red)
+    )
+
   private def deleteAsterismTarget(
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
@@ -175,7 +189,22 @@ object TargetTable:
                                             )
                                           )
                                     ).tiny.compact
-                                  case AsterismRow.SkyRow(_, _)   => EmptyVdom,
+                                  case AsterismRow.SkyRow(slot, _) =>
+                                    if slot === SlotId.GhostIfu2 then
+                                      Button(
+                                        text = true,
+                                        clazz =
+                                          ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                        icon = Icons.Trash,
+                                        tooltip = "Clear sky position",
+                                        onClickE = (e: ReactMouseEvent) =>
+                                          e.preventDefaultCB >>
+                                            e.stopPropagationCB >>
+                                            cell.table.options.meta.foldMap(m =>
+                                              clearSkyPosition(m.obsIds)
+                                            )
+                                      ).tiny.compact
+                                    else EmptyVdom,
                               size = 35.toPx,
                               enableSorting = false
                             )
