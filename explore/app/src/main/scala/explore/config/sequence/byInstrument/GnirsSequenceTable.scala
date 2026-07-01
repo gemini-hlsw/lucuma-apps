@@ -9,7 +9,6 @@ import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
-import lucuma.core.math.SignalToNoise
 import lucuma.core.model.sequence.*
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsStaticConfig
@@ -36,15 +35,10 @@ final case class GnirsSequenceTable(
   ]
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
-    with SpectroscopySequenceTable[GnirsDynamicConfig]:
+    with SpectroscopySequenceTable[GnirsDynamicConfig](useAcquisitionCoadds = true):
 
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
-
-  override def selectSNValue(seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
-    seqType match // In acquisition there can me multiple coadds, so we report the total S/N
-      case SequenceType.Acquisition => snAt.total.value
-      case SequenceType.Science     => snAt.single.value
 
 object GnirsSequenceTable
     extends SequenceTableBuilder[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)

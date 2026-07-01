@@ -7,14 +7,14 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.itc.SignalToNoiseAt
 
-import scala.annotation.unused
-
-trait SpectroscopySequenceTable[D]:
+trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
   def acquisitonSN: Option[SignalToNoiseAt]
   def scienceSN: Option[SignalToNoiseAt]
 
-  def selectSNValue(@unused seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
-    snAt.single.value
+  private def selectSNValue(seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
+    seqType match // For instruments that use coadds in acquisition, we have to report the total S/N.
+      case SequenceType.Acquisition if useAcquisitionCoadds => snAt.total.value
+      case _                                                => snAt.single.value
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise] =
     seqType =>
