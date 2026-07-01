@@ -1118,7 +1118,11 @@ object ObservingMode:
     given Decoder[GhostIfu] = Decoder.instance: c =>
       for {
         resolutionMode       <- c.downField("resolutionMode").as[GhostResolutionMode]
+        skyPosition          <- c.downField("skyPosition").as[Option[Coordinates]]
+        stepCount            <- c.downField("stepCount").as[PosInt]
+        red                  <- c.downField("red").as[GhostIfu.GhostDetector]
         blue                 <- c.downField("blue").as[GhostIfu.GhostDetector]
+        defaultIfu1Agitator  <- c.downField("defaultIfu1Agitator").as[GhostIfu1FiberAgitator]
         explicitIfu1Agitator <-
           c.downField("explicitIfu1Agitator").as[Option[GhostIfu1FiberAgitator]]
         defaultIfu2Agitator  <- c.downField("defaultIfu2Agitator").as[GhostIfu2FiberAgitator]
