@@ -56,7 +56,6 @@ object ColumnSelector
           onClickE = menuRef.toggle
         ),
         // PopuMenu has a bug where a seconf click is ignored, works with PopuTieredMenu
-        PopupTieredMenu(model = menuItems, clazz = props.clazz)
-          .withRef(menuRef.ref)
+        PopupTieredMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
       )
     )

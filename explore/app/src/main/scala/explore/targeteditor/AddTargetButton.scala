@@ -47,9 +47,10 @@ import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.primereact.*
-import lucuma.ui.syntax.effect.*
 import lucuma.ui.reusability.given
+import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoSetter
+import org.typelevel.log4cats.Logger
 
 case class AddTargetButton(
   label:            String,
@@ -75,6 +76,15 @@ object AddTargetButton
         props.targetList.mod: tl =>
           val removed = toDelete.fold(tl)(tl.removed)
           toAdd.fold(removed)(a => removed.updated(a.id, a))
+
+      def updateBlindOffset(
+        blindOffset: View[BlindOffset],
+        next:        BlindOffset,
+        toAdd:       Option[TargetWithId]
+      )(using Logger[IO]): IO[Unit] =
+        blindOffset.async
+          .modAndExtract(prev => (next, prev.blindOffsetTargetId))
+          .flatMap(prevId => updateTargetList(prevId, toAdd).toAsync)
 
       def insertTarget(
         programId:        Program.Id,
@@ -109,15 +119,15 @@ object AddTargetButton
         obsId:           Observation.Id,
         targetWithOptId: TargetWithOptId,
         blindOffset:     View[BlindOffset]
-      )(using api: OdbObservationApi[IO]): IO[Unit] =
+      )(using api: OdbObservationApi[IO], logger: Logger[IO]): IO[Unit] =
         api
           .setBlindOffsetTarget(obsId, targetWithOptId.target, BlindOffsetType.Manual)
           .flatMap(id =>
-            (updateTargetList(
-              blindOffset.get.blindOffsetTargetId,
+            updateBlindOffset(
+              blindOffset,
+              BlindOffset(true, id.some, BlindOffsetType.Manual),
               targetWithOptId.withId(id).some
-            ) >>
-              blindOffset.set(BlindOffset(true, id.some, BlindOffsetType.Manual))).toAsync
+            )
           )
 
       case class Action(
@@ -182,14 +192,11 @@ object AddTargetButton
         ): Callback =
           (ctx.odbApi
             .initializeAutomaticBlindOffset(obsId) >>
-            (updateTargetList(
-              blindOffset.get.blindOffsetTargetId,
+            updateBlindOffset(
+              blindOffset,
+              BlindOffset(true, none, BlindOffsetType.Automatic),
               none
-            ) >>
-              blindOffset
-                .set(
-                  BlindOffset(true, none, BlindOffsetType.Automatic)
-                )).toAsync)
+            ))
             .switching(props.adding.async, AreAdding(_))
             .runAsync
 

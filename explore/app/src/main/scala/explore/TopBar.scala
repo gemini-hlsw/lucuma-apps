@@ -45,9 +45,9 @@ import lucuma.ui.enums.Theme
 import lucuma.ui.layout.LayoutStyles
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.LucumaPrimeStyles
+import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
-import lucuma.ui.reusability.given
 import lucuma.ui.undo.UndoStacks
 import org.scalajs.dom.window
 import org.typelevel.log4cats.extras.LogLevel
@@ -331,8 +331,7 @@ object TopBar:
               )
             )
           ),
-          PopupTieredMenu(model = menuItems, clazz = ExploreStyles.TopMenu)
-            .withRef(menuRef.ref),
+          PopupTieredMenu(model = menuItems, clazz = ExploreStyles.TopMenu).withRef(menuRef.ref),
           if isAboutOpen.get.value then
             About(
               "Explore".refined,
