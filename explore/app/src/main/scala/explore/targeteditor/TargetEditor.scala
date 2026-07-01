@@ -75,28 +75,31 @@ import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 case class TargetEditor(
-  programId:           Program.Id,
-  programType:         ProgramType,
-  userId:              User.Id,
-  targetWithId:        UndoSetter[TargetWithId],
-  obsAndTargets:       UndoSetter[ObservationsAndTargets],
+  programId:                   Program.Id,
+  programType:                 ProgramType,
+  userId:                      User.Id,
+  targetWithId:                UndoSetter[TargetWithId],
+  obsAndTargets:               UndoSetter[ObservationsAndTargets],
   // TODO, we may derive obsTargets from obsAndTargets
-  obsTargets:          ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
-  obsTime:             Option[Instant],
-  obsConf:             Option[ObsConfiguration],
-  searching:           View[Set[Target.Id]],
-  obsInfo:             TargetEditObsInfo,
-  onClone:             OnCloneParameters => Callback,
-  fullScreen:          View[AladinFullScreen],
-  userPreferences:     View[UserPreferences],
-  guideStarSelection:  View[GuideStarSelection],
-  attachments:         View[AttachmentList],
-  authToken:           Option[NonEmptyString],
-  readonly:            Boolean,
-  allowEditingOngoing: Boolean,
-  isStaffOrAdmin:      Boolean,
-  invalidateSequence:  Callback = Callback.empty,
-  blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = none
+  obsTargets:                  ObservationTargets, // This is passed through to Aladin, to plot the entire ObservationTargets.
+  obsTime:                     Option[Instant],
+  obsConf:                     Option[ObsConfiguration],
+  searching:                   View[Set[Target.Id]],
+  obsInfo:                     TargetEditObsInfo,
+  onClone:                     OnCloneParameters => Callback,
+  fullScreen:                  View[AladinFullScreen],
+  userPreferences:             View[UserPreferences],
+  guideStarSelection:          View[GuideStarSelection],
+  attachments:                 View[AttachmentList],
+  authToken:                   Option[NonEmptyString],
+  readonly:                    Boolean,
+  allowEditingOngoing:         Boolean,
+  isStaffOrAdmin:              Boolean,
+  invalidateSequence:          Callback = Callback.empty,
+  blindOffsetInfo:             Option[(Observation.Id, View[BlindOffset])] = none,
+  renderAladin:                Boolean = true,
+  externalObsToCloneTo:        Option[View[Option[ObsIdSet]]] = None,
+  externalReadonlyForStatuses: Option[View[Boolean]] = None
 ) extends ReactFnProps(TargetEditor.component):
   def toManualBlindOffset: Callback =
     if targetWithId.get.disposition === TargetDisposition.BlindOffset then
@@ -172,16 +175,16 @@ object TargetEditor:
   private val component =
     ScalaFnComponent[Props]: props =>
       for
-        ctx                 <- useContext(AppContext.ctx)
-        cloning             <- useStateView(false)
-        obsToCloneTo        <- useStateView(none[ObsIdSet]) // obs ids to clone to.
-        // flag for readonly based on the execution status of the observation(s)
-        readonlyForStatuses <- useStateView(false)
+        ctx                         <- useContext(AppContext.ctx)
+        cloning                     <- useStateView(false)
+        internalObsToCloneTo        <- useStateView(none[ObsIdSet])
+        internalReadonlyForStatuses <- useStateView(false)
         // If obsTime is not set, change it to now at the start of the day in UTC.
-        obsTime             <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
-                                 IO(obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS)))
+        obsTime                     <- useEffectKeepResultWithDeps(props.obsTime): obsTime =>
+                                         IO(obsTime.getOrElse(Instant.now().truncatedTo(ChronoUnit.DAYS)))
         // select the aligner to use based on whether a clone will be created or not.
-        targetAligner       <-
+        targetAligner               <-
+          val obsToCloneTo = props.externalObsToCloneTo.getOrElse(internalObsToCloneTo)
           useMemo(
             (props.programId,
              props.targetWithId.get.target,
@@ -223,6 +226,10 @@ object TargetEditor:
               )
       yield
         import ctx.given
+
+        val obsToCloneTo        = props.externalObsToCloneTo.getOrElse(internalObsToCloneTo)
+        val readonlyForStatuses =
+          props.externalReadonlyForStatuses.getOrElse(internalReadonlyForStatuses)
 
         val disabled: Boolean =
           props.searching.get.exists(_ === props.obsTargets.focus.id) ||
@@ -490,77 +497,92 @@ object TargetEditor:
                     ctx.odbApi.updateGhostIfu2SkyPosition(obsIds.idSet.toList, none).toastErrors
                   case _                => IO.unit
 
-        React.Fragment(
-          TargetCloneSelector(
-            props.obsInfo,
-            obsToCloneTo,
-            readonlyForStatuses,
-            props.allowEditingOngoing
-          ),
-          <.div(ExploreStyles.TargetGrid)(
-            // If there is a ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
-            obsTime.value.renderPot(ot =>
-              AladinCell(
-                props.userId,
-                props.obsTargets,
-                ot,
-                props.obsConf,
-                props.fullScreen,
-                props.userPreferences,
-                props.guideStarSelection,
-                props.blindOffsetInfo,
-                props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
-                assignSky,
-                resetSky,
-                props.isStaffOrAdmin,
-                props.readonly
-              )
+        val formColumn =
+          <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
+            // Keep the search field and the coords always together
+            SearchForm(
+              props.obsTargets.focus.id,
+              // SearchForm doesn't edit the name directly. It will set it atomically, together
+              // with coords & magnitudes from the catalog search, so that all 3 fields are
+              // a single undo/redo operation.
+              nameView,
+              targetSources,
+              allView.set,
+              props.searching,
+              disabled,
+              cloning.get,
+              disableSearch =
+                props.targetWithId.get.disposition === TargetDisposition.BlindOffset ||
+                  props.targetWithId.get.isTargetOfOpportunity
             ),
-            <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
-              // Keep the search field and the coords always together
-              SearchForm(
-                props.obsTargets.focus.id,
-                // SearchForm doesn't edit the name directly. It will set it atomically, together
-                // with coords & magnitudes from the catalog search, so that all 3 fields are
-                // a single undo/redo operation.
-                nameView,
-                targetSources,
-                allView.set,
-                props.searching,
-                disabled,
-                cloning.get,
-                disableSearch =
-                  props.targetWithId.get.disposition === TargetDisposition.BlindOffset ||
-                    props.targetWithId.get.isTargetOfOpportunity
+            optSiderealAligner.map(siderealCoordinates),
+            optOpportunityAligner.map(opportunityRegion),
+            ephemerisKey
+          )
+
+        val sourceProfileColumn =
+          <.div(
+            ExploreStyles.Grid,
+            ExploreStyles.Compact,
+            LucumaPrimeStyles.FormColumnVeryCompact,
+            ExploreStyles.TargetSourceProfileEditor,
+            ExploreStyles.WithGaussian
+              .when(SourceProfile.gaussian.getOption(sourceProfileAligner.get).isDefined),
+            ExploreStyles.WithCatalogInfo
+              .when(catalogInfo.flatMap(_.objectType).isDefined)
+          )(
+            // The `withKey` is important because React wasn't updating the BrightnessesEditor
+            // or the EmissionsLineEditor when the obsIdSubset changed, resulting in targets always
+            // being cloned even when all targets should have been edited.
+            SourceProfileEditor(
+              props.programId,
+              sourceProfileAligner,
+              catalogInfo,
+              props.attachments,
+              props.authToken,
+              props.obsConf.flatMap(_.calibrationRole),
+              disabled,
+              props.userPreferences.get.globalPreferences.wavelengthUnits
+            ).withKey(obsToCloneTo.get.fold("none")(_.show))
+          )
+
+        if props.renderAladin then
+          React.Fragment(
+            TargetCloneSelector(
+              props.obsInfo,
+              obsToCloneTo,
+              readonlyForStatuses,
+              props.allowEditingOngoing
+            ),
+            <.div(ExploreStyles.TargetGrid)(
+              // If there is a ToO in the obsTargets, we won't have a baseTracking and will skip visualization.
+              obsTime.value.renderPot(ot =>
+                AladinCell(
+                  props.userId,
+                  props.obsTargets,
+                  ot,
+                  props.obsConf,
+                  props.fullScreen,
+                  props.userPreferences,
+                  props.guideStarSelection,
+                  props.blindOffsetInfo,
+                  props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
+                  assignSky,
+                  resetSky,
+                  props.isStaffOrAdmin,
+                  props.readonly
+                )
               ),
-              optSiderealAligner.map(siderealCoordinates),
-              optOpportunityAligner.map(opportunityRegion),
-              ephemerisKey
-            ),
-            optSiderealAligner.map(siderealTracking),
-            <.div(
-              ExploreStyles.Grid,
-              ExploreStyles.Compact,
-              LucumaPrimeStyles.FormColumnVeryCompact,
-              ExploreStyles.TargetSourceProfileEditor,
-              ExploreStyles.WithGaussian
-                .when(SourceProfile.gaussian.getOption(sourceProfileAligner.get).isDefined),
-              ExploreStyles.WithCatalogInfo
-                .when(catalogInfo.flatMap(_.objectType).isDefined)
-            )(
-              // The `withKey` is important because React wasn't updating the BrightnessesEditor
-              // or the EmissionsLineEditor when the obsIdSubset changed, resulting in targets always
-              // being cloned even when all targets should have been edited.
-              SourceProfileEditor(
-                props.programId,
-                sourceProfileAligner,
-                catalogInfo,
-                props.attachments,
-                props.authToken,
-                props.obsConf.flatMap(_.calibrationRole),
-                disabled,
-                props.userPreferences.get.globalPreferences.wavelengthUnits
-              ).withKey(obsToCloneTo.get.fold("none")(_.show))
+              formColumn,
+              optSiderealAligner.map(siderealTracking),
+              sourceProfileColumn
             )
           )
-        )
+        else
+          // Form columns only — no grid wrapper, no AladinCell, no TargetCloneSelector.
+          // The caller renders TargetCloneSelector before the grid at the tile level.
+          React.Fragment(
+            formColumn,
+            optSiderealAligner.map(siderealTracking),
+            sourceProfileColumn
+          )

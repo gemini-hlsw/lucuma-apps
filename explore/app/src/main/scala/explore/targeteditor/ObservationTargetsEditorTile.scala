@@ -143,8 +143,10 @@ object ObservationTargetsEditorTile
                                       preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
                                     props.setTarget(tid, SetRouteVia.HistoryReplace)
                                   case _    => Callback.empty
-          skySelected      <- useStateView(none[SlotId])
-          fullScreen       <- useStateView(AladinFullScreen.Normal)
+          skySelected             <- useStateView(none[SlotId])
+          fullScreen              <- useStateView(AladinFullScreen.Normal)
+          obsToCloneTo            <- useStateView(none[ObsIdSet])
+          readonlyForStatuses     <- useStateView(false)
         yield
           import ctx.given
 
@@ -270,6 +272,83 @@ object ObservationTargetsEditorTile
                 )
             )
 
+          val editorReadonly = props.readonly || obsEditInfo.allAreExecuted
+
+          // Sky position callbacks used by AladinCell for both sky and target selection.
+          val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
+            Option.unless(editorReadonly): (slot, coords) =>
+              props.slotSkyPositions
+                .collectFirst { case (`slot`, v) => v }
+                .foldMap(_.set(Some(coords)).to[IO])
+
+          val resetSky: Option[SlotId => IO[Unit]] =
+            Option.unless(editorReadonly): slot =>
+              props.slotSkyPositions
+                .collectFirst { case (`slot`, v) => v }
+                .foldMap(_.set(None).to[IO])
+
+          // ObservationTargets for AladinCell: focused on the selected target when editing a
+          // target, or the full asterism when editing a sky position.
+          val obsTargetsForAladin: Option[ObservationTargets] =
+            selectedAsterismSelection.get match
+              case Some(AsterismSelection.Target(tid)) =>
+                ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get)
+                  .map(_.focusOn(tid))
+              case _                                   =>
+                ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get)
+
+          // Form panel that changes with selection; AladinCell stays at the same tree position.
+          val formContent: VdomNode =
+            if skySelected.get.isDefined then
+              skySelected.get.flatMap: slot =>
+                props.slotSkyPositions
+                  .collectFirst { case (`slot`, v) => v }
+                  .flatMap: view =>
+                    view.get.map: _ =>
+                      val skyCoordsView: View[Coordinates] =
+                        view.zoom(
+                          Lens[Option[Coordinates], Coordinates](_.getOrElse(Coordinates.Zero))(
+                            c => _ => Some(c)
+                          )
+                        )
+                      <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
+                        SkyPositionEditor(skyCoordsView, editorReadonly)
+                      )
+            else
+              (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
+               props.focusedTargetId
+              ).mapN: (targets, focusedTargetId) =>
+                val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
+                  props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
+                val obsInfo                                              = props.obsInfo(focusedTargetId)
+                (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
+                  TargetEditor(
+                    props.programId,
+                    props.programType,
+                    userId,
+                    targetWithId,
+                    props.obsAndTargets,
+                    targets.focusOn(focusedTargetId),
+                    props.obsTime.get,
+                    props.obsConf.some,
+                    props.searching,
+                    onClone = props.onCloneTarget,
+                    obsInfo = obsInfo,
+                    fullScreen = fullScreen,
+                    userPreferences = props.userPreferences,
+                    guideStarSelection = props.guideStarSelection,
+                    attachments = props.attachments,
+                    authToken = props.authToken,
+                    readonly = props.readonly,
+                    allowEditingOngoing = props.allowEditingOngoing,
+                    isStaffOrAdmin = props.isStaffOrAdmin,
+                    invalidateSequence = props.sequenceChanged,
+                    blindOffsetInfo = props.blindOffsetInfo,
+                    renderAladin = false,
+                    externalObsToCloneTo = obsToCloneTo.some,
+                    externalReadonlyForStatuses = readonlyForStatuses.some
+                  )
+
           val body =
             <.div(ExploreStyles.AladinFullScreen.when(fullScreen.get.value))(
               editWarningMsg.map(msg => <.div(ExploreStyles.SharedEditWarning, msg)),
@@ -284,106 +363,42 @@ object ObservationTargetsEditorTile
                 props.obsTime.get,
                 distinctSite,
                 fullScreen.get,
-                props.readonly || obsEditInfo.allAreExecuted,
+                editorReadonly,
                 props.blindOffsetInfo.map(_._2),
                 columnVisibility,
                 skyPositions = skyPositions,
                 clearSkyPosition = clearSkyCallbacks
               ),
-              if skySelected.get.isDefined then
-                skySelected.get.flatMap: slot =>
-                  props.slotSkyPositions
-                    .collectFirst { case (`slot`, v) => v }
-                    .flatMap: view =>
-                      view.get.map: _ =>
-                        val skyCoordsView: View[Coordinates] =
-                          view.zoom(
-                            Lens[Option[Coordinates], Coordinates](_.getOrElse(Coordinates.Zero))(
-                              c => _ => Some(c)
-                            )
-                          )
-                        val readonly = props.readonly || obsEditInfo.allAreExecuted
-
-                        val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
-                          Some: (s, coords) =>
-                            props.slotSkyPositions
-                              .collectFirst { case (`s`, v) => v }
-                              .foldMap(_.set(Some(coords)).to[IO])
-
-                        val resetSky: Option[SlotId => IO[Unit]] =
-                          Some: s =>
-                            props.slotSkyPositions
-                              .collectFirst { case (`s`, v) => v }
-                              .foldMap(_.set(None).to[IO])
-
-                        <.div(
-                          ExploreStyles.TargetTileEditor,
-                          (ObservationTargets.fromIdsAndTargets(targetIds,
-                                                                props.allTargets.get
-                          ),
-                           props.userId
-                          ).mapN: (targets, uid) =>
-                            <.div(ExploreStyles.TargetGrid)(
-                              AladinCell(
-                                uid,
-                                targets,
-                                obsTime,
-                                props.obsConf.some,
-                                fullScreen,
-                                props.userPreferences,
-                                props.guideStarSelection,
-                                props.blindOffsetInfo,
-                                props.obsAndTargets.model
-                                  .zoom(ObservationsAndTargets.targets),
-                                assignSky,
-                                resetSky,
-                                props.isStaffOrAdmin,
-                                readonly
-                              ),
-                              <.div(LucumaPrimeStyles.FormColumnVeryCompact,
-                                    ExploreStyles.TargetForm
-                              )(
-                                SkyPositionEditor(skyCoordsView, readonly)
-                              )
-                            )
-                        )
-              else
-                (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
-                 props.focusedTargetId
-                )
-                  .mapN: (targets, focusedTargetId) =>
-                    val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
-                      props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
-
-                    val obsInfo = props.obsInfo(focusedTargetId)
-
-                    <.div(
-                      ExploreStyles.TargetTileEditor,
-                      (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
-                        TargetEditor(
-                          props.programId,
-                          props.programType,
-                          userId,
-                          targetWithId,
-                          props.obsAndTargets,
-                          targets.focusOn(focusedTargetId),
-                          props.obsTime.get,
-                          props.obsConf.some,
-                          props.searching,
-                          onClone = props.onCloneTarget,
-                          obsInfo = obsInfo,
-                          fullScreen = fullScreen,
-                          userPreferences = props.userPreferences,
-                          guideStarSelection = props.guideStarSelection,
-                          attachments = props.attachments,
-                          authToken = props.authToken,
-                          readonly = props.readonly,
-                          allowEditingOngoing = props.allowEditingOngoing,
-                          isStaffOrAdmin = props.isStaffOrAdmin,
-                          invalidateSequence = props.sequenceChanged,
-                          blindOffsetInfo = props.blindOffsetInfo
-                        )
-                    ).some
+              // Shared-target ("this target is used in N observations") warning belongs with the
+              // table, not the editor/aladin area below.
+              props.focusedTargetId.filterNot(_ => skySelected.get.isDefined).map: tid =>
+                TargetCloneSelector(
+                  props.obsInfo(tid),
+                  obsToCloneTo,
+                  readonlyForStatuses,
+                  props.allowEditingOngoing
+                ),
+              <.div(ExploreStyles.TargetTileEditor)(
+                (obsTargetsForAladin, props.userId).mapN: (aladinTargets, uid) =>
+                  <.div(ExploreStyles.TargetGrid)(
+                    AladinCell(
+                      uid,
+                      aladinTargets,
+                      obsTime,
+                      props.obsConf.some,
+                      fullScreen,
+                      props.userPreferences,
+                      props.guideStarSelection,
+                      props.blindOffsetInfo,
+                      props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
+                      assignSky,
+                      resetSky,
+                      props.isStaffOrAdmin,
+                      editorReadonly
+                    ),
+                    formContent
+                  )
+              )
             )
 
           TileContents(title, body)
