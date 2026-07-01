@@ -6,6 +6,8 @@ package observe.ui.components.sequence.byInstrument
 import crystal.react.View
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Instrument
+import lucuma.core.enums.SequenceType
+import lucuma.core.math.SignalToNoise
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.ExecutionConfig
 import lucuma.core.model.sequence.Step
@@ -44,6 +46,11 @@ case class GnirsSequenceTable(
     with SpectroscopySequenceTable[GnirsDynamicConfig]:
   lazy val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
+
+  override def selectSNValue(seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
+    seqType match // In acquisition there can me multiple coadds, so we report the total S/N
+      case SequenceType.Acquisition => snAt.total.value
+      case SequenceType.Science     => snAt.single.value
 
 object GnirsSequenceTable
     extends SequenceTableBuilder[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)

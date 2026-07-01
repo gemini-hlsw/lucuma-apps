@@ -14,8 +14,8 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ExchangeObservingModeType
 import lucuma.core.enums.FacilityObservingModeType
-import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.enums.ObservingModeType
+import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.Configuration
 import lucuma.core.model.Configuration.ObservingMode.*

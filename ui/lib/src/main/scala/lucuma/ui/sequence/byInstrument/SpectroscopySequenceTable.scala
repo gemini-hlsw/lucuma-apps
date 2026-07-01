@@ -7,9 +7,14 @@ import lucuma.core.enums.SequenceType
 import lucuma.core.math.SignalToNoise
 import lucuma.itc.SignalToNoiseAt
 
+import scala.annotation.unused
+
 trait SpectroscopySequenceTable[D]:
   def acquisitonSN: Option[SignalToNoiseAt]
   def scienceSN: Option[SignalToNoiseAt]
+
+  def selectSNValue(@unused seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
+    snAt.single.value
 
   def signalToNoise: SequenceType => D => Option[SignalToNoise] =
     seqType =>
@@ -18,4 +23,4 @@ trait SpectroscopySequenceTable[D]:
           seqType match
             case SequenceType.Acquisition => acquisitonSN
             case SequenceType.Science     => scienceSN
-        snPerClass.map(_.single.value)
+        snPerClass.map(selectSNValue(seqType))
