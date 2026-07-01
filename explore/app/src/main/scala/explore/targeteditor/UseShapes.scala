@@ -211,7 +211,7 @@ def useVisualizationShapes(
       (vizConf.map(_.configuration.obsModeType), baseCoordinates).flatMapN: (conf, baseCoords) =>
         conf match
           case ObservingModeType.Flamingos2LongSlit                                      =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -232,7 +232,7 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.Flamingos2Imaging                                       =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -253,7 +253,7 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.GmosNorthLongSlit | ObservingModeType.GmosSouthLongSlit =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -274,7 +274,7 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.GmosNorthImaging | ObservingModeType.GmosSouthImaging   =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.GmosCcdVisible |+| VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -295,7 +295,7 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.Igrins2LongSlit                                         =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -315,7 +315,7 @@ def useVisualizationShapes(
             ).some
           case ObservingModeType.GhostIfu                                                =>
             val probeVisibilityCss = VisualizationStyles.GhostIfuPatrolFieldVisible |+|
-              (vizConf.map(_.guideProbe) match
+              (vizConf.flatMap(_.guideProbe) match
                 case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                   VisualizationStyles.PwfsProbeArmVisible
                 case _                                               =>
@@ -346,7 +346,7 @@ def useVisualizationShapes(
              )
             ).some
           case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu              =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>
@@ -365,7 +365,7 @@ def useVisualizationShapes(
              )
             ).some
           case _: VisitorObservingModeType                                               =>
-            val probeVisibilityCss = vizConf.map(_.guideProbe) match
+            val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible
               case _                                               =>

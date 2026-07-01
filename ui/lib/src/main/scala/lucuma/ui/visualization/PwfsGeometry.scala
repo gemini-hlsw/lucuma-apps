@@ -54,7 +54,7 @@ trait PwfsGeometry extends WithPwfsGeometry:
     posAngle(gs, fallbackPosAngle)
       .map: posAngle =>
         val candidatesArea: SortedMap[Css, ShapeExpression] =
-          conf.map(_.guideProbe(trackType)) match
+          conf.flatMap(_.guideProbe(trackType)) match
             case Some(GuideProbe.PWFS1 | GuideProbe.PWFS2) =>
               pwfsCandidatesArea(candidatesAreaCss, posAngle, candidatesVisibilityCss)
             case _                                         =>
@@ -64,7 +64,7 @@ trait PwfsGeometry extends WithPwfsGeometry:
 
         val probe = gs.map: gs =>
           val gsOffset   = referenceCoordinates.diff(gs.target.tracking.baseCoordinates).offset
-          val probeShape = conf.map(_.guideProbe(trackType)) match
+          val probeShape = conf.flatMap(_.guideProbe(trackType)) match
             case Some(p @ (GuideProbe.PWFS1 | GuideProbe.PWFS2)) =>
               pwfsProbeShapes(p, gsOffset, Offset.Zero)
             case _                                               =>
