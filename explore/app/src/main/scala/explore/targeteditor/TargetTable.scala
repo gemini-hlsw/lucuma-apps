@@ -29,9 +29,9 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Site
 import lucuma.core.enums.TargetDisposition
+import lucuma.core.math.Coordinates
 import lucuma.core.model.Observation
 import lucuma.core.model.Program
-import lucuma.core.model.Target
 import lucuma.core.model.User
 import lucuma.react.common.Css
 import lucuma.react.common.ReactFnProps
@@ -41,6 +41,8 @@ import lucuma.react.primereact.DialogPosition
 import lucuma.react.primereact.PrimeStyles
 import lucuma.react.syntax.*
 import lucuma.react.table.*
+import lucuma.schemas.model.CoordinatesAt
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.ui.LucumaStyles
@@ -62,14 +64,16 @@ case class TargetTable(
   // Targets are not modified here, we only modify which ones belong to the ObservationTargets.
   obsTargets:       Option[ObservationTargets],
   obsAndTargets:    UndoSetter[ObservationsAndTargets],
-  selectedTarget:   View[Option[Target.Id]],
+  selectedTarget:   View[Option[AsterismSelection]],
   onAsterismUpdate: OnAsterismUpdateParams => Callback,
   vizTime:          Option[Instant],
   site:             Option[Site],
   fullScreen:       AladinFullScreen,
   readOnly:         Boolean,
   blindOffset:      Option[View[BlindOffset]] = None,
-  columnVisibility: View[ColumnVisibility]
+  columnVisibility: View[ColumnVisibility],
+  skyPositions:     List[(SlotId, Coordinates)] = Nil,
+  clearSkyPosition: SlotId => Option[Callback] = _ => None
 ) extends ReactFnProps(TargetTable.component)
 
 object TargetTable:
@@ -78,10 +82,11 @@ object TargetTable:
   case class TableMeta(
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
-    onAsterismUpdate: OnAsterismUpdateParams => Callback
+    onAsterismUpdate: OnAsterismUpdateParams => Callback,
+    clearSkyPosition: SlotId => Option[Callback]
   )
 
-  private val ColDef = ColumnDef[MotionCorrectedTarget].WithTableMeta[TableMeta]
+  private val ColDef = ColumnDef[AsterismRow].WithTableMeta[TableMeta]
 
   private val DeleteColumnId: ColumnId = ColumnId("delete")
 
@@ -146,68 +151,126 @@ object TargetTable:
                           .unless(readOnly)(
                             ColDef(
                               DeleteColumnId,
-                              _.id,
+                              _ => (),
                               "",
                               cell =>
-                                Button(
-                                  text = true,
-                                  clazz = ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                                  icon = Icons.Trash,
-                                  tooltip = "Delete",
-                                  onClickE = (e: ReactMouseEvent) =>
-                                    e.preventDefaultCB >>
-                                      e.stopPropagationCB >>
-                                      cell.table.options.meta.foldMap(m =>
-                                        deleteTarget(
-                                          m.obsIds,
-                                          m.obsAndTargets,
-                                          cell.row.original.targetWithId,
-                                          m.onAsterismUpdate,
-                                          props.blindOffset
-                                        )
-                                      )
-                                ).tiny.compact,
+                                cell.row.original match
+                                  case AsterismRow.TargetRow(mct)  =>
+                                    Button(
+                                      text = true,
+                                      clazz =
+                                        ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                      icon = Icons.Trash,
+                                      tooltip = "Delete",
+                                      onClickE = (e: ReactMouseEvent) =>
+                                        e.preventDefaultCB >>
+                                          e.stopPropagationCB >>
+                                          cell.table.options.meta.foldMap(m =>
+                                            deleteTarget(
+                                              m.obsIds,
+                                              m.obsAndTargets,
+                                              mct.targetWithId,
+                                              m.onAsterismUpdate,
+                                              props.blindOffset
+                                            )
+                                          )
+                                    ).tiny.compact
+                                  case AsterismRow.SkyRow(slot, _) =>
+                                    cell.table.options.meta
+                                      .flatMap(_.clearSkyPosition(slot)) match
+                                      case Some(cb) =>
+                                        Button(
+                                          text = true,
+                                          clazz =
+                                            ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
+                                          icon = Icons.Trash,
+                                          tooltip = "Clear sky position",
+                                          onClickE = (e: ReactMouseEvent) =>
+                                            e.preventDefaultCB >>
+                                              e.stopPropagationCB >>
+                                              cb
+                                        ).tiny.compact
+                                      case None     => EmptyVdom,
                               size = 35.toPx,
                               enableSorting = false
                             )
                           )
                           .toList ++
-                          TargetColumns.Builder.ForProgram(ColDef, _.regionOrCoords).AllColumns
+                          TargetColumns.Builder
+                            .ForProgram(
+                              ColDef,
+                              _ match
+                                case AsterismRow.TargetRow(mct) => mct.target.some
+                                case _                          => none,
+                              _ match
+                                case AsterismRow.TargetRow(mct) => mct.disposition.some
+                                case _                          => none,
+                              _ match
+                                case AsterismRow.TargetRow(mct)  => mct.target.name.value
+                                case AsterismRow.SkyRow(slot, _) => s"${slot.shortName} Sky",
+                              (r: AsterismRow) => r.location
+                            )
+                            .AllColumns
         vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>
                         IO(vizTime.getOrElse(Instant.now()))
         rowsPot    <-
-          useEffectKeepResultWithDeps((vizTime.value.toOption, props.obsTargets, props.site)):
-            (vt, optObsTargets, site) =>
-              import ctx.given
+          useEffectKeepResultWithDeps(
+            (vizTime.value.toOption, props.obsTargets, props.site, props.skyPositions)
+          ): (vt, optObsTargets, site, skyPositions) =>
+            import ctx.given
 
-              optObsTargets.foldMap: obsTargets =>
+            val vizInstant                 = vt.getOrElse(Instant.now())
+            val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
+              AsterismRow.SkyRow(
+                slot,
+                CoordinatesAt(vizInstant, coords).asRight.asRight[String].some
+              )
+
+            // Sky rows come from the observing mode, so they must be shown even when there are
+            // no science targets
+            optObsTargets
+              .foldMap: obsTargets =>
                 ObservationRegionsOrCoordinatesAt
                   .build(obsTargets, vt, site)
                   .map: rorc =>
-                    // we want the blind offset last (sc-7428)
-                    (rorc.science ++ rorc.blindOffset.toList).map(MotionCorrectedTarget.apply)
+                    val scienceRows = rorc.science.map: (twi, loc) =>
+                      AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
+                    val blindRows   = rorc.blindOffset.toList.map: (twi, loc) =>
+                      AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
+                    (scienceRows, blindRows)
+              .map: (scienceRows, blindRows) =>
+                // science first, then sky, and the blind offset last (sc-7428)
+                scienceRows ++ skyRows ++ blindRows
         tableState <- useMemo(props.columnVisibility.get): columnVisibility =>
                         PartialTableState(columnVisibility = columnVisibility)
         table      <- useReactTableWithStateStore:
                         import ctx.given
 
+                        val allRows = rowsPot.value.map(_.toOption.orEmpty)
+
                         TableOptionsWithStateStore(
                           TableOptions(
                             cols,
-                            rowsPot.value.map(_.toOption.orEmpty),
-                            getRowId = (row, _, _) => RowId(row.id.toString),
+                            allRows,
+                            getRowId = (row, _, _) => RowId(row.rowKey),
                             enableSorting = true,
                             enableColumnResizing = true,
                             columnResizeMode = ColumnResizeMode.OnChange,
                             state = tableState,
                             onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
-                            meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate)
+                            meta = TableMeta(props.obsIds,
+                                             props.obsAndTargets,
+                                             props.onAsterismUpdate,
+                                             props.clearSkyPosition
+                            )
                           ),
                           TableStore(props.userId, TableId.AsterismTargets)
                         )
         adding     <- useStateView(AreAdding(false))
       yield
-        if (rowsPot.value.map(_.toOption.orEmpty).isEmpty)
+        val allRowsForEmpty = rowsPot.value.map(_.toOption.orEmpty)
+
+        if (allRowsForEmpty.isEmpty)
           if (props.readOnly)
             <.div(LucumaStyles.HVCenter)(Constants.NoTargets)
           else
@@ -236,8 +299,8 @@ object TargetTable:
               rowMod = rowTagMod: row =>
                 TagMod(
                   ExploreStyles.TableRowSelected
-                    .when_(props.selectedTarget.get.exists(_ === row.original.id)),
-                  ^.onClick --> props.selectedTarget.set(row.original.id.some)
+                    .when_(props.selectedTarget.get.exists(_ === row.original.toSelection)),
+                  ^.onClick --> props.selectedTarget.set(row.original.toSelection.some)
                 ),
               cellMod = cellTagMod(cell => ColumnClasses.get(cell.column.id).orEmpty)
             )

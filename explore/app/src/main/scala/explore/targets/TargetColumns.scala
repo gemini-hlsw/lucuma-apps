@@ -7,7 +7,6 @@ import cats.Order
 import cats.Order.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.Icons
 import explore.components.ui.ExploreStyles
 import explore.model.ErrorMsgOr
@@ -15,14 +14,12 @@ import explore.model.ExploreModelValidators.*
 import explore.model.RegionOrCoordinatesAt
 import explore.model.conversions.*
 import explore.model.display.given
-import explore.model.enums.SourceProfileType
 import explore.model.formats.*
 import explore.optics.ModelOptics.*
 import explore.syntax.ui.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Band
 import lucuma.core.enums.TargetDisposition
-import lucuma.core.math.ApparentRadialVelocity
 import lucuma.core.math.Arc
 import lucuma.core.math.BrightnessValue
 import lucuma.core.math.Declination
@@ -124,38 +121,53 @@ object TargetColumns:
         case _                     => ""
 
   object Builder:
-    trait Common[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    trait Common[D, TM, CM, CF](
+      colDef: ColumnDef.Applied[D, TM, CM, CF]
     ):
-      def baseColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[V] =
-        colDef(id, d => accessor(d.target), BaseColNames(id))
+      def getTarget(d:      D): Option[Target]
+      def getDisposition(d: D): Option[TargetDisposition]
+      def getName(d:        D): String
 
-      val NameColumn: colDef.TypeFor[NonEmptyString] =
-        baseColumn(NameColumnId, Target.name.get)
-          .withCell(_.value.toString)
+      def baseColumn[V](id: ColumnId, accessor: Target => V): colDef.TypeFor[Option[V]] =
+        colDef(id, d => getTarget(d).map(accessor), BaseColNames(id))
+
+      lazy val NameColumn: colDef.Type =
+        colDef(NameColumnId, d => getName(d).some, BaseColNames(NameColumnId))
+          .withCell(_.value.map(_.toString).orEmpty)
           .withSize(120.toPx)
           .sortable
 
-      val CatalogColumns: List[colDef.Type] =
+      private given Display[TargetDisposition] = Display.byShortName:
+        case TargetDisposition.Science     => "Science"
+        case TargetDisposition.Calibration => "Calibration"
+        case TargetDisposition.BlindOffset => "Blind Offset"
+
+      def getTypeLabel(d: D): String = getDisposition(d).map(_.shortName).orEmpty
+
+      lazy val TypeColumn: colDef.Type =
+        colDef(TypeColumnId, d => getTypeLabel(d), BaseColNames(TypeColumnId))
+          .withCell(_.value)
+          .withSize(100.toPx)
+          .sortable
+
+      lazy val CatalogColumns: List[colDef.Type] =
         List(
-          baseColumn(
-            CatalogId,
-            identity
-          ).withCell(
-            _.value.catalogLink
-          ).withSize(100.toPx)
-            .sortableBy(_.catalogId),
-          baseColumn(
-            CatalogObjectType,
-            _.catalogObjectType
-          )
-            .withCell(_.value.orEmpty)
+          baseColumn(CatalogName, _.catalogName)
+            .withCell(_.value.map(_.orEmpty).orEmpty)
+            .withSize(100.toPx)
+            .sortable,
+          baseColumn(CatalogId, _.catalogId)
+            .withCell(_.value.map(_.orEmpty).orEmpty)
+            .withSize(100.toPx)
+            .sortable,
+          baseColumn(CatalogObjectType, _.catalogObjectType)
+            .withCell(_.value.map(_.orEmpty).orEmpty)
             .withSize(100.toPx)
             .sortable
         )
 
-    trait CommonRaDec[D, TM, CM, TF](
-      colDef:      ColumnDef.Applied[D, TM, CM, TF],
+    trait CommonRaDec[D, TM, CM, CF](
+      colDef:      ColumnDef.Applied[D, TM, CM, CF],
       getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ):
       val RaDecColumns: List[colDef.Type] =
@@ -169,20 +181,17 @@ object TargetColumns:
             .withSize(100.toPx)
             .sortable,
           colDef(EpochColumnId, d => getLocation(d).epoch, RaDecColNames(EpochColumnId))
-            .withCell(
-              _.value.map(Epoch.fromString.reverseGet).orEmpty
-            )
+            .withCell(_.value.map(Epoch.fromString.reverseGet).orEmpty)
             .withSize(90.toPx)
             .sortable
         )
 
-    trait CommonBand[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    trait CommonBand[D, TM, CM, CF](
+      colDef:    ColumnDef.Applied[D, TM, CM, CF],
+      getTarget: D => Option[Target]
     ):
-      // Order first by unit alphabetically and then value
       private given Order[Measure[BrightnessValue]] = Order.by(x => (x.units.abbv, x.value))
 
-      /** Display measure without the uncertainty */
       private def displayWithoutError[N: Display](measure: Measure[N]): VdomNode =
         <.div(
           <.span(measure.value.shortName),
@@ -194,23 +203,26 @@ object TargetColumns:
           val id = bandColumnId(band)
           colDef(
             id,
-            d => BandNormalizedTargetBrightnesses.get(d.target).flatMap(_.get(band)),
+            d =>
+              getTarget(d).flatMap(t =>
+                BandNormalizedTargetBrightnesses.get(t).flatMap(_.get(band))
+              ),
             BandColNames(id)
           ).withCell(_.value.map(displayWithoutError).orEmpty)
             .withSize(80.toPx)
-            // By user request we allow sorting by value though there maybe a mix of units
             .sortable
         )
 
-    trait CommonSidereal[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    trait CommonSidereal[D, TM, CM, CF](
+      colDef:    ColumnDef.Applied[D, TM, CM, CF],
+      getTarget: D => Option[Target]
     ):
       def siderealColumnOpt[V](
         id:       ColumnId,
         accessor: Target.Sidereal => Option[V]
       ): colDef.TypeFor[Option[V]] =
         colDef(id,
-               d => Target.sidereal.getOption.andThen(_.flatMap(accessor))(d.target),
+               d => getTarget(d).flatMap(t => Target.sidereal.getOption(t).flatMap(accessor)),
                SiderealColNames(id)
         )
 
@@ -247,81 +259,72 @@ object TargetColumns:
             .sortable
         )
 
-    case class ForProgram[D <: TargetWithMetadata, TM, CM, TF](
-      colDef:      ColumnDef.Applied[D, TM, CM, TF],
-      getLocation: D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
+    case class ForProgram[D, TM, CM, CF](
+      colDef:           ColumnDef.Applied[D, TM, CM, CF],
+      getTargetFn:      D => Option[Target],
+      getDispositionFn: D => Option[TargetDisposition],
+      getNameFn:        D => String,
+      getLocation:      D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ) extends Common(colDef)
         with CommonRaDec(colDef, getLocation)
-        with CommonBand(colDef)
-        with CommonSidereal(colDef):
-      def icon(t: TargetWithMetadata): VdomNode =
-        if (t.disposition === TargetDisposition.BlindOffset)
-          Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
-        else t.target.iconWithTooltip
-      val BaseColumns: List[colDef.Type]        =
-        List(
-          colDef(TypeColumnId, identity, BaseColNames(TypeColumnId)).withoutHeader
-            .withCell(t => icon(t.value))
-            .withSize(35.toPx),
-          NameColumn,
-          baseColumn(
-            CatalogName,
-            _.catalogName
-          )
-            .withCell(_.value.orEmpty)
-            .withSize(100.toPx)
-            .sortable
-        )
+        with CommonBand(colDef, getTargetFn)
+        with CommonSidereal(colDef, getTargetFn):
 
-      val ProgramColumns: List[colDef.Type] = List(
-        siderealColumnOpt(CZColumnId, Target.Sidereal.radialVelocity.get.andThen(_.map(rvToARVGet)))
-          .withCell(_.value.map(formatCZ.reverseGet).orEmpty)
-          .withSize(90.toPx)
-          .sortable,
-        siderealColumn(
-          MorphologyColumnId,
-          Target.Sidereal.sourceProfile.get.andThen(SourceProfileType.fromSourceProfile)
-        )
-          .withCell(_.value.map(_.shortName).orEmpty)
-          .withSize(115.toPx)
-          .sortable,
-        baseColumn(
-          SEDColumnId,
-          t =>
-            Target.integratedSpectralDefinition
-              .getOption(t)
-              .map(_.shortName)
-              .orElse(Target.surfaceSpectralDefinition.getOption(t).map(_.shortName))
-              .orEmpty
-        )
-          .withCell(_.value)
-          .withSize(200.toPx)
-          .sortable
-      )
+      def getTarget(d:      D): Option[Target]            = getTargetFn(d)
+      def getDisposition(d: D): Option[TargetDisposition] = getDispositionFn(d)
+      def getName(d:        D): String                    = getNameFn(d)
+
+      override def getTypeLabel(d: D): String =
+        if getTargetFn(d).isEmpty then "Sky"
+        else super.getTypeLabel(d)
+
+      def icon(d: D): VdomNode =
+        getTargetFn(d) match
+          case None                                                                   => Icons.LocationDot.fixedWidthWithTooltip("Sky position")
+          case Some(t) if getDispositionFn(d).contains(TargetDisposition.BlindOffset) =>
+            Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
+          case Some(t)                                                                => t.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
-        BaseColumns ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns ++ ProgramColumns
+        List(TypeColumn,
+             NameColumn
+        ) ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns
 
-    case class ForSiderealCatalog[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+    case class ForSiderealCatalog[D <: TargetWithMetadata, TM, CM, CF](
+      colDef: ColumnDef.Applied[D, TM, CM, CF]
     ) extends Common(colDef)
         with CommonRaDec(
           colDef,
-          t =>
+          d =>
             Target.sidereal
-              .getOption(t.target)
+              .getOption(d.target)
               .map: sidereal =>
                 CoordinatesAt(
                   sidereal.tracking.epoch.toInstant,
                   sidereal.tracking.baseCoordinates
                 ).asRight.asRight
         )
-        with CommonBand(colDef)
-        with CommonSidereal(colDef):
-      lazy val AllColumns: List[colDef.Type] =
-        (NameColumn +: CatalogColumns) ++ RaDecColumns ++ BandColumns ++ SiderealColumns
+        with CommonBand(colDef, d => d.target.some)
+        with CommonSidereal(colDef, d => d.target.some):
 
-    case class ForHorizons[D <: TargetWithMetadata, TM, CM, TF](
-      colDef: ColumnDef.Applied[D, TM, CM, TF]
+      def getTarget(d:      D): Option[Target]            = d.target.some
+      def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
+      def getName(d:        D): String                    = d.target.name.value
+      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
+
+      lazy val AllColumns: List[colDef.Type] =
+        List(TypeColumn,
+             NameColumn
+        ) ++ CatalogColumns ++ RaDecColumns ++ BandColumns ++ SiderealColumns
+
+    case class ForHorizons[D <: TargetWithMetadata, TM, CM, CF](
+      colDef: ColumnDef.Applied[D, TM, CM, CF]
     ) extends Common(colDef):
-      lazy val AllColumns: List[colDef.Type] = NameColumn +: CatalogColumns
+
+      def getTarget(d:      D): Option[Target]            = d.target.some
+      def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
+      def getName(d:        D): String                    = d.target.name.value
+      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
+
+      lazy val AllColumns: List[colDef.Type] =
+        List(TypeColumn, NameColumn) ++ CatalogColumns

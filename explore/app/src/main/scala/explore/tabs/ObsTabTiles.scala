@@ -76,6 +76,7 @@ import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.primereact.ToastCtx
@@ -90,6 +91,8 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
+import monocle.Iso
+import monocle.Optional
 
 case class ObsTabTiles(
   vault:            Option[UserVault],
@@ -189,6 +192,11 @@ case class ObsTabTiles(
 
 object ObsTabTiles:
   private type Props = ObsTabTiles
+
+  private val ghostSkyPositionLens: Optional[Observation, Option[Coordinates]] =
+    Observation.observingMode.some
+      .andThen(ObservingMode.ghostIfu)
+      .andThen(ObservingMode.GhostIfu.skyPosition)
 
   def roleLayout(
     userPreferences: UserPreferences,
@@ -480,6 +488,14 @@ object ObsTabTiles:
 
           val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
 
+          val ghostSkyPositionView: Option[View[Option[Coordinates]]] =
+            props.observation
+              .zoom(ghostSkyPositionLens)
+              .map:
+                _.undoableView(Iso.id[Option[Coordinates]].asLens)
+                  .withOnMod: coords =>
+                    ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
+
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
           val ghostIfuMapping: Option[GhostIfuMapping] =
@@ -629,6 +645,16 @@ object ObsTabTiles:
                 setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
               else Callback.empty
 
+          // Only ghost has sky positions. this is the only place where we know it is ghost related
+          // but it is abstracted away downstream.
+          // The sky can be assigned to IFU1 (SkyPlusTarget) or IFU2 (TargetPlusSky) depending on the mapping.
+          val skySlot: SlotId =
+            ghostIfuMapping match
+              case Some(_: GhostIfuMapping.SkyPlusTarget) => SlotId.GhostIfu1
+              case _                                      => SlotId.GhostIfu2
+
+          val slotSkyPositions = ghostSkyPositionView.map(skySlot -> _).toList
+
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
               props.vault.userId,
@@ -655,6 +681,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
+              slotSkyPositions = slotSkyPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some

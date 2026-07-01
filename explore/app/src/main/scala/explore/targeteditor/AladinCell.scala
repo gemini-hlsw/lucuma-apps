@@ -65,7 +65,6 @@ import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
 import scala.concurrent.duration.*
-import scala.scalajs.LinkingInfo
 
 case class AladinCell(
   uid:                 User.Id,
@@ -488,32 +487,6 @@ object AladinCell extends ModelOptics with AladinCommon:
             case None    =>
               acc.copy(slots = acc.slots.removed(slot))
 
-      // TODO: This is temporary and unstyled. remove for prod
-      def renderResetSky(obsCoords: ObservationTargetsCoordinatesAt): VdomNode =
-        props.resetSky
-          .filter(_ => obsCoords.skySlots.nonEmpty)
-          .fold(EmptyVdom): reset =>
-            if LinkingInfo.developmentMode then
-              <.div(
-                obsCoords.skySlots
-                  .toTagMod(using
-                    (slot, _) =>
-                      Button(
-                        label = s"Reset ${slot.shortName} sky",
-                        icon = Icons.Trash,
-                        severity = Button.Severity.Secondary,
-                        disabled = props.blindOffsetReadonly,
-                        onClick =
-                          // ureset upstream and local
-                          (optimisticSky.mod(_.updated(slot, none)).to[IO] *>
-                            reset(slot).onError { case _ =>
-                              optimisticSky.mod(_.removed(slot)).to[IO]
-                            }).runAsync
-                      )
-                  )
-              )
-            else EmptyVdom
-
       def renderAladin(
         opts:        AsterismVisualOptions,
         trackingMap: RegionOrTrackingMap,
@@ -626,8 +599,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                   options.get.renderPot(opt =>
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
-                                   renderAgsOverlay(opt),
-                                   renderResetSky(mergedCoords(co)) // TODO: this is temporary
+                                   renderAgsOverlay(opt)
                     )
                   )
                 ),

@@ -142,7 +142,15 @@ object TargetSummaryTile
               )
           ).sortable
         ) ++
-          TargetColumns.Builder.ForProgram(ColDef, _.target.regionOrBaseCoords).AllColumns ++
+          TargetColumns.Builder
+            .ForProgram(
+              ColDef,
+              _.target.some,
+              _.disposition.some,
+              _.target.name.value,
+              _.target.regionOrBaseCoords
+            )
+            .AllColumns ++
           List(
             column(
               CountColumnId,
