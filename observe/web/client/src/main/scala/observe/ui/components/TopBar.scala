@@ -21,6 +21,7 @@ import lucuma.ui.components.About
 import lucuma.ui.components.ThemeSubMenu
 import lucuma.ui.enums.Theme
 import lucuma.ui.layout.LayoutStyles
+import lucuma.ui.reusability.given
 import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.given
 import observe.model.ClientConfig
@@ -46,52 +47,54 @@ object TopBar
         ctx         <- useContext(AppContext.ctx)
         isAboutOpen <- useStateView(IsAboutOpen(false))
         menuRef     <- usePopupMenuRef
-      yield
-        import ctx.given
+        // Rebuild the menu when the theme or audio activation change.
+        menuItems   <-
+          useMemo((props.theme.get, props.isAudioActivated.get)): (_, _) =>
+            import ctx.given
 
-        val user = props.vault.get.user
+            def logout: IO[Unit] = ctx.ssoClient.logout >> props.onLogout
 
-        def logout: IO[Unit] = ctx.ssoClient.logout >> props.onLogout
+            val audioSubMenu =
+              MenuItem.SubMenu(
+                label = "Sounds",
+                icon = Icons.Volume.withFixedWidth()
+              )(
+                MenuItem.Item(
+                  label = "On",
+                  icon = Icons.Volume.withFixedWidth(),
+                  disabled = props.isAudioActivated.get,
+                  command = props.isAudioActivated.set(IsAudioActivated.True) >>
+                    Audio.SoundActivated.play.runAsyncAndForget
+                ),
+                MenuItem.Item(
+                  label = "Off",
+                  icon = Icons.VolumeSlash.withFixedWidth(),
+                  disabled = !props.isAudioActivated.get,
+                  command = props.isAudioActivated.set(IsAudioActivated.False)
+                )
+              )
 
-        val audioSubMenu =
-          MenuItem.SubMenu(
-            label = "Sounds",
-            icon = Icons.Volume.withFixedWidth()
-          )(
-            MenuItem.Item(
-              label = "On",
-              icon = Icons.Volume.withFixedWidth(),
-              disabled = props.isAudioActivated.get,
-              command = props.isAudioActivated.set(IsAudioActivated.True) >>
-                Audio.SoundActivated.play.runAsyncAndForget
-            ),
-            MenuItem.Item(
-              label = "Off",
-              icon = Icons.VolumeSlash.withFixedWidth(),
-              disabled = !props.isAudioActivated.get,
-              command = props.isAudioActivated.set(IsAudioActivated.False)
+            val firstItems = List(
+              audioSubMenu,
+              ThemeSubMenu(props.theme)
             )
-          )
 
-        val firstItems = List(
-          audioSubMenu,
-          ThemeSubMenu(props.theme)
-        )
+            val lastItems = List(
+              MenuItem.Item(
+                label = "About Observe",
+                icon = Icons.CircleInfo.withFixedWidth(),
+                command = isAboutOpen.set(IsAboutOpen(true))
+              ),
+              MenuItem.Item(
+                label = "Logout",
+                icon = Icons.Logout.withFixedWidth(),
+                command = logout.runAsync
+              )
+            )
 
-        val lastItems = List(
-          MenuItem.Item(
-            label = "About Observe",
-            icon = Icons.CircleInfo.withFixedWidth(),
-            command = isAboutOpen.set(IsAboutOpen(true))
-          ),
-          MenuItem.Item(
-            label = "Logout",
-            icon = Icons.Logout.withFixedWidth(),
-            command = logout.runAsync
-          )
-        )
-
-        val menuItems = (firstItems :+ MenuItem.Separator) ::: lastItems
+            (firstItems :+ MenuItem.Separator) ::: lastItems
+      yield
+        val user = props.vault.get.user
 
         React.Fragment(
           Toolbar(
