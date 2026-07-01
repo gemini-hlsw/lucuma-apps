@@ -38,7 +38,7 @@ object InteractiveRegion:
       // IFU2 is assignable only in GHOST Standard mode, once IFU1 is set (mode accepted)
       // and IFU2 has no sky position yet.
       Option
-        .when(viz.isGhostSingleTarget && ifu1Assigned && !ifu2Assigned):
+        .when(viz.isIfu2AvailableForSky && ifu1Assigned && !ifu2Assigned):
           val pa = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
           InteractiveRegion(
             SlotId.GhostIfu2,

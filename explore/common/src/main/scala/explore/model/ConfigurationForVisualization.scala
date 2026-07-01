@@ -11,7 +11,6 @@ import explore.model.syntax.all.*
 import lucuma.ags.*
 import lucuma.ags.AcquisitionOffsets
 import lucuma.ags.syntax.*
-import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
@@ -64,15 +63,17 @@ case class ConfigurationForVisualization private (
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
 
-  // Standard resolution can be one or two targets; it's a single science target (with IFU2
-  // free for a sky position) only when no science target is mapped to IFU2.
-  def isGhostSingleTarget: Boolean =
+  // Whether IFU2 is free to hold a sky position, i.e. no science target is mapped to it.
+  // Standard resolution can be one or two targets, so it qualifies only when IFU2 is not used
+  // by a science target.
+  // High resolution is always a single science target on IFU1 with IFU2 reserved for the sky.
+  def isIfu2AvailableForSky: Boolean =
     configuration match
-      case BasicConfiguration.GhostIfu(resolutionMode = GhostResolutionMode.Standard) =>
+      case _: BasicConfiguration.GhostIfu =>
         !targetVisualization.slots.exists:
           case InstrumentSlot.Science(_, SlotId.GhostIfu2) => true
           case _                                           => false
-      case _                                                                          => false
+      case _                              => false
 
 object ConfigurationForVisualization:
   def fromObsConfiguration(
