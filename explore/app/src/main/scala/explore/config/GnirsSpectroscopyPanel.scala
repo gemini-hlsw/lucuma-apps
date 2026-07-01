@@ -3,6 +3,7 @@
 
 package explore.config
 
+import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
 import clue.data.*
@@ -13,12 +14,12 @@ import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
 import explore.common.Aligner
 import explore.components.*
-import cats.data.NonEmptyList
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.config.offsets.OffsetInput
+import explore.config.offsets.Presets
 import explore.config.offsets.SlitTelescopeConfigsEditor
-import explore.config.offsets.TelescopeConfigsEditor
+import explore.config.offsets.TelescopeConfigsEditorWithPresets
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
@@ -448,8 +449,18 @@ object GnirsSpectroscopyPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              props.observingMode.get.fpu match
-                case _: GnirsFpu.Spectroscopy.Slit =>
+              props.observingMode.get.obsModeType match
+                case ObservingModeType.GnirsIfu =>
+                  TelescopeConfigsEditorWithPresets(
+                    telescopeConfigs = ifuTelescopeConfigsView,
+                    presets = fpuIfuViewOpt
+                      .map(_.get)
+                      .foldMap:
+                        case GnirsFpuIfu.HighResolution => Presets.GnirsIfuHr
+                        case GnirsFpuIfu.LowResolution  => Presets.GnirsIfuLr,
+                    readonly = disableSimpleEdit
+                  )
+                case _                          =>
                   SlitTelescopeConfigsEditor(
                     explicitValue = slitTelescopeConfigsView,
                     defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
@@ -467,11 +478,6 @@ object GnirsSpectroscopyPanel
                       cameraView.get,
                       GnirsGratingWavelength(centralWavelengthView.get)
                     ),
-                    readonly = disableSimpleEdit
-                  )
-                case _: GnirsFpu.Spectroscopy.Ifu  =>
-                  TelescopeConfigsEditor(
-                    telescopeConfigs = ifuTelescopeConfigsView,
                     readonly = disableSimpleEdit
                   )
             )
