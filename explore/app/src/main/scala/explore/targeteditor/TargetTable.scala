@@ -155,7 +155,7 @@ object TargetTable:
                               "",
                               cell =>
                                 cell.row.original match
-                                  case AsterismRow.TargetRow(mct) =>
+                                  case AsterismRow.TargetRow(mct)  =>
                                     Button(
                                       text = true,
                                       clazz =
@@ -216,27 +216,31 @@ object TargetTable:
         rowsPot    <-
           useEffectKeepResultWithDeps(
             (vizTime.value.toOption, props.obsTargets, props.site, props.skyPositions)
-          ):
-            (vt, optObsTargets, site, skyPositions) =>
-              import ctx.given
+          ): (vt, optObsTargets, site, skyPositions) =>
+            import ctx.given
 
-              val vizInstant = vt.getOrElse(Instant.now())
-              val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
-                AsterismRow.SkyRow(
-                  slot,
-                  CoordinatesAt(vizInstant, coords).asRight.asRight[String].some
-                )
+            val vizInstant                 = vt.getOrElse(Instant.now())
+            val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
+              AsterismRow.SkyRow(
+                slot,
+                CoordinatesAt(vizInstant, coords).asRight.asRight[String].some
+              )
 
-              optObsTargets.foldMap: obsTargets =>
+            // Sky rows come from the observing mode, so they must be shown even when there are
+            // no science targets
+            optObsTargets
+              .foldMap: obsTargets =>
                 ObservationRegionsOrCoordinatesAt
                   .build(obsTargets, vt, site)
                   .map: rorc =>
-                    // we want the blind offset last (sc-7428)
-                    (rorc.science ++ rorc.blindOffset.toList)
-                      .map { case (twi, loc) =>
-                        AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
-                      }
-                      .appendedAll(skyRows)
+                    val scienceRows = rorc.science.map: (twi, loc) =>
+                      AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
+                    val blindRows   = rorc.blindOffset.toList.map: (twi, loc) =>
+                      AsterismRow.TargetRow(MotionCorrectedTarget(twi, loc))
+                    (scienceRows, blindRows)
+              .map: (scienceRows, blindRows) =>
+                // science first, then sky, and the blind offset last (sc-7428)
+                scienceRows ++ skyRows ++ blindRows
         tableState <- useMemo(props.columnVisibility.get): columnVisibility =>
                         PartialTableState(columnVisibility = columnVisibility)
         table      <- useReactTableWithStateStore:
@@ -254,7 +258,11 @@ object TargetTable:
                             columnResizeMode = ColumnResizeMode.OnChange,
                             state = tableState,
                             onColumnVisibilityChange = props.columnVisibility.handleTableUpdate,
-                            meta = TableMeta(props.obsIds, props.obsAndTargets, props.onAsterismUpdate, props.clearSkyPosition)
+                            meta = TableMeta(props.obsIds,
+                                             props.obsAndTargets,
+                                             props.onAsterismUpdate,
+                                             props.clearSkyPosition
+                            )
                           ),
                           TableStore(props.userId, TableId.AsterismTargets)
                         )
