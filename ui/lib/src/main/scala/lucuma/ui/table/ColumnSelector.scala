@@ -15,6 +15,7 @@ import lucuma.react.table.ColumnId
 import lucuma.react.table.ColumnVisibility
 import lucuma.react.table.Visibility
 import lucuma.ui.primereact.LucumaPrimeStyles
+import lucuma.ui.reusability.given
 
 case class ColumnSelector(
   allColumns:             List[(ColumnId, String)],
@@ -25,10 +26,12 @@ case class ColumnSelector(
 
 object ColumnSelector
     extends ReactFnComponent[ColumnSelector](props =>
-      usePopupMenuRef.map: menuRef =>
-        val menuItems =
-          props.allColumns
-            .map: (colId, colName) =>
+      for
+        menuRef   <- usePopupMenuRef
+        // Rebuild the menu only when the columns or visibility change.
+        menuItems <-
+          useMemo((props.allColumns, props.columnVisibility)): (allColumns, columnVisibility) =>
+            allColumns.map: (colId, colName) =>
               MenuItem.Custom(
                 <.div(
                   LucumaPrimeStyles.CheckboxWithLabel,
@@ -36,24 +39,23 @@ object ColumnSelector
                 )(
                   Checkbox(
                     inputId = colId.value,
-                    checked = !props.columnVisibility.value.get(colId).contains(Visibility.Hidden),
+                    checked = !columnVisibility.value.get(colId).contains(Visibility.Hidden),
                     onChange = _ => props.toggleColumnVisibility(colId)
                   ),
                   <.label(^.htmlFor := colId.value, colName)
                 )
               )
-
-        React.Fragment(
-          Button(
-            label = "Columns",
-            icon = "pi pi-chevron-down",
-            iconPos = Button.IconPosition.Right,
-            text = true,
-            clazz = props.clazz,
-            severity = Button.Severity.Secondary,
-            onClickE = menuRef.toggle
-          ),
-          // PopuMenu has a bug where a seconf click is ignored, works with PopuTieredMenu
-          PopupTieredMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
-        )
+      yield React.Fragment(
+        Button(
+          label = "Columns",
+          icon = "pi pi-chevron-down",
+          iconPos = Button.IconPosition.Right,
+          text = true,
+          clazz = props.clazz,
+          severity = Button.Severity.Secondary,
+          onClickE = menuRef.toggle
+        ),
+        // PopuMenu has a bug where a seconf click is ignored, works with PopuTieredMenu
+        PopupTieredMenu(model = menuItems, clazz = props.clazz).withRef(menuRef.ref)
+      )
     )
