@@ -644,8 +644,15 @@ object ObsTabTiles:
                 setCurrentTarget(bo.blindOffsetTargetId, SetRouteVia.HistoryReplace)
               else Callback.empty
 
-          // Only ghost has sky positions. this is the only place where we know it is ghost related but it is abstracted away downstream
-          val slotSkyPositions = ghostSkyPositionView.map(SlotId.GhostIfu2 -> _).toList
+          // Only ghost has sky positions. this is the only place where we know it is ghost related
+          // but it is abstracted away downstream.
+          // The sky can be assigned to IFU1 (SkyPlusTarget) or IFU2 (TargetPlusSky) depending on the mapping.
+          val skySlot: SlotId =
+            ghostIfuMapping match
+              case Some(_: GhostIfuMapping.SkyPlusTarget) => SlotId.GhostIfu1
+              case _                                      => SlotId.GhostIfu2
+
+          val slotSkyPositions = ghostSkyPositionView.map(skySlot -> _).toList
 
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
