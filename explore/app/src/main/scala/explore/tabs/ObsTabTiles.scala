@@ -91,6 +91,7 @@ import queries.schemas.itc.syntax.itcTarget
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
+import monocle.Iso
 import monocle.Optional
 
 case class ObsTabTiles(
@@ -488,12 +489,12 @@ object ObsTabTiles:
           val scienceTargets: List[TargetWithId] = props.asterismAsNel.map(_.science).orEmpty
 
           val ghostSkyPositionView: Option[View[Option[Coordinates]]] =
-            props.observation.model
+            props.observation
               .zoom(ghostSkyPositionLens)
-              .toOptionView
               .map:
-                _.withOnMod: coords =>
-                  ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
+                _.undoableView(Iso.id[Option[Coordinates]].asLens)
+                  .withOnMod: coords =>
+                    ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
 
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
