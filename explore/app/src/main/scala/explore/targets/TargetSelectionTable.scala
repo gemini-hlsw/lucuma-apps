@@ -73,13 +73,15 @@ object TargetSelectionTable:
           case TargetSource.FromHorizons(_)   =>
             TargetColumns.Builder.ForHorizons(ColDef).AllColumns
           case TargetSource.FromProgram(_, _) =>
-            TargetColumns.Builder.ForProgram(
-              ColDef,
-              _.target.some,
-              _.disposition.some,
-              _.target.name.value,
-              _.target.regionOrBaseCoords
-            ).AllColumns
+            TargetColumns.Builder
+              .ForProgram(
+                ColDef,
+                _.target.some,
+                _.disposition.some,
+                _.target.name.value,
+                _.target.regionOrBaseCoords
+              )
+              .AllColumns
       )
     }
     // rows

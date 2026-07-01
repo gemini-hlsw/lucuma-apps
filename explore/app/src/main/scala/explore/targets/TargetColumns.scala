@@ -260,19 +260,19 @@ object TargetColumns:
         )
 
     case class ForProgram[D, TM, CM, CF](
-      colDef:            ColumnDef.Applied[D, TM, CM, CF],
-      getTargetFn:       D => Option[Target],
-      getDispositionFn:  D => Option[TargetDisposition],
-      getNameFn:         D => String,
-      getLocation:       D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
+      colDef:           ColumnDef.Applied[D, TM, CM, CF],
+      getTargetFn:      D => Option[Target],
+      getDispositionFn: D => Option[TargetDisposition],
+      getNameFn:        D => String,
+      getLocation:      D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
     ) extends Common(colDef)
         with CommonRaDec(colDef, getLocation)
         with CommonBand(colDef, getTargetFn)
         with CommonSidereal(colDef, getTargetFn):
 
-      def getTarget(d: D): Option[Target]             = getTargetFn(d)
+      def getTarget(d:      D): Option[Target]            = getTargetFn(d)
       def getDisposition(d: D): Option[TargetDisposition] = getDispositionFn(d)
-      def getName(d: D): String                       = getNameFn(d)
+      def getName(d:        D): String                    = getNameFn(d)
 
       override def getTypeLabel(d: D): String =
         if getTargetFn(d).isEmpty then "Sky"
@@ -280,10 +280,10 @@ object TargetColumns:
 
       def icon(d: D): VdomNode =
         getTargetFn(d) match
-          case None                                                                    => Icons.LocationDot.fixedWidthWithTooltip("Sky position")
+          case None                                                                   => Icons.LocationDot.fixedWidthWithTooltip("Sky position")
           case Some(t) if getDispositionFn(d).contains(TargetDisposition.BlindOffset) =>
             Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
-          case Some(t)                                                                 => t.iconWithTooltip
+          case Some(t)                                                                => t.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
         List(TypeColumn,
@@ -307,10 +307,10 @@ object TargetColumns:
         with CommonBand(colDef, d => d.target.some)
         with CommonSidereal(colDef, d => d.target.some):
 
-      def getTarget(d: D): Option[Target]             = d.target.some
+      def getTarget(d:      D): Option[Target]            = d.target.some
       def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
-      def getName(d: D): String                       = d.target.name.value
-      def icon(d: D): VdomNode                        = d.target.iconWithTooltip
+      def getName(d:        D): String                    = d.target.name.value
+      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
         List(TypeColumn,
@@ -321,10 +321,10 @@ object TargetColumns:
       colDef: ColumnDef.Applied[D, TM, CM, CF]
     ) extends Common(colDef):
 
-      def getTarget(d: D): Option[Target]             = d.target.some
+      def getTarget(d:      D): Option[Target]            = d.target.some
       def getDisposition(d: D): Option[TargetDisposition] = d.disposition.some
-      def getName(d: D): String                       = d.target.name.value
-      def icon(d: D): VdomNode                        = d.target.iconWithTooltip
+      def getName(d:        D): String                    = d.target.name.value
+      def icon(d:           D): VdomNode                  = d.target.iconWithTooltip
 
       lazy val AllColumns: List[colDef.Type] =
         List(TypeColumn, NameColumn) ++ CatalogColumns
