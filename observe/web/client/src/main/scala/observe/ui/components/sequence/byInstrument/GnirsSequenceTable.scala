@@ -41,7 +41,7 @@ case class GnirsSequenceTable(
   onBreakpointFlip:     (Observation.Id, Step.Id) => Callback
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig](Instrument.Gnirs)
-    with SpectroscopySequenceTable[GnirsDynamicConfig]:
+    with SpectroscopySequenceTable[GnirsDynamicConfig](useAcquisitionCoadds = true):
   lazy val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
 

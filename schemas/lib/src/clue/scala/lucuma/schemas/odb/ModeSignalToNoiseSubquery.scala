@@ -12,12 +12,11 @@ import lucuma.schemas.model.ModeSignalToNoise
 
 @GraphQL
 @GraphQLType("Itc")
-object ModeSignalToNoiseSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ModeSignalToNoise]:
+object ModeSignalToNoiseSubquery extends GraphQLSubquery.Typed[ObservationDB, ModeSignalToNoise]:
   override val subquery: String = s"""
     {
       itcType
-      ... on ItcSpectroscopy {
+        ... on ItcSpectroscopy {
           acquisition {
             selected {
               signalToNoiseAt $SignalToNoiseAtSubquery

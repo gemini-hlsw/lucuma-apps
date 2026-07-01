@@ -35,7 +35,7 @@ final case class GnirsSequenceTable(
   ]
 ) extends ReactFnProps(GnirsSequenceTable.component)
     with SequenceTable[GnirsStaticConfig, GnirsDynamicConfig]
-    with SpectroscopySequenceTable[GnirsDynamicConfig]:
+    with SpectroscopySequenceTable[GnirsDynamicConfig](useAcquisitionCoadds = true):
 
   override val toInstrumentVisits =
     case ExecutionVisits.Gnirs(visits) => visits
