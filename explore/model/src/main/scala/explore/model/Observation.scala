@@ -97,6 +97,11 @@ final case class Observation(
   lazy val hasBlindOffset: Boolean =
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
 
+  lazy val hasSkyPosition: Boolean =
+    observingMode match
+      case Some(ObservingMode.GhostIfu(skyPosition = Some(_))) => true
+      case _                                                   => false
+
   val hasMaterializedSequence: Boolean =
     execution.acquisitionSequenceIsMaterialized || execution.scienceSequenceIsMaterialized
 
