@@ -27,6 +27,7 @@ import lucuma.core.model.sequence.arb.ArbSlitTelescopeConfigs
 import lucuma.core.model.sequence.arb.ArbTelescopeConfig
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.arb.ArbGnirsAcquisitionMode
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.arb.ArbEnumerated
@@ -35,6 +36,7 @@ import lucuma.core.util.arb.ArbTimeSpan
 import lucuma.schemas.model.CentralWavelength
 import lucuma.schemas.model.ImagingVariant
 import lucuma.schemas.model.ObservingMode
+import lucuma.schemas.model.ObservingMode.GnirsSpectroscopy.SubMode
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Cogen
@@ -44,8 +46,7 @@ import scala.annotation.targetName
 
 trait ArbObservingMode {
   import ArbAngle.given
-  import lucuma.core.model.sequence.gnirs.GnirsFpu
-  import lucuma.core.util.arb.ArbEnumerated.given
+  import ArbEnumerated.given
 
   given Arbitrary[GnirsFpu.Spectroscopy] = Arbitrary(
     Gen.oneOf(
@@ -735,16 +736,50 @@ trait ArbObservingMode {
       (Option[GnirsAcquisitionMode], Option[GnirsFilter], ExposureTimeMode, PosInt)
     ].contramap(a => (a.explicitAcquisitionMode, a.explicitFilter, a.exposureTimeMode, a.coadds))
 
+  given Arbitrary[SubMode.Slit] =
+    Arbitrary:
+      for
+        initialFpu <- arbitrary[GnirsFpuSlit]
+        fpu        <- arbitrary[GnirsFpuSlit]
+        default    <- arbitrary[SlitTelescopeConfigs]
+        explicit   <- arbitrary[Option[SlitTelescopeConfigs]]
+      yield SubMode.Slit(initialFpu, fpu, default, explicit)
+
+  given Cogen[SubMode.Slit] =
+    Cogen[(GnirsFpuSlit, GnirsFpuSlit, SlitTelescopeConfigs, Option[SlitTelescopeConfigs])]
+      .contramap: s =>
+        (s.initialFpu, s.fpu, s.defaultTelescopeConfigs, s.explicitTelescopeConfigs)
+
+  given Arbitrary[SubMode.Ifu] =
+    Arbitrary:
+      for
+        initialFpu <- arbitrary[GnirsFpuIfu]
+        fpu        <- arbitrary[GnirsFpuIfu]
+        tcs        <- arbitrary[NonEmptyList[TelescopeConfig]]
+      yield SubMode.Ifu(initialFpu, fpu, tcs)
+
+  given Cogen[SubMode.Ifu] =
+    Cogen[(GnirsFpuIfu, GnirsFpuIfu, List[TelescopeConfig])]
+      .contramap: i =>
+        (i.initialFpu, i.fpu, i.telescopeConfigs.toList)
+
+  given Arbitrary[SubMode] =
+    Arbitrary:
+      Gen.oneOf(arbitrary[SubMode.Slit], arbitrary[SubMode.Ifu])
+
+  given Cogen[SubMode] =
+    Cogen[Either[SubMode.Slit, SubMode.Ifu]].contramap:
+      _.fold(Left(_), Right(_))
+
   given Arbitrary[ObservingMode.GnirsSpectroscopy] =
     import ArbNewType.given
-    Arbitrary[ObservingMode.GnirsSpectroscopy](
-      for {
+    Arbitrary:
+      for
         initialGrating           <- arbitrary[GnirsGrating]
         grating                  <- arbitrary[GnirsGrating]
         initialFilter            <- arbitrary[GnirsFilter]
         filter                   <- arbitrary[GnirsFilter]
-        initialFpu               <- arbitrary[GnirsFpu.Spectroscopy]
-        fpu                      <- arbitrary[GnirsFpu.Spectroscopy]
+        subMode                <- arbitrary[SubMode]
         initialPrism             <- arbitrary[GnirsPrism]
         prism                    <- arbitrary[GnirsPrism]
         initialCamera            <- arbitrary[GnirsCamera]
@@ -757,45 +792,15 @@ trait ArbObservingMode {
         defaultWellDepth         <- arbitrary[GnirsWellDepth]
         explicitWellDepth        <- arbitrary[Option[GnirsWellDepth]]
         explicitFocusMotorSteps  <- arbitrary[Option[GnirsFocusMotorStepsValue]]
-        // Telescope configs follow the FPU kind: slit for a slit FPU, IFU otherwise.
-        telescopeConfigs         <- fpu match
-                                      case _: GnirsFpu.Spectroscopy.Slit =>
-                                        for
-                                          d <- arbitrary[SlitTelescopeConfigs]
-                                          e <- arbitrary[Option[SlitTelescopeConfigs]]
-                                        yield (d.some,
-                                               e,
-                                               none[NonEmptyList[TelescopeConfig]],
-                                               none[NonEmptyList[TelescopeConfig]]
-                                        )
-                                      case _: GnirsFpu.Spectroscopy.Ifu  =>
-                                        val genNel = Gen
-                                          .choose(1, 4)
-                                          .flatMap(Gen.listOfN(_, arbitrary[TelescopeConfig]))
-                                          .map(NonEmptyList.fromListUnsafe)
-                                        for
-                                          d <- genNel
-                                          e <- Gen.option(genNel)
-                                        yield (none[SlitTelescopeConfigs],
-                                               none[SlitTelescopeConfigs],
-                                               d.some,
-                                               e
-                                        )
-        (defaultTelescopeConfigsSlit,
-         explicitTelescopeConfigsSlit,
-         defaultTelescopeConfigsIfu,
-         explicitTelescopeConfigsIfu
-        )                         = telescopeConfigs
         exposureTimeMode         <- arbitrary[ExposureTimeMode]
         coadds                   <- arbitrary[PosInt]
         acquisition              <- arbitrary[ObservingMode.GnirsSpectroscopy.Acquisition]
-      } yield ObservingMode.GnirsSpectroscopy(
+      yield ObservingMode.GnirsSpectroscopy(
         initialGrating,
         grating,
         initialFilter,
         filter,
-        initialFpu,
-        fpu,
+        subMode,
         initialPrism,
         prism,
         initialCamera,
@@ -808,15 +813,10 @@ trait ArbObservingMode {
         defaultWellDepth,
         explicitWellDepth,
         explicitFocusMotorSteps,
-        defaultTelescopeConfigsSlit,
-        explicitTelescopeConfigsSlit,
-        defaultTelescopeConfigsIfu,
-        explicitTelescopeConfigsIfu,
         exposureTimeMode,
         coadds,
         acquisition
       )
-    )
 
   // We exceed the max number of fields for contramap, so we use tuples.
   given Cogen[ObservingMode.GnirsSpectroscopy] =
@@ -824,7 +824,7 @@ trait ArbObservingMode {
     Cogen[
       ((GnirsGrating, GnirsGrating),
        (GnirsFilter, GnirsFilter),
-       (GnirsFpu.Spectroscopy, GnirsFpu.Spectroscopy),
+       SubMode,
        (GnirsPrism, GnirsPrism),
        (GnirsCamera, GnirsCamera),
        (Wavelength, Wavelength),
@@ -832,11 +832,6 @@ trait ArbObservingMode {
        Option[GnirsReadMode],
        (GnirsWellDepth, Option[GnirsWellDepth]),
        Option[GnirsFocusMotorStepsValue],
-       (Option[SlitTelescopeConfigs],
-        Option[SlitTelescopeConfigs],
-        Option[List[TelescopeConfig]],
-        Option[List[TelescopeConfig]]
-       ),
        ExposureTimeMode,
        (PosInt, ObservingMode.GnirsSpectroscopy.Acquisition)
       )
@@ -845,7 +840,7 @@ trait ArbObservingMode {
         (
           (o.initialGrating, o.grating),
           (o.initialFilter, o.filter),
-          (o.initialFpu, o.fpu),
+          o.subMode,
           (o.initialPrism, o.prism),
           (o.initialCamera, o.camera),
           (o.initialCentralWavelength.value, o.centralWavelength.value),
@@ -853,11 +848,6 @@ trait ArbObservingMode {
           o.explicitReadMode,
           (o.defaultWellDepth, o.explicitWellDepth),
           o.explicitFocusMotorSteps,
-          (o.defaultTelescopeConfigsSlit,
-           o.explicitTelescopeConfigsSlit,
-           o.defaultTelescopeConfigsIfu.map(_.toList),
-           o.explicitTelescopeConfigsIfu.map(_.toList)
-          ),
           o.exposureTimeMode,
           (o.coadds, o.acquisition)
         )

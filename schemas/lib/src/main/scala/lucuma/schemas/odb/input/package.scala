@@ -652,17 +652,28 @@ extension (a: ObservingMode.GnirsSpectroscopy)
   def toInput: GnirsSpectroscopyInput = GnirsSpectroscopyInput(
     grating = a.grating.assign,
     filter = a.filter.assign,
-    fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(a.fpu).orUnassign,
-    fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(a.fpu).orUnassign,
+    slit = GnirsFpu.Spectroscopy.slit
+      .getOption(a.fpu)
+      .map: f =>
+        GnirsSlitInput(
+          fpu = f.assign,
+          explicitTelescopeConfigs = a.explicitTelescopeConfigsSlit.map(_.toInput).orUnassign
+        )
+      .orUnassign,
+    ifu = GnirsFpu.Spectroscopy.ifu
+      .getOption(a.fpu)
+      .map: f =>
+        GnirsIfuInput(
+          fpu = f.assign,
+          telescopeConfigs = a.telescopeConfigsIfu.map(_.toList.map(_.toInput)).orUnassign
+        )
+      .orUnassign,
     prism = a.prism.assign,
     camera = a.camera.assign,
     centralWavelength = a.centralWavelength.value.toInput.assign,
     explicitDecker = a.explicitDecker.orUnassign,
     explicitReadMode = a.explicitReadMode.orUnassign,
     explicitWellDepth = a.explicitWellDepth.orUnassign,
-    explicitTelescopeConfigsSlit = a.explicitTelescopeConfigsSlit.map(_.toInput).orUnassign,
-    explicitTelescopeConfigsIfu =
-      a.explicitTelescopeConfigsIfu.map(_.toList.map(_.toInput)).orUnassign,
     exposureTimeMode = a.exposureTimeMode.toInput.assign,
     coadds = a.coadds.assign,
     acquisition = a.acquisition.toInput.assign
@@ -813,10 +824,18 @@ extension (i: BasicConfiguration)
                                               centralWavelength
         ) =>
       ObservingModeInput.GnirsSpectroscopy:
+        // Only the FPU is specified here; telescope configs are defaulted (slit) or seeded
+        // from the FPU (IFU) server-side on create.
         GnirsSpectroscopyInput(
           filter = filter.assign,
-          fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(fpu).orUnassign,
-          fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).orUnassign,
+          slit = GnirsFpu.Spectroscopy.slit
+            .getOption(fpu)
+            .map(f => GnirsSlitInput(fpu = f.assign))
+            .orUnassign,
+          ifu = GnirsFpu.Spectroscopy.ifu
+            .getOption(fpu)
+            .map(f => GnirsIfuInput(fpu = f.assign))
+            .orUnassign,
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,

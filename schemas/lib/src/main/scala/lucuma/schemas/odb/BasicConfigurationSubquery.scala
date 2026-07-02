@@ -50,8 +50,8 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
           }
           gnirsSpectroscopy {
             filter
-            fpuSlit
-            fpuIfu
+            slit { fpu }
+            ifu { fpu }
             prism
             grating
             camera
