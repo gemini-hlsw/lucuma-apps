@@ -607,7 +607,7 @@ object ConfigurationTile
                     ),
                   // GNIRS Long Slit
                   optGnirsSpectroscopyAligner.map: gnirsAligner =>
-                    GnirsLongslitConfigPanel(
+                    GnirsSpectroscopyPanel(
                       props.programId,
                       props.obsId,
                       props.obsConf.calibrationRole,

@@ -47,6 +47,8 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
+import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
+import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
 import lucuma.schemas.ObservationDB.Types.ObservingModeInput
@@ -215,8 +217,8 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.GnirsSpectroscopy(
         GnirsSpectroscopyInput(
           filter = filter.assign,
-          fpuSlit = GnirsFpu.Spectroscopy.slit.getOption(fpu).orUnassign,
-          fpuIfu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).orUnassign,
+          slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).map(f => GnirsSlitInput(fpu = f.assign)).orUnassign,
+          ifu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).map(f => GnirsIfuInput(fpu = f.assign)).orUnassign,
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,

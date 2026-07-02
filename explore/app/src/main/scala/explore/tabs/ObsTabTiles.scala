@@ -86,13 +86,13 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
+import monocle.Iso
+import monocle.Optional
 import queries.schemas.itc.syntax.itcTarget
 
 import java.time.Instant
 import scala.collection.immutable.SortedMap
 import scala.collection.immutable.SortedSet
-import monocle.Iso
-import monocle.Optional
 
 case class ObsTabTiles(
   vault:            Option[UserVault],

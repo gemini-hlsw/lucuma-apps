@@ -77,7 +77,7 @@ case class ObsSummary(
           resolutionMode.shortName.some
         case BasicConfiguration.Visitor(mode, _, _)                   =>
           mode.instrument.shortName.some
-        case gnirsLongSlit @ BasicConfiguration.GnirsSpectroscopy(
+        case gnirsSpectroscopy @ BasicConfiguration.GnirsSpectroscopy(
               _,
               fpu,
               prism,

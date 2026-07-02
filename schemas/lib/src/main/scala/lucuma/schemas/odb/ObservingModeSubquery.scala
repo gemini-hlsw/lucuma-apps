@@ -167,14 +167,21 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
           gnirsSpectroscopy {
             initialGrating
             initialFilter
-            initialFpuSlit
-            initialFpuIfu
             initialPrism
             initialCamera
             grating
             filter
-            fpuSlit
-            fpuIfu
+            slit {
+              fpu
+              initialFpu
+              defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+              explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
+            }
+            ifu {
+              fpu
+              initialFpu
+              telescopeConfigs $TelescopeConfigSubquery
+            }
             prism
             camera
             centralWavelength $WavelengthSubquery
@@ -185,8 +192,6 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultWellDepth
             explicitWellDepth
             explicitFocusMotorSteps
-            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
-            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             coadds
             acquisition {

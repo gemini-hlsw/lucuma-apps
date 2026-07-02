@@ -316,17 +316,19 @@ object BasicConfiguration:
     // The long slit and the IFU are the same observing mode with distinct types.
     def gnirsObsModeType: ObservingModeType =
       fpu match
-        case _: GnirsFpu.Spectroscopy.Slit => ObservingModeType.GnirsLongSlit
-        case _: GnirsFpu.Spectroscopy.Ifu  => ObservingModeType.GnirsIfu
+        case GnirsFpu.Spectroscopy.Slit(_) => ObservingModeType.GnirsLongSlit
+        case GnirsFpu.Spectroscopy.Ifu(_)  => ObservingModeType.GnirsIfu
 
   object GnirsSpectroscopy:
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
         filter  <- c.downField("filter").as[GnirsFilter]
-        fpu     <- c.downField("fpuSlit")
+        fpu     <- c.downField("slit")
+                     .downField("fpu")
                      .as[Option[GnirsFpuSlit]]
                      .flatMap: slit =>
-                       c.downField("fpuIfu")
+                       c.downField("ifu")
+                         .downField("fpu")
                          .as[Option[GnirsFpuIfu]]
                          .flatMap: ifu =>
                            (slit, ifu) match
@@ -334,7 +336,7 @@ object BasicConfiguration:
                              case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
                              case _               =>
                                DecodingFailure(
-                                 "GNIRS spectroscopy: exactly one of fpuSlit / fpuIfu expected",
+                                 "GNIRS spectroscopy: exactly one of slit / ifu expected",
                                  c.history
                                ).asLeft
         prism   <- c.downField("prism").as[GnirsPrism]
