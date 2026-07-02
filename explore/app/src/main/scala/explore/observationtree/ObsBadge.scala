@@ -93,6 +93,10 @@ object ObsBadge:
   private def obsIdentifier(obs: Observation): String =
     obs.reference.fold(s"[${obs.id.show}]")(ref => s"[${ref.observationIndex}]")
 
+  // GHOST modes can carry a manually-set sky position
+  private def configLabel(obs: Observation, shortName: String): String =
+    if obs.hasSkyPosition then s"$shortName + Sky" else shortName
+
   // Daytime pinhole calibrations have no meaningful target, so we label them by role.
   private def badgeTitle(obs: Observation): String =
     obs.calibrationRole match
@@ -161,7 +165,7 @@ object ObsBadge:
         <.div(ExploreStyles.ObsBadgeHeader)(
           <.div(ExploreStyles.ObsBadgeTargetAndId)(
             <.div(badgeTitle(obs)).when(layout.showTitle),
-            <.div(obs.basicConfiguration.map(_.shortName).getOrElse("-"))
+            <.div(obs.basicConfiguration.map(c => configLabel(obs, c.shortName)).getOrElse("-"))
               .when(layout.showConfiguration === Section.Header),
             <.div(
               ExploreStyles.ObsBadgeId,
@@ -215,7 +219,7 @@ object ObsBadge:
             <.div(ExploreStyles.ObsBadgeDescription)(
               <.span(ExploreStyles.ObsBadgeDescriptionTitles)(
                 obs.observingModeSummary
-                  .map(s => <.div(s.shortName))
+                  .map(s => <.div(configLabel(obs, s.shortName)))
                   .whenDefined
                   .when(layout.showConfiguration === Section.Detail),
                 <.div(obs.constraintsSummary).when(layout.showConstraints)
