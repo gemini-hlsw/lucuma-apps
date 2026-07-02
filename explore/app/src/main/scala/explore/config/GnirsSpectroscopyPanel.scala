@@ -17,7 +17,6 @@ import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
 import explore.config.offsets.OffsetInput
-import explore.config.offsets.Presets
 import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.config.offsets.TelescopeConfigsEditorWithPresets
 import explore.model.AppContext
@@ -42,7 +41,7 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.GnirsGratingWavelength
-import lucuma.core.model.sequence.gnirs.defaultSlitTelescopeConfigs
+import lucuma.core.model.sequence.gnirs
 import lucuma.core.optics.syntax.lens.*
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
@@ -455,9 +454,7 @@ object GnirsSpectroscopyPanel
                     telescopeConfigs = ifuTelescopeConfigsView,
                     presets = fpuIfuViewOpt
                       .map(_.get)
-                      .foldMap:
-                        case GnirsFpuIfu.HighResolution => Presets.GnirsIfuHr
-                        case GnirsFpuIfu.LowResolution  => Presets.GnirsIfuLr,
+                      .foldMap(gnirs.gnirsIfuTelescopeConfigPresets(_).toList),
                     readonly = disableSimpleEdit
                   )
                 case _                          =>
@@ -465,14 +462,14 @@ object GnirsSpectroscopyPanel
                     explicitValue = slitTelescopeConfigsView,
                     defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
                       .getOrElse(
-                        defaultSlitTelescopeConfigs(
+                        gnirs.defaultSlitTelescopeConfigs(
                           SlitOffsetMode.NodAlongSlit,
                           prismView.get,
                           cameraView.get,
                           GnirsGratingWavelength(centralWavelengthView.get)
                         )
                       ),
-                    defaultForMode = defaultSlitTelescopeConfigs(
+                    defaultForMode = gnirs.defaultSlitTelescopeConfigs(
                       _,
                       prismView.get,
                       cameraView.get,
