@@ -159,4 +159,4 @@ extension (s: NonNegShort)
 extension [F[_], A](effect: F[A])
   def logTime(name: String)(using Clock[F], FlatMap[F], Logger[F]): F[A] =
     effect.timed.flatMap: (d, a) =>
-      Logger[F].debug(s"***** $name took ${d.toSeconds}s (${d.toMillis}ms)").as(a)
+      Logger[F].info(s"***** $name took ${d.toSeconds}s (${d.toMillis}ms)").as(a)

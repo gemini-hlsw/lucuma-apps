@@ -93,11 +93,10 @@ case class TargetTabContents(
       .get(targetId)
       .foldMap: obsIds =>
         obsIds.toList
-          .map: obsId =>
+          .flatMap: obsId =>
             programSummaries.get.observations
               .get(obsId)
-              .flatMap(_.basicConfiguration.map(_.siteFor))
-          .flattenOption
+              .flatMap(_.basicConfiguration.flatMap(_.siteFor))
 
   private val obsAndTargets: UndoSetter[ObservationsAndTargets] =
     programSummaries.zoom((ProgramSummaries.observations, ProgramSummaries.targets).disjointZip)

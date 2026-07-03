@@ -5,6 +5,7 @@ package queries.common
 
 import clue.GraphQLSubquery
 import clue.annotation.GraphQL
+import clue.annotation.GraphQLType
 import explore.model.Observation
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
@@ -14,8 +15,9 @@ import lucuma.schemas.odb.*
 // edit subscription) where the caller needs the hydrated mode directly,
 // without a follow-up detail query.
 @GraphQL
+@GraphQLType("Observation")
 object ObservationWithFullModeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Observation]("Observation"):
+    extends GraphQLSubquery.Typed[ObservationDB, Observation]:
 
   override val subquery: String = s"""
         {
@@ -33,7 +35,10 @@ object ObservationWithFullModeSubquery
             blindOffsetType
           }
           constraintSet $ConstraintSetSubquery
-          timingWindows $TimingWindowSubquery
+          schedulingConstraints {
+            isSplittable
+            timingWindows $TimingWindowSubquery
+          }
           attachments { id }
           scienceRequirements {
             exposureTimeMode $ExposureTimeModeSubquery

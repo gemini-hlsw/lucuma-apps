@@ -91,7 +91,7 @@ final case class Observation(
   explicitBase:            Option[Coordinates],
   blindOffset:             BlindOffset
 ) derives Eq:
-  val site: Option[Site] = basicConfiguration.map(_.siteFor)
+  val site: Option[Site] = basicConfiguration.flatMap(_.siteFor)
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =
     observingMode.toOption.flatten.map(ObservingModeSummary.fromObservingMode)
@@ -100,7 +100,7 @@ final case class Observation(
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
 
   lazy val hasSkyPosition: Boolean =
-    observingMode match
+    observingMode.toOption.flatten match
       case Some(ObservingMode.GhostIfu(skyPosition = Some(_))) => true
       case _                                                   => false
 

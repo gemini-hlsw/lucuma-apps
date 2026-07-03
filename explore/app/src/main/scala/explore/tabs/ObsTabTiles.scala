@@ -151,7 +151,7 @@ case class ObsTabTiles(
   def targetCoords(obsTime: Instant, optTracking: Option[Tracking]): Option[Coordinates] =
     optTracking.flatMap(_.at(obsTime))
 
-  def site: Option[Site] = observation.get.basicConfiguration.map(_.siteFor)
+  def site: Option[Site] = observation.get.basicConfiguration.flatMap(_.siteFor)
 
   def acqConfigs: Option[NonEmptySet[TelescopeConfig]] =
     NonEmptySet.fromSet:
@@ -194,7 +194,7 @@ object ObsTabTiles:
   private type Props = ObsTabTiles
 
   private val ghostSkyPositionLens: Optional[Observation, Option[Coordinates]] =
-    Observation.observingMode.some
+    Observation.observingModeOption.some
       .andThen(ObservingMode.ghostIfu)
       .andThen(ObservingMode.GhostIfu.skyPosition)
 
@@ -247,7 +247,7 @@ object ObsTabTiles:
         obsTimeOrNowPot      <- useEffectKeepResultWithDeps(props.observation.model.get.observationTime):
                                   vizTime => IO(vizTime.getOrElse(Instant.now()))
         trackingOptMapPot    <-
-          useEffectKeepResultWithDeps(props.observation.get.basicConfiguration.map(_.siteFor),
+          useEffectKeepResultWithDeps(props.observation.get.basicConfiguration.flatMap(_.siteFor),
                                       obsTimeOrNowPot.value.toOption,
                                       props.asterismAsNel.map(_.science)
           ): (site, obsTime, targets) =>
@@ -500,7 +500,7 @@ object ObsTabTiles:
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
           val ghostIfuMapping: Option[GhostIfuMapping] =
-            props.observation.get.observingMode match
+            props.observation.get.observingMode.toOption.flatten match
               case Some(ghost: ObservingMode.GhostIfu) =>
                 val ctx = IfuMappingContext(
                   ghost.resolutionMode,
@@ -563,7 +563,7 @@ object ObsTabTiles:
                   .map: nel =>
                     val name: NonEmptyString =
                       NonEmptyString.from(s"${siblings.title}".take(100)).getOrElse("-".refined)
-                    val sites                = siblings.basicConfiguration.toList.map(_.siteFor)
+                    val sites                = siblings.basicConfiguration.toList.flatMap(_.siteFor)
 
                     ObjectPlotData.Id(siblings.id.asLeft) ->
                       ObjectPlotData(name,
@@ -599,7 +599,7 @@ object ObsTabTiles:
                 props.vault.userId,
                 ObsTabTileIds.PlotId.id,
                 pd,
-                props.observation.get.basicConfiguration.map(_.siteFor),
+                props.observation.get.basicConfiguration.flatMap(_.siteFor),
                 obsTimeView.get,
                 obsDuration.map(_.toDuration),
                 obsCalibrationGroup.isEmpty,

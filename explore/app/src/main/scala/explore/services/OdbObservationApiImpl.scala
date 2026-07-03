@@ -410,12 +410,12 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     )
 
   def programObservationsObservingModes(
-    programId:  Program.Id,
-    instrument: lucuma.core.enums.Instrument
+    programId: Program.Id,
+    modeType:  lucuma.core.enums.ObservingModeType
   ): F[List[(Observation.Id, Option[ObservingMode])]] =
     val where = WhereObservation(
-      program = programId.toWhereProgram.assign,
-      instrument = WhereOptionEqInstrument(EQ = instrument.assign).assign
+      program           = programId.toWhereProgram.assign,
+      observingModeType = WhereOptionEqObservingModeType(EQ = modeType.assign).assign
     )
     drain[
       AllProgramObservationsObservingMode.Data.Observations.Matches,

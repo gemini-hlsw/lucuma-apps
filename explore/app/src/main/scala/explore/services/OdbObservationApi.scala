@@ -110,13 +110,14 @@ trait OdbObservationApi[F[_]]:
 
   /**
    * Fetches (id, full ObservingMode) pairs for every observation in the
-   * program belonging to a given instrument. Used to hydrate the `observingMode`
+   * program belonging to a given mode type. Used to hydrate the `observingMode`
    * field after the bulk summary query has returned the lightweight
-   * BasicConfiguration.
+   * BasicConfiguration. Partitioning by `ObservingModeType` (rather than
+   * `Instrument`) lets each detail query hit a single instrument-mode table.
    */
   def programObservationsObservingModes(
-    programId:  Program.Id,
-    instrument: lucuma.core.enums.Instrument
+    programId: Program.Id,
+    modeType:  lucuma.core.enums.ObservingModeType
   ): F[List[(Observation.Id, Option[lucuma.schemas.model.ObservingMode])]]
   def obsCalcSubscription(
     programId: Program.Id
