@@ -14,7 +14,9 @@ import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig
 import navigate.model.AcMechsState
 import navigate.model.AllWfsConfiguration
+import navigate.model.GuideState
 import navigate.model.PwfsMechsState
+import navigate.model.TelescopeState
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
 import navigate.model.enums.AcNdFilter

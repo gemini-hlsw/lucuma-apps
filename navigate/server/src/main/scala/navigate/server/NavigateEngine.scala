@@ -37,6 +37,8 @@ import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.NavigateCommand
@@ -51,7 +53,9 @@ import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
 import navigate.model.Target
+import navigate.model.TargetOffsets
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
 import navigate.model.config.ControlStrategy
@@ -67,10 +71,6 @@ import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ephemeris.EphemerisUpdater
-import navigate.server.tcs.GuideState
-import navigate.server.tcs.GuidersQualityValues
-import navigate.server.tcs.TargetOffsets
-import navigate.server.tcs.TelescopeState
 import navigate.stateengine.Handler
 import navigate.stateengine.StateEngine
 import navigate.stateengine.StateEngine.Event

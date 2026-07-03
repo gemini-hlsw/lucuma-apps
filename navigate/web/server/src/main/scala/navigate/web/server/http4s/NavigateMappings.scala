@@ -53,7 +53,9 @@ import navigate.model.CommandResult
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
+import navigate.model.GuideState
 import navigate.model.GuiderConfig
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.NavigateState
@@ -70,7 +72,9 @@ import navigate.model.SlewOptions
 import navigate.model.StopGuide
 import navigate.model.SwapConfig
 import navigate.model.Target
+import navigate.model.TargetOffsets
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
 import navigate.model.ZeroChopThrow
@@ -94,10 +98,6 @@ import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
-import navigate.server.tcs.GuideState
-import navigate.server.tcs.GuidersQualityValues
-import navigate.server.tcs.TargetOffsets
-import navigate.server.tcs.TelescopeState
 import navigate.web.server.OcsBuildInfo
 import org.typelevel.log4cats.Logger
 

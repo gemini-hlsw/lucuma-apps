@@ -52,9 +52,12 @@ import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
+import navigate.model.GuideState
 import navigate.model.GuiderConfig
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.MechSystemState
 import navigate.model.Origin
 import navigate.model.PwfsMechsState
 import navigate.model.ResetPointing
@@ -70,6 +73,7 @@ import navigate.model.Target
 import navigate.model.Target.EphemerisTarget
 import navigate.model.Target.SiderealTarget
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.ZeroChopThrow
 import navigate.model.ZeroGuideOffset
@@ -84,9 +88,13 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.FollowStatus.Following
+import navigate.model.enums.FollowStatus.NotFollowing
 import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.OiwfsWavelength
+import navigate.model.enums.ParkStatus.NotParked
+import navigate.model.enums.ParkStatus.Parked
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
@@ -99,10 +107,6 @@ import navigate.server.epicsdata.BinaryOnOff
 import navigate.server.epicsdata.BinaryOnOffCapitalized
 import navigate.server.epicsdata.BinaryYesNo
 import navigate.server.tcs.EpicsSystems.*
-import navigate.server.tcs.FollowStatus.Following
-import navigate.server.tcs.FollowStatus.NotFollowing
-import navigate.server.tcs.ParkStatus.NotParked
-import navigate.server.tcs.ParkStatus.Parked
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 

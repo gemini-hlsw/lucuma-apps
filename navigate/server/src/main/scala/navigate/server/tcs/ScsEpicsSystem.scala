@@ -12,7 +12,8 @@ import navigate.epics.*
 import navigate.epics.VerifiedEpics.VerifiedEpics
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
-import navigate.server.tcs.FollowStatus.*
+import navigate.model.enums.FollowStatus
+import navigate.model.enums.FollowStatus.*
 
 import encoders.*
 
