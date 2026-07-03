@@ -17,6 +17,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.LucumaStyles
@@ -120,17 +121,18 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           .mapN[VdomNode]: (v, i) =>
             if isEditing && !isFinished then
               React.Fragment(
-                InputNumber( // TODO Decimals according to instrument
+                InputNumber(
                   id = s"exposure-${c.row.index}",
                   value = v.toSeconds.toDouble,
+                  maxFractionDigits = i.exposureTimeFractionDigits,
                   onValueChange = e =>
-                    handleRowValueEdit(c)(exposureReplace): // TODO Can we do this better than cast?
-                      TimeSpan.fromSeconds(e.value.get.asInstanceOf[Double].toLong)
+                    handleRowValueEdit(c)(exposureReplace):
+                      e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
                   ,
                   clazz = SequenceStyles.SequenceInput
                 )
               )
-            else FormatExposureTime(i)(v).value
+            else i.formatExposureTime(v).value
     )
 
   private lazy val coaddsCol: colDef.TypeFor[Option[PosInt]] =
@@ -283,7 +285,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
         header = _ => "Exptime",
-        cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
+        cell = _.value.map(Instrument.Ghost.formatExposureTime(_).value).orEmpty
       ),
       colDef(readModeId,
              _.getStep.flatMap(getter(_).map(_.readMode.shortName)),

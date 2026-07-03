@@ -8,6 +8,7 @@ import cats.derived.*
 import cats.syntax.eq.*
 import cats.syntax.option.*
 import eu.timepit.refined.types.numeric.PosInt
+import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.DatasetQaState
 import lucuma.core.enums.GnirsDecker
@@ -24,6 +25,7 @@ import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.NewBoolean
 import lucuma.core.util.NewType
+import lucuma.core.util.TimeSpan
 import lucuma.react.SizePx
 import lucuma.react.common.*
 import lucuma.react.primereact.Tag
@@ -69,6 +71,21 @@ extension (instrument: Instrument)
           Instrument.Igrins2 | Instrument.Gnirs =>
         true
       case _ => false
+
+  /** Instruments not listed here (eg: GMOS-N, GMOS-S, Flamingos2) only accept integer exposure times. */
+  def acceptsDecimalExposureTime: Boolean =
+    instrument match
+      case Instrument.Gnirs | Instrument.Igrins2 | Instrument.Ghost => true
+      case _                                                        => false
+
+  def exposureTimeFractionDigits: Int =
+    if instrument.acceptsDecimalExposureTime then 2 else 0
+
+  def formatExposureTime(exposureTime: TimeSpan): NonEmptyString =
+    NonEmptyString.unsafeFrom:
+      exposureTime.toSeconds
+        .setScale(instrument.exposureTimeFractionDigits, BigDecimal.RoundingMode.HALF_UP)
+        .toString
 
 extension (stepTypeDisplay: StepTypeDisplay)
   private def icon: VdomNode =

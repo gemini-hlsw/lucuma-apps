@@ -4,12 +4,10 @@
 package lucuma.ui.sequence
 
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Axis
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
-import lucuma.core.util.TimeSpan
 
 object SequenceRowFormatters:
   private val FormatOffsetArcSec: BigDecimal => NonEmptyString =
@@ -26,12 +24,3 @@ object SequenceRowFormatters:
 
   val FormatWavelength: Wavelength => NonEmptyString =
     w => NonEmptyString.unsafeFrom(f"${Wavelength.decimalNanometers.reverseGet(w)}%.0f")
-
-  val FormatExposureTime: Instrument => TimeSpan => NonEmptyString =
-    i =>
-      NonEmptyString.unsafeFrom
-        .compose: (s: BigDecimal) =>
-          i match // GMOS and Flamingos2 are limited to integer exposure times.
-            case Instrument.GmosNorth | Instrument.GmosSouth | Instrument.Flamingos2 => f"$s%.0f"
-            case _                                                                   => f"$s%.2f"
-        .compose(_.toSeconds)
