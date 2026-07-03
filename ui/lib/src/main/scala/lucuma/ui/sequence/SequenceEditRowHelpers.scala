@@ -9,7 +9,6 @@ import cats.syntax.all.*
 import crystal.react.syntax.effect.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
-import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
@@ -53,10 +52,10 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         .runAsyncAndForget
 
   protected def handleAllSeqTypesRowEditAsync[A](c: CellContextType[A])(
-    rowEdit: IO[Endo[List[Atom[D]]]]
+    rowEdit: SequenceType => IO[Endo[List[Atom[D]]]]
   ): Callback =
-    handleSeqTypeRowEditAsync(c, SequenceType.Acquisition)(rowEdit) >>
-      handleSeqTypeRowEditAsync(c, SequenceType.Science)(rowEdit)
+    handleSeqTypeRowEditAsync(c, SequenceType.Acquisition)(rowEdit(SequenceType.Acquisition)) >>
+      handleSeqTypeRowEditAsync(c, SequenceType.Science)(rowEdit(SequenceType.Science))
 
   protected def handleSeqTypeRowEdit[A](c: CellContextType[A], seqType: SequenceType)(
     rowEdit: Endo[List[Atom[D]]]
@@ -88,7 +87,9 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =
     stepId => atoms => extractStep(stepId)(atoms)._1
 
-  protected def cloneRow(row: SequenceRow[D]): IO[Endo[List[Atom[D]]]] =
+  protected def cloneRow(
+    row: SequenceRow[D]
+  )(targetSeqType: SequenceType): IO[Endo[List[Atom[D]]]] =
     IO.randomUUID
       .map(Step.Id.fromUuid(_))
       .map: newId =>
@@ -114,8 +115,7 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
               case Nil          => Nil // There's no sequence... What to do?
               case head :: tail =>
                 val newHead: Atom[D] =
-                  if head.observeClass === newStep.observeClass || // Calibration steps go to Science sequence
-                    (head.observeClass === ObserveClass.Science && newStep.observeClass.isCalibration)
+                  if row.sequenceType.contains_(targetSeqType)
                   then Atom.steps[D].modify(newStep :: _)(head)
                   else head
                 newHead :: tail
