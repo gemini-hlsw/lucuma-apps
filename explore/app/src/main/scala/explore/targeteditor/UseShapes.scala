@@ -9,6 +9,7 @@ import cats.syntax.all.*
 import explore.components.ui.ExploreStyles
 import explore.model.AGSVisibility
 import explore.model.ConfigurationForVisualization
+import explore.model.GhostSkySlot
 import explore.model.enums.AgsState
 import explore.model.reusability.given
 import japgolly.scalajs.react.*
@@ -326,7 +327,8 @@ def useVisualizationShapes(
 
             // Only force the (empty) IFU2 patrol field once IFU1 is assigned, i.e. the mode is
             // accepted with a science target. Otherwise the preview would show IFU2 but not IFU1.
-            val forceShowIfu2 = ifu1Coords.isDefined && vizConf.exists(_.isIfu2AvailableForSky)
+            val forceShowIfu2 =
+              ifu1Coords.isDefined && vizConf.exists(GhostSkySlot.isIfu2AvailableForSky)
 
             (probeVisibilityCss,
              GhostGeometry.ghostGeometry(

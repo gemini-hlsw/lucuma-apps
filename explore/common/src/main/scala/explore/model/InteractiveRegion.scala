@@ -9,6 +9,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.model.Target
 import lucuma.react.common.Css
 import lucuma.schemas.model.SlotId
 import lucuma.ui.visualization.GhostGeometry
@@ -27,25 +28,22 @@ case class InteractiveRegion(
 object InteractiveRegion:
   // ghost only for now but we could add more regions for other instruments
   def forViz(
-    vizConf:    Option[ConfigurationForVisualization],
-    obsCoords:  ObservationTargetsCoordinatesAt,
-    selectedGS: Option[AgsAnalysis.Usable],
-    assignSky:  Option[(SlotId, Coordinates) => IO[Unit]]
+    vizConf:               Option[ConfigurationForVisualization],
+    isTargetOfOpportunity: Target.Id => Boolean,
+    selectedGS:            Option[AgsAnalysis.Usable],
+    assignSky:             Option[(SlotId, Coordinates) => IO[Unit]]
   ): List[InteractiveRegion] =
     (vizConf, assignSky).tupled.toList.flatMap: (viz, assign) =>
-      val ifu1Assigned = obsCoords.slotCoords.contains(SlotId.GhostIfu1)
-      val ifu2Assigned = obsCoords.slotCoords.contains(SlotId.GhostIfu2)
-      // IFU2 is assignable only in GHOST Standard mode, once IFU1 is set (mode accepted)
-      // and IFU2 has no sky position yet.
-      Option
-        .when(viz.isIfu2AvailableForSky && ifu1Assigned && !ifu2Assigned):
+      GhostSkySlot
+        .skySlotAvailable(viz, isTargetOfOpportunity)
+        .map: slot =>
           val pa = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
           InteractiveRegion(
-            SlotId.GhostIfu2,
+            slot,
             pa,
             GhostGeometry.ifu2PatrolFieldShape(pa),
             VisualizationStyles.GhostIfu2PatrolField,
             VisualizationStyles.GhostIfu2PatrolFieldHovered,
-            assign(SlotId.GhostIfu2, _)
+            assign(slot, _)
           )
         .toList

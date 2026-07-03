@@ -18,6 +18,10 @@ enum InstrumentSlot derives Eq:
   case Science(targetId: Target.Id, id: SlotId)
   case Sky(coordinates: Coordinates, id: SlotId)
 
+  def slotId: SlotId = this match
+    case Science(_, id) => id
+    case Sky(_, id)     => id
+
 case class TargetVisualization(
   slots:       List[InstrumentSlot],
   labelPrefix: Option[String]

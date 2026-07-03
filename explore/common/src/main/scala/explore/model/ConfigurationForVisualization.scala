@@ -19,8 +19,6 @@ import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.InstrumentSlot
-import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetVisualization
 
 // Yet another config class. This one is has the minmimal set of params to visualize the configuration
@@ -62,18 +60,6 @@ case class ConfigurationForVisualization private (
 
   def conditionsWavelength: Wavelength =
     configuration.conditionsWavelength
-
-  // Whether IFU2 is free to hold a sky position, i.e. no science target is mapped to it.
-  // Standard resolution can be one or two targets, so it qualifies only when IFU2 is not used
-  // by a science target.
-  // High resolution is always a single science target on IFU1 with IFU2 reserved for the sky.
-  def isIfu2AvailableForSky: Boolean =
-    configuration match
-      case _: BasicConfiguration.GhostIfu =>
-        !targetVisualization.slots.exists:
-          case InstrumentSlot.Science(_, SlotId.GhostIfu2) => true
-          case _                                           => false
-      case _                              => false
 
 object ConfigurationForVisualization:
   def fromObsConfiguration(
