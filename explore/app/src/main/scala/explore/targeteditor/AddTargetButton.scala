@@ -54,16 +54,12 @@ import lucuma.ui.undo.UndoSetter
 import org.typelevel.log4cats.Logger
 
 case class AddSkyInfo(
-  // The slot the sky position goes into, or none if the mode doesn't support one
-  // (which renders the entry disabled).
-  slot:    Option[SlotId],
-  // The active "add sky" mode: Some(slot) while the Aladin region is clickable.
-  mode:    View[Option[SlotId]],
-  // Whether the sky can currently be assigned.
-  enabled: Boolean
+  slot:    Option[SlotId],       // The slot the sky position goes into
+  mode:    View[Option[SlotId]], // The active "add sky" mode
+  enabled: Boolean               // Whether the sky can currently be assigned.
 ):
-  // Key summarizing the fields that affect menu content, for use as a useMemo dependency.
-  def menuKey: (Boolean, Boolean, Boolean) = (slot.isDefined, mode.get.isDefined, enabled)
+  // Key summarizing the fields that affect menu content
+  def menuKey: (Option[SlotId], Boolean, Boolean) = (slot, mode.get.isDefined, enabled)
 
 case class AddTargetButton(
   label:            String,
@@ -159,6 +155,15 @@ object AddTargetButton
                  disabled = disabled
           ).tiny.compact
 
+      // The reusable menu content built by `menuItems`, it was a hard to read tuple before
+      case class MenuContent(
+        menuActions:        List[Action], // full SplitButton dropdown
+        popupActions:       List[Action], // selection-popup buttons
+        blindOffsetActions: List[Action], // blind-offset PopupMenu
+        insertTarget:       TargetWithOptId => Callback,
+        sources:            NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]]
+      )
+
       // Build the reusable menu content.
       def menuItems(
         ctx:               AppContext[IO],
@@ -170,13 +175,7 @@ object AddTargetButton
         addSkyInfo:        Option[AddSkyInfo],
         hasTargets:        Boolean,
         hasScienceTargets: Boolean
-      ): (
-        List[Action],
-        List[Action],
-        List[Action],
-        TargetWithOptId => Callback,
-        NonEmptyMap[TargetType, NonEmptyList[TargetSource[IO]]]
-      ) =
+      ): MenuContent =
         import ctx.given
 
         def insertTargetCB(targetWithOptId: TargetWithOptId): Callback =
@@ -276,7 +275,8 @@ object AddTargetButton
                 disabled = !info.enabled
               )
 
-        val actionItems: List[Action] = List(
+        // The search popup-launcher action.
+        val targetSearchAction: Action =
           Action(
             "Target Search",
             icon = LayeredIcon()(
@@ -285,22 +285,31 @@ object AddTargetButton
             ),
             command = onSelected.set(insertTargetCB) >>
               sources.set(all) >> actionButtons.set(List.empty) >> popupState.set(PopupState.Open)
-          ),
-          Action(
-            "Empty Sidereal Target",
-            icon = Icons.Star,
-            command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
-          ),
-          Action(
-            "Target of Opportunity",
-            icon = Icons.HourglassClock,
-            command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
-            disabled = hasTargets
           )
-        ) ++
-          blindOffsetActions
 
-        (actionItems ++ addSkyActions, actionItems.tail, blindOffsetActions, insertTargetCB, all)
+        // Actions offered inside the TargetSelectionPopup.
+        val insertActions: List[Action] =
+          List(
+            Action(
+              "Empty Sidereal Target",
+              icon = Icons.Star,
+              command = insertTargetCB(TargetWithOptId.newScience(EmptySiderealTarget))
+            ),
+            Action(
+              "Target of Opportunity",
+              icon = Icons.HourglassClock,
+              command = insertTargetCB(TargetWithOptId.newScience(EmptyOpportunityTarget)),
+              disabled = hasTargets
+            )
+          ) ++ blindOffsetActions
+
+        MenuContent(
+          menuActions = targetSearchAction :: insertActions ++ addSkyActions,
+          popupActions = insertActions,
+          blindOffsetActions = blindOffsetActions,
+          insertTarget = insertTargetCB,
+          sources = all
+        )
 
       for
         ctx              <- useContext(AppContext.ctx)
@@ -340,17 +349,16 @@ object AddTargetButton
                                         hasScienceTargets
                               )
       yield
-        val (_, popupActions, blindOffsetActions, insertTargetCB, all) = menus.value
 
         val hasTargetOfOpportunity: Boolean =
           observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
 
         val showBlindOffsetButton =
-          props.readOnly && props.allowBlindOffset && blindOffsetActions.nonEmpty
+          props.readOnly && props.allowBlindOffset && menus.value.blindOffsetActions.nonEmpty
 
         val closePopup = popupState.set(PopupState.Closed)
 
-        val buttonList: List[Button] = popupActions.map(_.toButton(closePopup))
+        val buttonList: List[Button] = menus.value.popupActions.map(_.toButton(closePopup))
 
         // In order for the title bar to look right, we need to have exactly one button in the DOM,
         // although it doesn't need to be visible.
@@ -366,10 +374,11 @@ object AddTargetButton
             ).tiny.compact
           else
             SplitButton(
-              model = menus.map(_._1.map(_.toMenuItem)),
-              onClick = onSelected.set(insertTargetCB) >> sources.set(all) >>
-                actionButtons.set(buttonList) >>
-                popupState.set(PopupState.Open),
+              model = menus.map(_.menuActions.map(_.toMenuItem)),
+              onClick =
+                onSelected.set(menus.value.insertTarget) >> sources.set(menus.value.sources) >>
+                  actionButtons.set(buttonList) >>
+                  popupState.set(PopupState.Open),
               severity = Button.Severity.Success,
               icon = Icons.New,
               disabled = props.readOnly || props.adding.get.value || hasTargetOfOpportunity,
@@ -391,6 +400,6 @@ object AddTargetButton
             selectNewIcon = Icons.New,
             onSelected = onSelected.get
           ),
-          PopupMenu(model = menus.map(_._3.map(_.toMenuItem))).withRef(blindRef.ref)
+          PopupMenu(model = menus.map(_.blindOffsetActions.map(_.toMenuItem))).withRef(blindRef.ref)
         )
     )
