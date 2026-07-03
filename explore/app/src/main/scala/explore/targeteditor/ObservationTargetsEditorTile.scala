@@ -17,6 +17,7 @@ import explore.model.AladinFullScreen
 import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
+import explore.model.ConfigurationForVisualization
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
@@ -46,12 +47,12 @@ import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
+import lucuma.ui.optics.getWithDefault
 import lucuma.ui.primereact.LucumaPrimeStyles
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
 import monocle.Iso
-import monocle.Lens
 
 import java.time.Instant
 import scala.collection.immutable.SortedSet
@@ -97,56 +98,98 @@ final case class ObservationTargetsEditorTile(
   val prefTargetId: Option[Target.Id]    =
     obsIds.single.flatMap(userPreferences.get.observationPreferences.get)
 
+case class SkyAssignmentState private (
+  configForViz:  Option[ConfigurationForVisualization],
+  availableSlot: Option[SlotId],
+  isAssignable:  Boolean
+):
+  // Whether the sky can be assigned right now: a slot exists and it's in an assignable state.
+  def canAssign: Boolean = availableSlot.isDefined && isAssignable
+
+object SkyAssignmentState:
+  def apply(
+    obsConf:               ObsConfiguration,
+    isTargetOfOpportunity: Target.Id => Boolean,
+    readonly:              Boolean,
+    allAreExecuted:        Boolean,
+    hasScienceTargets:     Boolean
+  ): SkyAssignmentState =
+    val configForViz     = ConfigurationForVisualization.fromObsConfiguration(obsConf)
+    val skyAvailableSlot = configForViz.flatMap(_.skySlotAvailable(isTargetOfOpportunity))
+    // Whether we can allow assigning a sky position
+    val isAssignable     = !readonly && !allAreExecuted && hasScienceTargets
+    new SkyAssignmentState(configForViz, skyAvailableSlot, isAssignable)
+
 object ObservationTargetsEditorTile
     extends TileComponent[ObservationTargetsEditorTile](
       { (props, tileSize) =>
         for
-          ctx              <- useContext(AppContext.ctx)
+          ctx                 <- useContext(AppContext.ctx)
           // Memoize the effective observation time (from odb or now)
           // so we don't feed react-datepicker a fresh Instant.now on every render
-          obsTimeOrNow     <- useMemo(props.obsTime.get)(_.getOrElse(Instant.now))
-          columnVisibility <- useStateView(TargetColumns.DefaultVisibility)
+          obsTimeOrNow        <- useMemo(props.obsTime.get)(_.getOrElse(Instant.now))
+          columnVisibility    <- useStateView(TargetColumns.DefaultVisibility)
           // obsEditInfo <- useStateView[Option[ObsIdSetEditInfo]](none)
-          adding           <- useStateView(AreAdding(false))
-          obsEditInfo      <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
-                                ObsIdSetEditInfo.fromObservationList
+          adding              <- useStateView(AreAdding(false))
+          obsEditInfo         <- useMemo((props.obsIds, props.obsAndTargets.get._1)):
+                                   ObsIdSetEditInfo.fromObservationList
           // _            <- useLayoutEffectWithDeps(obsEditInfo): roei =>
           //                   props.obsEditInfo.set(roei.value.some)
-          observations     <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
-                                ids.idSet.toList.map(obses.get).flatten
-          scienceIds       <- useMemo(observations): os =>
-                                // all of the selected observations must have the same asterism
-                                os.headOption.fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
-          distinctSite     <- useMemo(observations):
-                                _.value.map(_.site) match
-                                  case head :: Nil => head
-                                  case _           => none
+          observations        <- useMemo((props.obsIds, props.obsAndTargets.get._1)): (ids, obses) =>
+                                   ids.idSet.toList.map(obses.get).flatten
+          scienceIds          <- useMemo(observations): os =>
+                                   // all of the selected observations must have the same asterism
+                                   os.headOption.fold(SortedSet.empty[Target.Id])(_.scienceTargetIds)
+          distinctSite        <- useMemo(observations):
+                                   _.value.map(_.site) match
+                                     case head :: Nil => head
+                                     case _           => none
           // Build asterism IDs that include blind offset
-          targetIds        <- useMemo(
-                                (scienceIds, props.blindOffsetInfo.flatMap(_._2.get.blindOffsetTargetId))
-                              ): (scienceIds, oBlindId) =>
-                                // Include blind offset target in the IDs if present
-                                scienceIds.value ++ oBlindId.toList
-          obsTargets       <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
-                                ObservationTargets.fromIdsAndTargets(ids.value, targets)
-          _                <- useLayoutEffectWithDeps(
-                                (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
-                              ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
-                                // If the selected targetId is None, or not in the target list, we need
-                                // to select one. Firt select the preferred target if saved or else
-                                // the first science target. If no science target just pick the first overall target
-                                // Need to replace history here.
-                                focusedTargetId.filter(allTargetIds.contains) match
-                                  case None =>
-                                    val preferred = preferredTargetOpt.filter(allTargetIds.contains)
-                                    val tid       =
-                                      preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
-                                    props.setTarget(tid, SetRouteVia.HistoryReplace)
-                                  case _    => Callback.empty
-          skySelected             <- useStateView(none[SlotId])
-          fullScreen              <- useStateView(AladinFullScreen.Normal)
-          obsToCloneTo            <- useStateView(none[ObsIdSet])
-          readonlyForStatuses     <- useStateView(false)
+          targetIds           <- useMemo(
+                                   (scienceIds, props.blindOffsetInfo.flatMap(_._2.get.blindOffsetTargetId))
+                                 ): (scienceIds, oBlindId) =>
+                                   // Include blind offset target in the IDs if present
+                                   scienceIds.value ++ oBlindId.toList
+          obsTargets          <- useMemo((targetIds, props.allTargets.get)): (ids, targets) =>
+                                   ObservationTargets.fromIdsAndTargets(ids.value, targets)
+          _                   <- useLayoutEffectWithDeps(
+                                   (targetIds.value.toList, props.focusedTargetId, props.prefTargetId)
+                                 ): (allTargetIds, focusedTargetId, preferredTargetOpt) =>
+                                   // If the selected targetId is None, or not in the target list, we need
+                                   // to select one. Firt select the preferred target if saved or else
+                                   // the first science target. If no science target just pick the first overall target
+                                   // Need to replace history here.
+                                   focusedTargetId.filter(allTargetIds.contains) match
+                                     case None =>
+                                       val preferred = preferredTargetOpt.filter(allTargetIds.contains)
+                                       val tid       =
+                                         preferred.orElse(scienceIds.value.headOption).orElse(allTargetIds.headOption)
+                                       props.setTarget(tid, SetRouteVia.HistoryReplace)
+                                     case _    => Callback.empty
+          skySelected         <- useStateView(none[SlotId])
+          fullScreen          <- useStateView(AladinFullScreen.Normal)
+          obsToCloneTo        <- useStateView(none[ObsIdSet])
+          readonlyForStatuses <- useStateView(false)
+          // Slot holding the "add sky" mode enabling alading interactive mode.
+          addSkyMode          <- useStateView(none[SlotId])
+          skyState            <- useMemo(
+                                   (props.obsConf,
+                                    props.allTargets.get,
+                                    props.readonly,
+                                    obsEditInfo.allAreExecuted,
+                                    scienceIds.value.nonEmpty
+                                   )
+                                 ): (obsConf, targets, readonly, allAreExecuted, hasScienceTargets) =>
+                                   SkyAssignmentState(
+                                     obsConf,
+                                     targets.get(_).exists(_.isTargetOfOpportunity),
+                                     readonly,
+                                     allAreExecuted,
+                                     hasScienceTargets
+                                   )
+          // Leave the mode if the slot stops being assignable
+          _                   <- useEffectWithDeps(skyState.canAssign): available =>
+                                   addSkyMode.set(none).unless_(available)
         yield
           import ctx.given
 
@@ -262,7 +305,10 @@ object ObservationTargetsEditorTile
                       readOnly = props.readonly || obsEditInfo.allAreExecuted,
                       allowBlindOffset = !props.readonly,
                       buttonClass = ExploreStyles.AddTargetButton,
-                      blindOffsetInfo = props.blindOffsetInfo
+                      blindOffsetInfo = props.blindOffsetInfo,
+                      addSkyInfo = Option.when(skyState.configForViz.isDefined)(
+                        AddSkyInfo(skyState.availableSlot, addSkyMode, skyState.canAssign)
+                      )
                     )
                   ),
                   obsTimeEditor,
@@ -275,11 +321,14 @@ object ObservationTargetsEditorTile
           val editorReadonly = props.readonly || obsEditInfo.allAreExecuted
 
           // Sky position callbacks used by AladinCell for both sky and target selection.
+          // Only active while the user explicitly entered "add sky" mode
           val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
-            Option.unless(editorReadonly): (slot, coords) =>
+            Option.when(!editorReadonly && addSkyMode.get.isDefined): (slot, coords) =>
               props.slotSkyPositions
-                .collectFirst { case (`slot`, v) => v }
-                .foldMap(_.set(Some(coords)).to[IO])
+                .collectFirst:
+                  case (`slot`, v) => v
+                .foldMap(_.set(coords.some).to[IO]) *>
+                addSkyMode.set(none).to[IO]
 
           val resetSky: Option[SlotId => IO[Unit]] =
             Option.unless(editorReadonly): slot =>
@@ -292,7 +341,8 @@ object ObservationTargetsEditorTile
           val obsTargetsForAladin: Option[ObservationTargets] =
             selectedAsterismSelection.get match
               case Some(AsterismSelection.Target(tid)) =>
-                ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get)
+                ObservationTargets
+                  .fromIdsAndTargets(targetIds, props.allTargets.get)
                   .map(_.focusOn(tid))
               case _                                   =>
                 ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get)
@@ -302,15 +352,12 @@ object ObservationTargetsEditorTile
             if skySelected.get.isDefined then
               skySelected.get.flatMap: slot =>
                 props.slotSkyPositions
-                  .collectFirst { case (`slot`, v) => v }
+                  .collectFirst:
+                    case (`slot`, v) => v
                   .flatMap: view =>
                     view.get.map: _ =>
                       val skyCoordsView: View[Coordinates] =
-                        view.zoom(
-                          Lens[Option[Coordinates], Coordinates](_.getOrElse(Coordinates.Zero))(
-                            c => _ => Some(c)
-                          )
-                        )
+                        view.zoom(getWithDefault(Coordinates.Zero))
                       <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
                         SkyPositionEditor(skyCoordsView, editorReadonly)
                       )
@@ -320,7 +367,8 @@ object ObservationTargetsEditorTile
               ).mapN: (targets, focusedTargetId) =>
                 val selectedTargetOpt: Option[UndoSetter[TargetWithId]] =
                   props.allTargets.zoom(Iso.id[TargetList].index(focusedTargetId))
-                val obsInfo                                              = props.obsInfo(focusedTargetId)
+
+                val obsInfo = props.obsInfo(focusedTargetId)
                 (selectedTargetOpt, props.userId).mapN: (targetWithId, userId) =>
                   TargetEditor(
                     props.programId,
@@ -371,13 +419,15 @@ object ObservationTargetsEditorTile
               ),
               // Shared-target ("this target is used in N observations") warning belongs with the
               // table, not the editor/aladin area below.
-              props.focusedTargetId.filterNot(_ => skySelected.get.isDefined).map: tid =>
-                TargetCloneSelector(
-                  props.obsInfo(tid),
-                  obsToCloneTo,
-                  readonlyForStatuses,
-                  props.allowEditingOngoing
-                ),
+              props.focusedTargetId
+                .filterNot(_ => skySelected.get.isDefined)
+                .map: tid =>
+                  TargetCloneSelector(
+                    props.obsInfo(tid),
+                    obsToCloneTo,
+                    readonlyForStatuses,
+                    props.allowEditingOngoing
+                  ),
               <.div(ExploreStyles.TargetTileEditor)(
                 (obsTargetsForAladin, props.userId).mapN: (aladinTargets, uid) =>
                   <.div(ExploreStyles.TargetGrid)(

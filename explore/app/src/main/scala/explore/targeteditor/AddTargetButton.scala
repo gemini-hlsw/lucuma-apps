@@ -43,6 +43,7 @@ import lucuma.react.primereact.MenuItem
 import lucuma.react.primereact.PopupMenu
 import lucuma.react.primereact.SplitButton
 import lucuma.react.primereact.hooks.all.*
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.schemas.model.TargetWithOptId
 import lucuma.schemas.model.enums.BlindOffsetType
@@ -51,6 +52,18 @@ import lucuma.ui.reusability.given
 import lucuma.ui.syntax.effect.*
 import lucuma.ui.undo.UndoSetter
 import org.typelevel.log4cats.Logger
+
+case class AddSkyInfo(
+  // The slot the sky position goes into, or none if the mode doesn't support one
+  // (which renders the entry disabled).
+  slot:    Option[SlotId],
+  // The active "add sky" mode: Some(slot) while the Aladin region is clickable.
+  mode:    View[Option[SlotId]],
+  // Whether the sky can currently be assigned.
+  enabled: Boolean
+):
+  // Key summarizing the fields that affect menu content, for use as a useMemo dependency.
+  def menuKey: (Boolean, Boolean, Boolean) = (slot.isDefined, mode.get.isDefined, enabled)
 
 case class AddTargetButton(
   label:            String,
@@ -62,7 +75,8 @@ case class AddTargetButton(
   readOnly:         Boolean = false,
   allowBlindOffset: Boolean = false, // will be staff only for Ongoing
   buttonClass:      Css = Css.Empty,
-  blindOffsetInfo:  Option[(Observation.Id, View[BlindOffset])] = none
+  blindOffsetInfo:  Option[(Observation.Id, View[BlindOffset])] = none,
+  addSkyInfo:       Option[AddSkyInfo] = none
 ) extends ReactFnProps(AddTargetButton):
   val targetList: View[TargetList] = obsAndTargets.model.zoom(ObservationsAndTargets.targets)
 
@@ -153,9 +167,11 @@ object AddTargetButton
         popupState:        View[PopupState],
         actionButtons:     View[List[Button]],
         blindOffsetInfo:   Option[(Observation.Id, View[BlindOffset])],
+        addSkyInfo:        Option[AddSkyInfo],
         hasTargets:        Boolean,
         hasScienceTargets: Boolean
       ): (
+        List[Action],
         List[Action],
         List[Action],
         TargetWithOptId => Callback,
@@ -247,6 +263,19 @@ object AddTargetButton
               ).flattenOption
             )
 
+        // Toggles the "add sky" mode making the Aladin region clickable.
+        val addSkyActions: List[Action] =
+          addSkyInfo.toList.map: info =>
+            if info.mode.get.isDefined then
+              Action("Cancel Adding Sky Position", Icons.Bullseye, info.mode.set(none))
+            else
+              Action(
+                "Add Sky Position",
+                Icons.Bullseye,
+                info.slot.map(s => info.mode.set(s.some)).getOrEmpty,
+                disabled = !info.enabled
+              )
+
         val actionItems: List[Action] = List(
           Action(
             "Target Search",
@@ -271,7 +300,7 @@ object AddTargetButton
         ) ++
           blindOffsetActions
 
-        (actionItems, blindOffsetActions, insertTargetCB, all)
+        (actionItems ++ addSkyActions, actionItems.tail, blindOffsetActions, insertTargetCB, all)
 
       for
         ctx              <- useContext(AppContext.ctx)
@@ -293,21 +322,25 @@ object AddTargetButton
             observations.exists(_.blindOffset.useBlindOffset)
         hasScienceTargets = observations.headOption.exists(_.scienceTargetIds.nonEmpty)
         blindOffsetInfo   = props.blindOffsetInfo
-        menus            <-
-          useMemo(
-            (hasTargets, hasScienceTargets, blindOffsetInfo.map(b => (b._1, b._2.get.isAutomatic)))
-          ): (hasTargets, hasScienceTargets, _) =>
-            menuItems(ctx,
-                      onSelected,
-                      sources,
-                      popupState,
-                      actionButtons,
-                      blindOffsetInfo,
-                      hasTargets,
-                      hasScienceTargets
-            )
+        menus            <- useMemo(
+                              (hasTargets,
+                               hasScienceTargets,
+                               blindOffsetInfo.map(b => (b._1, b._2.get.isAutomatic)),
+                               props.addSkyInfo.map(_.menuKey)
+                              )
+                            ): (hasTargets, hasScienceTargets, _, _) =>
+                              menuItems(ctx,
+                                        onSelected,
+                                        sources,
+                                        popupState,
+                                        actionButtons,
+                                        blindOffsetInfo,
+                                        props.addSkyInfo,
+                                        hasTargets,
+                                        hasScienceTargets
+                              )
       yield
-        val (actionItems, blindOffsetActions, insertTargetCB, all) = menus.value
+        val (_, popupActions, blindOffsetActions, insertTargetCB, all) = menus.value
 
         val hasTargetOfOpportunity: Boolean =
           observations.headOption.forall(_.hasTargetOfOpportunity(props.targetList.get))
@@ -317,7 +350,7 @@ object AddTargetButton
 
         val closePopup = popupState.set(PopupState.Closed)
 
-        val buttonList: List[Button] = actionItems.tail.map(_.toButton(closePopup))
+        val buttonList: List[Button] = popupActions.map(_.toButton(closePopup))
 
         // In order for the title bar to look right, we need to have exactly one button in the DOM,
         // although it doesn't need to be visible.
@@ -358,7 +391,6 @@ object AddTargetButton
             selectNewIcon = Icons.New,
             onSelected = onSelected.get
           ),
-          PopupMenu(model = menus.map(_._2.map(_.toMenuItem)))
-            .withRef(blindRef.ref)
+          PopupMenu(model = menus.map(_._3.map(_.toMenuItem))).withRef(blindRef.ref)
         )
     )

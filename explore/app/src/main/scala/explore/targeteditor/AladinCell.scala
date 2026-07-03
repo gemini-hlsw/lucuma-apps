@@ -501,11 +501,11 @@ object AladinCell extends ModelOptics with AladinCommon:
         // Slots whose assignment is still in flight
         val pendingSlots: Set[SlotId] = optimisticSky.get.keySet
 
-        // Build clickable regions for the aladin component, in practice the only one so far is ghost ifu2 sky
+        // Build clickable regions for the aladin component, in practice the only one so far is ghost ifu2 sky.
         val interactiveRegions: List[InteractiveRegion] =
           InteractiveRegion.forViz(
             props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
-            realCoords,
+            props.allTargets.get.get(_).exists(_.isTargetOfOpportunity),
             guideStar,
             assignSkyOptimistic
           )

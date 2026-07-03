@@ -16,6 +16,7 @@ import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
 import lucuma.core.math.Wavelength
 import lucuma.core.model.PosAngleConstraint
+import lucuma.core.model.Target
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.schemas.model.AGSWavelength
 import lucuma.schemas.model.BasicConfiguration

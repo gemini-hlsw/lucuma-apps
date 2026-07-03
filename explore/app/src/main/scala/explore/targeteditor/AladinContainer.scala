@@ -433,21 +433,21 @@ object AladinContainer extends AladinCommon {
                                          Resource
                                            .eval(Ref.of[IO, Boolean](false))
                                            .map: submitting =>
-                                             signal.discrete.unNone
-                                               .map: c =>
-                                                 evaluated.collectFirst:
-                                                   case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
-                                                     onClick(c)
-                                               .unNone
-                                               .evalMap: act =>
-                                                 submitting
-                                                   .getAndSet(true)
-                                                   .flatMap {
-                                                     case true  => IO.unit // submit in flight; ignore
-                                                     case false =>
-                                                       act.handleErrorWith(_ => submitting.set(false))
-                                                   }
-                                                   .guarantee(signal.set(none))
+                                             signal.discrete.unNone.evalMap: c =>
+                                               signal.set(none) *>
+                                                 evaluated
+                                                   .collectFirst:
+                                                     case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
+                                                       onClick(c)
+                                                   .map: act =>
+                                                     submitting
+                                                       .getAndSet(true)
+                                                       .flatMap {
+                                                         case true  => IO.unit // submit in flight; ignore
+                                                         case false =>
+                                                           act.attempt *> submitting.set(false)
+                                                       }
+                                                   .getOrElse(IO.unit)
         // patrol field shapes for debugging
         pfShapes                <- usePatrolFieldShapes(
                                      props.vizConf,
