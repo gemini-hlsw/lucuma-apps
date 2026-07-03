@@ -34,8 +34,8 @@ object InteractiveRegion:
     assignSky:             Option[(SlotId, Coordinates) => IO[Unit]]
   ): List[InteractiveRegion] =
     (vizConf, assignSky).tupled.toList.flatMap: (viz, assign) =>
-      viz
-        .skySlotAvailable(isTargetOfOpportunity)
+      GhostSkySlot
+        .skySlotAvailable(viz, isTargetOfOpportunity)
         .map: slot =>
           val pa = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
           InteractiveRegion(

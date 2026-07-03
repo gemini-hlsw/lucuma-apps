@@ -18,6 +18,7 @@ import explore.model.AppContext
 import explore.model.AttachmentList
 import explore.model.BlindOffset
 import explore.model.ConfigurationForVisualization
+import explore.model.GhostSkySlot
 import explore.model.GuideStarSelection
 import explore.model.ObsConfiguration
 import explore.model.ObsIdSet
@@ -115,7 +116,8 @@ object SkyAssignmentState:
     hasScienceTargets:     Boolean
   ): SkyAssignmentState =
     val configForViz     = ConfigurationForVisualization.fromObsConfiguration(obsConf)
-    val skyAvailableSlot = configForViz.flatMap(_.skySlotAvailable(isTargetOfOpportunity))
+    val skyAvailableSlot =
+      configForViz.flatMap(GhostSkySlot.skySlotAvailable(_, isTargetOfOpportunity))
     // Whether we can allow assigning a sky position
     val isAssignable     = !readonly && !allAreExecuted && hasScienceTargets
     new SkyAssignmentState(configForViz, skyAvailableSlot, isAssignable)
