@@ -17,6 +17,7 @@ import lucuma.react.common.*
 import lucuma.react.primereact.Button
 import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.TooltipOptions
+import lucuma.react.primereact.valueOption
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.ui.LucumaStyles
@@ -120,12 +121,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
           .mapN[VdomNode]: (v, i) =>
             if isEditing && !isFinished then
               React.Fragment(
-                InputNumber( // TODO Decimals according to instrument
+                InputNumber(
                   id = s"exposure-${c.row.index}",
                   value = v.toSeconds.toDouble,
+                  maxFractionDigits = i.exposureTimeFractionDigits,
                   onValueChange = e =>
-                    handleRowValueEdit(c)(exposureReplace): // TODO Can we do this better than cast?
-                      TimeSpan.fromSeconds(e.value.get.asInstanceOf[Double].toLong)
+                    handleRowValueEdit(c)(exposureReplace):
+                      e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
                   ,
                   clazz = SequenceStyles.SequenceInput
                 )
