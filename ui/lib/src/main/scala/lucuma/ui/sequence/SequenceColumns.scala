@@ -132,7 +132,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
                   clazz = SequenceStyles.SequenceInput
                 )
               )
-            else FormatExposureTime(i)(v).value
+            else i.formatExposureTime(v).value
     )
 
   private lazy val coaddsCol: colDef.TypeFor[Option[PosInt]] =
@@ -285,7 +285,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
         header = _ => "Exptime",
-        cell = _.value.map(FormatExposureTime(Instrument.Ghost)(_).value).orEmpty
+        cell = _.value.map(Instrument.Ghost.formatExposureTime(_).value).orEmpty
       ),
       colDef(readModeId,
              _.getStep.flatMap(getter(_).map(_.readMode.shortName)),

@@ -4,12 +4,10 @@
 package lucuma.ui.sequence
 
 import eu.timepit.refined.types.string.NonEmptyString
-import lucuma.core.enums.Instrument
 import lucuma.core.math.Angle
 import lucuma.core.math.Axis
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
-import lucuma.core.util.TimeSpan
 
 object SequenceRowFormatters:
   private val FormatOffsetArcSec: BigDecimal => NonEmptyString =
@@ -26,6 +24,3 @@ object SequenceRowFormatters:
 
   val FormatWavelength: Wavelength => NonEmptyString =
     w => NonEmptyString.unsafeFrom(f"${Wavelength.decimalNanometers.reverseGet(w)}%.0f")
-
-  val FormatExposureTime: Instrument => TimeSpan => NonEmptyString =
-    _.formatExposureTime
