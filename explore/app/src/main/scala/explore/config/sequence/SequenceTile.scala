@@ -370,6 +370,20 @@ object SequenceTile
                           .toOptionView
                           .map: gnirsExecutionView =>
                             signalToNoise match
+                              case ModeSignalToNoise.GnirsImaging(snPerFilter)              =>
+                                GnirsImagingSequenceTable(
+                                  visitsViewOpt,
+                                  config.static,
+                                  gnirsExecutionView.flatAcquisition,
+                                  gnirsExecutionView.flatScience,
+                                  snPerFilter,
+                                  isEditEnabled,
+                                  props.isEditingAcquisition,
+                                  props.isEditingScience,
+                                  props.isUserStaffOrAdmin,
+                                  seqType =>
+                                    ctx.odbApi.replaceGnirsSequence(props.obsId, seqType, _)
+                                )
                               case ModeSignalToNoise.Spectroscopy(acquisitionSn, scienceSn) =>
                                 GnirsSequenceTable(
                                   visitsViewOpt,

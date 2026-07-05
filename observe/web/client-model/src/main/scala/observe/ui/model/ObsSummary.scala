@@ -71,6 +71,8 @@ case class ObsSummary(
           s"${disperser.shortName} ${fpu.shortName}".some
         case BasicConfiguration.Flamingos2Imaging(filters)            =>
           filters.map(_.shortName).toList.mkString(", ").some
+        case BasicConfiguration.GnirsImaging(filters, camera)         =>
+          s"${camera.shortName} ${filters.map(_.shortName).toList.mkString(", ")}".some
         case BasicConfiguration.Igrins2LongSlit                       =>
           none
         case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)  =>

@@ -173,7 +173,8 @@ def usePatrolFieldShapes(
             pwfs.patrolField.patrolField.some
           case ObservingModeType.GhostIfu                                                =>
             ghost.scienceArea.fov.some
-          case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu              =>
+          case ObservingModeType.GnirsImaging | ObservingModeType.GnirsLongSlit |
+              ObservingModeType.GnirsIfu =>
             pwfs.patrolField.patrolField.some
           case _: VisitorObservingModeType                                               =>
             pwfs.patrolField.patrolField.some
@@ -347,7 +348,8 @@ def useVisualizationShapes(
                forceShowIfu2
              )
             ).some
-          case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu              =>
+          case ObservingModeType.GnirsImaging | ObservingModeType.GnirsLongSlit |
+              ObservingModeType.GnirsIfu =>
             val probeVisibilityCss = vizConf.flatMap(_.guideProbe) match
               case Some(GuideProbe.PWFS2) | Some(GuideProbe.PWFS1) =>
                 VisualizationStyles.PwfsProbeArmVisible

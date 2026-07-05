@@ -25,6 +25,8 @@ ThisBuild / turbo              := true
 ThisBuild / scalaVersion       := "3.8.4"
 ThisBuild / crossScalaVersions := Seq("3.8.4")
 ThisBuild / scalacOptions ++= Seq("-language:implicitConversions", "-explain-cyclic")
+// Order/Hash derivation for large enums (e.g. ObservingModeSummary) exceeds the default of 32
+ThisBuild / scalacOptions ++= Seq("-Xmax-inlines", "64")
 ThisBuild / scalacOptions ++= Seq(
   // ScalablyTyped macros introduce deprecated methods, this silences those warnings
   "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"

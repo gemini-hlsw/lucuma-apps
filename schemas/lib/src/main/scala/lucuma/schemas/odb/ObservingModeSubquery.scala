@@ -164,6 +164,22 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
           }
+          gnirsImaging {
+            initialFilters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            filters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            camera
+            coadds
+            explicitReadMode
+            defaultWellDepth
+            explicitWellDepth
+            variant $ImagingVariantSubquery
+          }
           gnirsSpectroscopy {
             initialGrating
             initialFilter

@@ -287,7 +287,7 @@ object Dependencies {
   )
 
   val LucumaOdbSchema = Def.setting(
-    deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaServers)
+    deps("edu.gemini" %%% "lucuma-odb-schema")(lucumaOdbSchema)
   )
 
   val LucumaOdbBinding = Def.setting(

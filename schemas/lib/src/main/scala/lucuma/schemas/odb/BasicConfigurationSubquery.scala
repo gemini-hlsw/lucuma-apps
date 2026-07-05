@@ -48,6 +48,12 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
           igrins2LongSlit {
             offsetMode
           }
+          gnirsImaging {
+            filters {
+              filter
+            }
+            camera
+          }
           gnirsSpectroscopy {
             filter
             slit { fpu }

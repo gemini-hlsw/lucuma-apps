@@ -429,10 +429,6 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
-
-    // There is no GNIRS imaging observing mode in the ODB yet, so rows can show ITC
-    // results but cannot be accepted into an observation.
-    override def canBeAccepted: Boolean = false
   }
 
   // Used for imaging instruments (Alopeke, Zorro)

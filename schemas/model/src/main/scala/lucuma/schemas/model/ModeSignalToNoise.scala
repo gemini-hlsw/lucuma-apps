@@ -8,6 +8,7 @@ import cats.derived.*
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosSouthFilter
+import lucuma.core.enums.GnirsFilter
 import lucuma.itc.SignalToNoiseAt
 
 enum ModeSignalToNoise derives Eq:
@@ -16,5 +17,6 @@ enum ModeSignalToNoise derives Eq:
   case GmosNorthImaging(science: Map[GmosNorthFilter, SignalToNoiseAt])
   case GmosSouthImaging(science: Map[GmosSouthFilter, SignalToNoiseAt])
   case Flamingos2Imaging(science: Map[Flamingos2Filter, SignalToNoiseAt])
+  case GnirsImaging(science: Map[GnirsFilter, SignalToNoiseAt])
   // This may change for GHOST in the future, but it is what the odb sends right now. S/N is always null.
   case GhostIfu(red: Option[SignalToNoiseAt], blue: Option[SignalToNoiseAt])

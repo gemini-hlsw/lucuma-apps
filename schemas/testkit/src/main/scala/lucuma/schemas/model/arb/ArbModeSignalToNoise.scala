@@ -65,6 +65,14 @@ trait ArbModeSignalToNoise:
     Cogen[List[(lucuma.core.enums.Flamingos2Filter, SignalToNoiseAt)]].contramap: sn =>
       sn.science.toList
 
+  given Arbitrary[ModeSignalToNoise.GnirsImaging] = Arbitrary:
+    for scienceSN <- arbitrary[Map[lucuma.core.enums.GnirsFilter, SignalToNoiseAt]]
+    yield ModeSignalToNoise.GnirsImaging(scienceSN)
+
+  given Cogen[ModeSignalToNoise.GnirsImaging] =
+    Cogen[List[(lucuma.core.enums.GnirsFilter, SignalToNoiseAt)]].contramap: sn =>
+      sn.science.toList
+
   given Arbitrary[ModeSignalToNoise.GhostIfu] = Arbitrary:
     for
       redSN  <- arbitrary[Option[SignalToNoiseAt]]
@@ -82,6 +90,7 @@ trait ArbModeSignalToNoise:
       arbitrary[ModeSignalToNoise.GmosNorthImaging],
       arbitrary[ModeSignalToNoise.GmosSouthImaging],
       arbitrary[ModeSignalToNoise.Flamingos2Imaging],
+      arbitrary[ModeSignalToNoise.GnirsImaging],
       arbitrary[ModeSignalToNoise.GhostIfu]
     )
 
@@ -96,7 +105,10 @@ trait ArbModeSignalToNoise:
             ModeSignalToNoise.GmosSouthImaging,
             Either[
               ModeSignalToNoise.Flamingos2Imaging,
-              ModeSignalToNoise.GhostIfu
+              Either[
+                ModeSignalToNoise.GnirsImaging,
+                ModeSignalToNoise.GhostIfu
+              ]
             ]
           ]
         ]
@@ -108,6 +120,7 @@ trait ArbModeSignalToNoise:
         case gnm: ModeSignalToNoise.GmosNorthImaging  => Right(Right(Left(gnm)))
         case gsm: ModeSignalToNoise.GmosSouthImaging  => Right(Right(Right(Left(gsm))))
         case f2i: ModeSignalToNoise.Flamingos2Imaging => Right(Right(Right(Right(Left(f2i)))))
-        case gst: ModeSignalToNoise.GhostIfu          => Right(Right(Right(Right(Right(gst)))))
+        case gnm: ModeSignalToNoise.GnirsImaging      => Right(Right(Right(Right(Right(Left(gnm))))))
+        case gst: ModeSignalToNoise.GhostIfu          => Right(Right(Right(Right(Right(Right(gst))))))
 
 object ArbModeSignalToNoise extends ArbModeSignalToNoise

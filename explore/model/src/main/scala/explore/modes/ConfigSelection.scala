@@ -55,10 +55,19 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
   def contains(config: ItcInstrumentConfig): Boolean = configs.exists(_.instrumentConfig === config)
 
+  // GNIRS imaging rows exist per camera; only same-camera rows form one configuration.
+  private def compatibleImagingSetup(a: ItcInstrumentConfig, b: ItcInstrumentConfig): Boolean =
+    (a, b) match
+      case (ItcInstrumentConfig.GnirsImaging(camera = c1), ItcInstrumentConfig.GnirsImaging(camera = c2)) =>
+        c1 === c2
+      case _                                                                                              =>
+        true
+
   def canAdd(configAndResult: InstrumentConfigAndItcResult): Boolean =
     headOption.fold(true)(head =>
       head.instrumentConfig.mode === ScienceMode.Imaging &&
         head.instrumentConfig.instrument === configAndResult.instrument &&
+        compatibleImagingSetup(head.instrumentConfig, configAndResult.instrumentConfig) &&
         !contains(configAndResult.instrumentConfig)
     )
 
@@ -111,6 +120,11 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.Flamingos2Imaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.Flamingos2Imaging.apply)
+      case ItcInstrumentConfig.GnirsImaging(_, camera, _)                                     =>
+        // Only rows sharing the head's camera can be combined into one configuration.
+        val filters = configs.collect:
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GnirsImaging(f, c, _), _) if c === camera => f
+        NonEmptyList.fromList(filters).map(BasicConfiguration.GnirsImaging(_, camera))
       case ItcInstrumentConfig.GnirsSpectroscopy(
             grating,
             fpu,

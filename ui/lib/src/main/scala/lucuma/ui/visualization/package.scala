@@ -15,6 +15,7 @@ import lucuma.ags.GuideStarCandidate
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.Flamingos2LyotWheel
 import lucuma.core.enums.GnirsFpuSlit
+import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
@@ -24,6 +25,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.model.sequence.flamingos2.Flamingos2FpuMask
+import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.NewBoolean
 import lucuma.react.common.Css
 import lucuma.schemas.model.BasicConfiguration
@@ -223,11 +225,15 @@ extension (conf: BasicConfiguration)
           AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some
         case BasicConfiguration.Igrins2LongSlit                                              =>
           AgsParams.Igrins2LongSlit().some
+        case BasicConfiguration.GnirsImaging(camera = camera)                                =>
+          // AGS for GNIRS keyhole imaging is not yet modeled in lucuma-ags; fall back to
+          // the long-slit probe params with a placeholder slit (PWFS2 guiding, so only the
+          // patrol field matters in practice).
+          AgsParams.GnirsLongSlit(GnirsFpuSlit.LongSlit_1_00, camera, GnirsPrism.Mirror, port).some
         case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>
           // AGS for the GNIRS IFU is not yet modeled in lucuma-ags; fall back to the
           // long-slit probe params (IFU support deferred). Slit width barely affects the
           // probe reachability, so a placeholder is used when the FPU is an IFU.
-          import lucuma.core.model.sequence.gnirs.GnirsFpu
           val slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).getOrElse(GnirsFpuSlit.LongSlit_1_00)
           AgsParams.GnirsLongSlit(slit, camera, prism, port).some
         case BasicConfiguration.GhostIfu(_, _, _, _, _)                                      =>

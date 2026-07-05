@@ -48,6 +48,7 @@ import lucuma.schemas.ObservationDB.Types.GmosNorthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthImagingInput
 import lucuma.schemas.ObservationDB.Types.GmosSouthLongSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsIfuInput
+import lucuma.schemas.ObservationDB.Types.GnirsImagingInput
 import lucuma.schemas.ObservationDB.Types.GnirsSlitInput
 import lucuma.schemas.ObservationDB.Types.GnirsSpectroscopyInput
 import lucuma.schemas.ObservationDB.Types.Igrins2LongSlitInput
@@ -106,6 +107,11 @@ enum ObservingModeSummary derives Order:
     variant: ImagingVariant,
     filters: NonEmptyList[ObservingMode.Flamingos2Imaging.ImagingFilter]
   )                                                        extends ObservingModeSummary
+  case GnirsImaging(
+    variant: ImagingVariant,
+    filters: NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter],
+    camera:  GnirsCamera
+  )                                                        extends ObservingModeSummary
   case GnirsSpectroscopy(
     filter:            GnirsFilter,
     fpu:               GnirsFpu.Spectroscopy,
@@ -139,6 +145,7 @@ enum ObservingModeSummary derives Order:
     case GmosSouthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosSouthLongSlit
     case Flamingos2LongSlit(_, _, _, _)         => ObservingModeType.Flamingos2LongSlit
     case Flamingos2Imaging(_, _)                => ObservingModeType.Flamingos2Imaging
+    case GnirsImaging(_, _, _)                  => ObservingModeType.GnirsImaging
     case GmosNorthImaging(_, _, _, _)           => ObservingModeType.GmosNorthImaging
     case GmosSouthImaging(_, _, _, _)           => ObservingModeType.GmosSouthImaging
     case Igrins2LongSlit(_)                     => ObservingModeType.Igrins2LongSlit
@@ -207,6 +214,14 @@ enum ObservingModeSummary derives Order:
         Flamingos2ImagingInput(
           variant = variant.toInput.assign,
           filters = filters.toList.map(_.toInput).assign
+        )
+      )
+    case GnirsImaging(variant, filters, camera)                                            =>
+      ObservingModeInput.GnirsImaging(
+        GnirsImagingInput(
+          variant = variant.toInput.assign,
+          filters = filters.toList.map(_.toInput).assign,
+          camera = camera.assign
         )
       )
     case Igrins2LongSlit(etm)                                                              =>
@@ -299,6 +314,13 @@ enum ObservingModeSummary derives Order:
             .toList
             .mkString("\n")
         s"Flamingos2 Imaging ${variant.variantType.name}\n$filterStr"
+      case GnirsImaging(variant, filters, camera)                                            =>
+        val filterStr =
+          filters
+            .map(i => s"${i.filter.shortName} (${i.exposureTimeMode.formatImaging})")
+            .toList
+            .mkString("\n")
+        s"GNIRS Imaging ${camera.shortName} ${variant.variantType.name}\n$filterStr"
       case GmosNorthImaging(variant, filters, ampReadMode, roi)                              =>
         val filterStr =
           filters
@@ -386,6 +408,12 @@ object ObservingModeSummary:
         Flamingos2LongSlit(f.disperser, f.filter, f.fpu, f.exposureTimeMode)
       case f: ObservingMode.Flamingos2Imaging  =>
         Flamingos2Imaging(f.variant, f.filters)
+      case g: ObservingMode.GnirsImaging       =>
+        GnirsImaging(
+          g.variant,
+          normalizeImagingFiltersAt(g.filters, ObservingMode.GnirsImaging.ImagingFilter.exposureTimeMode),
+          g.camera
+        )
       case n: ObservingMode.GmosNorthImaging   =>
         GmosNorthImaging(
           n.variant,
@@ -447,6 +475,9 @@ object ObservingModeSummary:
     case Flamingos2Imaging(variant, filters)                                             =>
       val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
       s"Flamingos2 Imaging ${variant.variantType.name} $filterStr"
+    case GnirsImaging(variant, filters, camera)                                          =>
+      val filterStr = filters.map(_.filter.shortName).toList.mkString(", ")
+      s"GNIRS Imaging ${camera.shortName} ${variant.variantType.name} $filterStr"
     case Igrins2LongSlit(_)                                                              =>
       s"IGRINS-2 Longslit"
     case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, _)             =>
@@ -483,6 +514,10 @@ object ObservingModeSummary:
   object Flamingos2Imaging:
     given Order[Flamingos2Imaging] =
       Order.by(x => x.filters.map(_.filter))
+
+  object GnirsImaging:
+    given Order[GnirsImaging] =
+      Order.by(x => (x.camera, x.filters.map(_.filter)))
 
   object Visitor:
     given Order[Visitor] =

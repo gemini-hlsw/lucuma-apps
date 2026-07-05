@@ -102,6 +102,14 @@ trait ArbBasicConfiguration {
       } yield BasicConfiguration.Flamingos2Imaging(filters)
     )
 
+  given Arbitrary[BasicConfiguration.GnirsImaging] =
+    Arbitrary[BasicConfiguration.GnirsImaging](
+      for {
+        filters <- arbitrary[NonEmptyList[GnirsFilter]]
+        camera  <- arbitrary[GnirsCamera]
+      } yield BasicConfiguration.GnirsImaging(filters, camera)
+    )
+
   given Arbitrary[BasicConfiguration.Igrins2LongSlit.type] =
     Arbitrary[BasicConfiguration.Igrins2LongSlit.type](
       Gen.const(BasicConfiguration.Igrins2LongSlit)
@@ -171,6 +179,7 @@ trait ArbBasicConfiguration {
       arbitrary[BasicConfiguration.GnirsSpectroscopy],
       arbitrary[BasicConfiguration.Flamingos2LongSlit],
       arbitrary[BasicConfiguration.Flamingos2Imaging],
+      arbitrary[BasicConfiguration.GnirsImaging],
       arbitrary[BasicConfiguration.Igrins2LongSlit.type],
       arbitrary[BasicConfiguration.GhostIfu],
       arbitrary[BasicConfiguration.Visitor],
@@ -234,6 +243,10 @@ trait ArbBasicConfiguration {
     Cogen[NonEmptyList[Flamingos2Filter]]
       .contramap(_.filters)
 
+  given Cogen[BasicConfiguration.GnirsImaging] =
+    Cogen[(NonEmptyList[GnirsFilter], GnirsCamera)]
+      .contramap(o => (o.filters, o.camera))
+
   given Cogen[BasicConfiguration.GhostIfu] =
     Cogen[(GhostResolutionMode, ItcGhostDetector, ItcGhostDetector)]
       .contramap(o => (o.resolutionMode, o.red, o.blue))
@@ -270,10 +283,13 @@ trait ArbBasicConfiguration {
                     Either[
                       BasicConfiguration.Flamingos2Imaging,
                       Either[
-                        BasicConfiguration.Visitor,
+                        BasicConfiguration.GnirsImaging,
                         Either[
-                          BasicConfiguration.KeckExchange,
-                          BasicConfiguration.SubaruExchange
+                          BasicConfiguration.Visitor,
+                          Either[
+                            BasicConfiguration.KeckExchange,
+                            BasicConfiguration.SubaruExchange
+                          ]
                         ]
                       ]
                     ]
@@ -299,12 +315,14 @@ trait ArbBasicConfiguration {
           s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case f: BasicConfiguration.Flamingos2Imaging  =>
           f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+        case g: BasicConfiguration.GnirsImaging       =>
+          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: BasicConfiguration.Visitor            =>
-          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case k: BasicConfiguration.KeckExchange       =>
-          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: BasicConfiguration.SubaruExchange     =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
 
 }
 

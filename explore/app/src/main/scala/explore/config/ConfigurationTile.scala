@@ -265,6 +265,8 @@ object ConfigurationTile
         ObservingModeInput.GmosSouthImaging(GmosSouthImagingInput())
       val EmptyF2ImagingInput: ObservingModeInput         =
         ObservingModeInput.Flamingos2Imaging(Flamingos2ImagingInput())
+      val EmptyGnirsImagingInput: ObservingModeInput      =
+        ObservingModeInput.GnirsImaging(GnirsImagingInput())
 
       for
         ctx        <- useContext(AppContext.ctx)
@@ -389,6 +391,16 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.igrins2LongSlit
                   .andThen(ObservingModeInput.Igrins2LongSlit.value)
+                  .modify
+            )
+
+        val optGnirsImagingAligner: Option[Aligner[GnirsImaging, GnirsImagingInput]] =
+          optModeAligner(EmptyGnirsImagingInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.gnirsImaging,
+              modInput:
+                ObservingModeInput.gnirsImaging
+                  .andThen(ObservingModeInput.GnirsImaging.value)
                   .modify
             )
 
@@ -604,6 +616,20 @@ object ConfigurationTile
                       props.sequenceChanged,
                       props.permissions,
                       props.units
+                    ),
+                  // GNIRS Imaging
+                  optGnirsImagingAligner.map: gnirsImgAligner =>
+                    GnirsImagingConfigPanel(
+                      props.programId,
+                      props.obsId,
+                      props.obsConf.calibrationRole,
+                      gnirsImgAligner,
+                      reqsExposureTimeMode,
+                      revertConfig,
+                      props.sequenceChanged,
+                      !props.permissions.isFullEdit,
+                      props.units,
+                      props.isStaffOrAdmin
                     ),
                   // GNIRS Long Slit
                   optGnirsSpectroscopyAligner.map: gnirsAligner =>
