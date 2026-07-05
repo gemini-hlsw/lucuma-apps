@@ -103,6 +103,10 @@ object ModesQueriesGQL:
           flamingos2 {
             filter
           }
+          gnirs {
+            filter
+            camera
+          }
         }
       }
     """

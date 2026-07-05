@@ -99,6 +99,7 @@ object ImagingModesTable extends ModesTableCommon:
       filter match
         case g: GmosNorthFilter => g.wavelength.some
         case g: GmosSouthFilter => g.wavelength.some
+        case g: GnirsFilter     => g.optimalWavelength
         case _                  => None
 
     private def filterTypeStr: String =

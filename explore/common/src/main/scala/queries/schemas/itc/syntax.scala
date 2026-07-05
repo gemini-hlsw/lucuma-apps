@@ -30,6 +30,7 @@ import lucuma.itc.ItcGhostDetector
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
+import lucuma.refined.*
 
 import scala.collection.immutable.SortedSet
 
@@ -106,6 +107,11 @@ trait syntax:
                 .leftNec
             )
 
+      // The ITC only uses the read mode in time-and-count mode; in S/N mode it is ignored.
+      def gnirsReadModeFor(etm: ExposureTimeMode): GnirsReadMode = etm match
+        case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
+        case _                                          => GnirsReadMode.Bright
+
       row match
         case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
@@ -153,11 +159,19 @@ trait syntax:
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
         case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                  =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm)                               =>
+          InstrumentMode
+            .GnirsImaging(
+              etm,
+              filter,
+              camera,
+              gnirsReadModeFor(etm),
+              GnirsWellDepth.forCamera(camera),
+              coadds = 1.refined
+            )
+            .rightNec
         case ItcInstrumentConfig
               .GnirsSpectroscopy(grating, fpu, filter, prism, camera, etm, modeOverrides) =>
-          val readMode: GnirsReadMode = etm match
-            case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
-            case _                                          => GnirsReadMode.Bright // This is ignored by ITC.
           // ITC supports the spectroscopy FPUs (long slit and IFU); the other FPUs
           // (acquisition mirror, pupil viewer, pinholes) are not calculable.
           modeOverrides
@@ -174,7 +188,7 @@ trait syntax:
                       prism,
                       grating,
                       camera,
-                      readMode,
+                      gnirsReadModeFor(etm),
                       GnirsWellDepth.forCamera(camera),
                       overrides.coadds
                     )

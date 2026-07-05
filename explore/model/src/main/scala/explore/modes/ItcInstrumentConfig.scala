@@ -359,6 +359,11 @@ object ItcInstrumentConfig:
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
   }
 
+  extension (camera: GnirsCamera)
+    private def focalLengthLabel: String = camera.pixelScale match
+      case GnirsPixelScale.PixelScale_0_05 => "LC"
+      case GnirsPixelScale.PixelScale_0_15 => "SC"
+
   case class GnirsSpectroscopy(
     grating:                    GnirsGrating,
     fpu:                        GnirsFpu,
@@ -387,9 +392,7 @@ object ItcInstrumentConfig:
           case GnirsFpuIfu.LowResolution  => "LR IFU"
           case GnirsFpuIfu.HighResolution => "HR IFU"
       case _                              =>
-        camera.pixelScale match
-          case GnirsPixelScale.PixelScale_0_05 => "LC"
-          case GnirsPixelScale.PixelScale_0_15 => "SC"
+        camera.focalLengthLabel
 
     override def instrumentLabel: String =
       s"${instrument.longName} $ifuOrCameraStr"
@@ -398,6 +401,38 @@ object ItcInstrumentConfig:
       copy(exposureTimeMode = etm)
 
     val signalToNoiseAt: Wavelength = exposureTimeMode.at
+  }
+
+  case class GnirsImaging(
+    filter:           GnirsFilter,
+    camera:           GnirsCamera,
+    exposureTimeMode: ExposureTimeMode
+  ) extends ItcInstrumentConfig derives Eq {
+    type Grating  = Unit
+    type Filter   = GnirsFilter
+    type FPU      = Unit
+    type Override = Unit
+
+    val gratingDisplay: Display[Grating] = Display.byShortName(_ => "")
+    val filterStr: String                = filter.shortName
+    val instrument                       = Instrument.Gnirs
+    val site                             = Site.GN
+    val hasFilter                        = true
+    val mode                             = ScienceMode.Imaging
+    val grating: Grating                 = ()
+    val fpu: FPU                         = ()
+
+    override def instrumentLabel: String =
+      s"${instrument.longName} ${camera.focalLengthLabel}"
+
+    def setSingleExposureTimeMode(etm: ExposureTimeMode): ItcInstrumentConfig =
+      copy(exposureTimeMode = etm)
+
+    val signalToNoiseAt: Wavelength = exposureTimeMode.at
+
+    // There is no GNIRS imaging observing mode in the ODB yet, so rows can show ITC
+    // results but cannot be accepted into an observation.
+    override def canBeAccepted: Boolean = false
   }
 
   // Used for imaging instruments (Alopeke, Zorro)
