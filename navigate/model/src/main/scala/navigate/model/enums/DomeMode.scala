@@ -5,7 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum DomeMode(val tag: String) extends Product with Serializable derives Enumerated {
+enum DomeMode(val tag: String) derives Enumerated {
   case Basic        extends DomeMode("Basic")
   case MinScatter   extends DomeMode("MinScatter")
   case MinVibration extends DomeMode("MinVibration")

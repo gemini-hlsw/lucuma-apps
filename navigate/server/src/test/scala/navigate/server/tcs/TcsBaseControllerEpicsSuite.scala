@@ -188,11 +188,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val testHeight   = 123.456
     val testVentEast = 0.3
     val testVentWest = 0.2
+    val shutterMode = ShutterMode.Tracking(Distance.fromBigDecimalMeter(1))
 
     for {
       (st, ctr) <- createController()
       _         <- ctr.ecsCarouselMode(DomeMode.MinVibration,
-                                       ShutterMode.Tracking,
+                                       shutterMode,
                                        testHeight,
                                        domeEnable = true,
                                        shutterEnable = true
@@ -210,8 +211,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(rs.enclosure.ecsDomeMode.value.flatMap(Enumerated[DomeMode].fromTag),
                    DomeMode.MinVibration.some
       )
-      assertEquals(rs.enclosure.ecsShutterMode.value.flatMap(Enumerated[ShutterMode].fromTag),
-                   ShutterMode.Tracking.some
+      assertEquals(rs.enclosure.ecsShutterMode.value,
+                   shutterMode.tag.some
       )
       assert(rs.enclosure.ecsSlitHeight.value.exists(x => compareDouble(x.toDouble, testHeight)))
       assertEquals(rs.enclosure.ecsDomeEnable.value.flatMap(Enumerated[BinaryOnOff].fromTag),

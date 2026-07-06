@@ -5,7 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum AoFoldPosition(val tag: String) extends Product with Serializable derives Enumerated {
+enum AoFoldPosition(val tag: String) derives Enumerated {
   case Out extends AoFoldPosition("OUT")
   case In  extends AoFoldPosition("IN")
 }

@@ -5,8 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum DeployableBafflePosition(val tag: String) extends Product with Serializable
-    derives Enumerated {
+enum DeployableBafflePosition(val tag: String) derives Enumerated {
   case ThermalIr extends DeployableBafflePosition("ThermalIr")
   case NearIr    extends DeployableBafflePosition("NearIr")
   case Visible   extends DeployableBafflePosition("Visible")

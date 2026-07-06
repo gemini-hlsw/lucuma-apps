@@ -3,9 +3,9 @@
 
 package navigate.model.enums
 
-import lucuma.core.util.Enumerated
+import navigate.model.Distance
 
-enum ShutterMode(val tag: String) extends Product with Serializable derives Enumerated {
+enum ShutterMode(val tag: String) {
   case FullyOpen extends ShutterMode("FullyOpen")
-  case Tracking  extends ShutterMode("Tracking")
+  case Tracking(aperture: Distance) extends ShutterMode("Tracking")
 }

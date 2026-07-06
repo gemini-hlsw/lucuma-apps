@@ -3,36 +3,33 @@
 
 package navigate.web.server
 
-import cats.syntax.all.*
-import lucuma.core.util.Enumerated
-import navigate.model.ClientId
-import navigate.model.enums.DomeMode
-import navigate.model.enums.ShutterMode
+//import cats.syntax.all.*
+//import navigate.model.ClientId
 
 package object http4s {
-  object ClientIDVar {
-    def unapply(str: String): Option[ClientId] =
-      Either.catchNonFatal(ClientId(java.util.UUID.fromString(str))).toOption
-  }
+//  object ClientIDVar {
+//    def unapply(str: String): Option[ClientId] =
+//      Either.catchNonFatal(ClientId(java.util.UUID.fromString(str))).toOption
+//  }
+//
+//  object BooleanVar {
+//    def unapply(str: String): Option[Boolean] =
+//      Either.catchNonFatal(str.toBoolean).toOption
+//  }
+//
+//  object DoubleVar {
+//    def unapply(str: String): Option[Double] =
+//      Either.catchNonFatal(str.toDouble).toOption
+//  }
 
-  object BooleanVar {
-    def unapply(str: String): Option[Boolean] =
-      Either.catchNonFatal(str.toBoolean).toOption
-  }
-
-  object DoubleVar {
-    def unapply(str: String): Option[Double] =
-      Either.catchNonFatal(str.toDouble).toOption
-  }
-
-  object DomeModeVar {
-    def unapply(str: String): Option[DomeMode] =
-      Enumerated[DomeMode].fromTag(str)
-  }
-
-  object ShutterModeVar {
-    def unapply(str: String): Option[ShutterMode] =
-      Enumerated[ShutterMode].fromTag(str)
-  }
+//  object DomeModeVar {
+//    def unapply(str: String): Option[DomeMode] =
+//      Enumerated[DomeMode].fromTag(str)
+//  }
+//
+//  object ShutterModeVar {
+//    def unapply(str: String): Option[ShutterMode] =
+//      Enumerated[ShutterMode].fromTag(str)
+//  }
 
 }

@@ -32,32 +32,9 @@ import lucuma.core.util.DateInterval
 import lucuma.core.util.TimeSpan
 import monocle.Lens
 import monocle.syntax.all.focus
-import navigate.model.AcMechsState
-import navigate.model.AcWindow
-import navigate.model.BafflesState
-import navigate.model.CommandResult
-import navigate.model.FocalPlaneOffset
-import navigate.model.GuideState
-import navigate.model.GuidersQualityValues
-import navigate.model.HandsetAdjustment
-import navigate.model.InstrumentSpecifics
-import navigate.model.NavigateCommand
+import navigate.model.{AcMechsState, AcWindow, BafflesState, CommandResult, Distance, FocalPlaneOffset, GuideState, GuidersQualityValues, HandsetAdjustment, InstrumentSpecifics, NavigateCommand, NavigateEvent, NavigateState, PointingCorrections, PwfsMechsState, RotatorAngle, RotatorTrackConfig, SlewOptions, SwapConfig, Target, TargetOffsets, TcsConfig, TelescopeState, TrackingConfig, WfsConfiguration}
 import navigate.model.NavigateCommand.*
-import navigate.model.NavigateEvent
 import navigate.model.NavigateEvent.*
-import navigate.model.NavigateState
-import navigate.model.PointingCorrections
-import navigate.model.PwfsMechsState
-import navigate.model.RotatorAngle
-import navigate.model.RotatorTrackConfig
-import navigate.model.SlewOptions
-import navigate.model.SwapConfig
-import navigate.model.Target
-import navigate.model.TargetOffsets
-import navigate.model.TcsConfig
-import navigate.model.TelescopeState
-import navigate.model.TrackingConfig
-import navigate.model.WfsConfiguration
 import navigate.model.config.ControlStrategy
 import navigate.model.config.NavigateEngineConfiguration
 import navigate.model.enums.AcFilter
@@ -87,7 +64,6 @@ import java.time.LocalDate
 import java.util.concurrent.TimeoutException
 import scala.concurrent.duration.DurationInt
 import scala.concurrent.duration.FiniteDuration
-
 import NavigateEvent.NullEvent
 
 trait NavigateEngine[F[_]] {
@@ -101,14 +77,14 @@ trait NavigateEngine[F[_]] {
   def rotFollow(enable:                              Boolean): F[CommandResult]
   def rotMove(angle:                                 RotatorAngle): F[CommandResult]
   def rotTrackingConfig(cfg:                         RotatorTrackConfig): F[CommandResult]
-  def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[CommandResult]
-  def ecsVentGatesMove(gateEast:                     Double, westGate:             Double): F[CommandResult]
+  def ecsEnableDome(mode: DomeMode): F[CommandResult]
+  def ecsDisableDome: F[CommandResult]
+  def ecsEnableShutters(mode: ShutterMode): F[CommandResult]
+  def ecsDisableShutters: F[CommandResult]
+  def ecsMoveEastVentGate(position: Distance): F[CommandResult]
+  def ecsCloseEastVentGate: F[CommandResult]
+  def ecsMoveWestVentGate(position: Distance): F[CommandResult]
+  def ecsCloseWestVentGate: F[CommandResult]
   def tcsConfig(config:                              TcsConfig): F[CommandResult]
   def slew(
     slewOptions: SlewOptions,
@@ -298,27 +274,6 @@ object NavigateEngine {
 
     override def rotMove(angle: RotatorAngle): F[CommandResult] =
       simpleCommand(engine, CrcsMove(angle), systems.tcsCommon.rotMove(angle))
-
-    override def ecsCarouselMode(
-      domeMode:      DomeMode,
-      shutterMode:   ShutterMode,
-      slitHeight:    Double,
-      domeEnable:    Boolean,
-      shutterEnable: Boolean
-    ): F[CommandResult] = simpleCommand(
-      engine,
-      EcsCarouselMode(domeMode, shutterMode, slitHeight, domeEnable, shutterEnable),
-      systems.tcsCommon.ecsCarouselMode(domeMode,
-                                        shutterMode,
-                                        slitHeight,
-                                        domeEnable,
-                                        shutterEnable
-      )
-    )
-
-    // TODO
-    override def ecsVentGatesMove(gateEast: Double, westGate: Double): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsVentGatesMove not yet implemented.").pure[F]
 
     override def tcsConfig(config: TcsConfig): F[CommandResult] = command(
       engine,
@@ -848,6 +803,22 @@ object NavigateEngine {
                  }
       _     <- logEvent(x)
     } yield x.result
+
+    override def ecsEnableDome(mode: DomeMode): F[CommandResult] = CommandResult.CommandFailure("Command ecsEnableDome not yet implemented.").pure[F]
+
+    override def ecsDisableDome: F[CommandResult] = CommandResult.CommandFailure("Command ecsDisableDome not yet implemented.").pure[F]
+
+    override def ecsEnableShutters(mode: ShutterMode): F[CommandResult] = CommandResult.CommandFailure("Command ecsEnableShutters not yet implemented.").pure[F]
+
+    override def ecsDisableShutters: F[CommandResult] = CommandResult.CommandFailure("Command ecsDisableShutters not yet implemented.").pure[F]
+
+    override def ecsMoveEastVentGate(position: Distance): F[CommandResult] = CommandResult.CommandFailure("Command ecsMoveEastVentGate not yet implemented.").pure[F]
+
+    override def ecsCloseEastVentGate: F[CommandResult] = CommandResult.CommandFailure("Command ecsCloseEastVentGate not yet implemented.").pure[F]
+
+    override def ecsMoveWestVentGate(position: Distance): F[CommandResult] = CommandResult.CommandFailure("Command ecsMoveWestVentGate not yet implemented.").pure[F]
+
+    override def ecsCloseWestVentGate: F[CommandResult] = CommandResult.CommandFailure("Command ecsCloseWestVentGate not yet implemented.").pure[F]
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

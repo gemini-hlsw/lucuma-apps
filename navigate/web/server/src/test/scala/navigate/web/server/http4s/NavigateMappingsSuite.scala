@@ -41,34 +41,8 @@ import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
 import monocle.Focus.focus
 import munit.CatsEffectSuite
-import navigate.model.AcMechsState
-import navigate.model.AcWindow
-import navigate.model.AcquisitionAdjustment
-import navigate.model.AllWfsConfiguration
-import navigate.model.BafflesState
-import navigate.model.CommandResult
-import navigate.model.FocalPlaneOffset
-import navigate.model.GuideState
-import navigate.model.GuidersQualityValues
-import navigate.model.HandsetAdjustment
+import navigate.model.{AcMechsState, AcWindow, AcquisitionAdjustment, AllWfsConfiguration, BafflesState, CommandResult, Distance, FocalPlaneOffset, GuideState, GuidersQualityValues, HandsetAdjustment, InstrumentSpecifics, MechSystemState, NavigateEvent, NavigateState, PointingCorrections, PwfsMechsState, RotatorAngle, RotatorTrackConfig, ServerConfiguration, SlewOptions, SwapConfig, Target, TargetOffsets, TcsConfig, TelescopeState, TrackingConfig, WfsConfiguration}
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
-import navigate.model.InstrumentSpecifics
-import navigate.model.MechSystemState
-import navigate.model.NavigateEvent
-import navigate.model.NavigateState
-import navigate.model.PointingCorrections
-import navigate.model.PwfsMechsState
-import navigate.model.RotatorAngle
-import navigate.model.RotatorTrackConfig
-import navigate.model.ServerConfiguration
-import navigate.model.SlewOptions
-import navigate.model.SwapConfig
-import navigate.model.Target
-import navigate.model.TargetOffsets
-import navigate.model.TcsConfig
-import navigate.model.TelescopeState
-import navigate.model.TrackingConfig
-import navigate.model.WfsConfiguration
 import navigate.model.config.NavigateConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
@@ -2632,17 +2606,6 @@ object NavigateMappingsTest {
     override def rotMove(angle: RotatorAngle): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsCarouselMode(
-      domeMode:      DomeMode,
-      shutterMode:   ShutterMode,
-      slitHeight:    Double,
-      domeEnable:    Boolean,
-      shutterEnable: Boolean
-    ): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
-
-    override def ecsVentGatesMove(gateEast: Double, westGate: Double): IO[CommandResult] =
-      CommandResult.CommandSuccess.pure[IO]
-
     override def slew(
       slewOptions: SlewOptions,
       config:      TcsConfig,
@@ -2875,6 +2838,22 @@ object NavigateMappingsTest {
 
     override def refreshEphemerides(date: Option[LocalDate]): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsEnableDome(mode: DomeMode): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsDisableDome: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsDisableShutters: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsMoveEastVentGate(position: Distance): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsCloseEastVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsMoveWestVentGate(position: Distance): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def ecsCloseWestVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {
