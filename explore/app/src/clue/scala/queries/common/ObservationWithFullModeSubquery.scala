@@ -29,7 +29,6 @@ object ObservationWithFullModeSubquery
           posAngleConstraint $PosAngleConstraintSubquery
           targetEnvironment {
             asterism { id }
-            guideTargetName
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
