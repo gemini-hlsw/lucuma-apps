@@ -11,8 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("CallForProposals")
-object CallForProposalsSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, CallForProposal]:
+object CallForProposalsSubquery extends GraphQLSubquery.Typed[ObservationDB, CallForProposal]:
   override val subquery: String = s"""
     {
       id
@@ -29,7 +28,10 @@ object CallForProposalsSubquery
         proprietaryMonths
         allowsNonPartnerPi
         nonPartnerDeadline
-        exchangePartners
+        exchangePartners {
+          exchangePartner
+          submissionDeadline
+        }
       }
       keck {
         instruments
