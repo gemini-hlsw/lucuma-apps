@@ -75,6 +75,12 @@ object ImagingModeRow {
         ItcInstrumentConfig.Flamingos2Imaging(filter, ItcInstrumentConfig.PlaceholderEtm)
       )
 
+  private given Decoder[ItcInstrumentConfig.GnirsImaging] = c =>
+    for {
+      filter <- c.downField("filter").as[GnirsFilter]
+      camera <- c.downField("camera").as[GnirsCamera]
+    } yield ItcInstrumentConfig.GnirsImaging(filter, camera, ItcInstrumentConfig.PlaceholderEtm)
+
   given Decoder[ImagingModeRow] = c =>
     for {
       inst        <- c.downField("instrument").as[Instrument]
@@ -86,10 +92,12 @@ object ImagingModeRow {
       gmosNorth   <- c.downField("gmosNorth").as[Option[ItcInstrumentConfig.GmosNorthImaging]]
       gmosSouth   <- c.downField("gmosSouth").as[Option[ItcInstrumentConfig.GmosSouthImaging]]
       flamingos2  <- c.downField("flamingos2").as[Option[ItcInstrumentConfig.Flamingos2Imaging]]
+      gnirs       <- c.downField("gnirs").as[Option[ItcInstrumentConfig.GnirsImaging]]
     } yield {
       val cfg: ItcInstrumentConfig = gmosNorth
         .orElse(gmosSouth)
         .orElse(flamingos2)
+        .orElse(gnirs)
         // Alopeke and Zorro only have a label field
         .getOrElse(ItcInstrumentConfig.GenericImaging(inst, filterLabel, site, capability))
       ImagingModeRow(none, cfg, ModeAO(ao), fov, capability)

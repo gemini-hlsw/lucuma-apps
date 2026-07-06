@@ -29,7 +29,7 @@ import queries.schemas.itc.syntax.*
 import workers.*
 
 object ITCRequests:
-  val cacheVersion: CacheVersion = CacheVersion(35)
+  val cacheVersion: CacheVersion = CacheVersion(36)
 
   val itcErrorToQueryProblems: Error => ItcQueryProblem =
     case Error.SourceTooBright(halfWell)  => ItcQueryProblem.SourceTooBright(halfWell)
@@ -141,6 +141,8 @@ object ITCRequests:
           case m @ ItcInstrumentConfig.GhostIfu(_, _, _, _, _)                =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
           case m @ ItcInstrumentConfig.GnirsSpectroscopy(_, _, _, _, _, _, _) =>
+            ItcRequestParams(constraints, asterism, customSedTimestamps, m)
+          case m @ ItcInstrumentConfig.GnirsImaging(_, _, _)                  =>
             ItcRequestParams(constraints, asterism, customSedTimestamps, m)
 
     // NOTE: callback is called once per mode. So, if you have more than one mode
