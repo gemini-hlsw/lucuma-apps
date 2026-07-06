@@ -50,6 +50,7 @@ import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesConfig
 import navigate.model.BafflesState
 import navigate.model.CommandResult
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
@@ -91,11 +92,14 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.AcquisitionAdjustmentCommand
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
+import navigate.model.enums.DomeMode
 import navigate.model.enums.LightSink
 import navigate.model.enums.LightSinkVariant
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
+import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
 import navigate.web.server.OcsBuildInfo
@@ -562,6 +566,16 @@ class NavigateMappings[F[_]: Sync](
           .pure[F]
       )
 
+  def pwfs1QlMode(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[QlMode]("mode")
+      .map(server.pwfs1QlMode(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("PWFS1 QL mode parameter could not be parsed.")
+          .pure[F]
+      )
+
   def pwfs2CircularBuffer(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
@@ -577,6 +591,16 @@ class NavigateMappings[F[_]: Sync](
           .pure[F]
       )
 
+  def pwfs2QlMode(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[QlMode]("mode")
+      .map(server.pwfs2QlMode(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("PWFS2 QL mode parameter could not be parsed.")
+          .pure[F]
+      )
+
   def oiwfsCircularBuffer(env: Env): F[Result[OperationOutcome]] =
     env
       .get[Boolean]("enable")
@@ -589,6 +613,56 @@ class NavigateMappings[F[_]: Sync](
       .getOrElse(
         Result
           .failure[OperationOutcome]("OIWFS circular buffer parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def oiwfsQlMode(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[QlMode]("mode")
+      .map(server.oiwfsQlMode(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("OIWFS QL mode parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def domeEnable(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[DomeMode]("mode")
+      .map(server.ecsEnableDome(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("Dome mode parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def shuttersEnable(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[ShutterMode]("mode")
+      .map(server.ecsEnableShutters(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("Shutter mode parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def eastVentGateEnable(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Distance]("position")
+      .map(server.ecsMoveEastVentGate(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("East vent parameter could not be parsed.")
+          .pure[F]
+      )
+
+  def westVentGateEnable(env: Env): F[Result[OperationOutcome]] =
+    env
+      .get[Distance]("position")
+      .map(server.ecsMoveWestVentGate(_).attempt.map(convertResult))
+      .getOrElse(
+        Result
+          .failure[OperationOutcome]("West vent parameter could not be parsed.")
           .pure[F]
       )
 
@@ -978,10 +1052,37 @@ class NavigateMappings[F[_]: Sync](
       } yield ()
     case (MutationType, "pwfs1CircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
       Elab.env("enable" -> v)
+    case (MutationType, "pwfs1QlMode", List(Binding("mode", EnumValue(v))))                       =>
+      for {
+        m <- Elab.liftR(
+               parseEnumerated[QlMode](v).toResult(
+                 s"Could not parse pwfs1QlMode parameter \"mode\" \"${v}\""
+               )
+             )
+        _ <- Elab.env("mode" -> m)
+      } yield ()
     case (MutationType, "pwfs2CircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
       Elab.env("enable" -> v)
+    case (MutationType, "pwfs2QlMode", List(Binding("mode", EnumValue(v))))                       =>
+      for {
+        m <- Elab.liftR(
+               parseEnumerated[QlMode](v).toResult(
+                 s"Could not parse pwfs2QlMode parameter \"mode\" \"${v}\""
+               )
+             )
+        _ <- Elab.env("mode" -> m)
+      } yield ()
     case (MutationType, "oiwfsCircularBuffer", List(Binding("enable", BooleanValue(v))))          =>
       Elab.env("enable" -> v)
+    case (MutationType, "oiwfsQlMode", List(Binding("mode", EnumValue(v))))                       =>
+      for {
+        m <- Elab.liftR(
+               parseEnumerated[QlMode](v).toResult(
+                 s"Could not parse oiwfsQlMode parameter \"mode\" \"${v}\""
+               )
+             )
+        _ <- Elab.env("mode" -> m)
+      } yield ()
     case (MutationType,
           "refreshEphemerisFiles",
           List(Binding("observingNight", AbsentValue | NullValue))
@@ -995,6 +1096,38 @@ class NavigateMappings[F[_]: Sync](
             .toResult(s"Could not parse refreshEphemerisFiles parameter \"observingNight\" ${l}")
         )
         .flatMap(v => Elab.env("observingNight", v))
+    case (MutationType, "ecsEnableDome", List(Binding("mode", EnumValue(v))))                     =>
+      Elab
+        .liftR(
+          parseEnumerated[DomeMode](v)
+            .map(_.some)
+            .toResult(s"Could not parse ecsEnableDome parameter \"mode\" ${v}")
+        )
+        .flatMap(m => Elab.env("mode", m))
+    case (MutationType, "ecsEnableShutters", List(Binding("mode", ObjectValue(l))))               =>
+      Elab
+        .liftR(
+          parseShuttersMode(l)
+            .map(_.some)
+            .toResult(s"Could not parse ecsEnableShutters parameter \"mode\" ${l}")
+        )
+        .flatMap(m => Elab.env("mode", m))
+    case (MutationType, "ecsMoveEastVentGate", List(Binding("position", ObjectValue(l))))         =>
+      Elab
+        .liftR(
+          parseDistance(l)
+            .map(_.some)
+            .toResult(s"Could not parse ecsMoveEastVentGate parameter \"position\" ${l}")
+        )
+        .flatMap(d => Elab.env("position", d))
+    case (MutationType, "ecsMoveWestVentGate", List(Binding("position", ObjectValue(l))))         =>
+      Elab
+        .liftR(
+          parseDistance(l)
+            .map(_.some)
+            .toResult(s"Could not parse ecsMoveWestVentGate parameter \"position\" ${l}")
+        )
+        .flatMap(d => Elab.env("position", d))
     case (QueryType, "instrumentPort", List(Binding("instrument", EnumValue(ins))))               =>
       Elab
         .liftR(
@@ -1035,11 +1168,17 @@ class NavigateMappings[F[_]: Sync](
         fieldMappings = List(
           RootEffect.computeEncodable("mountPark")((_, _) => parameterlessCommand(server.mcsPark)),
           RootEffect.computeEncodable("mountFollow")((_, env) => mountFollow(env)),
+          RootEffect.computeEncodable("mountUnwrap")((_, _) =>
+            parameterlessCommand(server.mcsUnwrap)
+          ),
           RootEffect.computeEncodable("rotatorPark")((_, _) =>
             parameterlessCommand(server.rotPark)
           ),
           RootEffect.computeEncodable("rotatorFollow")((_, env) => rotatorFollow(env)),
           RootEffect.computeEncodable("rotatorConfig")((_, env) => rotatorConfig(env)),
+          RootEffect.computeEncodable("rotatorUnwrap")((_, _) =>
+            parameterlessCommand(server.rotUnwrap)
+          ),
           RootEffect.computeEncodable("scsFollow")((_, env) => scsFollow(env)),
           RootEffect.computeEncodable("tcsConfig")((_, env) => tcsConfig(env)),
           RootEffect.computeEncodable("slew")((_, env) => slew(env)),
@@ -1057,6 +1196,9 @@ class NavigateMappings[F[_]: Sync](
           ),
           RootEffect.computeEncodable("pwfs1Follow")((_, env) =>
             wfsFollow("pwfs1", server.pwfs1Follow)(env)
+          ),
+          RootEffect.computeEncodable("pwfs1Unwrap")((_, _) =>
+            parameterlessCommand(server.pwfs1Unwrap)
           ),
           RootEffect.computeEncodable("pwfs1Observe")((_, env) =>
             wfsObserve("pwfs1", server.pwfs1Observe)(env)
@@ -1081,6 +1223,9 @@ class NavigateMappings[F[_]: Sync](
           ),
           RootEffect.computeEncodable("pwfs2Follow")((_, env) =>
             wfsFollow("pwfs2", server.pwfs2Follow)(env)
+          ),
+          RootEffect.computeEncodable("pwfs2Unwrap")((_, _) =>
+            parameterlessCommand(server.pwfs2Unwrap)
           ),
           RootEffect.computeEncodable("pwfs2Observe")((_, env) =>
             wfsObserve("pwfs2", server.pwfs2Observe)(env)
@@ -1181,8 +1326,41 @@ class NavigateMappings[F[_]: Sync](
           RootEffect.computeEncodable("pwfs1CircularBuffer")((_, env) => pwfs1CircularBuffer(env)),
           RootEffect.computeEncodable("pwfs2CircularBuffer")((_, env) => pwfs2CircularBuffer(env)),
           RootEffect.computeEncodable("oiwfsCircularBuffer")((_, env) => oiwfsCircularBuffer(env)),
+          RootEffect.computeEncodable("pwfs1QlMode")((_, env) => pwfs1QlMode(env)),
+          RootEffect.computeEncodable("pwfs2QlMode")((_, env) => pwfs2QlMode(env)),
+          RootEffect.computeEncodable("oiwfsQlMode")((_, env) => oiwfsQlMode(env)),
           RootEffect.computeEncodable("refreshEphemerisFiles")((_, env) =>
             refreshEphemerisFiles(env)
+          ),
+          // AG Commands
+          RootEffect.computeEncodable("agScienceFoldPark")((_, _) =>
+            parameterlessCommand(server.agScienceFoldPark)
+          ),
+          RootEffect.computeEncodable("agPickoffMirrorPark")((_, _) =>
+            parameterlessCommand(server.agPickoffMirrorPark)
+          ),
+          RootEffect.computeEncodable("agAoFoldPark")((_, _) =>
+            parameterlessCommand(server.agAoFoldPark)
+          ),
+          RootEffect.computeEncodable("agAllPark")((_, _) =>
+            parameterlessCommand(server.agAllPark)
+          ),
+          // ECS commands """
+          RootEffect.computeEncodable("ecsEnableDome")((_, env) => domeEnable(env)),
+          RootEffect.computeEncodable("ecsDisableDome")((_, _) =>
+            parameterlessCommand(server.ecsDisableDome)
+          ),
+          RootEffect.computeEncodable("ecsEnableShutters")((_, env) => shuttersEnable(env)),
+          RootEffect.computeEncodable("ecsDisableShutters")((_, _) =>
+            parameterlessCommand(server.ecsDisableShutters)
+          ),
+          RootEffect.computeEncodable("ecsMoveEastVentGate")((_, env) => eastVentGateEnable(env)),
+          RootEffect.computeEncodable("ecsCloseEastVentGate")((_, _) =>
+            parameterlessCommand(server.ecsCloseEastVentGate)
+          ),
+          RootEffect.computeEncodable("ecsMoveWestVentGate")((_, env) => westVentGateEnable(env)),
+          RootEffect.computeEncodable("ecsCloseWestVentGate")((_, _) =>
+            parameterlessCommand(server.ecsCloseWestVentGate)
           )
         )
       ),
@@ -1647,5 +1825,17 @@ object NavigateMappings extends GrackleParsers {
   } yield (x, y)
 
   def parseDate(s: String): Option[LocalDate] = Validated.catchNonFatal(LocalDate.parse(s)).toOption
+
+  def parseShuttersMode(l: List[(String, Value)]): Option[ShutterMode] = l
+    .collectFirst { case ("mode", EnumValue(v)) => v }
+    .flatMap {
+      case "FullyOpen" => ShutterMode.FullyOpen.some
+      case "Tracking"  =>
+        for {
+          v <- l.collectFirst { case ("aperture", ObjectValue(v)) => v }
+          d <- parseDistance(v)
+        } yield ShutterMode.Tracking(d)
+      case _           => none
+    }
 
 }

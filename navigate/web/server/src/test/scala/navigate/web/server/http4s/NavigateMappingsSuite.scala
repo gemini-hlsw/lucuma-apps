@@ -41,8 +41,36 @@ import lucuma.core.util.Timestamp
 import lucuma.horizons.HorizonsClient
 import monocle.Focus.focus
 import munit.CatsEffectSuite
-import navigate.model.{AcMechsState, AcWindow, AcquisitionAdjustment, AllWfsConfiguration, BafflesState, CommandResult, Distance, FocalPlaneOffset, GuideState, GuidersQualityValues, HandsetAdjustment, InstrumentSpecifics, MechSystemState, NavigateEvent, NavigateState, PointingCorrections, PwfsMechsState, RotatorAngle, RotatorTrackConfig, ServerConfiguration, SlewOptions, SwapConfig, Target, TargetOffsets, TcsConfig, TelescopeState, TrackingConfig, WfsConfiguration}
+import navigate.model.AcMechsState
+import navigate.model.AcWindow
+import navigate.model.AcquisitionAdjustment
+import navigate.model.AllWfsConfiguration
+import navigate.model.BafflesState
+import navigate.model.CommandResult
+import navigate.model.Distance
+import navigate.model.EnclosureState
+import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
+import navigate.model.HandsetAdjustment
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
+import navigate.model.InstrumentSpecifics
+import navigate.model.MechSystemState
+import navigate.model.NavigateEvent
+import navigate.model.NavigateState
+import navigate.model.PointingCorrections
+import navigate.model.PwfsMechsState
+import navigate.model.RotatorAngle
+import navigate.model.RotatorTrackConfig
+import navigate.model.ServerConfiguration
+import navigate.model.SlewOptions
+import navigate.model.SwapConfig
+import navigate.model.Target
+import navigate.model.TargetOffsets
+import navigate.model.TcsConfig
+import navigate.model.TelescopeState
+import navigate.model.TrackingConfig
+import navigate.model.WfsConfiguration
 import navigate.model.config.NavigateConfiguration
 import navigate.model.enums.AcFilter
 import navigate.model.enums.AcLens
@@ -59,6 +87,7 @@ import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.NavigateEngine
@@ -1063,6 +1092,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
           |       parked
           |       follow
           |     }
+          |     enclosure {
+          |       domeEnabled
+          |       shuttersEnabled
+          |       eastVentGateOpen
+          |       westVentGateOpen
+          |     }
           |   }
           | }
           |""".stripMargin
@@ -1151,7 +1186,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MechSystemState(NotParked, Following),
         MechSystemState(Parked, NotFollowing),
         MechSystemState(Parked, NotFollowing),
-        MechSystemState(NotParked, Following)
+        MechSystemState(NotParked, Following),
+        EnclosureState.default
       ),
       TelescopeState(
         MechSystemState(Parked, NotFollowing),
@@ -1159,7 +1195,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MechSystemState(Parked, NotFollowing),
         MechSystemState(Parked, NotFollowing),
         MechSystemState(Parked, NotFollowing),
-        MechSystemState(Parked, NotFollowing)
+        MechSystemState(Parked, NotFollowing),
+        EnclosureState.default
       ),
       TelescopeState(
         MechSystemState(NotParked, Following),
@@ -1167,7 +1204,8 @@ class NavigateMappingsSuite extends CatsEffectSuite {
         MechSystemState(NotParked, Following),
         MechSystemState(Parked, NotFollowing),
         MechSystemState(Parked, NotFollowing),
-        MechSystemState(NotParked, Following)
+        MechSystemState(NotParked, Following),
+        EnclosureState.default
       )
     )
 
@@ -1203,6 +1241,12 @@ class NavigateMappingsSuite extends CatsEffectSuite {
             |     oiwfs {
             |       parked
             |       follow
+            |     }
+            |     enclosure {
+            |       domeEnabled
+            |       shuttersEnabled
+            |       eastVentGateOpen
+            |       westVentGateOpen
             |     }
             |   }
             | }
@@ -2839,21 +2883,50 @@ object NavigateMappingsTest {
     override def refreshEphemerides(date: Option[LocalDate]): IO[CommandResult] =
       CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsEnableDome(mode: DomeMode): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+    override def ecsEnableDome(mode: DomeMode): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def ecsDisableDome: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+    override def ecsEnableShutters(mode: ShutterMode): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def ecsDisableShutters: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsMoveEastVentGate(position: Distance): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+    override def ecsMoveEastVentGate(position: Distance): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def ecsCloseEastVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
 
-    override def ecsMoveWestVentGate(position: Distance): IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+    override def ecsMoveWestVentGate(position: Distance): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
 
     override def ecsCloseWestVentGate: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def mcsUnwrap: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def rotUnwrap: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs1Unwrap: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs2Unwrap: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def agScienceFoldPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def agPickoffMirrorPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def agAoFoldPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def agAllPark: IO[CommandResult] = CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs1QlMode(mode: QlMode): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def pwfs2QlMode(mode: QlMode): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
+
+    override def oiwfsQlMode(mode: QlMode): IO[CommandResult] =
+      CommandResult.CommandSuccess.pure[IO]
   }
 
   def buildServer: IO[NavigateEngine[IO]] = for {
@@ -3054,6 +3127,14 @@ object NavigateMappingsTest {
       flw <- h.downField("follow").as[FollowStatus]
     } yield MechSystemState(prk, flw)
 
+  given Decoder[EnclosureState] = h =>
+    for {
+      dome <- h.downField("domeEnabled").as[Boolean]
+      shts <- h.downField("shuttersEnabled").as[Boolean]
+      evg  <- h.downField("eastVentGateOpen").as[Boolean]
+      wvg  <- h.downField("westVentGateOpen").as[Boolean]
+    } yield EnclosureState(dome, shts, evg, wvg)
+
   given Decoder[TelescopeState] = h =>
     for {
       mnt  <- h.downField("mount").as[MechSystemState]
@@ -3062,13 +3143,15 @@ object NavigateMappingsTest {
       p1   <- h.downField("pwfs1").as[MechSystemState]
       p2   <- h.downField("pwfs2").as[MechSystemState]
       oi   <- h.downField("oiwfs").as[MechSystemState]
+      encl <- h.downField("enclosure").as[EnclosureState]
     } yield TelescopeState(
       mnt,
       scs,
       crcs,
       p1,
       p2,
-      oi
+      oi,
+      encl
     )
 
   given Decoder[NavigateState] = h =>

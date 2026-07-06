@@ -51,6 +51,7 @@ import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesState
 import navigate.model.Distance
+import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuiderConfig
@@ -1660,7 +1661,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       crcs = MechSystemState(NotParked, crcsf),
       pwfs1 = MechSystemState(p1p, p1f),
       pwfs2 = MechSystemState(p2p, p2f),
-      oiwfs = MechSystemState(oip, oif)
+      oiwfs = MechSystemState(oip, oif),
+      enclosure = EnclosureState.default
     )
   ).verifiedRun(ConnectionTimeout)
 

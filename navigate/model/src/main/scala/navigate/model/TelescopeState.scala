@@ -12,7 +12,8 @@ case class TelescopeState(
   crcs:  MechSystemState,
   pwfs1: MechSystemState,
   pwfs2: MechSystemState,
-  oiwfs: MechSystemState
+  oiwfs: MechSystemState,
+  enclosure: EnclosureState
 ) derives Eq
 
 object TelescopeState {
@@ -22,6 +23,7 @@ object TelescopeState {
     crcs = MechSystemState.default,
     pwfs1 = MechSystemState.default,
     pwfs2 = MechSystemState.default,
-    oiwfs = MechSystemState.default
+    oiwfs = MechSystemState.default,
+    enclosure = EnclosureState.default
   )
 }

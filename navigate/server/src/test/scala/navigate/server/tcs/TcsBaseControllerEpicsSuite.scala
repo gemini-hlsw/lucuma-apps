@@ -49,6 +49,7 @@ import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesConfig
 import navigate.model.Distance
+import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
@@ -188,7 +189,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val testHeight   = 123.456
     val testVentEast = 0.3
     val testVentWest = 0.2
-    val shutterMode = ShutterMode.Tracking(Distance.fromBigDecimalMeter(1))
+    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeter(1))
 
     for {
       (st, ctr) <- createController()
@@ -211,9 +212,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(rs.enclosure.ecsDomeMode.value.flatMap(Enumerated[DomeMode].fromTag),
                    DomeMode.MinVibration.some
       )
-      assertEquals(rs.enclosure.ecsShutterMode.value,
-                   shutterMode.tag.some
-      )
+      assertEquals(rs.enclosure.ecsShutterMode.value, shutterMode.tag.some)
       assert(rs.enclosure.ecsSlitHeight.value.exists(x => compareDouble(x.toDouble, testHeight)))
       assertEquals(rs.enclosure.ecsDomeEnable.value.flatMap(Enumerated[BinaryOnOff].fromTag),
                    BinaryOnOff.On.some
@@ -1302,7 +1301,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       crcs = MechSystemState(NotParked, Following),
       pwfs1 = MechSystemState(Parked, NotFollowing),
       pwfs2 = MechSystemState(Parked, NotFollowing),
-      oiwfs = MechSystemState(NotParked, Following)
+      oiwfs = MechSystemState(NotParked, Following),
+      enclosure = EnclosureState.default
     )
 
     for {
