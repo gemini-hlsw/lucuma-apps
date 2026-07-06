@@ -42,12 +42,13 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType]
-)(using val odbApi: OdbApi[IO], logger: Logger[IO], T: Tracer[IO])
+)(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
     with CacheControllerComponent.Props[ProgramSummaries]:
   val modState     = modProgramSummaries
   given Logger[IO] = logger
+  given Tracer[IO] = tracer
 
 object ProgramCacheController
     extends CacheControllerComponent[ProgramSummaries, ProgramCacheController]
