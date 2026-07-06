@@ -31,6 +31,7 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.TargetWithId
 import monocle.Optional
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import queries.common.ObsQueriesGQL
 import queries.common.ProgramQueriesGQL.GroupEditSubscription
 
@@ -41,7 +42,7 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType]
-)(using val odbApi: OdbApi[IO], logger: Logger[IO])
+)(using val odbApi: OdbApi[IO], logger: Logger[IO], T: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
     with CacheControllerComponent.Props[ProgramSummaries]:
@@ -111,7 +112,10 @@ object ProgramCacheController
       props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
 
     val observations: IO[List[Observation]] =
-      props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+      Tracer[IO]
+        .span("mode-summary")
+        .surround:
+          props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       props.odbApi
@@ -147,16 +151,19 @@ object ProgramCacheController
     def observingModesUpdate(
       summary: List[Observation]
     ): IO[ProgramSummaries => ProgramSummaries] =
-      val modeTypes: Set[ObservingModeType] =
+      val modeTypes: Set[ObservingModeType]                                               =
         summary.flatMap(_.basicConfiguration.map(_.obsModeType)).toSet
       val fetchModes: IO[Map[Observation.Id, Option[lucuma.schemas.model.ObservingMode]]] =
         if (modeTypes.isEmpty) Map.empty.pure[IO]
         else
           modeTypes.toList
             .parTraverse: modeType =>
-              props.odbApi
-                .programObservationsObservingModes(props.programId, modeType)
-                .logTime(s"AllProgramObservations-$modeType")
+              Tracer[IO]
+                .span(s"mode-$modeType")
+                .surround:
+                  props.odbApi
+                    .programObservationsObservingModes(props.programId, modeType)
+                    .logTime(s"AllProgramObservations-$modeType")
             .map(_.flatten.toMap)
       fetchModes.map: modeById =>
         ProgramSummaries.observations.modify:
