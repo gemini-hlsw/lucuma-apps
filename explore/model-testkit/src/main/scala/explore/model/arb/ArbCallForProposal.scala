@@ -51,6 +51,19 @@ trait ArbCallForProposal {
   given Cogen[CallPartner] =
     Cogen[(Partner, Option[Timestamp])].contramap(p => (p.partner, p.submissionDeadline))
 
+  given Arbitrary[GeminiCallProperties.CallExchangePartner] =
+    Arbitrary {
+      for {
+        exchangePartner    <- arbitrary[ExchangePartner]
+        submissionDeadline <- arbitrary[Option[Timestamp]]
+      } yield GeminiCallProperties.CallExchangePartner(exchangePartner, submissionDeadline)
+    }
+
+  given Cogen[GeminiCallProperties.CallExchangePartner] =
+    Cogen[(ExchangePartner, Option[Timestamp])].contramap(p =>
+      (p.exchangePartner, p.submissionDeadline)
+    )
+
   given Arbitrary[GeminiCallProperties] =
     Arbitrary {
       for {
@@ -60,7 +73,7 @@ trait ArbCallForProposal {
         proprietaryMonths  <- arbitrary[NonNegInt]
         allowsNonPartnerPi <- arbitrary[Boolean]
         nonPartnerDeadline <- arbitrary[Option[Timestamp]]
-        exchangePartners   <- arbitrary[List[ExchangePartner]]
+        exchangePartners   <- arbitrary[List[GeminiCallProperties.CallExchangePartner]]
       } yield GeminiCallProperties(cfpType,
                                    coordinateLimits,
                                    instruments,
@@ -79,7 +92,7 @@ trait ArbCallForProposal {
        NonNegInt,
        Boolean,
        Option[Timestamp],
-       List[ExchangePartner]
+       List[GeminiCallProperties.CallExchangePartner]
       )
     ].contramap: p =>
       (p.cfpType,
@@ -126,11 +139,12 @@ trait ArbCallForProposal {
     }
 
   given Cogen[CallProperties] =
-    Cogen[Either[GeminiCallProperties, Either[KeckCallProperties, SubaruCallProperties]]].contramap {
-      case g: GeminiCallProperties => Left(g)
-      case k: KeckCallProperties   => Right(Left(k))
-      case s: SubaruCallProperties => Right(Right(s))
-    }
+    Cogen[Either[GeminiCallProperties, Either[KeckCallProperties, SubaruCallProperties]]]
+      .contramap {
+        case g: GeminiCallProperties => Left(g)
+        case k: KeckCallProperties   => Right(Left(k))
+        case s: SubaruCallProperties => Right(Right(s))
+      }
 
   given Arbitrary[CallForProposal] =
     Arbitrary {

@@ -591,7 +591,10 @@ object ProposalDetailsBody:
                       FormInfo(
                         gemini.exchangePartners match
                           case Nil => "None"
-                          case _   => gemini.exchangePartners.map(_.tag.capitalize).mkString(", "),
+                          case _   =>
+                            gemini.exchangePartners
+                              .map(_.exchangePartner.tag.capitalize)
+                              .mkString(", "),
                         "Exchange Partners"
                       ),
                       FormInfo(

@@ -35,10 +35,16 @@ object CallProperties:
     proprietaryMonths:  NonNegInt,
     allowsNonPartnerPi: Boolean,
     nonPartnerDeadline: Option[Timestamp],
-    exchangePartners:   List[ExchangePartner]
+    exchangePartners:   List[GeminiCallProperties.CallExchangePartner]
   ) extends CallProperties derives Eq
 
   object GeminiCallProperties:
+    case class CallExchangePartner(
+      exchangePartner:    ExchangePartner,
+      submissionDeadline: Option[Timestamp]
+    ) derives Eq,
+          Decoder
+
     given Decoder[GeminiCallProperties] = c =>
       for {
         cfpType            <- c.downField("cfpType").as[GeminiCallForProposalsType]
@@ -47,7 +53,7 @@ object CallProperties:
         proprietaryMonths  <- c.downField("proprietaryMonths").as[NonNegInt]
         allowsNonPartnerPi <- c.downField("allowsNonPartnerPi").as[Boolean]
         nonPartnerDeadline <- c.downField("nonPartnerDeadline").as[Option[Timestamp]]
-        exchangePartners   <- c.downField("exchangePartners").as[List[ExchangePartner]]
+        exchangePartners   <- c.downField("exchangePartners").as[List[CallExchangePartner]]
       } yield GeminiCallProperties(cfpType,
                                    coordinateLimits,
                                    instruments,
