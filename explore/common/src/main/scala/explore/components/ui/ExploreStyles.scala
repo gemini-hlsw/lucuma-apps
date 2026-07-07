@@ -230,6 +230,7 @@ object ExploreStyles:
   val RegionHoverCursor: Css = Css("region-hover-cursor")
 
   val SkyPositionPending: Css = Css("sky-position-pending")
+  val AddSkyModeOverlay: Css  = Css("add-sky-mode-overlay")
 
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")

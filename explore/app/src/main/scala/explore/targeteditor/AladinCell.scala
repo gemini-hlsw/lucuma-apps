@@ -77,6 +77,7 @@ case class AladinCell(
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])],
   allTargets:          View[TargetList], // for blind offset, no undo
   assignSky:           Option[(SlotId, Coordinates) => IO[Unit]],
+  addSkySlot:          Option[SlotId],
   resetSky:            Option[SlotId => IO[Unit]],
   isStaffOrAdmin:      Boolean,
   blindOffsetReadonly: Boolean
@@ -568,6 +569,14 @@ object AladinCell extends ModelOptics with AladinCommon:
                 )
           else EmptyVdom
 
+      val renderAddSkyModeOverlay: VdomNode =
+        props.addSkySlot
+          .filter(_ => props.assignSky.isDefined)
+          .fold(EmptyVdom): slot =>
+            <.div(ExploreStyles.AddSkyModeOverlay,
+                  s"Click on the ${slot.shortName} to place the sky position"
+            )
+
       val renderBlindOffsetControl =
         (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>
           BlindOffsetControl(
@@ -599,7 +608,8 @@ object AladinCell extends ModelOptics with AladinCommon:
                   options.get.renderPot(opt =>
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
-                                   renderAgsOverlay(opt)
+                                   renderAgsOverlay(opt),
+                                   renderAddSkyModeOverlay
                     )
                   )
                 ),

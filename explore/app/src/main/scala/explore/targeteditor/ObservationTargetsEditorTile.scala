@@ -442,6 +442,7 @@ object ObservationTargetsEditorTile
                       props.blindOffsetInfo,
                       props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
                       assignSky,
+                      addSkyMode.get,
                       resetSky,
                       props.isStaffOrAdmin,
                       editorReadonly
