@@ -226,10 +226,10 @@ extension (conf: BasicConfiguration)
           AgsParams.Igrins2LongSlit().some
         case BasicConfiguration.GnirsImaging(camera = camera)                                =>
           AgsParams.GnirsImaging(camera, port).some
+        case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu))      =>
+          AgsParams.GnirsIfu(ifu, port).some
         case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>
-          // AGS for the GNIRS IFU is not yet modeled in lucuma-ags; fall back to the
-          // long-slit probe params (IFU support deferred). Slit width barely affects the
-          // probe reachability, so a placeholder is used when the FPU is an IFU.
+          // Slit (or, defensively, any non-IFU fpu) → long-slit probe params.
           val slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).getOrElse(GnirsFpuSlit.LongSlit_1_00)
           AgsParams.GnirsLongSlit(slit, camera, prism, port).some
         case BasicConfiguration.GhostIfu(_, _, _, _, _)                                      =>

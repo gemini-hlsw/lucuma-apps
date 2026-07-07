@@ -54,7 +54,7 @@ case class GnirsImagingConfigPanel(
   isStaff:                      Boolean
 ) extends ReactFnProps(GnirsImagingConfigPanel):
   val mode: ObservingMode.GnirsImaging = observingMode.get
-  // Keyhole imaging filter set (matches the phase-0 imaging config options): the small
+  // GNIRS imaging filter set (matches the phase-0 imaging config options): the small
   // MK filters Y/J/K plus the full-size X and H order-blockers.
   val allowedFilters: Set[GnirsFilter] =
     Set(GnirsFilter.Y, GnirsFilter.Order6, GnirsFilter.J, GnirsFilter.Order4, GnirsFilter.K)
