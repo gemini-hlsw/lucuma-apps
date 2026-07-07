@@ -42,6 +42,21 @@ case class GnirsGeometry(fpu: GnirsFpuSlit, camera: GnirsCamera, prism: GnirsPri
       case GuideProbe.PWFS2 => AgsParams.GnirsLongSlit(fpu, camera, prism).withPWFS2
       case _                => AgsParams.GnirsLongSlit(fpu, camera, prism)
 
+case class GnirsImagingGeometry(camera: GnirsCamera) extends PwfsGeometry:
+
+  override def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
+    SortedMap(
+      (GnirsScienceSlit, scienceArea.imagingShapeAt(posAngle, offset, camera))
+    )
+
+  override protected def candidatesAreaCss: Css = GnirsCandidatesArea
+
+  override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
+    guideProbe match
+      case GuideProbe.PWFS1 => AgsParams.GnirsImaging(camera).withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.GnirsImaging(camera).withPWFS2
+      case _                => AgsParams.GnirsImaging(camera)
+
 object GnirsGeometry:
 
   def gnirsGeometry(
@@ -56,11 +71,13 @@ object GnirsGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
       .collect:
-        // Only the long slit has a science-area/AGS geometry today; IFU viz is deferred.
+        // The long slit and keyhole imaging have a science-area/AGS geometry; IFU viz is deferred.
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(slit),
                                                   camera = camera,
                                                   prism = prism) =>
           GnirsGeometry(slit, camera, prism)
+        case BasicConfiguration.GnirsImaging(camera = camera) =>
+          GnirsImagingGeometry(camera)
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,
