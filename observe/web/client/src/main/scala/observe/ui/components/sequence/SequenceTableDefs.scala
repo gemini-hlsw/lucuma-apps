@@ -210,7 +210,7 @@ trait SequenceTableDefs[D] extends SequenceRowBuilder[D]:
                     datasetIdsInFlight = meta.datasetIdsInFlight
                   )
                 case step                                              =>
-                  (step.selectableRowId, step.stepTypeDisplay, step.exposureTime, step.stepConfig)
+                  (step.selectableRowId, step.stepTypeDisplay, step.totalExposureTime, step.stepConfig)
                     .mapN: (selectableRowId, stepType, exposureTime, stepConfig) =>
                       List(
                         meta.selectedRowId,

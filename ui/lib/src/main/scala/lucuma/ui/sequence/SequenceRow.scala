@@ -113,6 +113,14 @@ sealed trait SequenceRow[+D]:
     case GnirsDynamicConfig(_, coadds, _, _, _, _, _, _, _) => coadds.some
     case _                                                  => none
 
+  lazy val totalExposureTime: Option[TimeSpan] = instrumentConfig
+    .collect:
+      case GnirsDynamicConfig(exposure, coadds, _, _, _, _, _, _, readMode) =>
+        (exposure +| readMode.readoutTimePerCoadd) *| coadds.value
+      case Flamingos2DynamicConfig(exposure, _, _, readMode, _, _, _, _, _) =>
+        exposure +| readMode.readoutTime
+    .orElse(exposureTime)
+
   // There's no unified grating type, so we return a string.
   lazy val gratingName: Option[String] = instrumentConfig.flatMap:
     case gmos.DynamicConfig.GmosNorth(_, _, _, _, grating, _, _)    => grating.map(_.grating.shortName)
