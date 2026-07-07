@@ -80,6 +80,10 @@ object GhostIfuConfigPanel
                                                      ctx.odbApi
                                                        .observationEditSubscription(props.obsId)
                                                        .map(_.evalMap(_ => stepEstimate.refresh.to[IO]))
+        lastEstimatedMode                       <- useState(none[ObservingMode.GhostIfu])
+        _                                       <- useEffectWithDeps(stepEstimate.isRunning): running =>
+                                                     Callback.when(!running):
+                                                       lastEstimatedMode.setState(props.observingMode.get.some)
       yield
         import ctx.given
 
@@ -193,12 +197,13 @@ object GhostIfuConfigPanel
 
         // One panel per detector with a subset of the ETM
         def detectorPanel(
-          label:      String,
-          detector:   GhostIfu.GhostDetector,
-          colorClazz: Css,
-          idPrefix:   NonEmptyString,
-          aligner:    Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput],
-          estimate:   Pot[Option[DetectorEstimate]]
+          label:         String,
+          detector:      GhostIfu.GhostDetector,
+          colorClazz:    Css,
+          idPrefix:      NonEmptyString,
+          aligner:       Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput],
+          estimate:      Pot[Option[DetectorEstimate]],
+          configChanged: Boolean
         ): VdomNode =
           val timeAndCountView: View[ExposureTimeMode.TimeAndCountMode] =
             aligner
@@ -264,10 +269,7 @@ object GhostIfuConfigPanel
               <.div(
                 ^.id := s"${idPrefix.value}-total-time",
                 // Gray out while awaiting a new value
-                ^.title :=? Option.when(awaitingEstimate)(
-                  "Awaiting new data from server."
-                ),
-                ExploreStyles.Stale.when(awaitingEstimate),
+                ExploreStyles.Stale.when(awaitingEstimate || configChanged),
                 estimate match
                   case Pot.Ready(Some(de)) => formatDurationHours(de.estimate)
                   case Pot.Pending         => "calculating…"
@@ -335,7 +337,8 @@ object GhostIfuConfigPanel
               colorClazz = LucumaStyles.GhostBlue,
               idPrefix = "ghostBlue".refined,
               aligner = detectorAligner(GhostIfu.blue, GhostIfuInput.blue),
-              estimate = detectorEstimate(BlueDetector)
+              estimate = detectorEstimate(BlueDetector),
+              configChanged = lastEstimatedMode.value.exists(_.blue =!= mode.blue)
             ),
             detectorPanel(
               label = "Red Camera",
@@ -343,7 +346,8 @@ object GhostIfuConfigPanel
               colorClazz = LucumaStyles.GhostRed,
               idPrefix = "ghostRed".refined,
               aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red),
-              estimate = detectorEstimate(RedDetector)
+              estimate = detectorEstimate(RedDetector),
+              configChanged = lastEstimatedMode.value.exists(_.red =!= mode.red)
             )
           ),
           <.div(
