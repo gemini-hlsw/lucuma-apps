@@ -255,22 +255,43 @@ object ObservationSequence
               isPreview = false,
               onBreakpointFlip
             )
-          case SequenceData(InstrumentExecutionConfig.Gnirs(config), _)                  =>
-            GnirsSequenceTable(
-              props.clientMode,
-              props.obsId,
-              config,
-              none,
-              none,
-              props.visits,
-              props.executionState.get,
-              props.currentRecordedVisit,
-              props.progress,
-              props.selectedRowId,
-              props.setSelectedRowId,
-              props.requests,
-              isPreview = false,
-              onBreakpointFlip
-            )
+          case SequenceData(InstrumentExecutionConfig.Gnirs(config), signalToNoise)      =>
+            signalToNoise match
+              case ModeSignalToNoise.Spectroscopy(acquisitionSN, scienceSN) =>
+                GnirsSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  acquisitionSN,
+                  scienceSN,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip
+                )
+              // Twilight calibrations have no signal to noise
+              case ModeSignalToNoise.Undefined                             =>
+                GnirsSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  none,
+                  none,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip
+                )
+              case _                                                       => mismatchError
           case _                                                                         => mismatchError
     )
