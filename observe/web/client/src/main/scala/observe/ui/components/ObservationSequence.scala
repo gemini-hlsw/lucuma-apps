@@ -274,8 +274,24 @@ object ObservationSequence
                   isPreview = false,
                   onBreakpointFlip
                 )
+              case ModeSignalToNoise.GnirsImaging(snByFilter)               =>
+                GnirsImagingSequenceTable(
+                  props.clientMode,
+                  props.obsId,
+                  config,
+                  snByFilter,
+                  props.visits,
+                  props.executionState.get,
+                  props.currentRecordedVisit,
+                  props.progress,
+                  props.selectedRowId,
+                  props.setSelectedRowId,
+                  props.requests,
+                  isPreview = false,
+                  onBreakpointFlip
+                )
               // Twilight calibrations have no signal to noise
-              case ModeSignalToNoise.Undefined                             =>
+              case ModeSignalToNoise.Undefined                              =>
                 GnirsSequenceTable(
                   props.clientMode,
                   props.obsId,
@@ -292,6 +308,6 @@ object ObservationSequence
                   isPreview = false,
                   onBreakpointFlip
                 )
-              case _                                                       => mismatchError
+              case _                                                        => mismatchError
           case _                                                                         => mismatchError
     )

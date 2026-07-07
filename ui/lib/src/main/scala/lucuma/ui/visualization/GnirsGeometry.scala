@@ -10,6 +10,8 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFilter
+import lucuma.core.enums.GnirsFpuIfu
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsPrism
 import lucuma.core.enums.GuideProbe
@@ -42,6 +44,36 @@ case class GnirsGeometry(fpu: GnirsFpuSlit, camera: GnirsCamera, prism: GnirsPri
       case GuideProbe.PWFS2 => AgsParams.GnirsLongSlit(fpu, camera, prism).withPWFS2
       case _                => AgsParams.GnirsLongSlit(fpu, camera, prism)
 
+case class GnirsImagingGeometry(camera: GnirsCamera, filter: GnirsFilter) extends PwfsGeometry:
+
+  override def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
+    SortedMap(
+      (GnirsScienceSlit, scienceArea.imagingShapeAt(posAngle, offset, camera, filter))
+    )
+
+  override protected def candidatesAreaCss: Css = GnirsCandidatesArea
+
+  override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
+    guideProbe match
+      case GuideProbe.PWFS1 => AgsParams.GnirsImaging(camera, filter).withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.GnirsImaging(camera, filter).withPWFS2
+      case _                => AgsParams.GnirsImaging(camera, filter)
+
+case class GnirsIfuGeometry(ifu: GnirsFpuIfu) extends PwfsGeometry:
+
+  override def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
+    SortedMap(
+      (GnirsScienceSlit, scienceArea.ifuShapeAt(posAngle, offset, ifu))
+    )
+
+  override protected def candidatesAreaCss: Css = GnirsCandidatesArea
+
+  override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
+    guideProbe match
+      case GuideProbe.PWFS1 => AgsParams.GnirsIfu(ifu).withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.GnirsIfu(ifu).withPWFS2
+      case _                => AgsParams.GnirsIfu(ifu)
+
 object GnirsGeometry:
 
   def gnirsGeometry(
@@ -56,11 +88,15 @@ object GnirsGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
       .collect:
-        // Only the long slit has a science-area/AGS geometry today; IFU viz is deferred.
+        // The long slit, imaging and IFU all have a science-area/AGS geometry.
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(slit),
                                                   camera = camera,
                                                   prism = prism) =>
           GnirsGeometry(slit, camera, prism)
+        case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu)) =>
+          GnirsIfuGeometry(ifu)
+        case BasicConfiguration.GnirsImaging(filters = filters, camera = camera) =>
+          GnirsImagingGeometry(camera, AgsParams.GnirsImaging.representativeFilter(filters))
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,

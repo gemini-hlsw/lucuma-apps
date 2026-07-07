@@ -29,8 +29,8 @@ import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import explore.modes.ItcInstrumentConfig.Flamingos2Imaging
 import explore.modes.ItcInstrumentConfig.GmosNorthImaging
-import explore.modes.ItcInstrumentConfig.GnirsImaging
 import explore.modes.ItcInstrumentConfig.GmosSouthImaging
+import explore.modes.ItcInstrumentConfig.GnirsImaging
 import explore.modes.ModeRow
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
