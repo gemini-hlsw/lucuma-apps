@@ -76,14 +76,14 @@ object GhostIfuConfigPanel
         // which are only known by the ODB.
         stepEstimate                            <- useEffectKeepResultOnMount:
                                                      ctx.odbApi.ghostScienceStepEstimate(props.obsId)
+        // Let's update the ui on obsEdit
         _                                       <- useEffectStreamResourceOnMount:
                                                      ctx.odbApi
                                                        .observationEditSubscription(props.obsId)
                                                        .map(_.evalMap(_ => stepEstimate.refresh.to[IO]))
         lastEstimatedMode                       <- useState(none[ObservingMode.GhostIfu])
         _                                       <- useEffectWithDeps(stepEstimate.isRunning): running =>
-                                                     Callback.when(!running):
-                                                       lastEstimatedMode.setState(props.observingMode.get.some)
+                                                     lastEstimatedMode.setState(props.observingMode.get.some).unless_(running)
       yield
         import ctx.given
 
