@@ -7,6 +7,7 @@ import io.circe.Decoder
 import lucuma.core.enums.Flamingos2Filter
 import lucuma.core.enums.GmosNorthFilter
 import lucuma.core.enums.GmosSouthFilter
+import lucuma.core.enums.GnirsFilter
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
 import lucuma.odb.data.Itc
@@ -55,6 +56,11 @@ trait ModeSignalToNoiseDecoders:
       .as[List[(Flamingos2Filter, SignalToNoiseAt)]](using snTupleListDecoder[Flamingos2Filter])
       .map(m => ModeSignalToNoise.Flamingos2Imaging(m.toMap))
 
+  given Decoder[ModeSignalToNoise.GnirsImaging] = Decoder.instance:
+    _.downField("gnirsImagingScience")
+      .as[List[(GnirsFilter, SignalToNoiseAt)]](using snTupleListDecoder[GnirsFilter])
+      .map(m => ModeSignalToNoise.GnirsImaging(m.toMap))
+
   given Decoder[ModeSignalToNoise.GhostIfu] = Decoder.instance: c =>
     for
       redSn  <- c.downField("red")
@@ -77,5 +83,6 @@ trait ModeSignalToNoiseDecoders:
           case Itc.Type.GmosNorthImaging    => c.as[ModeSignalToNoise.GmosNorthImaging]
           case Itc.Type.GmosSouthImaging    => c.as[ModeSignalToNoise.GmosSouthImaging]
           case Itc.Type.Flamingos2Imaging   => c.as[ModeSignalToNoise.Flamingos2Imaging]
+          case Itc.Type.GnirsImaging        => c.as[ModeSignalToNoise.GnirsImaging]
           case Itc.Type.Igrins2Spectroscopy => c.as[ModeSignalToNoise.Spectroscopy]
           case Itc.Type.GhostIfu            => c.as[ModeSignalToNoise.GhostIfu]

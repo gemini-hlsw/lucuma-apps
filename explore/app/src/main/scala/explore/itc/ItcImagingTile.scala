@@ -29,6 +29,7 @@ import explore.modes.ConfigSelection
 import explore.modes.ItcInstrumentConfig
 import explore.modes.ItcInstrumentConfig.Flamingos2Imaging
 import explore.modes.ItcInstrumentConfig.GmosNorthImaging
+import explore.modes.ItcInstrumentConfig.GnirsImaging
 import explore.modes.ItcInstrumentConfig.GmosSouthImaging
 import explore.modes.ModeRow
 import japgolly.scalajs.react.*
@@ -77,6 +78,8 @@ object ItcImagingTile
         case (GmosSouthImaging(filter = filter1), GmosSouthImaging(filter = filter2))   =>
           filter1.compare(filter2)
         case (Flamingos2Imaging(filter = filter1), Flamingos2Imaging(filter = filter2)) =>
+          filter1.compare(filter2)
+        case (GnirsImaging(filter = filter1), GnirsImaging(filter = filter2))           =>
           filter1.compare(filter2)
         case (_, _)                                                                     => 0
 

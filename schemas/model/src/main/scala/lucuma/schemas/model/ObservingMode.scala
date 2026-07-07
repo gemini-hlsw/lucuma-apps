@@ -55,6 +55,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case _: ObservingMode.Flamingos2Imaging  => ObservingModeType.Flamingos2Imaging
     case _: ObservingMode.Flamingos2LongSlit => ObservingModeType.Flamingos2LongSlit
     case _: ObservingMode.Igrins2LongSlit    => ObservingModeType.Igrins2LongSlit
+    case _: ObservingMode.GnirsImaging       => ObservingModeType.GnirsImaging
     case g: ObservingMode.GnirsSpectroscopy  =>
       g.fpu match
         case GnirsFpu.Spectroscopy.Slit(_) => ObservingModeType.GnirsLongSlit
@@ -77,6 +78,7 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
     case _: ObservingMode.Flamingos2Imaging  => Site.GS.some
     case _: ObservingMode.Flamingos2LongSlit => Site.GS.some
     case _: ObservingMode.Igrins2LongSlit    => Site.GN.some
+    case _: ObservingMode.GnirsImaging       => Site.GN.some
     case _: ObservingMode.GnirsSpectroscopy  => Site.GN.some
     case _: ObservingMode.GhostIfu           => Site.GS.some
     case v: ObservingMode.Visitor            => v.toBasicConfiguration.siteFor
@@ -98,6 +100,8 @@ sealed abstract class ObservingMode(val instrument: Option[Instrument])
       BasicConfiguration.Flamingos2LongSlit(f.disperser, f.filter, f.fpu)
     case _: ObservingMode.Igrins2LongSlit                          =>
       BasicConfiguration.Igrins2LongSlit
+    case g: ObservingMode.GnirsImaging                             =>
+      BasicConfiguration.GnirsImaging(g.filters.map(_.filter), g.camera)
     case g: ObservingMode.GnirsSpectroscopy                        =>
       BasicConfiguration
         .GnirsSpectroscopy(g.filter, g.fpu, g.prism, g.grating, g.camera, g.centralWavelength)
@@ -155,6 +159,8 @@ object ObservingMode:
             c.downField("flamingos2LongSlit").as[Flamingos2LongSlit]
           .orElse:
             c.downField("igrins2LongSlit").as[Igrins2LongSlit]
+          .orElse:
+            c.downField("gnirsImaging").as[GnirsImaging]
           .orElse:
             c.downField("gnirsSpectroscopy").as[GnirsSpectroscopy]
           .orElse:
@@ -826,6 +832,60 @@ object ObservingMode:
     val explicitOffsets: Lens[Igrins2LongSlit, Option[NonEmptyList[Offset]]] =
       Focus[Igrins2LongSlit](_.explicitOffsets)
 
+  case class GnirsImaging(
+    initialFilters:    NonEmptyList[GnirsImaging.ImagingFilter],
+    filters:           NonEmptyList[GnirsImaging.ImagingFilter],
+    camera:            GnirsCamera,
+    coadds:            PosInt,
+    explicitReadMode:  Option[GnirsReadMode],
+    defaultWellDepth:  GnirsWellDepth,
+    explicitWellDepth: Option[GnirsWellDepth],
+    variant:           ImagingVariant
+  ) extends ObservingMode(Instrument.Gnirs.some) derives Eq:
+    val wellDepth: GnirsWellDepth =
+      explicitWellDepth.getOrElse(defaultWellDepth)
+
+    def isCustomized: Boolean =
+      initialFilters =!= filters ||
+        explicitReadMode.isDefined ||
+        explicitWellDepth.exists(_ =!= defaultWellDepth)
+
+    def revertCustomizations: GnirsImaging =
+      this.copy(
+        filters = this.initialFilters,
+        explicitReadMode = None,
+        explicitWellDepth = None
+      )
+
+  object GnirsImaging:
+    case class ImagingFilter(filter: GnirsFilter, exposureTimeMode: ExposureTimeMode)
+        derives Decoder,
+          Eq
+
+    object ImagingFilter:
+      val filter: Lens[ImagingFilter, GnirsFilter]                = Focus[ImagingFilter](_.filter)
+      val exposureTimeMode: Lens[ImagingFilter, ExposureTimeMode] =
+        Focus[ImagingFilter](_.exposureTimeMode)
+
+    given Decoder[GnirsImaging] = deriveDecoder
+
+    val initialFilters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]]  =
+      Focus[GnirsImaging](_.initialFilters)
+    val filters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]]         =
+      Focus[GnirsImaging](_.filters)
+    val camera: Lens[GnirsImaging, GnirsCamera]                          =
+      Focus[GnirsImaging](_.camera)
+    val coadds: Lens[GnirsImaging, PosInt]                               =
+      Focus[GnirsImaging](_.coadds)
+    val explicitReadMode: Lens[GnirsImaging, Option[GnirsReadMode]]      =
+      Focus[GnirsImaging](_.explicitReadMode)
+    val defaultWellDepth: Lens[GnirsImaging, GnirsWellDepth]             =
+      Focus[GnirsImaging](_.defaultWellDepth)
+    val explicitWellDepth: Lens[GnirsImaging, Option[GnirsWellDepth]]    =
+      Focus[GnirsImaging](_.explicitWellDepth)
+    val variant: Lens[GnirsImaging, ImagingVariant]                      =
+      Focus[GnirsImaging](_.variant)
+
   case class GnirsSpectroscopy(
     initialGrating:           GnirsGrating,
     grating:                  GnirsGrating,
@@ -1300,6 +1360,9 @@ object ObservingMode:
 
   val flamingos2Imaging: Prism[ObservingMode, Flamingos2Imaging] =
     GenPrism[ObservingMode, Flamingos2Imaging]
+
+  val gnirsImaging: Prism[ObservingMode, GnirsImaging] =
+    GenPrism[ObservingMode, GnirsImaging]
 
   val igrins2LongSlit: Prism[ObservingMode, Igrins2LongSlit] =
     GenPrism[ObservingMode, Igrins2LongSlit]

@@ -61,6 +61,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosNorthLongSlit  => Site.GN.some
     case _: BasicConfiguration.GmosSouthImaging   => Site.GS.some
     case _: BasicConfiguration.GmosSouthLongSlit  => Site.GS.some
+    case _: BasicConfiguration.GnirsImaging       => Site.GN.some
     case _: BasicConfiguration.GnirsSpectroscopy  => Site.GN.some
     case BasicConfiguration.Igrins2LongSlit       => Site.GN.some
     case v: BasicConfiguration.Visitor            => v.site.some
@@ -75,6 +76,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
     case _: BasicConfiguration.GmosNorthLongSlit  => ObservingModeType.GmosNorthLongSlit
     case _: BasicConfiguration.GmosSouthImaging   => ObservingModeType.GmosSouthImaging
     case _: BasicConfiguration.GmosSouthLongSlit  => ObservingModeType.GmosSouthLongSlit
+    case _: BasicConfiguration.GnirsImaging       => ObservingModeType.GnirsImaging
     case g: BasicConfiguration.GnirsSpectroscopy  => g.gnirsObsModeType
     case BasicConfiguration.Igrins2LongSlit       => ObservingModeType.Igrins2LongSlit
     case v: BasicConfiguration.Visitor            => v.mode
@@ -110,6 +112,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
     case BasicConfiguration.Flamingos2Imaging(filters)                =>
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
+    case BasicConfiguration.GnirsImaging(filters = filters)          =>
+      AGSWavelength(filters.maximumBy(_.centralWavelength).centralWavelength)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       AGSWavelength(filter.wavelength)
     case BasicConfiguration.Igrins2LongSlit                           =>
@@ -136,6 +140,8 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       filters.minimumBy(_.wavelength).wavelength
     case BasicConfiguration.Flamingos2Imaging(filters)                =>
       filters.minimumBy(_.wavelength).wavelength
+    case BasicConfiguration.GnirsImaging(filters = filters)          =>
+      filters.minimumBy(_.centralWavelength).centralWavelength
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       filter.wavelength
     case BasicConfiguration.Igrins2LongSlit                           =>
@@ -208,8 +214,11 @@ object BasicConfiguration:
                                 c.downField("igrins2LongSlit")
                                   .as[Igrins2LongSlit.type]
                                   .orElse:
-                                    c.downField("gnirsSpectroscopy")
-                                      .as[GnirsSpectroscopy]
+                                    c.downField("gnirsImaging")
+                                      .as[GnirsImaging]
+                                      .orElse:
+                                        c.downField("gnirsSpectroscopy")
+                                          .as[GnirsSpectroscopy]
                                       .orElse:
                                         c.downField("ghostIfu")
                                           .as[GhostIfu]
@@ -301,6 +310,23 @@ object BasicConfiguration:
           .as(using Decoder.decodeNonEmptyList(using flamingos2FilterFromFilters))
           .map(Flamingos2Imaging(_))
       )
+
+  case class GnirsImaging(
+    filters: NonEmptyList[GnirsFilter],
+    camera:  GnirsCamera
+  ) extends BasicConfiguration derives Eq
+
+  object GnirsImaging:
+    // `filters` is a list of objects (`{ filter, ... }`); we keep only the nested `filter` enum.
+    private val gnirsFilterFromFilters: Decoder[GnirsFilter] =
+      Decoder.instance(_.downField("filter").as[GnirsFilter])
+    given Decoder[GnirsImaging]                              =
+      Decoder.instance: c =>
+        for
+          filters <- c.downField("filters")
+                       .as(using Decoder.decodeNonEmptyList(using gnirsFilterFromFilters))
+          camera  <- c.downField("camera").as[GnirsCamera]
+        yield GnirsImaging(filters, camera)
 
   case object Igrins2LongSlit extends BasicConfiguration derives Eq:
     given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
@@ -465,6 +491,9 @@ object BasicConfiguration:
 
   val flamingos2Imaging: Prism[BasicConfiguration, Flamingos2Imaging] =
     GenPrism[BasicConfiguration, Flamingos2Imaging]
+
+  val gnirsImaging: Prism[BasicConfiguration, GnirsImaging] =
+    GenPrism[BasicConfiguration, GnirsImaging]
 
   val igrins2LongSlit: Prism[BasicConfiguration, Igrins2LongSlit.type] =
     GenPrism[BasicConfiguration, Igrins2LongSlit.type]

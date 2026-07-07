@@ -208,6 +208,9 @@ object reusability:
 
   given Reusability[ObservingMode.Flamingos2Imaging.ImagingFilter] = Reusability.byEq
 
+  given gnirsImagingFilterReuse: Reusability[ObservingMode.GnirsImaging.ImagingFilter] =
+    Reusability.byEq
+
   given Reusability[ObservingMode] = Reusability:
     case (x: ObservingMode.GmosNorthLongSlit, y: ObservingMode.GmosNorthLongSlit)   =>
       summon[Reusability[ObservingMode.GmosNorthLongSlit]].test(x, y)

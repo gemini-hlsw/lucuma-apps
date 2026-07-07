@@ -521,6 +521,12 @@ extension (imagingFilter: ObservingMode.Flamingos2Imaging.ImagingFilter)
     exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
   )
 
+extension (imagingFilter: ObservingMode.GnirsImaging.ImagingFilter)
+  def toInput: GnirsImagingFilterInput = GnirsImagingFilterInput(
+    filter = imagingFilter.filter,
+    exposureTimeMode = imagingFilter.exposureTimeMode.toInput.assign
+  )
+
 extension (tcg: TelescopeConfigGenerator)
   def toInput: TelescopeConfigGeneratorInput =
     tcg match
@@ -600,6 +606,16 @@ extension (o: ObservingMode.Flamingos2Imaging)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign
+  )
+
+extension (o: ObservingMode.GnirsImaging)
+  def toInput: GnirsImagingInput = GnirsImagingInput(
+    variant = o.variant.toInput.assign,
+    filters = o.filters.toList.map(_.toInput).assign,
+    camera = o.camera.assign,
+    coadds = o.coadds.assign,
+    explicitReadMode = o.explicitReadMode.orUnassign,
+    explicitWellDepth = o.explicitWellDepth.orUnassign
   )
 
 extension (a: ObservingMode.Flamingos2LongSlit.Acquisition)
@@ -728,6 +744,8 @@ extension (b: ObservingMode)
       ObservingModeInput.Flamingos2Imaging(o.toInput)
     case o: ObservingMode.Flamingos2LongSlit =>
       ObservingModeInput.Flamingos2LongSlit(o.toInput)
+    case o: ObservingMode.GnirsImaging       =>
+      ObservingModeInput.GnirsImaging(o.toInput)
     case o: ObservingMode.Igrins2LongSlit    =>
       ObservingModeInput.Igrins2LongSlit(o.toInput)
     case o: ObservingMode.GnirsSpectroscopy  =>
@@ -815,6 +833,12 @@ extension (i: BasicConfiguration)
           stepCount = sc.assign,
           red = red.toInput.assign,
           blue = blue.toInput.assign
+        )
+    case BasicConfiguration.GnirsImaging(filters = filters, camera = camera)                      =>
+      ObservingModeInput.GnirsImaging:
+        GnirsImagingInput(
+          filters = filters.toList.map(GnirsImagingFilterInput(_)).assign,
+          camera = camera.assign
         )
     case BasicConfiguration.GnirsSpectroscopy(filter,
                                               fpu,

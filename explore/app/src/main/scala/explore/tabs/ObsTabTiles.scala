@@ -457,7 +457,8 @@ object ObsTabTiles:
             odbOrSelectedConfig match
               case Some(_: BasicConfiguration.GmosNorthImaging) |
                   Some(_: BasicConfiguration.GmosSouthImaging) |
-                  Some(_: BasicConfiguration.Flamingos2Imaging) =>
+                  Some(_: BasicConfiguration.Flamingos2Imaging) |
+                  Some(_: BasicConfiguration.GnirsImaging) =>
                 ItcImagingTile(
                   props.vault.userId,
                   selectedConfig.get,

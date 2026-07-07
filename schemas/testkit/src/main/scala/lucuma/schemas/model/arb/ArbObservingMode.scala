@@ -671,6 +671,66 @@ trait ArbObservingMode {
         )
       )
 
+  given arbGnirsImagingFilter: Arbitrary[ObservingMode.GnirsImaging.ImagingFilter] =
+    Arbitrary[ObservingMode.GnirsImaging.ImagingFilter](
+      for {
+        filter <- arbitrary[GnirsFilter]
+        etm    <- arbitrary[ExposureTimeMode]
+      } yield ObservingMode.GnirsImaging.ImagingFilter(filter, etm)
+    )
+
+  given Arbitrary[ObservingMode.GnirsImaging] =
+    Arbitrary[ObservingMode.GnirsImaging](
+      for
+        initialFilters    <- arbitrary[NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter]]
+        filters           <- arbitrary[NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter]]
+        camera            <- arbitrary[GnirsCamera]
+        coadds            <- arbitrary[PosInt]
+        explicitReadMode  <- arbitrary[Option[GnirsReadMode]]
+        defaultWellDepth  <- arbitrary[GnirsWellDepth]
+        explicitWellDepth <- arbitrary[Option[GnirsWellDepth]]
+        variant           <- arbitrary[ImagingVariant]
+      yield ObservingMode.GnirsImaging(
+        initialFilters,
+        filters,
+        camera,
+        coadds,
+        explicitReadMode,
+        defaultWellDepth,
+        explicitWellDepth,
+        variant
+      )
+    )
+
+  given cogenGnirsImagingFilter: Cogen[ObservingMode.GnirsImaging.ImagingFilter] =
+    Cogen[(GnirsFilter, ExposureTimeMode)].contramap(i => (i.filter, i.exposureTimeMode))
+
+  given Cogen[ObservingMode.GnirsImaging] =
+    Cogen[
+      (
+        NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter],
+        NonEmptyList[ObservingMode.GnirsImaging.ImagingFilter],
+        GnirsCamera,
+        PosInt,
+        Option[GnirsReadMode],
+        GnirsWellDepth,
+        Option[GnirsWellDepth],
+        ImagingVariant
+      )
+    ]
+      .contramap(o =>
+        (
+          o.initialFilters,
+          o.filters,
+          o.camera,
+          o.coadds,
+          o.explicitReadMode,
+          o.defaultWellDepth,
+          o.explicitWellDepth,
+          o.variant
+        )
+      )
+
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
       exposureTimeMode      <- arbitrary[ExposureTimeMode]
@@ -978,6 +1038,7 @@ trait ArbObservingMode {
       arbitrary[ObservingMode.GmosSouthImaging],
       arbitrary[ObservingMode.Flamingos2LongSlit],
       arbitrary[ObservingMode.Flamingos2Imaging],
+      arbitrary[ObservingMode.GnirsImaging],
       arbitrary[ObservingMode.Igrins2LongSlit],
       arbitrary[ObservingMode.GnirsSpectroscopy],
       arbitrary[ObservingMode.GhostIfu],
@@ -989,8 +1050,10 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode] =
     Cogen[Either[
-      ObservingMode.GnirsSpectroscopy,
+      ObservingMode.GnirsImaging,
       Either[
+        ObservingMode.GnirsSpectroscopy,
+        Either[
         ObservingMode.Igrins2LongSlit,
         Either[
           ObservingMode.Flamingos2LongSlit,
@@ -1016,26 +1079,30 @@ trait ArbObservingMode {
           ]
         ]
       ]
+    ]
     ]]
       .contramap {
-        case g: ObservingMode.GnirsSpectroscopy  => g.asLeft
-        case i: ObservingMode.Igrins2LongSlit    => i.asLeft.asRight
-        case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight.asRight
-        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight.asRight
-        case s: ObservingMode.GmosSouthLongSlit  => s.asLeft.asRight.asRight.asRight.asRight
-        case n: ObservingMode.GmosNorthImaging   => n.asLeft.asRight.asRight.asRight.asRight.asRight
+        case g: ObservingMode.GnirsImaging       => g.asLeft
+        case g: ObservingMode.GnirsSpectroscopy  => g.asLeft.asRight
+        case i: ObservingMode.Igrins2LongSlit    => i.asLeft.asRight.asRight
+        case f: ObservingMode.Flamingos2LongSlit => f.asLeft.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthLongSlit  => n.asLeft.asRight.asRight.asRight.asRight
+        case s: ObservingMode.GmosSouthLongSlit  =>
+          s.asLeft.asRight.asRight.asRight.asRight.asRight
+        case n: ObservingMode.GmosNorthImaging   =>
+          n.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
         case s: ObservingMode.GmosSouthImaging   =>
-          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case g: ObservingMode.GhostIfu           =>
-          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          g.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case f: ObservingMode.Flamingos2Imaging  =>
-          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          f.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case v: ObservingMode.Visitor            =>
-          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          v.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case k: ObservingMode.KeckExchange       =>
-          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          k.asLeft.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
         case s: ObservingMode.SubaruExchange     =>
-          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
+          s.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight.asRight
       }
 
 }
