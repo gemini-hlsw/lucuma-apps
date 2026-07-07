@@ -39,9 +39,7 @@ object Versions {
   val lucumaPrimeStyles      = "0.5.0"
   val lucumaReact            = "0.103.0"
   val lucumaRefined          = "0.1.4"
-  val lucumaServers          = "0.84.1"
-  // Temporary: local snapshot with Itc.Type.GnirsImaging; revert to lucumaServers on next release.
-  val lucumaOdbSchema        = "0.85-8e245a7-20260705T155311Z-SNAPSHOT"
+  val lucumaServers          = "0.85.0"
   val monocle                = "3.3.0"
   val mouse                  = "1.4.0"
   val mUnit                  = "1.3.3"
