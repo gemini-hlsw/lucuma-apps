@@ -224,8 +224,8 @@ extension (conf: BasicConfiguration)
           AgsParams.Flamingos2Imaging(Flamingos2LyotWheel.F16, port).some
         case BasicConfiguration.Igrins2LongSlit                                              =>
           AgsParams.Igrins2LongSlit().some
-        case BasicConfiguration.GnirsImaging(camera = camera)                                =>
-          AgsParams.GnirsImaging(camera, port).some
+        case BasicConfiguration.GnirsImaging(filters = filters, camera = camera)             =>
+          AgsParams.GnirsImaging(camera, AgsParams.GnirsImaging.representativeFilter(filters), port).some
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu))      =>
           AgsParams.GnirsIfu(ifu, port).some
         case BasicConfiguration.GnirsSpectroscopy(fpu = fpu, prism = prism, camera = camera) =>

@@ -10,6 +10,7 @@ import lucuma.ags.AgsParams
 import lucuma.ags.GuidedOffset
 import lucuma.ags.SingleProbeAgsParams
 import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFilter
 import lucuma.core.enums.GnirsFpuIfu
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsPrism
@@ -43,20 +44,20 @@ case class GnirsGeometry(fpu: GnirsFpuSlit, camera: GnirsCamera, prism: GnirsPri
       case GuideProbe.PWFS2 => AgsParams.GnirsLongSlit(fpu, camera, prism).withPWFS2
       case _                => AgsParams.GnirsLongSlit(fpu, camera, prism)
 
-case class GnirsImagingGeometry(camera: GnirsCamera) extends PwfsGeometry:
+case class GnirsImagingGeometry(camera: GnirsCamera, filter: GnirsFilter) extends PwfsGeometry:
 
   override def shapesForMode(posAngle: Angle, offset: Offset): SortedMap[Css, ShapeExpression] =
     SortedMap(
-      (GnirsScienceSlit, scienceArea.imagingShapeAt(posAngle, offset, camera))
+      (GnirsScienceSlit, scienceArea.imagingShapeAt(posAngle, offset, camera, filter))
     )
 
   override protected def candidatesAreaCss: Css = GnirsCandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
     guideProbe match
-      case GuideProbe.PWFS1 => AgsParams.GnirsImaging(camera).withPWFS1
-      case GuideProbe.PWFS2 => AgsParams.GnirsImaging(camera).withPWFS2
-      case _                => AgsParams.GnirsImaging(camera)
+      case GuideProbe.PWFS1 => AgsParams.GnirsImaging(camera, filter).withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.GnirsImaging(camera, filter).withPWFS2
+      case _                => AgsParams.GnirsImaging(camera, filter)
 
 case class GnirsIfuGeometry(ifu: GnirsFpuIfu) extends PwfsGeometry:
 
@@ -94,8 +95,8 @@ object GnirsGeometry:
           GnirsGeometry(slit, camera, prism)
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu)) =>
           GnirsIfuGeometry(ifu)
-        case BasicConfiguration.GnirsImaging(camera = camera) =>
-          GnirsImagingGeometry(camera)
+        case BasicConfiguration.GnirsImaging(filters = filters, camera = camera) =>
+          GnirsImagingGeometry(camera, AgsParams.GnirsImaging.representativeFilter(filters))
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,
