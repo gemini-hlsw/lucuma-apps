@@ -7,9 +7,11 @@ import cats.Endo
 import cats.Eq
 import cats.effect.IO
 import cats.syntax.all.*
+import clue.StreamingClient
 import clue.data.Input
 import clue.data.syntax.*
-import crystal.react.View
+import crystal.Pot
+import crystal.react.*
 import crystal.react.hooks.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.numeric.PosInt
@@ -34,11 +36,13 @@ import lucuma.core.enums.GhostResolutionMode
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.sequence.DetectorEstimate
 import lucuma.core.validation.*
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.common.style.Css
 import lucuma.refined.*
+import lucuma.schemas.ObservationDB
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.model.ObservingMode.GhostIfu
@@ -49,7 +53,6 @@ import lucuma.ui.format.*
 import lucuma.ui.input.ChangeAuditor
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
-import lucuma.ui.syntax.all.given
 import monocle.Lens
 
 final case class GhostIfuConfigPanel(
@@ -66,8 +69,17 @@ final case class GhostIfuConfigPanel(
 object GhostIfuConfigPanel
     extends ReactFnComponent[GhostIfuConfigPanel](props =>
       for
-        ctx       <- useContext(AppContext.ctx)
-        editState <- useStateView(ConfigEditState.View)
+        ctx                                     <- useContext(AppContext.ctx)
+        given StreamingClient[IO, ObservationDB] = ctx.clients.odb
+        editState                               <- useStateView(ConfigEditState.View)
+        // Per-detector step estimates include the detector overheads (readout and write),
+        // which are only known by the ODB.
+        stepEstimate                            <- useEffectKeepResultOnMount:
+                                                     ctx.odbApi.ghostScienceStepEstimate(props.obsId)
+        _                                       <- useEffectStreamResourceOnMount:
+                                                     ctx.odbApi
+                                                       .observationEditSubscription(props.obsId)
+                                                       .map(_.evalMap(_ => stepEstimate.refresh.to[IO]))
       yield
         import ctx.given
 
@@ -75,6 +87,18 @@ object GhostIfuConfigPanel
         val disableEdit              =
           editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
         val allowRevertCustomization = props.permissions.isFullEdit
+
+        val RedDetector  = "red"
+        val BlueDetector = "blue"
+
+        def detectorEstimate(detectorName: String): Pot[Option[DetectorEstimate]] =
+          stepEstimate.value.value.map: stepEstimateOpt =>
+            stepEstimateOpt.flatMap(
+              _.detector.flatMap(_.find(_.name.toLowerCase.contains(detectorName)))
+            )
+
+        // True while the estimate is being refetched after an observation edit.
+        val awaitingEstimate = stepEstimate.isRunning
 
         val resolutionModeView: View[GhostResolutionMode] =
           props.observingMode
@@ -173,7 +197,8 @@ object GhostIfuConfigPanel
           detector:   GhostIfu.GhostDetector,
           colorClazz: Css,
           idPrefix:   NonEmptyString,
-          aligner:    Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput]
+          aligner:    Aligner[GhostIfu.GhostDetector, GhostDetectorConfigInput],
+          estimate:   Pot[Option[DetectorEstimate]]
         ): VdomNode =
           val timeAndCountView: View[ExposureTimeMode.TimeAndCountMode] =
             aligner
@@ -238,10 +263,15 @@ object GhostIfuConfigPanel
               ),
               <.div(
                 ^.id := s"${idPrefix.value}-total-time",
-                // Shoud we consider the overheads?
-                formatDurationHours(
-                  timeAndCountView.get.time *| timeAndCountView.get.count.value
-                )
+                // Gray out while awaiting a new value
+                ^.title :=? Option.when(awaitingEstimate)(
+                  "Awaiting new data from server."
+                ),
+                ExploreStyles.Stale.when(awaitingEstimate),
+                estimate match
+                  case Pot.Ready(Some(de)) => formatDurationHours(de.estimate)
+                  case Pot.Pending         => "calculating…"
+                  case _                   => "—"
               )
             )
           )
@@ -304,14 +334,16 @@ object GhostIfuConfigPanel
               detector = mode.blue,
               colorClazz = LucumaStyles.GhostBlue,
               idPrefix = "ghostBlue".refined,
-              aligner = detectorAligner(GhostIfu.blue, GhostIfuInput.blue)
+              aligner = detectorAligner(GhostIfu.blue, GhostIfuInput.blue),
+              estimate = detectorEstimate(BlueDetector)
             ),
             detectorPanel(
               label = "Red Camera",
               detector = mode.red,
               colorClazz = LucumaStyles.GhostRed,
               idPrefix = "ghostRed".refined,
-              aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red)
+              aligner = detectorAligner(GhostIfu.red, GhostIfuInput.red),
+              estimate = detectorEstimate(RedDetector)
             )
           ),
           <.div(
