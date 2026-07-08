@@ -579,11 +579,16 @@ object AladinContainer extends AladinCommon {
           currentPos.value
             .foldMap(Coordinates.fromHmsDms.reverseGet)
 
-        def basePosition(css: Css) =
+        def basePosition(css: Css, title: Option[String] = None) =
           baseCoordinates.foldMap: c =>
-            List(SvgTarget.CrosshairTarget(c, css, CrosshairSize))
+            List(SvgTarget.CrosshairTarget(c, css, CrosshairSize, title))
 
         val isSelectable: Boolean = props.obsTargets.length > 1
+
+        // Only label the crosshair as the base position for an asterism; for a
+        // single target it coincides with the target itself.
+        val basePositionTitle: Option[String] =
+          Option.when(props.obsTargets.science.length > 1)("Base position")
 
         val targetLabels: Map[Target.Id, String] =
           props.vizConf.foldMap(_.targetVisualization.labels)
@@ -735,7 +740,7 @@ object AladinContainer extends AladinCommon {
                     _,
                     // Order matters
                     candidates ++ blindOffsets ++ scienceTargets ++ skyPositionTargets ++
-                      basePosition(Css.Empty) ++ configOffsets
+                      basePosition(Css.Empty, basePositionTitle) ++ configOffsets
                   )
                 ),
               // Separate overlay for unconstrained guide star candidates (available at other PAs)

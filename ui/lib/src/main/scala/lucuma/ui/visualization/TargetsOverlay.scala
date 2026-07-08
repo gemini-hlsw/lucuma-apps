@@ -103,8 +103,8 @@ object TargetsOverlay
               case (offP, offQ, SvgTarget.CrosshairTarget(_, css, sidePx, title)) =>
                 val pointCss = VisualizationStyles.CrosshairTarget |+| css
 
-                val side = scale(maxP * sidePx)
-                <.g(
+                val side  = scale(maxP * sidePx)
+                val lines = List(
                   <.line(
                     ^.x1 := scale(offP) - side,
                     ^.x2 := scale(offP) + side,
@@ -118,8 +118,20 @@ object TargetsOverlay
                     ^.y1 := scale(offQ) - side,
                     ^.y2 := scale(offQ) + side,
                     pointCss
-                  ),
-                  title.map(<.title(_))
+                  )
+                )
+                title.fold[VdomNode](
+                  <.g(lines*)
+                )(t =>
+                  <.g(VisualizationStyles.VisualizationTooltipTarget)(
+                    (lines :+ <.circle(
+                      ^.cx            := scale(offP),
+                      ^.cy            := scale(offQ),
+                      ^.r             := side,
+                      ^.fill          := "transparent",
+                      ^.pointerEvents := "all"
+                    ))*
+                  ).withTooltipOptions(content = t)
                 )
 
               case (offP, offQ, SvgTarget.SkyPositionTarget(_, css, sidePx, title)) =>
