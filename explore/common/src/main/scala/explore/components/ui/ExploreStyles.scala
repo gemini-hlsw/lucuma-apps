@@ -227,8 +227,8 @@ object ExploreStyles:
   val AladinFullScreen: Css       = Css("aladin-full-screen")
   val AladinRangeControl: Css     = Css("aladin-range-control")
 
-  val RegionHoverCursor: Css = Css("region-hover-cursor")
-  val AddSkyModeCursor: Css  = Css("add-sky-mode-cursor")
+  val AddSkyModeCursor: Css        = Css("add-sky-mode-cursor")
+  val AddSkyModeInvalidCursor: Css = Css("add-sky-mode-invalid-cursor")
 
   val SkyPositionPending: Css = Css("sky-position-pending")
   val AddSkyModeOverlay: Css  = Css("add-sky-mode-overlay")
