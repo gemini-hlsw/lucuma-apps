@@ -43,6 +43,7 @@ import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
 import lucuma.core.model.Target
+import lucuma.core.model.Tracking
 import lucuma.core.model.User
 import lucuma.react.common.*
 import lucuma.react.primereact.Button
@@ -266,36 +267,49 @@ object AladinCell extends ModelOptics with AladinCommon:
         useEffectResultWithDeps(
           (props.siderealDiscretizedObsTime,
            oBaseTracking,
+           props.obsConf.flatMap(_.explicitBase),
            props.obsConf.flatMap(_.obsModeType),
            props.obsConf.flatMap(_.guideProbe),
            props.needsAGS
           )
-        ): (siderealDiscretizedObsTime, oTracking, obsModeType, guideProbe, needsAGS) =>
-          import ctx.given
+        ):
+          (
+            siderealDiscretizedObsTime,
+            oTracking,
+            explicitBase,
+            obsModeType,
+            guideProbe,
+            needsAGS
+          ) =>
+            import ctx.given
 
-          (obsModeType, oTracking.value)
-            .mapN: (_, baseTracking) =>
-              if (needsAGS)
-                (for
-                  _          <- props.obsConf
-                                  .flatMap(_.agsState)
-                                  .foldMap(_.async.set(AgsState.LoadingCandidates))
-                  candidates <-
-                    guideProbe.foldMap: gp =>
-                      CatalogClient[IO]
-                        .requestSingle:
-                          CatalogMessage.GSRequest(
-                            baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
-                            siderealDiscretizedObsTime.obsTime,
-                            gp
-                          )
-                yield candidates)
-                  .guarantee:
-                    props.obsConf
-                      .flatMap(_.agsState)
-                      .foldMap(_.async.set(AgsState.Idle))
-              else none.pure
-            .getOrElse(List.empty.some.pure[IO])
+            // Prefer the explicit base override as the catalog search center
+            val searchTracking: Option[Tracking] =
+              explicitBase.map(Tracking.constant).orElse(oTracking.value)
+
+            (obsModeType, searchTracking)
+              .mapN: (_, baseTracking) =>
+                if (needsAGS)
+                  (for
+                    _          <- props.obsConf
+                                    .flatMap(_.agsState)
+                                    .foldMap(_.async.set(AgsState.LoadingCandidates))
+                    candidates <-
+                      guideProbe.foldMap: gp =>
+                        CatalogClient[IO]
+                          .requestSingle:
+                            CatalogMessage.GSRequest(
+                              baseTracking.minimizeEphemeris(siderealDiscretizedObsTime.obsTime),
+                              siderealDiscretizedObsTime.obsTime,
+                              gp
+                            )
+                  yield candidates)
+                    .guarantee:
+                      props.obsConf
+                        .flatMap(_.agsState)
+                        .foldMap(_.async.set(AgsState.Idle))
+                else none.pure
+              .getOrElse(List.empty.some.pure)
       agsCalcProps        <- useMemo(
                                (props.obsTargets.focus.id,
                                 props.obsTime,
