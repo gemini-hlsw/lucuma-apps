@@ -605,7 +605,7 @@
 .add-sky-mode-overlay {
   @include hud;
 
-  top: 0px;
+  top: 0;
   left: 50%;
   transform: translateX(-50%);
   font-size: smaller;
