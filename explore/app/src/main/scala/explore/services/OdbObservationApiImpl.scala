@@ -420,6 +420,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     flamingos2Imaging:  Boolean = false,
     flamingos2LongSlit: Boolean = false,
     igrins2LongSlit:    Boolean = false,
+    gnirsImaging:       Boolean = false,
     gnirsSpectroscopy:  Boolean = false,
     ghostIfu:           Boolean = false,
     visitor:            Boolean = false,
@@ -451,6 +452,8 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         ModeViewFlags(flamingos2LongSlit = true)
       case ObservingModeType.Igrins2LongSlit                                 =>
         ModeViewFlags(igrins2LongSlit = true)
+      case ObservingModeType.GnirsImaging                                    =>
+        ModeViewFlags(gnirsImaging = true)
       case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu      =>
         ModeViewFlags(gnirsSpectroscopy = true)
       case ObservingModeType.GhostIfu                                        =>
@@ -480,6 +483,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
             includeFlamingos2Imaging = flags.flamingos2Imaging,
             includeFlamingos2LongSlit = flags.flamingos2LongSlit,
             includeIgrins2LongSlit = flags.igrins2LongSlit,
+            includeGnirsImaging = flags.gnirsImaging,
             includeGnirsSpectroscopy = flags.gnirsSpectroscopy,
             includeGhostIfu = flags.ghostIfu,
             includeVisitor = flags.visitor,

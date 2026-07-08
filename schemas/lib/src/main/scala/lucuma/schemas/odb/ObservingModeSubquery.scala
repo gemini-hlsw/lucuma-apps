@@ -257,7 +257,7 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
       """
 
 // Same selection as `ObservingModeSubquery`, but each instrument-mode view is
-// gated behind an `@include(if:)` directive. 
+// gated behind an `@include(if:)` directive.
 @GraphQLType("ObservingMode")
 object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, ObservingMode]:
   override val subquery: String = s"""
@@ -413,6 +413,22 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitSaveSVCImages
             defaultOffsets $OffsetSubquery
             explicitOffsets $OffsetSubquery
+          }
+          gnirsImaging @include(if: $$includeGnirsImaging) {
+            initialFilters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            filters {
+              filter
+              exposureTimeMode $ExposureTimeModeSubquery
+            }
+            camera
+            coadds
+            explicitReadMode
+            defaultWellDepth
+            explicitWellDepth
+            variant $ImagingVariantSubquery
           }
           gnirsSpectroscopy @include(if: $$includeGnirsSpectroscopy) {
             initialGrating

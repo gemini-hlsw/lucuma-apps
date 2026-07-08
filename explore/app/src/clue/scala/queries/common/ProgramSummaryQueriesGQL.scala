@@ -39,6 +39,7 @@ object ProgramSummaryQueriesGQL {
         $$includeFlamingos2Imaging: Boolean!,
         $$includeFlamingos2LongSlit: Boolean!,
         $$includeIgrins2LongSlit: Boolean!,
+        $$includeGnirsImaging: Boolean!,
         $$includeGnirsSpectroscopy: Boolean!,
         $$includeGhostIfu: Boolean!,
         $$includeVisitor: Boolean!,
