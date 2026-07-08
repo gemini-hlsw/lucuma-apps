@@ -23,7 +23,6 @@ import lucuma.core.model.Observation
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
@@ -44,7 +43,6 @@ case class ObsSummary(
   subtitle:           Option[NonEmptyString],
   instrument:         Instrument,
   constraints:        ConstraintSet,
-  timingWindows:      List[TimingWindow],
   attachmentIds:      SortedSet[Attachment.Id],
   observingMode:      Option[ObservingMode],
   observationTime:    Option[Instant],
@@ -130,7 +128,6 @@ object ObsSummary:
   val subtitle           = Focus[ObsSummary](_.subtitle)
   val instrument         = Focus[ObsSummary](_.instrument)
   val constraints        = Focus[ObsSummary](_.constraints)
-  val timingWindows      = Focus[ObsSummary](_.timingWindows)
   val attachmentIds      = Focus[ObsSummary](_.attachmentIds)
   val observingMode      = Focus[ObsSummary](_.observingMode)
   val observationTime    = Focus[ObsSummary](_.observationTime)
@@ -150,7 +147,6 @@ object ObsSummary:
       subtitle           <- c.get[Option[NonEmptyString]]("subtitle")
       instrument         <- c.get[Option[Instrument]]("instrument")
       constraints        <- c.get[ConstraintSet]("constraintSet")
-      timingWindows      <- c.get[List[TimingWindow]]("timingWindows")
       attachmentIds      <- c.get[List[AttachmentIdWrapper]]("attachments")
       observingMode      <- c.get[Option[ObservingMode]]("observingMode")
       observationTime    <- c.get[Option[Timestamp]]("observationTime")
@@ -170,7 +166,6 @@ object ObsSummary:
       subtitle,
       instrument.getOrElse(Instrument.VisitorSouth),
       constraints,
-      timingWindows,
       SortedSet.from(attachmentIds.map(_.id)),
       observingMode,
       observationTime.map(_.toInstant),

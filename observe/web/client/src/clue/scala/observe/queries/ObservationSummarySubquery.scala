@@ -12,8 +12,7 @@ import clue.annotation.GraphQL
 
 @GraphQL
 @GraphQLType("Observation")
-object ObservationSummarySubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ObsSummary]:
+object ObservationSummarySubquery extends GraphQLSubquery.Typed[ObservationDB, ObsSummary]:
 
   override val subquery: String = s"""
         {
@@ -26,7 +25,6 @@ object ObservationSummarySubquery
           calibrationRole
           posAngleConstraint $PosAngleConstraintSubquery
           constraintSet $ConstraintSetSubquery
-          timingWindows $TimingWindowSubquery
           attachments { id }
           observingMode $ObservingModeSubquery
           reference { label }
