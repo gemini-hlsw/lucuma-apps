@@ -7,6 +7,7 @@ import clue.GraphQLOperation
 import clue.annotation.GraphQL
 import lucuma.schemas.ObservationDB
 // gql: import lucuma.odb.json.sequence.given
+// gql: import lucuma.odb.json.timeaccounting.given
 // gql: import lucuma.schemas.decoders.given
 
 object SequenceQueriesGql:
@@ -19,5 +20,24 @@ object SequenceQueriesGql:
           }
 
           executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
+        }
+      """
+
+  // query for the per-detector time estimate of a GHOST science step. Just one atom
+  @GraphQL
+  trait GhostScienceStepEstimateQuery extends GraphQLOperation[ObservationDB]:
+    val document = s"""
+        query($$obsId: ObservationId!) {
+          executionConfig(observationId: $$obsId, futureLimit: 0) {
+            ghost {
+              science {
+                nextAtom {
+                  steps {
+                    estimate $StepEstimateSubquery
+                  }
+                }
+              }
+            }
+          }
         }
       """

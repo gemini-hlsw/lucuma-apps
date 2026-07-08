@@ -11,6 +11,7 @@ import clue.syntax.*
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -29,6 +30,17 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       .query(obsId, includeItc)
       .raiseGraphQLErrors
       .map(SequenceData.fromOdbResponse)
+
+  def ghostScienceStepEstimate(obsId: Observation.Id): F[Option[StepEstimate]] =
+    GhostScienceStepEstimateQuery[F]
+      .query(obsId)
+      .raiseGraphQLErrors
+      .map:
+        _.executionConfig
+          .flatMap(_.ghost)
+          .flatMap(_.science)
+          .flatMap(_.nextAtom.steps.headOption)
+          .map(_.estimate)
 
   def replaceGmosNorthSequence(
     obsId:        Observation.Id,

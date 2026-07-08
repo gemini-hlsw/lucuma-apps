@@ -6,6 +6,7 @@ package explore.services
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -14,6 +15,8 @@ import lucuma.ui.sequence.SequenceData
 
 trait OdbSequenceApi[F[_]]:
   def sequenceData(obsId: Observation.Id, includeItc: Boolean): F[Option[SequenceData]]
+
+  def ghostScienceStepEstimate(obsId: Observation.Id): F[Option[StepEstimate]]
 
   def replaceGmosNorthSequence(
     obsId:        Observation.Id,
