@@ -571,7 +571,9 @@ object AladinCell extends ModelOptics with AladinCommon:
 
       val renderAddSkyModeOverlay: VdomNode =
         if (props.addSkySlot.isDefined && props.assignSky.isDefined)
-          <.div(ExploreStyles.AddSkyModeOverlay, "Click in the shaded circle to set the sky position")
+          <.div(ExploreStyles.AddSkyModeOverlay,
+                "Click in the shaded are to set the sky pos (Esc to cancel)"
+          )
         else EmptyVdom
 
       val renderBlindOffsetControl =

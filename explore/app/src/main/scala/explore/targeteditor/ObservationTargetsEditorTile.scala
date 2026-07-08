@@ -33,6 +33,8 @@ import explore.model.UserPreferences
 import explore.model.enums.TileSizeState
 import explore.model.reusability.given
 import explore.services.OdbObservationApi
+import explore.shortcuts.*
+import explore.shortcuts.given
 import explore.targets.TargetColumns
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.extra.router.SetRouteVia
@@ -46,6 +48,8 @@ import lucuma.core.model.User
 import lucuma.core.model.sequence.ExecutionDigest
 import lucuma.core.util.CalculatedValue
 import lucuma.core.util.TimeSpan
+import lucuma.react.hotkeys.*
+import lucuma.react.hotkeys.hooks.*
 import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithId
 import lucuma.ui.optics.getWithDefault
@@ -174,6 +178,11 @@ object ObservationTargetsEditorTile
           readonlyForStatuses <- useStateView(false)
           // Slot holding the "add sky" mode enabling alading interactive mode.
           addSkyMode          <- useStateView(none[SlotId])
+          // Allow canceling the "add sky" mode with the Escape key.
+          _                   <- useGlobalHotkeysWithDeps(addSkyMode.get.isDefined): active =>
+                                   val callbacks: ShortcutCallbacks =
+                                     case Esc => addSkyMode.set(none).when_(active)
+                                   UseHotkeysProps(List(Esc).toHotKeys, callbacks)
           skyState            <- useMemo(
                                    (props.obsConf,
                                     props.allTargets.get,
