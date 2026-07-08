@@ -570,12 +570,9 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       val renderAddSkyModeOverlay: VdomNode =
-        props.addSkySlot
-          .filter(_ => props.assignSky.isDefined)
-          .fold(EmptyVdom): slot =>
-            <.div(ExploreStyles.AddSkyModeOverlay,
-                  s"Click on the ${slot.shortName} to place the sky position"
-            )
+        if (props.addSkySlot.isDefined && props.assignSky.isDefined)
+          <.div(ExploreStyles.AddSkyModeOverlay, "Click in the shaded circle to set the sky position")
+        else EmptyVdom
 
       val renderBlindOffsetControl =
         (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>
