@@ -702,7 +702,7 @@ object GmosLongslitConfigPanel {
       Enumerated[GmosNorthFilter].all.toSet -- GmosNorthFilter.acquisition.toList.toSet
 
     override protected val defaultAcquisitionFilterLens
-      : Lens[ObservingMode.GmosNorthLongSlit, GmosNorthFilter] =
+      : Lens[ObservingMode.GmosNorthLongSlit, GmosNorthFilter]            =
       ObservingMode.GmosNorthLongSlit.acquisition.andThen(
         ObservingMode.GmosNorthLongSlit.Acquisition.defaultFilter
       )
@@ -967,7 +967,7 @@ object GmosLongslitConfigPanel {
       ObservingMode.GmosSouthLongSlit.defaultOffsets
 
     override protected val defaultAcquisitionFilterLens
-      : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter] =
+      : Lens[ObservingMode.GmosSouthLongSlit, GmosSouthFilter]            =
       ObservingMode.GmosSouthLongSlit.acquisition.andThen(
         ObservingMode.GmosSouthLongSlit.Acquisition.defaultFilter
       )

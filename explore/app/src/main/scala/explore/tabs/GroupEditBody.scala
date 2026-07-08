@@ -361,7 +361,6 @@ case class GroupEditTitle(
 
 object GroupEditTitle
     extends ReactFnComponent[GroupEditTitle](props =>
-
       def makeTitle(
         group:             Group,
         timeEstimateRange: Option[CalculatedValue[Option[ProgramTimeRange]]],

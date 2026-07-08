@@ -5,8 +5,9 @@ package navigate.model
 
 import cats.Eq
 import cats.derived.*
-import navigate.model.enums.{FollowStatus, ParkStatus}
+import navigate.model.enums.FollowStatus
 import navigate.model.enums.FollowStatus.NotFollowing
+import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.Parked
 
 case class MechSystemState(

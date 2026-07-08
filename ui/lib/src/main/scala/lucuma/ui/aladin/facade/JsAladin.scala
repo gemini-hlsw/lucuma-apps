@@ -24,7 +24,7 @@ class JsAladin(val aladinDiv: Element, val options: AladinOptions) extends js.Ob
     cooFrame: String,
     maxOrder: Double,
     options:  js.Object
-  ): HpxImageSurvey = js.native
+  ): HpxImageSurvey                                                                   = js.native
   def addCatalog(c:               AladinCatalog): Unit                                = js.native
   def addOverlay(c:               AladinOverlay): Unit                                = js.native
   def gotoRaDec(ra:               Double, dec:      Double): Unit                     = js.native

@@ -136,14 +136,14 @@ object VerifiedEpics {
     Get(tt, ch)
   def writeChannel[F[_]: FlatMap, A](tt: TelltaleChannel[F], ch: Channel[F, A])(
     fa: F[A]
-  ): VerifiedEpics[F, F, Unit] = Put(tt, ch, fa)
+  ): VerifiedEpics[F, F, Unit]                                                                = Put(tt, ch, fa)
   def eventStream[F[_]: {Dispatcher, Concurrent}, A](
     tt: TelltaleChannel[F],
     ch: Channel[F, A]
-  ): VerifiedEpics[F, Resource[F, *], Stream[F, StreamEvent[A]]] = EventStream(tt, ch)
+  ): VerifiedEpics[F, Resource[F, *], Stream[F, StreamEvent[A]]]                              = EventStream(tt, ch)
   def ifF[F[_], G[_]: FlatMap, A](cond: G[Boolean])(trueVal: => VerifiedEpics[F, G, A])(
     falseVal: => VerifiedEpics[F, G, A]
-  ): VerifiedEpics[F, G, A] = IfF(cond, trueVal, falseVal)
+  ): VerifiedEpics[F, G, A]                                                                   = IfF(cond, trueVal, falseVal)
 
   extension [F[_], G[_]: Monad, A](v: VerifiedEpics[F, G, A]) {
     def ap[B](ff: VerifiedEpics[F, G, A => B]): VerifiedEpics[F, G, B] = ApplyF[F, G, A, B](v, ff)

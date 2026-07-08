@@ -112,7 +112,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
     case BasicConfiguration.Flamingos2Imaging(filters)                =>
       AGSWavelength(filters.maximumBy(_.wavelength).wavelength)
-    case BasicConfiguration.GnirsImaging(filters = filters)          =>
+    case BasicConfiguration.GnirsImaging(filters = filters)           =>
       AGSWavelength(filters.maximumBy(_.centralWavelength).centralWavelength)
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       AGSWavelength(filter.wavelength)
@@ -140,7 +140,7 @@ sealed trait BasicConfiguration extends Product with Serializable derives Eq:
       filters.minimumBy(_.wavelength).wavelength
     case BasicConfiguration.Flamingos2Imaging(filters)                =>
       filters.minimumBy(_.wavelength).wavelength
-    case BasicConfiguration.GnirsImaging(filters = filters)          =>
+    case BasicConfiguration.GnirsImaging(filters = filters)           =>
       filters.minimumBy(_.centralWavelength).centralWavelength
     case BasicConfiguration.Flamingos2LongSlit(filter = filter)       =>
       filter.wavelength

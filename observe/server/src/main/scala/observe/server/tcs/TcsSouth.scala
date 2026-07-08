@@ -72,7 +72,7 @@ case class TcsSouth[F[_]: {Sync, Logger}] private (
   def calcGuiderConfig(
     inUse:     Boolean,
     guideWith: Option[StepGuideState]
-  ): GuiderConfig =
+  ): GuiderConfig       =
     guideWith
       .flatMap(v => inUse.option(GuiderConfig(v.toProbeTracking, v.toGuideSensorOption)))
       .getOrElse(defaultGuiderConf)

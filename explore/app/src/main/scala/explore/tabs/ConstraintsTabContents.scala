@@ -149,7 +149,6 @@ object ConstraintsTabContents extends TwoPanels:
       .useResizeDetector() // Measure its size
       .render:
         (props, ctx, shadowClipboardObs, obsEditInfo, copyCallback, pasteCallback, state, resize) =>
-
           def findConstraintGroup(
             obsIds: ObsIdSet,
             cgl:    ConstraintGroupList

@@ -45,7 +45,7 @@ object TargetCloneAction {
       val obs = obsIds.idSet.foldLeft(obsAndTargets._1)((map, obsId) =>
         map.updatedWith(obsId)(_.map(Observation.scienceTargetIds.modify(_ + originalId - cloneId)))
       )
-      val ts =
+      val ts  =
         // determine if the observation has been assigned to additional observations since the cloning.
         // If it has been assigned to other observations, we won't delete it locally or remotely.
         if (obsAndTargets._1.isTargetInOtherObs(cloneId, obsIds))

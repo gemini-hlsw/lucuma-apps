@@ -58,9 +58,9 @@ object RootModel:
   val userUserId = Lens[User, User.Id](_.id)(s =>
     a =>
       a match {
-        case (a: GuestUser)    => a.copy(id = s)
-        case (a: ServiceUser)  => a.copy(id = s)
-        case (a: StandardUser) => a.copy(id = s)
+        case a: GuestUser    => a.copy(id = s)
+        case a: ServiceUser  => a.copy(id = s)
+        case a: StandardUser => a.copy(id = s)
       }
   )
 

@@ -75,7 +75,6 @@ case class ProposalEditor(
 
 object ProposalEditor
     extends ReactFnComponent[ProposalEditor](props =>
-
       val BaseWordLimit = 200
       val HardWordLimit = 2 * BaseWordLimit
 

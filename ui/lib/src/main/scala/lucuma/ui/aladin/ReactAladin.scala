@@ -116,7 +116,6 @@ case class ReactAladin(
 
 object ReactAladin
     extends ReactFnComponent[ReactAladin](props =>
-
       given Reusability[ReactAladin] = {
         given Reusability[AladinOptions] = props.R
         Reusability.by[ReactAladin, (Css, AladinOptions)](x => (x.clazz, x.options))

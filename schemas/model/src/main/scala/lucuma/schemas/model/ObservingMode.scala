@@ -869,21 +869,21 @@ object ObservingMode:
 
     given Decoder[GnirsImaging] = deriveDecoder
 
-    val initialFilters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]]  =
+    val initialFilters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]] =
       Focus[GnirsImaging](_.initialFilters)
-    val filters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]]         =
+    val filters: Lens[GnirsImaging, NonEmptyList[ImagingFilter]]        =
       Focus[GnirsImaging](_.filters)
-    val camera: Lens[GnirsImaging, GnirsCamera]                          =
+    val camera: Lens[GnirsImaging, GnirsCamera]                         =
       Focus[GnirsImaging](_.camera)
-    val coadds: Lens[GnirsImaging, PosInt]                               =
+    val coadds: Lens[GnirsImaging, PosInt]                              =
       Focus[GnirsImaging](_.coadds)
-    val explicitReadMode: Lens[GnirsImaging, Option[GnirsReadMode]]      =
+    val explicitReadMode: Lens[GnirsImaging, Option[GnirsReadMode]]     =
       Focus[GnirsImaging](_.explicitReadMode)
-    val defaultWellDepth: Lens[GnirsImaging, GnirsWellDepth]             =
+    val defaultWellDepth: Lens[GnirsImaging, GnirsWellDepth]            =
       Focus[GnirsImaging](_.defaultWellDepth)
-    val explicitWellDepth: Lens[GnirsImaging, Option[GnirsWellDepth]]    =
+    val explicitWellDepth: Lens[GnirsImaging, Option[GnirsWellDepth]]   =
       Focus[GnirsImaging](_.explicitWellDepth)
-    val variant: Lens[GnirsImaging, ImagingVariant]                      =
+    val variant: Lens[GnirsImaging, ImagingVariant]                     =
       Focus[GnirsImaging](_.variant)
 
   case class GnirsSpectroscopy(
@@ -891,7 +891,7 @@ object ObservingMode:
     grating:                  GnirsGrating,
     initialFilter:            GnirsFilter,
     filter:                   GnirsFilter,
-    subMode:                GnirsSpectroscopy.SubMode,
+    subMode:                  GnirsSpectroscopy.SubMode,
     initialPrism:             GnirsPrism,
     prism:                    GnirsPrism,
     initialCamera:            GnirsCamera,
@@ -1022,7 +1022,7 @@ object ObservingMode:
         val fpu: Lens[Slit, GnirsFpuSlit]                                      = Focus[Slit](_.fpu)
         val explicitTelescopeConfigs: Lens[Slit, Option[SlitTelescopeConfigs]] =
           Focus[Slit](_.explicitTelescopeConfigs)
-        given Decoder[Slit] = deriveDecoder
+        given Decoder[Slit]                                                    = deriveDecoder
 
       case class Ifu(
         initialFpu:       GnirsFpuIfu,
@@ -1040,7 +1040,7 @@ object ObservingMode:
         val fpu: Lens[Ifu, GnirsFpuIfu]                                = Focus[Ifu](_.fpu)
         val telescopeConfigs: Lens[Ifu, NonEmptyList[TelescopeConfig]] =
           Focus[Ifu](_.telescopeConfigs)
-        given Decoder[Ifu]  = deriveDecoder
+        given Decoder[Ifu]                                             = deriveDecoder
 
       val slit: Prism[SubMode, Slit] = GenPrism[SubMode, Slit]
       val ifu: Prism[SubMode, Ifu]   = GenPrism[SubMode, Ifu]
@@ -1051,8 +1051,10 @@ object ObservingMode:
         grating                  <- c.downField("grating").as[GnirsGrating]
         initialFilter            <- c.downField("initialFilter").as[GnirsFilter]
         filter                   <- c.downField("filter").as[GnirsFilter]
-        subMode                <- c.downField("slit").as[SubMode.Slit].orElse:
-                                      c.downField("ifu").as[SubMode.Ifu]
+        subMode                  <- c.downField("slit")
+                                      .as[SubMode.Slit]
+                                      .orElse:
+                                        c.downField("ifu").as[SubMode.Ifu]
         initialPrism             <- c.downField("initialPrism").as[GnirsPrism]
         prism                    <- c.downField("prism").as[GnirsPrism]
         initialCamera            <- c.downField("initialCamera").as[GnirsCamera]
@@ -1116,7 +1118,7 @@ object ObservingMode:
       Focus[GnirsSpectroscopy](_.initialFilter)
     val filter: Lens[GnirsSpectroscopy, GnirsFilter]                                        =
       Focus[GnirsSpectroscopy](_.filter)
-    val subMode: Lens[GnirsSpectroscopy, SubMode]                                       =
+    val subMode: Lens[GnirsSpectroscopy, SubMode]                                           =
       Focus[GnirsSpectroscopy](_.subMode)
     val initialPrism: Lens[GnirsSpectroscopy, GnirsPrism]                                   =
       Focus[GnirsSpectroscopy](_.initialPrism)

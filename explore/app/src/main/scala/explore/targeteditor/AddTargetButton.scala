@@ -78,7 +78,6 @@ case class AddTargetButton(
 
 object AddTargetButton
     extends ReactFnComponent[AddTargetButton](props =>
-
       def updateTargetList(
         toDelete: Option[Target.Id],
         toAdd:    Option[TargetWithId]

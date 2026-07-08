@@ -148,9 +148,9 @@ object WebServerLauncher extends IOApp with LogInitialization {
   ): Resource[F, Server] = {
 
     def router(
-      wsb:    WebSocketBuilder2[F],
-      events: Topic[F, (Option[ClientId], ClientEvent)]
-    ): HttpRoutes[F]                   =
+      wsb:                      WebSocketBuilder2[F],
+      events:                   Topic[F, (Option[ClientId], ClientEvent)]
+    ): HttpRoutes[F] =
       Router[F](
         "/"                   -> StaticRoutes().service,
         "/api/observe/guide"  -> GuideConfigDbRoutes(oe.systems.guideDb).service,

@@ -37,7 +37,7 @@ object BafflesConfig {
     def deployable(
       centralWavelength: Wavelength,
       instrument:        Instrument
-    ): DeployableBafflePosition = bc match {
+    ): DeployableBafflePosition                                                               = bc match {
       case ManualConfig(_, deployable) => deployable
       case x: AutoConfig               => x.toManualConfig(centralWavelength, instrument).deployable
     }

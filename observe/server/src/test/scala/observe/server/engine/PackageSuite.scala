@@ -94,7 +94,7 @@ class PackageSuite extends munit.CatsEffectSuite {
           id = stepId(1),
           executions = List(
             NonEmptyList.of(configureTcs, configureInst), // Execution
-            NonEmptyList.one(observe) // Execution
+            NonEmptyList.one(observe)                     // Execution
           )
         ),
         SequenceType.Science,

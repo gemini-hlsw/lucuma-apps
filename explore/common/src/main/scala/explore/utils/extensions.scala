@@ -67,7 +67,6 @@ extension [F[_], O](s: Stream[F, O])
   )(using F: Temporal[F]): Stream[F, O] =
     Stream.force {
       F.ref[Option[O]](None).map { ref =>
-
         val sendLatest: Pull[F, O, Unit] =
           // 'clear' the ref
           Pull.eval(ref.getAndSet(None)).flatMap {
@@ -79,7 +78,6 @@ extension [F[_], O](s: Stream[F, O])
 
         // Start a 'timed' pull. This will send a timeout cons after the given timeout, at which point we send the collected chunk
         s.pull.timed { timedPull =>
-
           def combine(x: Option[O], y: Option[O]) = (x, y) match
             case (None, None)       => None
             case (Some(a), None)    => Some(a)

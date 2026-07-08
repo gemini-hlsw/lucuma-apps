@@ -253,7 +253,7 @@ object ConfigurationTile
         ObservingModeInput.Flamingos2LongSlit(Flamingos2LongSlitInput())
       val EmptyIgrins2LongSlitInput: ObservingModeInput   =
         ObservingModeInput.Igrins2LongSlit(Igrins2LongSlitInput())
-      val EmptyGnirsSpectroscopyInput: ObservingModeInput     =
+      val EmptyGnirsSpectroscopyInput: ObservingModeInput =
         ObservingModeInput.GnirsSpectroscopy(GnirsSpectroscopyInput())
       val EmptyGhostIfuInput: ObservingModeInput          =
         ObservingModeInput.GhostIfu(GhostIfuInput())
@@ -404,7 +404,8 @@ object ConfigurationTile
                   .modify
             )
 
-        val optGnirsSpectroscopyAligner: Option[Aligner[GnirsSpectroscopy, GnirsSpectroscopyInput]] =
+        val optGnirsSpectroscopyAligner
+          : Option[Aligner[GnirsSpectroscopy, GnirsSpectroscopyInput]] =
           optModeAligner(EmptyGnirsSpectroscopyInput).flatMap:
             _.zoomOpt(
               ObservingMode.gnirsSpectroscopy,

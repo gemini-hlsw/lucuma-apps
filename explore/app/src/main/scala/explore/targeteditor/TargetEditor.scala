@@ -139,7 +139,7 @@ object TargetEditor:
   // An UndoSetter that doesn't really update any undo stacks
   private def noopUndoSetter[M](view: View[M]): UndoSetter[M] =
     new UndoSetter[M] {
-      val model = view
+      val model         = view
       def set[A](
         getter:    M => A,
         setter:    A => M => M,

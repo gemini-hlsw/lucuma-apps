@@ -159,7 +159,6 @@ object GmosGeometry extends WithPwfsGeometry:
     gs.map(_.posAngle)
       .orElse(fallbackPosAngle)
       .map { posAngle =>
-
         // Shapes at base position
         val baseShapes: SortedMap[Css, ShapeExpression] =
           shapesForMode(posAngle, Offset.Zero, conf, port) ++

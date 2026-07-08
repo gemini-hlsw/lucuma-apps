@@ -140,7 +140,7 @@ extension [A](calc: CalculatedValue[A])
   def renderOrElse(
     ready: A => VdomNode,
     stale: => VdomNode
-  ): VdomNode =
+  ): VdomNode                                       =
     if (calc.isStale) stale else ready(calc.value)
 
 extension (partner: Partner)

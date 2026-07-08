@@ -32,10 +32,6 @@ ThisBuild / scalacOptions ++= Seq(
   "-Wconf:msg=linkingInfo in package scala.scalajs.runtime is deprecated:s"
 )
 
-// TODO REMOVE ONCE THIS WORKS AGAIN
-ThisBuild / tlCiScalafmtCheck := false
-ThisBuild / tlCiScalafixCheck := false
-
 ThisBuild / lucumaCssExts += "svg"
 
 ThisBuild / resolvers := List(Resolver.mavenLocal)

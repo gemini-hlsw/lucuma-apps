@@ -30,7 +30,7 @@ class TcsSouthControllerSim[F[_]: {Applicative, Logger}] private extends TcsSout
 
   override def notifyObserveStart: F[Unit] = sim.notifyObserveStart
 
-  override def notifyObserveEnd: F[Unit] = sim.notifyObserveEnd
+  override def notifyObserveEnd: F[Unit]                                           = sim.notifyObserveEnd
   override def nod(
     subsystems: NonEmptySet[Subsystem],
     tcsConfig:  TcsSouthConfig

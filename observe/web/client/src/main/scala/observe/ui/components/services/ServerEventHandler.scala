@@ -189,11 +189,11 @@ trait ServerEventHandler:
     def playAudio(sound: Audio): IO[Unit] = sound.play.when(isAudioActivated.map(a => a: Boolean))
 
     event match
-      case ClientEvent.BaDum                                                              =>
+      case ClientEvent.BaDum                                                     =>
         IO.unit
-      case ClientEvent.InitialEvent(cc)                                                   =>
+      case ClientEvent.InitialEvent(cc)                                          =>
         clientConfigMod(_ => cc.ready)
-      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error)          =>
+      case ClientEvent.SingleActionEvent(obsId, stepId, subsystem, event, error) =>
         rootModelDataMod(
           (RootModelData.executionState
             .at(obsId)
@@ -215,7 +215,7 @@ trait ServerEventHandler:
                 .replace(OperationRequest.Idle))
         )
           >> error.map(logMessage(rootModelDataMod, ObserveLogLevel.Error, _)).orEmpty
-      case ClientEvent.ChecksOverrideEvent(_)                                             =>
+      case ClientEvent.ChecksOverrideEvent(_)                                    =>
         IO.unit // TODO Update the UI
       case ClientEvent.ObserveState(sequenceExecution, conditions, operator, recordedIds) =>
         rootModelDataMod(
@@ -263,7 +263,7 @@ trait ServerEventHandler:
         showToast(toast, List(errorMsg)) >> playAudio(Audio.SequenceError)
       case ClientEvent.ProgressEvent(ObservationProgress(obsId, stepProgress))            =>
         rootModelDataMod(RootModelData.obsProgress.at(obsId).replace(stepProgress.some)) // >>
-      case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId)                    =>
+      case ClientEvent.StepLoaded(obsId, sequenceType, atomId, stepId) =>
         rootModelDataMod:
           RootModelData.loadedObservations
             .andThen(LoadedObservations.Value)
@@ -275,7 +275,7 @@ trait ServerEventHandler:
       // We're actually doing it in SequenceTable, but it should be done here, since we only need to do it once per atom,
       // and in SequenceTable it's being done once per step.
       // However, we need to turn the app initialization on its head in MainApp to achieve this.
-      case UserNotification(notification)                                                 =>
+      case UserNotification(notification)                              =>
         val msgs: IO[List[String]] =
           notification match
             case Notification.ResourceConflict(obsId)                =>
@@ -297,7 +297,7 @@ trait ServerEventHandler:
         msgs.flatMap: ms =>
           showToast(toast, ms) >>
             logMessage(rootModelDataMod, ObserveLogLevel.Error, ms.mkString("; "))
-      case LogEvent(msg)                                                                  =>
+      case LogEvent(msg)                                               =>
         showToast(toast, List(msg.msg)).whenA(msg.level === ObserveLogLevel.Error) >>
           logMessage(rootModelDataMod, msg.level, msg.msg)
 

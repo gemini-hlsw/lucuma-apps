@@ -142,7 +142,7 @@ trait ModelReusabiltyInstances
   given Reusability[Wavelength]                              = Reusability.byEq
   given spectralDefinitionReuse[T](using
     Eq[BrightnessMeasure[T]]
-  ): Reusability[SpectralDefinition[T]] = Reusability.byEq
+  ): Reusability[SpectralDefinition[T]]                      = Reusability.byEq
   given Reusability[Semester]                                = Reusability.byEq
   given Reusability[Target.Sidereal]                         = Reusability.byEq
   given Reusability[Target.Nonsidereal]                      = Reusability.byEq

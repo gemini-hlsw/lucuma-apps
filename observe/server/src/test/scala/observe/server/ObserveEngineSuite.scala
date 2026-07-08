@@ -346,11 +346,11 @@ class ObserveEngineSuite extends TestCommon {
         eo.executeAndWaitResult(
           _.start(seqObsId1, user, observer, clientId, RunOverride.Default),
           {
-            case (EventResult.UserCommandResponse(
+            case EventResult.UserCommandResponse(
                   _,
                   Outcome.Ok,
                   Some(SeqEvent.AcquisitionCompleted(seqObsId1))
-                )) =>
+                ) =>
               true
           }
         )

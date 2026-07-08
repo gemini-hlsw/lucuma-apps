@@ -440,7 +440,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   private val mechanismStepPeriod: FiniteDuration = 1.seconds
   protected def simulateMechanism[S, A: Eq](ref: Ref[F, S], l: Lens[S, Option[A]], seq: List[A])(
     pos: A
-  ): F[ApplyCommandResult] =
+  ): F[ApplyCommandResult]                        =
     ref.get
       .flatMap(x =>
         l.get(x)

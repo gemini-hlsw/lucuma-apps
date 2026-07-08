@@ -957,7 +957,7 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
   ): EngineHandle[F, SeqEvent] =
     EngineHandle.getState.flatMap { st0 =>
       if (configSystemCheck(sys, st0))
-        ObserveEngine // Load new step and reload state
+        ObserveEngine                          // Load new step and reload state
           .retrieveStep(systems.odb, translator, obsId, stepId.asRight)
           .flatMap(_ => EngineHandle.getState) // A new step may have loaded, so reload state
           .flatMap: st =>

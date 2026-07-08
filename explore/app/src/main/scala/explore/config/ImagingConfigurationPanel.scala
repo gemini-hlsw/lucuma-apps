@@ -41,7 +41,6 @@ case class ImagingConfigurationPanel(
 
 object ImagingConfigurationPanel
     extends ReactFnComponent[ImagingConfigurationPanel](p =>
-
       val fov         = p.options.zoom(ScienceRequirements.Imaging.minimumFov)
       val narrowBand  =
         p.options.zoom(ScienceRequirements.Imaging.narrowFilters.some.andThen(NarrowBand.Value))

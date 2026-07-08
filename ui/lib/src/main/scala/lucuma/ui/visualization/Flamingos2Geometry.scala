@@ -99,11 +99,11 @@ object Flamingos2Geometry extends WithPwfsGeometry:
     configuration match
       case _: BasicConfiguration.Flamingos2LongSlit | _: BasicConfiguration.Flamingos2Imaging =>
         configuration.guideProbe(trackType) match
-          case Some(GuideProbe.Flamingos2OIWFS)                  =>
+          case Some(GuideProbe.Flamingos2OIWFS)                =>
             flamingos2.patrolField.patrolFieldAt(posAngle, offset, lyotWheel, port)
-          case (Some(GuideProbe.PWFS1) | Some(GuideProbe.PWFS2)) =>
+          case Some(GuideProbe.PWFS1) | Some(GuideProbe.PWFS2) =>
             pwfs.patrolField.patrolFieldAt(posAngle, offset)
-          case _                                                 =>
+          case _                                               =>
             ShapeExpression.Empty
       case _                                                                                  =>
         ShapeExpression.Empty

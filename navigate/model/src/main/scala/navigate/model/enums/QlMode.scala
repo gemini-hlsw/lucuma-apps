@@ -6,7 +6,7 @@ package navigate.model.enums
 import lucuma.core.util.Enumerated
 
 enum QlMode(val tag: String) derives Enumerated {
-  case Off extends QlMode("Off")
-  case On extends QlMode("On")
+  case Off  extends QlMode("Off")
+  case On   extends QlMode("On")
   case Auto extends QlMode("Auto")
 }

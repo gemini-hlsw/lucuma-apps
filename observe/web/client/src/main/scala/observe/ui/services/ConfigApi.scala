@@ -35,7 +35,7 @@ trait ConfigApi[F[_]: MonadThrow]:
   def setInstrumentEnabled(
     @unused obsId:   Observation.Id,
     @unused enabled: SubsystemEnabled
-  ): F[Unit] =
+  ): F[Unit]                                                                                    =
     NotAuthorized
   def setDhsEnabled(@unused obsId: Observation.Id, @unused enabled: SubsystemEnabled): F[Unit]  =
     NotAuthorized
