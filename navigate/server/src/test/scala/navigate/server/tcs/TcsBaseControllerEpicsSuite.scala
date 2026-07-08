@@ -49,12 +49,16 @@ import navigate.model.AutoparkPwfs1
 import navigate.model.AutoparkPwfs2
 import navigate.model.BafflesConfig
 import navigate.model.Distance
+import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
 import navigate.model.FocalPlaneOffset.DeltaX
 import navigate.model.FocalPlaneOffset.DeltaY
+import navigate.model.GuideState
 import navigate.model.GuiderConfig
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.MechSystemState
 import navigate.model.Origin
 import navigate.model.PwfsMechsState
 import navigate.model.ResetPointing
@@ -70,6 +74,7 @@ import navigate.model.Target
 import navigate.model.Target.EphemerisTarget
 import navigate.model.Target.SiderealTarget
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.ZeroChopThrow
 import navigate.model.ZeroGuideOffset
@@ -84,9 +89,13 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.FollowStatus.Following
+import navigate.model.enums.FollowStatus.NotFollowing
 import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.OiwfsWavelength
+import navigate.model.enums.ParkStatus.NotParked
+import navigate.model.enums.ParkStatus.Parked
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
@@ -99,10 +108,6 @@ import navigate.server.epicsdata.BinaryOnOff
 import navigate.server.epicsdata.BinaryOnOffCapitalized
 import navigate.server.epicsdata.BinaryYesNo
 import navigate.server.tcs.EpicsSystems.*
-import navigate.server.tcs.FollowStatus.Following
-import navigate.server.tcs.FollowStatus.NotFollowing
-import navigate.server.tcs.ParkStatus.NotParked
-import navigate.server.tcs.ParkStatus.Parked
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
@@ -184,11 +189,12 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
     val testHeight   = 123.456
     val testVentEast = 0.3
     val testVentWest = 0.2
+    val shutterMode  = ShutterMode.Tracking(Distance.fromBigDecimalMeter(1))
 
     for {
       (st, ctr) <- createController()
       _         <- ctr.ecsCarouselMode(DomeMode.MinVibration,
-                                       ShutterMode.Tracking,
+                                       shutterMode,
                                        testHeight,
                                        domeEnable = true,
                                        shutterEnable = true
@@ -206,9 +212,7 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       assertEquals(rs.enclosure.ecsDomeMode.value.flatMap(Enumerated[DomeMode].fromTag),
                    DomeMode.MinVibration.some
       )
-      assertEquals(rs.enclosure.ecsShutterMode.value.flatMap(Enumerated[ShutterMode].fromTag),
-                   ShutterMode.Tracking.some
-      )
+      assertEquals(rs.enclosure.ecsShutterMode.value, shutterMode.tag.some)
       assert(rs.enclosure.ecsSlitHeight.value.exists(x => compareDouble(x.toDouble, testHeight)))
       assertEquals(rs.enclosure.ecsDomeEnable.value.flatMap(Enumerated[BinaryOnOff].fromTag),
                    BinaryOnOff.On.some
@@ -1297,7 +1301,8 @@ class TcsBaseControllerEpicsSuite extends CatsEffectSuite {
       crcs = MechSystemState(NotParked, Following),
       pwfs1 = MechSystemState(Parked, NotFollowing),
       pwfs2 = MechSystemState(Parked, NotFollowing),
-      oiwfs = MechSystemState(NotParked, Following)
+      oiwfs = MechSystemState(NotParked, Following),
+      enclosure = EnclosureState.default
     )
 
     for {

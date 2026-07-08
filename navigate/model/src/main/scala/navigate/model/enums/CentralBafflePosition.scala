@@ -5,7 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum CentralBafflePosition(val tag: String) extends Product with Serializable derives Enumerated {
+enum CentralBafflePosition(val tag: String) derives Enumerated {
   case Open   extends CentralBafflePosition("Open")
   case Closed extends CentralBafflePosition("Closed")
 }

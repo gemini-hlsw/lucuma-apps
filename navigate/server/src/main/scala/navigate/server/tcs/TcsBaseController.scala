@@ -15,6 +15,8 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.PointingCorrections
@@ -24,7 +26,9 @@ import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
 import navigate.model.Target
+import navigate.model.TargetOffsets
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
 import navigate.model.enums.AcFilter

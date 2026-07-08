@@ -18,18 +18,19 @@ import lucuma.odb.json.time.query.given
 import navigate.model.AcMechsState
 import navigate.model.AcquisitionAdjustment
 import navigate.model.BafflesState
+import navigate.model.EnclosureState
 import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment.HorizontalAdjustment
+import navigate.model.MechSystemState
 import navigate.model.NavigateState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.ServerConfiguration
+import navigate.model.TargetOffsets
+import navigate.model.TelescopeState
 import navigate.model.WfsConfiguration
-import navigate.server.tcs.GuideState
-import navigate.server.tcs.GuidersQualityValues
-import navigate.server.tcs.MechSystemState
-import navigate.server.tcs.TargetOffsets
-import navigate.server.tcs.TelescopeState
 
 package object encoder {
 
@@ -96,14 +97,22 @@ package object encoder {
       "follow" -> s.following.asJson
     )
 
+  given Encoder[EnclosureState] = s =>
+    Json.obj(
+      "domeEnabled"      -> s.domeEnabled.asJson,
+      "shuttersEnabled"  -> s.shuttersEnabled.asJson,
+      "eastVentGateOpen" -> s.eastVentGateOpen.asJson,
+      "westVentGateOpen" -> s.westVentGateOpen.asJson
+    )
   given Encoder[TelescopeState] = s =>
     Json.obj(
-      "mount" -> s.mount.asJson,
-      "scs"   -> s.scs.asJson,
-      "crcs"  -> s.crcs.asJson,
-      "pwfs1" -> s.pwfs1.asJson,
-      "pwfs2" -> s.pwfs2.asJson,
-      "oiwfs" -> s.oiwfs.asJson
+      "mount"     -> s.mount.asJson,
+      "scs"       -> s.scs.asJson,
+      "crcs"      -> s.crcs.asJson,
+      "pwfs1"     -> s.pwfs1.asJson,
+      "pwfs2"     -> s.pwfs2.asJson,
+      "oiwfs"     -> s.oiwfs.asJson,
+      "enclosure" -> s.enclosure.asJson
     )
 
   given Encoder[AcquisitionAdjustment] = s =>

@@ -20,6 +20,10 @@ import navigate.epics.*
 import navigate.epics.Channel.StreamEvent
 import navigate.epics.EpicsSystem.TelltaleChannel
 import navigate.epics.VerifiedEpics.*
+import navigate.model.enums.FollowStatus
+import navigate.model.enums.FollowStatus.*
+import navigate.model.enums.ParkStatus
+import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.server.acm.Decoder.*
@@ -27,8 +31,6 @@ import navigate.server.epicsdata.AgMechPosition
 import navigate.server.tcs.AgsEpicsSystem.AgsStatus
 
 import encoders.{*, given}
-import FollowStatus.*
-import ParkStatus.*
 import ScienceFoldPositionCodex.given
 
 trait AgsEpicsSystem[F[_]] {

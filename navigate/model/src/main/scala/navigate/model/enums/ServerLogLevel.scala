@@ -5,7 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum ServerLogLevel(val tag: String) extends Product with Serializable derives Enumerated {
+enum ServerLogLevel(val tag: String) derives Enumerated {
   case INFO  extends ServerLogLevel("INFO")
   case WARN  extends ServerLogLevel("WARNING")
   case ERROR extends ServerLogLevel("ERROR")

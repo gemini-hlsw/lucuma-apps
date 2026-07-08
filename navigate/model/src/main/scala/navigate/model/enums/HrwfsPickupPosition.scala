@@ -5,7 +5,7 @@ package navigate.model.enums
 
 import lucuma.core.util.Enumerated
 
-enum HrwfsPickupPosition(val tag: String) extends Product with Serializable derives Enumerated {
+enum HrwfsPickupPosition(val tag: String) derives Enumerated {
   case Out extends HrwfsPickupPosition("OUT")
   case In  extends HrwfsPickupPosition("IN")
 }

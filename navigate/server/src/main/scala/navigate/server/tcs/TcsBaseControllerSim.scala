@@ -32,8 +32,12 @@ import navigate.model.AcWindow
 import navigate.model.AllWfsConfiguration
 import navigate.model.BafflesState
 import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
+import navigate.model.GuidersQualityValues.GuiderQuality
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
+import navigate.model.MechSystemState
 import navigate.model.PointingCorrections
 import navigate.model.PwfsMechsState
 import navigate.model.RotatorAngle
@@ -41,7 +45,9 @@ import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
 import navigate.model.Target
+import navigate.model.TargetOffsets
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
 import navigate.model.enums.AcFilter
@@ -50,16 +56,15 @@ import navigate.model.enums.AcNdFilter
 import navigate.model.enums.CentralBafflePosition
 import navigate.model.enums.DeployableBafflePosition
 import navigate.model.enums.DomeMode
+import navigate.model.enums.FollowStatus.*
 import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
+import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
-import navigate.server.tcs.FollowStatus.*
-import navigate.server.tcs.GuidersQualityValues.GuiderQuality
-import navigate.server.tcs.ParkStatus.*
 import navigate.server.tcs.TcsBaseController.AcCommands
 import navigate.server.tcs.TcsBaseController.PwfsMechanismCommands
 

@@ -36,7 +36,10 @@ import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
 import navigate.model.CommandResult
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
+import navigate.model.GuideState
+import navigate.model.GuidersQualityValues
 import navigate.model.HandsetAdjustment
 import navigate.model.InstrumentSpecifics
 import navigate.model.NavigateCommand
@@ -51,7 +54,9 @@ import navigate.model.RotatorTrackConfig
 import navigate.model.SlewOptions
 import navigate.model.SwapConfig
 import navigate.model.Target
+import navigate.model.TargetOffsets
 import navigate.model.TcsConfig
+import navigate.model.TelescopeState
 import navigate.model.TrackingConfig
 import navigate.model.WfsConfiguration
 import navigate.model.config.ControlStrategy
@@ -64,13 +69,10 @@ import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ephemeris.EphemerisUpdater
-import navigate.server.tcs.GuideState
-import navigate.server.tcs.GuidersQualityValues
-import navigate.server.tcs.TargetOffsets
-import navigate.server.tcs.TelescopeState
 import navigate.stateengine.Handler
 import navigate.stateengine.StateEngine
 import navigate.stateengine.StateEngine.Event
@@ -95,20 +97,14 @@ trait NavigateEngine[F[_]] {
   def eventStream: Stream[F, NavigateEvent]
   def mcsPark: F[CommandResult]
   def mcsFollow(enable:                              Boolean): F[CommandResult]
+  def mcsUnwrap: F[CommandResult]
   def scsFollow(enable:                              Boolean): F[CommandResult]
   def rotStop(useBrakes:                             Boolean): F[CommandResult]
   def rotPark: F[CommandResult]
   def rotFollow(enable:                              Boolean): F[CommandResult]
+  def rotUnwrap: F[CommandResult]
   def rotMove(angle:                                 RotatorAngle): F[CommandResult]
   def rotTrackingConfig(cfg:                         RotatorTrackConfig): F[CommandResult]
-  def ecsCarouselMode(
-    domeMode:      DomeMode,
-    shutterMode:   ShutterMode,
-    slitHeight:    Double,
-    domeEnable:    Boolean,
-    shutterEnable: Boolean
-  ): F[CommandResult]
-  def ecsVentGatesMove(gateEast:                     Double, westGate:             Double): F[CommandResult]
   def tcsConfig(config:                              TcsConfig): F[CommandResult]
   def slew(
     slewOptions: SlewOptions,
@@ -120,10 +116,12 @@ trait NavigateEngine[F[_]] {
   def pwfs1ProbeTracking(config:                     TrackingConfig): F[CommandResult]
   def pwfs1Park: F[CommandResult]
   def pwfs1Follow(enable:                            Boolean): F[CommandResult]
+  def pwfs1Unwrap: F[CommandResult]
   def pwfs2Target(target:                            Target): F[CommandResult]
   def pwfs2ProbeTracking(config:                     TrackingConfig): F[CommandResult]
   def pwfs2Park: F[CommandResult]
   def pwfs2Follow(enable:                            Boolean): F[CommandResult]
+  def pwfs2Unwrap: F[CommandResult]
   def oiwfsTarget(target:                            Target): F[CommandResult]
   def oiwfsProbeTracking(config:                     TrackingConfig): F[CommandResult]
   def oiwfsPark: F[CommandResult]
@@ -133,16 +131,19 @@ trait NavigateEngine[F[_]] {
   def pwfs1Observe(period:                           TimeSpan): F[CommandResult]
   def pwfs1StopObserve: F[CommandResult]
   def pwfs1CircularBuffer(enable:                    Boolean): F[CommandResult]
+  def pwfs1QlMode(mode:                              QlMode): F[CommandResult]
   def getPwfs1Configuration: F[WfsConfiguration]
   def getPwfs1ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def pwfs2Observe(period:                           TimeSpan): F[CommandResult]
   def pwfs2StopObserve: F[CommandResult]
   def pwfs2CircularBuffer(enable:                    Boolean): F[CommandResult]
+  def pwfs2QlMode(mode:                              QlMode): F[CommandResult]
   def getPwfs2Configuration: F[WfsConfiguration]
   def getPwfs2ConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def oiwfsObserve(period:                           TimeSpan): F[CommandResult]
   def oiwfsStopObserve: F[CommandResult]
   def oiwfsCircularBuffer(enable:                    Boolean): F[CommandResult]
+  def oiwfsQlMode(mode:                              QlMode): F[CommandResult]
   def getOiwfsConfiguration: F[WfsConfiguration]
   def getOiwfsConfigurationStream: Resource[F, Stream[F, WfsConfiguration]]
   def acObserve(period:                              TimeSpan): F[CommandResult]
@@ -184,6 +185,20 @@ trait NavigateEngine[F[_]] {
   // PWFS2 mechanisms
   def pwfs2Filter(filter:                            PwfsFilter): F[CommandResult]
   def pwfs2FieldStop(fieldStop:                      PwfsFieldStop): F[CommandResult]
+  // AG commmands
+  def agScienceFoldPark: F[CommandResult]
+  def agPickoffMirrorPark: F[CommandResult]
+  def agAoFoldPark: F[CommandResult]
+  def agAllPark: F[CommandResult]
+  // ECS commands
+  def ecsEnableDome(mode:                            DomeMode): F[CommandResult]
+  def ecsDisableDome: F[CommandResult]
+  def ecsEnableShutters(mode:                        ShutterMode): F[CommandResult]
+  def ecsDisableShutters: F[CommandResult]
+  def ecsMoveEastVentGate(position:                  Distance): F[CommandResult]
+  def ecsCloseEastVentGate: F[CommandResult]
+  def ecsMoveWestVentGate(position:                  Distance): F[CommandResult]
+  def ecsCloseWestVentGate: F[CommandResult]
 
   def getGuideState: F[GuideState]
   def getGuidersQuality: F[GuidersQualityValues]
@@ -298,27 +313,6 @@ object NavigateEngine {
 
     override def rotMove(angle: RotatorAngle): F[CommandResult] =
       simpleCommand(engine, CrcsMove(angle), systems.tcsCommon.rotMove(angle))
-
-    override def ecsCarouselMode(
-      domeMode:      DomeMode,
-      shutterMode:   ShutterMode,
-      slitHeight:    Double,
-      domeEnable:    Boolean,
-      shutterEnable: Boolean
-    ): F[CommandResult] = simpleCommand(
-      engine,
-      EcsCarouselMode(domeMode, shutterMode, slitHeight, domeEnable, shutterEnable),
-      systems.tcsCommon.ecsCarouselMode(domeMode,
-                                        shutterMode,
-                                        slitHeight,
-                                        domeEnable,
-                                        shutterEnable
-      )
-    )
-
-    // TODO
-    override def ecsVentGatesMove(gateEast: Double, westGate: Double): F[CommandResult] =
-      CommandResult.CommandFailure("Command ecsVentGatesMove not yet implemented.").pure[F]
 
     override def tcsConfig(config: TcsConfig): F[CommandResult] = command(
       engine,
@@ -848,6 +842,63 @@ object NavigateEngine {
                  }
       _     <- logEvent(x)
     } yield x.result
+
+    override def ecsEnableDome(mode: DomeMode): F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsEnableDome not yet implemented.").pure[F]
+
+    override def ecsDisableDome: F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsDisableDome not yet implemented.").pure[F]
+
+    override def ecsEnableShutters(mode: ShutterMode): F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsEnableShutters not yet implemented.").pure[F]
+
+    override def ecsDisableShutters: F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsDisableShutters not yet implemented.").pure[F]
+
+    override def ecsMoveEastVentGate(position: Distance): F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsMoveEastVentGate not yet implemented.").pure[F]
+
+    override def ecsCloseEastVentGate: F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsCloseEastVentGate not yet implemented.").pure[F]
+
+    override def ecsMoveWestVentGate(position: Distance): F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsMoveWestVentGate not yet implemented.").pure[F]
+
+    override def ecsCloseWestVentGate: F[CommandResult] =
+      CommandResult.CommandFailure("Command ecsCloseWestVentGate not yet implemented.").pure[F]
+
+    override def mcsUnwrap: F[CommandResult] =
+      CommandResult.CommandFailure("Command mcsUnwrap not yet implemented.").pure[F]
+
+    override def rotUnwrap: F[CommandResult] =
+      CommandResult.CommandFailure("Command rotUnwrap not yet implemented.").pure[F]
+
+    override def pwfs1Unwrap: F[CommandResult] =
+      CommandResult.CommandFailure("Command pwfs1Unwrap not yet implemented.").pure[F]
+
+    override def pwfs2Unwrap: F[CommandResult] =
+      CommandResult.CommandFailure("Command pwfs2Unwrap not yet implemented.").pure[F]
+
+    override def agScienceFoldPark: F[CommandResult] =
+      CommandResult.CommandFailure("Command agScienceFoldPark not yet implemented.").pure[F]
+
+    override def agPickoffMirrorPark: F[CommandResult] =
+      CommandResult.CommandFailure("Command agPickoffMirrorPark not yet implemented.").pure[F]
+
+    override def agAoFoldPark: F[CommandResult] =
+      CommandResult.CommandFailure("Command agAoFoldPark not yet implemented.").pure[F]
+
+    override def agAllPark: F[CommandResult] =
+      CommandResult.CommandFailure("Command agAllPark not yet implemented.").pure[F]
+
+    override def pwfs1QlMode(mode: QlMode): F[CommandResult] =
+      CommandResult.CommandFailure("Command pwfs1QlMode not yet implemented.").pure[F]
+
+    override def pwfs2QlMode(mode: QlMode): F[CommandResult] =
+      CommandResult.CommandFailure("Command pwfs2QlMode not yet implemented.").pure[F]
+
+    override def oiwfsQlMode(mode: QlMode): F[CommandResult] =
+      CommandResult.CommandFailure("Command oiwfsQlMode not yet implemented.").pure[F]
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

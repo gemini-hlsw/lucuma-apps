@@ -10,7 +10,8 @@ import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
 import navigate.epics.*
 import navigate.epics.VerifiedEpics.VerifiedEpics
-import navigate.server.tcs.FollowStatus.*
+import navigate.model.enums.FollowStatus
+import navigate.model.enums.FollowStatus.*
 
 trait CrcsEpicsSystem[F[_]] {
   def getFollowingState: VerifiedEpics[F, F, FollowStatus]

@@ -22,11 +22,13 @@ input GuideTargetPropertiesInput {
 type Distance {
     micrometers: Long!
     millimeters: BigDecimal!
+    meters: BigDecimal!
 }
 
 input DistanceInput @oneOf {
     micrometers: Long
     millimeters: BigDecimal
+    meters: BigDecimal
 }
 
 input AzElTargetInput {
@@ -81,9 +83,38 @@ enum FollowStatus {
     FOLLOWING
 }
 
+enum QlMode {
+    OFF
+    ON
+    AUTO
+}
+
+enum DomeMode {
+    BASIC
+    MIN_SCATTER
+    MIN_VIBRATION
+}
+
+enum ShutterMode {
+    FULLY_OPEN
+    TRACKING
+}
+
+input ShutterModeInput {
+    mode: ShutterMode!
+    aperture: Distance
+}
+
 type MechSystemState {
     parked: ParkStatus!
     follow: FollowStatus!
+}
+
+type EnclosureState {
+    domeEnabled: Boolean!
+    shuttersEnabled: Boolean!
+    eastVentGateOpen: Boolean!
+    westVentGateOpen: Boolean!
 }
 
 type TelescopeState {
@@ -93,6 +124,7 @@ type TelescopeState {
     pwfs1: MechSystemState!
     pwfs2: MechSystemState!
     oiwfs: MechSystemState!
+    enclosure: EnclosureState!
 }
 
 type NavigateState {
@@ -475,6 +507,7 @@ type Query {
 type Mutation {
     mountPark: OperationOutcome!
     mountFollow(enable: Boolean!): OperationOutcome!
+    mountUnwrap: OperationOutcome!
     rotatorPark: OperationOutcome!
     rotatorFollow(enable: Boolean!): OperationOutcome!
     scsFollow(enable: Boolean!): OperationOutcome!
@@ -484,24 +517,29 @@ type Mutation {
     restoreTarget(config: TcsConfigInput!): OperationOutcome!
     instrumentSpecifics(instrumentSpecificsParams: InstrumentSpecificsInput!): OperationOutcome!
     rotatorConfig(config: RotatorTrackingInput!): OperationOutcome!
+    rotatorUnwrap: OperationOutcome!
     pwfs1Filter(filter: PwfsFilter): OperationOutcome!
     pwfs1FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
     pwfs1Target(target: TargetPropertiesInput!): OperationOutcome!
     pwfs1ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
     pwfs1Park: OperationOutcome!
     pwfs1Follow(enable: Boolean!): OperationOutcome!
+    pwfs1Unwrap: OperationOutcome!
     pwfs1Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs1StopObserve: OperationOutcome!
     pwfs1CircularBuffer(enable: Boolean): OperationOutcome!
+    pwfs1QlMode(mode: QlMode): OperationOutcome!
     pwfs2Filter(filter: PwfsFilter): OperationOutcome!
     pwfs2FieldStop(fieldStop: PwfsFieldStop): OperationOutcome!
     pwfs2Target(target: TargetPropertiesInput!): OperationOutcome!
     pwfs2ProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
     pwfs2Park: OperationOutcome!
     pwfs2Follow(enable: Boolean!): OperationOutcome!
+    pwfs2Unwrap: OperationOutcome!
     pwfs2Observe(period: TimeSpanInput!): OperationOutcome!
     pwfs2StopObserve: OperationOutcome!
     pwfs2CircularBuffer(enable: Boolean): OperationOutcome!
+    pwfs2QlMode(mode: QlMode): OperationOutcome!
     oiwfsTarget(target: TargetPropertiesInput!): OperationOutcome!
     oiwfsProbeTracking(config: ProbeTrackingInput!): OperationOutcome!
     oiwfsPark: OperationOutcome!
@@ -509,6 +547,7 @@ type Mutation {
     oiwfsObserve(period: TimeSpanInput!): OperationOutcome!
     oiwfsStopObserve: OperationOutcome!
     oiwfsCircularBuffer(enable: Boolean): OperationOutcome!
+    oiwfsQlMode(mode: QlMode): OperationOutcome!
     acObserve(period: TimeSpanInput!): OperationOutcome!
     acStopObserve: OperationOutcome!
     guideEnable(config: GuideConfigurationInput!): OperationOutcome!
@@ -538,6 +577,20 @@ type Mutation {
     acFilter(filter: AcFilter!): OperationOutcome!
     acWindowSize(size: AcWindowInput!): OperationOutcome!
     refreshEphemerisFiles(observingNight: Date): OperationOutcome!
+    """ AG Commands """
+    agScienceFoldPark: OperationOutcome!
+    agPickoffMirrorPark: OperationOutcome!
+    agAoFoldPark: OperationOutcome!
+    agAllPark: OperationOutcome!
+    """ ECS commands """
+    ecsEnableDome(mode:                            DomeMode): OperationOutcome!
+    ecsDisableDome: OperationOutcome!
+    ecsEnableShutters(mode:                        ShutterMode): OperationOutcome!
+    ecsDisableShutters: OperationOutcome!
+    ecsMoveEastVentGate(position:                  Distance): OperationOutcome!
+    ecsCloseEastVentGate: OperationOutcome!
+    ecsMoveWestVentGate(position:                  Distance): OperationOutcome!
+    ecsCloseWestVentGate: OperationOutcome!
 }
 
 type Subscription {

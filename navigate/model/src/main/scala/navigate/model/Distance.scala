@@ -23,6 +23,10 @@ object Distance {
     (bigDecimal * 1000).toLong
   )
 
+  def fromBigDecimalMeter(bigDecimal: BigDecimal): Distance = fromLongMicrometers(
+    (bigDecimal * 1000000).toLong
+  )
+
   extension (d: Distance) {
 
     private def to[U](scale: Int): Quantity[BigDecimal, U] =
