@@ -26,6 +26,7 @@ import lucuma.core.enums.ObservationValidationCode
 import lucuma.core.enums.ObservationWorkflowState
 import lucuma.core.enums.ScienceBand
 import lucuma.core.enums.Site
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
@@ -45,6 +46,7 @@ import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.core.util.Timestamp
 import lucuma.odb.json.configurationrequest.query.given
+import lucuma.odb.json.coordinates.query.given
 import lucuma.odb.json.time.decoder.given
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
@@ -84,6 +86,7 @@ final case class Observation(
   groupId:                 Option[Group.Id],
   groupIndex:              NonNegShort,
   execution:               Execution,
+  explicitBase:            Option[Coordinates],
   blindOffset:             BlindOffset
 ) derives Eq:
   lazy val basicConfiguration: Option[BasicConfiguration] =
@@ -442,6 +445,7 @@ object Observation:
       groupId               <- c.get[Option[Group.Id]]("groupId")
       groupIndex            <- c.get[NonNegShort]("groupIndex")
       execution             <- c.get[Execution]("execution")
+      explicitBase          <- targetEnv.downField("explicitBase").as[Option[Coordinates]]
       blindOffset           <- targetEnv.as[BlindOffset]
     } yield Observation(
       id,
@@ -471,6 +475,7 @@ object Observation:
       groupId,
       groupIndex,
       execution,
+      explicitBase,
       blindOffset
     )
   )

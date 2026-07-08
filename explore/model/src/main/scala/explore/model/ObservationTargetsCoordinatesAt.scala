@@ -61,10 +61,11 @@ object ObservationTargetsCoordinatesAt:
 
   // Will return a Left[String] if there are any ToOs
   def apply(
-    at:          Instant,
-    obsTargets:  ObservationTargets,
-    trackingMap: RegionOrTrackingMap,
-    slots:       List[InstrumentSlot]
+    at:           Instant,
+    obsTargets:   ObservationTargets,
+    trackingMap:  RegionOrTrackingMap,
+    slots:        List[InstrumentSlot],
+    explicitBase: Option[Coordinates] = None
   ): ErrorMsgOr[ObservationTargetsCoordinatesAt] =
     val eEpoch: ErrorMsgOr[Epoch] =
       Epoch.Julian.fromInstant(at).toRight(s"Invalid epoch: $at")
@@ -82,9 +83,10 @@ object ObservationTargetsCoordinatesAt:
     (eEpoch, eScienceMap, eBlindTuple).mapN: (epoch, scienceMap, blindTuple) =>
       val allMap = blindTuple.fold(scienceMap)(scienceMap + _)
 
-      val base = NonEmptyList
-        .fromList(scienceMap.values.toList)
-        .map(Coordinates.centerOf)
+      // Prefer the explicit base position if reported
+      val base = explicitBase.orElse(
+        NonEmptyList.fromList(scienceMap.values.toList).map(Coordinates.centerOf)
+      )
 
       val slotsMap =
         slots.flatMap:

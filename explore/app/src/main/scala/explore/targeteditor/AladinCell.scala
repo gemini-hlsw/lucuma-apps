@@ -226,9 +226,10 @@ object AladinCell extends ModelOptics with AladinCommon:
                                (props.obsTargets,
                                 props.obsTime,
                                 trackingMapResult.value.value,
-                                props.obsConf.map(_.targetViz)
+                                props.obsConf.map(_.targetViz),
+                                props.obsConf.flatMap(_.explicitBase)
                                )
-                             ): (targets, at, trPot, targetViz) =>
+                             ): (targets, at, trPot, targetViz, explicitBase) =>
                                // Generic instrument slot layout, resolved to obs-time coords inside
                                // ObservationTargetsCoordinatesAt alongside base/blind-offset coords.
                                val slots = targetViz.foldMap(_.slots)
@@ -237,7 +238,12 @@ object AladinCell extends ModelOptics with AladinCommon:
                                    ObservationTargetsCoordinatesAt.emptyAt(at)
                                  else
                                    tr.flatMap: map =>
-                                     ObservationTargetsCoordinatesAt(at, targets, map, slots)
+                                     ObservationTargetsCoordinatesAt(at,
+                                                                     targets,
+                                                                     map,
+                                                                     slots,
+                                                                     explicitBase
+                                     )
       oBaseTracking       <-
         useMemo((props.obsTargets, trackingMapResult.value.toOption.flatMap(_.toOption))):
           (obsTargets, trackings) =>

@@ -538,7 +538,8 @@ object ObsTabTiles:
               props.observation.get.selectedGSName,
               props.observation.get.calibrationRole,
               trackType,
-              targetVisualization
+              targetVisualization,
+              props.observation.get.explicitBase
             )
 
           // If we have an observation calibration group we want to plot the targets together
