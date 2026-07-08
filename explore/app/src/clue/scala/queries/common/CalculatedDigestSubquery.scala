@@ -23,11 +23,13 @@ object CalculatedDigestSubquery
     {
       calculationState
       value {
-        setup {
-          full $TimeSpanSubquery
-          reacquisition $TimeSpanSubquery
+        estimate {
+          setup {
+            full $TimeSpanSubquery
+            reacquisition $TimeSpanSubquery
+          }
+          setupCount
         }
-        setupCount
         acquisition $SequenceDigestSubquery
         science $SequenceDigestSubquery
       }

@@ -15,11 +15,9 @@ import lucuma.core.model.Observation
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.PosAngleConstraint
 import lucuma.core.model.Program
-import lucuma.core.model.TimingWindow
 import lucuma.core.model.arb.ArbConstraintSet.given
 import lucuma.core.model.arb.ArbObservationReference.given
 import lucuma.core.model.arb.ArbPosAngleConstraint.given
-import lucuma.core.model.arb.ArbTimingWindow.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.schemas.model.ObservingMode
@@ -41,7 +39,6 @@ trait ArbObsSummary:
       subtitle           <- arbitrary[Option[NonEmptyString]]
       instrument         <- arbitrary[Instrument]
       constraints        <- arbitrary[ConstraintSet]
-      timingWindows      <- arbitrary[List[TimingWindow]]
       attachmentIds      <- arbitrary[List[Attachment.Id]]
       observingMode      <- arbitrary[Option[ObservingMode]]
       observationTime    <- arbitrary[Option[Instant]]
@@ -56,7 +53,6 @@ trait ArbObsSummary:
       subtitle,
       instrument,
       constraints,
-      timingWindows,
       SortedSet.from(attachmentIds),
       observingMode,
       observationTime,
@@ -74,7 +70,6 @@ trait ArbObsSummary:
        Option[String],
        Instrument,
        ConstraintSet,
-       List[TimingWindow],
        List[Attachment.Id],
        Option[ObservingMode],
        Option[Instant],
@@ -91,7 +86,6 @@ trait ArbObsSummary:
          s.subtitle.map(_.value),
          s.instrument,
          s.constraints,
-         s.timingWindows,
          s.attachmentIds.toList,
          s.observingMode,
          s.observationTime,
