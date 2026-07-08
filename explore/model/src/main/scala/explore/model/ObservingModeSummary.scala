@@ -141,20 +141,20 @@ enum ObservingModeSummary derives Order:
   )                                                        extends ObservingModeSummary
 
   def obsModeType: ObservingModeType = this match
-    case GmosNorthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosNorthLongSlit
-    case GmosSouthLongSlit(_, _, _, _, _, _, _) => ObservingModeType.GmosSouthLongSlit
-    case Flamingos2LongSlit(_, _, _, _)         => ObservingModeType.Flamingos2LongSlit
-    case Flamingos2Imaging(_, _)                => ObservingModeType.Flamingos2Imaging
-    case GnirsImaging(_, _, _)                  => ObservingModeType.GnirsImaging
-    case GmosNorthImaging(_, _, _, _)           => ObservingModeType.GmosNorthImaging
-    case GmosSouthImaging(_, _, _, _)           => ObservingModeType.GmosSouthImaging
-    case Igrins2LongSlit(_)                     => ObservingModeType.Igrins2LongSlit
+    case GmosNorthLongSlit(_, _, _, _, _, _, _)                 => ObservingModeType.GmosNorthLongSlit
+    case GmosSouthLongSlit(_, _, _, _, _, _, _)                 => ObservingModeType.GmosSouthLongSlit
+    case Flamingos2LongSlit(_, _, _, _)                         => ObservingModeType.Flamingos2LongSlit
+    case Flamingos2Imaging(_, _)                                => ObservingModeType.Flamingos2Imaging
+    case GnirsImaging(_, _, _)                                  => ObservingModeType.GnirsImaging
+    case GmosNorthImaging(_, _, _, _)                           => ObservingModeType.GmosNorthImaging
+    case GmosSouthImaging(_, _, _, _)                           => ObservingModeType.GmosSouthImaging
+    case Igrins2LongSlit(_)                                     => ObservingModeType.Igrins2LongSlit
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(_)) => ObservingModeType.GnirsLongSlit
     case GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(_))  => ObservingModeType.GnirsIfu
-    case GhostIfu(_, _, _, _)                   => ObservingModeType.GhostIfu
-    case Visitor(mode, _, _, _)                 => mode
-    case KeckExchange(_)                        => ObservingModeType.ExchangeKeck
-    case SubaruExchange(_)                      => ObservingModeType.ExchangeSubaru
+    case GhostIfu(_, _, _, _)                                   => ObservingModeType.GhostIfu
+    case Visitor(mode, _, _, _)                                 => mode
+    case KeckExchange(_)                                        => ObservingModeType.ExchangeKeck
+    case SubaruExchange(_)                                      => ObservingModeType.ExchangeSubaru
 
   def toInput: ObservingModeInput = this match
     case GmosNorthLongSlit(grating, filter, fpu, centralWavelength, ampReadMode, roi, etm) =>
@@ -228,12 +228,18 @@ enum ObservingModeSummary derives Order:
       ObservingModeInput.Igrins2LongSlit(
         Igrins2LongSlitInput(exposureTimeMode = etm.toInput.assign)
       )
-    case GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength, etm)        =>
+    case GnirsSpectroscopy(filter, fpu, prism, grating, camera, centralWavelength, etm)    =>
       ObservingModeInput.GnirsSpectroscopy(
         GnirsSpectroscopyInput(
           filter = filter.assign,
-          slit = GnirsFpu.Spectroscopy.slit.getOption(fpu).map(f => GnirsSlitInput(fpu = f.assign)).orUnassign,
-          ifu = GnirsFpu.Spectroscopy.ifu.getOption(fpu).map(f => GnirsIfuInput(fpu = f.assign)).orUnassign,
+          slit = GnirsFpu.Spectroscopy.slit
+            .getOption(fpu)
+            .map(f => GnirsSlitInput(fpu = f.assign))
+            .orUnassign,
+          ifu = GnirsFpu.Spectroscopy.ifu
+            .getOption(fpu)
+            .map(f => GnirsIfuInput(fpu = f.assign))
+            .orUnassign,
           prism = prism.assign,
           grating = grating.assign,
           camera = camera.assign,
@@ -336,7 +342,7 @@ enum ObservingModeSummary derives Order:
         s"GMOS-S Imaging ${variant.variantType.name}\n$filterStr\n${ampReadMode.shortName} ${roi.shortName}"
       case Igrins2LongSlit(etm)                                                              =>
         s"IGRINS-2 Longslit (${etm.formatSpec})"
-      case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, etm)             =>
+      case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, etm)         =>
         val prismSummary: String      = prism match
           case GnirsPrism.Mirror => ""
           case p                 => s" ${p.shortName}"
@@ -411,7 +417,9 @@ object ObservingModeSummary:
       case g: ObservingMode.GnirsImaging       =>
         GnirsImaging(
           g.variant,
-          normalizeImagingFiltersAt(g.filters, ObservingMode.GnirsImaging.ImagingFilter.exposureTimeMode),
+          normalizeImagingFiltersAt(g.filters,
+                                    ObservingMode.GnirsImaging.ImagingFilter.exposureTimeMode
+          ),
           g.camera
         )
       case n: ObservingMode.GmosNorthImaging   =>
@@ -434,14 +442,14 @@ object ObservingModeSummary:
         )
       case i: ObservingMode.Igrins2LongSlit    =>
         Igrins2LongSlit(i.exposureTimeMode)
-      case g: ObservingMode.GnirsSpectroscopy      =>
+      case g: ObservingMode.GnirsSpectroscopy  =>
         GnirsSpectroscopy(g.filter,
-                      g.fpu,
-                      g.prism,
-                      g.grating,
-                      g.camera,
-                      g.centralWavelength,
-                      g.exposureTimeMode
+                          g.fpu,
+                          g.prism,
+                          g.grating,
+                          g.camera,
+                          g.centralWavelength,
+                          g.exposureTimeMode
         )
       case g: ObservingMode.GhostIfu           =>
         GhostIfu(g.resolutionMode, g.stepCount, g.red, g.blue)
@@ -480,7 +488,7 @@ object ObservingModeSummary:
       s"GNIRS Imaging ${camera.shortName} ${variant.variantType.name} $filterStr"
     case Igrins2LongSlit(_)                                                              =>
       s"IGRINS-2 Longslit"
-    case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, _)             =>
+    case GnirsSpectroscopy(_, fpu, prism, grating, camera, centralWavelength, _)         =>
       val prismSummary: String      = prism match
         case GnirsPrism.Mirror => ""
         case p                 => s" ${p.shortName}"

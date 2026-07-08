@@ -31,7 +31,6 @@ case class FormInputTextArea(
 
 object FormInputTextArea:
   private val component = ScalaFnComponent[FormInputTextArea]: props =>
-
     val input = <.div(
       LucumaPrimeStyles.FormField |+| props.clazz.getOrElse(Css.Empty),
       InputTextarea(

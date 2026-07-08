@@ -346,7 +346,7 @@ class GmosEpics[F[_]: Async](epicsService: CaService, tops: Map[String, String])
     .ensure(NullEpicsError("dtaXCenter"))(_.isDefined) // equivalent to a null check
     .map {
       _.getOrElse(0.0)
-    } // getOrElse lets us typecheck but it will never be used due to the `ensure` call above
+    }                                                  // getOrElse lets us typecheck but it will never be used due to the `ensure` call above
 
   def gratingWavel: F[Double] = readD("adjgrwlen")
 

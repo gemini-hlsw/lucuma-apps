@@ -362,7 +362,7 @@ object TcsEpicsSystem {
         override val oiwfsProbeGuideState: ProbeGuideState[F]       =
           buildProbeGuideState(channels.telltale, channels.oiProbeTrackingState)
 
-        private val tcsSettleTime = FiniteDuration(2800, MILLISECONDS)
+        private val tcsSettleTime    = FiniteDuration(2800, MILLISECONDS)
         override def waitInPosition(
           stabilizationTime: FiniteDuration,
           timeout:           FiniteDuration
@@ -373,10 +373,11 @@ object TcsEpicsSystem {
               valRdr <- VerifiedEpics
                           .readChannel(channels.telltale, channels.inPosition)
                           .map(Resource.pure[F, F[String]])
-            } yield for {
-              x <- valStr
-              y <- valRdr
-            } yield (x, y)
+            } yield
+              for {
+                x <- valStr
+                y <- valRdr
+              } yield (x, y)
 
           presV.map(_.use { pair =>
             val (stream, read): (Stream[F, StreamEvent[String]], F[String]) = pair
@@ -429,10 +430,11 @@ object TcsEpicsSystem {
               valRdr <- VerifiedEpics
                           .readChannel(channels.telltale, integratingCh)
                           .map(Resource.pure[F, F[BinaryYesNo]])
-            } yield for {
-              x <- valStr
-              y <- valRdr
-            } yield (x, y)
+            } yield
+              for {
+                x <- valStr
+                y <- valRdr
+              } yield (x, y)
 
           presV.map(_.use { pair =>
             val (stream, read): (Stream[F, StreamEvent[BinaryYesNo]], F[BinaryYesNo]) = pair
@@ -1155,7 +1157,7 @@ object TcsEpicsSystem {
         )
       }
 
-    override val bafflesCommand: BafflesCommand[F, TcsCommands[F]]                            =
+    override val bafflesCommand: BafflesCommand[F, TcsCommands[F]] =
       new BafflesCommand[F, TcsCommands[F]] {
 
         override def central(v: CentralBafflePosition): TcsCommands[F] = addParam(
@@ -1166,7 +1168,7 @@ object TcsEpicsSystem {
           tcsEpics.bafflesCmd.setParam2(v)
         )
       }
-    override val m2FollowCommand: FollowCommand[F, TcsCommands[F]]                            =
+    override val m2FollowCommand: FollowCommand[F, TcsCommands[F]] =
       (enable: Boolean) =>
         addParam(
           tcsEpics.m2FollowCmd.setParam1(enable.fold(BinaryOnOff.On, BinaryOnOff.Off))
@@ -1174,7 +1176,7 @@ object TcsEpicsSystem {
 
     private def buildAgMechCommands[A](
       c: AgMechCommandsChannels[F, A]
-    ): AgMechCommands[F, A, TcsCommands[F]] =
+    ): AgMechCommands[F, A, TcsCommands[F]]                                                   =
       new AgMechCommands[F, A, TcsCommands[F]] {
         override val park: BaseCommand[F, TcsCommands[F]]    = new BaseCommand[F, TcsCommands[F]] {
           override def mark: TcsCommands[F] = addParam(c.park.mark)

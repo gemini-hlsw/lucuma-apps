@@ -91,11 +91,12 @@ object GnirsGeometry:
         // The long slit, imaging and IFU all have a science-area/AGS geometry.
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Slit(slit),
                                                   camera = camera,
-                                                  prism = prism) =>
+                                                  prism = prism
+            ) =>
           GnirsGeometry(slit, camera, prism)
         case BasicConfiguration.GnirsSpectroscopy(fpu = GnirsFpu.Spectroscopy.Ifu(ifu)) =>
           GnirsIfuGeometry(ifu)
-        case BasicConfiguration.GnirsImaging(filters = filters, camera = camera) =>
+        case BasicConfiguration.GnirsImaging(filters = filters, camera = camera)        =>
           GnirsImagingGeometry(camera, AgsParams.GnirsImaging.representativeFilter(filters))
       .flatMap:
         _.instrumentGeometry(

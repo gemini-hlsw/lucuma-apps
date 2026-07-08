@@ -295,12 +295,12 @@ object EpicsUtil {
    */
   def safeAttributeWrapF[F[_]: Sync, A >: Null](channel: String, get: => A): F[A] =
     Sync[F]
-      .delay(Option(get)) // Wrap the read on Option to do null check
+      .delay(Option(get))                           // Wrap the read on Option to do null check
       .adaptError { case e => ObserveException(e) } // if we have e.g CAException wrap it
       .ensure(NullEpicsError(channel))(_.isDefined) // equivalent to a null check
       .map {
         _.orNull
-      } // orNull lets us typecheck but it will never be used due to the `ensure` call above
+      }                                             // orNull lets us typecheck but it will never be used due to the `ensure` call above
 
   def safeAttributeF[F[_]: Sync, A >: Null](get: => CaAttribute[A]): F[A] =
     safeAttributeWrapF(get.channel, get.value)

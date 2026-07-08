@@ -58,9 +58,11 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
   // GNIRS imaging rows exist per camera; only same-camera rows form one configuration.
   private def compatibleImagingSetup(a: ItcInstrumentConfig, b: ItcInstrumentConfig): Boolean =
     (a, b) match
-      case (ItcInstrumentConfig.GnirsImaging(camera = c1), ItcInstrumentConfig.GnirsImaging(camera = c2)) =>
+      case (ItcInstrumentConfig.GnirsImaging(camera = c1),
+            ItcInstrumentConfig.GnirsImaging(camera = c2)
+          ) =>
         c1 === c2
-      case _                                                                                              =>
+      case _ =>
         true
 
   def canAdd(configAndResult: InstrumentConfigAndItcResult): Boolean =
@@ -123,7 +125,9 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
       case ItcInstrumentConfig.GnirsImaging(_, camera, _)                                     =>
         // Only rows sharing the head's camera can be combined into one configuration.
         val filters = configs.collect:
-          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GnirsImaging(f, c, _), _) if c === camera => f
+          case InstrumentConfigAndItcResult(ItcInstrumentConfig.GnirsImaging(f, c, _), _)
+              if c === camera =>
+            f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GnirsImaging(_, camera))
       case ItcInstrumentConfig.GnirsSpectroscopy(
             grating,
@@ -137,7 +141,9 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
         // Both the long slit and the IFU map to an observing mode (distinguished by the FPU).
         GnirsFpu.spectroscopy
           .getOption(fpu)
-          .map(spec => BasicConfiguration.GnirsSpectroscopy(filter, spec, prism, grating, camera, cw))
+          .map(spec =>
+            BasicConfiguration.GnirsSpectroscopy(filter, spec, prism, grating, camera, cw)
+          )
       case ItcInstrumentConfig.GnirsSpectroscopy(grating, fpu, filter, prism, camera, _, None)
           if withFallbackWavelength =>
         GnirsFpu.spectroscopy

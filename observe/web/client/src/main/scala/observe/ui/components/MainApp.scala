@@ -232,7 +232,7 @@ object MainApp extends ServerEventHandler:
                 case t => Resource.eval(IO(t.printStackTrace()))
 
             ctxResource.allocated.flatMap: (ctx, release) =>
-              ctxPot.setStateAsync(ctx.ready).as(release) // Return `release` as cleanup effect
+              ctxPot.setStateAsync(ctx.ready).as(release)                    // Return `release` as cleanup effect
           }
         _                <-
           useEffectWhenDepsReady(ctxPot.value): ctx =>

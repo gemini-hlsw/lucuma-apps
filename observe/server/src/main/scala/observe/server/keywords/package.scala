@@ -363,7 +363,7 @@ package object keywords {
       id:          ImageFileId,
       dataset:     Option[Dataset.Reference],
       environment: ExecutionEnvironment
-    ): F[Unit] =
+    ): F[Unit]                                       =
       Applicative[F].unit
     override def sendAfter(id: ImageFileId): F[Unit] =
       Applicative[F].unit

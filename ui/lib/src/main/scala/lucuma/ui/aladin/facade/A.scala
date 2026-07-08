@@ -20,48 +20,48 @@ object A extends js.Object {
   def polyline(
     raDecArray: js.Array[js.Array[Double]],
     o:          js.UndefOr[PolylineOptions]
-  ): AladinPolyline = js.native
+  ): AladinPolyline                                                    = js.native
   def circle(
     ra:        Double,
     dec:       Double,
     radiusDeg: Double,
     options:   js.UndefOr[js.Object] = js.undefined
-  ): AladinCircle = js.native
+  ): AladinCircle                                                      = js.native
   def source(
     ra:      Double,
     dec:     Double,
     data:    js.UndefOr[js.Object] = js.undefined,
     options: js.UndefOr[js.Object] = js.undefined
-  ): AladinSource = js.native
+  ): AladinSource                                                      = js.native
   def marker(
     ra:      Double,
     dec:     Double,
     data:    js.UndefOr[js.Object] = js.undefined,
     options: js.UndefOr[js.Object] = js.undefined
-  ): AladinSource = js.native
+  ): AladinSource                                                      = js.native
   def catalogFromURL(
     url:             String,
     options:         CatalogOptions,
     successCallback: js.UndefOr[js.Object] = js.undefined,
     useProxy:        Boolean = false
-  ): AladinCatalog = js.native
+  ): AladinCatalog                                                     = js.native
   def catalogFromSimbad(
     url:             String,
     radius:          Double,
     options:         CatalogOptions,
     successCallback: js.UndefOr[js.Object] = js.undefined
-  ): AladinCatalog = js.native
+  ): AladinCatalog                                                     = js.native
   def catalogFromNED(
     url:             String,
     radius:          Double,
     options:         CatalogOptions,
     successCallback: js.UndefOr[js.Object] = js.undefined
-  ): AladinCatalog = js.native
+  ): AladinCatalog                                                     = js.native
   def catalogFromVizieR(
     vizCatId:        String,
     target:          String,
     radius:          Double,
     options:         CatalogOptions,
     successCallback: js.UndefOr[js.Object] = js.undefined
-  ): AladinCatalog = js.native
+  ): AladinCatalog                                                     = js.native
 }

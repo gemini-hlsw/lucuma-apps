@@ -58,5 +58,5 @@ object BreakpointsDelta:
     Set((stepId, breakpoint))
   def fromStepsWithBreakpoints[F[_]](
     stepsWithBreakpoints: List[(EngineStep[F], Breakpoint)]
-  ): BreakpointsDelta =
+  ): BreakpointsDelta                                                       =
     stepsWithBreakpoints.map((s, b) => (s.id, b)).toSet

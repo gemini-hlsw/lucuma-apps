@@ -7,12 +7,12 @@ import cats.Eq
 import cats.derived.*
 
 case class TelescopeState(
-  mount: MechSystemState,
-  scs:   MechSystemState,
-  crcs:  MechSystemState,
-  pwfs1: MechSystemState,
-  pwfs2: MechSystemState,
-  oiwfs: MechSystemState,
+  mount:     MechSystemState,
+  scs:       MechSystemState,
+  crcs:      MechSystemState,
+  pwfs1:     MechSystemState,
+  pwfs2:     MechSystemState,
+  oiwfs:     MechSystemState,
   enclosure: EnclosureState
 ) derives Eq
 

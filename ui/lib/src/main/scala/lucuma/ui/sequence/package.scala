@@ -72,7 +72,10 @@ extension (instrument: Instrument)
         true
       case _ => false
 
-  /** Instruments not listed here (eg: GMOS-N, GMOS-S, Flamingos2) only accept integer exposure times. */
+  /**
+   * Instruments not listed here (eg: GMOS-N, GMOS-S, Flamingos2) only accept integer exposure
+   * times.
+   */
   def acceptsDecimalExposureTime: Boolean =
     instrument match
       case Instrument.Gnirs | Instrument.Igrins2 | Instrument.Ghost => true

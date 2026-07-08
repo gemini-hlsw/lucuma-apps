@@ -1069,13 +1069,13 @@ object TestTcsEpics {
     val mountGuideCmd: Lens[State, TestEpicsCommand2.State[String, String]]             =
       Focus[State](_.mountGuideCmd)
     val pwfs1ProbeGuideConfigCmd
-      : Lens[State, TestEpicsCommand4.State[String, String, String, String]] =
+      : Lens[State, TestEpicsCommand4.State[String, String, String, String]]            =
       Focus[State](_.pwfs1ProbeGuideConfigCmd)
     val pwfs2ProbeGuideConfigCmd
-      : Lens[State, TestEpicsCommand4.State[String, String, String, String]] =
+      : Lens[State, TestEpicsCommand4.State[String, String, String, String]]            =
       Focus[State](_.pwfs2ProbeGuideConfigCmd)
     val oiwfsProbeGuideConfigCmd
-      : Lens[State, TestEpicsCommand4.State[String, String, String, String]] =
+      : Lens[State, TestEpicsCommand4.State[String, String, String, String]]            =
       Focus[State](_.oiwfsProbeGuideConfigCmd)
     val pwfs1ProbeFollowCmd: Lens[State, TestEpicsCommand1.State[String]]               =
       Focus[State](_.pwfs1ProbeFollowCmd)

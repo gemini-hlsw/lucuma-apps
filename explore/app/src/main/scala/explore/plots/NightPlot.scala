@@ -435,7 +435,6 @@ object NightPlot:
         .setSeries:
           seriesToPlot
             .map: seriesData =>
-
               val className = "elevation-plot-series" +
                 (if (seriesData.objectPlotData.elevationOnly) " highcharts-dotted-series"
                  else if (!seriesData.sites.contains_(site)) " highcharts-dashed-series"

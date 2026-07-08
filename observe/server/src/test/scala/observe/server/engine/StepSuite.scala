@@ -217,7 +217,7 @@ class StepSuite extends CatsEffectSuite {
             id = stepId(1),
             executions = List(
               NonEmptyList.of(configureTcs, configureInst, triggerPause(eng)), // Execution
-              NonEmptyList.one(observe) // Execution
+              NonEmptyList.one(observe)                                        // Execution
             )
           ),
           sequenceType = SequenceType.Science,
@@ -378,7 +378,7 @@ class StepSuite extends CatsEffectSuite {
             id = stepId(1),
             executions = List(
               NonEmptyList.of(configureTcs, configureInst), // Execution
-              NonEmptyList.one(observe) // Execution
+              NonEmptyList.one(observe)                     // Execution
             )
           ),
           sequenceType = SequenceType.Science,

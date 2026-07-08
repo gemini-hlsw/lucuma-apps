@@ -839,7 +839,7 @@ trait ArbObservingMode {
         grating                  <- arbitrary[GnirsGrating]
         initialFilter            <- arbitrary[GnirsFilter]
         filter                   <- arbitrary[GnirsFilter]
-        subMode                <- arbitrary[SubMode]
+        subMode                  <- arbitrary[SubMode]
         initialPrism             <- arbitrary[GnirsPrism]
         prism                    <- arbitrary[GnirsPrism]
         initialCamera            <- arbitrary[GnirsCamera]
@@ -1054,23 +1054,24 @@ trait ArbObservingMode {
       Either[
         ObservingMode.GnirsSpectroscopy,
         Either[
-        ObservingMode.Igrins2LongSlit,
-        Either[
-          ObservingMode.Flamingos2LongSlit,
+          ObservingMode.Igrins2LongSlit,
           Either[
-            ObservingMode.GmosNorthLongSlit,
+            ObservingMode.Flamingos2LongSlit,
             Either[
-              ObservingMode.GmosSouthLongSlit,
+              ObservingMode.GmosNorthLongSlit,
               Either[
-                ObservingMode.GmosNorthImaging,
+                ObservingMode.GmosSouthLongSlit,
                 Either[
-                  ObservingMode.GmosSouthImaging,
+                  ObservingMode.GmosNorthImaging,
                   Either[
-                    ObservingMode.GhostIfu,
-                    Either[ObservingMode.Flamingos2Imaging,
-                           Either[ObservingMode.Visitor, Either[ObservingMode.KeckExchange,
-                                                                ObservingMode.SubaruExchange
-                           ]]
+                    ObservingMode.GmosSouthImaging,
+                    Either[
+                      ObservingMode.GhostIfu,
+                      Either[ObservingMode.Flamingos2Imaging,
+                             Either[ObservingMode.Visitor, Either[ObservingMode.KeckExchange,
+                                                                  ObservingMode.SubaruExchange
+                             ]]
+                      ]
                     ]
                   ]
                 ]
@@ -1079,7 +1080,6 @@ trait ArbObservingMode {
           ]
         ]
       ]
-    ]
     ]]
       .contramap {
         case g: ObservingMode.GnirsImaging       => g.asLeft

@@ -82,7 +82,7 @@ object ImagingModesTable extends ModesTableCommon:
     // The 'z' filter, at least, has an upper bound of Int.MaxValue picometers. However,
     // the practical range is limited by things like the detector. According to Andy,
     // the upper limit is 1100 nm.
-    private def clipForGmos: BoundedInterval[Wavelength] =
+    private def clipForGmos: BoundedInterval[Wavelength]   =
       interval
         .intersect(
           BoundedInterval.unsafeClosed(Wavelength.Min, Wavelength.fromIntNanometers(1100).get)

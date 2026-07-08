@@ -89,10 +89,10 @@ object WebServerLauncher extends IOApp with LogInitialization {
     val ssl: F[Option[TLSContext[F]]] = conf.webServer.tls.traverse(makeContext[F])
 
     def router(
-      wsBuilder:    WebSocketBuilder2[F],
-      proxyService: HttpRoutes[F],
-      mappings:     NavigateMappings[F]
-    )                 = Router[F](
+      wsBuilder:                    WebSocketBuilder2[F],
+      proxyService:                 HttpRoutes[F],
+      mappings:                     NavigateMappings[F]
+    ) = Router[F](
       "/"                 -> new StaticRoutes().service,
       "/navigate"         -> new GraphQlRoutes(mappings).service(wsBuilder),
       ProxyRoute.toString -> proxyService

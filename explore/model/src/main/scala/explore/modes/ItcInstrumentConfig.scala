@@ -282,7 +282,7 @@ object ItcInstrumentConfig:
           timeAndCount: Option[ExposureTimeMode.TimeAndCountMode],
           readMode:     GhostReadMode,
           binning:      GhostBinning
-        ): Red =
+        ): Red                                =
           Red(GhostDetector(timeAndCount, readMode, binning))
         // constructor used by spectroscopy modes matrix decoder
         def apply(binning: GhostBinning): Red =
@@ -294,7 +294,7 @@ object ItcInstrumentConfig:
           timeAndCount: Option[ExposureTimeMode.TimeAndCountMode],
           readMode:     GhostReadMode,
           binning:      GhostBinning
-        ): Blue =
+        ): Blue                                =
           Blue(GhostDetector(timeAndCount, readMode, binning))
         // constructor used by spectroscopy modes matrix decoder
         def apply(binning: GhostBinning): Blue =

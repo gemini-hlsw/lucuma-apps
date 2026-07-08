@@ -19,7 +19,7 @@ import scala.annotation.unused
 
 object AsterismActions:
   extension (obsAndTargets: ObservationsAndTargets)
-    private def asterismHasTarget(targetId: Target.Id, obsIds: ObsIdSet): Boolean =
+    private def asterismHasTarget(targetId: Target.Id, obsIds: ObsIdSet): Boolean           =
       // since we're dealing with asterisms, if the target is in one observation in obsIds, it should be in all
       obsAndTargets._1.get(obsIds.head).fold(false)(_.scienceTargetIds.contains(targetId))
     // If the target was created, but has been assigned to another observation (unlikely), perhaps by another

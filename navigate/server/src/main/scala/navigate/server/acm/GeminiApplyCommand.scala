@@ -78,16 +78,17 @@ object GeminiApplyCommand {
         clidrr <- readChannel(telltaleChannel, car.clid).map(Resource.pure[F, F[Int]])
         avrr   <- readChannel(telltaleChannel, apply.oval).map(Resource.pure[F, F[Int]])
         cvrr   <- readChannel(telltaleChannel, car.oval).map(Resource.pure[F, F[CarState]])
-      } yield for {
-        avs   <- avrs
-        cvs   <- cvrs
-        dw    <- dwr
-        msr   <- msrr
-        omsr  <- omsrr
-        clidr <- clidrr
-        avr   <- avrr
-        cvr   <- cvrr
-      } yield (avs, cvs, dw, msr, omsr, clidr, avr, cvr)
+      } yield
+        for {
+          avs   <- avrs
+          cvs   <- cvrs
+          dw    <- dwr
+          msr   <- msrr
+          omsr  <- omsrr
+          clidr <- clidrr
+          avr   <- avrr
+          cvr   <- cvrr
+        } yield (avs, cvs, dw, msr, omsr, clidr, avr, cvr)
 
       streamsV.map(_.use { case (avs, cvs, dw, msr, omsr, clidr, avr, cvr) =>
         processCommand(avs, cvs, dw, msr, omsr, clidr, avr, cvr).timeout(timeout)

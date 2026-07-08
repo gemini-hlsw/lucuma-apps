@@ -7,8 +7,8 @@ import cats.Eq
 import cats.derived.*
 
 case class EnclosureState(
-  domeEnabled: Boolean,
-  shuttersEnabled: Boolean,
+  domeEnabled:      Boolean,
+  shuttersEnabled:  Boolean,
   eastVentGateOpen: Boolean,
   westVentGateOpen: Boolean
 ) derives Eq

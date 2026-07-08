@@ -760,7 +760,7 @@ object TcsControllerEpicsCommon {
     override def applyBasicConfig(
       subsystems: NonEmptySet[Subsystem],
       tcs:        BasicTcsConfig[S]
-    ): F[Unit] = {
+    ): F[Unit]                               = {
       def sysConfig(current: BaseEpicsTcsConfig): F[BaseEpicsTcsConfig] = {
         val mountPosParams              = configMountPos(subsystems, current, tcs.tc, Iso.id)
         val paramList                   = configBaseParams(subsystems, current, tcs) ++ mountPosParams
@@ -812,7 +812,7 @@ object TcsControllerEpicsCommon {
         _  <- guideOn(subsystems, s2, tcs)
       } yield ()
     }
-    override def notifyObserveStart: F[Unit]              =
+    override def notifyObserveStart: F[Unit] =
       L.debug("Send observe to TCS") *>
         epicsSys.observe.mark *>
         epicsSys.post(DefaultTimeout) *>

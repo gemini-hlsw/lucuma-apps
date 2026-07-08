@@ -87,11 +87,12 @@ object CircularBufferControl {
       imF <- readChannel(chs.telltale, chs.imEnabled).map(_.map(_ === "TRUE"))
       aoF <- readChannel(chs.telltale, chs.aoEnabled).map(_.map(_ === "TRUE"))
       fgF <- readChannel(chs.telltale, chs.fgEnabled).map(_.map(_ === "TRUE"))
-    } yield for {
-      im <- imF
-      ao <- aoF
-      fg <- fgF
-    } yield CircularBufferStatus(im, ao, fg)
+    } yield
+      for {
+        im <- imF
+        ao <- aoF
+        fg <- fgF
+      } yield CircularBufferStatus(im, ao, fg)
 
     override def imgCircularBufferStream: VerifiedEpics[F, Resource[F, *], Stream[F, Boolean]] =
       VerifiedEpics

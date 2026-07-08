@@ -103,7 +103,7 @@ case class ItcImagingQuerier(
                 val (params, result) = entry
                 val newEntries: List[
                   (ItcTarget, ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
-                ] =
+                ]                    =
                   result match
                     case Left(problem)    =>
                       // For failures, we want to keep track of the problem for each target in the asterism

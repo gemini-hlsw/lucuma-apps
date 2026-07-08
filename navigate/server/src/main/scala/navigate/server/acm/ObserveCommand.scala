@@ -99,17 +99,18 @@ object ObserveCommand {
         avrr   <- readChannel(telltaleChannel, apply.oval).map(Resource.pure[F, F[Int]])
         cvrr   <- readChannel(telltaleChannel, car.oval).map(Resource.pure[F, F[CarState]])
         intsF  <- eventStream(telltaleChannel, integrating)
-      } yield for {
-        avs   <- avrs
-        cvs   <- cvrs
-        dw    <- dwr
-        msr   <- msrr
-        omsr  <- omsrr
-        clidr <- clidrr
-        avr   <- avrr
-        cvr   <- cvrr
-        ints  <- intsF
-      } yield (avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints)
+      } yield
+        for {
+          avs   <- avrs
+          cvs   <- cvrs
+          dw    <- dwr
+          msr   <- msrr
+          omsr  <- omsrr
+          clidr <- clidrr
+          avr   <- avrr
+          cvr   <- cvrr
+          ints  <- intsF
+        } yield (avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints)
 
       streamsV.map(_.use { case (avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints) =>
         processCommand(typ, avs, cvs, dw, msr, omsr, clidr, avr, cvr, ints).timeout(timeout)

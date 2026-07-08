@@ -421,13 +421,15 @@ object ObservationTargetsEditorTile
               ),
               // Shared-target ("this target is used in N observations") warning belongs with the
               // table, not the editor/aladin area below.
-              props.focusedTargetId.filterNot(_ => skySelected.get.isDefined).map: tid =>
-                TargetCloneSelector(
-                  props.obsInfo(tid),
-                  obsToCloneTo,
-                  readonlyForStatuses,
-                  props.allowEditingOngoing
-                ),
+              props.focusedTargetId
+                .filterNot(_ => skySelected.get.isDefined)
+                .map: tid =>
+                  TargetCloneSelector(
+                    props.obsInfo(tid),
+                    obsToCloneTo,
+                    readonlyForStatuses,
+                    props.allowEditingOngoing
+                  ),
               <.div(ExploreStyles.TargetTileEditor)(
                 (obsTargetsForAladin, props.userId).mapN: (aladinTargets, uid) =>
                   <.div(ExploreStyles.TargetGrid)(

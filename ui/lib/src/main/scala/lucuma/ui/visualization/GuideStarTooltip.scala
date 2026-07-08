@@ -19,7 +19,6 @@ case class GuideStarTooltip(analysis: AgsAnalysis.Usable) extends ReactFnProps(G
 
 object GuideStarTooltip
     extends ReactFnComponent[GuideStarTooltip](p =>
-
       extension (s: String)
         private def toSentenceCase: String =
           s"${s.charAt(0).toUpper}${s.substring(1)}"

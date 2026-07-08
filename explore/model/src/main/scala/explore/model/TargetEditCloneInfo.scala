@@ -39,7 +39,7 @@ object TargetEditCloneInfo:
     onlyCurrentMsg:  NonEmptyString,
     cloneForAll:     Option[ObsIdSet],
     cloneForAllText: NonEmptyString
-  ): TargetEditCloneInfo =
+  ): TargetEditCloneInfo                                                                     =
     TargetEditCloneInfo(false,
                         message.some,
                         cloneForOnly,
@@ -152,7 +152,7 @@ object TargetEditCloneInfo:
             obsInfo.incompleteForTarget
           )
       // There are some other non-completed observations
-      case (Some(editing)) if allowEditingOngoing                                        =>
+      case Some(editing) if allowEditingOngoing                                          =>
         if (obsInfo.allForTargetAreIncomplete)
           TargetEditCloneInfo.choice(
             otherMessage(obsInfo.otherObsCount, false, Completed),
