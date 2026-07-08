@@ -602,6 +602,17 @@
   background: var(--hud-background-color);
 }
 
+.add-sky-mode-overlay {
+  @include hud;
+
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: smaller;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
 .ags-overlay {
   @include hud;
 

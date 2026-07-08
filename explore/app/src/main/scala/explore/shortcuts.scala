@@ -47,7 +47,7 @@ val GoToConstraints      = Shortcut("n")
 val GoToSummary          = Shortcut("s")
 val CycleWavelengthUnits = Shortcut("w")
 
-val Esc = Shortcut("ESC")
+val Esc = Shortcut("escape")
 
 val ShortcutsHelp1 = Shortcut("F1")
 val ShortcutsHelp2 = Shortcut("shift+?")

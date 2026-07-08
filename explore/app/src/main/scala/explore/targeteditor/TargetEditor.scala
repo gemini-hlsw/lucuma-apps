@@ -555,6 +555,7 @@ object TargetEditor:
                   props.blindOffsetInfo,
                   props.obsAndTargets.model.zoom(ObservationsAndTargets.targets),
                   none,
+                  none,
                   resetSky,
                   props.isStaffOrAdmin,
                   props.readonly
