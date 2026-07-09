@@ -42,7 +42,7 @@ object Versions {
   val lucumaServers          = "0.85.1"
   val monocle                = "3.3.0"
   val mouse                  = "1.4.0"
-  val mUnit                  = "1.3.3"
+  val mUnit                  = "1.3.4"
   val mUnitCatsEffect        = "2.2.0"
   val mUnitScalacheck        = "1.3.0"
   val natchez                = "0.3.10"
