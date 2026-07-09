@@ -27,6 +27,10 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
+            explicitBase {
+              ra $RASubquery
+              dec $DecSubquery
+            }
           }
           constraintSet $ConstraintSetSubquery
           schedulingConstraints {

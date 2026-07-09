@@ -125,3 +125,4 @@ TASK_*.md
 
 # Certs - Folder used as temporary certs storage during conversion.
 .certs/*
+.pi/

@@ -14,7 +14,9 @@ import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
 import lucuma.core.arb.ArbTime
 import lucuma.core.enums.ScienceBand
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
+import lucuma.core.math.arb.ArbCoordinates.given
 import lucuma.core.math.arb.ArbWavelength.given
 import lucuma.core.model.Attachment
 import lucuma.core.model.Configuration
@@ -87,6 +89,7 @@ trait ArbObservation:
         groupId               <- arbitrary[Option[Group.Id]]
         groupIndex            <- arbitrary[NonNegShort]
         execution             <- arbitrary[Execution]
+        explicitBase          <- arbitrary[Option[Coordinates]]
         blindOffset           <- arbitrary[BlindOffset]
       yield Observation(
         id,
@@ -113,6 +116,7 @@ trait ArbObservation:
         groupId,
         groupIndex,
         execution,
+        explicitBase,
         blindOffset
       )
     )
@@ -140,7 +144,7 @@ trait ArbObservation:
        Option[Configuration],
        SortedSet[ConfigurationRequest.Id],
        CalculatedValue[ObservationWorkflow],
-       (Option[Group.Id], Short, Execution, BlindOffset)
+       (Option[Group.Id], Short, Execution, Option[Coordinates], BlindOffset)
       )
     ]
       .contramap(o =>
@@ -165,7 +169,7 @@ trait ArbObservation:
          o.configuration,
          o.configurationRequestIds,
          o.workflow,
-         (o.groupId, o.groupIndex.value, o.execution, o.blindOffset)
+         (o.groupId, o.groupIndex.value, o.execution, o.explicitBase, o.blindOffset)
         )
       )
 

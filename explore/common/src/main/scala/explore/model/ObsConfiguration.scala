@@ -19,6 +19,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.TrackType
 import lucuma.core.math.Angle
+import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
 import lucuma.core.model.ConstraintSet
 import lucuma.core.model.PosAngleConstraint
@@ -48,7 +49,8 @@ final case class ObsConfiguration(
   remoteGSName:       Option[NonEmptyString],
   calibrationRole:    Option[CalibrationRole],
   trackType:          Option[TrackType],
-  targetViz:          TargetVisualization
+  targetViz:          TargetVisualization,
+  explicitBase:       Option[Coordinates]
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -110,5 +112,6 @@ object ObsConfiguration:
       none,
       none,
       trackType,
-      TargetVisualization.Empty
+      TargetVisualization.Empty,
+      none
     )
