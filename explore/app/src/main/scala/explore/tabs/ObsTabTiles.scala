@@ -744,7 +744,8 @@ object ObsTabTiles:
               globalPreferences.get.wavelengthUnits,
               props.isStaffOrAdminUser,
               selectedItcTarget,
-              props.observation.get.hasMaterializedSequence
+              props.observation.get.hasMaterializedSequence,
+              props.observation.get.observingMode.isPending
             )
 
           val alltiles: List[Tile[?]] =

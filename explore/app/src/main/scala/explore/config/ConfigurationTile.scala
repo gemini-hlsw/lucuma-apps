@@ -88,7 +88,8 @@ final case class ConfigurationTile(
   units:                    WavelengthUnits,
   isStaffOrAdmin:           Boolean,
   targetView:               View[Option[ItcTarget]],
-  hasMaterializedSequence:  Boolean
+  hasMaterializedSequence:  Boolean,
+  modePending:              Boolean                    // observingMode detail still loading
 ) extends Tile[ConfigurationTile](
       ObsTabTileIds.ConfigurationId.id,
       "Configuration",
@@ -288,9 +289,11 @@ object ConfigurationTile
           <.div(ExploreStyles.TileTitleConfigSelector)(
             DropdownOptional[ObservingModeSummary](
               value = props.observingMode.map(ObservingModeSummary.fromObservingMode),
-              placeholder = "Choose existing observing mode...",
-              disabled = isChanging.get,
-              loading = isChanging.get,
+              placeholder =
+                if props.modePending then "Loading observing mode..."
+                else "Choose existing observing mode...",
+              disabled = isChanging.get || props.modePending,
+              loading = isChanging.get || props.modePending,
               showClear = true,
               onChange = (om: Option[ObservingModeSummary]) =>
                 om.fold(revertConfig.runAsync)(m =>
