@@ -124,6 +124,33 @@ type ExploreAsterismPreferencesAggregateFields {
   variance: ExploreAsterismPreferencesVarianceFields
 }
 
+"""
+order by aggregate values of table "exploreAsterismPreferences"
+"""
+input ExploreAsterismPreferencesAggregateOrderBy {
+  avg: exploreAsterismPreferences_avg_order_by
+  count: OrderBy
+  max: exploreAsterismPreferences_max_order_by
+  min: exploreAsterismPreferences_min_order_by
+  stddev: exploreAsterismPreferences_stddev_order_by
+  stddev_pop: exploreAsterismPreferences_stddev_pop_order_by
+  stddev_samp: exploreAsterismPreferences_stddev_samp_order_by
+  sum: exploreAsterismPreferences_sum_order_by
+  var_pop: exploreAsterismPreferences_var_pop_order_by
+  var_samp: exploreAsterismPreferences_var_samp_order_by
+  variance: exploreAsterismPreferences_variance_order_by
+}
+
+"""
+input type for inserting array relation for remote table "exploreAsterismPreferences"
+"""
+input ExploreAsterismPreferencesArrRelInsertInput {
+  data: [ExploreAsterismPreferencesInsertInput!]!
+
+  """upsert condition"""
+  onConflict: ExploreAsterismPreferencesOnConflict
+}
+
 """aggregate avg on columns"""
 type ExploreAsterismPreferencesAvgFields {
   brightness: Float
@@ -866,6 +893,42 @@ columns and relationships of "explorePlotRange"
 """
 type ExplorePlotRange {
   id: String!
+
+  """An array relationship"""
+  lucumaUserPreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): [LucumaUserPreferences!]!
+
+  """An aggregate relationship"""
+  lucumaUserPreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): LucumaUserPreferencesAggregate!
 }
 
 """
@@ -893,6 +956,7 @@ input ExplorePlotRangeBoolExp {
   _not: ExplorePlotRangeBoolExp
   _or: [ExplorePlotRangeBoolExp!]
   id: StringComparisonExp
+  lucumaUserPreferences: LucumaUserPreferencesBoolExp
 }
 
 """
@@ -927,6 +991,7 @@ input type for inserting data into table "explorePlotRange"
 """
 input ExplorePlotRangeInsertInput {
   id: String
+  lucumaUserPreferences: LucumaUserPreferencesArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -951,6 +1016,16 @@ type ExplorePlotRangeMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "explorePlotRange"
+"""
+input ExplorePlotRangeObjRelInsertInput {
+  data: ExplorePlotRangeInsertInput!
+
+  """upsert condition"""
+  onConflict: ExplorePlotRangeOnConflict
+}
+
+"""
 on_conflict condition type for table "explorePlotRange"
 """
 input ExplorePlotRangeOnConflict {
@@ -962,6 +1037,7 @@ input ExplorePlotRangeOnConflict {
 """Ordering options when selecting data from "explorePlotRange"."""
 input ExplorePlotRangeOrderBy {
   id: OrderBy
+  lucumaUserPreferencesAggregate: LucumaUserPreferencesAggregateOrderBy
 }
 
 """primary key columns input for table: explorePlotRange"""
@@ -1003,6 +1079,42 @@ columns and relationships of "explorePlotTime"
 """
 type ExplorePlotTime {
   id: String!
+
+  """An array relationship"""
+  lucumaUserPreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): [LucumaUserPreferences!]!
+
+  """An aggregate relationship"""
+  lucumaUserPreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): LucumaUserPreferencesAggregate!
 }
 
 """
@@ -1030,6 +1142,7 @@ input ExplorePlotTimeBoolExp {
   _not: ExplorePlotTimeBoolExp
   _or: [ExplorePlotTimeBoolExp!]
   id: StringComparisonExp
+  lucumaUserPreferences: LucumaUserPreferencesBoolExp
 }
 
 """
@@ -1064,6 +1177,7 @@ input type for inserting data into table "explorePlotTime"
 """
 input ExplorePlotTimeInsertInput {
   id: String
+  lucumaUserPreferences: LucumaUserPreferencesArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -1088,6 +1202,16 @@ type ExplorePlotTimeMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "explorePlotTime"
+"""
+input ExplorePlotTimeObjRelInsertInput {
+  data: ExplorePlotTimeInsertInput!
+
+  """upsert condition"""
+  onConflict: ExplorePlotTimeOnConflict
+}
+
+"""
 on_conflict condition type for table "explorePlotTime"
 """
 input ExplorePlotTimeOnConflict {
@@ -1099,6 +1223,7 @@ input ExplorePlotTimeOnConflict {
 """Ordering options when selecting data from "explorePlotTime"."""
 input ExplorePlotTimeOrderBy {
   id: OrderBy
+  lucumaUserPreferencesAggregate: LucumaUserPreferencesAggregateOrderBy
 }
 
 """primary key columns input for table: explorePlotTime"""
@@ -1155,6 +1280,42 @@ columns and relationships of "ItcChartType"
 """
 type ItcChartType {
   id: String!
+
+  """An array relationship"""
+  lucumaUserPreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): [LucumaUserPreferences!]!
+
+  """An aggregate relationship"""
+  lucumaUserPreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): LucumaUserPreferencesAggregate!
 }
 
 """
@@ -1182,6 +1343,7 @@ input ItcChartTypeBoolExp {
   _not: ItcChartTypeBoolExp
   _or: [ItcChartTypeBoolExp!]
   id: StringComparisonExp
+  lucumaUserPreferences: LucumaUserPreferencesBoolExp
 }
 
 """
@@ -1215,6 +1377,7 @@ input type for inserting data into table "ItcChartType"
 """
 input ItcChartTypeInsertInput {
   id: String
+  lucumaUserPreferences: LucumaUserPreferencesArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -1239,6 +1402,16 @@ type ItcChartTypeMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "ItcChartType"
+"""
+input ItcChartTypeObjRelInsertInput {
+  data: ItcChartTypeInsertInput!
+
+  """upsert condition"""
+  onConflict: ItcChartTypeOnConflict
+}
+
+"""
 on_conflict condition type for table "ItcChartType"
 """
 input ItcChartTypeOnConflict {
@@ -1250,6 +1423,7 @@ input ItcChartTypeOnConflict {
 """Ordering options when selecting data from "ItcChartType"."""
 input ItcChartTypeOrderBy {
   id: OrderBy
+  lucumaUserPreferencesAggregate: LucumaUserPreferencesAggregateOrderBy
 }
 
 """primary key columns input for table: ItcChartType"""
@@ -1566,6 +1740,42 @@ columns and relationships of "lucumaGridBreakpointName"
 """
 type LucumaGridBreakpointName {
   id: String!
+
+  """An array relationship"""
+  lucumaGridLayoutPositions(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): [LucumaGridLayoutPositions!]!
+
+  """An aggregate relationship"""
+  lucumaGridLayoutPositionsAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): LucumaGridLayoutPositionsAggregate!
 }
 
 """
@@ -1593,6 +1803,7 @@ input LucumaGridBreakpointNameBoolExp {
   _not: LucumaGridBreakpointNameBoolExp
   _or: [LucumaGridBreakpointNameBoolExp!]
   id: StringComparisonExp
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsBoolExp
 }
 
 """
@@ -1631,6 +1842,7 @@ input type for inserting data into table "lucumaGridBreakpointName"
 """
 input LucumaGridBreakpointNameInsertInput {
   id: String
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -1655,6 +1867,16 @@ type LucumaGridBreakpointNameMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaGridBreakpointName"
+"""
+input LucumaGridBreakpointNameObjRelInsertInput {
+  data: LucumaGridBreakpointNameInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaGridBreakpointNameOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaGridBreakpointName"
 """
 input LucumaGridBreakpointNameOnConflict {
@@ -1666,6 +1888,7 @@ input LucumaGridBreakpointNameOnConflict {
 """Ordering options when selecting data from "lucumaGridBreakpointName"."""
 input LucumaGridBreakpointNameOrderBy {
   id: OrderBy
+  lucumaGridLayoutPositionsAggregate: LucumaGridLayoutPositionsAggregateOrderBy
 }
 
 """primary key columns input for table: lucumaGridBreakpointName"""
@@ -1707,6 +1930,42 @@ columns and relationships of "lucumaGridLayoutId"
 """
 type LucumaGridLayoutId {
   id: String!
+
+  """An array relationship"""
+  lucumaGridLayoutPositions(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): [LucumaGridLayoutPositions!]!
+
+  """An aggregate relationship"""
+  lucumaGridLayoutPositionsAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): LucumaGridLayoutPositionsAggregate!
 }
 
 """
@@ -1734,6 +1993,7 @@ input LucumaGridLayoutIdBoolExp {
   _not: LucumaGridLayoutIdBoolExp
   _or: [LucumaGridLayoutIdBoolExp!]
   id: StringComparisonExp
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsBoolExp
 }
 
 """
@@ -1777,6 +2037,7 @@ input type for inserting data into table "lucumaGridLayoutId"
 """
 input LucumaGridLayoutIdInsertInput {
   id: String
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -1801,6 +2062,16 @@ type LucumaGridLayoutIdMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaGridLayoutId"
+"""
+input LucumaGridLayoutIdObjRelInsertInput {
+  data: LucumaGridLayoutIdInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaGridLayoutIdOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaGridLayoutId"
 """
 input LucumaGridLayoutIdOnConflict {
@@ -1812,6 +2083,7 @@ input LucumaGridLayoutIdOnConflict {
 """Ordering options when selecting data from "lucumaGridLayoutId"."""
 input LucumaGridLayoutIdOrderBy {
   id: OrderBy
+  lucumaGridLayoutPositionsAggregate: LucumaGridLayoutPositionsAggregateOrderBy
 }
 
 """primary key columns input for table: lucumaGridLayoutId"""
@@ -1855,6 +2127,15 @@ type LucumaGridLayoutPositions {
   breakpointName: LucumaGridBreakpointNameEnum!
   createdAt: timestamp
   height: Int!
+
+  """An object relationship"""
+  lucumaGridBreakpointName: LucumaGridBreakpointName!
+
+  """An object relationship"""
+  lucumaGridLayoutId: LucumaGridLayoutId!
+
+  """An object relationship"""
+  lucumaUser: LucumaUser!
   section: LucumaGridLayoutIdEnum!
   tile: String!
   updatedAt: timestamp
@@ -1889,6 +2170,33 @@ type LucumaGridLayoutPositionsAggregateFields {
   variance: LucumaGridLayoutPositionsVarianceFields
 }
 
+"""
+order by aggregate values of table "lucumaGridLayoutPositions"
+"""
+input LucumaGridLayoutPositionsAggregateOrderBy {
+  avg: lucumaGridLayoutPositions_avg_order_by
+  count: OrderBy
+  max: lucumaGridLayoutPositions_max_order_by
+  min: lucumaGridLayoutPositions_min_order_by
+  stddev: lucumaGridLayoutPositions_stddev_order_by
+  stddev_pop: lucumaGridLayoutPositions_stddev_pop_order_by
+  stddev_samp: lucumaGridLayoutPositions_stddev_samp_order_by
+  sum: lucumaGridLayoutPositions_sum_order_by
+  var_pop: lucumaGridLayoutPositions_var_pop_order_by
+  var_samp: lucumaGridLayoutPositions_var_samp_order_by
+  variance: lucumaGridLayoutPositions_variance_order_by
+}
+
+"""
+input type for inserting array relation for remote table "lucumaGridLayoutPositions"
+"""
+input LucumaGridLayoutPositionsArrRelInsertInput {
+  data: [LucumaGridLayoutPositionsInsertInput!]!
+
+  """upsert condition"""
+  onConflict: LucumaGridLayoutPositionsOnConflict
+}
+
 """aggregate avg on columns"""
 type LucumaGridLayoutPositionsAvgFields {
   height: Float
@@ -1907,6 +2215,9 @@ input LucumaGridLayoutPositionsBoolExp {
   breakpointName: LucumaGridBreakpointNameEnumComparisonExp
   createdAt: TimestampComparisonExp
   height: IntComparisonExp
+  lucumaGridBreakpointName: LucumaGridBreakpointNameBoolExp
+  lucumaGridLayoutId: LucumaGridLayoutIdBoolExp
+  lucumaUser: LucumaUserBoolExp
   section: LucumaGridLayoutIdEnumComparisonExp
   tile: StringComparisonExp
   updatedAt: TimestampComparisonExp
@@ -1943,6 +2254,9 @@ input LucumaGridLayoutPositionsInsertInput {
   breakpointName: LucumaGridBreakpointNameEnum
   createdAt: timestamp
   height: Int
+  lucumaGridBreakpointName: LucumaGridBreakpointNameObjRelInsertInput
+  lucumaGridLayoutId: LucumaGridLayoutIdObjRelInsertInput
+  lucumaUser: LucumaUserObjRelInsertInput
   section: LucumaGridLayoutIdEnum
   tile: String
   updatedAt: timestamp
@@ -2001,6 +2315,9 @@ input LucumaGridLayoutPositionsOrderBy {
   breakpointName: OrderBy
   createdAt: OrderBy
   height: OrderBy
+  lucumaGridBreakpointName: LucumaGridBreakpointNameOrderBy
+  lucumaGridLayoutId: LucumaGridLayoutIdOrderBy
+  lucumaUser: LucumaUserOrderBy
   section: OrderBy
   tile: OrderBy
   updatedAt: OrderBy
@@ -2174,6 +2491,42 @@ columns and relationships of "lucumaLineOfSightMotion"
 """
 type LucumaLineOfSightMotion {
   id: String!
+
+  """An array relationship"""
+  lucumaTargets(
+    """distinct select on columns"""
+    distinctOn: [LucumaTargetSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTargetOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTargetBoolExp
+  ): [LucumaTarget!]!
+
+  """An aggregate relationship"""
+  lucumaTargetsAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaTargetSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTargetOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTargetBoolExp
+  ): LucumaTargetAggregate!
 }
 
 """
@@ -2201,6 +2554,7 @@ input LucumaLineOfSightMotionBoolExp {
   _not: LucumaLineOfSightMotionBoolExp
   _or: [LucumaLineOfSightMotionBoolExp!]
   id: StringComparisonExp
+  lucumaTargets: LucumaTargetBoolExp
 }
 
 """
@@ -2235,6 +2589,7 @@ input type for inserting data into table "lucumaLineOfSightMotion"
 """
 input LucumaLineOfSightMotionInsertInput {
   id: String
+  lucumaTargets: LucumaTargetArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -2259,6 +2614,16 @@ type LucumaLineOfSightMotionMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaLineOfSightMotion"
+"""
+input LucumaLineOfSightMotionObjRelInsertInput {
+  data: LucumaLineOfSightMotionInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaLineOfSightMotionOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaLineOfSightMotion"
 """
 input LucumaLineOfSightMotionOnConflict {
@@ -2270,6 +2635,7 @@ input LucumaLineOfSightMotionOnConflict {
 """Ordering options when selecting data from "lucumaLineOfSightMotion"."""
 input LucumaLineOfSightMotionOrderBy {
   id: OrderBy
+  lucumaTargetsAggregate: LucumaTargetAggregateOrderBy
 }
 
 """primary key columns input for table: lucumaLineOfSightMotion"""
@@ -2492,6 +2858,42 @@ columns and relationships of "lucumaTableIds"
 """
 type LucumaTableIds {
   id: String!
+
+  """An array relationship"""
+  lucumaTablePreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): [LucumaTablePreferences!]!
+
+  """An aggregate relationship"""
+  lucumaTablePreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaTablePreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTablePreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTablePreferencesBoolExp
+  ): LucumaTablePreferencesAggregate!
 }
 
 """
@@ -2519,6 +2921,7 @@ input LucumaTableIdsBoolExp {
   _not: LucumaTableIdsBoolExp
   _or: [LucumaTableIdsBoolExp!]
   id: StringComparisonExp
+  lucumaTablePreferences: LucumaTablePreferencesBoolExp
 }
 
 """
@@ -2561,6 +2964,7 @@ input type for inserting data into table "lucumaTableIds"
 """
 input LucumaTableIdsInsertInput {
   id: String
+  lucumaTablePreferences: LucumaTablePreferencesArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -2585,6 +2989,16 @@ type LucumaTableIdsMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaTableIds"
+"""
+input LucumaTableIdsObjRelInsertInput {
+  data: LucumaTableIdsInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaTableIdsOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaTableIds"
 """
 input LucumaTableIdsOnConflict {
@@ -2596,6 +3010,7 @@ input LucumaTableIdsOnConflict {
 """Ordering options when selecting data from "lucumaTableIds"."""
 input LucumaTableIdsOrderBy {
   id: OrderBy
+  lucumaTablePreferencesAggregate: LucumaTablePreferencesAggregateOrderBy
 }
 
 """primary key columns input for table: lucumaTableIds"""
@@ -2636,6 +3051,8 @@ input LucumaTableIdsUpdates {
 columns and relationships of "lucumaTablePreferences"
 """
 type LucumaTablePreferences {
+  """An object relationship"""
+  lucumaTableId: LucumaTableIds!
   preferences(
     """JSON select path"""
     path: String
@@ -2661,9 +3078,28 @@ type LucumaTablePreferencesAggregateFields {
   min: LucumaTablePreferencesMinFields
 }
 
+"""
+order by aggregate values of table "lucumaTablePreferences"
+"""
+input LucumaTablePreferencesAggregateOrderBy {
+  count: OrderBy
+  max: lucumaTablePreferences_max_order_by
+  min: lucumaTablePreferences_min_order_by
+}
+
 """append existing jsonb value of filtered columns with new jsonb value"""
 input LucumaTablePreferencesAppendInput {
   preferences: jsonb
+}
+
+"""
+input type for inserting array relation for remote table "lucumaTablePreferences"
+"""
+input LucumaTablePreferencesArrRelInsertInput {
+  data: [LucumaTablePreferencesInsertInput!]!
+
+  """upsert condition"""
+  onConflict: LucumaTablePreferencesOnConflict
 }
 
 """
@@ -2673,6 +3109,7 @@ input LucumaTablePreferencesBoolExp {
   _and: [LucumaTablePreferencesBoolExp!]
   _not: LucumaTablePreferencesBoolExp
   _or: [LucumaTablePreferencesBoolExp!]
+  lucumaTableId: LucumaTableIdsBoolExp
   preferences: JsonbComparisonExp
   tableId: LucumaTableIdsEnumComparisonExp
   userId: StringComparisonExp
@@ -2713,6 +3150,7 @@ input LucumaTablePreferencesDeleteKeyInput {
 input type for inserting data into table "lucumaTablePreferences"
 """
 input LucumaTablePreferencesInsertInput {
+  lucumaTableId: LucumaTableIdsObjRelInsertInput
   preferences: jsonb
   tableId: LucumaTableIdsEnum
   userId: String
@@ -2750,6 +3188,7 @@ input LucumaTablePreferencesOnConflict {
 
 """Ordering options when selecting data from "lucumaTablePreferences"."""
 input LucumaTablePreferencesOrderBy {
+  lucumaTableId: LucumaTableIdsOrderBy
   preferences: OrderBy
   tableId: OrderBy
   userId: OrderBy
@@ -2835,6 +3274,12 @@ columns and relationships of "lucumaTarget"
 """
 type LucumaTarget {
   lineOfSightMotion: LucumaLineOfSightMotionEnum!
+
+  """An object relationship"""
+  lucumaLineOfSightMotion: LucumaLineOfSightMotion!
+
+  """An object relationship"""
+  lucumaUser: LucumaUser!
   targetId: String!
   userId: String!
 }
@@ -2857,6 +3302,25 @@ type LucumaTargetAggregateFields {
 }
 
 """
+order by aggregate values of table "lucumaTarget"
+"""
+input LucumaTargetAggregateOrderBy {
+  count: OrderBy
+  max: lucumaTarget_max_order_by
+  min: lucumaTarget_min_order_by
+}
+
+"""
+input type for inserting array relation for remote table "lucumaTarget"
+"""
+input LucumaTargetArrRelInsertInput {
+  data: [LucumaTargetInsertInput!]!
+
+  """upsert condition"""
+  onConflict: LucumaTargetOnConflict
+}
+
+"""
 Boolean expression to filter rows from the table "lucumaTarget". All fields are combined with a logical 'AND'.
 """
 input LucumaTargetBoolExp {
@@ -2864,6 +3328,8 @@ input LucumaTargetBoolExp {
   _not: LucumaTargetBoolExp
   _or: [LucumaTargetBoolExp!]
   lineOfSightMotion: LucumaLineOfSightMotionEnumComparisonExp
+  lucumaLineOfSightMotion: LucumaLineOfSightMotionBoolExp
+  lucumaUser: LucumaUserBoolExp
   targetId: StringComparisonExp
   userId: StringComparisonExp
 }
@@ -2883,6 +3349,8 @@ input type for inserting data into table "lucumaTarget"
 """
 input LucumaTargetInsertInput {
   lineOfSightMotion: LucumaLineOfSightMotionEnum
+  lucumaLineOfSightMotion: LucumaLineOfSightMotionObjRelInsertInput
+  lucumaUser: LucumaUserObjRelInsertInput
   targetId: String
   userId: String
 }
@@ -2922,6 +3390,8 @@ input LucumaTargetOnConflict {
 """Ordering options when selecting data from "lucumaTarget"."""
 input LucumaTargetOrderBy {
   lineOfSightMotion: OrderBy
+  lucumaLineOfSightMotion: LucumaLineOfSightMotionOrderBy
+  lucumaUser: LucumaUserOrderBy
   targetId: OrderBy
   userId: OrderBy
 }
@@ -2979,6 +3449,116 @@ input LucumaTargetUpdates {
 columns and relationships of "lucumaUser"
 """
 type LucumaUser {
+  """An array relationship"""
+  exploreAsterismPreferences(
+    """distinct select on columns"""
+    distinctOn: [ExploreAsterismPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreAsterismPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreAsterismPreferencesBoolExp
+  ): [ExploreAsterismPreferences!]!
+
+  """An aggregate relationship"""
+  exploreAsterismPreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [ExploreAsterismPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [ExploreAsterismPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: ExploreAsterismPreferencesBoolExp
+  ): ExploreAsterismPreferencesAggregate!
+
+  """An array relationship"""
+  lucumaGridLayoutPositions(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): [LucumaGridLayoutPositions!]!
+
+  """An aggregate relationship"""
+  lucumaGridLayoutPositionsAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaGridLayoutPositionsOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaGridLayoutPositionsBoolExp
+  ): LucumaGridLayoutPositionsAggregate!
+
+  """An array relationship"""
+  lucumaTargets(
+    """distinct select on columns"""
+    distinctOn: [LucumaTargetSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTargetOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTargetBoolExp
+  ): [LucumaTarget!]!
+
+  """An aggregate relationship"""
+  lucumaTargetsAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaTargetSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaTargetOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaTargetBoolExp
+  ): LucumaTargetAggregate!
+
+  """An object relationship"""
+  lucumaUserPreference: LucumaUserPreferences
   userId: String!
 }
 
@@ -3006,6 +3586,10 @@ input LucumaUserBoolExp {
   _and: [LucumaUserBoolExp!]
   _not: LucumaUserBoolExp
   _or: [LucumaUserBoolExp!]
+  exploreAsterismPreferences: ExploreAsterismPreferencesBoolExp
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsBoolExp
+  lucumaTargets: LucumaTargetBoolExp
+  lucumaUserPreference: LucumaUserPreferencesBoolExp
   userId: StringComparisonExp
 }
 
@@ -3023,6 +3607,10 @@ enum LucumaUserConstraint {
 input type for inserting data into table "lucumaUser"
 """
 input LucumaUserInsertInput {
+  exploreAsterismPreferences: ExploreAsterismPreferencesArrRelInsertInput
+  lucumaGridLayoutPositions: LucumaGridLayoutPositionsArrRelInsertInput
+  lucumaTargets: LucumaTargetArrRelInsertInput
+  lucumaUserPreference: LucumaUserPreferencesObjRelInsertInput
   userId: String
 }
 
@@ -3068,6 +3656,10 @@ input LucumaUserOnConflict {
 
 """Ordering options when selecting data from "lucumaUser"."""
 input LucumaUserOrderBy {
+  exploreAsterismPreferencesAggregate: ExploreAsterismPreferencesAggregateOrderBy
+  lucumaGridLayoutPositionsAggregate: LucumaGridLayoutPositionsAggregateOrderBy
+  lucumaTargetsAggregate: LucumaTargetAggregateOrderBy
+  lucumaUserPreference: LucumaUserPreferencesOrderBy
   userId: OrderBy
 }
 
@@ -3080,6 +3672,8 @@ input LucumaUserPkColumnsInput {
 columns and relationships of "lucumaUserPreferences"
 """
 type LucumaUserPreferences {
+  """An object relationship"""
+  ItcChartType: ItcChartType!
   acquisitionOffsets: Boolean!
   agsOverlay: Boolean!
   aladinLegend: Boolean!
@@ -3092,6 +3686,13 @@ type LucumaUserPreferences {
   elevationPlotScheduling: Boolean!
   elevationPlotSkyBrightnessVisible: Boolean!
   elevationPlotTime: ExplorePlotTimeEnum!
+  exploreGuideButton: Boolean
+
+  """An object relationship"""
+  explorePlotRange: ExplorePlotRange!
+
+  """An object relationship"""
+  explorePlotTime: ExplorePlotTime!
   fullScreen: Boolean!
   itcChartType: ItcChartTypeEnum!
   itcDetailsOpen: Boolean!
@@ -3102,7 +3703,10 @@ type LucumaUserPreferences {
   logLevel: String!
 
   """An object relationship"""
-  lucuma_user: LucumaUser!
+  lucumaUser: LucumaUser!
+
+  """An object relationship"""
+  lucumaWavelengthUnit: LucumaWavelengthUnits!
   observationTableFilters: Boolean!
   programsTableFilters: Boolean!
   scienceOffsets: Boolean!
@@ -3129,15 +3733,35 @@ type LucumaUserPreferencesAggregateFields {
   min: LucumaUserPreferencesMinFields
 }
 
+"""
+order by aggregate values of table "lucumaUserPreferences"
+"""
+input LucumaUserPreferencesAggregateOrderBy {
+  count: OrderBy
+  max: lucumaUserPreferences_max_order_by
+  min: lucumaUserPreferences_min_order_by
+}
+
 """append existing jsonb value of filtered columns with new jsonb value"""
 input LucumaUserPreferencesAppendInput {
   lastOpenPrograms: jsonb
 }
 
 """
+input type for inserting array relation for remote table "lucumaUserPreferences"
+"""
+input LucumaUserPreferencesArrRelInsertInput {
+  data: [LucumaUserPreferencesInsertInput!]!
+
+  """upsert condition"""
+  onConflict: LucumaUserPreferencesOnConflict
+}
+
+"""
 Boolean expression to filter rows from the table "lucumaUserPreferences". All fields are combined with a logical 'AND'.
 """
 input LucumaUserPreferencesBoolExp {
+  ItcChartType: ItcChartTypeBoolExp
   _and: [LucumaUserPreferencesBoolExp!]
   _not: LucumaUserPreferencesBoolExp
   _or: [LucumaUserPreferencesBoolExp!]
@@ -3153,12 +3777,16 @@ input LucumaUserPreferencesBoolExp {
   elevationPlotScheduling: BooleanComparisonExp
   elevationPlotSkyBrightnessVisible: BooleanComparisonExp
   elevationPlotTime: ExplorePlotTimeEnumComparisonExp
+  exploreGuideButton: BooleanComparisonExp
+  explorePlotRange: ExplorePlotRangeBoolExp
+  explorePlotTime: ExplorePlotTimeBoolExp
   fullScreen: BooleanComparisonExp
   itcChartType: ItcChartTypeEnumComparisonExp
   itcDetailsOpen: BooleanComparisonExp
   lastOpenPrograms: JsonbComparisonExp
   logLevel: StringComparisonExp
-  lucuma_user: LucumaUserBoolExp
+  lucumaUser: LucumaUserBoolExp
+  lucumaWavelengthUnit: LucumaWavelengthUnitsBoolExp
   observationTableFilters: BooleanComparisonExp
   programsTableFilters: BooleanComparisonExp
   scienceOffsets: BooleanComparisonExp
@@ -3203,6 +3831,7 @@ input LucumaUserPreferencesDeleteKeyInput {
 input type for inserting data into table "lucumaUserPreferences"
 """
 input LucumaUserPreferencesInsertInput {
+  ItcChartType: ItcChartTypeObjRelInsertInput
   acquisitionOffsets: Boolean
   agsOverlay: Boolean
   aladinLegend: Boolean
@@ -3215,12 +3844,16 @@ input LucumaUserPreferencesInsertInput {
   elevationPlotScheduling: Boolean
   elevationPlotSkyBrightnessVisible: Boolean
   elevationPlotTime: ExplorePlotTimeEnum
+  exploreGuideButton: Boolean
+  explorePlotRange: ExplorePlotRangeObjRelInsertInput
+  explorePlotTime: ExplorePlotTimeObjRelInsertInput
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
   lastOpenPrograms: jsonb
   logLevel: String
-  lucuma_user: LucumaUserObjRelInsertInput
+  lucumaUser: LucumaUserObjRelInsertInput
+  lucumaWavelengthUnit: LucumaWavelengthUnitsObjRelInsertInput
   observationTableFilters: Boolean
   programsTableFilters: Boolean
   scienceOffsets: Boolean
@@ -3258,6 +3891,16 @@ type LucumaUserPreferencesMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaUserPreferences"
+"""
+input LucumaUserPreferencesObjRelInsertInput {
+  data: LucumaUserPreferencesInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaUserPreferencesOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaUserPreferences"
 """
 input LucumaUserPreferencesOnConflict {
@@ -3268,6 +3911,7 @@ input LucumaUserPreferencesOnConflict {
 
 """Ordering options when selecting data from "lucumaUserPreferences"."""
 input LucumaUserPreferencesOrderBy {
+  ItcChartType: ItcChartTypeOrderBy
   acquisitionOffsets: OrderBy
   agsOverlay: OrderBy
   aladinLegend: OrderBy
@@ -3280,12 +3924,16 @@ input LucumaUserPreferencesOrderBy {
   elevationPlotScheduling: OrderBy
   elevationPlotSkyBrightnessVisible: OrderBy
   elevationPlotTime: OrderBy
+  exploreGuideButton: OrderBy
+  explorePlotRange: ExplorePlotRangeOrderBy
+  explorePlotTime: ExplorePlotTimeOrderBy
   fullScreen: OrderBy
   itcChartType: OrderBy
   itcDetailsOpen: OrderBy
   lastOpenPrograms: OrderBy
   logLevel: OrderBy
-  lucuma_user: LucumaUserOrderBy
+  lucumaUser: LucumaUserOrderBy
+  lucumaWavelengthUnit: LucumaWavelengthUnitsOrderBy
   observationTableFilters: OrderBy
   programsTableFilters: OrderBy
   scienceOffsets: OrderBy
@@ -3346,6 +3994,9 @@ enum LucumaUserPreferencesSelectColumn {
   elevationPlotTime
 
   """column name"""
+  exploreGuideButton
+
+  """column name"""
   fullScreen
 
   """column name"""
@@ -3398,6 +4049,7 @@ input LucumaUserPreferencesSetInput {
   elevationPlotScheduling: Boolean
   elevationPlotSkyBrightnessVisible: Boolean
   elevationPlotTime: ExplorePlotTimeEnum
+  exploreGuideButton: Boolean
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
@@ -3451,6 +4103,9 @@ enum LucumaUserPreferencesUpdateColumn {
 
   """column name"""
   elevationPlotTime
+
+  """column name"""
+  exploreGuideButton
 
   """column name"""
   fullScreen
@@ -3550,6 +4205,42 @@ columns and relationships of "lucumaWavelengthUnits"
 """
 type LucumaWavelengthUnits {
   id: String!
+
+  """An array relationship"""
+  lucumaUserPreferences(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): [LucumaUserPreferences!]!
+
+  """An aggregate relationship"""
+  lucumaUserPreferencesAggregate(
+    """distinct select on columns"""
+    distinctOn: [LucumaUserPreferencesSelectColumn!]
+
+    """limit the number of rows returned"""
+    limit: Int
+
+    """skip the first n rows. Use only with order_by"""
+    offset: Int
+
+    """sort the rows by one or more columns"""
+    orderBy: [LucumaUserPreferencesOrderBy!]
+
+    """filter the rows returned"""
+    where: LucumaUserPreferencesBoolExp
+  ): LucumaUserPreferencesAggregate!
 }
 
 """
@@ -3577,6 +4268,7 @@ input LucumaWavelengthUnitsBoolExp {
   _not: LucumaWavelengthUnitsBoolExp
   _or: [LucumaWavelengthUnitsBoolExp!]
   id: StringComparisonExp
+  lucumaUserPreferences: LucumaUserPreferencesBoolExp
 }
 
 """
@@ -3611,6 +4303,7 @@ input type for inserting data into table "lucumaWavelengthUnits"
 """
 input LucumaWavelengthUnitsInsertInput {
   id: String
+  lucumaUserPreferences: LucumaUserPreferencesArrRelInsertInput
 }
 
 """aggregate max on columns"""
@@ -3635,6 +4328,16 @@ type LucumaWavelengthUnitsMutationResponse {
 }
 
 """
+input type for inserting object relation for remote table "lucumaWavelengthUnits"
+"""
+input LucumaWavelengthUnitsObjRelInsertInput {
+  data: LucumaWavelengthUnitsInsertInput!
+
+  """upsert condition"""
+  onConflict: LucumaWavelengthUnitsOnConflict
+}
+
+"""
 on_conflict condition type for table "lucumaWavelengthUnits"
 """
 input LucumaWavelengthUnitsOnConflict {
@@ -3646,6 +4349,7 @@ input LucumaWavelengthUnitsOnConflict {
 """Ordering options when selecting data from "lucumaWavelengthUnits"."""
 input LucumaWavelengthUnitsOrderBy {
   id: OrderBy
+  lucumaUserPreferencesAggregate: LucumaUserPreferencesAggregateOrderBy
 }
 
 """primary key columns input for table: lucumaWavelengthUnits"""
@@ -3789,6 +4493,86 @@ input TimestamptzComparisonExp {
 scalar bigint
 
 """
+order by avg() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_avg_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by max() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_max_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  userId: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by min() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_min_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  userId: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by stddev() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_stddev_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by stddev_pop() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_stddev_pop_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by stddev_samp() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_stddev_samp_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
 Streaming cursor of the table "exploreAsterismPreferences"
 """
 input exploreAsterismPreferences_streamCursorInput {
@@ -3809,6 +4593,58 @@ input exploreAsterismPreferences_streamCursorValueInput {
   userId: String
   viewOffsetP: bigint
   viewOffsetQ: bigint
+}
+
+"""
+order by sum() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_sum_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by var_pop() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_var_pop_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by var_samp() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_var_samp_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
+}
+
+"""
+order by variance() on columns of table "exploreAsterismPreferences"
+"""
+input exploreAsterismPreferences_variance_order_by {
+  brightness: OrderBy
+  fovDec: OrderBy
+  fovRA: OrderBy
+  id: OrderBy
+  saturation: OrderBy
+  viewOffsetP: OrderBy
+  viewOffsetQ: OrderBy
 }
 
 """
@@ -4100,6 +4936,74 @@ input lucumaGridLayoutId_streamCursorValueInput {
 }
 
 """
+order by avg() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_avg_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by max() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_max_order_by {
+  createdAt: OrderBy
+  height: OrderBy
+  tile: OrderBy
+  updatedAt: OrderBy
+  userId: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by min() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_min_order_by {
+  createdAt: OrderBy
+  height: OrderBy
+  tile: OrderBy
+  updatedAt: OrderBy
+  userId: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by stddev() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_stddev_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by stddev_pop() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_stddev_pop_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by stddev_samp() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_stddev_samp_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
 Streaming cursor of the table "lucumaGridLayoutPositions"
 """
 input lucumaGridLayoutPositions_streamCursorInput {
@@ -4122,6 +5026,46 @@ input lucumaGridLayoutPositions_streamCursorValueInput {
   width: Int
   x: Int
   y: Int
+}
+
+"""
+order by sum() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_sum_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by var_pop() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_var_pop_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by var_samp() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_var_samp_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
+}
+
+"""
+order by variance() on columns of table "lucumaGridLayoutPositions"
+"""
+input lucumaGridLayoutPositions_variance_order_by {
+  height: OrderBy
+  width: OrderBy
+  x: OrderBy
+  y: OrderBy
 }
 
 """
@@ -4174,6 +5118,20 @@ input lucumaTableIds_streamCursorValueInput {
 }
 
 """
+order by max() on columns of table "lucumaTablePreferences"
+"""
+input lucumaTablePreferences_max_order_by {
+  userId: OrderBy
+}
+
+"""
+order by min() on columns of table "lucumaTablePreferences"
+"""
+input lucumaTablePreferences_min_order_by {
+  userId: OrderBy
+}
+
+"""
 Streaming cursor of the table "lucumaTablePreferences"
 """
 input lucumaTablePreferences_streamCursorInput {
@@ -4192,6 +5150,22 @@ input lucumaTablePreferences_streamCursorValueInput {
 }
 
 """
+order by max() on columns of table "lucumaTarget"
+"""
+input lucumaTarget_max_order_by {
+  targetId: OrderBy
+  userId: OrderBy
+}
+
+"""
+order by min() on columns of table "lucumaTarget"
+"""
+input lucumaTarget_min_order_by {
+  targetId: OrderBy
+  userId: OrderBy
+}
+
+"""
 Streaming cursor of the table "lucumaTarget"
 """
 input lucumaTarget_streamCursorInput {
@@ -4207,6 +5181,26 @@ input lucumaTarget_streamCursorValueInput {
   lineOfSightMotion: LucumaLineOfSightMotionEnum
   targetId: String
   userId: String
+}
+
+"""
+order by max() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_max_order_by {
+  createdAt: OrderBy
+  logLevel: OrderBy
+  updatedAt: OrderBy
+  userId: OrderBy
+}
+
+"""
+order by min() on columns of table "lucumaUserPreferences"
+"""
+input lucumaUserPreferences_min_order_by {
+  createdAt: OrderBy
+  logLevel: OrderBy
+  updatedAt: OrderBy
+  userId: OrderBy
 }
 
 """
@@ -4234,6 +5228,7 @@ input lucumaUserPreferences_streamCursorValueInput {
   elevationPlotScheduling: Boolean
   elevationPlotSkyBrightnessVisible: Boolean
   elevationPlotTime: ExplorePlotTimeEnum
+  exploreGuideButton: Boolean
   fullScreen: Boolean
   itcChartType: ItcChartTypeEnum
   itcDetailsOpen: Boolean
@@ -5526,9 +6521,7 @@ type Mutation {
 }
 
 type Query {
-  """
-  fetch data from the table: "exploreAsterismPreferences"
-  """
+  """An array relationship"""
   exploreAsterismPreferences(
     """distinct select on columns"""
     distinctOn: [ExploreAsterismPreferencesSelectColumn!]
@@ -5546,9 +6539,7 @@ type Query {
     where: ExploreAsterismPreferencesBoolExp
   ): [ExploreAsterismPreferences!]!
 
-  """
-  fetch aggregated fields from the table: "exploreAsterismPreferences"
-  """
+  """An aggregate relationship"""
   exploreAsterismPreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [ExploreAsterismPreferencesSelectColumn!]
@@ -5923,9 +6914,7 @@ type Query {
   """
   lucumaGridLayoutIdByPk(id: String!): LucumaGridLayoutId
 
-  """
-  fetch data from the table: "lucumaGridLayoutPositions"
-  """
+  """An array relationship"""
   lucumaGridLayoutPositions(
     """distinct select on columns"""
     distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
@@ -5943,9 +6932,7 @@ type Query {
     where: LucumaGridLayoutPositionsBoolExp
   ): [LucumaGridLayoutPositions!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaGridLayoutPositions"
-  """
+  """An aggregate relationship"""
   lucumaGridLayoutPositionsAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
@@ -6101,9 +7088,7 @@ type Query {
   """fetch data from the table: "lucumaTableIds" using primary key columns"""
   lucumaTableIdsByPk(id: String!): LucumaTableIds
 
-  """
-  fetch data from the table: "lucumaTablePreferences"
-  """
+  """An array relationship"""
   lucumaTablePreferences(
     """distinct select on columns"""
     distinctOn: [LucumaTablePreferencesSelectColumn!]
@@ -6121,9 +7106,7 @@ type Query {
     where: LucumaTablePreferencesBoolExp
   ): [LucumaTablePreferences!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaTablePreferences"
-  """
+  """An aggregate relationship"""
   lucumaTablePreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaTablePreferencesSelectColumn!]
@@ -6232,9 +7215,7 @@ type Query {
   """fetch data from the table: "lucumaUser" using primary key columns"""
   lucumaUserByPk(userId: String!): LucumaUser
 
-  """
-  fetch data from the table: "lucumaUserPreferences"
-  """
+  """An array relationship"""
   lucumaUserPreferences(
     """distinct select on columns"""
     distinctOn: [LucumaUserPreferencesSelectColumn!]
@@ -6252,9 +7233,7 @@ type Query {
     where: LucumaUserPreferencesBoolExp
   ): [LucumaUserPreferences!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaUserPreferences"
-  """
+  """An aggregate relationship"""
   lucumaUserPreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaUserPreferencesSelectColumn!]
@@ -6324,9 +7303,7 @@ type Query {
 }
 
 type Subscription {
-  """
-  fetch data from the table: "exploreAsterismPreferences"
-  """
+  """An array relationship"""
   exploreAsterismPreferences(
     """distinct select on columns"""
     distinctOn: [ExploreAsterismPreferencesSelectColumn!]
@@ -6344,9 +7321,7 @@ type Subscription {
     where: ExploreAsterismPreferencesBoolExp
   ): [ExploreAsterismPreferences!]!
 
-  """
-  fetch aggregated fields from the table: "exploreAsterismPreferences"
-  """
+  """An aggregate relationship"""
   exploreAsterismPreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [ExploreAsterismPreferencesSelectColumn!]
@@ -6847,9 +7822,7 @@ type Subscription {
     where: LucumaGridLayoutIdBoolExp
   ): [LucumaGridLayoutId!]!
 
-  """
-  fetch data from the table: "lucumaGridLayoutPositions"
-  """
+  """An array relationship"""
   lucumaGridLayoutPositions(
     """distinct select on columns"""
     distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
@@ -6867,9 +7840,7 @@ type Subscription {
     where: LucumaGridLayoutPositionsBoolExp
   ): [LucumaGridLayoutPositions!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaGridLayoutPositions"
-  """
+  """An aggregate relationship"""
   lucumaGridLayoutPositionsAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaGridLayoutPositionsSelectColumn!]
@@ -7081,9 +8052,7 @@ type Subscription {
     where: LucumaTableIdsBoolExp
   ): [LucumaTableIds!]!
 
-  """
-  fetch data from the table: "lucumaTablePreferences"
-  """
+  """An array relationship"""
   lucumaTablePreferences(
     """distinct select on columns"""
     distinctOn: [LucumaTablePreferencesSelectColumn!]
@@ -7101,9 +8070,7 @@ type Subscription {
     where: LucumaTablePreferencesBoolExp
   ): [LucumaTablePreferences!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaTablePreferences"
-  """
+  """An aggregate relationship"""
   lucumaTablePreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaTablePreferencesSelectColumn!]
@@ -7240,9 +8207,7 @@ type Subscription {
   """fetch data from the table: "lucumaUser" using primary key columns"""
   lucumaUserByPk(userId: String!): LucumaUser
 
-  """
-  fetch data from the table: "lucumaUserPreferences"
-  """
+  """An array relationship"""
   lucumaUserPreferences(
     """distinct select on columns"""
     distinctOn: [LucumaUserPreferencesSelectColumn!]
@@ -7260,9 +8225,7 @@ type Subscription {
     where: LucumaUserPreferencesBoolExp
   ): [LucumaUserPreferences!]!
 
-  """
-  fetch aggregated fields from the table: "lucumaUserPreferences"
-  """
+  """An aggregate relationship"""
   lucumaUserPreferencesAggregate(
     """distinct select on columns"""
     distinctOn: [LucumaUserPreferencesSelectColumn!]

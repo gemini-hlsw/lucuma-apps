@@ -134,6 +134,21 @@ object UserPreferencesQueries:
         .attempt
         .void
 
+    def storeExploreGuideButtonPreference[F[_]: ApplicativeThrow](
+      userId:             User.Id,
+      exploreGuideButton: Visible
+    )(using FetchClient[F, UserPreferencesDB]): F[Unit] =
+      UserPreferencesAladinUpdate[F]
+        .execute(
+          objects = LucumaUserPreferencesInsertInput(
+            userId = userId.show.assign,
+            exploreGuideButton = exploreGuideButton.value.assign
+          ),
+          update_columns = List(LucumaUserPreferencesUpdateColumn.ExploreGuideButton)
+        )
+        .attempt
+        .void
+
   end GlobalUserPreferences
 
   object GridLayouts:

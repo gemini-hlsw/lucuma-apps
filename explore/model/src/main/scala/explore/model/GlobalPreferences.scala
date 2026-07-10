@@ -46,7 +46,8 @@ case class GlobalPreferences(
   programsTableFilters:                 Visible,
   logLevel:                             LogLevel,
   lastOpenPrograms:                     List[Program.Id] = List.empty,
-  agsVisibility:                        Option[AGSVisibility] = None
+  agsVisibility:                        Option[AGSVisibility] = None,
+  exploreGuideButton:                   Visible = Visible.Shown
 ) derives Eq,
       Decoder:
   def openedProgram(pid: Program.Id): GlobalPreferences =
@@ -82,6 +83,7 @@ object GlobalPreferences:
   val lastOpenPrograms                     = Focus[GlobalPreferences](_.lastOpenPrograms)
   val agsVisibility                        =
     Focus[GlobalPreferences](_.agsVisibility).withDefault(AGSVisibility.Default)
+  val exploreGuideButton                   = Focus[GlobalPreferences](_.exploreGuideButton)
 
   private val MaxLastOpenPrograms = 6
 

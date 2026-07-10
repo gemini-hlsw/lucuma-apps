@@ -10,6 +10,7 @@ import clue.js.FetchJsClient
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.common.UserPreferencesQueries.GridLayouts
 import explore.common.UserPreferencesQueries.WavelengthUnitsPreference
 import explore.components.deleteConfirmation
@@ -18,6 +19,7 @@ import explore.model.ApiKey
 import explore.model.AppContext
 import explore.model.IsActive
 import explore.model.display.given
+import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import explore.syntax.ui.*
@@ -25,6 +27,10 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.RoleType
 import lucuma.core.model.StandardRole
+import lucuma.core.model.StandardRole.Admin
+import lucuma.core.model.StandardRole.Ngo
+import lucuma.core.model.StandardRole.Pi
+import lucuma.core.model.StandardRole.Staff
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
@@ -51,9 +57,10 @@ import queries.common.SSOQueriesGQL.*
 import queries.schemas.SSO
 
 case class UserPreferencesPopup(
-  vault:   UserVault,
-  onClose: Option[Callback] = none,
-  units:   View[WavelengthUnits]
+  vault:              UserVault,
+  onClose:            Option[Callback] = none,
+  units:              View[WavelengthUnits],
+  exploreGuideButton: View[Visible]
 ) extends ReactFnProps(UserPreferencesPopup.component)
 
 private object IsOpen extends NewBoolean
@@ -83,15 +90,17 @@ object UserPreferencesPopup:
         UserPreferencesContent(props.vault,
                                props.onClose,
                                isOpen.withOnMod(_ => onHide),
-                               props.units
+                               props.units,
+                               props.exploreGuideButton
         )
       )
 
 case class UserPreferencesContent(
-  vault:   UserVault,
-  onClose: Option[Callback] = none,
-  isOpen:  View[IsOpen],
-  units:   View[WavelengthUnits]
+  vault:              UserVault,
+  onClose:            Option[Callback] = none,
+  isOpen:             View[IsOpen],
+  units:              View[WavelengthUnits],
+  exploreGuideButton: View[Visible]
 ) extends ReactFnProps(UserPreferencesContent.component)
 
 object UserPreferencesContent:
@@ -108,6 +117,12 @@ object UserPreferencesContent:
   private val ActionsColumnId: ColumnId = ColumnId("actions")
   private val IdColumnId: ColumnId      = ColumnId("id")
   private val RoleColumnId: ColumnId    = ColumnId("role")
+
+  private def roleType(role: StandardRole): RoleType = role match
+    case _: Pi    => RoleType.Pi
+    case _: Ngo   => RoleType.NGO
+    case _: Staff => RoleType.Staff
+    case _: Admin => RoleType.Admin
 
   private def createNewKey(
     keyRoleId: StandardRole.Id,
@@ -231,15 +246,21 @@ object UserPreferencesContent:
             .runAsyncAndForget
         }
 
+        val guideButtonView = props.exploreGuideButton.withOnMod { visible =>
+          GlobalUserPreferences
+            .storeExploreGuideButtonPreference(props.vault.user.id, visible)
+            .runAsyncAndForget
+        }
+
+        val (currentRole, otherRoles) = props.vault.extractRoles
+        val allRoles                  = currentRole.toList ++ otherRoles
+
+        val id   = props.vault.user.id
+        val name = props.vault.user.displayName
+        val role = currentRole.map(r => roleType(r).shortName).orEmpty
+
         user.value.renderPot(
-          ssoUser => {
-            val id   = ssoUser.user.id
-            val name =
-              s"${ssoUser.user.profile.givenName.orEmpty} ${ssoUser.user.profile.familyName.orEmpty}"
-            val role = ssoUser.role.`type`.shortName
-
-            val allRoles = ssoUser.user.roles
-
+          _ => {
             val requestCacheClean =
               for {
                 _ <- isCleaningTheCache.setState(IsCleaningTheCache(true)).toAsync
@@ -281,9 +302,9 @@ object UserPreferencesContent:
               ).small.compact
 
             val unsupportedRoles = Enumerated[RoleType].all.filterNot { rt =>
-              allRoles.exists(r => r.`type` === rt)
+              allRoles.exists(r => roleType(r) === rt)
             }
-            val currentKeyRoleId = allRoles.find(_.`type` === newRoleType.get).map(_.id)
+            val currentKeyRoleId = allRoles.find(r => roleType(r) === newRoleType.get).map(_.id)
 
             React.Fragment(
               Divider(),
@@ -303,6 +324,14 @@ object UserPreferencesContent:
                   view = unitsView,
                   disabled = active.get.value,
                   buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.Compact
+                )
+              ),
+              Divider(),
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                CheckboxView(
+                  id = "explore-guide-button".refined,
+                  value = guideButtonView.as(Visible.Value),
+                  label = "Show/Hide Getting Started"
                 )
               ),
               Divider(),

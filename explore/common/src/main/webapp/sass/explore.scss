@@ -103,6 +103,29 @@ tfoot {
   letter-spacing: 0.1em;
 }
 
+.main-title-separator {
+  font-size: 0.85em;
+  margin-right: 0.4em;
+  margin-left: 0.4em;
+}
+
+.main-header.p-toolbar {
+  .p-toolbar-group-right .p-component.p-button.explore-guide-button {
+    margin-right: 1rem;
+  }
+
+  @media (max-width: lucumaUICommon.$mobile-responsive-cutoff) {
+    padding: 0.3em;
+
+    .main-title-prefix,
+    .main-title-program-name,
+    .main-user-name,
+    .explore-guide-button {
+      display: none;
+    }
+  }
+}
+
 .p-toolbar-group-start.p-toolbar-group-left {
   align-items: baseline;
 }
@@ -1655,10 +1678,6 @@ svg.fa-check.explore-success-icon {
   .explore-tile-control-buttons {
     margin-left: auto;
   }
-}
-
-.main-header.p-toolbar .p-toolbar-group-right .p-component.p-button.explore-guide-button {
-  margin-right: 1rem;
 }
 
 .explore-top-menu {

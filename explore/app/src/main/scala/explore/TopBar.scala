@@ -17,6 +17,7 @@ import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
+import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.programs.ProgramsPopup
 import explore.users.RedeemInvitationsPopup
@@ -301,25 +302,41 @@ object TopBar:
       yield
         val user = props.vault.get.user
 
+        val programName =
+          for {
+            pis <- props.programInfos.get
+            pid <- props.programId
+            p   <- pis.get(pid)
+            n   <- p.name
+          } yield n.value
+
         React.Fragment(
           Toolbar(
             clazz = LayoutStyles.MainHeader,
             left = React.Fragment(
-              <.span(LayoutStyles.MainTitle, s"Explore"),
+              <.span(ExploreStyles.MainTitlePrefix, LayoutStyles.MainTitle, s"Explore"),
               props.programOrProposalReference.map: r =>
-                React.Fragment(<.span(LayoutStyles.MainTitle, "- "),
+                React.Fragment(<.span(ExploreStyles.MainTitlePrefix, LayoutStyles.MainTitle, "- "),
                                <.span(ExploreStyles.MainTitleProgramId, r)
+                ),
+              programName.map: n =>
+                <.span(
+                  ExploreStyles.MainTitleProgramName,
+                  <.span(ExploreStyles.MainTitleSeparator, "/"),
+                  <.span(ExploreStyles.MainTitleProgramId, n)
                 )
             ),
             right = React.Fragment(
-              Button(
-                icon = Icons.RocketLaunch,
-                label = "Getting Started",
-                severity = Button.Severity.Secondary,
-                tooltip = "Guide",
-                clazz = ExploreStyles.GuideButton,
-                onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
-              ).small.compact,
+              if props.globalPreferences.get.exploreGuideButton === Visible.Shown then
+                Button(
+                  icon = Icons.RocketLaunch,
+                  label = "Getting Started",
+                  severity = Button.Severity.Secondary,
+                  tooltip = "Guide",
+                  clazz = ExploreStyles.GuideButton,
+                  onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
+                ).small.compact
+              else EmptyVdom,
               <.span(LayoutStyles.MainUserName)(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),
@@ -355,7 +372,8 @@ object TopBar:
             UserPreferencesPopup(
               props.vault.get,
               isUserPropertiesOpen.setState(IsUserPropertiesOpen(false)).some,
-              props.globalPreferences.zoom(GlobalPreferences.wavelengthUnits)
+              props.globalPreferences.zoom(GlobalPreferences.wavelengthUnits),
+              props.globalPreferences.zoom(GlobalPreferences.exploreGuideButton)
             )
           else EmptyVdom,
           if isReedemInvitationsOpen.value.value then
