@@ -58,7 +58,9 @@ object ExploreStyles:
   val ObsGroupTitleWithList: Css = Css("obs-group-title-with-list")
   val DeleteButton: Css          = Css("delete-button")
 
-  val MainTitleProgramId: Css = Css("main-title-program-id")
+  val MainTitleProgramId: Css   = Css("main-title-program-id")
+  val MainTitlePrefix: Css      = Css("main-title-prefix")
+  val MainTitleProgramName: Css = Css("main-title-program-name")
   val MainTitleSeparator: Css = Css("main-title-separator")
   val ResizeHandle: Css       = Css("resize-handle")
   val ResizableSeparator: Css = Css("resize-separator")

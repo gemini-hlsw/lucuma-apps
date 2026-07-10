@@ -103,6 +103,15 @@ tfoot {
   letter-spacing: 0.1em;
 }
 
+@media (max-width: lucumaUICommon.$mobile-responsive-cutoff) {
+  .main-title-prefix,
+  .main-title-program-name,
+  .main-header .main-user-name,
+  .main-header .explore-guide-button {
+    display: none;
+  }
+}
+
 .main-title-separator {
   font-size: 0.85em;
   margin-right: 0.4em;
@@ -1660,6 +1669,12 @@ svg.fa-check.explore-success-icon {
 
   .explore-tile-control-buttons {
     margin-left: auto;
+  }
+}
+
+@media (max-width: lucumaUICommon.$mobile-responsive-cutoff) {
+  .main-header.p-toolbar {
+    padding: 0.3em;
   }
 }
 

@@ -313,13 +313,14 @@ object TopBar:
           Toolbar(
             clazz = LayoutStyles.MainHeader,
             left = React.Fragment(
-              <.span(LayoutStyles.MainTitle, s"Explore"),
+              <.span(ExploreStyles.MainTitlePrefix, LayoutStyles.MainTitle, s"Explore"),
               props.programOrProposalReference.map: r =>
-                React.Fragment(<.span(LayoutStyles.MainTitle, "- "),
+                React.Fragment(<.span(ExploreStyles.MainTitlePrefix, LayoutStyles.MainTitle, "- "),
                                <.span(ExploreStyles.MainTitleProgramId, r)
                 ),
               programName.map: n =>
-                React.Fragment(
+                <.span(
+                  ExploreStyles.MainTitleProgramName,
                   props.programOrProposalReference.as(
                     <.span(ExploreStyles.MainTitleSeparator, "/")
                   ),
