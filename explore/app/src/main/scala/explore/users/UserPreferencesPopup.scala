@@ -27,6 +27,10 @@ import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.RoleType
 import lucuma.core.model.StandardRole
+import lucuma.core.model.StandardRole.Admin
+import lucuma.core.model.StandardRole.Ngo
+import lucuma.core.model.StandardRole.Pi
+import lucuma.core.model.StandardRole.Staff
 import lucuma.core.syntax.display.*
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewBoolean
@@ -113,6 +117,12 @@ object UserPreferencesContent:
   private val ActionsColumnId: ColumnId = ColumnId("actions")
   private val IdColumnId: ColumnId      = ColumnId("id")
   private val RoleColumnId: ColumnId    = ColumnId("role")
+
+  private def roleType(role: StandardRole): RoleType = role match
+    case _: Pi    => RoleType.Pi
+    case _: Ngo   => RoleType.NGO
+    case _: Staff => RoleType.Staff
+    case _: Admin => RoleType.Admin
 
   private def createNewKey(
     keyRoleId: StandardRole.Id,
@@ -242,15 +252,15 @@ object UserPreferencesContent:
             .runAsyncAndForget
         }
 
+        val (currentRole, otherRoles) = props.vault.extractRoles
+        val allRoles                  = currentRole.toList ++ otherRoles
+
+        val id   = props.vault.user.id
+        val name = props.vault.user.displayName
+        val role = currentRole.map(r => roleType(r).shortName).orEmpty
+
         user.value.renderPot(
-          ssoUser => {
-            val id   = ssoUser.user.id
-            val name =
-              s"${ssoUser.user.profile.givenName.orEmpty} ${ssoUser.user.profile.familyName.orEmpty}"
-            val role = ssoUser.role.`type`.shortName
-
-            val allRoles = ssoUser.user.roles
-
+          _ => {
             val requestCacheClean =
               for {
                 _ <- isCleaningTheCache.setState(IsCleaningTheCache(true)).toAsync
@@ -292,9 +302,9 @@ object UserPreferencesContent:
               ).small.compact
 
             val unsupportedRoles = Enumerated[RoleType].all.filterNot { rt =>
-              allRoles.exists(r => r.`type` === rt)
+              allRoles.exists(r => roleType(r) === rt)
             }
-            val currentKeyRoleId = allRoles.find(_.`type` === newRoleType.get).map(_.id)
+            val currentKeyRoleId = allRoles.find(r => roleType(r) === newRoleType.get).map(_.id)
 
             React.Fragment(
               Divider(),

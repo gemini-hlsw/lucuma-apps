@@ -14,20 +14,7 @@ object SSOQueriesGQL:
     val document =
       """
       query {
-        role {
-          type
-          id
-        }
         user {
-          id
-          profile {
-            givenName
-            familyName
-          }
-          roles {
-            id
-            type
-          }
           apiKeys {
             id
             role {
