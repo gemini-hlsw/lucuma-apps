@@ -352,45 +352,45 @@ object Observation:
   type Id = lucuma.core.model.Observation.Id
   val Id = lucuma.core.model.Observation.Id
 
-  val id                       = Focus[Observation](_.id)
-  val reference                = Focus[Observation](_.reference)
-  val title                    = Focus[Observation](_.title)
-  val subtitle                 = Focus[Observation](_.subtitle)
-  val scienceTargetIds         = Focus[Observation](_.scienceTargetIds)
-  val selectedGSName           = Focus[Observation](_.selectedGSName)
-  val constraints              = Focus[Observation](_.constraints)
-  val centralWavelength        = Focus[Observation](_.centralWavelength)
-  val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
-  val attachmentIds            = Focus[Observation](_.attachmentIds)
-  val scienceRequirements      = Focus[Observation](_.scienceRequirements)
-  val basicConfiguration       = Focus[Observation](_.basicConfiguration)
-  val observingMode            = Focus[Observation](_.observingMode)
+  val id                                                            = Focus[Observation](_.id)
+  val reference                                                     = Focus[Observation](_.reference)
+  val title                                                         = Focus[Observation](_.title)
+  val subtitle                                                      = Focus[Observation](_.subtitle)
+  val scienceTargetIds                                              = Focus[Observation](_.scienceTargetIds)
+  val selectedGSName                                                = Focus[Observation](_.selectedGSName)
+  val constraints                                                   = Focus[Observation](_.constraints)
+  val centralWavelength                                             = Focus[Observation](_.centralWavelength)
+  val schedulingConstraints                                         = Focus[Observation](_.schedulingConstraints)
+  val attachmentIds                                                 = Focus[Observation](_.attachmentIds)
+  val scienceRequirements                                           = Focus[Observation](_.scienceRequirements)
+  val basicConfiguration                                            = Focus[Observation](_.basicConfiguration)
+  val observingMode                                                 = Focus[Observation](_.observingMode)
   // View into the full observing mode as an Option, treating Pending as None
   // and producing Pot.Ready(_) on writes. Used by editors that can only run
   // once the detail query has populated observingMode.
-  val observingModeOption: Lens[Observation, Option[ObservingMode]]             =
+  val observingModeOption: Lens[Observation, Option[ObservingMode]] =
     observingMode.andThen:
       Lens[Pot[Option[ObservingMode]], Option[ObservingMode]](_.toOption.flatten)(x =>
         _ => Pot.Ready(x)
       )
-  val observationTime          = Focus[Observation](_.observationTime)
-  val observationDuration      = Focus[Observation](_.observationDuration)
-  val posAngleConstraint       = Focus[Observation](_.posAngleConstraint)
-  val observerNotes            = Focus[Observation](_.observerNotes)
-  val calibrationRole          = Focus[Observation](_.calibrationRole)
-  val scienceBand              = Focus[Observation](_.scienceBand)
-  val configuration            = Focus[Observation](_.configuration)
-  val configurationRequestIds  = Focus[Observation](_.configurationRequestIds)
-  val workflow                 = Focus[Observation](_.workflow)
-  val workflowState            = workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.state)
-  val workflowValidTransitions =
+  val observationTime                                               = Focus[Observation](_.observationTime)
+  val observationDuration                                           = Focus[Observation](_.observationDuration)
+  val posAngleConstraint                                            = Focus[Observation](_.posAngleConstraint)
+  val observerNotes                                                 = Focus[Observation](_.observerNotes)
+  val calibrationRole                                               = Focus[Observation](_.calibrationRole)
+  val scienceBand                                                   = Focus[Observation](_.scienceBand)
+  val configuration                                                 = Focus[Observation](_.configuration)
+  val configurationRequestIds                                       = Focus[Observation](_.configurationRequestIds)
+  val workflow                                                      = Focus[Observation](_.workflow)
+  val workflowState                                                 = workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.state)
+  val workflowValidTransitions                                      =
     workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.validTransitions)
-  val validationErrors         =
+  val validationErrors                                              =
     workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.validationErrors)
-  val groupId                  = Focus[Observation](_.groupId)
-  val groupIndex               = Focus[Observation](_.groupIndex)
-  val execution                = Focus[Observation](_.execution)
-  val digest                   = execution.andThen(Execution.digest)
+  val groupId                                                       = Focus[Observation](_.groupId)
+  val groupIndex                                                    = Focus[Observation](_.groupIndex)
+  val execution                                                     = Focus[Observation](_.execution)
+  val digest                                                        = execution.andThen(Execution.digest)
 
   val groupInfo: Lens[Observation, (Option[Group.Id], NonNegShort)] =
     (groupId, groupIndex).disjointZip

@@ -109,10 +109,9 @@ trait OdbObservationApi[F[_]]:
   def allProgramObservations(programId:  Program.Id): F[List[Observation]]
 
   /**
-   * Fetches (id, full ObservingMode) pairs for every observation in the
-   * program belonging to a given mode type. Used to hydrate the `observingMode`
-   * field after the bulk summary query has returned the lightweight
-   * BasicConfiguration. Partitioning by `ObservingModeType` (rather than
+   * Fetches (id, full ObservingMode) pairs for every observation in the program belonging to a
+   * given mode type. Used to hydrate the `observingMode` field after the bulk summary query has
+   * returned the lightweight BasicConfiguration. Partitioning by `ObservingModeType` (rather than
    * `Instrument`) lets each detail query hit a single instrument-mode table.
    */
   def programObservationsObservingModes(

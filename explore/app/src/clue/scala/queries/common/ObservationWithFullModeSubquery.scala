@@ -32,6 +32,10 @@ object ObservationWithFullModeSubquery
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
+            explicitBase {
+              ra $RASubquery
+              dec $DecSubquery
+            }
           }
           constraintSet $ConstraintSetSubquery
           schedulingConstraints {
