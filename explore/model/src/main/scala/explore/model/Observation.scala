@@ -8,6 +8,7 @@ import cats.Order.given
 import cats.data.NonEmptyList
 import cats.derived.*
 import cats.syntax.all.*
+import crystal.Pot
 import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.string.NonEmptyString
@@ -72,7 +73,8 @@ final case class Observation(
   schedulingConstraints:   SchedulingConstraints,
   attachmentIds:           SortedSet[Attachment.Id],
   scienceRequirements:     ScienceRequirements,
-  observingMode:           Option[ObservingMode],
+  basicConfiguration:      Option[BasicConfiguration],
+  observingMode:           Pot[Option[ObservingMode]],
   observationTime:         Option[Instant],
   observationDuration:     Option[TimeSpan],
   posAngleConstraint:      PosAngleConstraint,
@@ -89,19 +91,16 @@ final case class Observation(
   explicitBase:            Option[Coordinates],
   blindOffset:             BlindOffset
 ) derives Eq:
-  lazy val basicConfiguration: Option[BasicConfiguration] =
-    observingMode.map(_.toBasicConfiguration)
-
-  val site: Option[Site] = observingMode.flatMap(_.siteFor)
+  val site: Option[Site] = basicConfiguration.flatMap(_.siteFor)
 
   lazy val observingModeSummary: Option[ObservingModeSummary] =
-    observingMode.map(ObservingModeSummary.fromObservingMode)
+    observingMode.toOption.flatten.map(ObservingModeSummary.fromObservingMode)
 
   lazy val hasBlindOffset: Boolean =
     blindOffset.useBlindOffset && blindOffset.blindOffsetTargetId.nonEmpty
 
   lazy val hasSkyPosition: Boolean =
-    observingMode match
+    observingMode.toOption.flatten match
       case Some(ObservingMode.GhostIfu(skyPosition = Some(_))) => true
       case _                                                   => false
 
@@ -127,7 +126,7 @@ final case class Observation(
 
   // Computes mode parameters locally, for quick invocation of ITC.
   def toModeOverride(targets: TargetList): Option[InstrumentOverrides.GmosSpectroscopy] =
-    observingMode.flatMap:
+    observingMode.toOption.flatten.flatMap:
       case ObservingMode.GmosNorthLongSlit(
             grating = grating,
             fpu = fpu,
@@ -201,7 +200,7 @@ final case class Observation(
     import ObservingMode.*
     val modeOverride: Option[InstrumentOverrides.GmosSpectroscopy] = toModeOverride(targets)
 
-    observingMode
+    observingMode.toOption.flatten
       .foldMap:
         case n: GmosNorthLongSlit                =>
           modeOverride.foldMap: o =>
@@ -364,6 +363,7 @@ object Observation:
   val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
   val attachmentIds            = Focus[Observation](_.attachmentIds)
   val scienceRequirements      = Focus[Observation](_.scienceRequirements)
+  val basicConfiguration       = Focus[Observation](_.basicConfiguration)
   val observingMode            = Focus[Observation](_.observingMode)
   val observationTime          = Focus[Observation](_.observationTime)
   val observationDuration      = Focus[Observation](_.observationDuration)
@@ -383,6 +383,17 @@ object Observation:
   val groupIndex               = Focus[Observation](_.groupIndex)
   val execution                = Focus[Observation](_.execution)
   val digest                   = execution.andThen(Execution.digest)
+
+  // Unlawful: `get` collapses both Pending and Ready(None) to None, and `set`
+  // always writes Ready, discarding any Pending/Error state. Only safe where the
+  // Pot is known to be Ready.
+  private def unlawfulPotOptionLens[A]: Lens[Pot[Option[A]], Option[A]] =
+    Lens[Pot[Option[A]], Option[A]](_.toOption.flatten)(x => _ => Pot.Ready(x))
+
+  // View into the full observing mode as an Option. Used by editors that can
+  // only run once the detail query has populated observingMode.
+  val observingModeOption: Lens[Observation, Option[ObservingMode]] =
+    observingMode.andThen(unlawfulPotOptionLens[ObservingMode])
 
   val groupInfo: Lens[Observation, (Option[Group.Id], NonNegShort)] =
     (groupId, groupIndex).disjointZip
@@ -432,7 +443,14 @@ object Observation:
       schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
       attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
       scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
-      observingMode         <- c.get[Option[ObservingMode]]("observingMode")
+      // The bulk-summary query returns only BasicConfiguration fields for `observingMode`
+      fullMode              <- c.downField("observingMode").as[Option[ObservingMode]] match
+                                 case Right(opt) => Pot.Ready(opt).asRight
+                                 case Left(_)    => Pot.Pending.asRight
+      basicConfiguration    <- fullMode.toOption.flatten match
+                                 case Some(mode) => mode.toBasicConfiguration.some.asRight
+                                 case None       =>
+                                   c.get[Option[BasicConfiguration]]("observingMode")
       observationTime       <- c.get[Option[Timestamp]]("observationTime")
       observationDur        <- c.get[Option[TimeSpan]]("observationDuration")
       posAngleConstraint    <- c.get[PosAngleConstraint]("posAngleConstraint")
@@ -458,7 +476,8 @@ object Observation:
       schedulingConstraints,
       SortedSet.from(attachmentIds.map(_.id)),
       scienceRequirements,
-      observingMode,
+      basicConfiguration,
+      fullMode,
       observationTime.map(_.toInstant),
       observationDur,
       posAngleConstraint,

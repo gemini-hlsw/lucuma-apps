@@ -35,10 +35,11 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
   def assertSameExceptCalculatedValues(ps: ProgramSummaries, obs: Observation)(using
     loc: Location
   ): Unit =
-    val psObs = Observation.calculatedValues.replace(Observation.calculatedValues.get(obs))(
-      ps.observations(obs.id)
-    )
-    assertEquals(psObs, obs)
+    val cached    = ps.observations(obs.id)
+    val predicate = Observation.calculatedValues
+      .replace(Observation.calculatedValues.get(obs))
+      .andThen(Observation.observingMode.replace(obs.observingMode))(cached)
+    assertEquals(predicate, obs)
 
   test("inserting observation with no orphan"):
     forAll: (obs: Observation) =>

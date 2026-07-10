@@ -23,6 +23,7 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
 import japgolly.scalajs.react.*
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnProps
@@ -30,6 +31,7 @@ import lucuma.schemas.ObservationDB.Enums.Existence
 import lucuma.schemas.model.TargetWithId
 import monocle.Optional
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 import queries.common.ObsQueriesGQL
 import queries.common.ProgramQueriesGQL.GroupEditSubscription
 
@@ -40,12 +42,13 @@ case class ProgramCacheController(
   modProgramSummaries:      (Pot[ProgramSummaries] => Pot[ProgramSummaries]) => IO[Unit],
   onLoad:                   IO[Unit],
   override val resetSignal: fs2.Stream[IO, ResetType]
-)(using val odbApi: OdbApi[IO], logger: Logger[IO])
+)(using val odbApi: OdbApi[IO], logger: Logger[IO], tracer: Tracer[IO])
 // Do not remove the explicit type parameter below, it confuses the compiler.
     extends ReactFnProps[ProgramCacheController](ProgramCacheController.component)
     with CacheControllerComponent.Props[ProgramSummaries]:
   val modState     = modProgramSummaries
   given Logger[IO] = logger
+  given Tracer[IO] = tracer
 
 object ProgramCacheController
     extends CacheControllerComponent[ProgramSummaries, ProgramCacheController]
@@ -110,7 +113,10 @@ object ProgramCacheController
       props.odbApi.allProgramTargets(props.programId).logTime("AllProgramTargets")
 
     val observations: IO[List[Observation]] =
-      props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
+      Tracer[IO]
+        .span("explore-mode-summary")
+        .surround:
+          props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
 
     val configurationRequests: IO[List[ConfigurationRequest]] =
       props.odbApi
@@ -143,7 +149,38 @@ object ProgramCacheController
               crs
             )
 
-    (observations, groups).parFlatMapN(initializeSummaries(_, _).map((_, Stream.empty)))
+    // load the details for each mode separately
+    def observingModesUpdate(
+      summary: List[Observation]
+    ): IO[ProgramSummaries => ProgramSummaries] =
+      val modeTypes: Set[ObservingModeType] =
+        summary.flatMap(_.basicConfiguration.map(_.obsModeType)).toSet
+
+      val fetchModes =
+        modeTypes.toList
+          .parTraverse: modeType =>
+            Tracer[IO]
+              .span(s"explore-mode-$modeType")
+              .surround:
+                props.odbApi
+                  .programObservationsObservingModes(props.programId, modeType)
+                  .logTime(s"AllProgramObservations-$modeType")
+          .map(_.flatten.toMap)
+
+      fetchModes.map: modeById =>
+        ProgramSummaries.observations.modify:
+          _.transform: (id, o) =>
+            o.basicConfiguration match
+              case None    => Observation.observingMode.replace(Pot.Ready(None))(o)
+              case Some(_) =>
+                val full = modeById.get(id).flatten
+                Observation.observingMode.replace(Pot.Ready(full))(o)
+
+    (observations, groups)
+      .parFlatMapN: (obs, grps) =>
+        val delayed = Stream.eval(observingModesUpdate(obs).logTime("ObservingModesHydrated"))
+        initializeSummaries(obs, grps).map((_, delayed))
+      .logTime("InitialProgramRender")
   }
 
   override protected val updateStream

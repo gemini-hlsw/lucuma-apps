@@ -4,6 +4,7 @@
 package explore.model.arb
 
 import cats.Order.given
+import crystal.Pot
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.BlindOffset
@@ -102,7 +103,8 @@ trait ArbObservation:
         schedulingConstraints,
         SortedSet.from(attachmentIds),
         scienceRequirements,
-        observingMode,
+        observingMode.map(_.toBasicConfiguration),
+        Pot.Ready(observingMode),
         vizTime,
         vizDuration,
         posAngleConstraint,
@@ -158,7 +160,7 @@ trait ArbObservation:
          o.schedulingConstraints,
          o.attachmentIds,
          o.scienceRequirements,
-         o.observingMode,
+         o.observingMode.toOption.flatten,
          o.observationTime,
          o.observationDuration,
          o.posAngleConstraint,

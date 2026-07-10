@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
@@ -107,6 +108,15 @@ trait OdbObservationApi[F[_]]:
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ProgramObservationsDelta.Data.ObservationEdit]]
   def allProgramObservations(programId:  Program.Id): F[List[Observation]]
+
+  /**
+   * Fetches (id, full ObservingMode) pairs for every observation in the program of a given mode
+   */
+  def programObservationsObservingModes(
+    programId: Program.Id,
+    modeType:  ObservingModeType
+  ): F[List[(Observation.Id, Option[ObservingMode])]]
+
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]]

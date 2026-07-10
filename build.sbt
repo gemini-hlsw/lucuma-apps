@@ -472,8 +472,8 @@ lazy val explore_app: Project = project
   .settings(exploreCommonSettings: _*)
   .settings(exploreCommonJsLibSettings: _*)
   .settings(esModule: _*)
+  .settings(commonModuleTest: _*)
   .settings(
-    Test / test          := {},
     coverageEnabled      := false,
     libraryDependencies ++=
       GeminiLocales.value ++

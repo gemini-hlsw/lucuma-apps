@@ -17,6 +17,7 @@ import explore.model.Observation
 import explore.model.SchedulingConstraints
 import explore.utils.*
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
@@ -36,6 +37,7 @@ import lucuma.schemas.model.enums.BlindOffsetType
 import lucuma.schemas.odb.input.*
 import queries.common.ObsQueriesGQL.*
 import queries.common.ProgramSummaryQueriesGQL.AllProgramObservations
+import queries.common.ProgramSummaryQueriesGQL.AllProgramObservationsObservingMode
 import queries.common.TargetQueriesGQL.SetGuideTargetName
 
 import java.time.Instant
@@ -407,6 +409,91 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.hasMore,
       _.id
     )
+
+  // One flag per `ObservingMode`, for the `@include` directives in `ObservingModeByTypeSubquery`
+  private case class ModeViewFlags(
+    gmosNorthLongSlit:  Boolean = false,
+    gmosSouthLongSlit:  Boolean = false,
+    gmosNorthImaging:   Boolean = false,
+    gmosSouthImaging:   Boolean = false,
+    flamingos2Imaging:  Boolean = false,
+    flamingos2LongSlit: Boolean = false,
+    igrins2LongSlit:    Boolean = false,
+    gnirsImaging:       Boolean = false,
+    gnirsSpectroscopy:  Boolean = false,
+    ghostIfu:           Boolean = false,
+    visitor:            Boolean = false,
+    exchange:           Boolean = false
+  )
+
+  def programObservationsObservingModes(
+    programId: Program.Id,
+    modeType:  ObservingModeType
+  ): F[List[(Observation.Id, Option[ObservingMode])]] =
+    val where                = WhereObservation(
+      program = programId.toWhereProgram.assign,
+      observingModeType = WhereOptionEqObservingModeType(EQ = modeType.assign).assign
+    )
+    // Every ObservingModeType maps to exactly one `ObservingMode` union view
+    // We turn on only that view's `@include` flag so the server resolves a single mode-view.
+    val flags: ModeViewFlags = modeType match
+      case ObservingModeType.GmosNorthLongSlit                               =>
+        ModeViewFlags(gmosNorthLongSlit = true)
+      case ObservingModeType.GmosSouthLongSlit                               =>
+        ModeViewFlags(gmosSouthLongSlit = true)
+      case ObservingModeType.GmosNorthImaging                                =>
+        ModeViewFlags(gmosNorthImaging = true)
+      case ObservingModeType.GmosSouthImaging                                =>
+        ModeViewFlags(gmosSouthImaging = true)
+      case ObservingModeType.Flamingos2Imaging                               =>
+        ModeViewFlags(flamingos2Imaging = true)
+      case ObservingModeType.Flamingos2LongSlit                              =>
+        ModeViewFlags(flamingos2LongSlit = true)
+      case ObservingModeType.Igrins2LongSlit                                 =>
+        ModeViewFlags(igrins2LongSlit = true)
+      case ObservingModeType.GnirsImaging                                    =>
+        ModeViewFlags(gnirsImaging = true)
+      case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu      =>
+        ModeViewFlags(gnirsSpectroscopy = true)
+      case ObservingModeType.GhostIfu                                        =>
+        ModeViewFlags(ghostIfu = true)
+      case ObservingModeType.ExchangeKeck | ObservingModeType.ExchangeSubaru =>
+        ModeViewFlags(exchange = true)
+      case ObservingModeType.AlopekeSpeckle | ObservingModeType.AlopekeWideField |
+          ObservingModeType.MaroonX | ObservingModeType.VisitorNorth |
+          ObservingModeType.VisitorSouth | ObservingModeType.ZorroSpeckle |
+          ObservingModeType.ZorroWideField =>
+        ModeViewFlags(visitor = true)
+
+    drain[
+      AllProgramObservationsObservingMode.Data.Observations.Matches,
+      Observation.Id,
+      AllProgramObservationsObservingMode.Data.Observations
+    ](
+      offset =>
+        AllProgramObservationsObservingMode[F]
+          .query(
+            where,
+            offset.orUnassign,
+            includeGmosNorthLongSlit = flags.gmosNorthLongSlit,
+            includeGmosSouthLongSlit = flags.gmosSouthLongSlit,
+            includeGmosNorthImaging = flags.gmosNorthImaging,
+            includeGmosSouthImaging = flags.gmosSouthImaging,
+            includeFlamingos2Imaging = flags.flamingos2Imaging,
+            includeFlamingos2LongSlit = flags.flamingos2LongSlit,
+            includeIgrins2LongSlit = flags.igrins2LongSlit,
+            includeGnirsImaging = flags.gnirsImaging,
+            includeGnirsSpectroscopy = flags.gnirsSpectroscopy,
+            includeGhostIfu = flags.ghostIfu,
+            includeVisitor = flags.visitor,
+            includeExchange = flags.exchange
+          )
+          .processNoDataErrors
+          .map(_.observations),
+      _.matches,
+      _.hasMore,
+      _.id
+    ).map(_.map(m => (m.id, m.observingMode)))
 
   def obsCalcSubscription(
     programId: Program.Id

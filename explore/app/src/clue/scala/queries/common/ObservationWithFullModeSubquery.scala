@@ -4,20 +4,23 @@
 package queries.common
 
 import clue.GraphQLSubquery
-import clue.annotation.GraphQLType
 import clue.annotation.GraphQL
+import clue.annotation.GraphQLType
 import explore.model.Observation
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
 
-// Returns only the lightweight BasicConfiguration for `observingMode`; used by
-// the bulk summary query that paints the observation list at first load.
+// Mirror of ObservationSubquery that returns the full ObservingMode instead
+// of just BasicConfiguration. Used by per-observation paths (mutations, the
+// edit subscription) where the caller needs the hydrated mode directly,
+// without a follow-up detail query.
 //
-// Kept in sync by hand with ObservationWithFullModeSubquery: the two MUST
-// select the same fields except for `observingMode` .
+// Kept in sync by hand with ObservationSubquery: the two MUST select the same
+// fields except for `observingMode`.
 @GraphQL
 @GraphQLType("Observation")
-object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observation]:
+object ObservationWithFullModeSubquery
+    extends GraphQLSubquery.Typed[ObservationDB, Observation]:
 
   override val subquery: String = s"""
         {
@@ -60,7 +63,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
               combinedFilters
             }
           }
-          observingMode $BasicConfigurationSubquery
+          observingMode $ObservingModeSubquery
           observerNotes
           calibrationRole
           scienceBand

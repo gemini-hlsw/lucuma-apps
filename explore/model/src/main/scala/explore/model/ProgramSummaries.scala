@@ -184,9 +184,14 @@ case class ProgramSummaries(
         existing
           .map(o =>
             // if it exists, we want to keep the existing calculated values
+            val modeReplace: Observation => Observation =
+              if (o.basicConfiguration === observation.basicConfiguration)
+                Observation.observingMode.replace(o.observingMode)
+              else identity
             Observation.calculatedValues
               .replace(Observation.calculatedValues.get(o))
-              .andThen(Observation.selectedGSName.replace(o.selectedGSName))(observation)
+              .andThen(Observation.selectedGSName.replace(o.selectedGSName))
+              .andThen(modeReplace)(observation)
           )
           .orElse(
             // if it doesn't exist, insert it but apply any orphaned calculated values

@@ -174,6 +174,7 @@ trait ObservationDB {
     type ObsStatus                           = enums.ObsStatus
     type ObserveClass                        = enums.ObserveClass
     type ObservationValidationCode           = enums.ObservationValidationCode
+    type ObservingModeType                   = enums.ObservingModeType
     type Partner                             = enums.Partner
     type PlanetSpectrum                      = enums.PlanetSpectrum
     type PlanetaryNebulaSpectrum             = enums.PlanetaryNebulaSpectrum

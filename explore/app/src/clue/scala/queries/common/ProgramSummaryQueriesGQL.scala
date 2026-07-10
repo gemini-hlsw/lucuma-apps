@@ -23,6 +23,40 @@ object ProgramSummaryQueriesGQL {
     """
   }
 
+  // Paginated query returning only (id, observingMode) for observations matching
+  // the WHERE clause. 
+  // Used by the per-instrument detail phase to hydrate `Observation.observingMode` after the 
+  // bulk summary has loaded.
+  @GraphQL
+  trait AllProgramObservationsObservingMode extends GraphQLOperation[ObservationDB] {
+    val document: String = s"""
+      query(
+        $$where: WhereObservation!,
+        $$OFFSET: ObservationId,
+        $$includeGmosNorthLongSlit: Boolean!,
+        $$includeGmosSouthLongSlit: Boolean!,
+        $$includeGmosNorthImaging: Boolean!,
+        $$includeGmosSouthImaging: Boolean!,
+        $$includeFlamingos2Imaging: Boolean!,
+        $$includeFlamingos2LongSlit: Boolean!,
+        $$includeIgrins2LongSlit: Boolean!,
+        $$includeGnirsImaging: Boolean!,
+        $$includeGnirsSpectroscopy: Boolean!,
+        $$includeGhostIfu: Boolean!,
+        $$includeVisitor: Boolean!,
+        $$includeExchange: Boolean!
+      ) {
+        observations(WHERE: $$where, OFFSET: $$OFFSET) {
+          matches {
+            id
+            observingMode $ObservingModeByTypeSubquery
+          }
+          hasMore
+        }
+      }
+    """
+  }
+
   @GraphQL
   trait AllProgramTargets extends GraphQLOperation[ObservationDB] {
     val document: String = s"""

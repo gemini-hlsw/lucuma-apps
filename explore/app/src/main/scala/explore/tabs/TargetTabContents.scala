@@ -93,11 +93,10 @@ case class TargetTabContents(
       .get(targetId)
       .foldMap: obsIds =>
         obsIds.toList
-          .map: obsId =>
+          .flatMap: obsId =>
             programSummaries.get.observations
               .get(obsId)
-              .flatMap(_.observingMode.flatMap(_.siteFor))
-          .flattenOption
+              .flatMap(_.basicConfiguration.flatMap(_.siteFor))
 
   private val obsAndTargets: UndoSetter[ObservationsAndTargets] =
     programSummaries.zoom((ProgramSummaries.observations, ProgramSummaries.targets).disjointZip)
@@ -438,9 +437,9 @@ object TargetTabContents extends TwoPanels:
                     case o @ Observation(
                           id = obsId,
                           constraints = const,
-                          observingMode = Some(conf)
+                          basicConfiguration = Some(conf)
                         ) if obsId === id =>
-                      (const, conf.toBasicConfiguration, o.needsAGS(props.targets.get))
+                      (const, conf, o.needsAGS(props.targets.get))
                   .headOption
               case _        => None
             }
