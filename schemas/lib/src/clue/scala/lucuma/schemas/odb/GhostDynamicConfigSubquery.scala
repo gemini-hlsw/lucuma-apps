@@ -12,8 +12,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("GhostDynamic")
-object GhostDynamicConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, GhostDynamicConfig]:
+object GhostDynamicConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, GhostDynamicConfig]:
   override val subquery: String = s"""
     {
       red {

@@ -12,8 +12,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("TelescopeConfig")
-object TelescopeConfigSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, TelescopeConfig]:
+object TelescopeConfigSubquery extends GraphQLSubquery.Typed[ObservationDB, TelescopeConfig]:
   override val subquery: String = s"""
         {
           offset $OffsetSubquery

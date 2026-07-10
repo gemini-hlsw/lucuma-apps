@@ -11,8 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("ProgramReference")
-object ProgramReferenceSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ProgramReference]:
+object ProgramReferenceSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramReference]:
   override val subquery: String = s"""
     {
       label

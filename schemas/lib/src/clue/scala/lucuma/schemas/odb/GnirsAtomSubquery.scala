@@ -14,8 +14,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("GnirsAtom")
-object GnirsAtomSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Atom[GnirsDynamicConfig]]:
+object GnirsAtomSubquery extends GraphQLSubquery.Typed[ObservationDB, Atom[GnirsDynamicConfig]]:
   override val subquery: String = s"""
         {
           id

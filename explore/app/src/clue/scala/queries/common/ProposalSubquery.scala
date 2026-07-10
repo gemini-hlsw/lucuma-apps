@@ -76,8 +76,7 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
 
 @GraphQL
 @GraphQLType("PartnerSplit")
-object PartnerSplitSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, PartnerSplit]:
+object PartnerSplitSubquery extends GraphQLSubquery.Typed[ObservationDB, PartnerSplit]:
   override val subquery: String = """
     {
       partner

@@ -11,8 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("BandedTime")
-object BandedProgramTimeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, BandedProgramTime]:
+object BandedProgramTimeSubquery extends GraphQLSubquery.Typed[ObservationDB, BandedProgramTime]:
   override val subquery: String = s"""
         {
           band

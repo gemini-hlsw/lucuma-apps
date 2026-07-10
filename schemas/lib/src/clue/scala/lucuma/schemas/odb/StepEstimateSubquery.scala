@@ -12,8 +12,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("StepEstimate")
-object StepEstimateSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, StepEstimate]:
+object StepEstimateSubquery extends GraphQLSubquery.Typed[ObservationDB, StepEstimate]:
   override val subquery: String = """
         {
           configChange {
