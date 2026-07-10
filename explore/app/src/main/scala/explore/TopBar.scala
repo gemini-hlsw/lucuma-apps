@@ -17,6 +17,7 @@ import explore.model.GlobalPreferences
 import explore.model.ProgramInfoList
 import explore.model.ProgramSummaries
 import explore.model.enums.AppTab
+import explore.model.enums.Visible
 import explore.model.reusability.given
 import explore.programs.ProgramsPopup
 import explore.users.RedeemInvitationsPopup
@@ -326,14 +327,16 @@ object TopBar:
                 )
             ),
             right = React.Fragment(
-              Button(
-                icon = Icons.RocketLaunch,
-                label = "Getting Started",
-                severity = Button.Severity.Secondary,
-                tooltip = "Guide",
-                clazz = ExploreStyles.GuideButton,
-                onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
-              ).small.compact,
+              if props.globalPreferences.get.exploreGuideButton === Visible.Shown then
+                Button(
+                  icon = Icons.RocketLaunch,
+                  label = "Getting Started",
+                  severity = Button.Severity.Secondary,
+                  tooltip = "Guide",
+                  clazz = ExploreStyles.GuideButton,
+                  onClick = helpCtx.displayedHelp.set(Some("getting-started.md".refined))
+                ).small.compact
+              else EmptyVdom,
               <.span(LayoutStyles.MainUserName)(user.displayName),
               RoleSwitch(props.vault, ctx.sso, props.onRoleChange),
               ConnectionsStatus(),

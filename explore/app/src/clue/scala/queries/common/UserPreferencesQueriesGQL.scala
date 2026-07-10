@@ -239,6 +239,7 @@ object UserPreferencesQueriesGQL {
           programsTableFilters
           logLevel
           lastOpenPrograms
+          exploreGuideButton
         }
       }
     """
@@ -272,6 +273,7 @@ object UserPreferencesQueriesGQL {
           programsTableFilters
           logLevel
           lastOpenPrograms
+          exploreGuideButton
         }
       }
     """
