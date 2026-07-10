@@ -11,8 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("UserInvitation")
-object UserInvitationSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, UserInvitation]:
+object UserInvitationSubquery extends GraphQLSubquery.Typed[ObservationDB, UserInvitation]:
   override val subquery: String = """
     {
       id

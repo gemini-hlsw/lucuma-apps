@@ -38,8 +38,7 @@ object CalculatedDigestSubquery
 
 @GraphQL
 @GraphQLType("SequenceDigest")
-object SequenceDigestSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, SequenceDigest]:
+object SequenceDigestSubquery extends GraphQLSubquery.Typed[ObservationDB, SequenceDigest]:
   override val subquery: String = s"""
       {
         observeClass

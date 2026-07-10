@@ -14,8 +14,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("Igrins2Atom")
-object Igrins2AtomSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Atom[Igrins2DynamicConfig]]:
+object Igrins2AtomSubquery extends GraphQLSubquery.Typed[ObservationDB, Atom[Igrins2DynamicConfig]]:
   override val subquery: String = s"""
         {
           id

@@ -11,8 +11,7 @@ import lucuma.schemas.ObservationDB
 
 @GraphQL
 @GraphQLType("ProgramNote")
-object ProgramNoteSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, ProgramNote] {
+object ProgramNoteSubquery extends GraphQLSubquery.Typed[ObservationDB, ProgramNote] {
   override val subquery: String = """
     {
       id
