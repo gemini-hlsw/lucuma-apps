@@ -114,7 +114,7 @@ object ProgramCacheController
 
     val observations: IO[List[Observation]] =
       Tracer[IO]
-        .span("mode-summary")
+        .span("explore-mode-summary")
         .surround:
           props.odbApi.allProgramObservations(props.programId).logTime("AllProgramObservations")
 
@@ -160,7 +160,7 @@ object ProgramCacheController
           modeTypes.toList
             .parTraverse: modeType =>
               Tracer[IO]
-                .span(s"mode-$modeType")
+                .span(s"explore-mode-$modeType")
                 .surround:
                   props.odbApi
                     .programObservationsObservingModes(props.programId, modeType)
