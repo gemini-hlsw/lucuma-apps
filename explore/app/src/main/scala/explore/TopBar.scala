@@ -372,7 +372,8 @@ object TopBar:
             UserPreferencesPopup(
               props.vault.get,
               isUserPropertiesOpen.setState(IsUserPropertiesOpen(false)).some,
-              props.globalPreferences.zoom(GlobalPreferences.wavelengthUnits)
+              props.globalPreferences.zoom(GlobalPreferences.wavelengthUnits),
+              props.globalPreferences.zoom(GlobalPreferences.exploreGuideButton)
             )
           else EmptyVdom,
           if isReedemInvitationsOpen.value.value then

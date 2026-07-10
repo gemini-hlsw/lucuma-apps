@@ -10,6 +10,7 @@ import clue.js.FetchJsClient
 import crystal.react.*
 import crystal.react.hooks.*
 import explore.Icons
+import explore.common.UserPreferencesQueries.GlobalUserPreferences
 import explore.common.UserPreferencesQueries.GridLayouts
 import explore.common.UserPreferencesQueries.WavelengthUnitsPreference
 import explore.components.deleteConfirmation
@@ -18,6 +19,7 @@ import explore.model.ApiKey
 import explore.model.AppContext
 import explore.model.IsActive
 import explore.model.display.given
+import explore.model.enums.Visible
 import explore.model.enums.WavelengthUnits
 import explore.model.reusability.given
 import explore.syntax.ui.*
@@ -51,9 +53,10 @@ import queries.common.SSOQueriesGQL.*
 import queries.schemas.SSO
 
 case class UserPreferencesPopup(
-  vault:   UserVault,
-  onClose: Option[Callback] = none,
-  units:   View[WavelengthUnits]
+  vault:              UserVault,
+  onClose:            Option[Callback] = none,
+  units:              View[WavelengthUnits],
+  exploreGuideButton: View[Visible]
 ) extends ReactFnProps(UserPreferencesPopup.component)
 
 private object IsOpen extends NewBoolean
@@ -83,15 +86,17 @@ object UserPreferencesPopup:
         UserPreferencesContent(props.vault,
                                props.onClose,
                                isOpen.withOnMod(_ => onHide),
-                               props.units
+                               props.units,
+                               props.exploreGuideButton
         )
       )
 
 case class UserPreferencesContent(
-  vault:   UserVault,
-  onClose: Option[Callback] = none,
-  isOpen:  View[IsOpen],
-  units:   View[WavelengthUnits]
+  vault:              UserVault,
+  onClose:            Option[Callback] = none,
+  isOpen:             View[IsOpen],
+  units:              View[WavelengthUnits],
+  exploreGuideButton: View[Visible]
 ) extends ReactFnProps(UserPreferencesContent.component)
 
 object UserPreferencesContent:
@@ -231,6 +236,12 @@ object UserPreferencesContent:
             .runAsyncAndForget
         }
 
+        val guideButtonView = props.exploreGuideButton.withOnMod { visible =>
+          GlobalUserPreferences
+            .storeExploreGuideButtonPreference(props.vault.user.id, visible)
+            .runAsyncAndForget
+        }
+
         user.value.renderPot(
           ssoUser => {
             val id   = ssoUser.user.id
@@ -303,6 +314,14 @@ object UserPreferencesContent:
                   view = unitsView,
                   disabled = active.get.value,
                   buttonClass = LucumaPrimeStyles.Tiny |+| LucumaPrimeStyles.Compact
+                )
+              ),
+              Divider(),
+              <.div(LucumaPrimeStyles.FormColumnCompact)(
+                CheckboxView(
+                  id = "explore-guide-button".refined,
+                  value = guideButtonView.as(Visible.Value),
+                  label = "Show/Hide Getting Started"
                 )
               ),
               Divider(),
