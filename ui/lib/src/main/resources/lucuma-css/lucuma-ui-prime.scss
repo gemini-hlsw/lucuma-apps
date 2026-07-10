@@ -246,6 +246,10 @@
     padding-bottom: 1rem;
   }
 
+  .p-dialog-header {
+    padding: 0.5rem 1rem;
+  }
+
   // don't have margin for the last button
   .p-dialog-footer .p-button:last-child {
     margin-right: 0;
