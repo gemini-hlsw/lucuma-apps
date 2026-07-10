@@ -102,7 +102,7 @@ enum ShutterMode {
 
 input ShutterModeInput {
     mode: ShutterMode!
-    aperture: Distance
+    aperture: DistanceInput
 }
 
 type MechSystemState {
@@ -587,9 +587,9 @@ type Mutation {
     ecsDisableDome: OperationOutcome!
     ecsEnableShutters(mode:                        ShutterMode): OperationOutcome!
     ecsDisableShutters: OperationOutcome!
-    ecsMoveEastVentGate(position:                  Distance): OperationOutcome!
+    ecsMoveEastVentGate(position:                  DistanceInput): OperationOutcome!
     ecsCloseEastVentGate: OperationOutcome!
-    ecsMoveWestVentGate(position:                  Distance): OperationOutcome!
+    ecsMoveWestVentGate(position:                  DistanceInput): OperationOutcome!
     ecsCloseWestVentGate: OperationOutcome!
 }
 
