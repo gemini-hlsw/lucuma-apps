@@ -301,6 +301,14 @@ object TopBar:
       yield
         val user = props.vault.get.user
 
+        val programName =
+          for {
+            pis <- props.programInfos.get
+            pid <- props.programId
+            p   <- pis.get(pid)
+            n   <- p.name
+          } yield n.value
+
         React.Fragment(
           Toolbar(
             clazz = LayoutStyles.MainHeader,
@@ -309,6 +317,13 @@ object TopBar:
               props.programOrProposalReference.map: r =>
                 React.Fragment(<.span(LayoutStyles.MainTitle, "- "),
                                <.span(ExploreStyles.MainTitleProgramId, r)
+                ),
+              programName.map: n =>
+                React.Fragment(
+                  props.programOrProposalReference.as(
+                    <.span(ExploreStyles.MainTitleSeparator, "/")
+                  ),
+                  <.span(ExploreStyles.MainTitleProgramId, n)
                 )
             ),
             right = React.Fragment(

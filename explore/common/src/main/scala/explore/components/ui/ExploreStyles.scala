@@ -59,6 +59,7 @@ object ExploreStyles:
   val DeleteButton: Css          = Css("delete-button")
 
   val MainTitleProgramId: Css = Css("main-title-program-id")
+  val MainTitleSeparator: Css = Css("main-title-separator")
   val ResizeHandle: Css       = Css("resize-handle")
   val ResizableSeparator: Css = Css("resize-separator")
   val Tree: Css               = Css("tree")
