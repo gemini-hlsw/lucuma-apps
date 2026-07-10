@@ -321,9 +321,7 @@ object TopBar:
               programName.map: n =>
                 <.span(
                   ExploreStyles.MainTitleProgramName,
-                  props.programOrProposalReference.as(
-                    <.span(ExploreStyles.MainTitleSeparator, "/")
-                  ),
+                  <.span(ExploreStyles.MainTitleSeparator, "/"),
                   <.span(ExploreStyles.MainTitleProgramId, n)
                 )
             ),
