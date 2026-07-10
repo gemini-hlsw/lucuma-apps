@@ -352,45 +352,48 @@ object Observation:
   type Id = lucuma.core.model.Observation.Id
   val Id = lucuma.core.model.Observation.Id
 
-  val id                                                            = Focus[Observation](_.id)
-  val reference                                                     = Focus[Observation](_.reference)
-  val title                                                         = Focus[Observation](_.title)
-  val subtitle                                                      = Focus[Observation](_.subtitle)
-  val scienceTargetIds                                              = Focus[Observation](_.scienceTargetIds)
-  val selectedGSName                                                = Focus[Observation](_.selectedGSName)
-  val constraints                                                   = Focus[Observation](_.constraints)
-  val centralWavelength                                             = Focus[Observation](_.centralWavelength)
-  val schedulingConstraints                                         = Focus[Observation](_.schedulingConstraints)
-  val attachmentIds                                                 = Focus[Observation](_.attachmentIds)
-  val scienceRequirements                                           = Focus[Observation](_.scienceRequirements)
-  val basicConfiguration                                            = Focus[Observation](_.basicConfiguration)
-  val observingMode                                                 = Focus[Observation](_.observingMode)
-  // View into the full observing mode as an Option, treating Pending as None
-  // and producing Pot.Ready(_) on writes. Used by editors that can only run
-  // once the detail query has populated observingMode.
-  val observingModeOption: Lens[Observation, Option[ObservingMode]] =
-    observingMode.andThen:
-      Lens[Pot[Option[ObservingMode]], Option[ObservingMode]](_.toOption.flatten)(x =>
-        _ => Pot.Ready(x)
-      )
-  val observationTime                                               = Focus[Observation](_.observationTime)
-  val observationDuration                                           = Focus[Observation](_.observationDuration)
-  val posAngleConstraint                                            = Focus[Observation](_.posAngleConstraint)
-  val observerNotes                                                 = Focus[Observation](_.observerNotes)
-  val calibrationRole                                               = Focus[Observation](_.calibrationRole)
-  val scienceBand                                                   = Focus[Observation](_.scienceBand)
-  val configuration                                                 = Focus[Observation](_.configuration)
-  val configurationRequestIds                                       = Focus[Observation](_.configurationRequestIds)
-  val workflow                                                      = Focus[Observation](_.workflow)
-  val workflowState                                                 = workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.state)
-  val workflowValidTransitions                                      =
+  val id                       = Focus[Observation](_.id)
+  val reference                = Focus[Observation](_.reference)
+  val title                    = Focus[Observation](_.title)
+  val subtitle                 = Focus[Observation](_.subtitle)
+  val scienceTargetIds         = Focus[Observation](_.scienceTargetIds)
+  val selectedGSName           = Focus[Observation](_.selectedGSName)
+  val constraints              = Focus[Observation](_.constraints)
+  val centralWavelength        = Focus[Observation](_.centralWavelength)
+  val schedulingConstraints    = Focus[Observation](_.schedulingConstraints)
+  val attachmentIds            = Focus[Observation](_.attachmentIds)
+  val scienceRequirements      = Focus[Observation](_.scienceRequirements)
+  val basicConfiguration       = Focus[Observation](_.basicConfiguration)
+  val observingMode            = Focus[Observation](_.observingMode)
+  val observationTime          = Focus[Observation](_.observationTime)
+  val observationDuration      = Focus[Observation](_.observationDuration)
+  val posAngleConstraint       = Focus[Observation](_.posAngleConstraint)
+  val observerNotes            = Focus[Observation](_.observerNotes)
+  val calibrationRole          = Focus[Observation](_.calibrationRole)
+  val scienceBand              = Focus[Observation](_.scienceBand)
+  val configuration            = Focus[Observation](_.configuration)
+  val configurationRequestIds  = Focus[Observation](_.configurationRequestIds)
+  val workflow                 = Focus[Observation](_.workflow)
+  val workflowState            = workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.state)
+  val workflowValidTransitions =
     workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.validTransitions)
-  val validationErrors                                              =
+  val validationErrors         =
     workflow.andThen(CalculatedValue.value).andThen(ObservationWorkflow.validationErrors)
-  val groupId                                                       = Focus[Observation](_.groupId)
-  val groupIndex                                                    = Focus[Observation](_.groupIndex)
-  val execution                                                     = Focus[Observation](_.execution)
-  val digest                                                        = execution.andThen(Execution.digest)
+  val groupId                  = Focus[Observation](_.groupId)
+  val groupIndex               = Focus[Observation](_.groupIndex)
+  val execution                = Focus[Observation](_.execution)
+  val digest                   = execution.andThen(Execution.digest)
+
+  // Unlawful: `get` collapses both Pending and Ready(None) to None, and `set`
+  // always writes Ready, discarding any Pending/Error state. Only safe where the
+  // Pot is known to be Ready.
+  private def unlawfulPotOptionLens[A]: Lens[Pot[Option[A]], Option[A]] =
+    Lens[Pot[Option[A]], Option[A]](_.toOption.flatten)(x => _ => Pot.Ready(x))
+
+  // View into the full observing mode as an Option. Used by editors that can
+  // only run once the detail query has populated observingMode.
+  val observingModeOption: Lens[Observation, Option[ObservingMode]] =
+    observingMode.andThen(unlawfulPotOptionLens[ObservingMode])
 
   val groupInfo: Lens[Observation, (Option[Group.Id], NonNegShort)] =
     (groupId, groupIndex).disjointZip
@@ -440,16 +443,12 @@ object Observation:
       schedulingConstraints <- c.get[SchedulingConstraints]("schedulingConstraints")
       attachmentIds         <- c.get[List[AttachmentIdWrapper]]("attachments")
       scienceRequirements   <- c.get[ScienceRequirements]("scienceRequirements")
-      // The bulk-summary query returns only BasicConfiguration fields for
-      // `observingMode`; mutations, the delta subscription, and the detail
-      // query return the full ObservingMode. Try the full decode first and
-      // fall back to BasicConfiguration. When full decode succeeds we also
-      // populate basicConfiguration from it.
+      // The bulk-summary query returns only BasicConfiguration fields for `observingMode`
       fullMode              <- c.downField("observingMode").as[Option[ObservingMode]] match
-                                 case Right(opt) => Right(Pot.Ready(opt): Pot[Option[ObservingMode]])
-                                 case Left(_)    => Right(Pot.Pending: Pot[Option[ObservingMode]])
+                                 case Right(opt) => Pot.Ready(opt).asRight
+                                 case Left(_)    => Pot.Pending.asRight
       basicConfiguration    <- fullMode.toOption.flatten match
-                                 case Some(mode) => Right(Some(mode.toBasicConfiguration))
+                                 case Some(mode) => mode.toBasicConfiguration.some.asRight
                                  case None       =>
                                    c.get[Option[BasicConfiguration]]("observingMode")
       observationTime       <- c.get[Option[Timestamp]]("observationTime")

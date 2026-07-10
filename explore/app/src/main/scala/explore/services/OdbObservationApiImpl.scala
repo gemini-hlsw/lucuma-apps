@@ -410,8 +410,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.id
     )
 
-  // One flag per `ObservingMode` union view, gating the `@include` directives in
-  // `ObservingModeByTypeSubquery`
+  // One flag per `ObservingMode`, for the `@include` directives in `ObservingModeByTypeSubquery`
   private case class ModeViewFlags(
     gmosNorthLongSlit:  Boolean = false,
     gmosSouthLongSlit:  Boolean = false,

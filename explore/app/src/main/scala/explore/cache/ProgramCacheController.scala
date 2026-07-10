@@ -8,7 +8,6 @@ import cats.effect.Resource
 import cats.syntax.all.*
 import crystal.Pot
 import crystal.Throttler
-import lucuma.core.enums.ObservingModeType
 import explore.model.Attachment
 import explore.model.Group
 import explore.model.Observation
@@ -24,6 +23,7 @@ import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Channel
 import japgolly.scalajs.react.*
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.Program
 import lucuma.react.common.ReactFnProps
@@ -149,23 +149,24 @@ object ProgramCacheController
               crs
             )
 
+    // load the details for each mode separately
     def observingModesUpdate(
       summary: List[Observation]
     ): IO[ProgramSummaries => ProgramSummaries] =
-      val modeTypes: Set[ObservingModeType]                                               =
+      val modeTypes: Set[ObservingModeType] =
         summary.flatMap(_.basicConfiguration.map(_.obsModeType)).toSet
-      val fetchModes: IO[Map[Observation.Id, Option[lucuma.schemas.model.ObservingMode]]] =
-        if (modeTypes.isEmpty) Map.empty.pure[IO]
-        else
-          modeTypes.toList
-            .parTraverse: modeType =>
-              Tracer[IO]
-                .span(s"explore-mode-$modeType")
-                .surround:
-                  props.odbApi
-                    .programObservationsObservingModes(props.programId, modeType)
-                    .logTime(s"AllProgramObservations-$modeType")
-            .map(_.flatten.toMap)
+
+      val fetchModes =
+        modeTypes.toList
+          .parTraverse: modeType =>
+            Tracer[IO]
+              .span(s"explore-mode-$modeType")
+              .surround:
+                props.odbApi
+                  .programObservationsObservingModes(props.programId, modeType)
+                  .logTime(s"AllProgramObservations-$modeType")
+          .map(_.flatten.toMap)
+
       fetchModes.map: modeById =>
         ProgramSummaries.observations.modify:
           _.transform: (id, o) =>

@@ -11,6 +11,7 @@ import eu.timepit.refined.types.string.NonEmptyString
 import explore.model.Observation
 import explore.model.SchedulingConstraints
 import lucuma.core.enums.ObservationWorkflowState
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.math.Coordinates
 import lucuma.core.model.ConfigurationRequest
 import lucuma.core.model.ConstraintSet
@@ -109,15 +110,13 @@ trait OdbObservationApi[F[_]]:
   def allProgramObservations(programId:  Program.Id): F[List[Observation]]
 
   /**
-   * Fetches (id, full ObservingMode) pairs for every observation in the program belonging to a
-   * given mode type. Used to hydrate the `observingMode` field after the bulk summary query has
-   * returned the lightweight BasicConfiguration. Partitioning by `ObservingModeType` (rather than
-   * `Instrument`) lets each detail query hit a single instrument-mode table.
+   * Fetches (id, full ObservingMode) pairs for every observation in the program of a given mode
    */
   def programObservationsObservingModes(
     programId: Program.Id,
-    modeType:  lucuma.core.enums.ObservingModeType
-  ): F[List[(Observation.Id, Option[lucuma.schemas.model.ObservingMode])]]
+    modeType:  ObservingModeType
+  ): F[List[(Observation.Id, Option[ObservingMode])]]
+
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]]

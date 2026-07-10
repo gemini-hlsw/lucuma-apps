@@ -24,8 +24,9 @@ object ProgramSummaryQueriesGQL {
   }
 
   // Paginated query returning only (id, observingMode) for observations matching
-  // the WHERE clause. Used by the per-instrument detail phase to hydrate
-  // `Observation.observingMode` after the bulk summary has loaded.
+  // the WHERE clause. 
+  // Used by the per-instrument detail phase to hydrate `Observation.observingMode` after the 
+  // bulk summary has loaded.
   @GraphQL
   trait AllProgramObservationsObservingMode extends GraphQLOperation[ObservationDB] {
     val document: String = s"""

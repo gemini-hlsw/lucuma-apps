@@ -35,8 +35,6 @@ class ProgramSummariesSuite extends ScalaCheckSuite:
   def assertSameExceptCalculatedValues(ps: ProgramSummaries, obs: Observation)(using
     loc: Location
   ): Unit =
-    // upsert also preserves the full observingMode across compatible deltas,
-    // so for the purposes of equality we copy both.
     val cached    = ps.observations(obs.id)
     val predicate = Observation.calculatedValues
       .replace(Observation.calculatedValues.get(obs))

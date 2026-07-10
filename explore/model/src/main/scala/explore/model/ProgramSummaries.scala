@@ -183,11 +183,7 @@ case class ProgramSummaries(
       val newObs     = obs.updatedWith(observation.id): existing =>
         existing
           .map(o =>
-            // Keep the existing calculated values, and if the basicConfiguration
-            // hasn't changed, preserve the existing (potentially hydrated) full
-            // observingMode. If basicConfiguration changed, the incoming
-            // observation's observingMode is authoritative (the delta carries
-            // the full mode via ObservationWithFullModeSubquery).
+            // if it exists, we want to keep the existing calculated values
             val modeReplace: Observation => Observation =
               if (o.basicConfiguration === observation.basicConfiguration)
                 Observation.observingMode.replace(o.observingMode)

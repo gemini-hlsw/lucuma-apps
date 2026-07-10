@@ -14,6 +14,9 @@ import lucuma.schemas.odb.*
 // of just BasicConfiguration. Used by per-observation paths (mutations, the
 // edit subscription) where the caller needs the hydrated mode directly,
 // without a follow-up detail query.
+//
+// Kept in sync by hand with ObservationSubquery: the two MUST select the same
+// fields except for `observingMode`.
 @GraphQL
 @GraphQLType("Observation")
 object ObservationWithFullModeSubquery
