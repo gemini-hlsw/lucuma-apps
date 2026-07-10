@@ -9,6 +9,7 @@ import lucuma.ags.AgsAnalysis
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.react.common.Css
 import lucuma.schemas.model.SlotId
@@ -17,18 +18,22 @@ import lucuma.ui.visualization.VisualizationStyles
 
 // A clickable area on the Aladin area
 case class InteractiveRegion(
-  slot:     SlotId,
-  posAngle: Angle,
-  shape:    ShapeExpression,
-  shapeCss: Css,
-  hoverCss: Css,
-  onClick:  Coordinates => IO[Unit]
+  slot:             SlotId,
+  posAngle:         Angle,
+  shape:            ShapeExpression,
+  shapeCss:         Css,
+  hoverCss:         Css,
+  exclusion:        Option[ShapeExpression],
+  exclusionCss:     Css,
+  exclusionOffsets: List[Offset],
+  onClick:          Coordinates => IO[Unit]
 )
 
 object InteractiveRegion:
   // ghost only for now but we could add more regions for other instruments
   def forViz(
     vizConf:               Option[ConfigurationForVisualization],
+    coordsAt:              ObservationTargetsCoordinatesAt,
     isTargetOfOpportunity: Target.Id => Boolean,
     selectedGS:            Option[AgsAnalysis.Usable],
     assignSky:             Option[(SlotId, Coordinates) => IO[Unit]]
@@ -38,12 +43,20 @@ object InteractiveRegion:
         .skySlotAvailable(viz, isTargetOfOpportunity)
         .map: slot =>
           val pa = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
+
+          // Offset of each science target from the base; positions the 102" keep-out disk(s).
+          val offsets = coordsAt.baseOrBlindCoords.toList
+            .flatMap(b => coordsAt.scienceCoords.map(c => b.diff(c).offset))
+
           InteractiveRegion(
             slot,
             pa,
-            GhostGeometry.ifu2PatrolFieldShape(pa),
+            GhostGeometry.ifu2SkySlotShape(pa, offsets),
             VisualizationStyles.GhostIfu2PatrolField,
             VisualizationStyles.GhostIfu2PatrolFieldHovered,
+            GhostGeometry.skyExclusionShape(offsets),
+            VisualizationStyles.GhostSkyExclusionZone,
+            offsets,
             assign(slot, _)
           )
         .toList

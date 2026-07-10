@@ -42,6 +42,7 @@ import lucuma.core.enums.TargetDisposition
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
+import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -138,9 +139,9 @@ object AladinContainer extends AladinCommon {
 
   private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
 
-  // ShapeExpression has no Eq; key region reuse on (slot, posAngle) like AgsAnalysis.Usable.
+  // ShapeExpression has no Eq; key region reuse on (slot, posAngle, exclusionOffsets) like AgsAnalysis.Usable.
   private given Reusability[InteractiveRegion] =
-    Reusability.by(r => (r.slot, r.posAngle))
+    Reusability.by(r => (r.slot, r.posAngle, r.exclusionOffsets))
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -775,6 +776,22 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              // Always-visible GHOST sky keep-out disk(s) around the science target.
+              props.interactiveRegions
+                .flatMap(_.exclusion)
+                .reduceOption(_ ∪ _)
+                .flatMap: exclusion =>
+                  (resize.width, resize.height, fov.value)
+                    .mapN(
+                      SvgVisualizationOverlay(
+                        _,
+                        _,
+                        _,
+                        screenOffset,
+                        NonEmptyMap.one(VisualizationStyles.GhostSkyExclusionZone, exclusion),
+                        Css.Empty
+                      )
+                    ),
               // Interactive regions like ifu2 for ghost
               hoveredSlot.get
                 .flatMap(slot => props.interactiveRegions.find(_.slot === slot))

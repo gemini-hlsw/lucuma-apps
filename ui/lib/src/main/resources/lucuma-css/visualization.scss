@@ -299,6 +299,15 @@
     fill: url('#ghost-ifu2-hatch-selected');
   }
 
+  // Shaded disk of 102" around the science target.
+  .ghost-sky-exclusion-zone {
+    fill: hsl(0deg 100% 50% / 15%);
+    stroke: hsl(0deg 100% 50%);
+    stroke-width: 1px;
+    stroke-dasharray: 3 3;
+    vector-effect: non-scaling-stroke;
+  }
+
   .ghost-ifu1-hatch-color {
     fill: var(--ghost-ifu1-color);
     stroke: var(--ghost-ifu1-color);

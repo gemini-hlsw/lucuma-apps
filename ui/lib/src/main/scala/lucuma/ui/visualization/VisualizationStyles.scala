@@ -89,6 +89,7 @@ object VisualizationStyles:
   val GhostIfuPatrolFieldVisible: Css  = Css("ghost-ifu-patrol-field-visible")
   val GhostIfuPatrolFieldSelected: Css = Css("ghost-ifu-patrol-field-selected")
   val GhostIfu2PatrolFieldHovered: Css = Css("ghost-ifu2-patrol-field-hovered")
+  val GhostSkyExclusionZone: Css       = Css("ghost-sky-exclusion-zone")
 
   // Debug patrol fields
   val PatrolFieldBase: Css              = Css("patrol-field-base")
