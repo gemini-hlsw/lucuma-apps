@@ -26,6 +26,14 @@ $container-xtra-small-cutoff: 376px;
   background-color: var(--explore-accent-color);
 }
 
+@media (max-width: $mobile-responsive-cutoff) {
+  #non-prod-banner {
+    padding: 0.2em 0.5em;
+    font-size: 0.75em;
+    opacity: 0.6;
+  }
+}
+
 a,
 a:hover {
   text-decoration: none;
