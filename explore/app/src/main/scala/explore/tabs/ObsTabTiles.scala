@@ -50,6 +50,7 @@ import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
+import lucuma.core.geom.ghost as ghostGeom
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -509,14 +510,29 @@ object ObsTabTiles:
                   none,
                   Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
                 )
+
+                // Whether `sky` is within the minimum IFU-arm separation of any science target.
+                def tooCloseToScience(sky: Coordinates): Boolean =
+                  scienceTargets.exists: t =>
+                    Target.siderealTracking
+                      .getOption(t.target)
+                      .flatMap(_.at(obsTimeOrNow))
+                      .exists(
+                        _.angularDistance(sky).toMicroarcseconds <
+                          ghostGeom.MinimumIfuArmSeparation.toMicroarcseconds
+                      )
+
                 GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
-                  case Right(mapping) => mapping.some
-                  // Derivation can fail when the sky is too close to the science target.
+                  case Right(mapping)                                         =>
+                    mapping.some
+                  // Derivation fails when the sky is too close to the science target.
                   // Fall back to TargetPlusSky so the sky marker stays visible and
-                  // the keep-out zone can flag it.
-                  case Left(_)        =>
+                  // the keep-out zone can flag it
+                  case Left(_) if ghost.skyPosition.exists(tooCloseToScience) =>
                     (scienceTargets.headOption.map(_.id), ghost.skyPosition)
                       .mapN(GhostIfuMapping.TargetPlusSky.apply)
+                  case Left(_)                                                =>
+                    none
               case _                                   => none
 
           val targetVisualization: TargetVisualization =
