@@ -3,6 +3,8 @@
 
 package explore.model
 
+import cats.data.NonEmptyList
+import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
@@ -29,16 +31,24 @@ case class InteractiveRegion(
 )
 
 object InteractiveRegion:
-  // The sky keep-out zone (e.g. GHOST's 102" minimum IFU arm separation around each science
-  // target), as a css + shape to shade.
+  // The sky keep-out zone(s) (e.g. GHOST's 102" minimum IFU arm separation around each science
+  // target), one shape per science target so overlapping disks stay visually distinct.
   def skyKeepOutZone(
     vizConf:  Option[ConfigurationForVisualization],
     coordsAt: ObservationTargetsCoordinatesAt
-  ): Option[(Css, ShapeExpression)] =
+  ): Option[NonEmptyMap[Css, ShapeExpression]] =
     for
       conf  <- vizConf if conf.configuration.obsModeType === ObservingModeType.GhostIfu
-      shape <- GhostGeometry.skyExclusionShape(coordsAt.scienceOffsetsFromBase)
-    yield VisualizationStyles.GhostSkyExclusionZone -> shape
+      shapes = GhostGeometry.skyExclusionShapes(coordsAt.scienceOffsetsFromBase).zipWithIndex
+      nel   <- NonEmptyList.fromList(shapes)
+    yield nel.map((shape, i) => keepOutCss(i) -> shape).toNem
+
+  private def keepOutCss(index: Int): Css =
+    VisualizationStyles.GhostSkyExclusionZone |+| Css(s"ghost-sky-exclusion-zone-$index")
+
+  // Whether two science targets (e.g. GHOST dual-target mode) are too close to each other.
+  def scienceTargetsTooClose(coordsAt: ObservationTargetsCoordinatesAt): Boolean =
+    GhostGeometry.anyTooClose(coordsAt.scienceOffsetsFromBase)
 
   // ghost only for now but we could add more regions for other instruments
   def forViz(

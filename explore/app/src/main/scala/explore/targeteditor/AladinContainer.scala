@@ -543,13 +543,19 @@ object AladinContainer extends AladinCommon {
         val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseOrBlindCoords
 
         // Shade the sky keep-out zone while adding a sky position, or in regular mode when an
-        // existing sky position falls inside it.
+        // existing sky position falls inside it, or when two science targets are themselves
+        // too close..
         val keepOutZone = InteractiveRegion.skyKeepOutZone(props.vizConf, props.obsTimeCoords)
 
         val skyInKeepOut: Boolean =
           (baseCoordinates, keepOutZone).tupled.exists:
-            case (base, (_, shape)) =>
-              props.obsTimeCoords.skySlots.exists((_, sky) => shape.contains(base.diff(sky).offset))
+            case (base, shapes) =>
+              props.obsTimeCoords.skySlots.exists((_, sky) =>
+                shapes.toSortedMap.values.exists(_.contains(base.diff(sky).offset))
+              )
+
+        val scienceTargetsTooClose: Boolean =
+          InteractiveRegion.scienceTargetsTooClose(props.obsTimeCoords)
 
         /**
          * Called when the position changes, i.e. aladin pans. We want to offset the visualization
@@ -785,11 +791,13 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              // Sky keep-out zone: shaded while adding a sky position, or in regular mode when
-              // an existing sky position falls inside it.
+              // Sky keep-out zone: shaded while adding a sky position, in regular mode when an
+              // existing sky position falls inside it, or when two science targets are too close.
               keepOutZone
-                .filter(_ => props.interactiveRegions.nonEmpty || skyInKeepOut)
-                .flatMap: (css, shape) =>
+                .filter(_ =>
+                  props.interactiveRegions.nonEmpty || skyInKeepOut || scienceTargetsTooClose
+                )
+                .flatMap: shapes =>
                   (resize.width, resize.height, fov.value)
                     .mapN(
                       SvgVisualizationOverlay(
@@ -797,7 +805,7 @@ object AladinContainer extends AladinCommon {
                         _,
                         _,
                         screenOffset,
-                        NonEmptyMap.one(css, shape),
+                        shapes,
                         Css.Empty
                       )
                     ),

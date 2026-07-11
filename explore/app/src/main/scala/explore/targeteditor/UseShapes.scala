@@ -47,14 +47,14 @@ private given Reusability[Map[SlotId, Coordinates]] = Reusability.map
 
 // Hooks for shapes
 def usePatrolFieldShapes(
-  vizConf:         Option[ConfigurationForVisualization],
-  selectedGS:      Option[AgsAnalysis.Usable],
-  baseCoordinates: Option[Coordinates],
-  blindOffset:     Option[Coordinates],
+  vizConf:                Option[ConfigurationForVisualization],
+  selectedGS:             Option[AgsAnalysis.Usable],
+  baseCoordinates:        Option[Coordinates],
+  blindOffset:            Option[Coordinates],
   scienceOffsetsFromBase: List[Offset],
-  pfVisibility:    AGSVisibility,
-  anglesToTest:    Option[NonEmptyList[Angle]],
-  agsState:        Option[AgsState]
+  pfVisibility:           AGSVisibility,
+  anglesToTest:           Option[NonEmptyList[Angle]],
+  agsState:               Option[AgsState]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   extension (geometryType: GeometryType)

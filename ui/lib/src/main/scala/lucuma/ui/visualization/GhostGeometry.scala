@@ -32,16 +32,29 @@ object GhostGeometry extends PwfsGeometry:
   def ifu2PatrolFieldShape(posAngle: Angle): ShapeExpression =
     ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
 
-  /** The 102" minimum-separation keep-out disk, unioned across the science-target offsets. */
-  def skyExclusionShape(scienceOffsets: List[Offset]): Option[ShapeExpression] =
+  // One 102" minimum-separation keep-out disk per science-target offset.
+  def skyExclusionShapes(scienceOffsets: List[Offset]): List[ShapeExpression] =
     val r    = ghost.MinimumIfuArmSeparation
     val disk = ShapeExpression.centeredEllipse(r + r, r + r)
-    scienceOffsets.map(disk.translate).reduceOption(_ ∪ _)
+    scienceOffsets.map(disk.translate)
+
+  /** The 102" minimum-separation keep-out disk, unioned across the science-target offsets. */
+  def skyExclusionShape(scienceOffsets: List[Offset]): Option[ShapeExpression] =
+    skyExclusionShapes(scienceOffsets).reduceOption(_ ∪ _)
 
   /** The clickable IFU2 sky region: the patrol field with the keep-out disk(s) removed. */
   def ifu2SkySlotShape(posAngle: Angle, scienceOffsets: List[Offset]): ShapeExpression =
     val full = ifu2PatrolFieldShape(posAngle)
     skyExclusionShape(scienceOffsets).fold(full)(full - _)
+
+  /** Whether any two of the given offsets are closer than the minimum IFU arm separation. */
+  def anyTooClose(offsets: List[Offset]): Boolean =
+    offsets
+      .combinations(2)
+      .exists:
+        case List(a, b) =>
+          a.distance(b).toMicroarcseconds < ghost.MinimumIfuArmSeparation.toMicroarcseconds
+        case _          => false
 
   override protected def candidatesAreaCss: Css = GhostCandidatesArea
 
