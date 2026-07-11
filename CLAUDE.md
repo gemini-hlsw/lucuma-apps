@@ -105,6 +105,16 @@ The `sbt-clue` plugin generates Scala code from GraphQL:
 - The `document` field contains raw GraphQL, often composing fragments via string interpolation
 - Special `// gql:` comments inject imports into generated code
 
+#### Observation subqueries must be kept in sync (two places)
+
+The observation query exists in two hand-maintained copies that **must select the
+same fields except for `observingMode`**:
+
+- `ObservationSubquery` — used by the bulk summary query; selects only the
+  lightweight `BasicConfiguration` for `observingMode` (first-paint path).
+- `ObservationWithFullModeSubquery` — used by per-observation paths (mutations,
+  the edit subscription); selects the full `ObservingMode`.
+
 ### State Management (Crystal Views)
 
 The `crystal` library provides reactive state via `View[A]`:
