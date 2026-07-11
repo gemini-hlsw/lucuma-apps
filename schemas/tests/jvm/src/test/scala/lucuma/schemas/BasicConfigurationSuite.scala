@@ -4,6 +4,8 @@
 package lucuma.schemas.model
 
 import io.circe.parser.decode
+import lucuma.core.enums.GnirsCamera
+import lucuma.core.enums.GnirsFilter
 import munit.FunSuite
 
 class BasicConfigurationSuite extends FunSuite:
@@ -58,6 +60,59 @@ class BasicConfigurationSuite extends FunSuite:
     decode[BasicConfiguration](json) match
       case Right(_: BasicConfiguration.KeckExchange) => ()
       case other                                     => fail(s"Expected KeckExchange, got: $other")
+
+  test("gnirsImaging decodes as GnirsImaging"):
+    val json = """{
+      "igrins2LongSlit": null,
+      "gnirsImaging": {
+        "filters": [{ "filter": "Y" }, { "filter": "J" }],
+        "camera": "SHORT_BLUE"
+      }
+    }"""
+    decode[BasicConfiguration](json) match
+      case Right(g: BasicConfiguration.GnirsImaging) =>
+        assertEquals(g.filters.toList, List(GnirsFilter.Y, GnirsFilter.J))
+        assertEquals(g.camera, GnirsCamera.ShortBlue)
+      case other                                     => fail(s"Expected GnirsImaging, got: $other")
+
+  test("gnirsSpectroscopy (long slit) decodes as GnirsSpectroscopy"):
+    val json = """{
+      "igrins2LongSlit": null,
+      "gnirsImaging": null,
+      "gnirsSpectroscopy": {
+        "filter": "CROSS_DISPERSED",
+        "slit": { "fpu": "LONG_SLIT_0_10" },
+        "ifu": null,
+        "prism": "SXD",
+        "grating": "D10",
+        "camera": "SHORT_BLUE",
+        "centralWavelength": { "picometers": 1600000 }
+      }
+    }"""
+    decode[BasicConfiguration](json) match
+      case Right(_: BasicConfiguration.GnirsSpectroscopy) => ()
+      case other                                          => fail(s"Expected GnirsSpectroscopy, got: $other")
+
+  test("gnirsSpectroscopy (IFU) decodes as GnirsSpectroscopy"):
+    // Reproduces the reported bug: the ODB always returns both `slit` and `ifu`
+    // keys with one of them null, and the double `downField("ifu").downField("fpu")`
+    // hop through that null used to hard-fail instead of yielding `None`.
+    val json = """{
+      "igrins2LongSlit": null,
+      "gnirsImaging": null,
+      "gnirsSpectroscopy": {
+        "filter": "CROSS_DISPERSED",
+        "slit": null,
+        "ifu": { "fpu": "HIGH_RESOLUTION" },
+        "prism": "SXD",
+        "grating": "D10",
+        "camera": "SHORT_BLUE",
+        "centralWavelength": { "picometers": 1600000 }
+      }
+    }"""
+    decode[BasicConfiguration](json) match
+      case Right(_: BasicConfiguration.GnirsSpectroscopy) => ()
+      case other                                          => fail(s"Expected GnirsSpectroscopy, got: $other")
 
   test("exchange decodes as SubaruExchange"):
     val json = """{

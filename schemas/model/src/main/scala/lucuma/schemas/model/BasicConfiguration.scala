@@ -11,6 +11,7 @@ import eu.timepit.refined.cats.*
 import eu.timepit.refined.types.numeric.PosInt
 import io.circe.Decoder
 import io.circe.DecodingFailure
+import io.circe.Json
 import io.circe.generic.semiauto.*
 import io.circe.refined.given
 import lucuma.core.enums.*
@@ -330,27 +331,23 @@ object BasicConfiguration:
   object GnirsSpectroscopy:
     given Decoder[GnirsSpectroscopy] = Decoder.instance: c =>
       for
-        filter  <- c.downField("filter").as[GnirsFilter]
-        fpu     <- c.downField("slit")
-                     .downField("fpu")
-                     .as[Option[GnirsFpuSlit]]
-                     .flatMap: slit =>
-                       c.downField("ifu")
-                         .downField("fpu")
-                         .as[Option[GnirsFpuIfu]]
-                         .flatMap: ifu =>
-                           (slit, ifu) match
-                             case (Some(s), None) => GnirsFpu.Spectroscopy.Slit(s).asRight
-                             case (None, Some(i)) => GnirsFpu.Spectroscopy.Ifu(i).asRight
-                             case _               =>
-                               DecodingFailure(
-                                 "GNIRS spectroscopy: exactly one of slit / ifu expected",
-                                 c.history
-                               ).asLeft
-        prism   <- c.downField("prism").as[GnirsPrism]
-        grating <- c.downField("grating").as[GnirsGrating]
-        camera  <- c.downField("camera").as[GnirsCamera]
-        cw      <- c.downField("centralWavelength").as[CentralWavelength]
+        filter   <- c.downField("filter").as[GnirsFilter]
+        slitJson <- c.downField("slit").as[Option[Json]]
+        ifuJson  <- c.downField("ifu").as[Option[Json]]
+        fpu      <- (slitJson, ifuJson) match
+                      case (Some(s), None) =>
+                        s.hcursor.downField("fpu").as[GnirsFpuSlit].map(GnirsFpu.Spectroscopy.Slit(_))
+                      case (None, Some(i)) =>
+                        i.hcursor.downField("fpu").as[GnirsFpuIfu].map(GnirsFpu.Spectroscopy.Ifu(_))
+                      case _               =>
+                        DecodingFailure(
+                          "GNIRS spectroscopy: exactly one of slit / ifu expected",
+                          c.history
+                        ).asLeft
+        prism    <- c.downField("prism").as[GnirsPrism]
+        grating  <- c.downField("grating").as[GnirsGrating]
+        camera   <- c.downField("camera").as[GnirsCamera]
+        cw       <- c.downField("centralWavelength").as[CentralWavelength]
       yield GnirsSpectroscopy(filter, fpu, prism, grating, camera, cw)
 
   case class GhostIfu(

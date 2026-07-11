@@ -78,8 +78,15 @@ object ExploreMain {
     }
   )
 
+  def causeChain(t: Throwable): String =
+    Iterator
+      .iterate(t)(_.getCause)
+      .takeWhile(_ != null)
+      .map(_.getMessage)
+      .mkString(" caused by: ")
+
   def crash[F[_]: Sync](msg: String): F[Unit] =
-    setupDOM[F].map { element =>
+    setupDOM[F].map: element =>
       (ExploreStyles.CrashMessage |+| ExploreStyles.ErrorLabel).value
         .foreach(element.classList.add)
       element.innerHTML = msg
@@ -104,7 +111,6 @@ object ExploreMain {
       reloadHint.appendChild(link)
       reloadHint.appendChild(dom.document.createTextNode(" to check for a new version."))
       element.appendChild(reloadHint): Unit
-    }
 
   def run(configJson: String): IO[Unit] = {
 
@@ -177,10 +183,10 @@ object ExploreMain {
           RootComponent(ctx, router, initialModel(vault))
 
     }.void
-      .handleErrorWith { t =>
-        Logger[IO].error("Error initializing") >>
-          crash[IO](s"There was an error initializing Explore:<br/>${t.getMessage}")
-      }
+      .handleErrorWith: t =>
+        t.printStackTrace()
+        Logger[IO].error(t)("Error initializing") >>
+          crash[IO](s"There was an error initializing Explore:<br/>${causeChain(t)}")
 
     (for {
       dispatcher              <- Dispatcher.parallel[IO]
@@ -195,7 +201,8 @@ object ExploreMain {
       _                       <- Resource.eval(buildPage(dispatcher, workerClients, bc, configJson))
     } yield ()).useForever
       .handleErrorWith: t =>
-        crash[IO](s"There was an error initializing Explore:<br/>${t.getMessage}")
+        t.printStackTrace()
+        crash[IO](s"There was an error initializing Explore:<br/>${causeChain(t)}")
   }
 
 }
