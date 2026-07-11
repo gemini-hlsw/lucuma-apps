@@ -47,13 +47,19 @@ object GhostGeometry extends PwfsGeometry:
     val full = ifu2PatrolFieldShape(posAngle)
     skyExclusionShape(scienceOffsets).fold(full)(full - _)
 
+  private def isTooClose(distance: Angle): Boolean =
+    distance.toMicroarcseconds < ghost.MinimumIfuArmSeparation.toMicroarcseconds
+
+  /** Whether two coordinates are closer than the minimum IFU arm separation. */
+  def tooClose(a: Coordinates, b: Coordinates): Boolean =
+    isTooClose(a.angularDistance(b))
+
   /** Whether any two of the given offsets are closer than the minimum IFU arm separation. */
   def anyTooClose(offsets: List[Offset]): Boolean =
     offsets
       .combinations(2)
       .exists:
-        case List(a, b) =>
-          a.distance(b).toMicroarcseconds < ghost.MinimumIfuArmSeparation.toMicroarcseconds
+        case List(a, b) => isTooClose(a.distance(b))
         case _          => false
 
   override protected def candidatesAreaCss: Css = GhostCandidatesArea

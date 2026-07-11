@@ -42,7 +42,6 @@ import lucuma.core.enums.TargetDisposition
 import lucuma.core.geom.jts.interpreter.given
 import lucuma.core.geom.offsets.GeometryType
 import lucuma.core.geom.offsets.OffsetPositions
-import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
@@ -548,11 +547,9 @@ object AladinContainer extends AladinCommon {
         val keepOutZone = InteractiveRegion.skyKeepOutZone(props.vizConf, props.obsTimeCoords)
 
         val skyInKeepOut: Boolean =
-          (baseCoordinates, keepOutZone).tupled.exists:
-            case (base, shapes) =>
-              props.obsTimeCoords.skySlots.exists((_, sky) =>
-                shapes.toSortedMap.values.exists(_.contains(base.diff(sky).offset))
-              )
+          props.obsTimeCoords.scienceCoords.exists(sci =>
+            props.obsTimeCoords.skyCoords.exists(sky => GhostGeometry.tooClose(sci, sky))
+          )
 
         val scienceTargetsTooClose: Boolean =
           InteractiveRegion.scienceTargetsTooClose(props.obsTimeCoords)
@@ -791,8 +788,7 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              // Sky keep-out zone: shaded while adding a sky position, in regular mode when an
-              // existing sky position falls inside it, or when two science targets are too close.
+              // Sky keep-out zone
               keepOutZone
                 .filter(_ =>
                   props.interactiveRegions.nonEmpty || skyInKeepOut || scienceTargetsTooClose

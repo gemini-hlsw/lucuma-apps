@@ -50,7 +50,6 @@ import lucuma.core.conditions.*
 import lucuma.core.enums.CalibrationRole
 import lucuma.core.enums.ProgramType
 import lucuma.core.enums.Site
-import lucuma.core.geom.ghost as ghostGeom
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -87,6 +86,7 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
+import lucuma.ui.visualization.GhostGeometry
 import monocle.Iso
 import monocle.Optional
 import queries.schemas.itc.syntax.itcTarget
@@ -517,10 +517,7 @@ object ObsTabTiles:
                     Target.siderealTracking
                       .getOption(t.target)
                       .flatMap(_.at(obsTimeOrNow))
-                      .exists(
-                        _.angularDistance(sky).toMicroarcseconds <
-                          ghostGeom.MinimumIfuArmSeparation.toMicroarcseconds
-                      )
+                      .exists(GhostGeometry.tooClose(_, sky))
 
                 GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
                   case Right(mapping)                                         =>
