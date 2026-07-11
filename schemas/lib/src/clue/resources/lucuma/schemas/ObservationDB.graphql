@@ -14775,6 +14775,9 @@ input WhereObservation {
 
   """Matches on the observation workflow state."""
   workflow: WhereCalculatedObservationWorkflow
+
+  """Matches the calibration role."""
+  calibrationRole: WhereOptionEqCalibrationRole
 }
 
 """Configuration request filter options.  All specified items must match."""
