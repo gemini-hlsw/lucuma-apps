@@ -19,8 +19,7 @@ import lucuma.schemas.odb.*
 // fields except for `observingMode`.
 @GraphQL
 @GraphQLType("Observation")
-object ObservationWithFullModeSubquery
-    extends GraphQLSubquery.Typed[ObservationDB, Observation]:
+object ObservationWithFullModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observation]:
 
   override val subquery: String = s"""
         {
