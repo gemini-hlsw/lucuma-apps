@@ -6,6 +6,7 @@ package explore.model
 import cats.effect.IO
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
+import lucuma.core.enums.ObservingModeType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -23,13 +24,22 @@ case class InteractiveRegion(
   shape:            ShapeExpression,
   shapeCss:         Css,
   hoverCss:         Css,
-  exclusion:        Option[ShapeExpression],
-  exclusionCss:     Css,
   exclusionOffsets: List[Offset],
   onClick:          Coordinates => IO[Unit]
 )
 
 object InteractiveRegion:
+  // The sky keep-out zone (e.g. GHOST's 102" minimum IFU arm separation around each science
+  // target), as a css + shape to shade.
+  def skyKeepOutZone(
+    vizConf:  Option[ConfigurationForVisualization],
+    coordsAt: ObservationTargetsCoordinatesAt
+  ): Option[(Css, ShapeExpression)] =
+    for
+      conf  <- vizConf if conf.configuration.obsModeType === ObservingModeType.GhostIfu
+      shape <- GhostGeometry.skyExclusionShape(coordsAt.scienceOffsetsFromBase)
+    yield VisualizationStyles.GhostSkyExclusionZone -> shape
+
   // ghost only for now but we could add more regions for other instruments
   def forViz(
     vizConf:               Option[ConfigurationForVisualization],
@@ -42,11 +52,8 @@ object InteractiveRegion:
       GhostSkySlot
         .skySlotAvailable(viz, isTargetOfOpportunity)
         .map: slot =>
-          val pa = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
-
-          // Offset of each science target from the base; positions the 102" keep-out disk(s).
-          val offsets = coordsAt.baseOrBlindCoords.toList
-            .flatMap(b => coordsAt.scienceCoords.map(c => b.diff(c).offset))
+          val pa      = selectedGS.map(_.posAngle).getOrElse(viz.posAngle)
+          val offsets = coordsAt.scienceOffsetsFromBase
 
           InteractiveRegion(
             slot,
@@ -54,8 +61,6 @@ object InteractiveRegion:
             GhostGeometry.ifu2SkySlotShape(pa, offsets),
             VisualizationStyles.GhostIfu2PatrolField,
             VisualizationStyles.GhostIfu2PatrolFieldHovered,
-            GhostGeometry.skyExclusionShape(offsets),
-            VisualizationStyles.GhostSkyExclusionZone,
             offsets,
             assign(slot, _)
           )

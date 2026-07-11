@@ -35,6 +35,7 @@ import lucuma.core.geom.offsets.OffsetPositions
 import lucuma.core.geom.pwfs
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
+import lucuma.core.math.Offset
 import lucuma.react.common.Css
 import lucuma.schemas.model.SlotId
 import lucuma.ui.reusability.given
@@ -46,14 +47,14 @@ private given Reusability[Map[SlotId, Coordinates]] = Reusability.map
 
 // Hooks for shapes
 def usePatrolFieldShapes(
-  vizConf:             Option[ConfigurationForVisualization],
-  selectedGS:          Option[AgsAnalysis.Usable],
-  baseCoordinates:     Option[Coordinates],
-  blindOffset:         Option[Coordinates],
-  scienceTargetCoords: List[Coordinates],
-  pfVisibility:        AGSVisibility,
-  anglesToTest:        Option[NonEmptyList[Angle]],
-  agsState:            Option[AgsState]
+  vizConf:         Option[ConfigurationForVisualization],
+  selectedGS:      Option[AgsAnalysis.Usable],
+  baseCoordinates: Option[Coordinates],
+  blindOffset:     Option[Coordinates],
+  scienceOffsetsFromBase: List[Offset],
+  pfVisibility:    AGSVisibility,
+  anglesToTest:    Option[NonEmptyList[Angle]],
+  agsState:        Option[AgsState]
 ): HookResult[Option[SortedMap[Css, ShapeExpression]]] =
 
   extension (geometryType: GeometryType)
@@ -78,12 +79,12 @@ def usePatrolFieldShapes(
      selectedGS,
      baseCoordinates,
      blindOffset,
-     scienceTargetCoords,
+     scienceOffsetsFromBase,
      pfVisibility,
      anglesToTest,
      agsState
     )
-  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, scienceTargetCoords, _, _, _) =>
+  ) { (vizConf, selectedGS, baseCoordinates, blindOffset, scienceOffsetsFromBase, _, _, _) =>
     val fallbackPA = vizConf.map(_.posAngle).map(NonEmptyList.one)
 
     val allAngles =
@@ -111,8 +112,7 @@ def usePatrolFieldShapes(
         )
 
       val noZoneOffsets: List[OffsetPosition] =
-        val sciOffsets   = scienceTargetCoords
-          .map(_.diff(baseCoords).offset)
+        val sciOffsets   = scienceOffsetsFromBase
           .map(OffsetPosition(GeometryType.NoZone, _, Angle.Angle0))
         val blindOffsets = blindOffset
           .map(o => baseCoords.diff(o).offset)

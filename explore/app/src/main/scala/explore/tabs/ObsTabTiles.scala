@@ -509,9 +509,14 @@ object ObsTabTiles:
                   none,
                   Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
                 )
-                GhostIfuMapping
-                  .derive(ctx, scienceTargets.map(t => (t.id, t.target)))
-                  .toOption
+                GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
+                  case Right(mapping) => mapping.some
+                  // Derivation can fail when the sky is too close to the science target.
+                  // Fall back to TargetPlusSky so the sky marker stays visible and
+                  // the keep-out zone can flag it.
+                  case Left(_)        =>
+                    (scienceTargets.headOption.map(_.id), ghost.skyPosition)
+                      .mapN(GhostIfuMapping.TargetPlusSky.apply)
               case _                                   => none
 
           val targetVisualization: TargetVisualization =

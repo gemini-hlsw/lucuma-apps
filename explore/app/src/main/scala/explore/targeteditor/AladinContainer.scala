@@ -455,7 +455,7 @@ object AladinContainer extends AladinCommon {
                                      props.selectedGuideStar,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
-                                     props.obsTimeCoords.scienceCoords,
+                                     props.obsTimeCoords.scienceOffsetsFromBase,
                                      props.agsVisibility,
                                      props.anglesToTest,
                                      props.agsState
@@ -541,6 +541,15 @@ object AladinContainer extends AladinCommon {
         fov                     <- useState(none[Fov])
       } yield {
         val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseOrBlindCoords
+
+        // Shade the sky keep-out zone while adding a sky position, or in regular mode when an
+        // existing sky position falls inside it.
+        val keepOutZone = InteractiveRegion.skyKeepOutZone(props.vizConf, props.obsTimeCoords)
+
+        val skyInKeepOut: Boolean =
+          (baseCoordinates, keepOutZone).tupled.exists:
+            case (base, (_, shape)) =>
+              props.obsTimeCoords.skySlots.exists((_, sky) => shape.contains(base.diff(sky).offset))
 
         /**
          * Called when the position changes, i.e. aladin pans. We want to offset the visualization
@@ -776,11 +785,11 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
-              // Always-visible GHOST sky keep-out disk(s) around the science target.
-              props.interactiveRegions
-                .flatMap(_.exclusion)
-                .reduceOption(_ ∪ _)
-                .flatMap: exclusion =>
+              // Sky keep-out zone: shaded while adding a sky position, or in regular mode when
+              // an existing sky position falls inside it.
+              keepOutZone
+                .filter(_ => props.interactiveRegions.nonEmpty || skyInKeepOut)
+                .flatMap: (css, shape) =>
                   (resize.width, resize.height, fov.value)
                     .mapN(
                       SvgVisualizationOverlay(
@@ -788,7 +797,7 @@ object AladinContainer extends AladinCommon {
                         _,
                         _,
                         screenOffset,
-                        NonEmptyMap.one(VisualizationStyles.GhostSkyExclusionZone, exclusion),
+                        NonEmptyMap.one(css, shape),
                         Css.Empty
                       )
                     ),
