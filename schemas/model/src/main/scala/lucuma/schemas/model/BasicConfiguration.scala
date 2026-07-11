@@ -222,23 +222,23 @@ object BasicConfiguration:
                                       .orElse:
                                         c.downField("gnirsSpectroscopy")
                                           .as[GnirsSpectroscopy]
-                                      .orElse:
-                                        c.downField("ghostIfu")
-                                          .as[GhostIfu]
                                           .orElse:
-                                            c.downField("visitor")
-                                              .as[Visitor]
+                                            c.downField("ghostIfu")
+                                              .as[GhostIfu]
                                               .orElse:
-                                                c.downField("exchangeKeck")
-                                                  .as[KeckExchange]
+                                                c.downField("visitor")
+                                                  .as[Visitor]
                                                   .orElse:
-                                                    c.downField("exchangeSubaru")
-                                                      .as[SubaruExchange]
+                                                    c.downField("exchange")
+                                                      .as[KeckExchange]
                                                       .orElse:
-                                                        DecodingFailure(
-                                                          "Could not decode BasicConfiguration",
-                                                          c.history
-                                                        ).asLeft
+                                                        c.downField("exchange")
+                                                          .as[SubaruExchange]
+                                                          .orElse:
+                                                            DecodingFailure(
+                                                              "Could not decode BasicConfiguration",
+                                                              c.history
+                                                            ).asLeft
 
   case class GmosNorthLongSlit(
     grating:           GmosNorthGrating,
@@ -306,7 +306,12 @@ object BasicConfiguration:
       yield GnirsImaging(filters, camera)
 
   case object Igrins2LongSlit extends BasicConfiguration derives Eq:
-    given Decoder[Igrins2LongSlit.type] = Decoder.const(Igrins2LongSlit)
+    // Must reject a null field: in the union decoder this branch is tried before
+    // ghostIfu/gnirs/visitor, and `Decoder.const` would otherwise swallow any of
+    // those (whose `igrins2LongSlit` field is null) as Igrins2LongSlit.
+    given Decoder[Igrins2LongSlit.type] = Decoder.instance: c =>
+      if c.value.isNull then DecodingFailure("igrins2LongSlit is null", c.history).asLeft
+      else Igrins2LongSlit.asRight
 
   case class GnirsSpectroscopy(
     filter:            GnirsFilter,
@@ -362,15 +367,17 @@ object BasicConfiguration:
         for
           timeAndCount <-
             c.downField("exposureTimeMode")
-              .as[ExposureTimeMode.TimeAndCountMode]
+              .as[ExposureTimeMode]
               .flatMap: etm =>
                 ExposureTimeMode.timeAndCount
                   .getOption(etm)
                   .toRight(
                     DecodingFailure("Expected TimeAndCountMode for GHOST detector", c.history)
                   )
-          readMode     <- c.downField("defaultReadMode").as[GhostReadMode]
-          binning      <- c.downField("defaultBinning").as[GhostBinning]
+          // Effective values (explicit override or default), matching
+          // ObservingMode.GhostIfu.toBasicConfiguration on `main`.
+          readMode     <- c.downField("readMode").as[GhostReadMode]
+          binning      <- c.downField("binning").as[GhostBinning]
         yield ItcGhostDetector(timeAndCount, readMode, binning)
 
         // TODO: When the ODB API has the signalToNoise value, we can switch to deriving the decoder
