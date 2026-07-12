@@ -3617,6 +3617,14 @@ $help-title-height: 40px;
   padding-bottom: 0.3em;
   border-bottom: 1px solid var(--site-border-color);
 
+  .explore-pa-configuration-cass-rotator-fixed {
+    display: flex;
+    align-self: center;
+    margin-left: 0.5em;
+    color: var(--text-color-secondary);
+    font-size: 0.85em;
+  }
+
   .explore-pa-configuration-angle {
     input {
       width: 9ch;

@@ -382,6 +382,7 @@ object ExploreStyles:
   val ConfigurationTileBody: Css           = Css("explore-configuration-tile-body")
   val PAConfigurationForm: Css             = Css("explore-pa-configuration-form")
   val PAConfigurationAngle: Css            = Css("explore-pa-configuration-angle")
+  val PAConfigurationCassRotatorFixed: Css = Css("explore-pa-configuration-cass-rotator-fixed")
   val AngleSpinnerButtons: Css             = Css("angle-spinner-buttons")
   val AveragePA: Css                       = Css("explore-average-pa")
   val ObsInstantTileTitle: Css             = Css("explore-obs-instant-tile-title")
