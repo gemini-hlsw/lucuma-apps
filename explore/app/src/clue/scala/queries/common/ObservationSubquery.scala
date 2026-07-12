@@ -32,6 +32,7 @@ object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observat
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
+            cassRotator
             explicitBase {
               ra $RASubquery
               dec $DecSubquery

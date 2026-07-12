@@ -14,6 +14,7 @@ import explore.model.SchedulingConstraints
 import explore.model.ScienceRequirements
 import explore.model.arb.ArbExecution
 import lucuma.core.arb.ArbTime
+import lucuma.core.enums.CassRotator
 import lucuma.core.enums.ScienceBand
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Wavelength
@@ -92,6 +93,7 @@ trait ArbObservation:
         execution             <- arbitrary[Execution]
         explicitBase          <- arbitrary[Option[Coordinates]]
         blindOffset           <- arbitrary[BlindOffset]
+        cassRotator           <- arbitrary[CassRotator]
       yield Observation(
         id,
         reference,
@@ -119,7 +121,8 @@ trait ArbObservation:
         groupIndex,
         execution,
         explicitBase,
-        blindOffset
+        blindOffset,
+        cassRotator
       )
     )
 
