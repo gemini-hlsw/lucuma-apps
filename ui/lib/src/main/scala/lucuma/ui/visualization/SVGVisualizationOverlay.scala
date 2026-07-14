@@ -120,11 +120,9 @@ object SvgVisualizationOverlay {
         hatchDefs(hatchLine, hatchLineSel),
         <.g(
           ^.transform := s"scale(1, -1)",
-          evald.toList
-            .map { case (css, shape) =>
-              forGeometry(css, shape.g)
-            }
-            .toTagMod
+          evald.toList.map { case (css, shape) =>
+            forGeometry(css, shape.g)
+          }.toTagMod
         )
       )
       svg
