@@ -18,7 +18,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation($$createObservation: CreateObservationInput!) {
         createObservation(input: $$createObservation) {
-          observation $ObservationWithFullModeSubquery
+          observation $ObservationSubquery
         }
       }
     """
@@ -81,7 +81,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation ($$input: CloneObservationInput!){
         cloneObservation(input: $$input) {
-          newObservation $ObservationWithFullModeSubquery
+          newObservation $ObservationSubquery
         }
       }
     """
@@ -97,11 +97,12 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ProgramObservationsDelta extends GraphQLOperation[ObservationDB]:
+    // The full observe mode is hydrated separately (initial load + mutations),
     val document = s"""
       subscription($$input: ObservationEditInput!) {
         observationEdit(input: $$input) {
           observationId
-          value $ObservationWithFullModeSubquery
+          value $ObservationSubquery
           meta:value { existence }
           editType
         }

@@ -256,13 +256,43 @@ object ProgramCacheController
                         _.updatedWith(oid)(_.map(Observation.selectedGSName.replace(name)))
               )
 
+            // The observationEdit subscription is lightweight: it carries only BasicConfiguration,
+            // so `upsertObs` keeps the cached full ObservingMode.
+            // Here we re-fetch the full mode for each edited observation and write it in
+            val obsEditModeTypePipe: Pipe[
+              IO,
+              ObsQueriesGQL.ProgramObservationsDelta.Data.ObservationEdit,
+              (Observation.Id, Option[ObservingModeType])
+            ] =
+              _.filter(_.meta.exists(_.existence === Existence.Present))
+                .map: e =>
+                  (e.observationId, e.value.flatMap(_.basicConfiguration.map(_.obsModeType)))
+
+            val observingModeUpdate: Pipe[
+              IO,
+              (Observation.Id, Option[ObservingModeType]),
+              ProgramSummaries => ProgramSummaries
+            ] =
+              keyedSwitchEvalMap(
+                _._1,
+                (oid, optModeType) =>
+                  optModeType
+                    .flatTraverse(odbApi.observationObservingMode(oid, _))
+                    .map: mode =>
+                      ProgramSummaries.observations.modify:
+                        _.updatedWith(oid)(
+                          _.map(Observation.observingMode.replace(Pot.Ready(mode)))
+                        )
+              )
+
             val updateObservations: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
               props.odbApi
                 .programObservationsDeltaSubscription(props.programId)
                 .map:
                   _.broadcastThrough(
                     _.map(modifyObservations(_)),
-                    obsEditIdPipe.andThen(guideTargetNameUpdate)
+                    obsEditIdPipe.andThen(guideTargetNameUpdate),
+                    obsEditModeTypePipe.andThen(observingModeUpdate)
                   )
 
             val updateGroups: Resource[IO, Stream[IO, ProgramSummaries => ProgramSummaries]] =
