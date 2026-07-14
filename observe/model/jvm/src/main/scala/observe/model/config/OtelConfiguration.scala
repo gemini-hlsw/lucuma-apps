@@ -5,5 +5,6 @@ package observe.model.config
 
 import cats.Eq
 import cats.derived.*
+import org.http4s.Uri
 
-final case class HoneycombConfiguration(writeKey: Option[String]) derives Eq
+final case class OtelConfiguration(endpoint: Option[Uri], key: Option[String]) derives Eq

@@ -78,7 +78,7 @@ given ConfigReader[WebServerConfiguration] = ConfigReader.derived
 
 given ConfigReader[LucumaSSOConfiguration] = ConfigReader.derived
 
-given ConfigReader[HoneycombConfiguration] = ConfigReader.derived
+given ConfigReader[OtelConfiguration] = ConfigReader.derived
 
 given ConfigReader[ObserveConfiguration] = ConfigReader.derived
 

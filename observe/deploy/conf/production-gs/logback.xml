@@ -47,7 +47,7 @@
     <logger name="org.asynchttpclient.netty" level="INFO">
         <appender-ref ref="ASYNC500" />
     </logger>
-    <logger name="io.honeycomb" level="INFO">
+    <logger name="io.opentelemetry" level="INFO">
         <appender-ref ref="ASYNC500" />
     </logger>
 

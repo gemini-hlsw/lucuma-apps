@@ -90,10 +90,6 @@ object Dependencies {
     depsJVM("edu.gemini" %% "clue-http4s")(clue)
   )
 
-  val ClueNatchez = Def.setting(
-    depsJVM("edu.gemini" %% "clue-natchez")(clue)
-  )
-
   val ClueScalaJs = Def.setting(
     deps("edu.gemini" %%% "clue-scalajs")(clue)
   )
@@ -193,6 +189,28 @@ object Dependencies {
 
   val Http4sOtel4sClient = Def.setting(
     deps("org.http4s" %%% "http4s-otel4s-middleware-trace-client")(http4sOtel4s)
+  )
+
+  val Http4sOtel4sServer = Def.setting(
+    depsJVM("org.http4s" %% "http4s-otel4s-middleware-trace-server")(http4sOtel4s)
+  )
+
+  val Http4sOtel4sMetrics = Def.setting(
+    depsJVM("org.http4s" %% "http4s-otel4s-middleware-metrics")(http4sOtel4s)
+  )
+
+  val Otel4sOtelJava = Def.setting(
+    depsJVM(
+      "org.typelevel" %% "otel4s-oteljava",
+      "org.typelevel" %% "otel4s-instrumentation-metrics"
+    )(otel4s) ++
+      depsJVM(
+        "io.opentelemetry" % "opentelemetry-sdk-extension-autoconfigure",
+        "io.opentelemetry" % "opentelemetry-exporter-otlp"
+      )(openTelemetry) ++
+      depsJVM("io.opentelemetry.instrumentation" % "opentelemetry-runtime-telemetry")(
+        openTelemetryInstr
+      )
   )
 
   val Http4sJdkClient =
@@ -330,6 +348,10 @@ object Dependencies {
     deps("edu.gemini" %%% "lucuma-sso-backend-client")(lucumaServers)
   )
 
+  val LucumaCommonMiddleware = Def.setting(
+    depsJVM("edu.gemini" %% "lucuma-common-middleware")(lucumaServers)
+  )
+
   val LucumaItcClient = Def.setting(
     deps("edu.gemini" %%% "lucuma-itc-client")(lucumaServers)
   )
@@ -386,14 +408,6 @@ object Dependencies {
 
   val ClueOtel4s = Def.setting(
     deps("edu.gemini" %%% "clue-otel4s")(clue)
-  )
-
-  val Natchez = Def.setting(
-    depsJVM(
-      "org.tpolecat" %% "natchez-core",
-      "org.tpolecat" %% "natchez-honeycomb"
-    )(natchez) ++
-      depsJVM("org.tpolecat" %% "natchez-http4s")(natchezHttp4s)
   )
 
   val PPrint = Def.setting(

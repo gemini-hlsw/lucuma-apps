@@ -3,7 +3,6 @@
 
 package observe.web.server.http4s
 
-import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.*
 import cats.effect.syntax.all.*
@@ -15,16 +14,12 @@ import fs2.io.file.Files
 import fs2.io.net.Network
 import fs2.io.net.tls.TLSContext
 import fs2.io.net.tls.TLSParameters
-import lucuma.core.enums.ExecutionEnvironment
-import lucuma.core.enums.Site
+import lucuma.common.middleware.MetricsMiddleware
+import lucuma.common.middleware.TracingMiddleware
 import lucuma.core.model.User
 import lucuma.sso.client.SsoClient
 import lucuma.sso.client.SsoJwtReader
 import lucuma.sso.client.util.JwtDecoder
-import natchez.EntryPoint
-import natchez.Trace
-import natchez.honeycomb.Honeycomb
-import natchez.http4s.NatchezMiddleware
 import observe.model.ClientId
 import observe.model.config.*
 import observe.model.events.*
@@ -34,17 +29,24 @@ import observe.server.Systems
 import observe.server.tcs.GuideConfigDb
 import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
+import observe.web.server.otel.ObserveOtel
 import org.http4s.HttpRoutes
-import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
+import org.http4s.otel4s.middleware.metrics.OtelMetrics
+import org.http4s.otel4s.middleware.trace.redact.HeaderRedactor
+import org.http4s.otel4s.middleware.trace.server.ServerMiddleware as OtelServerMiddleware
+import org.http4s.otel4s.middleware.trace.server.ServerSpanDataProvider
 import org.http4s.server.Router
 import org.http4s.server.SSLKeyStoreSupport.StoreInfo
 import org.http4s.server.Server
 import org.http4s.server.middleware.Logger as Http4sLogger
 import org.http4s.server.websocket.WebSocketBuilder2
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.metrics.MeterProvider
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import pureconfig.*
 
 import java.io.FileInputStream
@@ -140,7 +142,9 @@ object WebServerLauncher extends IOApp with LogInitialization {
     )
 
   /** Resource that yields the running web server */
-  private def webServer[F[_]: {Async, Trace, Logger, Files, Network, Compression}](
+  private def webServer[F[
+    _
+  ]: {Async, Tracer, TracerProvider, MeterProvider, Logger, Files, Network, Compression}](
     conf:      ObserveConfiguration,
     clientsDb: ClientsSetDb[F],
     ssoClient: SsoClient[F, User],
@@ -170,37 +174,52 @@ object WebServerLauncher extends IOApp with LogInitialization {
         ).service
       )
 
-    def natchez(routes: HttpRoutes[F]): HttpRoutes[F] =
-      NatchezMiddleware.server[F]:
-        Kleisli: (req: Request[F]) =>
-          OptionT:
-            Trace[F].span("http"):
-              routes.run(req).value
+    def otelMiddleware: Resource[F, HttpRoutes[F] => HttpRoutes[F]] =
+      for
+        metricsOps <- Resource.eval(OtelMetrics.serverMetricsOps[F]())
+        spanData    = ServerSpanDataProvider
+                        .openTelemetry(TracingMiddleware.redactor)
+                        .optIntoHttpRequestHeaders(HeaderRedactor.default)
+                        .optIntoHttpResponseHeaders(HeaderRedactor.default)
+        otelSrv    <- Resource.eval(OtelServerMiddleware.builder[F](spanData).build)
+      yield (routes: HttpRoutes[F]) =>
+        otelSrv.asHttpRoutesMiddleware(
+          TracingMiddleware.traceUser(ssoClient)(
+            MetricsMiddleware.httpMetrics(metricsOps)(routes)
+          )
+        )
 
-    def builder(events: Topic[F, (Option[ClientId], ClientEvent)]): EmberServerBuilder[F] =
+    def builder(
+      events: Topic[F, (Option[ClientId], ClientEvent)],
+      mw:     HttpRoutes[F] => HttpRoutes[F]
+    ): EmberServerBuilder[F] =
       EmberServerBuilder
         .default[F]
         .withHost(conf.webServer.host)
         .withPort(conf.webServer.port)
         .withHttpWebSocketApp(wsb =>
-          natchez:
+          mw:
             Http4sLogger
               .httpRoutes(logHeaders = false, logBody = false)(router(wsb, events))
           .orNotFound
         )
 
-    def builderWithTLS(events: Topic[F, (Option[ClientId], ClientEvent)]): Resource[F, Server] =
+    def builderWithTLS(
+      events: Topic[F, (Option[ClientId], ClientEvent)],
+      mw:     HttpRoutes[F] => HttpRoutes[F]
+    ): Resource[F, Server] =
       Resource
         .eval(
           conf.webServer.tls
             .traverse(tlsContext)
             .map(_.flatten)
-            .map(_.fold(builder(events))(builder(events).withTLS(_, TLSParameters.Default)))
+            .map(_.fold(builder(events, mw))(builder(events, mw).withTLS(_, TLSParameters.Default)))
             .map(_.build)
         )
         .flatten
 
     for {
+      mw     <- otelMiddleware
       wst    <- Resource.eval(Topic[F, (Option[ClientId], ClientEvent)])
       _      <- oe.clientEventStream
                   .evalMap: targetedClientEvent =>
@@ -208,7 +227,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
                   .compile
                   .drain
                   .background
-      server <- builderWithTLS(wst)
+      server <- builderWithTLS(wst, mw)
     } yield server
 
   }
@@ -234,6 +253,11 @@ object WebServerLauncher extends IOApp with LogInitialization {
       .build
   }
 
+  private def tracingBackend(conf: OtelConfiguration): String =
+    (conf.endpoint, conf.key) match
+      case (Some(endpoint), Some(_)) => s"OpenTelemetry (OTLP) endpoint=$endpoint"
+      case _                         => "No-op (silent)"
+
   private def printBanner[F[_]: Logger](conf: ObserveConfiguration): F[Unit] = {
     val runtime    = Runtime.getRuntime
     val memorySize = java.lang.management.ManagementFactory
@@ -258,6 +282,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       | maximum JVM memory : ${runtime.maxMemory() / 1024 / 1024} MB
       | total RAM          : ${memorySize / 1024 / 1024} MB
       | java version       : ${System.getProperty("java.version")}
+      | Tracing            : ${tracingBackend(conf.otel)}
       |
       | Go to https://${conf.webServer.host}:${conf.webServer.port}
       |"""
@@ -302,36 +327,32 @@ object WebServerLauncher extends IOApp with LogInitialization {
   private def publishStats[F[_]: Temporal](cs: ClientsSetDb[F]): Stream[F, Unit] =
     Stream.fixedRate[F](10.minute).flatMap(_ => Stream.eval(cs.report))
 
-  private def entryPoint[F[_]: Sync](
-    config:               HoneycombConfiguration,
-    site:                 Site,
-    executionEnvironment: ExecutionEnvironment
-  ): Resource[F, EntryPoint[F]] =
-    config.writeKey.fold(Resource.pure(EntryPoint.noop[F])): key =>
-      Honeycomb.entryPoint(ServiceName): cb =>
-        Sync[F].delay:
-          cb.setWriteKey(key)
-          cb.setDataset(s"$ServiceName-$site-$executionEnvironment")
-          cb.build()
-
   /** Reads the configuration and launches the observe engine and web server */
   def observe: IO[ExitCode] = {
 
     val observe: Resource[IO, Unit] =
       for // Initialize log before the engine is setup
-        given Logger[IO] <- Resource.eval(setupLogger[IO])
-        conf             <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
-        ep               <- entryPoint[IO](conf.honeycomb, conf.site, conf.environment)
-        given Trace[IO]  <- Resource.eval(Trace.ioTraceForEntryPoint(ep))
-        _                <- Resource.eval(printBanner(conf))
-        cli              <- mkClient[IO](conf.observeEngine.dhsTimeout)
-        cs               <- Resource.eval:
-                              Ref.of[IO, ClientsSetDb.ClientsSet](Map.empty).map(ClientsSetDb.apply[IO](_))
-        _                <- Resource.eval(publishStats(cs).compile.drain.start)
-        engine           <- engineIO(conf, cli)
-        _                <- redirectWebServer(conf.webServer, engine.systems.guideDb)
-        sso              <- ssoClient(cli, conf.lucumaSSO)
-        _                <- webServer(conf, cs, sso, engine)
+        given Logger[IO]        <- Resource.eval(setupLogger[IO])
+        conf                    <- Resource.eval(config[IO].flatMap(loadConfiguration[IO]))
+        otel                    <- ObserveOtel.resource[IO](
+                                     ServiceName,
+                                     OcsBuildInfo.version,
+                                     conf.site,
+                                     conf.environment,
+                                     conf.otel
+                                   )
+        given Tracer[IO]         = otel.tracer
+        given TracerProvider[IO] = otel.tracerProvider
+        given MeterProvider[IO]  = otel.meterProvider
+        _                       <- Resource.eval(printBanner(conf))
+        cli                     <- mkClient[IO](conf.observeEngine.dhsTimeout)
+        cs                      <- Resource.eval:
+                                     Ref.of[IO, ClientsSetDb.ClientsSet](Map.empty).map(ClientsSetDb.apply[IO](_))
+        _                       <- Resource.eval(publishStats(cs).compile.drain.start)
+        engine                  <- engineIO(conf, cli)
+        _                       <- redirectWebServer(conf.webServer, engine.systems.guideDb)
+        sso                     <- ssoClient(cli, conf.lucumaSSO)
+        _                       <- webServer(conf, cs, sso, engine)
       yield ()
 
     observe.useForever.as(ExitCode.Success)
