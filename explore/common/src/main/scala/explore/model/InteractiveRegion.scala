@@ -4,7 +4,6 @@
 package explore.model
 
 import cats.data.NonEmptyList
-import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.syntax.all.*
 import lucuma.ags.AgsAnalysis
@@ -36,15 +35,12 @@ object InteractiveRegion:
   def skyKeepOutZone(
     vizConf:  Option[ConfigurationForVisualization],
     coordsAt: ObservationTargetsCoordinatesAt
-  ): Option[NonEmptyMap[Css, ShapeExpression]] =
+  ): Option[NonEmptyList[(Css, ShapeExpression)]] =
     for
       conf  <- vizConf if conf.configuration.obsModeType === ObservingModeType.GhostIfu
-      shapes = GhostGeometry.skyExclusionShapes(coordsAt.scienceOffsetsFromBase).zipWithIndex
+      shapes = GhostGeometry.skyExclusionShapes(coordsAt.scienceOffsetsFromBase)
       nel   <- NonEmptyList.fromList(shapes)
-    yield nel.map((shape, i) => keepOutCss(i) -> shape).toNem
-
-  private def keepOutCss(index: Int): Css =
-    VisualizationStyles.GhostSkyExclusionZone |+| Css(s"ghost-sky-exclusion-zone-$index")
+    yield nel.map(VisualizationStyles.GhostSkyExclusionZone -> _)
 
   // Whether two science targets (e.g. GHOST dual-target mode) are too close to each other.
   def scienceTargetsTooClose(coordsAt: ObservationTargetsCoordinatesAt): Boolean =

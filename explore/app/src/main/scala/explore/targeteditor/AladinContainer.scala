@@ -4,7 +4,6 @@
 package explore.targeteditor
 
 import cats.data.NonEmptyList
-import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
@@ -775,7 +774,7 @@ object AladinContainer extends AladinCommon {
               (resize.width,
                resize.height,
                fov.value,
-               shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
+               shapes.flatMap(_._2.flatMap(m => NonEmptyList.fromList(m.toList))),
                shapes.map(_._1 |+| staleCss)
               )
                 .mapN(
@@ -816,7 +815,7 @@ object AladinContainer extends AladinCommon {
                         _,
                         _,
                         screenOffset,
-                        NonEmptyMap.of(region.shapeCss -> region.shape),
+                        NonEmptyList.one(region.shapeCss -> region.shape),
                         region.hoverCss
                       )
                     ),
@@ -825,7 +824,7 @@ object AladinContainer extends AladinCommon {
                 (resize.width,
                  resize.height,
                  fov.value,
-                 pfShapes.flatMap(m => NonEmptyMap.fromMap(m))
+                 pfShapes.flatMap(m => NonEmptyList.fromList(m.toList))
                 )
                   .mapN(
                     SvgVisualizationOverlay(
