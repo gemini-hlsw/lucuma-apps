@@ -522,16 +522,17 @@ object AladinCell extends ModelOptics with AladinCommon:
         // Slots whose assignment is still in flight
         val pendingSlots: Set[SlotId] = optimisticSky.get.keySet
 
+        val mergedForMarker: ObservationTargetsCoordinatesAt = mergedCoords(realCoords)
+
         // Build clickable regions for the aladin component, in practice the only one so far is ghost ifu2 sky.
         val interactiveRegions: List[InteractiveRegion] =
           InteractiveRegion.forViz(
             props.obsConf.flatMap(ConfigurationForVisualization.fromObsConfiguration),
+            mergedForMarker,
             props.allTargets.get.get(_).exists(_.isTargetOfOpportunity),
             guideStar,
             assignSkyOptimistic
           )
-
-        val mergedForMarker: ObservationTargetsCoordinatesAt = mergedCoords(realCoords)
         AladinContainer(
           props.obsTargets,
           props.obsTime,

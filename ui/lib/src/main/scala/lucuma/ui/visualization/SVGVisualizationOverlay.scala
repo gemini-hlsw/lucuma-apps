@@ -3,7 +3,7 @@
 
 package lucuma.ui.visualization
 
-import cats.data.NonEmptyMap
+import cats.data.NonEmptyList
 import cats.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.svg_<^.*
@@ -27,7 +27,7 @@ case class SvgVisualizationOverlay(
   height:       Int,
   fov:          Fov,
   screenOffset: Offset,
-  shapes:       NonEmptyMap[Css, ShapeExpression],
+  shapes:       NonEmptyList[(Css, ShapeExpression)],
   clazz:        Css = Css.Empty
 ) extends ReactFnProps(SvgVisualizationOverlay.component)
 
@@ -91,15 +91,14 @@ object SvgVisualizationOverlay {
   private val component =
     ScalaFnComponent[Props] { p =>
       // Render the svg
-      val evald: NonEmptyMap[Css, JtsShape] = p.shapes
-        .fmap(_.eval)
-        .map {
-          case jts: JtsShape => jts
-          case x             => sys.error(s"Whoa unexpected shape type: $x")
-        }
+      val evald: NonEmptyList[(Css, JtsShape)] = p.shapes
+        .map: (css, shape) =>
+          shape.eval match
+            case jts: JtsShape => (css, jts)
+            case x             => sys.error(s"Whoa unexpected shape type: $x")
 
       val composite = evald
-        .map(_.g.resolveGeometryCollections)
+        .map((_, shape) => shape.g.resolveGeometryCollections)
         .reduce(using geometryUnionSemigroup)
 
       val envelope = composite.getBoundary.getEnvelopeInternal
@@ -121,12 +120,9 @@ object SvgVisualizationOverlay {
         hatchDefs(hatchLine, hatchLineSel),
         <.g(
           ^.transform := s"scale(1, -1)",
-          evald.toNel
-            .map { case (css, shape) =>
-              forGeometry(css, shape.g)
-            }
-            .toList
-            .toTagMod
+          evald.toList.map { case (css, shape) =>
+            forGeometry(css, shape.g)
+          }.toTagMod
         )
       )
       svg

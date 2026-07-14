@@ -11,6 +11,7 @@ import explore.model.ErrorMsgOr
 import explore.model.RegionOrTrackingMap.*
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Epoch
+import lucuma.core.math.Offset
 import lucuma.core.model.Target
 import lucuma.schemas.model.InstrumentSlot
 import lucuma.schemas.model.SlotId
@@ -32,6 +33,10 @@ final case class ObservationTargetsCoordinatesAt(
   val scienceCoords: List[Coordinates]       = scienceTargetsMap.values.toList
   // We really should have one of these two things...
   val baseOrBlindCoords: Option[Coordinates] = baseCoords.orElse(blindOffsetCoords)
+
+  // Offset of each science target from the base position (tangent-plane).
+  val scienceOffsetsFromBase: List[Offset] =
+    baseOrBlindCoords.toList.flatMap(b => scienceCoords.map(c => b.diff(c).offset))
 
   // Coordinates of each IFU slot
   val slotCoords: Map[SlotId, Coordinates] = slots.view.mapValues(_.coordinates).toMap

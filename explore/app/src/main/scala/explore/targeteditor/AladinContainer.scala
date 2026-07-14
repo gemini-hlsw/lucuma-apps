@@ -4,7 +4,6 @@
 package explore.targeteditor
 
 import cats.data.NonEmptyList
-import cats.data.NonEmptyMap
 import cats.effect.IO
 import cats.effect.Ref
 import cats.effect.Resource
@@ -138,9 +137,9 @@ object AladinContainer extends AladinCommon {
 
   private given Reusability[List[AgsAnalysis.Usable]] = Reusability.by(_.length)
 
-  // ShapeExpression has no Eq; key region reuse on (slot, posAngle) like AgsAnalysis.Usable.
+  // ShapeExpression has no Eq; key region reuse on (slot, posAngle, exclusionOffsets) like AgsAnalysis.Usable.
   private given Reusability[InteractiveRegion] =
-    Reusability.by(r => (r.slot, r.posAngle))
+    Reusability.by(r => (r.slot, r.posAngle, r.exclusionOffsets))
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -454,7 +453,7 @@ object AladinContainer extends AladinCommon {
                                      props.selectedGuideStar,
                                      props.obsTimeCoords.baseOrBlindCoords,
                                      props.obsTimeCoords.blindOffsetCoords,
-                                     props.obsTimeCoords.scienceCoords,
+                                     props.obsTimeCoords.scienceOffsetsFromBase,
                                      props.agsVisibility,
                                      props.anglesToTest,
                                      props.agsState
@@ -540,6 +539,19 @@ object AladinContainer extends AladinCommon {
         fov                     <- useState(none[Fov])
       } yield {
         val baseCoordinates: Option[Coordinates] = props.obsTimeCoords.baseOrBlindCoords
+
+        // Shade the sky keep-out zone while adding a sky position, or in regular mode when an
+        // existing sky position falls inside it, or when two science targets are themselves
+        // too close..
+        val keepOutZone = InteractiveRegion.skyKeepOutZone(props.vizConf, props.obsTimeCoords)
+
+        val skyInKeepOut: Boolean =
+          props.obsTimeCoords.scienceCoords.exists(sci =>
+            props.obsTimeCoords.skyCoords.exists(sky => GhostGeometry.tooClose(sci, sky))
+          )
+
+        val scienceTargetsTooClose: Boolean =
+          InteractiveRegion.scienceTargetsTooClose(props.obsTimeCoords)
 
         /**
          * Called when the position changes, i.e. aladin pans. We want to offset the visualization
@@ -762,7 +774,7 @@ object AladinContainer extends AladinCommon {
               (resize.width,
                resize.height,
                fov.value,
-               shapes.flatMap(_._2.flatMap(NonEmptyMap.fromMap)),
+               shapes.flatMap(_._2.flatMap(m => NonEmptyList.fromList(m.toList))),
                shapes.map(_._1 |+| staleCss)
               )
                 .mapN(
@@ -775,6 +787,23 @@ object AladinContainer extends AladinCommon {
                     _
                   )
                 ),
+              // Sky keep-out zone
+              keepOutZone
+                .filter(_ =>
+                  props.interactiveRegions.nonEmpty || skyInKeepOut || scienceTargetsTooClose
+                )
+                .flatMap: shapes =>
+                  (resize.width, resize.height, fov.value)
+                    .mapN(
+                      SvgVisualizationOverlay(
+                        _,
+                        _,
+                        _,
+                        screenOffset,
+                        shapes,
+                        Css.Empty
+                      )
+                    ),
               // Interactive regions like ifu2 for ghost
               hoveredSlot.get
                 .flatMap(slot => props.interactiveRegions.find(_.slot === slot))
@@ -786,7 +815,7 @@ object AladinContainer extends AladinCommon {
                         _,
                         _,
                         screenOffset,
-                        NonEmptyMap.of(region.shapeCss -> region.shape),
+                        NonEmptyList.one(region.shapeCss -> region.shape),
                         region.hoverCss
                       )
                     ),
@@ -795,7 +824,7 @@ object AladinContainer extends AladinCommon {
                 (resize.width,
                  resize.height,
                  fov.value,
-                 pfShapes.flatMap(m => NonEmptyMap.fromMap(m))
+                 pfShapes.flatMap(m => NonEmptyList.fromList(m.toList))
                 )
                   .mapN(
                     SvgVisualizationOverlay(

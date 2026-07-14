@@ -86,6 +86,7 @@ import lucuma.ui.sso.UserVault
 import lucuma.ui.syntax.all.*
 import lucuma.ui.syntax.all.given
 import lucuma.ui.undo.UndoSetter
+import lucuma.ui.visualization.GhostGeometry
 import monocle.Iso
 import monocle.Optional
 import queries.schemas.itc.syntax.itcTarget
@@ -509,9 +510,26 @@ object ObsTabTiles:
                   none,
                   Timestamp.fromInstantTruncatedAndBounded(obsTimeOrNow)
                 )
-                GhostIfuMapping
-                  .derive(ctx, scienceTargets.map(t => (t.id, t.target)))
-                  .toOption
+
+                // Whether `sky` is within the minimum IFU-arm separation of any science target.
+                def tooCloseToScience(sky: Coordinates): Boolean =
+                  scienceTargets.exists: t =>
+                    Target.siderealTracking
+                      .getOption(t.target)
+                      .flatMap(_.at(obsTimeOrNow))
+                      .exists(GhostGeometry.tooClose(_, sky))
+
+                GhostIfuMapping.derive(ctx, scienceTargets.map(t => (t.id, t.target))) match
+                  case Right(mapping)                                         =>
+                    mapping.some
+                  // Derivation fails when the sky is too close to the science target.
+                  // Fall back to TargetPlusSky so the sky marker stays visible and
+                  // the keep-out zone can flag it
+                  case Left(_) if ghost.skyPosition.exists(tooCloseToScience) =>
+                    (scienceTargets.headOption.map(_.id), ghost.skyPosition)
+                      .mapN(GhostIfuMapping.TargetPlusSky.apply)
+                  case Left(_)                                                =>
+                    none
               case _                                   => none
 
           val targetVisualization: TargetVisualization =

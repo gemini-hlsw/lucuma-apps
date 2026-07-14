@@ -14,6 +14,7 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.geom.ShapeExpression
 import lucuma.core.geom.ghost
+import lucuma.core.geom.syntax.shapeexpression.*
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -30,6 +31,36 @@ object GhostGeometry extends PwfsGeometry:
 
   def ifu2PatrolFieldShape(posAngle: Angle): ShapeExpression =
     ghost.GhostIfuPatrolField.ifu2PatrolFieldAt(posAngle, Offset.Zero)
+
+  // One 102" minimum-separation keep-out disk per science-target offset.
+  def skyExclusionShapes(scienceOffsets: List[Offset]): List[ShapeExpression] =
+    val r    = ghost.MinimumIfuArmSeparation
+    val disk = ShapeExpression.centeredEllipse(r + r, r + r)
+    scienceOffsets.map(disk.translate)
+
+  /** The 102" minimum-separation keep-out disk, unioned across the science-target offsets. */
+  def skyExclusionShape(scienceOffsets: List[Offset]): Option[ShapeExpression] =
+    skyExclusionShapes(scienceOffsets).reduceOption(_ ∪ _)
+
+  /** The clickable IFU2 sky region: the patrol field with the keep-out disk(s) removed. */
+  def ifu2SkySlotShape(posAngle: Angle, scienceOffsets: List[Offset]): ShapeExpression =
+    val full = ifu2PatrolFieldShape(posAngle)
+    skyExclusionShape(scienceOffsets).fold(full)(full - _)
+
+  private def isTooClose(distance: Angle): Boolean =
+    distance.toMicroarcseconds < ghost.MinimumIfuArmSeparation.toMicroarcseconds
+
+  /** Whether two coordinates are closer than the minimum IFU arm separation. */
+  def tooClose(a: Coordinates, b: Coordinates): Boolean =
+    isTooClose(a.angularDistance(b))
+
+  /** Whether any two of the given offsets are closer than the minimum IFU arm separation. */
+  def anyTooClose(offsets: List[Offset]): Boolean =
+    offsets
+      .combinations(2)
+      .exists:
+        case List(a, b) => isTooClose(a.distance(b))
+        case _          => false
 
   override protected def candidatesAreaCss: Css = GhostCandidatesArea
 
