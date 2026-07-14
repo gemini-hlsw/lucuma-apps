@@ -15,6 +15,7 @@ import explore.model.enums.PosAngleOptions
 import explore.model.syntax.all.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
+import lucuma.core.enums.CassRotator
 import lucuma.core.math.Angle
 import lucuma.core.math.validation.MathValidators
 import lucuma.core.model.PosAngleConstraint
@@ -41,7 +42,8 @@ case class PAConfigurationPanel(
   selectedPA:   Option[Angle],
   averagePA:    Option[AveragePABasis],
   agsState:     View[AgsState],
-  permissions:  ConfigEditPermissions
+  permissions:  ConfigEditPermissions,
+  cassRotator:  CassRotator
 ) extends ReactFnProps(PAConfigurationPanel.component)
 
 object PAConfigurationPanel:
@@ -66,6 +68,9 @@ object PAConfigurationPanel:
   private val component =
     ScalaFnComponent[Props] { props =>
       val paView = props.posAngleView
+
+      // When the cass rotator is fixed the PA selector is disabled
+      val cassRotatorFixed = props.cassRotator === CassRotator.Fixed
 
       val posAngleOptionsView: View[PosAngleOptions] =
         paView.zoom(unsafePosOptionsLens)
@@ -180,12 +185,17 @@ object PAConfigurationPanel:
           label =
             React.Fragment("Position Angle", HelpIcon("configuration/positionangle.md".refined)),
           value = posAngleOptionsView,
-          disabled = finalReadOnly,
+          disabled = finalReadOnly || cassRotatorFixed,
           disabledItems = disabledOptions
         ),
-        fixedView.mapValue(posAngleEditor),
-        allowedFlipView.mapValue(posAngleEditor),
-        parallacticOverrideView.mapValue(posAngleEditor),
-        selectedAngle
+        <.div(ExploreStyles.PAConfigurationCassRotatorFixed)(
+          <.span(
+            "Cassegrain rotator is fixed, position angle cannot be constrained."
+          )
+        ).when(cassRotatorFixed),
+        fixedView.mapValue(posAngleEditor).unless(cassRotatorFixed),
+        allowedFlipView.mapValue(posAngleEditor).unless(cassRotatorFixed),
+        parallacticOverrideView.mapValue(posAngleEditor).unless(cassRotatorFixed),
+        selectedAngle.unless(cassRotatorFixed)
       )
     }

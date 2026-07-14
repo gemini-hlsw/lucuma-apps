@@ -539,7 +539,8 @@ object ObsTabTiles:
               props.observation.get.calibrationRole,
               trackType,
               targetVisualization,
-              props.observation.get.explicitBase
+              props.observation.get.explicitBase,
+              props.observation.get.cassRotator
             )
 
           // If we have an observation calibration group we want to plot the targets together

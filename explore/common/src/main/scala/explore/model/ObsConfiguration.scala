@@ -15,6 +15,7 @@ import explore.model.syntax.all.*
 import explore.modes.ConfigSelection
 import lucuma.ags.syntax.*
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.ObservingModeType
 import lucuma.core.enums.TrackType
@@ -50,7 +51,8 @@ final case class ObsConfiguration(
   calibrationRole:    Option[CalibrationRole],
   trackType:          Option[TrackType],
   targetViz:          TargetVisualization,
-  explicitBase:       Option[Coordinates]
+  explicitBase:       Option[Coordinates],
+  cassRotator:        CassRotator
 ) derives Eq:
 
   def agsWavelength: Option[AGSWavelength] =
@@ -83,6 +85,10 @@ final case class ObsConfiguration(
   def obsModeType: Option[ObservingModeType] =
     configuration.map(_.obsModeType)
 
+  // When cass rotator is fixed he PA editor is disabled
+  def cassRotatorFixed: Boolean =
+    cassRotator === CassRotator.Fixed
+
   def guideProbe: Option[GuideProbe] =
     configuration.flatMap(_.guideProbe(trackType))
 
@@ -113,5 +119,6 @@ object ObsConfiguration:
       none,
       trackType,
       TargetVisualization.Empty,
-      none
+      none,
+      CassRotator.Following
     )

@@ -19,6 +19,7 @@ import explore.modes.ItcInstrumentConfig
 import io.circe.Decoder
 import io.circe.refined.given
 import lucuma.core.enums.CalibrationRole
+import lucuma.core.enums.CassRotator
 import lucuma.core.enums.GmosAmpGain
 import lucuma.core.enums.GmosAmpReadMode
 import lucuma.core.enums.GmosXBinning
@@ -89,7 +90,8 @@ final case class Observation(
   groupIndex:              NonNegShort,
   execution:               Execution,
   explicitBase:            Option[Coordinates],
-  blindOffset:             BlindOffset
+  blindOffset:             BlindOffset,
+  cassRotator:             CassRotator
 ) derives Eq:
   val site: Option[Site] = basicConfiguration.flatMap(_.siteFor)
 
@@ -404,6 +406,7 @@ object Observation:
     blindOffset.andThen(BlindOffset.blindOffsetTargetId)
   val blindOffsetType: Lens[Observation, BlindOffsetType]       =
     blindOffset.andThen(BlindOffset.blindOffsetType)
+  val cassRotator: Lens[Observation, CassRotator]               = Focus[Observation](_.cassRotator)
 
   val calculatedValues
     : Lens[Observation,
@@ -465,6 +468,7 @@ object Observation:
       execution             <- c.get[Execution]("execution")
       explicitBase          <- targetEnv.downField("explicitBase").as[Option[Coordinates]]
       blindOffset           <- targetEnv.as[BlindOffset]
+      cassRotator           <- targetEnv.get[CassRotator]("cassRotator")
     } yield Observation(
       id,
       reference.flatten,
@@ -495,6 +499,7 @@ object Observation:
       groupIndex,
       execution,
       explicitBase,
-      blindOffset
+      blindOffset,
+      cassRotator
     )
   )

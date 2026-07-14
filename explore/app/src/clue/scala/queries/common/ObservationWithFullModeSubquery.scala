@@ -34,6 +34,7 @@ object ObservationWithFullModeSubquery extends GraphQLSubquery.Typed[Observation
             useBlindOffset
             blindOffsetTarget { id }
             blindOffsetType
+            cassRotator
             explicitBase {
               ra $RASubquery
               dec $DecSubquery

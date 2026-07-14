@@ -493,7 +493,8 @@ object ConfigurationTile
                     props.obsConf.selectedPA,
                     props.obsConf.averagePA,
                     agsState,
-                    props.permissions
+                    props.permissions,
+                    props.obsConf.cassRotator
                   )
                 ),
               if (props.mode.get.isEmpty)
