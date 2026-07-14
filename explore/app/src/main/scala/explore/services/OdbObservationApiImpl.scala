@@ -10,6 +10,7 @@ import clue.StreamingClient
 import clue.data.Input
 import clue.data.syntax.*
 import clue.syntax.*
+import crystal.Pot
 import eu.timepit.refined.types.numeric.NonNegShort
 import eu.timepit.refined.types.numeric.PosBigDecimal
 import eu.timepit.refined.types.string.NonEmptyString
@@ -237,6 +238,12 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       .processErrors
       .map(_.createObservation.observation)
 
+  // Re-hydrate an observation with a one query call to fill the blanks of teh subquery.
+  private def hydrateObservingMode(obs: Observation): F[Observation] =
+    obs.basicConfiguration.fold(obs.pure[F]): bc =>
+      observationObservingMode(obs.id, bc.obsModeType).map: mode =>
+        Observation.observingMode.replace(Pot.Ready(mode))(obs)
+
   def cloneObservation(
     obsId:      Observation.Id,
     newGroupId: Option[Group.Id]
@@ -249,6 +256,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         )
       .processNoDataErrors
       .map(_.cloneObservation.newObservation)
+      .flatMap(hydrateObservingMode)
 
   def applyObservation(
     obsId:                   Observation.Id,
@@ -270,6 +278,7 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
         )
       .processErrorsIgnoring(ignorePendingObsCalc)
       .map(_.cloneObservation.newObservation)
+      .flatMap(hydrateObservingMode)
 
   def deleteObservation(obsId: Observation.Id): F[Unit] =
     deleteObservations(List(obsId))

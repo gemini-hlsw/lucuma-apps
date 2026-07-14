@@ -10,12 +10,9 @@ import explore.model.Observation
 import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
 
-// Returns only the lightweight BasicConfiguration for `observingMode`; used by
-// the bulk summary query (first paint) and by the `observationEdit`
-// subscription, which fires on every edit and must stay cheap.
-//
-// Kept in sync by hand with ObservationWithFullModeSubquery: the two MUST
-// select the same fields except for `observingMode` .
+// Returns only the lightweight BasicConfiguration for `observingMode`. This is the
+// single observation subquery used everywhere: the bulk summary query (first paint),
+// the `observationEdit` subscription, and the create/clone mutations.
 @GraphQL
 @GraphQLType("Observation")
 object ObservationSubquery extends GraphQLSubquery.Typed[ObservationDB, Observation]:
