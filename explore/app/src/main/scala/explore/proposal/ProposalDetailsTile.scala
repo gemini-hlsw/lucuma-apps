@@ -24,7 +24,6 @@ import explore.components.ui.*
 import explore.model.AppContext
 import explore.model.CallForProposal
 import explore.model.ExploreModelValidators
-import explore.model.GeminiProposalType
 import explore.model.Hours
 import explore.model.PartnerSplit
 import explore.model.ProgramDetails
@@ -32,6 +31,7 @@ import explore.model.ProgramTimeRange
 import explore.model.ProgramUser
 import explore.model.Proposal
 import explore.model.ProposalType
+import explore.model.ProposalType.*
 import explore.model.display.given
 import explore.model.enums.TileSizeState
 import explore.model.enums.Visible
@@ -165,372 +165,530 @@ object ProposalDetailsBody:
       }
       .toList
 
+  extension (o: Observatory)
+    private def defaultProposalType: ProposalType = o match
+      case Observatory.Gemini => GeminiProposalType.Queue.Default
+      case Observatory.Keck   => KeckProposalType.Default
+      case Observatory.Subaru => SubaruProposalType.Default
+
+  private def partnerSplitsAndTimes(
+    partnerSplitsView:   Option[View[List[PartnerSplit]]],
+    splitsList:          View[List[PartnerSplit]],
+    totalHours:          View[Hours],
+    minimumPctView:      View[IntPercent],
+    minimumPctTotalView: Option[View[IntPercent]],
+    totalTimeView:       Option[View[TimeSpan]],
+    timeEstimateRange:   CalculatedValue[Option[ProgramTimeRange]],
+    readonly:            Boolean,
+    showDialog:          View[Visible],
+    minTimeLabel:        String = "Min Time",
+    maxTimeLabel:        String = "Max Time"
+  ): VdomNode = {
+    val minExecution: CalculatedValue[TimeSpan] =
+      timeEstimateRange.map(_.map(_.minimum.value).orEmpty)
+    val maxExecution: CalculatedValue[TimeSpan] =
+      timeEstimateRange.map(_.map(_.maximum.value).orEmpty)
+
+    val areTimesSame = minExecution.value === maxExecution.value
+
+    def makeMinimumPctInput[A](pctView: View[IntPercent], id: NonEmptyString): TagMod =
+      FormInputTextView(
+        value = pctView,
+        validFormat = InputValidSplitEpi.refinedInt[ZeroTo100],
+        changeAuditor = ChangeAuditor.refinedInt[ZeroTo100](),
+        label = React.Fragment("Minimum %", HelpIcon("proposal/main/minimum-pct.md".refined)),
+        id = id,
+        disabled = readonly,
+        inputClass = ExploreStyles.PartnerSplitsGridMinPct
+      )
+
+    def timeSplits(total: CalculatedValue[TimeSpan]) =
+      val tagmod = partnerSplitsView.foldMap(_.get) match {
+        case a if a.isEmpty => TagMod.empty
+        case splits         =>
+          sortedSplits(splits)
+            .toTagMod(using ps => timeSplit(ps, total))
+      }
+      <.div(tagmod, ExploreStyles.FlexContainer, ExploreStyles.FlexWrap)
+
+    val timeFields: VdomNode = if (areTimesSame) {
+      // If min and max time are the same we only show one line
+      val validTime = maxExecution.value > TimeSpan.Zero
+      if (validTime) {
+        React.Fragment(
+          FormStaticData(
+            value = formatHours(toHours(maxExecution.value)),
+            label = "Prog. Time",
+            id = "programTime",
+            tooltip = maxExecution.staleTooltip
+          )(maxExecution.staleClass),
+          React.Fragment(
+            timeSplits(maxExecution),
+            minimumTime(minimumPctView.get, maxExecution)
+          )
+        )
+      } else
+        React.Fragment(
+          <.span, // ugly
+          <.div(
+            ExploreStyles.PartnerSplitsMissing,
+            Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
+            "No observations included in proposal."
+          )
+        )
+    } else {
+      React.Fragment(
+        // The second partner splits row, for maximum times - is always there
+        FormStaticData(
+          value = formatHours(toHours(maxExecution.value)),
+          label = maxTimeLabel,
+          id = "maxTime",
+          tooltip = maxExecution.staleTooltip
+        )(maxExecution.staleClass),
+        React.Fragment(
+          timeSplits(maxExecution),
+          minimumTime(minimumPctView.get, maxExecution)
+        ),
+        // The third partner splits row, for minimum times - is always there
+        FormStaticData(
+          value = formatHours(toHours(minExecution.value)),
+          label = minTimeLabel,
+          id = "maxTime",
+          tooltip = minExecution.staleTooltip
+        )(minExecution.staleClass),
+        React.Fragment(
+          timeSplits(minExecution),
+          minimumTime(minimumPctView.get, minExecution)
+        )
+      )
+    }
+
+    <.div(
+      ExploreStyles.PartnerSplitsGrid,
+      // Two optional items for proposal button and flags
+      partnerSplitsView
+        .map(psView =>
+          React.Fragment(
+            // The first partner splits row, with the button and the flags
+            <.div(
+              <.label("Partners"),
+              <.div(
+                Button(
+                  icon = Icons.Edit,
+                  severity = Button.Severity.Secondary,
+                  tpe = Button.Type.Button,
+                  onClick = showDialog.set(Visible.Shown),
+                  tooltip = "Edit Partner Splits",
+                  disabled = readonly
+                ).mini.compact
+              )
+            ),
+            PartnerSplitsEditor(
+              showDialog.get,
+              splitsList,
+              showDialog.set(Visible.Hidden),
+              splits => psView.set(splits)
+            ),
+            partnerSplits(psView.get)
+          )
+        ),
+      // Minimum percent total time - exists for most proposal types
+      <.div(
+        ExploreStyles.PartnerSplitsGridMinPctItem,
+        makeMinimumPctInput(minimumPctView, "min-pct-1".refined)
+      ),
+      timeFields,
+      // The third partner splits row - only exists for a few observation classes
+      totalTimeView.map { totalTimeView =>
+        def totalTimeEntry[A]: VdomNode =
+          FormInputTextView(
+            value = totalHours.withOnMod(h => totalTimeView.set(fromHours(h))),
+            validFormat = ExploreModelValidators.hoursValidWedge,
+            changeAuditor = ChangeAuditor.accept.decimal(2.refined),
+            label = React.Fragment("Total", HelpIcon("proposal/main/total-time.md".refined)),
+            id = "total-time-entry".refined,
+            disabled = readonly,
+            inputClass = ExploreStyles.PartnerSplitsGridTotal
+          )
+
+        val tt = totalTimeView.get
+
+        React.Fragment(
+          <.div(totalTimeEntry),
+          timeSplits(tt.asReady),
+          <.div(
+            minimumPctTotalView
+              .map(makeMinimumPctInput(_, "min-pct-2".refined))
+              .getOrElse(minimumTime(minimumPctView.get, tt.asReady))
+          )
+        )
+      }
+    )
+  }
+
+  private def geminiFields(
+    gemini:            View[GeminiProposalType],
+    splitsList:        View[List[PartnerSplit]],
+    totalHours:        View[Hours],
+    timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
+    isCfpSelected:     Boolean,
+    readonly:          Boolean,
+    showDialog:        View[Visible]
+  ): VdomNode =
+    val activationView: Option[View[ToOActivation]] =
+      gemini.zoom(GeminiProposalType.toOActivation).toOptionView
+
+    val aeonMultiFacilityView: Option[View[Boolean]] =
+      gemini.zoom(GeminiProposalType.aeonMultiFacility).toOptionView
+
+    val jwstSynergyView: Option[View[Boolean]] =
+      gemini.zoom(GeminiProposalType.jwstSynergy).toOptionView
+
+    val usLongTermView: Option[View[Boolean]] =
+      gemini.zoom(GeminiProposalType.usLongTerm).toOptionView
+
+    val considerForBand3View: Option[View[ConsiderForBand3]] =
+      gemini.zoom(GeminiProposalType.considerForBand3).toOptionView
+
+    val scienceSubtype: ScienceSubtype =
+      gemini.get.scienceSubtype
+
+    val needsPartnerSelection =
+      scienceSubtype match {
+        // Queue is set by default even if there is no CfP selection
+        case ScienceSubtype.Queue | ScienceSubtype.Classical => isCfpSelected
+        case _                                               => false
+      }
+
+    val partnerSplitsView: Option[View[List[PartnerSplit]]] =
+      gemini
+        .zoom(GeminiProposalType.partnerSplits)
+        .toOptionView
+        .filter(_ => needsPartnerSelection)
+
+    val minimumPctView: Option[View[IntPercent]] =
+      gemini.zoom(GeminiProposalType.minPercentTime).toOptionView
+
+    val minimumPctTotalView: Option[View[IntPercent]] =
+      gemini.zoom(GeminiProposalType.minPercentTotalTime).toOptionView
+
+    val totalTimeView: Option[View[TimeSpan]] =
+      gemini.zoom(GeminiProposalType.totalTime).toOptionView
+
+    val (maxTimeLabel, minTimeLabel) =
+      gemini.get.scienceSubtype match {
+        case ScienceSubtype.Queue | ScienceSubtype.Classical =>
+          ("Semester Max", "Semester Min")
+        case _                                               => ("Max Time", "Min Time")
+      }
+
+    React.Fragment(
+      activationView.map(activationView =>
+        FormEnumDropdownView(
+          id = "too-activation".refined,
+          value = activationView,
+          label = React.Fragment(
+            "ToO Activation",
+            HelpIcon("proposal/main/too-activation.md".refined)
+          ),
+          disabled = readonly
+        )
+      ),
+      considerForBand3View.map: v =>
+        FormEnumDropdownView(
+          id = "consider-for-band3".refined,
+          value = v,
+          label = React.Fragment(
+            "Consider for Band 3",
+            HelpIcon("proposal/main/consider-for-band3.md".refined),
+            Option.when(v.get === ConsiderForBand3.Unset)(
+              Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
+            )
+          ),
+          exclude =
+            if v.get =!= ConsiderForBand3.Unset then Set(ConsiderForBand3.Unset)
+            else Set.empty,
+          clazz = ExploreStyles.WarningInput.when_(
+            v.get === ConsiderForBand3.Unset && !readonly
+          ),
+          disabled = readonly
+        ),
+      Option
+        .when(
+          aeonMultiFacilityView.isDefined || jwstSynergyView.isDefined ||
+            usLongTermView.isDefined
+        )(
+          <.div(ExploreStyles.ProposalPhaseIFlags)(
+            aeonMultiFacilityView.map: v =>
+              CheckboxView(
+                id = "aeon-multi-facility".refined,
+                value = v,
+                label = React.Fragment(
+                  "AEON / Multi-Facility",
+                  HelpIcon("proposal/main/aeon-multi-facility.md".refined)
+                ),
+                disabled = readonly
+              ),
+            jwstSynergyView.map: v =>
+              CheckboxView(
+                id = "jwst-synergy".refined,
+                value = v,
+                label = React.Fragment(
+                  "JWST Synergy",
+                  HelpIcon("proposal/main/jwst-synergy.md".refined)
+                ),
+                disabled = readonly
+              ),
+            usLongTermView.map: v =>
+              CheckboxView(
+                id = "us-long-term".refined,
+                value = v,
+                label = React.Fragment(
+                  "US Long Term",
+                  HelpIcon("proposal/main/us-long-term.md".refined)
+                ),
+                disabled = readonly
+              )
+          )
+        ),
+      minimumPctView.map: mv =>
+        partnerSplitsAndTimes(
+          partnerSplitsView,
+          splitsList,
+          totalHours,
+          mv,
+          minimumPctTotalView,
+          totalTimeView,
+          timeEstimateRange,
+          readonly,
+          showDialog,
+          minTimeLabel,
+          maxTimeLabel
+        )
+    )
+
+  private def keckFields(
+    keck:              View[KeckProposalType],
+    splitsList:        View[List[PartnerSplit]],
+    totalHours:        View[Hours],
+    timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
+    isCfpSelected:     Boolean,
+    readonly:          Boolean,
+    showDialog:        View[Visible]
+  ): VdomNode =
+    val minimumPctView: View[IntPercent]            = keck.zoom(KeckProposalType.minPercentTime)
+    val partnerSplitsView: View[List[PartnerSplit]] = keck.zoom(KeckProposalType.partnerSplits)
+
+    if isCfpSelected then
+      partnerSplitsAndTimes(
+        partnerSplitsView.some,
+        splitsList,
+        totalHours,
+        minimumPctView,
+        None,
+        None,
+        timeEstimateRange,
+        readonly,
+        showDialog
+      )
+    else EmptyVdom
+
+  private def subaruFields(
+    subaru:            View[SubaruProposalType],
+    splitsList:        View[List[PartnerSplit]],
+    totalHours:        View[Hours],
+    timeEstimateRange: CalculatedValue[Option[ProgramTimeRange]],
+    isCfpSelected:     Boolean,
+    readonly:          Boolean,
+    showDialog:        View[Visible]
+  ): VdomNode =
+    val minimumPctView: View[IntPercent]            = subaru.zoom(SubaruProposalType.minPercentTime)
+    val partnerSplitsView: View[List[PartnerSplit]] = subaru.zoom(SubaruProposalType.partnerSplits)
+
+    val cfpTypeView: View[SubaruCallForProposalsType] =
+      subaru.zoom(SubaruProposalType.cfpType)
+
+    React.Fragment(
+      FormEnumDropdownView(
+        id = "subaru-cfp-type".refined,
+        value = cfpTypeView,
+        label = React.Fragment(
+          "Proposal Type",
+          HelpIcon("proposal/main/subaru-cfp-type.md".refined)
+        ),
+        disabled = readonly
+      ),
+      // Subaru doesn't have any proposal-type specific fields, but we want to show the partner splits and times if a Subaru CfP is selected
+      if isCfpSelected then
+        partnerSplitsAndTimes(
+          partnerSplitsView.some,
+          splitsList,
+          totalHours,
+          minimumPctView,
+          None,
+          None,
+          timeEstimateRange,
+          readonly,
+          showDialog
+        )
+      else EmptyVdom
+    )
+
   private def renderFn(
     props:      Props,
     totalHours: View[Hours],
     showDialog: View[Visible],
     splitsList: View[List[PartnerSplit]]
   )(using Logger[IO]): VdomNode = {
-    // For now Explore only handles Gemini proposals. If we receive a non-Gemini
-    // (Keck/Subaru exchange) proposal, show an error instead of the editor.
-    val geminiAligner: Aligner[Option[GeminiProposalType], Input[GeminiProposalTypeInput]] =
-      props.proposalAligner.zoom(Proposal.geminiProposalType, ProposalPropertiesInput.gemini.modify)
+    // updates the entire proposal when the CfP is changed, to reset any CfP-specific properties
+    // that may no longer be valid. Ideally we would only update the proposal type and any properties that
+    // are no longer valid, but this is simpler and the proposal is small enough that it shouldn't
+    // cause any performance issues.
+    val cfpView: View[Option[CallForProposal]] =
+      props.proposalAligner
+        .view(_.toInput)
+        .withModPatch: (oldProposal, newProposal) =>
+          val newCall: Option[CallForProposal]                  = newProposal.call
+          val oldCall: Option[CallForProposal]                  = oldProposal.call
+          val oldGeminiType: Option[GeminiCallForProposalsType] =
+            oldCall.flatMap(_.gemini).map(_.cfpType)
+          val newGeminiType: Option[GeminiCallForProposalsType] =
+            newCall.flatMap(_.gemini).map(_.cfpType)
+          newCall.fold(newProposal): newCfp =>
+            // If the CfP observatory has changed, we also need to change the proposal type accordingly
+            if oldCall.forall(_.observatory =!= newCfp.observatory) then
+              val newType = newCfp.observatory.defaultProposalType
+              Proposal.proposalType.replace(newType.some)(newProposal)
+            // If both old and new cfps are gemini, but they are different subtypes,
+            // update the proposal type to the default for the new CfP
+            else if newGeminiType.exists(n => !oldGeminiType.contains(n)) then
+              newGeminiType.fold(newProposal): newGemini =>
+                val newType = newGemini.defaultType(props.pi.map(_.id))
+                Proposal.proposalType.replace(newType.some)(newProposal)
+            else newProposal
+        .zoom(Proposal.call)
 
     val optGeminiView: Option[View[GeminiProposalType]] =
-      geminiAligner.view(_.map(_.toInput).orUnassign).toOptionView
+      props.proposalAligner
+        .zoom(Proposal.geminiProposalType, ProposalPropertiesInput.gemini.modify)
+        .view(_.map(_.toInput).orUnassign)
+        .toOptionView
 
-    optGeminiView
-      .map { geminiView =>
-        val proposalCfpView: View[Proposal] =
-          props.proposalAligner.viewMod { p =>
-            ProposalPropertiesInput.callId.replace(p.call.map(_.id).orUnassign) >>>
-              ProposalPropertiesInput.gemini.replace(
-                p.proposalType
-                  .flatMap(ProposalType.geminiProposalType.getOption)
-                  .map(_.toInput)
-                  .orUnassign
-              )
-          }
+    val optKeckView: Option[View[KeckProposalType]] =
+      props.proposalAligner
+        .zoom(Proposal.keckProposalType, ProposalPropertiesInput.keck.modify)
+        .view(_.map(_.toInput).orUnassign)
+        .toOptionView
 
-        val titleAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
-          props.detailsAligner.zoom(ProgramDetails.name, ProgramPropertiesInput.name.modify)
+    val optSubaruView: Option[View[SubaruProposalType]] =
+      props.proposalAligner
+        .zoom(Proposal.subaruProposalType, ProposalPropertiesInput.subaru.modify)
+        .view(_.map(_.toInput).orUnassign)
+        .toOptionView
 
-        val titleView = titleAligner.view(_.orUnassign)
+    val titleAligner: Aligner[Option[NonEmptyString], Input[NonEmptyString]] =
+      props.detailsAligner.zoom(ProgramDetails.name, ProgramPropertiesInput.name.modify)
 
-        val scienceSubtype = props.proposalAligner.get.proposalType
-          .flatMap(ProposalType.geminiProposalType.getOption)
-          .map(_.scienceSubtype)
+    val titleView = titleAligner.view(_.orUnassign)
 
-        val selectedCfp: Option[CallForProposal] = props.proposalAligner.get.call
-        val isCfpSelected                        = selectedCfp.isDefined
-        val subtypes                             = selectedCfp.flatMap(_.gemini).map(_.cfpType.subTypes)
-        val hasSubtypes                          = subtypes.exists(_.size > 1)
+    val selectedCfp: Option[CallForProposal] = props.proposalAligner.get.call
+    val isCfpSelected                        = selectedCfp.isDefined
+    val subtypes                             = selectedCfp.flatMap(_.gemini).map(_.cfpType.subTypes)
+    val hasSubtypes                          = subtypes.exists(_.size > 1)
 
-        // need to include the current cfp as disabled if it doesn't exist in the list of calls
-        val cfpOptions: List[SelectItem[CallForProposal]] =
-          selectedCfp
-            .filterNot(cfp => props.cfps.exists(_.id === cfp.id))
-            .map(cfp => SelectItem(cfp, cfp.title, disabled = true))
-            .toList ++
-            props.cfps.map(cfp => SelectItem(cfp, cfp.title))
+    // need to include the current cfp as disabled if it doesn't exist in the list of calls
+    val cfpOptions: List[SelectItem[CallForProposal]] =
+      selectedCfp
+        .filterNot(cfp => props.cfps.exists(_.id === cfp.id))
+        .map(cfp => SelectItem(cfp, cfp.title, disabled = true))
+        .toList ++
+        props.cfps.map(cfp => SelectItem(cfp, cfp.title))
 
-        val categoryAligner: Aligner[Option[TacCategory], Input[TacCategory]] =
-          props.proposalAligner.zoom(Proposal.category, ProposalPropertiesInput.category.modify)
+    val categoryAligner: Aligner[Option[TacCategory], Input[TacCategory]] =
+      props.proposalAligner.zoom(Proposal.category, ProposalPropertiesInput.category.modify)
 
-        val categoryView: View[Option[TacCategory]] = categoryAligner.view(_.orUnassign)
+    val categoryView: View[Option[TacCategory]] = categoryAligner.view(_.orUnassign)
 
-        val activationView: Option[View[ToOActivation]] =
-          geminiView.zoom(GeminiProposalType.toOActivation).toOptionView
+    extension (limits: SiteCoordinatesLimits)
+      def format: String =
+        val raStart  = limits.raStart.toHourAngle.toDoubleHours
+        val raEnd    = limits.raEnd.toHourAngle.toDoubleHours
+        val decStart = limits.decStart.toAngle.toSignedDoubleDegrees
+        val decEnd   = limits.decEnd.toAngle.toSignedDoubleDegrees
+        f"$raStart%.1fh ≤ RA ≤ $raEnd%.1fh    $decStart%.0f° ≤ Dec ≤ $decEnd%.0f°"
 
-        val aeonMultiFacilityView: Option[View[Boolean]] =
-          geminiView.zoom(GeminiProposalType.aeonMultiFacility).toOptionView
-        val jwstSynergyView: Option[View[Boolean]]       =
-          geminiView.zoom(GeminiProposalType.jwstSynergy).toOptionView
-
-        val usLongTermView: Option[View[Boolean]] =
-          geminiView.zoom(GeminiProposalType.usLongTerm).toOptionView
-
-        val considerForBand3View: Option[View[ConsiderForBand3]] =
-          geminiView.zoom(GeminiProposalType.considerForBand3).toOptionView
-
-        val needsPartnerSelection =
-          scienceSubtype match {
-            // Queue is set by default even if there is no CfP selection
-            case Some(ScienceSubtype.Queue) | Some(ScienceSubtype.Classical) => isCfpSelected
-            case _                                                           => false
-          }
-
-        val partnerSplitsView: Option[View[List[PartnerSplit]]] =
-          geminiView
-            .zoom(GeminiProposalType.partnerSplits)
-            .toOptionView
-            .filter(_ => needsPartnerSelection)
-
-        val minimumPct1View: Option[View[IntPercent]] =
-          geminiView.zoom(GeminiProposalType.minPercentTime).toOptionView
-
-        val minimumPct2View: Option[View[IntPercent]] =
-          geminiView.zoom(GeminiProposalType.minPercentTotalTime).toOptionView
-
-        val totalTimeView: Option[View[TimeSpan]] =
-          geminiView.zoom(GeminiProposalType.totalTime).toOptionView
-
-        val minExecution: CalculatedValue[TimeSpan] =
-          props.timeEstimateRange.map(_.map(_.minimum.value).orEmpty)
-        val maxExecution: CalculatedValue[TimeSpan] =
-          props.timeEstimateRange.map(_.map(_.maximum.value).orEmpty)
-
-        val areTimesSame = minExecution.value === maxExecution.value
-
-        val (maxTimeLabel, minTimeLabel) =
-          props.proposalAligner.get.proposalType match {
-            case Some(GeminiProposalType.LargeProgram(_, _, _, _, _, _, _)) =>
-              ("Semester Max", "Semester Min")
-            case _                                                          => ("Max Time", "Min Time")
-          }
-
-        def makeMinimumPctInput[A](pctView: View[IntPercent], id: NonEmptyString): TagMod =
+    <.form(
+      <.div(ExploreStyles.ProposalDetailsGrid)(
+        <.div(LucumaPrimeStyles.FormColumnCompact, LucumaPrimeStyles.LinearColumn)(
+          // Title input
           FormInputTextView(
-            value = pctView,
-            validFormat = InputValidSplitEpi.refinedInt[ZeroTo100],
-            changeAuditor = ChangeAuditor.refinedInt[ZeroTo100](),
-            label = React.Fragment("Minimum %", HelpIcon("proposal/main/minimum-pct.md".refined)),
-            id = id,
+            id = "title".refined,
+            inputClass = Css("inverse"),
+            groupClass = ExploreStyles.WarningInput.when_(titleView.get.isEmpty && !props.readonly),
+            value = titleView,
+            validFormat = InputValidSplitEpi.nonEmptyString.optional,
+            label = "Title",
+            disabled = props.readonly
+          )(^.autoFocus := true),
+          // Category selector
+          FormDropdownOptional(
+            id = "category".refined,
+            label = React.Fragment("Category", HelpIcon("proposal/main/category.md".refined)),
+            value = categoryView.get.map(categoryTag),
+            options = categoryOptions,
+            onChange = _.map(v => categoryView.set(Enumerated[TacCategory].fromTag(v))).orEmpty,
             disabled = props.readonly,
-            inputClass = ExploreStyles.PartnerSplitsGridMinPct
-          )
-
-        def timeSplits(total: CalculatedValue[TimeSpan]) =
-          val tagmod = partnerSplitsView.foldMap(_.get) match {
-            case a if a.isEmpty => TagMod.empty
-            case splits         =>
-              sortedSplits(splits)
-                .toTagMod(using ps => timeSplit(ps, total))
-          }
-          <.div(tagmod, ExploreStyles.FlexContainer, ExploreStyles.FlexWrap)
-
-        val timeFields = if (areTimesSame) {
-          // If min and max time are the same we only show one line
-          val validTime = maxExecution.value > TimeSpan.Zero
-          if (validTime) {
-            React.Fragment(
-              FormStaticData(
-                value = formatHours(toHours(maxExecution.value)),
-                label = "Prog. Time",
-                id = "programTime",
-                tooltip = maxExecution.staleTooltip
-              )(maxExecution.staleClass),
-              React.Fragment(
-                timeSplits(maxExecution),
-                minimumPct1View.map(r => minimumTime(r.get, maxExecution))
-              )
+            modifiers = List(^.id := "category"),
+            clazz = ExploreStyles.WarningInput.when_(categoryView.get.isEmpty && !props.readonly)
+          ),
+          optGeminiView.map(gemini =>
+            geminiFields(gemini,
+                         splitsList,
+                         totalHours,
+                         props.timeEstimateRange,
+                         isCfpSelected,
+                         props.readonly,
+                         showDialog
             )
-          } else
-            React.Fragment(
-              <.span, // ugly
-              <.div(
-                ExploreStyles.PartnerSplitsMissing,
-                Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
-                "No observations included in proposal."
-              )
+          ),
+          optKeckView.map(keck =>
+            keckFields(keck,
+                       splitsList,
+                       totalHours,
+                       props.timeEstimateRange,
+                       isCfpSelected,
+                       props.readonly,
+                       showDialog
             )
-        } else {
-          React.Fragment(
-            // The second partner splits row, for maximum times - is always there
-            FormStaticData(
-              value = formatHours(toHours(maxExecution.value)),
-              label = maxTimeLabel,
-              id = "maxTime",
-              tooltip = maxExecution.staleTooltip
-            )(maxExecution.staleClass),
-            React.Fragment(
-              timeSplits(maxExecution),
-              minimumPct1View.map(r => minimumTime(r.get, maxExecution))
-            ),
-            // The third partner splits row, for minimum times - is always there
-            FormStaticData(
-              value = formatHours(toHours(minExecution.value)),
-              label = minTimeLabel,
-              id = "maxTime",
-              tooltip = minExecution.staleTooltip
-            )(minExecution.staleClass),
-            React.Fragment(
-              timeSplits(minExecution),
-              minimumPct1View.map(r => minimumTime(r.get, minExecution))
+          ),
+          optSubaruView.map(subaru =>
+            subaruFields(subaru,
+                         splitsList,
+                         totalHours,
+                         props.timeEstimateRange,
+                         isCfpSelected,
+                         props.readonly,
+                         showDialog
             )
           )
-        }
-
-        extension (limits: SiteCoordinatesLimits)
-          def format: String =
-            val raStart  = limits.raStart.toHourAngle.toDoubleHours
-            val raEnd    = limits.raEnd.toHourAngle.toDoubleHours
-            val decStart = limits.decStart.toAngle.toSignedDoubleDegrees
-            val decEnd   = limits.decEnd.toAngle.toSignedDoubleDegrees
-            f"$raStart%.1fh ≤ RA ≤ $raEnd%.1fh    $decStart%.0f° ≤ Dec ≤ $decEnd%.0f°"
-
-        <.form(
-          <.div(ExploreStyles.ProposalDetailsGrid)(
-            <.div(LucumaPrimeStyles.FormColumnCompact, LucumaPrimeStyles.LinearColumn)(
-              // Title input
-              FormInputTextView(
-                id = "title".refined,
-                inputClass = Css("inverse"),
-                groupClass =
-                  ExploreStyles.WarningInput.when_(titleView.get.isEmpty && !props.readonly),
-                value = titleView,
-                validFormat = InputValidSplitEpi.nonEmptyString.optional,
-                label = "Title",
-                disabled = props.readonly
-              )(^.autoFocus := true),
-              // Category selector
-              FormDropdownOptional(
-                id = "category".refined,
-                label = React.Fragment("Category", HelpIcon("proposal/main/category.md".refined)),
-                value = categoryView.get.map(categoryTag),
-                options = categoryOptions,
-                onChange = _.map(v => categoryView.set(Enumerated[TacCategory].fromTag(v))).orEmpty,
-                disabled = props.readonly,
-                modifiers = List(^.id := "category"),
-                clazz =
-                  ExploreStyles.WarningInput.when_(categoryView.get.isEmpty && !props.readonly)
-              ),
-              activationView.map(activationView =>
-                FormEnumDropdownView(
-                  id = "too-activation".refined,
-                  value = activationView,
-                  label = React.Fragment(
-                    "ToO Activation",
-                    HelpIcon("proposal/main/too-activation.md".refined)
-                  ),
-                  disabled = props.readonly
-                )
-              ),
-              considerForBand3View.map: v =>
-                FormEnumDropdownView(
-                  id = "consider-for-band3".refined,
-                  value = v,
-                  label = React.Fragment(
-                    "Consider for Band 3",
-                    HelpIcon("proposal/main/consider-for-band3.md".refined),
-                    Option.when(v.get === ConsiderForBand3.Unset)(
-                      Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon)
-                    )
-                  ),
-                  exclude =
-                    if v.get =!= ConsiderForBand3.Unset then Set(ConsiderForBand3.Unset)
-                    else Set.empty,
-                  clazz = ExploreStyles.WarningInput.when_(
-                    v.get === ConsiderForBand3.Unset && !props.readonly
-                  ),
-                  disabled = props.readonly
-                ),
-              Option
-                .when(
-                  aeonMultiFacilityView.isDefined || jwstSynergyView.isDefined ||
-                    usLongTermView.isDefined
-                )(
-                  <.div(ExploreStyles.ProposalPhaseIFlags)(
-                    aeonMultiFacilityView.map: v =>
-                      CheckboxView(
-                        id = "aeon-multi-facility".refined,
-                        value = v,
-                        label = React.Fragment(
-                          "AEON / Multi-Facility",
-                          HelpIcon("proposal/main/aeon-multi-facility.md".refined)
-                        ),
-                        disabled = props.readonly
-                      ),
-                    jwstSynergyView.map: v =>
-                      CheckboxView(
-                        id = "jwst-synergy".refined,
-                        value = v,
-                        label = React.Fragment(
-                          "JWST Synergy",
-                          HelpIcon("proposal/main/jwst-synergy.md".refined)
-                        ),
-                        disabled = props.readonly
-                      ),
-                    usLongTermView.map: v =>
-                      CheckboxView(
-                        id = "us-long-term".refined,
-                        value = v,
-                        label = React.Fragment(
-                          "US Long Term",
-                          HelpIcon("proposal/main/us-long-term.md".refined)
-                        ),
-                        disabled = props.readonly
-                      )
-                  )
-                ),
-              minimumPct1View.map(mv =>
-                <.div(
-                  ExploreStyles.PartnerSplitsGrid,
-                  // Two optional items for proposal button and flags
-                  partnerSplitsView
-                    .map(psView =>
-                      React.Fragment(
-                        // The first partner splits row, with the button and the flags
-                        <.div(
-                          <.label("Partners"),
-                          <.div(
-                            Button(
-                              icon = Icons.Edit,
-                              severity = Button.Severity.Secondary,
-                              tpe = Button.Type.Button,
-                              onClick = showDialog.set(Visible.Shown),
-                              tooltip = "Edit Partner Splits",
-                              disabled = props.readonly
-                            ).mini.compact
-                          )
-                        ),
-                        PartnerSplitsEditor(
-                          showDialog.get,
-                          splitsList,
-                          showDialog.set(Visible.Hidden),
-                          splits => psView.set(splits)
-                        ),
-                        partnerSplits(psView.get)
-                      )
-                    ),
-                  // Minimum percent total time - exists for most proposal types
-                  <.div(
-                    ExploreStyles.PartnerSplitsGridMinPctItem,
-                    makeMinimumPctInput(mv, "min-pct-1".refined)
-                  ),
-                  timeFields,
-                  // The third partner splits row - only exists for a few observation classes
-                  totalTimeView.map { totalTimeView =>
-                    def totalTimeEntry[A]: VdomNode =
-                      FormInputTextView(
-                        value = totalHours.withOnMod(h => totalTimeView.set(fromHours(h))),
-                        validFormat = ExploreModelValidators.hoursValidWedge,
-                        changeAuditor = ChangeAuditor.accept.decimal(2.refined),
-                        label =
-                          React.Fragment("Total", HelpIcon("proposal/main/total-time.md".refined)),
-                        id = "total-time-entry".refined,
-                        disabled = props.readonly,
-                        inputClass = ExploreStyles.PartnerSplitsGridTotal
-                      )
-
-                    val tt = totalTimeView.get
-
-                    React.Fragment(
-                      <.div(totalTimeEntry),
-                      timeSplits(tt.asReady),
-                      <.div(
-                        minimumPct2View
-                          .map(makeMinimumPctInput(_, "min-pct-2".refined))
-                          .orElse(minimumPct1View.map(v => minimumTime(v.get, tt.asReady)))
-                          .getOrElse(EmptyVdom)
-                      )
-                    )
-                  }
-                )
-              )
+        ),
+        <.div(
+          <.div(LucumaPrimeStyles.FormColumnCompact, LucumaPrimeStyles.LinearColumn)(
+            // Call for proposal selector
+            FormDropdownOptional(
+              id = "cfp".refined,
+              label =
+                React.Fragment("Call For Proposals", HelpIcon("proposal/main/cfp.md".refined)),
+              value = cfpView.get,
+              onChange = cfpView.set,
+              options = cfpOptions,
+              disabled = props.readonly,
+              modifiers = List(^.id := "cfp"),
+              clazz = ExploreStyles.WarningInput.when_(cfpView.get.isEmpty && !props.readonly)
             ),
-            <.div(
-              <.div(LucumaPrimeStyles.FormColumnCompact, LucumaPrimeStyles.LinearColumn)(
-                // Call for proposal selector
-                FormDropdownOptional(
-                  id = "cfp".refined,
-                  label =
-                    React.Fragment("Call For Proposals", HelpIcon("proposal/main/cfp.md".refined)),
-                  value = selectedCfp,
-                  options = cfpOptions,
-                  onChange = _.map { cfp =>
-                    proposalCfpView.mod(
-                      _.copy(
-                        call = cfp.some,
-                        proposalType = cfp.gemini.map(_.cfpType.defaultType(props.pi.map(_.id)))
-                      )
-                    )
-                  }.orEmpty,
-                  disabled = props.readonly,
-                  modifiers = List(^.id := "cfp"),
-                  clazz = ExploreStyles.WarningInput.when_(selectedCfp.isEmpty && !props.readonly)
-                ),
-                // Proposal type selector, visible when cfp is selected and has more than one subtpye
+            // Proposal type selector, visible when cfp is selected and has more than one subtpye
+            optGeminiView
+              .map(geminiView =>
                 FormDropdown(
                   id = "proposalType".refined,
                   options = subtypes.foldMap(_.toList).map(st => SelectItem(st, st.shortName)),
@@ -541,88 +699,84 @@ object ProposalDetailsBody:
                   onChange = v => geminiView.mod(GeminiProposalType.toScienceSubtype(v)),
                   disabled = props.readonly,
                   modifiers = List(^.id := "proposalType")
-                ).when(hasSubtypes),
-                // Reviewer and mentor for FastTurnaround
-                props.proposal.proposalType
-                  .flatMap(ProposalType.geminiProposalType.getOption)
-                  .flatMap(GeminiProposalType.fastTurnaround.getOption)
-                  .map: ft =>
-                    val reviewer = ft.reviewerId.flatMap(r => props.users.find(_.id === r))
-                    React.Fragment(
-                      FormDropdownOptional(
-                        id = "fastTurnaroundReviewer".refined,
-                        label = React.Fragment(
-                          "Reviewer",
-                          HelpIcon("proposal/main/fast-turnaround-reviewer.md".refined)
-                        ),
-                        value = reviewer,
-                        placeholder = props.pi.map(_.name).orUndefined,
-                        options = props.users.map(u => SelectItem(u, u.name)),
-                        onChange = props.setReviewer,
-                        disabled = props.readonly
-                      ),
-                      // The API says it will default to the PI if the reviewer is null
-                      Option.unless(reviewer.orElse(props.pi).exists(_.hasPhd)) {
-                        val potentialMentors = props.users.filter(_.hasPhd)
-                        // show icon or tooltip or something if there are no available mentors
-                        FormDropdownOptional(
-                          id = "fastTurnaroundMentor".refined,
-                          label = "Mentor",
-                          value = ft.mentorId.flatMap(r => props.users.find(_.id === r)),
-                          options = potentialMentors.map(u => SelectItem(u, u.name)),
-                          onChange = props.setMentor,
-                          disabled = props.readonly
-                        )
-                      }
+                ).when(hasSubtypes)
+              )
+              .getOrElse(EmptyVdom),
+            // Reviewer and mentor for FastTurnaround
+            props.proposal.proposalType
+              .flatMap(ProposalType.geminiProposalType.getOption)
+              .flatMap(GeminiProposalType.fastTurnaround.getOption)
+              .map: ft =>
+                val reviewer = ft.reviewerId.flatMap(r => props.users.find(_.id === r))
+                React.Fragment(
+                  FormDropdownOptional(
+                    id = "fastTurnaroundReviewer".refined,
+                    label = React.Fragment(
+                      "Reviewer",
+                      HelpIcon("proposal/main/fast-turnaround-reviewer.md".refined)
+                    ),
+                    value = reviewer,
+                    placeholder = props.pi.map(_.name).orUndefined,
+                    options = props.users.map(u => SelectItem(u, u.name)),
+                    onChange = props.setReviewer,
+                    disabled = props.readonly
+                  ),
+                  // The API says it will default to the PI if the reviewer is null
+                  Option.unless(reviewer.orElse(props.pi).exists(_.hasPhd)) {
+                    val potentialMentors = props.users.filter(_.hasPhd)
+                    // show icon or tooltip or something if there are no available mentors
+                    FormDropdownOptional(
+                      id = "fastTurnaroundMentor".refined,
+                      label = "Mentor",
+                      value = ft.mentorId.flatMap(r => props.users.find(_.id === r)),
+                      options = potentialMentors.map(u => SelectItem(u, u.name)),
+                      onChange = props.setMentor,
+                      disabled = props.readonly
                     )
+                  }
+                )
+          ),
+          selectedCfp.map(cfp =>
+            <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.CfpData)(
+              FormInfo(
+                s"${GppDateFormatter.format(cfp.active.start)} to ${GppDateFormatter.format(cfp.active.end)}",
+                "Observation Period"
               ),
-              selectedCfp.map(cfp =>
-                <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.CfpData)(
+              FormInfo(
+                cfp.partners.map(_.partner.longName).mkString(", "),
+                "Participating Partners"
+              ),
+              // TODO: Add keck and gemini here
+              cfp.gemini.map(gemini =>
+                React.Fragment(
                   FormInfo(
-                    s"${GppDateFormatter.format(cfp.active.start)} to ${GppDateFormatter.format(cfp.active.end)}",
-                    "Observation Period"
+                    gemini.exchangePartners match
+                      case Nil => "None"
+                      case _   =>
+                        gemini.exchangePartners
+                          .map(_.exchangePartner.tag.capitalize)
+                          .mkString(", "),
+                    "Exchange Partners"
                   ),
                   FormInfo(
-                    cfp.partners.map(_.partner.longName).mkString(", "),
-                    "Participating Partners"
+                    gemini.instruments.map(_.longName).mkString(", "),
+                    "Available Instruments"
                   ),
-                  cfp.gemini.map(gemini =>
-                    React.Fragment(
-                      FormInfo(
-                        gemini.exchangePartners match
-                          case Nil => "None"
-                          case _   =>
-                            gemini.exchangePartners
-                              .map(_.exchangePartner.tag.capitalize)
-                              .mkString(", "),
-                        "Exchange Partners"
-                      ),
-                      FormInfo(
-                        gemini.instruments.map(_.longName).mkString(", "),
-                        "Available Instruments"
-                      ),
-                      FormInfo(
-                        gemini.coordinateLimits.north.format,
-                        "Gemini North"
-                      ),
-                      FormInfo(
-                        gemini.coordinateLimits.south.format,
-                        "Gemini South"
-                      )
-                    )
+                  FormInfo(
+                    gemini.coordinateLimits.north.format,
+                    "Gemini North"
+                  ),
+                  FormInfo(
+                    gemini.coordinateLimits.south.format,
+                    "Gemini South"
                   )
                 )
               )
             )
           )
         )
-      }
-      .getOrElse(
-        <.div(
-          Icons.ExclamationTriangle.withClass(ExploreStyles.WarningIcon),
-          " This proposal is for an exchange partner (Keck or Subaru) and cannot yet be edited in Explore."
-        )
       )
+    )
   }
 
   private val component = ScalaFnComponent[Props](props =>

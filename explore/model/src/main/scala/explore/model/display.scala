@@ -208,6 +208,8 @@ trait DisplayImplicits:
     case ScienceSubtype.DemoScience        => "Demo Science"
     case ScienceSubtype.SystemVerification => "System Verification"
 
+  given Display[SubaruCallForProposalsType] = Display.byShortName(_.tag.capitalize)
+
   private def formatWavelength(units: WavelengthUnits, q: Wavelength) =
     units match
       case WavelengthUnits.Angstroms   =>

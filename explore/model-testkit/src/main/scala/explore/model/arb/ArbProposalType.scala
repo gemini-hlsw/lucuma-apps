@@ -4,13 +4,11 @@
 package explore.model.arb
 
 import eu.timepit.refined.scalacheck.all.*
-import explore.model.GeminiProposalType
-import explore.model.GeminiProposalType.*
-import explore.model.KeckProposalType
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.ProposalType
-import explore.model.SubaruProposalType
+import explore.model.ProposalType.*
+import explore.model.ProposalType.GeminiProposalType.*
 import explore.model.arb.ArbPartnerSplit.given
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
@@ -275,7 +273,10 @@ trait ArbProposalType:
 
   given Arbitrary[KeckProposalType] =
     Arbitrary {
-      arbitrary[List[PartnerSplit]].map(KeckProposalType(_))
+      for {
+        minPercentTime <- arbitrary[IntPercent]
+        partnerSplits  <- arbitrary[List[PartnerSplit]]
+      } yield KeckProposalType(minPercentTime, partnerSplits)
     }
 
   given Cogen[KeckProposalType] =
@@ -284,9 +285,10 @@ trait ArbProposalType:
   given Arbitrary[SubaruProposalType] =
     Arbitrary {
       for {
-        cfpType       <- arbitrary[SubaruCallForProposalsType]
-        partnerSplits <- arbitrary[List[PartnerSplit]]
-      } yield SubaruProposalType(cfpType, partnerSplits)
+        cfpType        <- arbitrary[SubaruCallForProposalsType]
+        minPercentTime <- arbitrary[IntPercent]
+        partnerSplits  <- arbitrary[List[PartnerSplit]]
+      } yield SubaruProposalType(cfpType, minPercentTime, partnerSplits)
     }
 
   given Cogen[SubaruProposalType] =

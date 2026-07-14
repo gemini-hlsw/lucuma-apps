@@ -12,7 +12,7 @@ object CallsQueriesGQL:
   trait ReadOpenCFPs extends GraphQLOperation[ObservationDB]:
     val document: String = s"""
       query {
-        callsForProposals(WHERE: {isOpen: {EQ: true}, observatory: {EQ: GEMINI}}) {
+        callsForProposals(WHERE: {isOpen: {EQ: true}}) {
           matches $CallForProposalsSubquery
         }
       }

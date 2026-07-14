@@ -5,12 +5,10 @@ package explore.common
 
 import clue.data.Unassign
 import clue.data.syntax.*
-import explore.model.GeminiProposalType
-import explore.model.KeckProposalType
 import explore.model.PartnerSplit
 import explore.model.ProgramUser
 import explore.model.Proposal
-import explore.model.SubaruProposalType
+import explore.model.ProposalType.*
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.util.TimeSpan
 import lucuma.schemas.ObservationDB.Types.ClassicalInput
@@ -135,15 +133,18 @@ trait ProposalOdbExtensions:
 
   extension (proposalType: KeckProposalType)
     def toInput: KeckProposalTypeInput =
-      KeckProposalTypeInput(partnerSplits =
-        if (proposalType.partnerSplits.nonEmpty) proposalType.partnerSplits.map(_.toInput).assign
-        else Unassign
+      KeckProposalTypeInput(
+        minPercentTime = proposalType.minPercentTime.assign,
+        partnerSplits =
+          if (proposalType.partnerSplits.nonEmpty) proposalType.partnerSplits.map(_.toInput).assign
+          else Unassign
       )
 
   extension (proposalType: SubaruProposalType)
     def toInput: SubaruProposalTypeInput =
       SubaruProposalTypeInput(
         `type` = proposalType.cfpType.assign,
+        minPercentTime = proposalType.minPercentTime.assign,
         partnerSplits =
           if (proposalType.partnerSplits.nonEmpty) proposalType.partnerSplits.map(_.toInput).assign
           else Unassign
