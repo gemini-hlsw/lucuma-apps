@@ -11,7 +11,8 @@ import lucuma.schemas.ObservationDB
 import lucuma.schemas.odb.*
 
 // Returns only the lightweight BasicConfiguration for `observingMode`; used by
-// the bulk summary query that paints the observation list at first load.
+// the bulk summary query (first paint) and by the `observationEdit`
+// subscription, which fires on every edit and must stay cheap.
 //
 // Kept in sync by hand with ObservationWithFullModeSubquery: the two MUST
 // select the same fields except for `observingMode` .

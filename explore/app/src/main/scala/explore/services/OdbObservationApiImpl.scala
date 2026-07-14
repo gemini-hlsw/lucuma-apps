@@ -426,17 +426,10 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     exchange:           Boolean = false
   )
 
-  def programObservationsObservingModes(
-    programId: Program.Id,
-    modeType:  ObservingModeType
-  ): F[List[(Observation.Id, Option[ObservingMode])]] =
-    val where                = WhereObservation(
-      program = programId.toWhereProgram.assign,
-      observingModeType = WhereOptionEqObservingModeType(EQ = modeType.assign).assign
-    )
-    // Every ObservingModeType maps to exactly one `ObservingMode` union view
-    // We turn on only that view's `@include` flag so the server resolves a single mode-view.
-    val flags: ModeViewFlags = modeType match
+  // Every ObservingModeType maps to exactly one `ObservingMode` union view.
+  // We turn on only that view's `@include` flag so the server resolves a single mode-view.
+  private def modeViewFlagsFor(modeType: ObservingModeType): ModeViewFlags =
+    modeType match
       case ObservingModeType.GmosNorthLongSlit                               =>
         ModeViewFlags(gmosNorthLongSlit = true)
       case ObservingModeType.GmosSouthLongSlit                               =>
@@ -465,6 +458,11 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
           ObservingModeType.ZorroWideField =>
         ModeViewFlags(visitor = true)
 
+  private def fetchObservingModes(
+    where:    WhereObservation,
+    modeType: ObservingModeType
+  ): F[List[(Observation.Id, Option[ObservingMode])]] =
+    val flags: ModeViewFlags = modeViewFlagsFor(modeType)
     drain[
       AllProgramObservationsObservingMode.Data.Observations.Matches,
       Observation.Id,
@@ -494,6 +492,24 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
       _.hasMore,
       _.id
     ).map(_.map(m => (m.id, m.observingMode)))
+
+  def programObservationsObservingModes(
+    programId: Program.Id,
+    modeType:  ObservingModeType
+  ): F[List[(Observation.Id, Option[ObservingMode])]] =
+    fetchObservingModes(
+      WhereObservation(
+        program = programId.toWhereProgram.assign,
+        observingModeType = WhereOptionEqObservingModeType(EQ = modeType.assign).assign
+      ),
+      modeType
+    )
+
+  def observationObservingMode(
+    obsId:    Observation.Id,
+    modeType: ObservingModeType
+  ): F[Option[ObservingMode]] =
+    fetchObservingModes(obsId.toWhereObservation, modeType).map(_.headOption.flatMap(_._2))
 
   def obsCalcSubscription(
     programId: Program.Id

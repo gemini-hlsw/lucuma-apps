@@ -117,6 +117,15 @@ trait OdbObservationApi[F[_]]:
     modeType:  ObservingModeType
   ): F[List[(Observation.Id, Option[ObservingMode])]]
 
+  /**
+   * Fetches the full ObservingMode for a single observation, given its mode type. Used to
+   * re-hydrate the cached mode after observationEdit.
+   */
+  def observationObservingMode(
+    obsId:    Observation.Id,
+    modeType: ObservingModeType
+  ): F[Option[ObservingMode]]
+
   def obsCalcSubscription(
     programId: Program.Id
   ): Resource[F, fs2.Stream[F, ObsCalcSubscription.Data.ObscalcUpdate]]

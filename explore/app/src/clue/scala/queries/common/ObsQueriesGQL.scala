@@ -97,11 +97,12 @@ object ObsQueriesGQL:
 
   @GraphQL
   trait ProgramObservationsDelta extends GraphQLOperation[ObservationDB]:
+    // The full observe mode is hydrated separately (initial load + mutations),
     val document = s"""
       subscription($$input: ObservationEditInput!) {
         observationEdit(input: $$input) {
           observationId
-          value $ObservationWithFullModeSubquery
+          value $ObservationSubquery
           meta:value { existence }
           editType
         }
