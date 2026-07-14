@@ -23,6 +23,8 @@ import org.http4s.Uri
  *   Configuration of the engine
  * @param webServer
  *   Website configuration
+ * @param otel
+ *   Configuration of OpenTelemetry observability
  */
 case class ObserveConfiguration(
   site:           Site,
@@ -31,5 +33,5 @@ case class ObserveConfiguration(
   lucumaSSO:      LucumaSSOConfiguration,
   observeEngine:  ObserveEngineConfiguration,
   webServer:      WebServerConfiguration,
-  honeycomb:      HoneycombConfiguration
+  otel:           OtelConfiguration
 ) derives Eq

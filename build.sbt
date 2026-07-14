@@ -521,6 +521,10 @@ lazy val observe_web_server = project
         Log4CatsNoop.value ++
         Http4sJdkClient.value ++
         Http4sServer.value ++
+        Otel4sOtelJava.value ++
+        Http4sOtel4sServer.value ++
+        Http4sOtel4sMetrics.value ++
+        LucumaCommonMiddleware.value ++
         PureConfig.value ++
         Logback.value ++
         JuliSlf4j.value,
@@ -621,7 +625,6 @@ lazy val observe_server = project
         PureConfig.value ++
         Monocle.value ++
         Circe.value ++
-        Natchez.value ++
         CatsEffect.value ++
         LucumaCore.value ++
         In(Test)(
@@ -835,7 +838,6 @@ lazy val navigate_web_server = project
         Log4Cats.value ++
         Http4sCirce.value ++
         GraphQLRoutes.value ++
-        Natchez.value ++
         Http4sJdkClient.value ++
         Http4sServer.value ++
         PureConfig.value ++
