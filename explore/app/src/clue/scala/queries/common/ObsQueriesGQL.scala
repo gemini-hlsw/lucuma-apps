@@ -18,7 +18,7 @@ object ObsQueriesGQL:
     val document = s"""
       mutation($$createObservation: CreateObservationInput!) {
         createObservation(input: $$createObservation) {
-          observation $ObservationWithFullModeSubquery
+          observation $ObservationSubquery
         }
       }
     """
