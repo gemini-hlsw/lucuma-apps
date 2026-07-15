@@ -187,7 +187,6 @@ body {
   @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
     align-items: stretch;
     gap: 5px 15px;
-
   }
 
   .observe-conditions-label {
@@ -1044,7 +1043,7 @@ body {
 
     .observe-subsystem-toggle .p-badge {
       background: var(--red-500);
-      color: #fff;
+      color: hsla(0, 0%, 100%, 1);
     }
   }
 }

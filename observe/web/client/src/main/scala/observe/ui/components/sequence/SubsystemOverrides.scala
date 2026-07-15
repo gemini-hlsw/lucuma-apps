@@ -18,8 +18,8 @@ import observe.model.Server
 import observe.model.SubsystemEnabled
 import observe.model.SubsystemOrServer
 import observe.model.SystemOverrides
-import observe.model.enums.Resource
 import observe.model.enums.ControlStrategy
+import observe.model.enums.Resource
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
@@ -42,11 +42,10 @@ object SubsystemOverrides
       yield
         import ctx.given
 
-        // Each subsystem renders as a button labeled with the subsystem name. Only
-        // controllable buttons show a checkbox icon indicating their on/off state (emulating
-        // a toggle): checked is solid green, unchecked outlined. Non-controllable buttons —
-        // simulated ones (gray, disabled, "SIM" badge) and GWS (always on, disabled) — show
-        // no icon.
+        // Each subsystem renders as a button labeled with the subsystem name.
+        // Only controllable buttons show a checkbox icon indicating their on/off state.
+        // checked is solid green, unchecked outlined.
+        // Non-controllable buttons and simulated ones are gray, disabled, and with a "SIM" badge
         def renderToggle(
           label:           NonEmptyString,
           checked:         Boolean,
