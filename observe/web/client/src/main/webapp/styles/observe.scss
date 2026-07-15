@@ -184,14 +184,15 @@ body {
   gap: 1em;
   align-items: center;
 
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    align-items: stretch;
+    gap: 5px 15px;
+  }
+
   .observe-conditions-label {
     @include lucumaUICommon.text-ellipsis;
 
     font-weight: bold;
-
-    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      display: none;
-    }
   }
 
   label {
@@ -210,48 +211,63 @@ body {
 
   .observe-conditions-section {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
-
-    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      gap: 2px;
-    }
 
     .p-component {
       width: 7em;
     }
 
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px 15px;
+
+      .observe-conditions-label {
+        grid-column: 1 / -1;
+        text-align: center;
+      }
+
+      .p-component {
+        width: 100%;
+      }
+    }
+
     .observe-image-quality-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-cloud-extinction-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-water-vapor-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-sky-background-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
   }
 
   .observe-names-section {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
+
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px 15px;
+    }
 
     .observe-observer-area {
       display: flex;
@@ -968,11 +984,22 @@ body {
 .observe-obs-header {
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   > div {
     flex: 1 1 auto;
+    min-width: 0;
     margin: 15px 10px;
+  }
+
+  // Below the tablet cutoff, stack the summary and config panels vertically.
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    flex-direction: column;
+    align-items: stretch;
+
+    > div {
+      margin: 5px 10px;
+    }
   }
 }
 
@@ -980,6 +1007,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  // Below the tablet cutoff, stack the summary and config panels vertically.
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    justify-content: stretch;
+  }
 
   .observe-obs-summary-title {
     font-size: x-large;
@@ -995,19 +1027,23 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
+    align-items: baseline;
+    justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
 
-    .observe-subsystem-readonly {
-      .p-checkbox-box {
-        background-color: var(--yellow-700);
+    .observe-subsystem-toggle {
+      min-width: 0;
+
+      .p-button {
+        width: 100%;
+        padding: 0.3em 0.8em;
       }
     }
 
-    .observe-subsystem-simulated {
-      .p-checkbox-box {
-        background-color: var(--red-500);
-      }
+    .observe-subsystem-toggle .p-badge {
+      background: var(--red-500);
+      color: hsl(0deg 0% 100%);
     }
   }
 }

@@ -134,6 +134,14 @@ object Icons:
   private val faReply: FAIcon = js.native
 
   @js.native
+  @JSImport("@fortawesome/pro-regular-svg-icons", "faSquare")
+  private val faSquare: FAIcon = js.native
+
+  @js.native
+  @JSImport("@fortawesome/pro-solid-svg-icons", "faSquareCheck")
+  private val faSquareCheck: FAIcon = js.native
+
+  @js.native
   @JSImport("@fortawesome/pro-regular-svg-icons", "faSquarePlus")
   private val faSquarePlus: FAIcon = js.native
 
@@ -186,6 +194,8 @@ object Icons:
     faRectangleList,
     faReply,
     faSignOutAlt,
+    faSquare,
+    faSquareCheck,
     faSquarePlus,
     faStop,
     faSun,
@@ -224,6 +234,8 @@ object Icons:
   inline def Plus              = FontAwesomeIcon(faPlus)
   inline def RectangleList     = FontAwesomeIcon(faRectangleList)
   inline def Reply             = FontAwesomeIcon(faReply)
+  inline def Square            = FontAwesomeIcon(faSquare)
+  inline def SquareCheck       = FontAwesomeIcon(faSquareCheck)
   inline def SquarePlus        = FontAwesomeIcon(faSquarePlus)
   inline def Stop              = FontAwesomeIcon(faStop)
   inline def Sun               = FontAwesomeIcon(faSun)
