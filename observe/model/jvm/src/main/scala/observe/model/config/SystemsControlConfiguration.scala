@@ -48,5 +48,6 @@ case class SystemsControlConfiguration(
       Instrument.Gsaoi      -> gsaoi,
       Instrument.Niri       -> niri,
       Resource.TCS          -> tcs,
-      Server.Dhs            -> dhs
+      Server.Dhs            -> dhs,
+      Server.Gws            -> gws
     )

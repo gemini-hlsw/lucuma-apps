@@ -16,6 +16,7 @@ type TargetName      = String
 
 enum Server(val tag: String) derives Enumerated:
   case Dhs extends Server("Dhs")
+  case Gws extends Server("Gws")
 
 type Subsystem         = Resource | Instrument
 type SubsystemOrServer = Subsystem | Server
