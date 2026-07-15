@@ -264,7 +264,7 @@ object GroupEditBody
                 onChange = sn =>
                   if sn then sameNightAndMaxIntervalV.set((true, none))
                   else sameNightV.set(false),
-                disabled = isDisabled || useMaxInterval.get
+                disabled = isDisabled
               ),
               <.label(^.htmlFor := "same-night-check", "Same Night")
             )
@@ -288,7 +288,7 @@ object GroupEditBody
               if useMax && group.sameNight then
                 sameNightAndMaxIntervalV.set((false, maxIntervalV.get.some))
               else useMaxInterval.set(useMax),
-            disabled = isDisabled || group.sameNight
+            disabled = isDisabled
           ),
           FormTimeSpanInput(
             value = maxIntervalV,
