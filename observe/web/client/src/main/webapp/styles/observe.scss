@@ -184,14 +184,16 @@ body {
   gap: 1em;
   align-items: center;
 
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    align-items: stretch;
+    gap: 5px 15px;
+
+  }
+
   .observe-conditions-label {
     @include lucumaUICommon.text-ellipsis;
 
     font-weight: bold;
-
-    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      display: none;
-    }
   }
 
   label {
@@ -210,48 +212,63 @@ body {
 
   .observe-conditions-section {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
-
-    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
-      gap: 2px;
-    }
 
     .p-component {
       width: 7em;
     }
 
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px 15px;
+
+      .observe-conditions-label {
+        grid-column: 1 / -1;
+        text-align: center;
+      }
+
+      .p-component {
+        width: 100%;
+      }
+    }
+
     .observe-image-quality-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-cloud-extinction-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-water-vapor-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
 
     .observe-sky-background-area {
       display: flex;
-      align-items: center;
       gap: 5px;
     }
   }
 
   .observe-names-section {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-around;
     align-items: center;
     gap: 15px;
+
+    @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 5px 15px;
+    }
 
     .observe-observer-area {
       display: flex;
@@ -968,11 +985,22 @@ body {
 .observe-obs-header {
   display: flex;
   justify-content: space-between;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 
   > div {
     flex: 1 1 auto;
+    min-width: 0;
     margin: 15px 10px;
+  }
+
+  // Below the tablet cutoff, stack the summary and config panels vertically.
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    flex-direction: column;
+    align-items: stretch;
+
+    > div {
+      margin: 5px 10px;
+    }
   }
 }
 
@@ -980,6 +1008,11 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  // Below the tablet cutoff, stack the summary and config panels vertically.
+  @media screen and (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    justify-content: stretch;
+  }
 
   .observe-obs-summary-title {
     font-size: x-large;
@@ -995,43 +1028,21 @@ body {
 
   .observe-obs-summary-subsystems {
     display: flex;
-    // grid-auto-flow: column;
-    // grid-auto-columns: minmax(0, 0.1fr);
     align-items: baseline;
     justify-content: start;
     gap: 0.8em;
     white-space: nowrap;
 
     .observe-subsystem-toggle {
-      // position: relative;
       min-width: 0;
 
       .p-button {
-        // width: 100%;
+        width: 100%;
         padding: 0.3em 0.8em;
       }
     }
 
-    // Button colors (green when enabled, gray when off) come from the severity set in
-    // SubsystemOverrides; simulated/read-only are just disabled. The SIM badge marks
-    // simulated.
-
-    // PrimeReact button-badge, pinned to the right edge so it doesn't shift with
-    // label width; size and colors kept as the default badge.
     .observe-subsystem-toggle .p-badge {
-      // position: absolute;
-      // top: 50%;
-      // right: 0.4em;
-      // transform: translateY(-50%);
-      // display: inline-block;
-      // border-radius: 10px;
-      // text-align: center;
-      // padding: 0 0.5em;
-      // font-size: 0.75rem;
-      // font-weight: 700;
-      // min-width: 1rem;
-      // height: 1rem;
-      // line-height: 1rem;
       background: var(--red-500);
       color: #fff;
     }

@@ -18,8 +18,8 @@ import observe.model.Server
 import observe.model.SubsystemEnabled
 import observe.model.SubsystemOrServer
 import observe.model.SystemOverrides
-import observe.model.enums.ControlStrategy
 import observe.model.enums.Resource
+import observe.model.enums.ControlStrategy
 import observe.ui.Icons
 import observe.ui.ObserveStyles
 import observe.ui.model.AppContext
@@ -42,12 +42,11 @@ object SubsystemOverrides
       yield
         import ctx.given
 
-        // Each subsystem renders as a button labeled with the subsystem name, with a
-        // checkbox icon indicating its on/off state (emulating a toggle). A checked,
-        // controllable button is solid green; unchecked is outlined. Simulated and
-        // read-only subsystems are disabled and shown gray (the checkbox icon still
-        // reflects their state); simulated ones additionally show a "SIM" badge. Controls
-        // with no `onChange` (e.g. GWS, always on) are shown checked and disabled.
+        // Each subsystem renders as a button labeled with the subsystem name. Only
+        // controllable buttons show a checkbox icon indicating their on/off state (emulating
+        // a toggle): checked is solid green, unchecked outlined. Non-controllable buttons —
+        // simulated ones (gray, disabled, "SIM" badge) and GWS (always on, disabled) — show
+        // no icon.
         def renderToggle(
           label:           NonEmptyString,
           checked:         Boolean,
@@ -55,14 +54,14 @@ object SubsystemOverrides
           controlStrategy: Option[ControlStrategy]
         ): VdomNode =
           val simulated = controlStrategy.contains(ControlStrategy.Simulated)
-          val readOnly  = controlStrategy.contains(ControlStrategy.ReadOnly)
-          val disabled  = onChange.isEmpty || simulated || readOnly
+          val disabled  = onChange.isEmpty || simulated
           <.span(ObserveStyles.SubsystemToggle)(
             Button(
               label = label.value,
-              icon = if (checked) Icons.SquareCheck else Icons.Square,
+              icon =
+                if (disabled) js.undefined else if (checked) Icons.SquareCheck else Icons.Square,
               severity =
-                if (checked && !simulated && !readOnly) Button.Severity.Success
+                if (checked && !simulated) Button.Severity.Success
                 else Button.Severity.Secondary,
               outlined = !checked,
               disabled = disabled,
@@ -70,7 +69,7 @@ object SubsystemOverrides
               onClick = onChange.toOption.fold(Callback.empty)(f => f(!checked))
             )
           ).withTooltip(
-            content = if (simulated) "Simulated" else if (readOnly) "Read-only" else "",
+            content = if (simulated) "Simulated" else "",
             position = Tooltip.Position.Top
           )
 
