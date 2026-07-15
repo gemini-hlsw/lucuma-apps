@@ -70,12 +70,12 @@ case class AlienVisitorConfigEditor(
 
 object AlienVisitorConfigEditor
     extends ReactFnComponent[AlienVisitorConfigEditor](props =>
-      val site              = props.state.zoom(AlienVisitorState.site)
-      val name              = props.state.zoom(AlienVisitorState.name)
-      val centralWavelength = props.state.zoom(AlienVisitorState.centralWavelength)
-      val agsDiameter       = props.state.zoom(AlienVisitorState.agsDiameter)
+      val site               = props.state.zoom(AlienVisitorState.site)
+      val name               = props.state.zoom(AlienVisitorState.name)
+      val centralWavelength  = props.state.zoom(AlienVisitorState.centralWavelength)
+      val agsDiameter        = props.state.zoom(AlienVisitorState.agsDiameter)
       val scienceFovDiameter = props.state.zoom(AlienVisitorState.scienceFovDiameter)
-      val totalRequestTime  = props.state.zoom(AlienVisitorState.totalRequestTime)
+      val totalRequestTime   = props.state.zoom(AlienVisitorState.totalRequestTime)
 
       <.div(
         ExploreStyles.VisitorUpperGrid,

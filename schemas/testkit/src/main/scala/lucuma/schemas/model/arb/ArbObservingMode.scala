@@ -1008,7 +1008,11 @@ trait ArbObservingMode {
   given Cogen[ObservingMode.Visitor] =
     Cogen[(VisitorObservingModeType, Wavelength, Long, Long)]
       .contramap: o =>
-        (o.mode, o.centralWavelength.value, o.agsDiameter.toMicroarcseconds, o.scienceFovDiameter.toMicroarcseconds)
+        (o.mode,
+         o.centralWavelength.value,
+         o.agsDiameter.toMicroarcseconds,
+         o.scienceFovDiameter.toMicroarcseconds
+        )
 
   given Arbitrary[ObservingMode.KeckExchange] = Arbitrary[ObservingMode.KeckExchange](
     for {

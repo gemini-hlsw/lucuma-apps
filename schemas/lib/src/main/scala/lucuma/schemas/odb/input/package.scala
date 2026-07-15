@@ -866,7 +866,7 @@ extension (i: BasicConfiguration)
           camera = camera.assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
-    case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)                         =>
+    case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)     =>
       ObservingModeInput.Visitor:
         VisitorInput(
           mode = mode.assign,

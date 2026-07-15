@@ -1280,12 +1280,12 @@ object ObservingMode:
       Focus[GhostIfu](_.explicitIfu2Agitator)
 
   case class Visitor(
-    mode:              VisitorObservingModeType,
-    centralWavelength: CentralWavelength,
-    agsDiameter:       Angle,
+    mode:               VisitorObservingModeType,
+    centralWavelength:  CentralWavelength,
+    agsDiameter:        Angle,
     scienceFovDiameter: Angle,
-    name:              Option[NonEmptyString],
-    totalRequestTime:  Option[TimeSpan]
+    name:               Option[NonEmptyString],
+    totalRequestTime:   Option[TimeSpan]
   ) extends ObservingMode(mode.instrument.some) derives Eq:
     def isCustomized: Boolean = false
 
