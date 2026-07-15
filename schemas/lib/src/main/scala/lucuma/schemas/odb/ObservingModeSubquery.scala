@@ -245,6 +245,7 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             mode
             centralWavelength $WavelengthSubquery
             agsDiameter $AngleSubquery
+            scienceFovDiameter $AngleSubquery
             name
             totalRequestTime $TimeSpanSubquery
           }
@@ -495,6 +496,7 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             mode
             centralWavelength $WavelengthSubquery
             agsDiameter $AngleSubquery
+            scienceFovDiameter $AngleSubquery
             name
             totalRequestTime $TimeSpanSubquery
           }
