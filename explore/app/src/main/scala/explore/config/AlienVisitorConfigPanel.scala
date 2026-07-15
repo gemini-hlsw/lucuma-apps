@@ -71,6 +71,7 @@ object AlienVisitorConfigPanel
               mode = m.mode.assign,
               centralWavelength = m.centralWavelength.value.toInput.assign,
               agsDiameter = m.agsDiameter.toInput.assign,
+              scienceFovDiameter = m.scienceFovDiameter.toInput.assign,
               name = m.name.orUnassign,
               totalRequestTime = m.totalRequestTime.map(_.toInput).orUnassign
             )

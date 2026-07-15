@@ -151,7 +151,8 @@ trait ArbBasicConfiguration {
         mode <- arbitrary[VisitorObservingModeType]
         cw   <- arbitrary[Wavelength]
         gsms <- arbitrary[Angle]
-      } yield BasicConfiguration.Visitor(mode, CentralWavelength(cw), gsms)
+        fov  <- arbitrary[Angle]
+      } yield BasicConfiguration.Visitor(mode, CentralWavelength(cw), gsms, fov)
     )
 
   given Arbitrary[BasicConfiguration.KeckExchange] =
@@ -252,8 +253,8 @@ trait ArbBasicConfiguration {
       .contramap(o => (o.resolutionMode, o.red, o.blue))
 
   given Cogen[BasicConfiguration.Visitor] =
-    Cogen[(VisitorObservingModeType, Wavelength, Angle)]
-      .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter))
+    Cogen[(VisitorObservingModeType, Wavelength, Angle, Angle)]
+      .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter, o.scienceFovDiameter))
 
   given Cogen[BasicConfiguration.KeckExchange] =
     Cogen[(KeckInstrument, TimeSpan)]

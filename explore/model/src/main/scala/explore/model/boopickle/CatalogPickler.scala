@@ -58,8 +58,6 @@ trait CatalogPicklers extends ItcPicklers:
 
   given Pickler[AgsParams.Visitor] = generatePickler
 
-  given Pickler[AgsParams.MaroonX] = generatePickler
-
   given Pickler[AgsParams] =
     compositePickler[AgsParams]
       .addConcreteType[AgsParams.GmosImaging]
@@ -72,7 +70,6 @@ trait CatalogPicklers extends ItcPicklers:
       .addConcreteType[AgsParams.GnirsIfu]
       .addConcreteType[AgsParams.GhostIfu]
       .addConcreteType[AgsParams.Visitor]
-      .addConcreteType[AgsParams.MaroonX]
 
   given Pickler[Area] =
     transformPickler((x: Long) =>

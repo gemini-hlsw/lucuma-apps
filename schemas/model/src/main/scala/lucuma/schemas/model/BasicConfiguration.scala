@@ -387,9 +387,10 @@ object BasicConfiguration:
       yield GhostIfu(resolutionMode, stepCount, red.timeAndCount.at, red = red, blue = blue)
 
   case class Visitor(
-    mode:              VisitorObservingModeType,
-    centralWavelength: CentralWavelength,
-    agsDiameter:       Angle
+    mode:               VisitorObservingModeType,
+    centralWavelength:  CentralWavelength,
+    agsDiameter:        Angle,
+    scienceFovDiameter: Angle
   ) extends BasicConfiguration derives Eq:
     def site: Site = mode match
       case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField |
@@ -412,6 +413,19 @@ object BasicConfiguration:
           // Let's return something, the user will need to specify a value for an alien visitor.
           Angle.Angle0
 
+    // AGS patrol diameter per resident mode. We should add some of the constants to lucuma-core
+    def agsDiameter(mode: VisitorObservingModeType): Angle =
+      mode match
+        case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.ZorroSpeckle     =>
+          Angle.fromDoubleArcseconds(30)
+        case VisitorObservingModeType.AlopekeWideField | VisitorObservingModeType.ZorroWideField =>
+          Angle.fromDoubleArcseconds(60)
+        case VisitorObservingModeType.MaroonX                                                    =>
+          MaroonXSkyFiberPatrol
+        case VisitorObservingModeType.VisitorNorth | VisitorObservingModeType.VisitorSouth       =>
+          // Let's return something, the user will need to specify a value for an alien visitor.
+          Angle.Angle0
+
     def defaultCentralWavelength(mode: VisitorObservingModeType): Wavelength =
       mode match
         case VisitorObservingModeType.AlopekeSpeckle | VisitorObservingModeType.AlopekeWideField =>
@@ -429,7 +443,8 @@ object BasicConfiguration:
         mode <- c.downField("mode").as[VisitorObservingModeType]
         cw   <- c.downField("centralWavelength").as[Wavelength]
         gsms <- c.downField("agsDiameter").as[Angle]
-      yield Visitor(mode, CentralWavelength(cw), gsms)
+        fov  <- c.downField("scienceFovDiameter").as[Angle]
+      yield Visitor(mode, CentralWavelength(cw), gsms, fov)
 
   case class KeckExchange(
     keckInstrument:   KeckInstrument,

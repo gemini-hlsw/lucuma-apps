@@ -205,6 +205,7 @@ object ConfigSelection:
       .Visitor(
         mode,
         CentralWavelength(BasicConfiguration.Visitor.defaultCentralWavelength(mode)),
+        BasicConfiguration.Visitor.agsDiameter(mode),
         BasicConfiguration.Visitor.fov(mode)
       )
       .some

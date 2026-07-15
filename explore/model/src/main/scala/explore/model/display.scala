@@ -361,7 +361,7 @@ trait DisplayImplicits:
       // For example:
       // GNIRS SB J/H/K-band imaging
       // GNIRS LB K-band imaging AO:LGS+P1
-    case BasicConfiguration.Visitor(mode, _, _)                                    =>
+    case BasicConfiguration.Visitor(mode, _, _, _)                                 =>
       mode.shortName
     case BasicConfiguration.KeckExchange(keckInstrument, _)                        =>
       s"Keck Exchange: ${keckInstrument.longName}"
