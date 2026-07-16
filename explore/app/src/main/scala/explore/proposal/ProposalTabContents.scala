@@ -20,7 +20,6 @@ import explore.services.OdbProposalApi
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.StandardUser
