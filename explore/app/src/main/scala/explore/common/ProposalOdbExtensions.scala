@@ -143,7 +143,6 @@ trait ProposalOdbExtensions:
   extension (proposalType: SubaruProposalType)
     def toInput: SubaruProposalTypeInput =
       SubaruProposalTypeInput(
-        `type` = proposalType.cfpType.assign,
         minPercentTime = proposalType.minPercentTime.assign,
         partnerSplits =
           if (proposalType.partnerSplits.nonEmpty) proposalType.partnerSplits.map(_.toInput).assign

@@ -5,7 +5,7 @@ package explore.optics
 
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.scalacheck.all.given
-import explore.model.GeminiProposalType
+import explore.model.ProposalType.GeminiProposalType
 import explore.model.arb.ArbPartnerSplit.given
 import explore.model.arb.ArbProposalType.given
 import explore.optics.ModelOptics.*

@@ -12,7 +12,6 @@ import explore.model.ProposalType.GeminiProposalType.*
 import explore.model.arb.ArbPartnerSplit.given
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
-import lucuma.core.enums.SubaruCallForProposalsType
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
 import lucuma.core.util.TimeSpan
@@ -285,15 +284,13 @@ trait ArbProposalType:
   given Arbitrary[SubaruProposalType] =
     Arbitrary {
       for {
-        cfpType        <- arbitrary[SubaruCallForProposalsType]
         minPercentTime <- arbitrary[IntPercent]
         partnerSplits  <- arbitrary[List[PartnerSplit]]
-      } yield SubaruProposalType(cfpType, minPercentTime, partnerSplits)
+      } yield SubaruProposalType(minPercentTime, partnerSplits)
     }
 
   given Cogen[SubaruProposalType] =
-    Cogen[(SubaruCallForProposalsType, List[PartnerSplit])]
-      .contramap(p => (p.cfpType, p.partnerSplits))
+    Cogen[List[PartnerSplit]].contramap(_.partnerSplits)
 
   given Arbitrary[ProposalType] =
     Arbitrary {

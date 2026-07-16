@@ -12,7 +12,6 @@ import io.circe.Decoder
 import io.circe.refined.*
 import lucuma.core.enums.ConsiderForBand3
 import lucuma.core.enums.ScienceSubtype
-import lucuma.core.enums.SubaruCallForProposalsType
 import lucuma.core.enums.ToOActivation
 import lucuma.core.model.IntPercent
 import lucuma.core.util.TimeSpan
@@ -58,32 +57,27 @@ object ProposalType:
 
   // Exchange proposal requesting time at Subaru.
   case class SubaruProposalType(
-    cfpType:        SubaruCallForProposalsType,
     minPercentTime: IntPercent,
     partnerSplits:  List[PartnerSplit]
   ) extends ProposalType derives Eq
 
   object SubaruProposalType:
-    val cfpType: Lens[SubaruProposalType, SubaruCallForProposalsType] =
-      Focus[SubaruProposalType](_.cfpType)
-    val minPercentTime: Lens[SubaruProposalType, IntPercent]          =
+    val minPercentTime: Lens[SubaruProposalType, IntPercent]        =
       Focus[SubaruProposalType](_.minPercentTime)
-    val partnerSplits: Lens[SubaruProposalType, List[PartnerSplit]]   =
+    val partnerSplits: Lens[SubaruProposalType, List[PartnerSplit]] =
       Focus[SubaruProposalType](_.partnerSplits)
 
     val Default: SubaruProposalType =
       SubaruProposalType(
-        cfpType = SubaruCallForProposalsType.Normal,
         minPercentTime = IntPercent.unsafeFrom(100),
         partnerSplits = List.empty
       )
 
     given Decoder[SubaruProposalType] = c =>
       for {
-        cfpType        <- c.downField("cfpType").as[SubaruCallForProposalsType]
         minPercentTime <- c.downField("minPercentTime").as[IntPercent]
         partnerSplits  <- c.downField("partnerSplits").as[List[PartnerSplit]]
-      } yield SubaruProposalType(cfpType, minPercentTime, partnerSplits)
+      } yield SubaruProposalType(minPercentTime, partnerSplits)
 
   // The Gemini proposal type, further discriminated by science subtype.
   sealed trait GeminiProposalType extends ProposalType derives Eq {

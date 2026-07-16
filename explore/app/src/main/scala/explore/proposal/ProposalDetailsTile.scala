@@ -57,6 +57,7 @@ import lucuma.react.primereact.Button
 import lucuma.react.primereact.SelectItem
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
+import lucuma.ui.display.given
 import lucuma.ui.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
@@ -505,34 +506,20 @@ object ProposalDetailsBody:
     val minimumPctView: View[IntPercent]            = subaru.zoom(SubaruProposalType.minPercentTime)
     val partnerSplitsView: View[List[PartnerSplit]] = subaru.zoom(SubaruProposalType.partnerSplits)
 
-    val cfpTypeView: View[SubaruCallForProposalsType] =
-      subaru.zoom(SubaruProposalType.cfpType)
-
-    React.Fragment(
-      FormEnumDropdownView(
-        id = "subaru-cfp-type".refined,
-        value = cfpTypeView,
-        label = React.Fragment(
-          "Proposal Type",
-          HelpIcon("proposal/main/subaru-cfp-type.md".refined)
-        ),
-        disabled = readonly
-      ),
-      // Subaru doesn't have any proposal-type specific fields, but we want to show the partner splits and times if a Subaru CfP is selected
-      if isCfpSelected then
-        partnerSplitsAndTimes(
-          partnerSplitsView.some,
-          splitsList,
-          totalHours,
-          minimumPctView,
-          None,
-          None,
-          timeEstimateRange,
-          readonly,
-          showDialog
-        )
-      else EmptyVdom
-    )
+    // Subaru doesn't have any proposal-type specific fields, but we want to show the partner splits and times if a Subaru CfP is selected
+    if isCfpSelected then
+      partnerSplitsAndTimes(
+        partnerSplitsView.some,
+        splitsList,
+        totalHours,
+        minimumPctView,
+        None,
+        None,
+        timeEstimateRange,
+        readonly,
+        showDialog
+      )
+    else EmptyVdom
 
   private def renderFn(
     props:      Props,
@@ -770,6 +757,25 @@ object ProposalDetailsBody:
                     gemini.coordinateLimits.south.format,
                     "Gemini South"
                   )
+                )
+              ),
+              cfp.keck.map(keck =>
+                React.Fragment(
+                  FormInfo(
+                    keck.instruments.map(_.longName).mkString(", "),
+                    "Available Instruments"
+                  ),
+                  FormInfo(keck.coordinateLimits.format, "Coordinate Limits")
+                )
+              ),
+              cfp.subaru.map(subaru =>
+                React.Fragment(
+                  FormInfo(subaru.cfpType.shortName, "Proposal Type"),
+                  FormInfo(
+                    subaru.instruments.map(_.longName).mkString(", "),
+                    "Available Instruments"
+                  ),
+                  FormInfo(subaru.coordinateLimits.format, "Coordinate Limits")
                 )
               )
             )

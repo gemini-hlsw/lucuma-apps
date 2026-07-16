@@ -69,7 +69,6 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
         partnerSplits $PartnerSplitSubquery
       }
       subaru {
-        cfpType: type
         minPercentTime
         partnerSplits $PartnerSplitSubquery
       }
