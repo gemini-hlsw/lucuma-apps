@@ -43,6 +43,7 @@ case class ResidentVisitorConfigPanel(
   requirementsView: View[ScienceRequirements],
   revertConfig:     IO[Unit],
   permissions:      ConfigEditPermissions,
+  isStaffOrAdmin:   Boolean,
   units:            WavelengthUnits
 ) extends ReactFnProps(ResidentVisitorConfigPanel)
 
@@ -98,7 +99,8 @@ object ResidentVisitorConfigPanel
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = angleArcsecondsChangeAuditor,
               units = "arcsec",
-              disabled = true // the mode defines the science FOV, so it can't be edited
+              // Staff may adjust the resident AGS diameter; PIs may not.
+              disabled = !props.isStaffOrAdmin || !props.permissions.isFullEdit
             )(^.autoComplete.off),
             exposureTimeMode.asView.map: tcView =>
               TimeAndCountModeEditor(

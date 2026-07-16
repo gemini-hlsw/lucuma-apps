@@ -75,7 +75,7 @@ case class ObsSummary(
           none
         case BasicConfiguration.GhostIfu(resolutionMode, _, _, _, _)  =>
           resolutionMode.shortName.some
-        case BasicConfiguration.Visitor(mode, _, _)                   =>
+        case BasicConfiguration.Visitor(mode, _, _, _)                =>
           mode.instrument.shortName.some
         case gnirsSpectroscopy @ BasicConfiguration.GnirsSpectroscopy(
               _,

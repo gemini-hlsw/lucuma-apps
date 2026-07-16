@@ -32,15 +32,16 @@ import monocle.Focus
 import monocle.Lens
 
 case class AlienVisitorState(
-  site:              Option[Site],
-  name:              Option[NonEmptyString],
-  centralWavelength: Option[Wavelength],
-  agsDiameter:       Option[Angle],
-  totalRequestTime:  Option[TimeSpan]
+  site:               Option[Site],
+  name:               Option[NonEmptyString],
+  centralWavelength:  Option[Wavelength],
+  agsDiameter:        Option[Angle],
+  scienceFovDiameter: Option[Angle],
+  totalRequestTime:   Option[TimeSpan]
 )
 
 object AlienVisitorState:
-  val Empty: AlienVisitorState = AlienVisitorState(none, none, none, none, none)
+  val Empty: AlienVisitorState = AlienVisitorState(none, none, none, none, none, none)
 
   val site: Lens[AlienVisitorState, Option[Site]] =
     Focus[AlienVisitorState](_.site)
@@ -54,6 +55,9 @@ object AlienVisitorState:
   val agsDiameter: Lens[AlienVisitorState, Option[Angle]] =
     Focus[AlienVisitorState](_.agsDiameter)
 
+  val scienceFovDiameter: Lens[AlienVisitorState, Option[Angle]] =
+    Focus[AlienVisitorState](_.scienceFovDiameter)
+
   val totalRequestTime: Lens[AlienVisitorState, Option[TimeSpan]] =
     Focus[AlienVisitorState](_.totalRequestTime)
 
@@ -66,11 +70,12 @@ case class AlienVisitorConfigEditor(
 
 object AlienVisitorConfigEditor
     extends ReactFnComponent[AlienVisitorConfigEditor](props =>
-      val site              = props.state.zoom(AlienVisitorState.site)
-      val name              = props.state.zoom(AlienVisitorState.name)
-      val centralWavelength = props.state.zoom(AlienVisitorState.centralWavelength)
-      val agsDiameter       = props.state.zoom(AlienVisitorState.agsDiameter)
-      val totalRequestTime  = props.state.zoom(AlienVisitorState.totalRequestTime)
+      val site               = props.state.zoom(AlienVisitorState.site)
+      val name               = props.state.zoom(AlienVisitorState.name)
+      val centralWavelength  = props.state.zoom(AlienVisitorState.centralWavelength)
+      val agsDiameter        = props.state.zoom(AlienVisitorState.agsDiameter)
+      val scienceFovDiameter = props.state.zoom(AlienVisitorState.scienceFovDiameter)
+      val totalRequestTime   = props.state.zoom(AlienVisitorState.totalRequestTime)
 
       <.div(
         ExploreStyles.VisitorUpperGrid,
@@ -102,12 +107,24 @@ object AlienVisitorConfigEditor
           disabled = props.readonly
         ).clearable(^.autoComplete.off),
         FormInputTextView(
-          id = "visitor-basic-science-fov".refined,
+          id = "visitor-basic-ags-diameter".refined,
           value = agsDiameter,
           label = React.Fragment("AGS Diameter",
                                  HelpIcon("configuration/visitor/ags-diameter.md".refined)
           ),
           groupClass = ExploreStyles.WarningInput.when_(agsDiameter.get.isEmpty),
+          validFormat = angleArcsecsFormat,
+          changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
+          units = "arcsec",
+          disabled = props.readonly
+        ).clearable(^.autoComplete.off),
+        FormInputTextView(
+          id = "visitor-basic-science-fov-diameter".refined,
+          value = scienceFovDiameter,
+          label = React.Fragment("Science FoV Diameter",
+                                 HelpIcon("configuration/visitor/science-fov-diameter.md".refined)
+          ),
+          groupClass = ExploreStyles.WarningInput.when_(scienceFovDiameter.get.isEmpty),
           validFormat = angleArcsecsFormat,
           changeAuditor = ChangeAuditor.posBigDecimal(2.refined).optional,
           units = "arcsec",

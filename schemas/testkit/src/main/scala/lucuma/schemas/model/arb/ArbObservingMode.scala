@@ -999,14 +999,20 @@ trait ArbObservingMode {
       mode <- arbitrary[VisitorObservingModeType]
       cw   <- arbitrary[Wavelength]
       gsms <- arbitrary[lucuma.core.math.Angle]
+      fov  <- arbitrary[lucuma.core.math.Angle]
       name <- arbitrary[Option[NonEmptyString]]
       trt  <- arbitrary[Option[TimeSpan]]
-    } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms, name, trt)
+    } yield ObservingMode.Visitor(mode, CentralWavelength(cw), gsms, fov, name, trt)
   )
 
   given Cogen[ObservingMode.Visitor] =
-    Cogen[(VisitorObservingModeType, Wavelength, Long)]
-      .contramap(o => (o.mode, o.centralWavelength.value, o.agsDiameter.toMicroarcseconds))
+    Cogen[(VisitorObservingModeType, Wavelength, Long, Long)]
+      .contramap: o =>
+        (o.mode,
+         o.centralWavelength.value,
+         o.agsDiameter.toMicroarcseconds,
+         o.scienceFovDiameter.toMicroarcseconds
+        )
 
   given Arbitrary[ObservingMode.KeckExchange] = Arbitrary[ObservingMode.KeckExchange](
     for {

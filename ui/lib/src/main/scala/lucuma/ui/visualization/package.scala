@@ -19,7 +19,6 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.PortDisposition
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.TrackType
-import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
 import lucuma.core.math.Offset
@@ -236,10 +235,8 @@ extension (conf: BasicConfiguration)
           AgsParams.GnirsLongSlit(slit, camera, prism, port).some
         case BasicConfiguration.GhostIfu(_, _, _, _, _)                                      =>
           AgsParams.GhostIfu().some
-        case BasicConfiguration.Visitor(mode = VisitorObservingModeType.MaroonX)             =>
-          AgsParams.MaroonX(port).some
-        case BasicConfiguration.Visitor(agsDiameter = fov)                                   =>
-          AgsParams.Visitor(fov, port).some
+        case BasicConfiguration.Visitor(agsDiameter = ags, scienceFovDiameter = fov)         =>
+          AgsParams.Visitor(ags, fov, port).some
         case BasicConfiguration.KeckExchange(_, _) | BasicConfiguration.SubaruExchange(_, _) =>
           none
 

@@ -673,6 +673,7 @@ object ConfigurationTile
                         requirementsView,
                         revertConfig,
                         props.permissions,
+                        props.isStaffOrAdmin,
                         props.units
                       ),
                   // Alien visitors (VisitorNorth / VisitorSouth).

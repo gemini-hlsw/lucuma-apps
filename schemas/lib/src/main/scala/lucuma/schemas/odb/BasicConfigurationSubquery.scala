@@ -81,6 +81,7 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             mode
             centralWavelength $WavelengthSubquery
             agsDiameter $AngleSubquery
+            scienceFovDiameter $AngleSubquery
           }
           exchange {
             keckInstrument

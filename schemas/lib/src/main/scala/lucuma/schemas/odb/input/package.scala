@@ -758,6 +758,7 @@ extension (b: ObservingMode)
           mode = v.mode.assign,
           centralWavelength = v.centralWavelength.value.toInput.assign,
           agsDiameter = v.agsDiameter.toInput.assign,
+          scienceFovDiameter = v.scienceFovDiameter.toInput.assign,
           name = v.name.orUnassign,
           totalRequestTime = v.totalRequestTime.map(_.toInput).orUnassign
         )
@@ -865,12 +866,13 @@ extension (i: BasicConfiguration)
           camera = camera.assign,
           centralWavelength = centralWavelength.value.toInput.assign
         )
-    case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter)                         =>
+    case BasicConfiguration.Visitor(mode, centralWavelength, agsDiameter, scienceFovDiameter)     =>
       ObservingModeInput.Visitor:
         VisitorInput(
           mode = mode.assign,
           centralWavelength = centralWavelength.value.toInput.assign,
-          agsDiameter = agsDiameter.toInput.assign
+          agsDiameter = agsDiameter.toInput.assign,
+          scienceFovDiameter = scienceFovDiameter.toInput.assign
         )
     case BasicConfiguration.KeckExchange(keckInstrument, totalRequestTime)                        =>
       ObservingModeInput.Exchange(

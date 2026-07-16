@@ -13,7 +13,6 @@ import lucuma.core.enums.GuideProbe
 import lucuma.core.enums.TrackType
 import lucuma.core.enums.VisitorObservingModeType
 import lucuma.core.geom.ShapeExpression
-import lucuma.core.geom.visitors.maroonXScienceArea
 import lucuma.core.geom.visitors.visitorScienceArea
 import lucuma.core.math.Angle
 import lucuma.core.math.Coordinates
@@ -24,32 +23,25 @@ import lucuma.ui.visualization.VisualizationStyles.*
 
 import scala.collection.immutable.SortedMap
 
-case class VisitorGeometry(mode: VisitorObservingModeType, agsDiameter: Angle) extends PwfsGeometry:
+case class VisitorGeometry(
+  mode:               VisitorObservingModeType,
+  agsDiameter:        Angle,
+  scienceFovDiameter: Angle
+) extends PwfsGeometry:
 
   override def shapesForMode(posAngle: Angle, offset: Offset) =
-    mode match
-      case VisitorObservingModeType.MaroonX =>
-        SortedMap(
-          (VisitorScienceFov, maroonXScienceArea.shapeAt(posAngle, offset)),
-          (ExtendedVignettingArea, maroonXScienceArea.extendedVignettingAreaAt(posAngle, offset))
-        )
-      case _                                =>
-        SortedMap((VisitorScienceFov, visitorScienceArea.shapeAt(posAngle, offset, agsDiameter)))
+    SortedMap(
+      (VisitorScienceFov, visitorScienceArea.shapeAt(posAngle, offset, scienceFovDiameter)),
+      (ExtendedVignettingArea, visitorScienceArea.shapeAt(posAngle, offset, agsDiameter))
+    )
 
   override protected def candidatesAreaCss: Css = VisitorCandidatesArea
 
   override protected def agsParamsFor(guideProbe: GuideProbe): SingleProbeAgsParams =
-    mode match
-      case VisitorObservingModeType.MaroonX =>
-        guideProbe match
-          case GuideProbe.PWFS1 => AgsParams.MaroonX().withPWFS1
-          case GuideProbe.PWFS2 => AgsParams.MaroonX().withPWFS2
-          case _                => AgsParams.MaroonX()
-      case _                                =>
-        guideProbe match
-          case GuideProbe.PWFS1 => AgsParams.Visitor(agsDiameter).withPWFS1
-          case GuideProbe.PWFS2 => AgsParams.Visitor(agsDiameter).withPWFS2
-          case _                => AgsParams.Visitor(agsDiameter)
+    guideProbe match
+      case GuideProbe.PWFS1 => AgsParams.Visitor(agsDiameter, scienceFovDiameter).withPWFS1
+      case GuideProbe.PWFS2 => AgsParams.Visitor(agsDiameter, scienceFovDiameter).withPWFS2
+      case _                => AgsParams.Visitor(agsDiameter, scienceFovDiameter)
 
 object VisitorGeometry:
 
@@ -65,8 +57,8 @@ object VisitorGeometry:
   ): Option[SortedMap[Css, ShapeExpression]] =
     conf
       .collect:
-        case BasicConfiguration.Visitor(mode = mode, agsDiameter = fov) =>
-          new VisitorGeometry(mode, fov)
+        case BasicConfiguration.Visitor(mode = mode, agsDiameter = ags, scienceFovDiameter = fov) =>
+          new VisitorGeometry(mode, ags, fov)
       .flatMap:
         _.instrumentGeometry(
           referenceCoordinates,

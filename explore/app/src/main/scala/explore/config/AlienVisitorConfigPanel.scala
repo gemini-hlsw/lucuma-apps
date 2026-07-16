@@ -71,6 +71,7 @@ object AlienVisitorConfigPanel
               mode = m.mode.assign,
               centralWavelength = m.centralWavelength.value.toInput.assign,
               agsDiameter = m.agsDiameter.toInput.assign,
+              scienceFovDiameter = m.scienceFovDiameter.toInput.assign,
               name = m.name.orUnassign,
               totalRequestTime = m.totalRequestTime.map(_.toInput).orUnassign
             )
@@ -82,6 +83,9 @@ object AlienVisitorConfigPanel
 
         val agsDiameterView: View[Angle] =
           visitorView.zoom(ObservingMode.Visitor.agsDiameter)
+
+        val scienceFovDiameterView: View[Angle] =
+          visitorView.zoom(ObservingMode.Visitor.scienceFovDiameter)
 
         // Site is encoded in the mode type for aliens
         val unsafeModelToSite: Lens[VisitorObservingModeType, Site] =
@@ -132,11 +136,23 @@ object AlienVisitorConfigPanel
               disabled = disableEdit
             )(^.autoComplete.off),
             FormInputTextView(
-              id = "visitor-science-fov".refined,
+              id = "visitor-ags-diameter".refined,
               value = agsDiameterView,
               label = React.Fragment("AGS Diameter",
                                      HelpIcon("configuration/visitor/ags-diameter.md".refined)
               ),
+              validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
+              changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
+              units = "arcsec",
+              disabled = disableEdit
+            )(^.autoComplete.off),
+            FormInputTextView(
+              id = "visitor-science-fov-diameter".refined,
+              value = scienceFovDiameterView,
+              label =
+                React.Fragment("Science FoV Diameter",
+                               HelpIcon("configuration/visitor/science-fov-diameter.md".refined)
+                ),
               validFormat = ExploreModelValidators.decimalArcsecondsValidWedge,
               changeAuditor = ChangeAuditor.posBigDecimal(2.refined),
               units = "arcsec",
