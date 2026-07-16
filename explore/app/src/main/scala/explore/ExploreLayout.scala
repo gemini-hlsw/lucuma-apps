@@ -472,7 +472,7 @@ object ExploreLayout:
                                     .forall: program =>
                                       // Only show Program and Proposal tabs for Science proposals, and Program only for Accepted ones
                                       (tab =!= AppTab.Proposal && tab =!= AppTab.Program) ||
-                                        program.programType === ProgramType.Science &&
+                                        program.programType.hasProposal &&
                                         (tab === AppTab.Proposal || program.proposalStatus === ProposalStatus.Accepted) ||
                                         // Also show program for engineering and calibration proposals
                                         (tab === AppTab.Program && (program.programType === ProgramType.Engineering || program.programType === ProgramType.Calibration))
