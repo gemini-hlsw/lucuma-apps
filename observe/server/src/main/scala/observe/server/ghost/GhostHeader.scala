@@ -3,7 +3,6 @@
 
 package observe.server.ghost
 
-import cats.Applicative
 import cats.MonadThrow
 import cats.syntax.all.*
 import lucuma.core.enums.ExecutionEnvironment
@@ -18,16 +17,16 @@ import observe.server.keywords.*
 import observe.server.tcs.TcsKeywordsReader
 import org.typelevel.log4cats.Logger
 
-object GhostHeader {
+object GhostHeader:
   val bool2String: Boolean => String = (v: Boolean) => if (v) "T" else "F"
 
-  def header[F[_]: {MonadThrow, Logger}](
+  def header[F[_]: {MonadThrow as F, Logger}](
     kwClient:            KeywordsClient[F],
     tcsKeywordsReader:   TcsKeywordsReader[F],
     ghostKeywordsReader: GhostKeywordsReader[F],
     step:                OcsStep[GhostDynamicConfig]
   ): Header[F] =
-    new Header[F] {
+    new Header[F]:
       override def sendBefore(
         obsId:       Observation.Id,
         id:          ImageFileId,
@@ -79,7 +78,4 @@ object GhostHeader {
           )
         )
 
-      override def sendAfter(id: ImageFileId): F[Unit] =
-        Applicative[F].unit
-    }
-}
+      override def sendAfter(id: ImageFileId): F[Unit] = F.unit

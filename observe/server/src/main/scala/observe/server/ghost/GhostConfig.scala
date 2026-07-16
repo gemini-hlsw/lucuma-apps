@@ -49,6 +49,7 @@ sealed trait GhostConfig extends GhostLUT {
   def redConfig: GhostDetector.Red
 
   def baseCoords: Option[Coordinates]
+  def explicitBase: Option[Coordinates] = None
   def userTargets: List[GemTarget]
 
   def fiberAgitator1: GhostIfu1FiberAgitator
@@ -480,7 +481,8 @@ object GhostConfig {
                           List.empty,
                           scienceMag,
                           retrieveGuideCameraOverride(staticConfig),
-                          staticConfig.slitViewingCameraExposureTime
+                          staticConfig.slitViewingCameraExposureTime,
+                          targetEnvironment.explicitBase
                         )
                     }
                     .toRight[String](
@@ -503,7 +505,8 @@ object GhostConfig {
                         List.empty,
                         scienceMag,
                         retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime
+                        staticConfig.slitViewingCameraExposureTime,
+                        targetEnvironment.explicitBase
                       )
                       .asRight[ObserveFailure]
                   }
@@ -533,7 +536,8 @@ object GhostConfig {
                         List.empty,
                         scienceMag,
                         retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime
+                        staticConfig.slitViewingCameraExposureTime,
+                        targetEnvironment.explicitBase
                       )
                     }
                     .toRight[String](
@@ -566,7 +570,8 @@ object GhostConfig {
                           List.empty,
                           scienceMag,
                           retrieveGuideCameraOverride(staticConfig),
-                          staticConfig.slitViewingCameraExposureTime
+                          staticConfig.slitViewingCameraExposureTime,
+                          targetEnvironment.explicitBase
                         )
                     }
                     .toRight[String](
@@ -619,7 +624,8 @@ object GhostConfig {
                           List.empty,
                           scienceMag,
                           retrieveGuideCameraOverride(staticConfig),
-                          staticConfig.slitViewingCameraExposureTime
+                          staticConfig.slitViewingCameraExposureTime,
+                          targetEnvironment.explicitBase
                         )
                         .asRight[String]
                   }
@@ -649,7 +655,8 @@ object GhostConfig {
                         List.empty,
                         scienceMag,
                         retrieveGuideCameraOverride(staticConfig),
-                        staticConfig.slitViewingCameraExposureTime
+                        staticConfig.slitViewingCameraExposureTime,
+                        targetEnvironment.explicitBase
                       )
                     }
                     .toRight[String](
@@ -677,7 +684,8 @@ object GhostConfig {
                       List.empty,
                       scienceMag,
                       retrieveGuideCameraOverride(staticConfig),
-                      staticConfig.slitViewingCameraExposureTime
+                      staticConfig.slitViewingCameraExposureTime,
+                      targetEnvironment.explicitBase
                     )
                     .asRight[String]
                 }
@@ -837,7 +845,8 @@ object StandardResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends StandardResolutionMode {
     override val ifu1Coordinates: Option[Coordinates] = ifu1Coords.some
     override val ifu2TargetType: IFUTargetType        = IFUTargetType.NoTarget
@@ -852,6 +861,7 @@ object StandardResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1TargetType,
@@ -874,7 +884,8 @@ object StandardResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends StandardResolutionMode {
     override val ifu1Coordinates: Option[Coordinates] = none
     override val ifu2TargetType: IFUTargetType        = IFUTargetType.NoTarget
@@ -892,6 +903,7 @@ object StandardResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.ifu1TargetType,
      x.fiberAgitator1,
      x.fiberAgitator2,
@@ -916,7 +928,8 @@ object StandardResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends StandardResolutionMode {
     override val ifu1Coordinates: Option[Coordinates] = ifu1Coords.some
     override def ifu2Configuration: Configuration     =
@@ -929,6 +942,7 @@ object StandardResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1TargetType,
@@ -955,7 +969,8 @@ object StandardResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends StandardResolutionMode {
     override val ifu2TargetType: IFUTargetType        = IFUTargetType.SkyPosition
     override def ifu2Configuration: Configuration     =
@@ -969,6 +984,7 @@ object StandardResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1TargetType,
@@ -995,7 +1011,8 @@ object StandardResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends StandardResolutionMode {
     override val ifu1TargetType: IFUTargetType        = IFUTargetType.SkyPosition
     override val ifu1Coordinates: Option[Coordinates] = ifu1Coords.some
@@ -1010,6 +1027,7 @@ object StandardResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1Coordinates,
@@ -1054,7 +1072,8 @@ object HighResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends HighResolutionMode {
     override val ifu1Coordinates: Option[Coordinates] = ifu1Coords.some
     override val ifu2TargetType: IFUTargetType        = IFUTargetType.SkyPosition
@@ -1069,6 +1088,7 @@ object HighResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1TargetType,
@@ -1093,7 +1113,8 @@ object HighResolutionMode {
     override val userTargets:         List[GemTarget],
     override val scienceMagnitude:    Option[Double],
     override val guideCameraOverride: Option[TimeSpan],
-    override val svCameraOverride:    Option[TimeSpan]
+    override val svCameraOverride:    Option[TimeSpan],
+    override val explicitBase:        Option[Coordinates] = none
   ) extends HighResolutionMode {
     override val ifu1Coordinates: Option[Coordinates] = none
     override val ifu2TargetType: IFUTargetType        = IFUTargetType.NoTarget
@@ -1110,6 +1131,7 @@ object HighResolutionMode {
      x.blueConfig,
      x.redConfig,
      x.baseCoords,
+     x.explicitBase,
      x.fiberAgitator1,
      x.fiberAgitator2,
      x.ifu1TargetType,
