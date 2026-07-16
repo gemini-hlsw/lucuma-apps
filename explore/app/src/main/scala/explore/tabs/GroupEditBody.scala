@@ -173,11 +173,13 @@ object GroupEditBody
         // But, if there is a minimumInterval set, it can be no less than the minimumInterval.
         // Also when switching to AND, if there isn't already a minimumInterval, set it to zero
         // instead of null.
+        // sc-7039 sameNight and maximumInterval are mutually exclusive, so when switching to AND
+        // with sameNight enabled we must leave maximumInterval as null.
         def setForEditType(t: GroupEditType): Callback =
           if t === GroupEditType.And then
             val newMin = minIntervalV.get.orEmpty
-            val newMax = newMin.max(maxIntervalV.get)
-            minRequiredAndIntervalsV.set(none, newMin.some, newMax.some)
+            val newMax = Option.unless(group.sameNight)(newMin.max(maxIntervalV.get))
+            minRequiredAndIntervalsV.set(none, newMin.some, newMax)
           else minRequiredV.set(NonNegShort.from(1).toOption)
 
         val changeGroupTypeButtons =
@@ -264,7 +266,7 @@ object GroupEditBody
                 onChange = sn =>
                   if sn then sameNightAndMaxIntervalV.set((true, none))
                   else sameNightV.set(false),
-                disabled = isDisabled || useMaxInterval.get
+                disabled = isDisabled
               ),
               <.label(^.htmlFor := "same-night-check", "Same Night")
             )
@@ -288,7 +290,7 @@ object GroupEditBody
               if useMax && group.sameNight then
                 sameNightAndMaxIntervalV.set((false, maxIntervalV.get.some))
               else useMaxInterval.set(useMax),
-            disabled = isDisabled || group.sameNight
+            disabled = isDisabled
           ),
           FormTimeSpanInput(
             value = maxIntervalV,
