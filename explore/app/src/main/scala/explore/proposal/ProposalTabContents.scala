@@ -20,7 +20,6 @@ import explore.services.OdbProposalApi
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.enums.ProgramType
 import lucuma.core.enums.ProposalStatus
 import lucuma.core.model.Program
 import lucuma.core.model.StandardUser
@@ -115,7 +114,7 @@ object ProposalTabContents:
       val isStdUser: Boolean =
         props.userVault.map(_.user).collect { case StandardUser(_, _, _, _) => () }.isDefined
 
-      if (props.programDetails.get.programType =!= ProgramType.Science)
+      if (!props.programDetails.get.programType.hasProposal)
         <.div(LucumaStyles.HVCenter)(
           Message(
             text = "Only Science Program Types can have proposals.",

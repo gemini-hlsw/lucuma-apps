@@ -14,6 +14,7 @@ import lucuma.core.enums.ExchangePartner
 import lucuma.core.enums.GeminiCallForProposalsType
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.KeckInstrument
+import lucuma.core.enums.Observatory
 import lucuma.core.enums.SubaruCallForProposalsType
 import lucuma.core.enums.SubaruInstrument
 import lucuma.core.model.CallCoordinatesLimits
@@ -25,7 +26,7 @@ import monocle.macros.GenPrism
 
 // The observatory-specific properties of a Call for Proposals. Exactly one of
 // the variants applies to a given call, determined by its `observatory`.
-sealed trait CallProperties derives Eq
+sealed abstract class CallProperties(val observatory: Observatory) derives Eq
 
 object CallProperties:
   case class GeminiCallProperties(
@@ -36,7 +37,7 @@ object CallProperties:
     allowsNonPartnerPi: Boolean,
     nonPartnerDeadline: Option[Timestamp],
     exchangePartners:   List[GeminiCallProperties.CallExchangePartner]
-  ) extends CallProperties derives Eq
+  ) extends CallProperties(Observatory.Gemini) derives Eq
 
   object GeminiCallProperties:
     case class CallExchangePartner(
@@ -66,7 +67,7 @@ object CallProperties:
   case class KeckCallProperties(
     instruments:      List[KeckInstrument],
     coordinateLimits: SiteCoordinatesLimits
-  ) extends CallProperties derives Eq
+  ) extends CallProperties(Observatory.Keck) derives Eq
 
   object KeckCallProperties:
     given Decoder[KeckCallProperties] = c =>
@@ -79,7 +80,7 @@ object CallProperties:
     cfpType:          SubaruCallForProposalsType,
     instruments:      List[SubaruInstrument],
     coordinateLimits: SiteCoordinatesLimits
-  ) extends CallProperties derives Eq
+  ) extends CallProperties(Observatory.Subaru) derives Eq
 
   object SubaruCallProperties:
     given Decoder[SubaruCallProperties] = c =>

@@ -65,10 +65,11 @@ object ProposalSubquery extends GraphQLSubquery.Typed[ObservationDB, Proposal]:
         }
       }
       keck {
+        minPercentTime
         partnerSplits $PartnerSplitSubquery
       }
       subaru {
-        cfpType: type
+        minPercentTime
         partnerSplits $PartnerSplitSubquery
       }
     }

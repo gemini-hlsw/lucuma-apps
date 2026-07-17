@@ -7,6 +7,7 @@ import cats.Eq
 import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.types.string.NonEmptyString
+import explore.model.ProposalType.*
 import explore.model.syntax.all.*
 import io.circe.Decoder
 import lucuma.core.enums.AttachmentType
@@ -189,7 +190,20 @@ object Proposal:
     Lens[Proposal, Option[GeminiProposalType]](
       _.proposalType.flatMap(ProposalType.geminiProposalType.getOption)
     )(optGpt => _.copy(proposalType = optGpt))
-  val reference: Lens[Proposal, Option[ProposalReference]]           =
+
+  // Focuses the Keck proposal type, discarding any non-Keck type on set.
+  val keckProposalType: Lens[Proposal, Option[KeckProposalType]] =
+    Lens[Proposal, Option[KeckProposalType]](
+      _.proposalType.flatMap(ProposalType.keckProposalType.getOption)
+    )(optKpt => _.copy(proposalType = optKpt))
+
+  // Focuses the Subaru proposal type, discarding any non-Subaru type on set.
+  val subaruProposalType: Lens[Proposal, Option[SubaruProposalType]] =
+    Lens[Proposal, Option[SubaruProposalType]](
+      _.proposalType.flatMap(ProposalType.subaruProposalType.getOption)
+    )(optSpt => _.copy(proposalType = optSpt))
+
+  val reference: Lens[Proposal, Option[ProposalReference]] =
     Focus[Proposal](_.reference)
 
   given Decoder[Proposal] = c =>

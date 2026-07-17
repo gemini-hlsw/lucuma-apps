@@ -8,9 +8,9 @@ import cats.derived.*
 import cats.syntax.all.*
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.model.CallProperties.GeminiCallProperties
 import io.circe.Decoder
 import io.circe.refined.given
+import lucuma.core.enums.Observatory
 import lucuma.core.enums.Partner
 import lucuma.core.model.CallForProposals
 import lucuma.core.model.PartnerLink
@@ -41,12 +41,21 @@ case class CallForProposal(
 ) derives Eq:
 
   // Gemini-specific properties, present only for Gemini calls.
-  def gemini: Option[GeminiCallProperties] =
+  def gemini: Option[CallProperties.GeminiCallProperties] =
     CallProperties.gemini.getOption(callProperties)
+
+  def keck: Option[CallProperties.KeckCallProperties] =
+    CallProperties.keck.getOption(callProperties)
+
+  def subaru: Option[CallProperties.SubaruCallProperties] =
+    CallProperties.subaru.getOption(callProperties)
+
+  def observatory: Observatory = callProperties.observatory
 
   def middleDate: LocalDate =
     active.start.plusDays(ChronoUnit.DAYS.between(active.start, active.end) / 2)
 
+  // TODO: Fix this to support exchange partner deadlines and non gemini calls
   def deadline(piPartner: Option[PartnerLink]): Either[String, Timestamp] =
     // piPartner is only None if there is no pi, which should never happen
     piPartner.fold("No PI for this program.".asLeft):

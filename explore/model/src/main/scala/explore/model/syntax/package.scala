@@ -236,3 +236,5 @@ object all:
         case Engineering(semester, _, _)   => semester.some
         case Monitoring(semester, _, _)    => semester.some
         case Commissioning(semester, _, _) => semester.some
+        case Keck(proposal)                => proposal.semester.some
+        case Subaru(proposal, _)           => proposal.semester.some
