@@ -90,7 +90,8 @@ object GhostKeywordsReader extends GhostLUT with GhostTargetName {
     conditions: Ref[F, CurrentConditions]
   ): GhostKeywordsReader[F] =
     new GhostKeywordsReader[F] {
-      val basePos: F[Boolean]                 = config.baseCoords.isEmpty.pure[F]
+      // basePos: true when the base is linked to a target (no explicit base override)
+      val basePos: F[Boolean]                 = config.explicitBase.isEmpty.pure[F]
       val srifu1: F[String]                   = config.ifu1TargetType.getNameOption
         .filter(_ => config.resolutionMode === GhostResolutionMode.Standard)
         .getOrElse("    ")

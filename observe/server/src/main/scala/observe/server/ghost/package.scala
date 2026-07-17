@@ -108,7 +108,7 @@ sealed abstract class IFUTargetType(val targetType: String) extends Product with
   def getNameOption: Option[String] = this match {
     case IFUTargetType.NoTarget                => none
     case IFUTargetType.TargetXY                => none
-    case IFUTargetType.SkyPosition             => none
+    case IFUTargetType.SkyPosition             => "Sky".some
     case IFUTargetType.SiderealTarget(name)    => name.some
     case IFUTargetType.NonsiderealTarget(name) => name.some
   }
