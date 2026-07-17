@@ -161,7 +161,8 @@ object GnirsControllerEpics extends GnirsEncoders {
           case GnirsPrism.Lxd    => s"${cameraStr(camera)}+LXD"
         }
 
-        val gratingMode: String = "WAVELENGTH"
+        val gratingMode: String            = "WAVELENGTH"
+        val wavelengthRelTolerance: Double = 0.0001
 
         List(
           smartSetParamF(
@@ -178,6 +179,11 @@ object GnirsControllerEpics extends GnirsEncoders {
             prismValue,
             epicsSys.prism.map(removePartName),
             epicsSys.configCCCmd.setPrism(prismValue)
+          ),
+          smartSetDoubleParamF(wavelengthRelTolerance)(
+            wavelengthµm(out.wavelength.value),
+            epicsSys.centralWavelength,
+            epicsSys.configCCCmd.setCentralWavelength(wavelengthµm(out.wavelength.value))
           )
         )
       }
@@ -230,7 +236,6 @@ object GnirsControllerEpics extends GnirsEncoders {
         val filter1Value: String                           = if (pupilViewer) "PupilViewer" else filterWheel1
         val cameraValue: String                            = encode(dc.camera)
         val deckerValue: String                            = encode(dc.decker)
-        val wavelengthRelTolerance: Double                 = 0.0001
 
         val acqMirrorAndSpectrography: List[F[Option[F[Unit]]]] = dc.acquisitionMirror match {
           case GnirsAcquisitionMirrorMode.In                 => List(setAcqMirror("In"))
@@ -271,12 +276,7 @@ object GnirsControllerEpics extends GnirsEncoders {
             epicsSys.decker.map(removePartName),
             epicsSys.configCCCmd.setDecker(deckerValue)
           ),
-          focusParam,
-          smartSetDoubleParamF(wavelengthRelTolerance)(
-            wavelengthµm(dc.centralWavelength),
-            epicsSys.centralWavelength,
-            epicsSys.configCCCmd.setCentralWavelength(wavelengthµm(dc.centralWavelength))
-          )
+          focusParam
         )
 
         val slit: F[Option[F[Unit]]] = slitWidthValue(dc)
