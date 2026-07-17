@@ -10,6 +10,8 @@ enum ConfigurationMode(val tag: String) derives Enumerated:
   case Spectroscopy extends ConfigurationMode("spectroscopy")
   case Imaging      extends ConfigurationMode("imaging")
   case Visitor      extends ConfigurationMode("visitor")
+  case Keck         extends ConfigurationMode("keck")
+  case Subaru       extends ConfigurationMode("subaru")
 
 object ConfigurationMode:
   def fromScienceMode(m: ScienceMode): ConfigurationMode = m match

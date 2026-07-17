@@ -85,6 +85,8 @@ trait DisplayImplicits:
     case ConfigurationMode.Spectroscopy => "Spectroscopy"
     case ConfigurationMode.Imaging      => "Imaging"
     case ConfigurationMode.Visitor      => "Visitor"
+    case ConfigurationMode.Keck         => "Keck"
+    case ConfigurationMode.Subaru       => "Subaru"
 
   given Display[WavelengthUnits] = Display.byShortName(_.symbol)
 

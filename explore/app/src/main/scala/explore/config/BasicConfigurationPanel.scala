@@ -49,6 +49,7 @@ import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.CentralWavelength
+import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.LucumaIcons
 import lucuma.ui.primereact.*
@@ -88,8 +89,11 @@ private object BasicConfigurationPanel:
         configModeType       <- useStateView[ConfigurationMode](ConfigurationMode.Spectroscopy)
         _                    <- useEffectWithDeps(props.requirementsView.get.scienceModeType): modeType =>
                                   configModeType.mod: current =>
-                                    // There is no visitor science mode.
-                                    if current === ConfigurationMode.Visitor then current
+                                    // Visitor and exchange modes have no backing science mode.
+                                    if current === ConfigurationMode.Visitor ||
+                                      current === ConfigurationMode.Keck ||
+                                      current === ConfigurationMode.Subaru
+                                    then current
                                     else ConfigurationMode.fromScienceMode(modeType)
         creating             <- useStateView(Creating(false))
         imagingCap           <- useStateView(none[ImagingCapability])
@@ -100,12 +104,18 @@ private object BasicConfigurationPanel:
                                 )
         // Local preview state for alien visitors.
         alienVisitor         <- useStateView(AlienVisitorState.Empty)
+        // Local preview state for Keck/Subaru exchange modes.
+        keckExchange         <- useStateView(ObservingMode.KeckExchange.Default)
+        subaruExchange       <- useStateView(ObservingMode.SubaruExchange.Default)
       yield
         import ctx.given
 
         val etm: Option[ExposureTimeMode] = props.requirementsView.get.exposureTimeMode
         val isVisitor                     = props.selectedConfig.get.isVisitor
         val isAlienVisitor                = configModeType.get === ConfigurationMode.Visitor
+        val isKeck                        = configModeType.get === ConfigurationMode.Keck
+        val isSubaru                      = configModeType.get === ConfigurationMode.Subaru
+        val isExchange                    = isKeck || isSubaru
         val visitorEtmOk                  =
           !isVisitor || exposureTimeModeType.get === ExposureTimeModeType.TimeAndCount
         val alienVisitorState             = alienVisitor.get
@@ -142,6 +152,8 @@ private object BasicConfigurationPanel:
 
         val canAccept: Boolean =
           if isAlienVisitor then alienInput.isDefined
+          // Exchange modes are seeded from a Default, so all fields are always present.
+          else if isExchange then true
           else props.selectedConfig.get.canAccept(etm) && visitorEtmOk
 
         val acceptAction: IO[Unit] =
@@ -150,6 +162,16 @@ private object BasicConfigurationPanel:
               .mapN: (input, bc) =>
                 props.createConfig(input, bc.obsModeType.defaultPosAngleOptions)
               .getOrElse(IO.unit)
+          else if isKeck then
+            val mode = keckExchange.get
+            props.createConfig(ObservingModeInput.Exchange(mode.toInput),
+                               mode.obsModeType.defaultPosAngleOptions
+            )
+          else if isSubaru then
+            val mode = subaruExchange.get
+            props.createConfig(ObservingModeInput.Exchange(mode.toInput),
+                               mode.obsModeType.defaultPosAngleOptions
+            )
           else
             selectedBasicConfig
               .map(bc => props.createConfig(bc.toInput, bc.obsModeType.defaultPosAngleOptions))
@@ -169,7 +191,7 @@ private object BasicConfigurationPanel:
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
         val message: Option[String] =
-          if (isAlienVisitor) none
+          if (isAlienVisitor || isExchange) none
           else if (spectroscopyView.get.exists(_.wavelength.isEmpty))
             "Wavelength is required for creating a configuration.".some
           else if (
@@ -186,15 +208,15 @@ private object BasicConfigurationPanel:
 
         def switchMode(modeType: ConfigurationMode): Callback =
           modeType match
-            case ConfigurationMode.Spectroscopy =>
+            case ConfigurationMode.Spectroscopy                                                =>
               props.requirementsView
                 .zoom(ScienceRequirements.scienceMode)
                 .set(ScienceRequirements.Spectroscopy.Default.asLeft)
-            case ConfigurationMode.Imaging      =>
+            case ConfigurationMode.Imaging                                                     =>
               props.requirementsView
                 .zoom(ScienceRequirements.scienceMode)
                 .set(ScienceRequirements.Imaging.Default.asRight)
-            case ConfigurationMode.Visitor      =>
+            case ConfigurationMode.Visitor | ConfigurationMode.Keck | ConfigurationMode.Subaru =>
               Callback.empty
 
         val buttonIcon: FontAwesomeIcon =
@@ -211,7 +233,7 @@ private object BasicConfigurationPanel:
 
         <.div(
           ExploreStyles.BasicConfigurationGrid,
-          ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitor)
+          ExploreStyles.BasicConfigurationGridVisitor.when(isAlienVisitor || isExchange)
         )(
           if isAlienVisitor then
             <.div(ExploreStyles.VisitorBasicArea)(
@@ -221,6 +243,16 @@ private object BasicConfigurationPanel:
                 readonly = props.readonly,
                 units = props.units
               )
+            )
+          else if isKeck then
+            <.div(ExploreStyles.VisitorBasicArea)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(modeDropdown),
+              KeckExchangeConfigEditor(keckExchange, props.readonly)
+            )
+          else if isSubaru then
+            <.div(ExploreStyles.VisitorBasicArea)(
+              <.div(LucumaPrimeStyles.FormColumnCompact)(modeDropdown),
+              SubaruExchangeConfigEditor(subaruExchange, props.readonly)
             )
           else
             React.Fragment(
