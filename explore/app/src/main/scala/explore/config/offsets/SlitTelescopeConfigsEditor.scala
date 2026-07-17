@@ -26,10 +26,11 @@ import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
 final case class SlitTelescopeConfigsEditor(
-  explicitValue:  View[Option[SlitTelescopeConfigs]],
-  defaultValue:   SlitTelescopeConfigs,
-  defaultForMode: SlitOffsetMode => SlitTelescopeConfigs,
-  readonly:       Boolean
+  explicitValue:   View[Option[SlitTelescopeConfigs]],
+  defaultValue:    SlitTelescopeConfigs,
+  defaultForMode:  SlitOffsetMode => SlitTelescopeConfigs,
+  presetsReadonly: Boolean, // selecting a preset
+  editingReadonly: Boolean  // editing the individual offsets.
 ) extends ReactFnProps(SlitTelescopeConfigsEditor)
 
 object SlitTelescopeConfigsEditor
@@ -62,7 +63,7 @@ object SlitTelescopeConfigsEditor
               HelpIcon("configuration/slit-spatial-offsets.md".refined)
             ),
             onChange = mode => value.set(props.defaultForMode(mode)),
-            disabled = props.readonly
+            disabled = props.presetsReadonly
           ),
           CustomizedGroupAddon(
             "default offsets",
@@ -74,12 +75,12 @@ object SlitTelescopeConfigsEditor
           TelescopeConfigsEditor(
             telescopeConfigs = alongSlitTelescopeConfigs,
             pEnabled = false,
-            readonly = props.readonly
+            readonly = props.editingReadonly
           ),
         toSkyView.map: toSkyTelescopeConfigs =>
           TelescopeConfigsEditor(
             telescopeConfigs = toSkyTelescopeConfigs,
-            readonly = props.readonly
+            readonly = props.editingReadonly
           )
       )
     )

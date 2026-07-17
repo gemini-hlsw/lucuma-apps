@@ -453,7 +453,8 @@ object GnirsSpectroscopyPanel
                   presets = fpuIfuViewOpt
                     .map(_.get)
                     .foldMap(gnirs.gnirsIfuTelescopeConfigPresets(_).toList),
-                  readonly = disableSimpleEdit
+                  presetsReadonly = !props.permissions.isFullEdit,
+                  editingReadonly = disableSimpleEdit
                 ),
               slitTelescopeConfigsViewOpt.map: v =>
                 SlitTelescopeConfigsEditor(
@@ -473,7 +474,8 @@ object GnirsSpectroscopyPanel
                     cameraView.get,
                     GnirsGratingWavelength(centralWavelengthView.get)
                   ),
-                  readonly = disableSimpleEdit
+                  presetsReadonly = !props.permissions.isFullEdit,
+                  editingReadonly = disableSimpleEdit
                 )
             )
           ),
