@@ -300,6 +300,11 @@ object MainApp extends ServerEventHandler:
               .map(_.odbClient)
               .toOption
               .foldMap(_.statusStream) // Track ODB initialization status
+        bootstrapped     <- useState(Bootstrapped.False)
+        appReady          = odbStatus.contains_(PersistentClientStatus.Connected) &&
+                              clientConfigPot.get.isReady
+        _                <- useEffectWithDeps(appReady):
+                              case r => bootstrapped.setState(Bootstrapped.True).when_(r)
         subscribed       <- useRef(false)
         _                <-
           useEffectStreamResourceWhenDepsReady(
@@ -372,11 +377,17 @@ object MainApp extends ServerEventHandler:
               )
             )
 
+        // The dialog is shown while *either* connection is unhealthy:
+        // out-of-sync event/API state, or the ODB client being disconnected
+        val showResyncing =
+          syncStatus.get.contains(SyncStatus.OutOfSync) ||
+            (bootstrapped.value && !odbStatus.contains_(PersistentClientStatus.Connected))
+
         val ResyncingPopup =
           Dialog(
             header = "Reestablishing connection to server...",
             closable = false,
-            visible = syncStatus.get.contains(SyncStatus.OutOfSync),
+            visible = showResyncing,
             onHide = Callback.empty,
             clazz = ObserveStyles.SyncingPanel
           )(

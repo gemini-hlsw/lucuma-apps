@@ -966,18 +966,23 @@ body {
 }
 
 .observe-syncing-panel {
-  height: var(--solar-system-size);
-  width: var(--solar-system-size);
-
   .p-dialog-header {
     text-align: center;
   }
 
   .p-dialog-content {
     display: flex;
-    align-items: end;
-    justify-content: center;
-    margin-bottom: 1.5em;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .solar-system {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: -100px;
   }
 }
 
