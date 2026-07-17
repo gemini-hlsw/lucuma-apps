@@ -260,6 +260,8 @@ object ConfigurationTile
         ObservingModeInput.GhostIfu(GhostIfuInput())
       val EmptyVisitorInput: ObservingModeInput           =
         ObservingModeInput.Visitor(VisitorInput())
+      val EmptyExchangeInput: ObservingModeInput          =
+        ObservingModeInput.Exchange(ExchangeInput())
       val EmptyGmosNorthImagingInput: ObservingModeInput  =
         ObservingModeInput.GmosNorthImaging(GmosNorthImagingInput())
       val EmptyGmosSouthImagingInput: ObservingModeInput  =
@@ -435,6 +437,26 @@ object ConfigurationTile
               modInput:
                 ObservingModeInput.visitor
                   .andThen(ObservingModeInput.Visitor.value)
+                  .modify
+            )
+
+        val optKeckExchangeAligner: Option[Aligner[ObservingMode.KeckExchange, ExchangeInput]] =
+          optModeAligner(EmptyExchangeInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.keckExchange,
+              modInput:
+                ObservingModeInput.exchange
+                  .andThen(ObservingModeInput.Exchange.value)
+                  .modify
+            )
+
+        val optSubaruExchangeAligner: Option[Aligner[ObservingMode.SubaruExchange, ExchangeInput]] =
+          optModeAligner(EmptyExchangeInput).flatMap:
+            _.zoomOpt(
+              ObservingMode.subaruExchange,
+              modInput:
+                ObservingModeInput.exchange
+                  .andThen(ObservingModeInput.Exchange.value)
                   .modify
             )
 
@@ -687,7 +709,13 @@ object ConfigurationTile
                         revertConfig,
                         props.permissions,
                         props.units
-                      )
+                      ),
+                  // Keck exchange.
+                  optKeckExchangeAligner.map: keckAligner =>
+                    KeckExchangeConfigPanel(keckAligner, revertConfig, props.permissions),
+                  // Subaru exchange.
+                  optSubaruExchangeAligner.map: subaruAligner =>
+                    SubaruExchangeConfigPanel(subaruAligner, revertConfig, props.permissions)
                 )
             )
           )

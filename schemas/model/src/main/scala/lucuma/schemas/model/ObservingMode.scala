@@ -27,6 +27,7 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.defaultIfuTelescopeConfigs
+import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
 import lucuma.odb.json.angle.decoder.given
@@ -1320,6 +1321,9 @@ object ObservingMode:
     val isCustomized: Boolean = false
 
   object KeckExchange:
+    val Default: KeckExchange =
+      KeckExchange(Enumerated[KeckInstrument].all.head, TimeSpan.Zero)
+
     val keckInstrument: Lens[KeckExchange, KeckInstrument] =
       Focus[KeckExchange](_.keckInstrument)
     val totalRequestTime: Lens[KeckExchange, TimeSpan]     =
@@ -1338,6 +1342,9 @@ object ObservingMode:
     val isCustomized: Boolean = false
 
   object SubaruExchange:
+    val Default: SubaruExchange =
+      SubaruExchange(Enumerated[SubaruInstrument].all.head, TimeSpan.Zero)
+
     val subaruInstrument: Lens[SubaruExchange, SubaruInstrument] =
       Focus[SubaruExchange](_.subaruInstrument)
     val totalRequestTime: Lens[SubaruExchange, TimeSpan]         =
