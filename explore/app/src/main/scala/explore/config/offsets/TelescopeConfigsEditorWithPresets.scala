@@ -22,7 +22,8 @@ final case class TelescopeConfigsEditorWithPresets(
   pEnabled:         Boolean = true,
   maxOffsets:       Int = Int.MaxValue,
   presets:          List[(String, NonEmptyList[TelescopeConfig])],
-  readonly:         Boolean = false
+  presetsReadonly:  Boolean, // selecting a preset
+  editingReadonly:  Boolean  // editing the individual offsets.
 ) extends ReactFnProps(TelescopeConfigsEditorWithPresets)
 
 object TelescopeConfigsEditorWithPresets
@@ -44,14 +45,14 @@ object TelescopeConfigsEditorWithPresets
               name
                 .flatMap(n => props.presets.find(_._1 === n).map(_._2))
                 .foldMap(props.telescopeConfigs.set),
-            disabled = props.readonly
+            disabled = props.presetsReadonly
           ).veryCompact.mini
         ),
         TelescopeConfigsEditor(
           props.telescopeConfigs,
           props.pEnabled,
           props.maxOffsets,
-          props.readonly
+          props.editingReadonly
         )
       )
     )
