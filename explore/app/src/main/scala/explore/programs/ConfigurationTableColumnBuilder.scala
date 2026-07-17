@@ -132,27 +132,31 @@ object ConfigurationTableColumnBuilder {
 
   extension (mode: Configuration.ObservingMode)
     def fpu: String = mode match
-      case GmosNorthLongSlit(_)   => "LongSlit"
-      case GmosSouthLongSlit(_)   => "LongSlit"
       case Flamingos2LongSlit(_)  => "LongSlit"
-      case GmosNorthImaging(_)    => "Imaging"
-      case GmosSouthImaging(_)    => "Imaging"
       case Igrins2LongSlit        => "LongSlit"
+      case GhostIfu               => "IFU"
+      case GmosNorthLongSlit(_)   => "LongSlit"
+      case GmosNorthImaging(_)    => "Imaging"
+      case GmosNorthMos(_)        => "MOS"
+      case GmosSouthLongSlit(_)   => "LongSlit"
+      case GmosSouthImaging(_)    => "Imaging"
+      case GmosSouthMos(_)        => "MOS"
       case GnirsLongSlit(_, _, _) => "LongSlit"
       case GnirsIfu(_, _)         => "IFU"
-      case GhostIfu               => "IFU"
       case Visitor(_, _)          => ""
 
     def disperser: String = mode match
-      case GmosNorthLongSlit(grating)    => grating.shortName
-      case GmosSouthLongSlit(grating)    => grating.shortName
       case Flamingos2LongSlit(disperser) => disperser.shortName
+      case GhostIfu                      => ""
       case GmosNorthImaging(_)           => ""
+      case GmosNorthLongSlit(grating)    => grating.shortName
+      case GmosNorthMos(grating)         => grating.shortName
+      case GmosSouthLongSlit(grating)    => grating.shortName
       case GmosSouthImaging(_)           => ""
-      case Igrins2LongSlit               => ""
+      case GmosSouthMos(grating)         => grating.shortName
       case GnirsLongSlit(grating, _, _)  => grating.shortName
       case GnirsIfu(grating, _)          => grating.shortName
-      case GhostIfu                      => ""
+      case Igrins2LongSlit               => ""
       case Visitor(_, _)                 => ""
 
   def targetName(observations: List[Observation], targets: TargetList): String =

@@ -439,20 +439,24 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
   // We turn on only that view's `@include` flag so the server resolves a single mode-view.
   private def modeViewFlagsFor(modeType: ObservingModeType): ModeViewFlags =
     modeType match
-      case ObservingModeType.GmosNorthLongSlit                               =>
-        ModeViewFlags(gmosNorthLongSlit = true)
-      case ObservingModeType.GmosSouthLongSlit                               =>
-        ModeViewFlags(gmosSouthLongSlit = true)
-      case ObservingModeType.GmosNorthImaging                                =>
-        ModeViewFlags(gmosNorthImaging = true)
-      case ObservingModeType.GmosSouthImaging                                =>
-        ModeViewFlags(gmosSouthImaging = true)
+      case ObservingModeType.Igrins2LongSlit                                 =>
+        ModeViewFlags(igrins2LongSlit = true)
       case ObservingModeType.Flamingos2Imaging                               =>
         ModeViewFlags(flamingos2Imaging = true)
       case ObservingModeType.Flamingos2LongSlit                              =>
         ModeViewFlags(flamingos2LongSlit = true)
-      case ObservingModeType.Igrins2LongSlit                                 =>
-        ModeViewFlags(igrins2LongSlit = true)
+      case ObservingModeType.GmosNorthLongSlit                               =>
+        ModeViewFlags(gmosNorthLongSlit = true)
+      case ObservingModeType.GmosNorthImaging                                =>
+        ModeViewFlags(gmosNorthImaging = true)
+      case ObservingModeType.GmosNorthMos                                    =>
+        ???
+      case ObservingModeType.GmosSouthLongSlit                               =>
+        ModeViewFlags(gmosSouthLongSlit = true)
+      case ObservingModeType.GmosSouthImaging                                =>
+        ModeViewFlags(gmosSouthImaging = true)
+      case ObservingModeType.GmosSouthMos                                    =>
+        ???
       case ObservingModeType.GnirsImaging                                    =>
         ModeViewFlags(gnirsImaging = true)
       case ObservingModeType.GnirsLongSlit | ObservingModeType.GnirsIfu      =>
