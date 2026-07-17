@@ -34,9 +34,14 @@ case class Layout(c: RouterCtl[Page], resolution: ResolutionWithProps[Page, Root
 object Layout
     extends ReactFnComponent[Layout](props =>
       for
-        ctx       <- useContext(AppContext.ctx)
-        odbStatus <- useStreamOnMount(ctx.odbClient.statusStream)
-        theme     <- useTheme(initial = Theme.Dark)
+        ctx          <- useContext(AppContext.ctx)
+        odbStatus    <- useStreamOnMount(ctx.odbClient.statusStream)
+        theme        <- useTheme(initial = Theme.Dark)
+        bootstrapped <- useState(Bootstrapped.False)
+        ready         = odbStatus.contains_(PersistentClientStatus.Connected) &&
+                          props.rootModel.clientConfig.isReady
+        _            <- useEffectWithDeps(ready):
+                          case r => bootstrapped.setState(Bootstrapped.True).when_(r)
       yield
         val appTab: AppTab = AppTab.from(props.resolution.page)
 
@@ -48,10 +53,8 @@ object Layout
               ctx.pushPage(newTab) >> cb(appTab, newTab)
           )
 
-        if (
-          odbStatus.contains_(PersistentClientStatus.Connected) &&
-          props.rootModel.clientConfig.isReady
-        )
+        // Show the full-screen loader only until the first successful connection
+        if (bootstrapped.value || ready)
           React.StrictMode(
             <.div(LayoutStyles.MainGrid)(
               props.rootModel.data
