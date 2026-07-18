@@ -104,6 +104,10 @@ export default defineConfig(async ({ mode }) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 20000,
       outDir: path.resolve(__dirname, 'deploy'),
+      // Vite 8's default oxc minifier miscompiles the Scala.js output (circe
+      // field lookups read present fields as missing; oxc #24531 / #24603).
+      // Force terser instead.
+      minify: 'terser',
     },
     plugins: [mkcert({ hosts: ['localhost', 'local.lucuma.xyz'] }), fontImport, react()],
   } satisfies UserConfig;
