@@ -2,7 +2,7 @@
   "name": "@gemini-hlsw/observe",
   "private": true,
   "dependencies": {
-    "@floating-ui/react": "0.27.19",
+    "@floating-ui/react": "0.27.20",
     "@fontsource/lato": "5.2.7",
     "@fortawesome/fontawesome-svg-core": "7.3.0",
     "@fortawesome/pro-duotone-svg-icons": "7.3.0",
