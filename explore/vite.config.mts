@@ -252,6 +252,10 @@ export default defineConfig(async ({ mode }) => {
       emptyOutDir: true,
       chunkSizeWarningLimit: 20000,
       outDir: path.resolve(_dirname, 'heroku/static'),
+      // Vite 8's default oxc minifier miscompiles the Scala.js output (circe
+      // field lookups read present fields as missing; oxc #24531 / #24603).
+      // Force terser instead.
+      minify: 'terser',
     },
     worker: {
       format: 'es', // We need this for workers to be able to do dynamic imports.
