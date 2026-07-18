@@ -632,7 +632,7 @@ extension (o: ObservingMode.Flamingos2LongSlit)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign,
     acquisition = o.acquisition.toInput.assign
   )
 
@@ -1047,7 +1047,12 @@ extension (flamingos2Static: Flamingos2StaticConfig)
 extension (igrins2Static: Igrins2StaticConfig)
   def toInput: Igrins2StaticInput = Igrins2StaticInput(
     igrins2Static.saveSVCImages.value.assign,
-    igrins2Static.offsetMode.assign
+    (igrins2Static.offsetMode match
+      case lucuma.core.enums.Igrins2SlitOffsetPreset.NodAlongSlit =>
+        lucuma.core.enums.SlitOffsetMode.NodAlongSlit
+      case lucuma.core.enums.Igrins2SlitOffsetPreset.NodToSky     =>
+        lucuma.core.enums.SlitOffsetMode.NodToSky
+    ).assign
   )
 
 extension (gmosSDynamic: gmos.DynamicConfig.GmosSouth)

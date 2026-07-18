@@ -616,30 +616,30 @@ object ObservingMode:
       Focus[GmosSouthImaging](_.explicitRoi)
 
   case class Flamingos2LongSlit(
-    initialDisperser:    Flamingos2Disperser,
-    disperser:           Flamingos2Disperser,
-    initialFilter:       Flamingos2Filter,
-    filter:              Flamingos2Filter,
-    initialFpu:          Flamingos2Fpu,
-    fpu:                 Flamingos2Fpu,
-    explicitReadMode:    Option[Flamingos2ReadMode],
-    explicitReads:       Option[Flamingos2Reads],
-    defaultDecker:       Flamingos2Decker,
-    explicitDecker:      Option[Flamingos2Decker],
-    defaultReadoutMode:  Flamingos2ReadoutMode,
-    explicitReadoutMode: Option[Flamingos2ReadoutMode],
-    defaultOffsets:      NonEmptyList[Offset],
-    explicitOffsets:     Option[NonEmptyList[Offset]],
-    exposureTimeMode:    ExposureTimeMode,
-    acquisition:         Flamingos2LongSlit.Acquisition
+    initialDisperser:         Flamingos2Disperser,
+    disperser:                Flamingos2Disperser,
+    initialFilter:            Flamingos2Filter,
+    filter:                   Flamingos2Filter,
+    initialFpu:               Flamingos2Fpu,
+    fpu:                      Flamingos2Fpu,
+    explicitReadMode:         Option[Flamingos2ReadMode],
+    explicitReads:            Option[Flamingos2Reads],
+    defaultDecker:            Flamingos2Decker,
+    explicitDecker:           Option[Flamingos2Decker],
+    defaultReadoutMode:       Flamingos2ReadoutMode,
+    explicitReadoutMode:      Option[Flamingos2ReadoutMode],
+    defaultTelescopeConfigs:  SlitTelescopeConfigs,
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
+    exposureTimeMode:         ExposureTimeMode,
+    acquisition:              Flamingos2LongSlit.Acquisition
   ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
-    val decker: Flamingos2Decker           =
+    val decker: Flamingos2Decker               =
       explicitDecker.getOrElse(defaultDecker)
-    val readoutMode: Flamingos2ReadoutMode =
+    val readoutMode: Flamingos2ReadoutMode     =
       explicitReadoutMode.getOrElse(defaultReadoutMode)
-    val offsets: NonEmptyList[Offset]      =
-      explicitOffsets.getOrElse(defaultOffsets)
-    val readMode: Flamingos2ReadMode       =
+    val telescopeConfigs: SlitTelescopeConfigs =
+      explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+    val readMode: Flamingos2ReadMode           =
       explicitReadMode.getOrElse(Flamingos2ReadMode.Bright)
 
     def isCustomized: Boolean =
@@ -650,7 +650,7 @@ object ObservingMode:
         explicitReads.isDefined ||
         explicitDecker.exists(_ =!= defaultDecker) ||
         explicitReadoutMode.exists(_ =!= defaultReadoutMode) ||
-        explicitOffsets.exists(_ =!= defaultOffsets) ||
+        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
         acquisition.isCustomized
 
     def revertCustomizations: Flamingos2LongSlit =
@@ -662,7 +662,7 @@ object ObservingMode:
         explicitReads = None,
         explicitDecker = None,
         explicitReadoutMode = None,
-        explicitOffsets = None,
+        explicitTelescopeConfigs = None,
         acquisition = acquisition.revertCustomizations
       )
 
@@ -688,37 +688,37 @@ object ObservingMode:
 
     given Decoder[Flamingos2LongSlit] = deriveDecoder
 
-    val initialDisperser: Lens[Flamingos2LongSlit, Flamingos2Disperser]              =
+    val initialDisperser: Lens[Flamingos2LongSlit, Flamingos2Disperser]                  =
       Focus[Flamingos2LongSlit](_.initialDisperser)
-    val disperser: Lens[Flamingos2LongSlit, Flamingos2Disperser]                     =
+    val disperser: Lens[Flamingos2LongSlit, Flamingos2Disperser]                         =
       Focus[Flamingos2LongSlit](_.disperser)
-    val initialFilter: Lens[Flamingos2LongSlit, Flamingos2Filter]                    =
+    val initialFilter: Lens[Flamingos2LongSlit, Flamingos2Filter]                        =
       Focus[Flamingos2LongSlit](_.initialFilter)
-    val filter: Lens[Flamingos2LongSlit, Flamingos2Filter]                           =
+    val filter: Lens[Flamingos2LongSlit, Flamingos2Filter]                               =
       Focus[Flamingos2LongSlit](_.filter)
-    val initialFpu: Lens[Flamingos2LongSlit, Flamingos2Fpu]                          =
+    val initialFpu: Lens[Flamingos2LongSlit, Flamingos2Fpu]                              =
       Focus[Flamingos2LongSlit](_.initialFpu)
-    val fpu: Lens[Flamingos2LongSlit, Flamingos2Fpu]                                 =
+    val fpu: Lens[Flamingos2LongSlit, Flamingos2Fpu]                                     =
       Focus[Flamingos2LongSlit](_.fpu)
-    val explicitReadMode: Lens[Flamingos2LongSlit, Option[Flamingos2ReadMode]]       =
+    val explicitReadMode: Lens[Flamingos2LongSlit, Option[Flamingos2ReadMode]]           =
       Focus[Flamingos2LongSlit](_.explicitReadMode)
-    val explicitReads: Lens[Flamingos2LongSlit, Option[Flamingos2Reads]]             =
+    val explicitReads: Lens[Flamingos2LongSlit, Option[Flamingos2Reads]]                 =
       Focus[Flamingos2LongSlit](_.explicitReads)
-    val defaultDecker: Lens[Flamingos2LongSlit, Flamingos2Decker]                    =
+    val defaultDecker: Lens[Flamingos2LongSlit, Flamingos2Decker]                        =
       Focus[Flamingos2LongSlit](_.defaultDecker)
-    val explicitDecker: Lens[Flamingos2LongSlit, Option[Flamingos2Decker]]           =
+    val explicitDecker: Lens[Flamingos2LongSlit, Option[Flamingos2Decker]]               =
       Focus[Flamingos2LongSlit](_.explicitDecker)
-    val defaultReadoutMode: Lens[Flamingos2LongSlit, Flamingos2ReadoutMode]          =
+    val defaultReadoutMode: Lens[Flamingos2LongSlit, Flamingos2ReadoutMode]              =
       Focus[Flamingos2LongSlit](_.defaultReadoutMode)
-    val explicitReadoutMode: Lens[Flamingos2LongSlit, Option[Flamingos2ReadoutMode]] =
+    val explicitReadoutMode: Lens[Flamingos2LongSlit, Option[Flamingos2ReadoutMode]]     =
       Focus[Flamingos2LongSlit](_.explicitReadoutMode)
-    val defaultOffsets: Lens[Flamingos2LongSlit, NonEmptyList[Offset]]               =
-      Focus[Flamingos2LongSlit](_.defaultOffsets)
-    val explicitOffsets: Lens[Flamingos2LongSlit, Option[NonEmptyList[Offset]]]      =
-      Focus[Flamingos2LongSlit](_.explicitOffsets)
-    val exposureTimeMode: Lens[Flamingos2LongSlit, ExposureTimeMode]                 =
+    val defaultTelescopeConfigs: Lens[Flamingos2LongSlit, SlitTelescopeConfigs]          =
+      Focus[Flamingos2LongSlit](_.defaultTelescopeConfigs)
+    val explicitTelescopeConfigs: Lens[Flamingos2LongSlit, Option[SlitTelescopeConfigs]] =
+      Focus[Flamingos2LongSlit](_.explicitTelescopeConfigs)
+    val exposureTimeMode: Lens[Flamingos2LongSlit, ExposureTimeMode]                     =
       Focus[Flamingos2LongSlit](_.exposureTimeMode)
-    val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]        =
+    val acquisition: Lens[Flamingos2LongSlit, Flamingos2LongSlit.Acquisition]            =
       Focus[Flamingos2LongSlit](_.acquisition)
 
   case class Flamingos2Imaging(

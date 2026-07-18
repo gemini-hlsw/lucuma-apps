@@ -462,18 +462,19 @@ object GnirsSpectroscopyPanel
                   defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
                     .getOrElse(
                       gnirs.defaultSlitTelescopeConfigs(
-                        SlitOffsetMode.NodAlongSlit,
+                        GnirsSlitOffsetPreset.NodAlongSlit,
                         prismView.get,
                         cameraView.get,
                         GnirsGratingWavelength(centralWavelengthView.get)
                       )
                     ),
-                  defaultForMode = gnirs.defaultSlitTelescopeConfigs(
+                  defaultForPreset = gnirs.defaultSlitTelescopeConfigs(
                     _,
                     prismView.get,
                     cameraView.get,
                     GnirsGratingWavelength(centralWavelengthView.get)
                   ),
+                  helpId = "configuration/slit-spatial-offsets.md".refined,
                   presetsReadonly = !props.permissions.isFullEdit,
                   editingReadonly = disableSimpleEdit
                 )

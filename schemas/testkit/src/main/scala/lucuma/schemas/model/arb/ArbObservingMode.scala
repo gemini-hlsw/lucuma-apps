@@ -484,22 +484,22 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.Flamingos2LongSlit] =
     Arbitrary[ObservingMode.Flamingos2LongSlit](
       for {
-        initialDisperser   <- arbitrary[Flamingos2Disperser]
-        disperser          <- arbitrary[Flamingos2Disperser]
-        initialFilter      <- arbitrary[Flamingos2Filter]
-        filter             <- arbitrary[Flamingos2Filter]
-        initialFpu         <- arbitrary[Flamingos2Fpu]
-        fpu                <- arbitrary[Flamingos2Fpu]
-        explicitReadMode   <- arbitrary[Option[Flamingos2ReadMode]]
-        explicitReads      <- arbitrary[Option[Flamingos2Reads]]
-        defaultDecker      <- arbitrary[Flamingos2Decker]
-        explicitDecker     <- arbitrary[Option[Flamingos2Decker]]
-        defaultReadoutMode <- arbitrary[Flamingos2ReadoutMode]
-        expicitReadoutMode <- arbitrary[Option[Flamingos2ReadoutMode]]
-        defaultOffsets     <- arbitrary[NonEmptyList[Offset]]
-        explicitOffsets    <- arbitrary[Option[NonEmptyList[Offset]]]
-        exposureTimeMode   <- arbitrary[ExposureTimeMode]
-        acquisition        <- arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition]
+        initialDisperser         <- arbitrary[Flamingos2Disperser]
+        disperser                <- arbitrary[Flamingos2Disperser]
+        initialFilter            <- arbitrary[Flamingos2Filter]
+        filter                   <- arbitrary[Flamingos2Filter]
+        initialFpu               <- arbitrary[Flamingos2Fpu]
+        fpu                      <- arbitrary[Flamingos2Fpu]
+        explicitReadMode         <- arbitrary[Option[Flamingos2ReadMode]]
+        explicitReads            <- arbitrary[Option[Flamingos2Reads]]
+        defaultDecker            <- arbitrary[Flamingos2Decker]
+        explicitDecker           <- arbitrary[Option[Flamingos2Decker]]
+        defaultReadoutMode       <- arbitrary[Flamingos2ReadoutMode]
+        expicitReadoutMode       <- arbitrary[Option[Flamingos2ReadoutMode]]
+        defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
+        explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
+        exposureTimeMode         <- arbitrary[ExposureTimeMode]
+        acquisition              <- arbitrary[ObservingMode.Flamingos2LongSlit.Acquisition]
       } yield ObservingMode.Flamingos2LongSlit(
         initialDisperser,
         disperser,
@@ -513,8 +513,8 @@ trait ArbObservingMode {
         explicitDecker,
         defaultReadoutMode,
         expicitReadoutMode,
-        defaultOffsets,
-        explicitOffsets,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs,
         exposureTimeMode,
         acquisition
       )
@@ -540,8 +540,8 @@ trait ArbObservingMode {
        Option[Flamingos2Decker],
        Flamingos2ReadoutMode,
        Option[Flamingos2ReadoutMode],
-       NonEmptyList[Offset],
-       Option[NonEmptyList[Offset]],
+       SlitTelescopeConfigs,
+       Option[SlitTelescopeConfigs],
        ExposureTimeMode,
        ObservingMode.Flamingos2LongSlit.Acquisition
       )
@@ -560,8 +560,8 @@ trait ArbObservingMode {
           o.explicitDecker,
           o.defaultReadoutMode,
           o.explicitReadoutMode,
-          o.defaultOffsets,
-          o.explicitOffsets,
+          o.defaultTelescopeConfigs,
+          o.explicitTelescopeConfigs,
           o.exposureTimeMode,
           o.acquisition
         )
