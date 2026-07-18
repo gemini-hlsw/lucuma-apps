@@ -632,7 +632,7 @@ object ObservingMode:
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs],
     exposureTimeMode:         ExposureTimeMode,
     acquisition:              Flamingos2LongSlit.Acquisition
-  ) extends ObservingMode(Instrument.GmosSouth.some) derives Eq:
+  ) extends ObservingMode(Instrument.Flamingos2.some) derives Eq:
     val decker: Flamingos2Decker               =
       explicitDecker.getOrElse(defaultDecker)
     val readoutMode: Flamingos2ReadoutMode     =
