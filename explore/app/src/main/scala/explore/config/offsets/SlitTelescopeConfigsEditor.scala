@@ -7,12 +7,8 @@ import cats.data.NonEmptyList
 import cats.syntax.all.*
 import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.components.CustomizedGroupAddon
-import explore.components.HelpIcon
-import explore.components.ui.ExploreStyles
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
-import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SlitOffsetPreset
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
@@ -63,25 +59,15 @@ object SlitTelescopeConfigsEditor:
           .toOptionView
 
       React.Fragment(
-        <.span(ExploreStyles.SlitTelescopeConfigEditorHeader)(
-          FormLabel(htmlFor = "offset-mode".refined)(
-            "Spatial Offsets",
-            HelpIcon(props.helpId)
-          ),
-          EnumOptionalDropdown(
-            id = "offset-mode".refined,
-            value = activePreset,
-            showClear = false,
-            placeholder = "Custom",
-            disabled = props.presetsReadonly,
-            onChange =
-              (p: Option[P]) => p.foldMap(preset => value.set(props.defaultForPreset(preset)))
-          ),
-          CustomizedGroupAddon(
-            "default offsets",
-            props.explicitValue.set(none),
-            allowRevert = true
-          ).when(props.explicitValue.get.exists(_ =!= props.defaultValue))
+        OffsetPresetsHeader(
+          id = "offset-mode".refined,
+          helpId = props.helpId,
+          activePreset = activePreset,
+          onSelect =
+            (p: Option[P]) => p.foldMap(preset => value.set(props.defaultForPreset(preset))),
+          disabled = props.presetsReadonly,
+          showRevert = value.get =!= props.defaultValue,
+          onRevert = props.explicitValue.set(none)
         ),
         alongSlitView.map: alongSlitTelescopeConfigs =>
           TelescopeConfigsEditor(
