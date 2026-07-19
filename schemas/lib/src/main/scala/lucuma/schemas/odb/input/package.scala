@@ -12,6 +12,8 @@ import lucuma.core.enums.ArcType
 import lucuma.core.enums.Band
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosSouthFpu
+import lucuma.core.enums.Igrins2SlitOffsetPreset
+import lucuma.core.enums.SlitOffsetMode
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.math.BrightnessUnits.*
@@ -1048,10 +1050,8 @@ extension (igrins2Static: Igrins2StaticConfig)
   def toInput: Igrins2StaticInput = Igrins2StaticInput(
     igrins2Static.saveSVCImages.value.assign,
     (igrins2Static.offsetMode match
-      case lucuma.core.enums.Igrins2SlitOffsetPreset.NodAlongSlit =>
-        lucuma.core.enums.SlitOffsetMode.NodAlongSlit
-      case lucuma.core.enums.Igrins2SlitOffsetPreset.NodToSky     =>
-        lucuma.core.enums.SlitOffsetMode.NodToSky
+      case Igrins2SlitOffsetPreset.NodAlongSlit => SlitOffsetMode.NodAlongSlit
+      case Igrins2SlitOffsetPreset.NodToSky     => SlitOffsetMode.NodToSky
     ).assign
   )
 
