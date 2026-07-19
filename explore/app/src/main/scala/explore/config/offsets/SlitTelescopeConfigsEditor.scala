@@ -9,6 +9,7 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import explore.syntax.ui.*
 import japgolly.scalajs.react.*
+import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SlitOffsetPreset
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
@@ -16,7 +17,6 @@ import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
-import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
 final case class SlitTelescopeConfigsEditor[P <: SlitOffsetPreset](
@@ -39,8 +39,10 @@ object SlitTelescopeConfigsEditor:
       val value: View[SlitTelescopeConfigs] =
         props.explicitValue.removeOptionality(props.defaultValue)
 
-      // Exact-match: the active preset is the one whose template equals the
-      // effective configs. None means a custom, hand-edited pattern.
+      // the active preset is the one whose template equals the
+      // effective configs. 
+      // None means a custom, hand-edited pattern.
+      // The preset is not stored on the odb
       val activePreset: Option[P] =
         Enumerated[P].all.find(p => props.defaultForPreset(p) === value.get)
 
@@ -62,6 +64,8 @@ object SlitTelescopeConfigsEditor:
         OffsetPresetsHeader(
           id = "offset-mode".refined,
           helpId = props.helpId,
+          presets = Enumerated[P].all,
+          label = props.display.shortName,
           activePreset = activePreset,
           onSelect =
             (p: Option[P]) => p.foldMap(preset => value.set(props.defaultForPreset(preset))),

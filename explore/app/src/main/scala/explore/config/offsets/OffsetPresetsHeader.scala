@@ -6,11 +6,12 @@ package explore.config.offsets
 import explore.components.CustomizedGroupAddon
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
+import cats.Eq
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
-import lucuma.core.util.Display
-import lucuma.core.util.Enumerated
+import lucuma.react.primereact.DropdownOptional
+import lucuma.react.primereact.SelectItem
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
 
@@ -18,24 +19,30 @@ object OffsetPresetsHeader:
 
   /**
    * Shared header for the long-slit / IFU telescope-offset editors.
+   *
+   * The preset key type `A` is opaque: callers pass the selectable `presets` and a `label` to
+   * render each.
    */
   def apply[A](
     id:           NonEmptyString,
     helpId:       NonEmptyString,
+    presets:      List[A],
+    label:        A => String,
     activePreset: Option[A],
     onSelect:     Option[A] => Callback,
     disabled:     Boolean,
     showRevert:   Boolean,
     onRevert:     Callback
-  )(using Enumerated[A], Display[A]): VdomElement =
+  )(using Eq[A]): VdomElement =
     <.span(ExploreStyles.SlitTelescopeConfigEditorHeader)(
       FormLabel(htmlFor = id)(
         "Spatial Offsets",
         HelpIcon(helpId)
       ),
-      EnumOptionalDropdown(
-        id = id,
+      DropdownOptional(
+        id = id.value,
         value = activePreset,
+        options = presets.map(p => SelectItem(label = label(p), value = p)),
         showClear = false,
         placeholder = "Custom",
         disabled = disabled,

@@ -9,10 +9,8 @@ import crystal.react.View
 import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.util.Display
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.core.util.Enumerated
 import lucuma.refined.*
 
 final case class IfuTelescopeConfigsEditor(
@@ -27,11 +25,7 @@ final case class IfuTelescopeConfigsEditor(
 object IfuTelescopeConfigsEditor
     extends ReactFnComponent[IfuTelescopeConfigsEditor](props =>
       // The IFU presets arrive as (name, pattern) pairs from core, keyed by plain
-      // String. Build an Enumerated[String] over the names so this editor can
-      // share OffsetPresetsHeader (and its EnumOptionalDropdown) verbatim with
-      // the slit editors, which key on a real preset enum.
-      given Enumerated[String] = Enumerated.fromNEL(props.presets.map(_._1)).withTag(identity)
-      given Display[String]    = Display.byShortName(identity)
+      // String.
 
       // Exact-match: the active preset is the one whose pattern equals the
       // current configs; None means a custom, hand-edited pattern.
@@ -46,6 +40,8 @@ object IfuTelescopeConfigsEditor
         OffsetPresetsHeader(
           id = "offset-mode".refined,
           helpId = props.helpId,
+          presets = props.presets.map(_._1).toList,
+          label = identity,
           activePreset = activePreset,
           onSelect = onSelect,
           disabled = props.presetsReadonly,
