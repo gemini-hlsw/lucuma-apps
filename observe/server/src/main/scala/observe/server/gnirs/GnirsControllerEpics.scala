@@ -9,6 +9,7 @@ import fs2.Stream
 import lucuma.core.enums.GnirsCamera
 import lucuma.core.enums.GnirsDecker
 import lucuma.core.enums.GnirsFilter
+import lucuma.core.enums.GnirsFpuIfu
 import lucuma.core.enums.GnirsFpuOther
 import lucuma.core.enums.GnirsFpuSlit
 import lucuma.core.enums.GnirsGrating
@@ -62,8 +63,8 @@ trait GnirsEncoders {
     case GnirsDecker.ShortCamCrossDispersed => "SCXD"
     case GnirsDecker.LongCamLongSlit        => "LCLong"
     case GnirsDecker.LongCamCrossDispersed  => "LCXD"
-    case GnirsDecker.LowResolutionIfu       => ??? // TODO
-    case GnirsDecker.HighResolutionIfu      => ??? // TODO
+    case GnirsDecker.LowResolutionIfu       => "LR-IFU"
+    case GnirsDecker.HighResolutionIfu      => "HR-IFU"
   }
 }
 
@@ -204,7 +205,7 @@ object GnirsControllerEpics extends GnirsEncoders {
 
       private def slitWidthValue(dc: GnirsDynamicConfig): Option[String] =
         dc.fpu match {
-          case GnirsFpu.Spectroscopy.Slit(slit) =>
+          case GnirsFpu.Spectroscopy.Slit(slit)                      =>
             (slit match {
               case GnirsFpuSlit.LongSlit_0_10  => "0.10arcsec"
               case GnirsFpuSlit.LongSlit_0_15  => "0.15arcsec"
@@ -214,8 +215,9 @@ object GnirsControllerEpics extends GnirsEncoders {
               case GnirsFpuSlit.LongSlit_0_675 => "0.68arcsec"
               case GnirsFpuSlit.LongSlit_1_00  => "1.00arcsec"
             }).some
-          case GnirsFpu.Spectroscopy.Ifu(_)     => none // TODO
-          case GnirsFpu.Other(other)            =>
+          case GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.LowResolution)  => "LR-IFU".some
+          case GnirsFpu.Spectroscopy.Ifu(GnirsFpuIfu.HighResolution) => "HR-IFU".some
+          case GnirsFpu.Other(other)                                 =>
             (other match {
               case GnirsFpuOther.Acquisition => "Acq"
               case GnirsFpuOther.PupilViewer => "PV"
