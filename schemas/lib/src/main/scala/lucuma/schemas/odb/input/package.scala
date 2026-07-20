@@ -12,6 +12,8 @@ import lucuma.core.enums.ArcType
 import lucuma.core.enums.Band
 import lucuma.core.enums.GmosNorthFpu
 import lucuma.core.enums.GmosSouthFpu
+import lucuma.core.enums.Igrins2SlitOffsetPreset
+import lucuma.core.enums.SlitOffsetMode
 import lucuma.core.geom.OffsetGenerator
 import lucuma.core.math.*
 import lucuma.core.math.BrightnessUnits.*
@@ -632,7 +634,7 @@ extension (o: ObservingMode.Flamingos2LongSlit)
     explicitReads = o.explicitReads.orUnassign,
     explicitDecker = o.explicitDecker.orUnassign,
     explicitReadoutMode = o.explicitReadoutMode.orUnassign,
-    explicitOffsets = o.explicitOffsets.map(_.toList.map(_.toInput)).orUnassign,
+    explicitTelescopeConfigs = o.explicitTelescopeConfigs.map(_.toInput).orUnassign,
     acquisition = o.acquisition.toInput.assign
   )
 
@@ -1047,7 +1049,10 @@ extension (flamingos2Static: Flamingos2StaticConfig)
 extension (igrins2Static: Igrins2StaticConfig)
   def toInput: Igrins2StaticInput = Igrins2StaticInput(
     igrins2Static.saveSVCImages.value.assign,
-    igrins2Static.offsetMode.assign
+    (igrins2Static.offsetMode match
+      case Igrins2SlitOffsetPreset.NodAlongSlit => SlitOffsetMode.NodAlongSlit
+      case Igrins2SlitOffsetPreset.NodToSky     => SlitOffsetMode.NodToSky
+    ).assign
   )
 
 extension (gmosSDynamic: gmos.DynamicConfig.GmosSouth)

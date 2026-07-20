@@ -28,7 +28,7 @@ import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
-import lucuma.core.model.sequence.igrins2.defaultOffsetsFor
+import lucuma.core.model.sequence.igrins2.defaultSlitTelescopeConfigs
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -39,6 +39,12 @@ import lucuma.ui.primereact.*
 import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import lucuma.ui.utils.toNelOfViews
+
+private def defaultOffsetsFor(mode: SlitOffsetMode): List[Offset] =
+  val preset = mode match
+    case SlitOffsetMode.NodAlongSlit => Igrins2SlitOffsetPreset.NodAlongSlit
+    case SlitOffsetMode.NodToSky     => Igrins2SlitOffsetPreset.NodToSky
+  defaultSlitTelescopeConfigs(preset).telescopeConfigs.toList.map(_.offset)
 
 final case class Igrins2LongslitConfigPanel(
   programId:       Program.Id,

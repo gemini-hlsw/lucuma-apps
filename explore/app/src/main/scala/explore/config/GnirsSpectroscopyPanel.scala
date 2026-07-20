@@ -16,9 +16,9 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.SlitTelescopeConfigsEditor
-import explore.config.offsets.TelescopeConfigsEditorWithPresets
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
@@ -447,33 +447,37 @@ object GnirsSpectroscopyPanel
               )
             ),
             <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              ifuTelescopeConfigsViewOpt.map: v =>
-                TelescopeConfigsEditorWithPresets(
-                  telescopeConfigs = v,
-                  presets = fpuIfuViewOpt
-                    .map(_.get)
-                    .foldMap(gnirs.gnirsIfuTelescopeConfigPresets(_).toList),
-                  presetsReadonly = !props.permissions.isFullEdit,
-                  editingReadonly = disableSimpleEdit
-                ),
+              ifuTelescopeConfigsViewOpt.flatMap: v =>
+                fpuIfuViewOpt.map: fpuView =>
+                  val fpu = fpuView.get
+                  IfuTelescopeConfigsEditor(
+                    telescopeConfigs = v,
+                    presets = gnirs.gnirsIfuTelescopeConfigPresets(fpu),
+                    defaultConfigs = gnirs.defaultIfuTelescopeConfigs(fpu),
+                    helpId = "configuration/ifu-spatial-offsets.md".refined,
+                    presetsReadonly = !props.permissions.isFullEdit,
+                    editingReadonly = disableSimpleEdit
+                  )
+              ,
               slitTelescopeConfigsViewOpt.map: v =>
                 SlitTelescopeConfigsEditor(
                   explicitValue = v,
                   defaultValue = props.observingMode.get.defaultTelescopeConfigsSlit
                     .getOrElse(
                       gnirs.defaultSlitTelescopeConfigs(
-                        SlitOffsetMode.NodAlongSlit,
+                        GnirsSlitOffsetPreset.NodAlongSlit,
                         prismView.get,
                         cameraView.get,
                         GnirsGratingWavelength(centralWavelengthView.get)
                       )
                     ),
-                  defaultForMode = gnirs.defaultSlitTelescopeConfigs(
+                  defaultForPreset = gnirs.defaultSlitTelescopeConfigs(
                     _,
                     prismView.get,
                     cameraView.get,
                     GnirsGratingWavelength(centralWavelengthView.get)
                   ),
+                  helpId = "configuration/slit-spatial-offsets.md".refined,
                   presetsReadonly = !props.permissions.isFullEdit,
                   editingReadonly = disableSimpleEdit
                 )

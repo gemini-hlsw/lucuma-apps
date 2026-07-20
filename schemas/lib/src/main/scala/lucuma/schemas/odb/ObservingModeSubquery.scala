@@ -146,8 +146,8 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
             explicitDecker
             defaultReadoutMode
             explicitReadoutMode
-            defaultOffsets $OffsetSubquery
-            explicitOffsets $OffsetSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
@@ -397,8 +397,8 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
             explicitDecker
             defaultReadoutMode
             explicitReadoutMode
-            defaultOffsets $OffsetSubquery
-            explicitOffsets $OffsetSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
             exposureTimeMode $ExposureTimeModeSubquery
             acquisition {
               defaultFilter
