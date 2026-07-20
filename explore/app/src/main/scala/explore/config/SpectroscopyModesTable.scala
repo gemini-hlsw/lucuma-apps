@@ -343,12 +343,6 @@ private object SpectroscopyModesTable extends ModesTableCommon:
         itcProgress    <- useStateView(none[Progress])
         rows           <- useRows(props, itcResults)
         cols           <- useColumns(props.exposureTimeMode.map(_.modeType), props.units)
-        tableState     <- useMemo(props.spectroscopyRequirements.focalPlane.isDefined): hasFocalPlane =>
-                            PartialTableState(
-                              columnVisibility = ColumnVisibility( // Hide FPU column if empty
-                                FPUColumnId -> Visibility.fromVisible(hasFocalPlane)
-                              )
-                            )
         table          <- useReactTableWithStateStore:
                             import ctx.given
 
@@ -358,7 +352,6 @@ private object SpectroscopyModesTable extends ModesTableCommon:
                                 rows,
                                 getRowId = (row, _, _) => row.rowId,
                                 enableSorting = true,
-                                state = tableState,
                                 meta = TableMeta(itcProgress.get)
                               ),
                               TableStore(props.userId, TableId.SpectroscopyModes)
