@@ -17,7 +17,7 @@
     "@tanstack/react-virtual": "3.14.6",
     "loglevel": "1.9.2",
     "primeicons": "7.0.0",
-    "primereact": "10.9.8",
+    "primereact": "11.0.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "ua-parser-js": "2.0.10"
