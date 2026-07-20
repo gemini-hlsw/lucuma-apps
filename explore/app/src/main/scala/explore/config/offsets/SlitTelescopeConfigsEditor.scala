@@ -40,7 +40,7 @@ object SlitTelescopeConfigsEditor:
         props.explicitValue.removeOptionality(props.defaultValue)
 
       // the active preset is the one whose template equals the
-      // effective configs. 
+      // effective configs.
       // None means a custom, hand-edited pattern.
       // The preset is not stored on the odb
       val activePreset: Option[P] =

@@ -3,11 +3,11 @@
 
 package explore.config.offsets
 
+import cats.Eq
+import eu.timepit.refined.types.string.NonEmptyString
 import explore.components.CustomizedGroupAddon
 import explore.components.HelpIcon
 import explore.components.ui.ExploreStyles
-import cats.Eq
-import eu.timepit.refined.types.string.NonEmptyString
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.primereact.DropdownOptional

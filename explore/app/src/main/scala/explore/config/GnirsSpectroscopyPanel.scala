@@ -16,9 +16,9 @@ import explore.common.Aligner
 import explore.components.*
 import explore.components.ui.ExploreStyles
 import explore.config.ConfigurationFormats.*
+import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.config.offsets.OffsetInput
 import explore.config.offsets.SlitTelescopeConfigsEditor
-import explore.config.offsets.IfuTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.ExploreModelValidators
 import explore.model.Observation
