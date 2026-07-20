@@ -168,8 +168,13 @@ case class SpectroscopyModeRow(
           case Instrument.Gnirs                            =>
             instrumentConfig match
               case i: ItcInstrumentConfig.GnirsSpectroscopy =>
+                // GNIRS coverage spans essentially the full band, so the clipped
+                // interval center is a near-constant value regardless of the requested
+                // wavelength. Use the user's requested wavelength directly instead.
                 i.copy(modeOverrides =
-                  InstrumentOverrides.GnirsSpectroscopy(cw, coadds = 1.refined).some
+                  InstrumentOverrides
+                    .GnirsSpectroscopy(CentralWavelength(wavelength), coadds = 1.refined)
+                    .some
                 ).some
               case i                                        =>
                 i.some
