@@ -74,16 +74,6 @@ object Igrins2LongslitConfigPanel
           <.div(
             ExploreStyles.Igrins2UpperGrid
           )(
-            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
-              SlitTelescopeConfigsEditor(
-                explicitValue = explicitTelescopeConfigsView,
-                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
-                defaultForPreset = igrins2.defaultSlitTelescopeConfigs,
-                helpId = "configuration/igrins2/spatial-offsets.md".refined,
-                presetsReadonly = !props.permissions.isFullEdit,
-                editingReadonly = disableEdit
-              )
-            ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
                 instrument = props.observingMode.get.instrument,
@@ -102,6 +92,16 @@ object Igrins2LongslitConfigPanel
                 modeData = modeData,
                 centralWavelength = Igrins2CentralWavelength,
                 units = props.units
+              )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
+              SlitTelescopeConfigsEditor(
+                explicitValue = explicitTelescopeConfigsView,
+                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
+                defaultForPreset = igrins2.defaultSlitTelescopeConfigs,
+                helpId = "configuration/igrins2/spatial-offsets.md".refined,
+                presetsReadonly = !props.permissions.isFullEdit,
+                editingReadonly = disableEdit
               )
             )
           ),
