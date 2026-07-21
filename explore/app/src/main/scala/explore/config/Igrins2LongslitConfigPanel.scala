@@ -50,12 +50,11 @@ object Igrins2LongslitConfigPanel
         ctx       <- useContext(AppContext.ctx)
         modeData  <- useModeData(props.confMatrix, props.observingMode.get)
         editState <- useStateView(ConfigEditState.View)
-        reverting <- useStateView(false)
       } yield
         import ctx.given
 
         val disableEdit =
-          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit || reverting.get
+          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
 
         val explicitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
           .zoom(
