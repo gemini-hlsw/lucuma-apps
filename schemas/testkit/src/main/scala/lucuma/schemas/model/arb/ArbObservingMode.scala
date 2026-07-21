@@ -733,44 +733,36 @@ trait ArbObservingMode {
 
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
-      exposureTimeMode      <- arbitrary[ExposureTimeMode]
-      defaultOffsetMode     <- arbitrary[SlitOffsetMode]
-      explicitOffsetMode    <- arbitrary[Option[SlitOffsetMode]]
-      defaultSaveSVCImages  <- arbitrary[Boolean]
-      explicitSaveSVCImages <- arbitrary[Option[Boolean]]
-      defaultOffsets        <- arbitrary[NonEmptyList[Offset]]
-      explicitOffsets       <- arbitrary[Option[NonEmptyList[Offset]]]
+      exposureTimeMode         <- arbitrary[ExposureTimeMode]
+      defaultSaveSVCImages     <- arbitrary[Boolean]
+      explicitSaveSVCImages    <- arbitrary[Option[Boolean]]
+      defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
+      explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
     } yield ObservingMode.Igrins2LongSlit(
       exposureTimeMode,
-      defaultOffsetMode,
-      explicitOffsetMode,
       defaultSaveSVCImages,
       explicitSaveSVCImages,
-      defaultOffsets,
-      explicitOffsets
+      defaultTelescopeConfigs,
+      explicitTelescopeConfigs
     )
   )
 
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
       (ExposureTimeMode,
-       SlitOffsetMode,
-       Option[SlitOffsetMode],
        Boolean,
        Option[Boolean],
-       NonEmptyList[Offset],
-       Option[NonEmptyList[Offset]]
+       SlitTelescopeConfigs,
+       Option[SlitTelescopeConfigs]
       )
     ]
       .contramap(o =>
         (
           o.exposureTimeMode,
-          o.defaultOffsetMode,
-          o.explicitOffsetMode,
           o.defaultSaveSVCImages,
           o.explicitSaveSVCImages,
-          o.defaultOffsets,
-          o.explicitOffsets
+          o.defaultTelescopeConfigs,
+          o.explicitTelescopeConfigs
         )
       )
 

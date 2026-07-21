@@ -3,32 +3,26 @@
 
 package explore.config
 
-import cats.data.NonEmptyList
 import cats.effect.IO
 import cats.syntax.all.*
-import clue.data.Input
 import clue.data.syntax.*
 import crystal.react.View
 import crystal.react.hooks.*
-import eu.timepit.refined.types.string.NonEmptyString
 import explore.common.Aligner
-import explore.components.*
 import explore.components.ui.ExploreStyles
-import explore.config.offsets.OffsetInput
+import explore.config.offsets.SlitTelescopeConfigsEditor
 import explore.model.AppContext
 import explore.model.Observation
-import explore.model.display.given
 import explore.model.enums.WavelengthUnits
 import explore.modes.SpectroscopyModesMatrix
-import explore.syntax.ui.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.*
-import lucuma.core.math.Offset
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.Program
+import lucuma.core.model.SlitTelescopeConfigs
+import lucuma.core.model.sequence.igrins2
 import lucuma.core.model.sequence.igrins2.CentralWavelength as Igrins2CentralWavelength
-import lucuma.core.model.sequence.igrins2.defaultSlitTelescopeConfigs
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.refined.*
@@ -36,15 +30,7 @@ import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
-import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
-import lucuma.ui.utils.toNelOfViews
-
-private def defaultOffsetsFor(mode: SlitOffsetMode): List[Offset] =
-  val preset = mode match
-    case SlitOffsetMode.NodAlongSlit => Igrins2SlitOffsetPreset.NodAlongSlit
-    case SlitOffsetMode.NodToSky     => Igrins2SlitOffsetPreset.NodToSky
-  defaultSlitTelescopeConfigs(preset).telescopeConfigs.toList.map(_.offset)
 
 final case class Igrins2LongslitConfigPanel(
   programId:       Program.Id,
@@ -61,61 +47,21 @@ final case class Igrins2LongslitConfigPanel(
 object Igrins2LongslitConfigPanel
     extends ReactFnComponent[Igrins2LongslitConfigPanel](props =>
       for {
-        ctx               <- useContext(AppContext.ctx)
-        modeData          <- useModeData(props.confMatrix, props.observingMode.get)
-        editState         <- useStateView(ConfigEditState.View)
-        reverting         <- useStateView(false)
-        offsets            = props.observingMode.get.explicitOffsets.getOrElse(
-                               NonEmptyList.fromListUnsafe(
-                                 defaultOffsetsFor(props.observingMode.get.offsetMode)
-                               )
-                             )
-        localOffsetsState <- useStateView(offsets)
-        _                 <- useEffectWithDeps(offsets)(localOffsetsState.set)
+        ctx       <- useContext(AppContext.ctx)
+        modeData  <- useModeData(props.confMatrix, props.observingMode.get)
+        editState <- useStateView(ConfigEditState.View)
       } yield
         import ctx.given
 
-        val disableEdit              =
-          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit || reverting.get
-        val showCustomization        = props.calibrationRole.isEmpty
-        val allowRevertCustomization = props.permissions.isFullEdit
+        val disableEdit =
+          editState.get =!= ConfigEditState.SimpleEdit && !props.permissions.isFullEdit
 
-        val defaultOffsetMode = props.observingMode.get.defaultOffsetMode
-
-        val explicitOffsetsView: View[Option[NonEmptyList[Offset]]] = props.observingMode
+        val explicitTelescopeConfigsView: View[Option[SlitTelescopeConfigs]] = props.observingMode
           .zoom(
-            ObservingMode.Igrins2LongSlit.explicitOffsets,
-            Igrins2LongSlitInput.explicitOffsets.modify
+            ObservingMode.Igrins2LongSlit.explicitTelescopeConfigs,
+            Igrins2LongSlitInput.explicitTelescopeConfigs.modify
           )
-          .view(_.map(_.toList.map(_.toInput)).orUnassign)
-
-        // We need to reset the offests when offset mode changes.
-        val offsetModeView: View[Option[SlitOffsetMode]] =
-          props.observingMode
-            .zoom(
-              ObservingMode.Igrins2LongSlit.explicitOffsetMode.get,
-              (f: Option[SlitOffsetMode] => Option[SlitOffsetMode]) =>
-                ObservingMode.Igrins2LongSlit.explicitOffsetMode
-                  .modify(f)
-                  .andThen(ObservingMode.Igrins2LongSlit.explicitOffsets.replace(none)),
-              (f: Input[SlitOffsetMode] => Input[SlitOffsetMode]) =>
-                Igrins2LongSlitInput.explicitOffsetMode
-                  .modify(f)
-                  .andThen(Igrins2LongSlitInput.explicitOffsets.replace(none.orUnassign))
-            )
-            .view(_.orUnassign)
-
-        val defaultOffsets: NonEmptyList[Offset] =
-          NonEmptyList.fromListUnsafe(defaultOffsetsFor(props.observingMode.get.offsetMode))
-
-        val localOffsetsView: View[NonEmptyList[Offset]] =
-          localOffsetsState.withOnMod: nel =>
-            // reset offsets if the same as the default
-            val newOffsets =
-              if nel === defaultOffsets then none else nel.some
-            explicitOffsetsView.set(newOffsets)
-
-        val isNodAlongSlit = props.observingMode.get.offsetMode === SlitOffsetMode.NodAlongSlit
+          .view(_.map(_.toInput).orUnassign)
 
         val exposureTimeMode: View[ExposureTimeMode] = props.observingMode
           .zoom(
@@ -128,42 +74,6 @@ object Igrins2LongslitConfigPanel
           <.div(
             ExploreStyles.Igrins2UpperGrid
           )(
-            <.div(LucumaPrimeStyles.FormColumnCompact)(
-              CustomizableEnumSelectOptional(
-                id = "offset-mode".refined,
-                view = offsetModeView.withDefault(defaultOffsetMode),
-                defaultValue = defaultOffsetMode.some,
-                label = "Offset Mode".some,
-                disabled = disableEdit,
-                showCustomization = showCustomization,
-                allowRevertCustomization = allowRevertCustomization,
-                resetToOriginal = true,
-                helpId = Some("configuration/igrins2/offset-mode.md".refined)
-              ),
-              React.Fragment(
-                <.span(
-                  "Spatial Offsets",
-                  HelpIcon("configuration/igrins2/spatial-offsets.md".refined),
-                  CustomizedGroupAddon(
-                    "original",
-                    explicitOffsetsView.set(none),
-                    allowRevertCustomization
-                  ).when(explicitOffsetsView.get.isDefined)
-                ),
-                React.Fragment(
-                  localOffsetsView.toNelOfViews.toList.zipWithIndex
-                    .map: (offsetView, idx) =>
-                      OffsetInput(
-                        id = NonEmptyString.unsafeFrom(s"spatial-offsets-$idx"), // can't be empty
-                        offset = offsetView,
-                        readonly = disableEdit,
-                        clazz = LucumaPrimeStyles.FormField,
-                        pEnabled = !isNodAlongSlit
-                      )
-                    .toVdomArray
-                )
-              )
-            ),
             <.div(LucumaPrimeStyles.FormColumnCompact)(
               ExposureTimeModeEditor(
                 instrument = props.observingMode.get.instrument,
@@ -182,6 +92,16 @@ object Igrins2LongslitConfigPanel
                 modeData = modeData,
                 centralWavelength = Igrins2CentralWavelength,
                 units = props.units
+              )
+            ),
+            <.div(LucumaPrimeStyles.FormColumnCompact, ExploreStyles.SlitTelescopeConfigEditor)(
+              SlitTelescopeConfigsEditor(
+                explicitValue = explicitTelescopeConfigsView,
+                defaultValue = props.observingMode.get.defaultTelescopeConfigs,
+                defaultForPreset = igrins2.defaultSlitTelescopeConfigs,
+                helpId = "configuration/igrins2/spatial-offsets.md".refined,
+                presetsReadonly = !props.permissions.isFullEdit,
+                editingReadonly = disableEdit
               )
             )
           ),

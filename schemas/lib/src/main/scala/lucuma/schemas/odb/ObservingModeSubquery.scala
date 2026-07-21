@@ -157,12 +157,10 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
           }
           igrins2LongSlit {
             exposureTimeMode $ExposureTimeModeSubquery
-            defaultOffsetMode
-            explicitOffsetMode
             defaultSaveSVCImages
             explicitSaveSVCImages
-            defaultOffsets $OffsetSubquery
-            explicitOffsets $OffsetSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
           }
           gnirsImaging {
             initialFilters {
@@ -408,12 +406,10 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
           }
           igrins2LongSlit @include(if: $$includeIgrins2LongSlit) {
             exposureTimeMode $ExposureTimeModeSubquery
-            defaultOffsetMode
-            explicitOffsetMode
             defaultSaveSVCImages
             explicitSaveSVCImages
-            defaultOffsets $OffsetSubquery
-            explicitOffsets $OffsetSubquery
+            defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
+            explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
           }
           gnirsImaging @include(if: $$includeGnirsImaging) {
             initialFilters {
