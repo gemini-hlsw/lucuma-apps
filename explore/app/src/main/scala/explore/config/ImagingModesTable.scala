@@ -97,17 +97,19 @@ object ImagingModesTable extends ModesTableCommon:
   extension (filter: ItcInstrumentConfig#Filter)
     private def wavelength: Option[Wavelength] =
       filter match
-        case g: GmosNorthFilter => g.wavelength.some
-        case g: GmosSouthFilter => g.wavelength.some
-        case g: GnirsFilter     => g.optimalWavelength
-        case _                  => None
+        case g: GmosNorthFilter  => g.wavelength.some
+        case g: GmosSouthFilter  => g.wavelength.some
+        case g: GnirsFilter      => g.optimalWavelength
+        case f: Flamingos2Filter => f.wavelength.some
+        case _                   => None
 
     private def filterTypeStr: String =
       filter match
-        case g: GmosNorthFilter => g.filterType.shortName
-        case g: GmosSouthFilter => g.filterType.shortName
-        case g: GnirsFilter     => g.filterType.shortName
-        case _                  => "-"
+        case g: GmosNorthFilter  => g.filterType.shortName
+        case g: GmosSouthFilter  => g.filterType.shortName
+        case g: GnirsFilter      => g.filterType.shortName
+        case f: Flamingos2Filter => f.filterType.shortName
+        case _                   => "-"
 
     private def wavelengthRangeAndDelta
       : (Option[BoundedInterval[Wavelength]], Option[WavelengthDelta]) =
@@ -118,9 +120,10 @@ object ImagingModesTable extends ModesTableCommon:
         (clipped.some, clipped.toWavelengthDelta)
 
       filter match
-        case g: GmosNorthFilter => forGmos(g.width)
-        case g: GmosSouthFilter => forGmos(g.width)
-        case _                  => (None, None)
+        case g: GmosNorthFilter  => forGmos(g.width)
+        case g: GmosSouthFilter  => forGmos(g.width)
+        case f: Flamingos2Filter => (f.width.some, f.width.toWavelengthDelta)
+        case _                   => (None, None)
 
   private case class ImagingModeRowWithResult(
     entry:  ImagingModeRow,
