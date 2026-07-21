@@ -795,43 +795,38 @@ object ObservingMode:
       Focus[Flamingos2Imaging](_.variant)
 
   case class Igrins2LongSlit(
-    exposureTimeMode:      ExposureTimeMode,
-    defaultOffsetMode:     SlitOffsetMode,
-    explicitOffsetMode:    Option[SlitOffsetMode],
-    defaultSaveSVCImages:  Boolean,
-    explicitSaveSVCImages: Option[Boolean],
-    defaultOffsets:        NonEmptyList[Offset],
-    explicitOffsets:       Option[NonEmptyList[Offset]]
+    exposureTimeMode:         ExposureTimeMode,
+    defaultSaveSVCImages:     Boolean,
+    explicitSaveSVCImages:    Option[Boolean],
+    defaultTelescopeConfigs:  SlitTelescopeConfigs,
+    explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
   ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
-    val offsetMode: SlitOffsetMode    = explicitOffsetMode.getOrElse(defaultOffsetMode)
-    val saveSVCImages: Boolean        = explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
-    val offsets: NonEmptyList[Offset] = explicitOffsets.getOrElse(defaultOffsets)
+    val saveSVCImages: Boolean =
+      explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
+
+    val telescopeConfigs: SlitTelescopeConfigs =
+      explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
-      explicitOffsetMode.exists(_ =!= defaultOffsetMode) ||
-        explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages) ||
-        explicitOffsets.exists(_ =!= defaultOffsets)
+      explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages) ||
+        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitOffsetMode = None, explicitSaveSVCImages = None, explicitOffsets = None)
+      this.copy(explicitSaveSVCImages = None, explicitTelescopeConfigs = None)
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
 
-    val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]            =
+    val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]                     =
       Focus[Igrins2LongSlit](_.exposureTimeMode)
-    val defaultOffsetMode: Lens[Igrins2LongSlit, SlitOffsetMode]             =
-      Focus[Igrins2LongSlit](_.defaultOffsetMode)
-    val explicitOffsetMode: Lens[Igrins2LongSlit, Option[SlitOffsetMode]]    =
-      Focus[Igrins2LongSlit](_.explicitOffsetMode)
-    val defaultSaveSVCImages: Lens[Igrins2LongSlit, Boolean]                 =
+    val defaultSaveSVCImages: Lens[Igrins2LongSlit, Boolean]                          =
       Focus[Igrins2LongSlit](_.defaultSaveSVCImages)
-    val explicitSaveSVCImages: Lens[Igrins2LongSlit, Option[Boolean]]        =
+    val explicitSaveSVCImages: Lens[Igrins2LongSlit, Option[Boolean]]                 =
       Focus[Igrins2LongSlit](_.explicitSaveSVCImages)
-    val defaultOffsets: Lens[Igrins2LongSlit, NonEmptyList[Offset]]          =
-      Focus[Igrins2LongSlit](_.defaultOffsets)
-    val explicitOffsets: Lens[Igrins2LongSlit, Option[NonEmptyList[Offset]]] =
-      Focus[Igrins2LongSlit](_.explicitOffsets)
+    val defaultTelescopeConfigs: Lens[Igrins2LongSlit, SlitTelescopeConfigs]          =
+      Focus[Igrins2LongSlit](_.defaultTelescopeConfigs)
+    val explicitTelescopeConfigs: Lens[Igrins2LongSlit, Option[SlitTelescopeConfigs]] =
+      Focus[Igrins2LongSlit](_.explicitTelescopeConfigs)
 
   case class GnirsImaging(
     initialFilters:    NonEmptyList[GnirsImaging.ImagingFilter],

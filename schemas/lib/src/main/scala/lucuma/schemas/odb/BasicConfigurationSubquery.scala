@@ -46,7 +46,7 @@ object BasicConfigurationSubquery extends GraphQLSubquery.Typed[ObservationDB, B
             }
           }
           igrins2LongSlit {
-            offsetMode
+            defaultSaveSVCImages
           }
           gnirsImaging {
             filters {

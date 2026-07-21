@@ -188,10 +188,6 @@ trait DisplayImplicits:
 
   given Display[Flamingos2Decker] = Display.by(_.shortName, _.longName)
 
-  given Display[SlitOffsetMode] = Display.byShortName:
-    case SlitOffsetMode.NodAlongSlit => "Nod Along Slit"
-    case SlitOffsetMode.NodToSky     => "Nod to Sky"
-
   given Display[MultipleFiltersMode] = Display.byShortName:
     case MultipleFiltersMode.Grouped     => "Grouped"
     case MultipleFiltersMode.Interleaved => "Interleaved"
