@@ -31,6 +31,7 @@ case class ImagingModeRow(
     instrumentConfig match
       case ItcInstrumentConfig.GmosNorthImaging(filter, _) => filter.filterType.some
       case ItcInstrumentConfig.GmosSouthImaging(filter, _) => filter.filterType.some
+      case ItcInstrumentConfig.GnirsImaging(filter, _, _)  => filter.filterType.some
       case _                                               => none
 
 object ImagingModeRow {

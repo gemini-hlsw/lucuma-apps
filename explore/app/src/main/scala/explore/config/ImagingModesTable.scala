@@ -106,6 +106,7 @@ object ImagingModesTable extends ModesTableCommon:
       filter match
         case g: GmosNorthFilter => g.filterType.shortName
         case g: GmosSouthFilter => g.filterType.shortName
+        case g: GnirsFilter     => g.filterType.shortName
         case _                  => "-"
 
     private def wavelengthRangeAndDelta
