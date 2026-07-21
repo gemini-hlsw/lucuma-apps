@@ -168,12 +168,15 @@ case class SpectroscopyModeRow(
           case Instrument.Gnirs                            =>
             instrumentConfig match
               case i: ItcInstrumentConfig.GnirsSpectroscopy =>
-                // GNIRS coverage spans essentially the full band, so the clipped
+                // GNIRS XD coverage spans essentially the full band, so the clipped
                 // interval center is a near-constant value regardless of the requested
                 // wavelength. Use the user's requested wavelength directly instead.
+                val wavelength2Use =
+                  if i.filter === GnirsFilter.CrossDispersed then CentralWavelength(wavelength)
+                  else cw
                 i.copy(modeOverrides =
                   InstrumentOverrides
-                    .GnirsSpectroscopy(CentralWavelength(wavelength), coadds = 1.refined)
+                    .GnirsSpectroscopy(wavelength2Use, coadds = 1.refined)
                     .some
                 ).some
               case i                                        =>
