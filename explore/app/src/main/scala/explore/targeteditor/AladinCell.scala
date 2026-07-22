@@ -534,9 +534,7 @@ object AladinCell extends ModelOptics with AladinCommon:
             assignSkyOptimistic
           )
 
-        // While the Base Position is armed, any click in the field sets it. This is a separate
-        // channel from the bounded InteractiveRegion list (sky), which is empty when base is armed,
-        // and uses no optimistic layer: the undoable view updates immediately.
+        // While the Base Position is armed, any click in the field sets it.
         val clickAnywhere: Option[Coordinates => IO[Unit]] =
           props.assignSky.flatMap: assign =>
             Option.when(props.addSkySlot.contains(SlotId.Base)): (c: Coordinates) =>
@@ -601,8 +599,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       val renderAddPositionOverlay: VdomNode =
-        // Banner for the shared "click to place" mode. The Base Position has no shaded region:
-        // any point in the field is valid.
+        // Banner for the shared "click to place" mode.
         props.addSkySlot match
           case Some(SlotId.Base)                    =>
             <.div(ExploreStyles.AddPositionOverlay,

@@ -23,8 +23,7 @@ import lucuma.ui.primereact.given
 import lucuma.ui.syntax.*
 import lucuma.ui.syntax.all.given
 
-// Coordinate editor shared by every field position: the GHOST sky positions and the
-// explicit Base Position.
+// Coordinate editor position used for sky and base positions.
 case class PositionCoordinatesEditor(
   slot:        SlotId,
   coordinates: View[Coordinates],

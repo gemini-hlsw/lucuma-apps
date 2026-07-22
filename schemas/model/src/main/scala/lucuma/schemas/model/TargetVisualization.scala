@@ -9,9 +9,6 @@ import lucuma.core.math.Coordinates
 import lucuma.core.model.Target
 import lucuma.core.util.Enumerated
 
-// A named position in an observation's field. Mostly instrument apertures, plus the Base
-// Position, which is not an aperture: see ADR 0002. `Base` must never appear inside an
-// `InstrumentSlot` nor as a key in `ObservationTargetsCoordinatesAt.slots`.
 enum SlotId(val tag: String, val shortName: String) derives Enumerated:
   case GhostIfu1 extends SlotId("ghostIfu1", "IFU1")
   case GhostIfu2 extends SlotId("ghostIfu2", "IFU2")

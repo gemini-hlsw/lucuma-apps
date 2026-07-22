@@ -198,13 +198,9 @@ object ObservationTargetsEditorTile
                                      allAreExecuted,
                                      hasScienceTargets
                                    )
-          // Leave the mode if an armed SKY slot stops being assignable. The Base Position has broader
-          // gating and must not be cancelled by sky-only conditions such as lacking science targets
-          // (a blind-offset-only observation can still set a base).
+          // Leave the mode if the slot stops being assignable
           _                   <- useEffectWithDeps(skyState.canAssign): available =>
                                    addSkyMode.set(none).when_(!available && !addSkyMode.get.contains(SlotId.Base))
-          // Drive-by: if the selected position row is cleared while selected (sky or base), drop the
-          // selection back to the focused target so the form area is not left blank.
           _                   <- useEffectWithDeps(
                                    skySelected.get.flatMap: slot =>
                                      props.slotPositions.collectFirst { case (`slot`, v) => v.get }

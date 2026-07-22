@@ -58,7 +58,8 @@ trait OdbObservationApi[F[_]]:
     obsIds:      List[Observation.Id],
     skyPosition: Option[Coordinates]
   ): F[Unit]
-  // Overrides the Base Position on the given observations. None returns it to the computed centre.
+
+  // Sets an explicit Base Position on the given observations. None resets it.
   def updateExplicitBase(
     obsIds:       List[Observation.Id],
     explicitBase: Option[Coordinates]

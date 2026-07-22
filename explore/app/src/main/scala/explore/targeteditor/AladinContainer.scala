@@ -143,11 +143,6 @@ object AladinContainer extends AladinCommon {
   private given Reusability[InteractiveRegion] =
     Reusability.by(r => (r.slot, r.posAngle, r.exclusionOffsets))
 
-  // The base click-anywhere callback is a closure that changes identity each render; reuse on it
-  // unconditionally so the click stream rebuilds only when base mode arms/disarms (None <-> Some),
-  // mirroring how InteractiveRegion reuse ignores its onClick.
-  private given Reusability[Coordinates => IO[Unit]] = Reusability.always
-
   private def speedCss(gs: GuideSpeed): Css =
     gs match
       case GuideSpeed.Fast   => ExploreStyles.GuideSpeedFast
@@ -425,15 +420,15 @@ object AladinContainer extends AladinCommon {
                                            .evalMap(slot => hoveredSlot.set(slot).to[IO])
                                        )
         // Dispatch a click to the interactive region that contains it (e.g. assign a sky position),
-        // or, for the Base Position, to the click-anywhere channel. The two are mutually exclusive:
-        // regions are only built while sky mode is armed, clickAnywhere only while base mode is armed.
+        // or, for the Base Position, to the click-anywhere channel.
         _                       <- useEffectStreamResourceWithDeps(
                                      (props.obsTimeCoords.baseOrBlindCoords,
                                       props.interactiveRegions,
-                                      props.clickAnywhere,
+                                      props.clickAnywhere.isDefined,
                                       clickSignal.value.value.toOption.isDefined
                                      )
-                                   ): (baseCoords, regions, clickAnywhere, _) =>
+                                   ): (baseCoords, regions, _, _) =>
+                                     val clickAnywhere = props.clickAnywhere
                                      (baseCoords, clickSignal.value.value.toOption).tupled
                                        .fold(
                                          Resource.pure(Stream.empty.covary[IO])
@@ -448,7 +443,7 @@ object AladinContainer extends AladinCommon {
                                                    .collectFirst:
                                                      case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
                                                        onClick(c)
-                                                   .orElse(clickAnywhere.filter(_ => c =!= base).map(_(c)))
+                                                   .orElse(clickAnywhere.map(_(c)))
                                                    .map: act =>
                                                      submitting
                                                        .getAndSet(true)

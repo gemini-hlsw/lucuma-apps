@@ -14,7 +14,6 @@ import lucuma.core.model.Target
 import lucuma.schemas.model.SlotId
 
 // Rows for the targets table that supports showing both targets and field positions
-// (sky positions and the explicit base).
 enum AsterismRow derives Eq:
   case TargetRow(value: MotionCorrectedTarget)
   case PositionRow(slot: SlotId, coords: Option[ErrorMsgOr[RegionOrCoordinatesAt]])

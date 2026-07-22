@@ -61,8 +61,6 @@ case class AddSkyInfo(
   // Key summarizing the fields that affect menu content
   def menuKey: (Option[SlotId], Boolean, Boolean) = (slot, mode.get.isDefined, enabled)
 
-// The Base Position shares the "click to place" mode but has no per-instrument slot and is gated
-// only at the SplitButton level (readonly / executed / ToO), so it needs no `enabled` flag.
 case class AddBaseInfo(
   mode: View[Option[SlotId]]
 ):

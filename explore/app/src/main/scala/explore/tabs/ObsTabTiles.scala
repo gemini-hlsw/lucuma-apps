@@ -498,8 +498,7 @@ object ObsTabTiles:
                   .withOnMod: coords =>
                     ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
 
-          // The explicit Base Position override. Undoable, like the sky position; the Base Position
-          // always exists, so this view is over its Option[Coordinates] override (None = computed centre).
+          // The explicit Base Position override. Undoable, like the sky position
           val baseView: View[Option[Coordinates]] =
             props.observation
               .zoom(Observation.explicitBase)
