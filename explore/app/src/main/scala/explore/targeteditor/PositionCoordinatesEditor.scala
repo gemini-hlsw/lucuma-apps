@@ -5,7 +5,6 @@ package explore.targeteditor
 
 import crystal.react.*
 import eu.timepit.refined.types.string.NonEmptyString
-import explore.Icons
 import explore.components.HelpIcon
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.React
@@ -16,7 +15,6 @@ import lucuma.core.math.RightAscension
 import lucuma.core.math.validation.MathValidators
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
-import lucuma.react.primereact.Button
 import lucuma.refined.*
 import lucuma.schemas.model.SlotId
 import lucuma.ui.input.ChangeAuditor
@@ -26,13 +24,11 @@ import lucuma.ui.syntax.*
 import lucuma.ui.syntax.all.given
 
 // Coordinate editor shared by every field position: the GHOST sky positions and the
-// explicit Base Position. `onReset` is offered only where the position has a computed
-// value to fall back to, i.e. the base.
+// explicit Base Position.
 case class PositionCoordinatesEditor(
   slot:        SlotId,
   coordinates: View[Coordinates],
-  readonly:    Boolean,
-  onReset:     Option[Callback] = None
+  readonly:    Boolean
 ) extends ReactFnProps[PositionCoordinatesEditor](PositionCoordinatesEditor)
 
 object PositionCoordinatesEditor
@@ -64,14 +60,6 @@ object PositionCoordinatesEditor
           changeAuditor = ChangeAuditor.accept,
           validateOnPaste = false,
           disabled = props.readonly
-        ),
-        props.onReset
-          .filterNot(_ => props.readonly)
-          .map: reset =>
-            Button(
-              label = "Reset to Centre of Targets",
-              icon = Icons.Bullseye,
-              onClick = reset
-            ).tiny.compact
+        )
       )
     )
