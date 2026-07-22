@@ -49,6 +49,15 @@ $brightness: var(--aladin-image-brightness);
       crosshair !important;
   }
 
+  .aladin-container-body.add-base-position-cursor canvas {
+    // A bullseye reticle with a "base" label: the Base Position is the telescope pointing, so any
+    // point in the field is valid. Distinct from the sky crosshair cursor.
+    cursor:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='70' height='20'><g stroke='black' stroke-width='3' stroke-opacity='0.6'><circle cx='10' cy='10' r='8' fill='none'/><circle cx='10' cy='10' r='4' fill='none'/></g><g stroke='white' stroke-width='1.5'><circle cx='10' cy='10' r='8' fill='none'/><circle cx='10' cy='10' r='4' fill='none'/></g><circle cx='10' cy='10' r='1.5' fill='black'/><text x='24' y='14' font-family='sans-serif' font-size='11' fill='white' stroke='black' stroke-width='0.4'>base</text></svg>")
+        10 10,
+      crosshair !important;
+  }
+
   .viz-guides {
     display: none;
   }

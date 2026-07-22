@@ -232,6 +232,7 @@ object ExploreStyles:
 
   val AddPositionCursor: Css        = Css("add-position-cursor")
   val AddPositionInvalidCursor: Css = Css("add-position-invalid-cursor")
+  val AddBasePositionCursor: Css    = Css("add-base-position-cursor")
 
   val SkyPositionPending: Css = Css("sky-position-pending")
   val AddPositionOverlay: Css  = Css("add-position-overlay")
