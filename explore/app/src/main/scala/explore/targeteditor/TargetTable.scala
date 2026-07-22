@@ -183,11 +183,8 @@ object TargetTable:
                                           text = true,
                                           clazz =
                                             ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                                          icon = if slot.isBase then Icons.ArrowRotateLeft
-                                          else Icons.Trash,
-                                          tooltip =
-                                            if slot.isBase then "Reset to centre of targets"
-                                            else s"Clear ${slot.positionLabel.toLowerCase}",
+                                          icon = Icons.Trash,
+                                          tooltip = s"Clear ${slot.positionLabel.toLowerCase}",
                                           onClickE = (e: ReactMouseEvent) =>
                                             e.preventDefaultCB >>
                                               e.stopPropagationCB >>
@@ -211,7 +208,10 @@ object TargetTable:
                               _ match
                                 case AsterismRow.TargetRow(mct)  => mct.target.name.value
                                 case AsterismRow.PositionRow(slot, _) => slot.positionLabel,
-                              (r: AsterismRow) => r.location
+                              (r: AsterismRow) => r.location,
+                              _ match
+                                case AsterismRow.PositionRow(slot, _) => slot.some
+                                case _                                => none
                             )
                             .AllColumns
         vizTime    <- useEffectKeepResultWithDeps(props.vizTime): vizTime =>

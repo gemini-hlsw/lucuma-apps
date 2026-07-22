@@ -36,6 +36,7 @@ import lucuma.core.util.Display
 import lucuma.react.syntax.*
 import lucuma.react.table.*
 import lucuma.schemas.model.CoordinatesAt
+import lucuma.schemas.model.SlotId
 import lucuma.schemas.model.TargetWithMetadata
 import lucuma.ui.react.given
 
@@ -264,7 +265,8 @@ object TargetColumns:
       getTargetFn:      D => Option[Target],
       getDispositionFn: D => Option[TargetDisposition],
       getNameFn:        D => String,
-      getLocation:      D => Option[ErrorMsgOr[RegionOrCoordinatesAt]]
+      getLocation:      D => Option[ErrorMsgOr[RegionOrCoordinatesAt]],
+      getSlotFn:        D => Option[SlotId]
     ) extends Common(colDef)
         with CommonRaDec(colDef, getLocation)
         with CommonBand(colDef, getTargetFn)
@@ -275,12 +277,16 @@ object TargetColumns:
       def getName(d:        D): String                    = getNameFn(d)
 
       override def getTypeLabel(d: D): String =
-        if getTargetFn(d).isEmpty then "Sky"
-        else super.getTypeLabel(d)
+        getTargetFn(d) match
+          case Some(_) => super.getTypeLabel(d)
+          case None    => if getSlotFn(d).contains(SlotId.Base) then "Base" else "Sky"
 
       def icon(d: D): VdomNode =
         getTargetFn(d) match
-          case None                                                                   => Icons.LocationDot.fixedWidthWithTooltip("Sky position")
+          case None                                                                   =>
+            if getSlotFn(d).contains(SlotId.Base)
+            then Icons.Bullseye.fixedWidthWithTooltip("Base position")
+            else Icons.LocationDot.fixedWidthWithTooltip("Sky position")
           case Some(t) if getDispositionFn(d).contains(TargetDisposition.BlindOffset) =>
             Icons.LocationDot.fixedWidthWithTooltip("Blind Offset")
           case Some(t)                                                                => t.iconWithTooltip
