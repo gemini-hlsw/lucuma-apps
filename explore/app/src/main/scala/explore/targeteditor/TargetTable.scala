@@ -155,7 +155,7 @@ object TargetTable:
                               "",
                               cell =>
                                 cell.row.original match
-                                  case AsterismRow.TargetRow(mct)  =>
+                                  case AsterismRow.TargetRow(mct)       =>
                                     Button(
                                       text = true,
                                       clazz =
@@ -206,7 +206,7 @@ object TargetTable:
                                 case AsterismRow.TargetRow(mct) => mct.disposition.some
                                 case _                          => none,
                               _ match
-                                case AsterismRow.TargetRow(mct)  => mct.target.name.value
+                                case AsterismRow.TargetRow(mct)       => mct.target.name.value
                                 case AsterismRow.PositionRow(slot, _) => slot.positionLabel,
                               (r: AsterismRow) => r.location,
                               _ match

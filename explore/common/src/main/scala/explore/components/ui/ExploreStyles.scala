@@ -235,7 +235,7 @@ object ExploreStyles:
   val AddBasePositionCursor: Css    = Css("add-base-position-cursor")
 
   val SkyPositionPending: Css = Css("sky-position-pending")
-  val AddPositionOverlay: Css  = Css("add-position-overlay")
+  val AddPositionOverlay: Css = Css("add-position-overlay")
 
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")

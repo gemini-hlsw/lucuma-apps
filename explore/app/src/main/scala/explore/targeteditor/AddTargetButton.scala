@@ -273,25 +273,29 @@ object AddTargetButton
         // Sky (GHOST) and the Base Position share one mutually-exclusive "click to place" mode:
         // at most one slot is armed, and while armed the menu offers only the matching cancel.
         val pickPositionActions: List[Action] =
-          addSkyInfo.map(_.mode).orElse(addBaseInfo.map(_.mode)).toList.flatMap: mode =>
-            mode.get match
-              case Some(SlotId.Base) =>
-                List(Action("Cancel Setting Base Position", Icons.Bullseye, mode.set(none)))
-              case Some(_) =>
-                List(Action("Cancel Adding Sky Position", Icons.Bullseye, mode.set(none)))
-              case None =>
-                val skyAdd: List[Action] =
-                  addSkyInfo.toList.flatMap: info =>
-                    info.slot.toList.map: s =>
-                      Action("Add Sky Position",
-                             Icons.Bullseye,
-                             info.mode.set(s.some),
-                             disabled = !info.enabled
-                      )
-                val baseAdd: List[Action] =
-                  addBaseInfo.toList.map: info =>
-                    Action("Set Base Position", Icons.Bullseye, info.mode.set(SlotId.Base.some))
-                skyAdd ++ baseAdd
+          addSkyInfo
+            .map(_.mode)
+            .orElse(addBaseInfo.map(_.mode))
+            .toList
+            .flatMap: mode =>
+              mode.get match
+                case Some(SlotId.Base) =>
+                  List(Action("Cancel Setting Base Position", Icons.Bullseye, mode.set(none)))
+                case Some(_)           =>
+                  List(Action("Cancel Adding Sky Position", Icons.Bullseye, mode.set(none)))
+                case None              =>
+                  val skyAdd: List[Action]  =
+                    addSkyInfo.toList.flatMap: info =>
+                      info.slot.toList.map: s =>
+                        Action("Add Sky Position",
+                               Icons.Bullseye,
+                               info.mode.set(s.some),
+                               disabled = !info.enabled
+                        )
+                  val baseAdd: List[Action] =
+                    addBaseInfo.toList.map: info =>
+                      Action("Set Base Position", Icons.Bullseye, info.mode.set(SlotId.Base.some))
+                  skyAdd ++ baseAdd
 
         // The search popup-launcher action.
         val targetSearchAction: Action =

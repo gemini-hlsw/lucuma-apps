@@ -87,7 +87,7 @@ final case class ObservationTargetsEditorTile(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
-  slotPositions:    List[(SlotId, View[Option[Coordinates]])] = Nil,
+  slotPositions:       List[(SlotId, View[Option[Coordinates]])] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None
@@ -237,14 +237,14 @@ object ObservationTargetsEditorTile
                     props.focusedTargetId.map(AsterismSelection.Target.apply)
                   )
                 mod(current) match
-                  case Some(AsterismSelection.Target(tid)) =>
+                  case Some(AsterismSelection.Target(tid))    =>
                     skySelected.set(None) >>
                       props.setTarget(tid.some, SetRouteVia.HistoryPush) >>
                       cb(current, Some(AsterismSelection.Target(tid)))
-                  case Some(AsterismSelection.Position(slot))   =>
+                  case Some(AsterismSelection.Position(slot)) =>
                     skySelected.set(Some(slot)) >>
                       cb(current, Some(AsterismSelection.Position(slot)))
-                  case None                                =>
+                  case None                                   =>
                     skySelected.set(None) >>
                       props.setTarget(None, SetRouteVia.HistoryPush) >>
                       cb(current, None)
