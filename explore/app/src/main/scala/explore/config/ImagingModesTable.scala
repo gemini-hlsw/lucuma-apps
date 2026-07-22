@@ -123,6 +123,7 @@ object ImagingModesTable extends ModesTableCommon:
         case g: GmosNorthFilter  => forGmos(g.width)
         case g: GmosSouthFilter  => forGmos(g.width)
         case f: Flamingos2Filter => (f.width.some, f.width.toWavelengthDelta)
+        case g: GnirsFilter      => (g.imagingWidth, g.imagingWidth.flatMap(_.toWavelengthDelta))
         case _                   => (None, None)
 
   private case class ImagingModeRowWithResult(
