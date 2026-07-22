@@ -141,7 +141,7 @@ case class SpectroscopyModeRow(
             // In case we have no particular overrides, set ccd with binning calculated
             // from the target
             instrumentConfig match
-              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, None) =>
+              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), _, _, None) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -152,7 +152,7 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _, None) =>
+              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), _, _, None) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -163,7 +163,7 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i                                                                       =>
+              case i                                                                             =>
                 i.some
           case Instrument.Gnirs                            =>
             instrumentConfig match
@@ -224,14 +224,14 @@ object SpectroscopyModeRow {
   private given Decoder[ItcInstrumentConfig.GmosNorthSpectroscopy] = c =>
     for {
       grating <- c.downField("grating").as[GmosNorthGrating]
-      fpu     <- c.downField("fpu").as[GmosNorthFpu]
+      fpu     <- c.downField("fpu").as[Option[GmosNorthFpu]]
       filter  <- c.downField("filter").as[Option[GmosNorthFilter]]
     } yield ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
 
   private given Decoder[ItcInstrumentConfig.GmosSouthSpectroscopy] = c =>
     for {
       grating <- c.downField("grating").as[GmosSouthGrating]
-      fpu     <- c.downField("fpu").as[GmosSouthFpu]
+      fpu     <- c.downField("fpu").as[Option[GmosSouthFpu]]
       filter  <- c.downField("filter").as[Option[GmosSouthFilter]]
     } yield ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, placeholderEtm, none)
 
@@ -359,7 +359,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                   filter = rFilter,
                   fpu = rFpu
                 ) =>
-              rGrating === grating && rFilter === filter && rFpu === fpu
+              rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
       case ObservingMode.GmosSouthLongSlit(grating = grating, filter = filter, fpu = fpu)      =>
         matrix.find: row =>
@@ -369,7 +369,7 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
                   filter = rFilter,
                   fpu = rFpu
                 ) =>
-              rGrating === grating && rFilter === filter && rFpu === fpu
+              rGrating === grating && rFilter === filter && rFpu === fpu.some
             case _ => false
       case ObservingMode.Flamingos2LongSlit(disperser = disperser, filter = filter, fpu = fpu) =>
         matrix.find: row =>
@@ -402,10 +402,12 @@ case class SpectroscopyModesMatrix(matrix: List[SpectroscopyModeRow]) derives Eq
     // TODO: Remove when NS and IFU are supported.
     def isGmosLongslit(r: SpectroscopyModeRow): Boolean =
       r.instrumentConfig match
+        // MOS rows have no builtin FPU (custom mask); keep them so they display,
+        // while still filtering out built-in NS/IFU masks for single-slit selection.
         case g: ItcInstrumentConfig.GmosNorthSpectroscopy =>
-          g.fpu.fpuType === GmosFpuType.LongSlit
+          g.fpu.fold(true)(_.fpuType === GmosFpuType.LongSlit)
         case g: ItcInstrumentConfig.GmosSouthSpectroscopy =>
-          g.fpu.fpuType === GmosFpuType.LongSlit
+          g.fpu.fold(true)(_.fpuType === GmosFpuType.LongSlit)
         case _                                            =>
           true
 

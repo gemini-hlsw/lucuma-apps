@@ -80,14 +80,14 @@ object ItcInstrumentConfig:
 
   case class GmosNorthSpectroscopy(
     grating:                    GmosNorthGrating,
-    fpu:                        GmosNorthFpu,
+    fpu:                        Option[GmosNorthFpu],
     filter:                     Option[GmosNorthFilter],
     exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosNorthGrating
     type Filter   = Option[GmosNorthFilter]
-    type FPU      = GmosNorthFpu
+    type FPU      = Option[GmosNorthFpu]
     type Override = InstrumentOverrides.GmosSpectroscopy
 
     val gratingDisplay: Display[Grating] = Display.byShortName(_.shortName)
@@ -105,14 +105,14 @@ object ItcInstrumentConfig:
 
   case class GmosSouthSpectroscopy(
     grating:                    GmosSouthGrating,
-    fpu:                        GmosSouthFpu,
+    fpu:                        Option[GmosSouthFpu],
     filter:                     Option[GmosSouthFilter],
     exposureTimeMode:           ExposureTimeMode,
     override val modeOverrides: Option[InstrumentOverrides.GmosSpectroscopy]
   ) extends ItcInstrumentConfig derives Eq {
     type Grating  = GmosSouthGrating
     type Filter   = Option[GmosSouthFilter]
-    type FPU      = GmosSouthFpu
+    type FPU      = Option[GmosSouthFpu]
     type Override = InstrumentOverrides.GmosSpectroscopy
     val gratingDisplay: Display[Grating] = Display.byShortName(_.shortName)
     val filterStr: String                = filter.fold("none")(_.shortName)
