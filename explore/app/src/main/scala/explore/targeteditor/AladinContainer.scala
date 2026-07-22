@@ -735,8 +735,8 @@ object AladinContainer extends AladinCommon {
 
         <.div.withRef(resize.ref)(
           ExploreStyles.AladinContainerBody |+|
-            ExploreStyles.AddSkyModeInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
-            ExploreStyles.AddSkyModeCursor.when_(hoveredSlot.get.isDefined || props.clickAnywhere.isDefined)
+            ExploreStyles.AddPositionInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
+            ExploreStyles.AddPositionCursor.when_(hoveredSlot.get.isDefined || props.clickAnywhere.isDefined)
         )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin

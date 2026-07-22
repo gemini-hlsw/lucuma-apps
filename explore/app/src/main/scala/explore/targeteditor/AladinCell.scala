@@ -600,16 +600,16 @@ object AladinCell extends ModelOptics with AladinCommon:
                 )
           else EmptyVdom
 
-      val renderAddSkyModeOverlay: VdomNode =
+      val renderAddPositionOverlay: VdomNode =
         // Banner for the shared "click to place" mode. The Base Position has no shaded region:
         // any point in the field is valid.
         props.addSkySlot match
           case Some(SlotId.Base) =>
-            <.div(ExploreStyles.AddSkyModeOverlay,
+            <.div(ExploreStyles.AddPositionOverlay,
                   "Click anywhere to set the Base Position (Esc to cancel)"
             )
           case Some(_) if props.assignSky.isDefined =>
-            <.div(ExploreStyles.AddSkyModeOverlay,
+            <.div(ExploreStyles.AddPositionOverlay,
                   "Click in the shaded area to set the sky position (Esc to cancel)"
             )
           case _ =>
@@ -647,7 +647,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
                                    renderAgsOverlay(opt),
-                                   renderAddSkyModeOverlay
+                                   renderAddPositionOverlay
                     )
                   )
                 ),

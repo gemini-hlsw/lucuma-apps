@@ -230,11 +230,11 @@ object ExploreStyles:
   val AladinFullScreen: Css       = Css("aladin-full-screen")
   val AladinRangeControl: Css     = Css("aladin-range-control")
 
-  val AddSkyModeCursor: Css        = Css("add-sky-mode-cursor")
-  val AddSkyModeInvalidCursor: Css = Css("add-sky-mode-invalid-cursor")
+  val AddPositionCursor: Css        = Css("add-position-cursor")
+  val AddPositionInvalidCursor: Css = Css("add-position-invalid-cursor")
 
   val SkyPositionPending: Css = Css("sky-position-pending")
-  val AddSkyModeOverlay: Css  = Css("add-sky-mode-overlay")
+  val AddPositionOverlay: Css  = Css("add-position-overlay")
 
   val VisualizationTooltip: Css       = Css("visualization-tooltip")
   val VisualizationTooltipTarget: Css = Css("visualization-tooltip-target")
