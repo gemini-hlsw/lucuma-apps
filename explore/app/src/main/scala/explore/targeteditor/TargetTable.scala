@@ -72,8 +72,8 @@ case class TargetTable(
   readOnly:         Boolean,
   blindOffset:      Option[View[BlindOffset]] = None,
   columnVisibility: View[ColumnVisibility],
-  skyPositions:     List[(SlotId, Coordinates)] = Nil,
-  clearSkyPosition: SlotId => Option[Callback] = _ => None
+  positions:        List[(SlotId, Coordinates)] = Nil,
+  clearPosition:    SlotId => Option[Callback] = _ => None
 ) extends ReactFnProps(TargetTable.component)
 
 object TargetTable:
@@ -83,7 +83,7 @@ object TargetTable:
     obsIds:           ObsIdSet,
     obsAndTargets:    UndoSetter[ObservationsAndTargets],
     onAsterismUpdate: OnAsterismUpdateParams => Callback,
-    clearSkyPosition: SlotId => Option[Callback]
+    clearPosition:    SlotId => Option[Callback]
   )
 
   private val ColDef = ColumnDef[AsterismRow].WithTableMeta[TableMeta]
@@ -175,16 +175,19 @@ object TargetTable:
                                             )
                                           )
                                     ).tiny.compact
-                                  case AsterismRow.SkyRow(slot, _) =>
+                                  case AsterismRow.PositionRow(slot, _) =>
                                     cell.table.options.meta
-                                      .flatMap(_.clearSkyPosition(slot)) match
+                                      .flatMap(_.clearPosition(slot)) match
                                       case Some(cb) =>
                                         Button(
                                           text = true,
                                           clazz =
                                             ExploreStyles.DeleteButton |+| ExploreStyles.ObsDeleteButton,
-                                          icon = Icons.Trash,
-                                          tooltip = "Clear sky position",
+                                          icon = if slot.isBase then Icons.ArrowRotateLeft
+                                          else Icons.Trash,
+                                          tooltip =
+                                            if slot.isBase then "Reset to centre of targets"
+                                            else s"Clear ${slot.positionLabel.toLowerCase}",
                                           onClickE = (e: ReactMouseEvent) =>
                                             e.preventDefaultCB >>
                                               e.stopPropagationCB >>
@@ -207,7 +210,7 @@ object TargetTable:
                                 case _                          => none,
                               _ match
                                 case AsterismRow.TargetRow(mct)  => mct.target.name.value
-                                case AsterismRow.SkyRow(slot, _) => s"${slot.shortName} Sky",
+                                case AsterismRow.PositionRow(slot, _) => slot.positionLabel,
                               (r: AsterismRow) => r.location
                             )
                             .AllColumns
@@ -215,13 +218,13 @@ object TargetTable:
                         IO(vizTime.getOrElse(Instant.now()))
         rowsPot    <-
           useEffectKeepResultWithDeps(
-            (vizTime.value.toOption, props.obsTargets, props.site, props.skyPositions)
+            (vizTime.value.toOption, props.obsTargets, props.site, props.positions)
           ): (vt, optObsTargets, site, skyPositions) =>
             import ctx.given
 
             val vizInstant                 = vt.getOrElse(Instant.now())
             val skyRows: List[AsterismRow] = skyPositions.map: (slot, coords) =>
-              AsterismRow.SkyRow(
+              AsterismRow.PositionRow(
                 slot,
                 CoordinatesAt(vizInstant, coords).asRight.asRight[String].some
               )
@@ -261,7 +264,7 @@ object TargetTable:
                             meta = TableMeta(props.obsIds,
                                              props.obsAndTargets,
                                              props.onAsterismUpdate,
-                                             props.clearSkyPosition
+                                             props.clearPosition
                             )
                           ),
                           TableStore(props.userId, TableId.AsterismTargets)

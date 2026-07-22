@@ -191,6 +191,21 @@ trait OdbObservationApiImpl[F[_]: Async](using StreamingClient[F, ObservationDB]
     updateObservations(obsIds, editInput)
   }
 
+  def updateExplicitBase(
+    obsIds:       List[Observation.Id],
+    explicitBase: Option[Coordinates]
+  ): F[Unit] = {
+    val editInput = ObservationPropertiesInput(targetEnvironment =
+      TargetEnvironmentInput(explicitBase =
+        explicitBase
+          .map(c => CoordinatesInput(ra = c.ra.toInput.assign, dec = c.dec.toInput.assign))
+          .orUnassign
+      ).assign
+    )
+
+    updateObservations(obsIds, editInput)
+  }
+
   def updateNotes(
     obsIds: List[Observation.Id],
     notes:  Option[NonEmptyString]

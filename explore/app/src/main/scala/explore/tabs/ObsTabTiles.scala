@@ -674,7 +674,7 @@ object ObsTabTiles:
               case Some(_: GhostIfuMapping.SkyPlusTarget) => SlotId.GhostIfu1
               case _                                      => SlotId.GhostIfu2
 
-          val slotSkyPositions = ghostSkyPositionView.map(skySlot -> _).toList
+          val slotPositions = ghostSkyPositionView.map(skySlot -> _).toList
 
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
@@ -702,7 +702,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
-              slotSkyPositions = slotSkyPositions,
+              slotPositions = slotPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some

@@ -407,6 +407,8 @@ object Observation:
   val blindOffsetType: Lens[Observation, BlindOffsetType]       =
     blindOffset.andThen(BlindOffset.blindOffsetType)
   val cassRotator: Lens[Observation, CassRotator]               = Focus[Observation](_.cassRotator)
+  // The user-supplied override of the Base Position. None means the computed base applies.
+  val explicitBase: Lens[Observation, Option[Coordinates]]      = Focus[Observation](_.explicitBase)
 
   val calculatedValues
     : Lens[Observation,
