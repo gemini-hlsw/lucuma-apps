@@ -29,10 +29,11 @@ case class ImagingModeRow(
   val enabled                        = SupportedInstruments.contains_(instrumentConfig.instrument)
   val filterType: Option[FilterType] =
     instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthImaging(filter, _) => filter.filterType.some
-      case ItcInstrumentConfig.GmosSouthImaging(filter, _) => filter.filterType.some
-      case ItcInstrumentConfig.GnirsImaging(filter, _, _)  => filter.filterType.some
-      case _                                               => none
+      case ItcInstrumentConfig.GmosNorthImaging(filter, _)  => filter.filterType.some
+      case ItcInstrumentConfig.GmosSouthImaging(filter, _)  => filter.filterType.some
+      case ItcInstrumentConfig.GnirsImaging(filter, _, _)   => filter.filterType.some
+      case ItcInstrumentConfig.Flamingos2Imaging(filter, _) => filter.filterType.some
+      case _                                                => none
 
 object ImagingModeRow {
 
