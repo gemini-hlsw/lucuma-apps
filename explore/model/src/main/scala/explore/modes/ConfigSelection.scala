@@ -94,16 +94,16 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
   def toBasicConfiguration(withFallbackWavelength: Boolean = false): Option[BasicConfiguration] =
     configs.headOption.flatMap(_.instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, _, None)
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosNorthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, Some(cw, _, _)) =>
         BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, _, None)
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)

@@ -118,36 +118,38 @@ trait syntax:
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
-            .map: (cw: Wavelength) =>
-              InstrumentMode
-                .GmosNorthSpectroscopy(
-                  etm,
-                  cw,
-                  grating,
-                  filter,
-                  GmosFpu.North(fpu.asRight),
-                  ccd,
-                  roi
-                )
-                .rightNec
+            .flatMap: (cw: Wavelength) =>
+              fpu.map: builtinFpu =>
+                InstrumentMode
+                  .GmosNorthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    GmosFpu.North(builtinFpu.asRight),
+                    ccd,
+                    roi
+                  )
+                  .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
           val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
           val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
           modeOverrides
             .map(_.centralWavelength.value)
-            .map: (cw: Wavelength) =>
-              InstrumentMode
-                .GmosSouthSpectroscopy(
-                  etm,
-                  cw,
-                  grating,
-                  filter,
-                  GmosFpu.South(fpu.asRight),
-                  ccd,
-                  roi
-                )
-                .rightNec
+            .flatMap: (cw: Wavelength) =>
+              fpu.map: builtinFpu =>
+                InstrumentMode
+                  .GmosSouthSpectroscopy(
+                    etm,
+                    cw,
+                    grating,
+                    filter,
+                    GmosFpu.South(builtinFpu.asRight),
+                    ccd,
+                    roi
+                  )
+                  .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm)         =>
           InstrumentMode

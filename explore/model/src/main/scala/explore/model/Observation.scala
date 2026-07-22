@@ -208,13 +208,13 @@ final case class Observation(
           modeOverride.foldMap: o =>
             List(
               ItcInstrumentConfig
-                .GmosNorthSpectroscopy(n.grating, n.fpu, n.filter, n.exposureTimeMode, o.some)
+                .GmosNorthSpectroscopy(n.grating, n.fpu.some, n.filter, n.exposureTimeMode, o.some)
             )
         case s: GmosSouthLongSlit                =>
           modeOverride.foldMap: o =>
             List(
               ItcInstrumentConfig
-                .GmosSouthSpectroscopy(s.grating, s.fpu, s.filter, s.exposureTimeMode, o.some)
+                .GmosSouthSpectroscopy(s.grating, s.fpu.some, s.filter, s.exposureTimeMode, o.some)
             )
         case n: GmosNorthImaging                 =>
           n.filters.toList

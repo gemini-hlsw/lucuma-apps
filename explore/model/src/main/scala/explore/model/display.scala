@@ -303,9 +303,9 @@ trait DisplayImplicits:
 
   given Display[ItcInstrumentConfig] = Display.byShortName:
     case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, _) =>
-      s"GMOS-N ${grating.shortName} ${fpu.shortName}"
+      s"GMOS-N ${grating.shortName} ${fpu.fold("Custom Mask")(_.shortName)}"
     case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _, _) =>
-      s"GMOS-S ${grating.shortName} ${fpu.shortName}"
+      s"GMOS-S ${grating.shortName} ${fpu.fold("Custom Mask")(_.shortName)}"
     case _                                                                =>
       s"Unsupported configuration"
 
