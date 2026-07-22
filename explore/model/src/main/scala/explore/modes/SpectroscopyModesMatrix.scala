@@ -163,7 +163,7 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i                                                                       =>
+              case i                                                                             =>
                 i.some
           case Instrument.Gnirs                            =>
             instrumentConfig match

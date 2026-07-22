@@ -94,35 +94,45 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
 
   def toBasicConfiguration(withFallbackWavelength: Boolean = false): Option[BasicConfiguration] =
     configs.headOption.flatMap(_.instrumentConfig match
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating,
+                                                     Some(fpu),
+                                                     filter,
+                                                     _,
+                                                     Some(cw, _, _)
+          ) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
       case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosNorthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, Some(cw, _, _)) =>
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating,
+                                                     Some(fpu),
+                                                     filter,
+                                                     _,
+                                                     Some(cw, _, _)
+          ) =>
         BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
       case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, None)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
           .some
-      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _)           =>
+      case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, _, _) =>
         BasicConfiguration.Flamingos2LongSlit(disperser, filter, fpu).some
-      case ItcInstrumentConfig.GmosNorthImaging(_, _)                                         =>
+      case ItcInstrumentConfig.GmosNorthImaging(_, _)                               =>
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosNorthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosNorthImaging.apply)
-      case ItcInstrumentConfig.GmosSouthImaging(_, _)                                         =>
+      case ItcInstrumentConfig.GmosSouthImaging(_, _)                               =>
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GmosSouthImaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.GmosSouthImaging.apply)
-      case ItcInstrumentConfig.Flamingos2Imaging(_, _)                                        =>
+      case ItcInstrumentConfig.Flamingos2Imaging(_, _)                              =>
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.Flamingos2Imaging(f, _), _) => f
         NonEmptyList.fromList(filters).map(BasicConfiguration.Flamingos2Imaging.apply)
-      case ItcInstrumentConfig.GnirsImaging(_, camera, _)                                     =>
+      case ItcInstrumentConfig.GnirsImaging(_, camera, _)                           =>
         // Only rows sharing the head's camera can be combined into one configuration.
         val filters = configs.collect:
           case InstrumentConfigAndItcResult(ItcInstrumentConfig.GnirsImaging(f, c, _), _)
@@ -158,7 +168,7 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                 camera,
                 CentralWavelength(filter.centralWavelength)
               )
-      case ItcInstrumentConfig.Igrins2Spectroscopy(_)                                         =>
+      case ItcInstrumentConfig.Igrins2Spectroscopy(_)                               =>
         BasicConfiguration.Igrins2LongSlit.some
       case ItcInstrumentConfig.GhostIfu(
             resolutionMode = res,
@@ -179,21 +189,21 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
             red = redDetector,
             blue = blueDetector
           )
-      case ItcInstrumentConfig.GenericSpectroscopy(i = Instrument.MaroonX)                    =>
+      case ItcInstrumentConfig.GenericSpectroscopy(i = Instrument.MaroonX)          =>
         ConfigSelection.residentVisitorConfiguration(VisitorObservingModeType.MaroonX)
-      case ItcInstrumentConfig.GenericImaging(Instrument.Alopeke, _, _, capability)           =>
+      case ItcInstrumentConfig.GenericImaging(Instrument.Alopeke, _, _, capability) =>
         ConfigSelection.residentVisitorConfiguration(
           capability match
             case Some(ImagingCapability.WideField) => VisitorObservingModeType.AlopekeWideField
             case _                                 => VisitorObservingModeType.AlopekeSpeckle
         )
-      case ItcInstrumentConfig.GenericImaging(Instrument.Zorro, _, _, capability)             =>
+      case ItcInstrumentConfig.GenericImaging(Instrument.Zorro, _, _, capability)   =>
         ConfigSelection.residentVisitorConfiguration(
           capability match
             case Some(ImagingCapability.WideField) => VisitorObservingModeType.ZorroWideField
             case _                                 => VisitorObservingModeType.ZorroSpeckle
         )
-      case _                                                                                  => none)
+      case _                                                                        => none)
 
 object ConfigSelection:
   val Empty: ConfigSelection = ConfigSelection(Nil)
