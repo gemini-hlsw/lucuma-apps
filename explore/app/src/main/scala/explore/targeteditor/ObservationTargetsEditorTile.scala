@@ -203,6 +203,13 @@ object ObservationTargetsEditorTile
           // (a blind-offset-only observation can still set a base).
           _                   <- useEffectWithDeps(skyState.canAssign): available =>
                                    addSkyMode.set(none).when_(!available && !addSkyMode.get.contains(SlotId.Base))
+          // Drive-by: if the selected position row is cleared while selected (sky or base), drop the
+          // selection back to the focused target so the form area is not left blank.
+          _                   <- useEffectWithDeps(
+                                   skySelected.get.flatMap: slot =>
+                                     props.slotPositions.collectFirst { case (`slot`, v) => v.get }
+                                 ): coords =>
+                                   skySelected.set(None).whenA(coords.exists(_.isEmpty))
         yield
           import ctx.given
 

@@ -93,7 +93,8 @@ case class AladinContainer(
   agsResults:             AgsCalculationResults,
   anglesToTest:           Option[NonEmptyList[Angle]],
   agsState:               Option[AgsState],
-  isStaffOrAdmin:         Boolean
+  isStaffOrAdmin:         Boolean,
+  baseExplicit:           Boolean = false
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -607,10 +608,10 @@ object AladinContainer extends AladinCommon {
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
-        // Only label the crosshair as the base position for an asterism; for a
-        // single target it coincides with the target itself.
+        // Label the crosshair as the base position for an asterism, or whenever the base is an
+        // explicit override (it may differ from a single target's own coordinates).
         val basePositionTitle: Option[String] =
-          Option.when(props.obsTargets.science.length > 1)("Base position")
+          Option.when(props.baseExplicit || props.obsTargets.science.length > 1)("Base position")
 
         val targetLabels: Map[Target.Id, String] =
           props.vizConf.foldMap(_.targetVisualization.labels)
