@@ -369,8 +369,11 @@ object ObservationTargetsEditorTile
                     view.get.map: _ =>
                       val skyCoordsView: View[Coordinates] =
                         view.zoom(getWithDefault(Coordinates.Zero))
+                      // The reset-to-centre control is offered only for the base position; clearing a
+                      // sky slot is done from its table row.
+                      val baseReset: Option[Callback] = clearSkyCallbacks(slot).filter(_ => slot.isBase)
                       <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
-                        PositionCoordinatesEditor(slot, skyCoordsView, editorReadonly)
+                        PositionCoordinatesEditor(slot, skyCoordsView, editorReadonly, onReset = baseReset)
                       )
             else
               (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
