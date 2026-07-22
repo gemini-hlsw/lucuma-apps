@@ -533,6 +533,14 @@ object AladinCell extends ModelOptics with AladinCommon:
             guideStar,
             assignSkyOptimistic
           )
+
+        // While the Base Position is armed, any click in the field sets it. This is a separate
+        // channel from the bounded InteractiveRegion list (sky), which is empty when base is armed,
+        // and uses no optimistic layer: the undoable view updates immediately.
+        val clickAnywhere: Option[Coordinates => IO[Unit]] =
+          props.assignSky.flatMap: assign =>
+            Option.when(props.addSkySlot.contains(SlotId.Base)): (c: Coordinates) =>
+              assign(SlotId.Base, c)
         AladinContainer(
           props.obsTargets,
           props.obsTime,
@@ -545,6 +553,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           coordinatesSetter,
           mouseSignal.value.value.toOption,
           interactiveRegions,
+          clickAnywhere,
           pendingSlots,
           fovSetter,
           offsetChangeInAladin.reuseAlways,
@@ -591,11 +600,19 @@ object AladinCell extends ModelOptics with AladinCommon:
           else EmptyVdom
 
       val renderAddSkyModeOverlay: VdomNode =
-        if (props.addSkySlot.isDefined && props.assignSky.isDefined)
-          <.div(ExploreStyles.AddSkyModeOverlay,
-                "Click in the shaded are to set the sky pos (Esc to cancel)"
-          )
-        else EmptyVdom
+        // Banner for the shared "click to place" mode. The Base Position has no shaded region:
+        // any point in the field is valid.
+        props.addSkySlot match
+          case Some(SlotId.Base) =>
+            <.div(ExploreStyles.AddSkyModeOverlay,
+                  "Click anywhere to set the Base Position (Esc to cancel)"
+            )
+          case Some(_) if props.assignSky.isDefined =>
+            <.div(ExploreStyles.AddSkyModeOverlay,
+                  "Click in the shaded area to set the sky position (Esc to cancel)"
+            )
+          case _ =>
+            EmptyVdom
 
       val renderBlindOffsetControl =
         (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>

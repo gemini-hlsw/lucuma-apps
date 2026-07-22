@@ -85,6 +85,7 @@ case class AladinContainer(
   updateMouseCoordinates: Coordinates => Callback,
   mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
   interactiveRegions:     List[InteractiveRegion],
+  clickAnywhere:          Option[Coordinates => IO[Unit]],
   pendingSlots:           Set[SlotId],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
@@ -140,6 +141,11 @@ object AladinContainer extends AladinCommon {
   // ShapeExpression has no Eq; key region reuse on (slot, posAngle, exclusionOffsets) like AgsAnalysis.Usable.
   private given Reusability[InteractiveRegion] =
     Reusability.by(r => (r.slot, r.posAngle, r.exclusionOffsets))
+
+  // The base click-anywhere callback is a closure that changes identity each render; reuse on it
+  // unconditionally so the click stream rebuilds only when base mode arms/disarms (None <-> Some),
+  // mirroring how InteractiveRegion reuse ignores its onClick.
+  private given Reusability[Coordinates => IO[Unit]] = Reusability.always
 
   private def speedCss(gs: GuideSpeed): Css =
     gs match
@@ -417,13 +423,16 @@ object AladinContainer extends AladinCommon {
                                            .changes
                                            .evalMap(slot => hoveredSlot.set(slot).to[IO])
                                        )
-        // When clicking inside an interactive region, run its onClick (e.g. assign a sky position).
+        // Dispatch a click to the interactive region that contains it (e.g. assign a sky position),
+        // or, for the Base Position, to the click-anywhere channel. The two are mutually exclusive:
+        // regions are only built while sky mode is armed, clickAnywhere only while base mode is armed.
         _                       <- useEffectStreamResourceWithDeps(
                                      (props.obsTimeCoords.baseOrBlindCoords,
                                       props.interactiveRegions,
+                                      props.clickAnywhere,
                                       clickSignal.value.value.toOption.isDefined
                                      )
-                                   ): (baseCoords, regions, _) =>
+                                   ): (baseCoords, regions, clickAnywhere, _) =>
                                      (baseCoords, clickSignal.value.value.toOption).tupled
                                        .fold(
                                          Resource.pure(Stream.empty.covary[IO])
@@ -438,6 +447,7 @@ object AladinContainer extends AladinCommon {
                                                    .collectFirst:
                                                      case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
                                                        onClick(c)
+                                                   .orElse(clickAnywhere.filter(_ => c =!= base).map(_(c)))
                                                    .map: act =>
                                                      submitting
                                                        .getAndSet(true)
@@ -725,7 +735,7 @@ object AladinContainer extends AladinCommon {
         <.div.withRef(resize.ref)(
           ExploreStyles.AladinContainerBody |+|
             ExploreStyles.AddSkyModeInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
-            ExploreStyles.AddSkyModeCursor.when_(hoveredSlot.get.isDefined)
+            ExploreStyles.AddSkyModeCursor.when_(hoveredSlot.get.isDefined || props.clickAnywhere.isDefined)
         )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin

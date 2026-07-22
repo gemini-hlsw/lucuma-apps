@@ -198,9 +198,11 @@ object ObservationTargetsEditorTile
                                      allAreExecuted,
                                      hasScienceTargets
                                    )
-          // Leave the mode if the slot stops being assignable
+          // Leave the mode if an armed SKY slot stops being assignable. The Base Position has broader
+          // gating and must not be cancelled by sky-only conditions such as lacking science targets
+          // (a blind-offset-only observation can still set a base).
           _                   <- useEffectWithDeps(skyState.canAssign): available =>
-                                   addSkyMode.set(none).unless_(available)
+                                   addSkyMode.set(none).when_(!available && !addSkyMode.get.contains(SlotId.Base))
         yield
           import ctx.given
 
@@ -319,7 +321,8 @@ object ObservationTargetsEditorTile
                       blindOffsetInfo = props.blindOffsetInfo,
                       addSkyInfo = Option.when(skyState.configForViz.isDefined)(
                         AddSkyInfo(skyState.availableSlot, addSkyMode, skyState.canAssign)
-                      )
+                      ),
+                      addBaseInfo = AddBaseInfo(addSkyMode).some
                     )
                   ),
                   obsTimeEditor,
