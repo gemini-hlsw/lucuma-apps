@@ -85,6 +85,7 @@ case class AladinContainer(
   updateMouseCoordinates: Coordinates => Callback,
   mouseCoords:            Option[SignallingRef[IO, Option[Coordinates]]],
   interactiveRegions:     List[InteractiveRegion],
+  clickAnywhere:          Option[Coordinates => IO[Unit]],
   pendingSlots:           Set[SlotId],
   updateFov:              Fov => Callback,
   updateViewOffset:       Offset => Callback,
@@ -92,7 +93,8 @@ case class AladinContainer(
   agsResults:             AgsCalculationResults,
   anglesToTest:           Option[NonEmptyList[Angle]],
   agsState:               Option[AgsState],
-  isStaffOrAdmin:         Boolean
+  isStaffOrAdmin:         Boolean,
+  baseExplicit:           Boolean = false
 ) extends ReactFnProps(AladinContainer.component):
   val siderealDiscretizedObsTime: SiderealDiscretizedObsTime =
     SiderealDiscretizedObsTime(obsTime, vizConf.flatMap(_.selectedPosAngleConstraint))
@@ -417,13 +419,16 @@ object AladinContainer extends AladinCommon {
                                            .changes
                                            .evalMap(slot => hoveredSlot.set(slot).to[IO])
                                        )
-        // When clicking inside an interactive region, run its onClick (e.g. assign a sky position).
+        // Dispatch a click to the interactive region that contains it (e.g. assign a sky position),
+        // or, for the Base Position, to the click-anywhere channel.
         _                       <- useEffectStreamResourceWithDeps(
                                      (props.obsTimeCoords.baseOrBlindCoords,
                                       props.interactiveRegions,
+                                      props.clickAnywhere.isDefined,
                                       clickSignal.value.value.toOption.isDefined
                                      )
-                                   ): (baseCoords, regions, _) =>
+                                   ): (baseCoords, regions, _, _) =>
+                                     val clickAnywhere = props.clickAnywhere
                                      (baseCoords, clickSignal.value.value.toOption).tupled
                                        .fold(
                                          Resource.pure(Stream.empty.covary[IO])
@@ -438,6 +443,7 @@ object AladinContainer extends AladinCommon {
                                                    .collectFirst:
                                                      case (s, onClick) if c =!= base && s.contains(base.diff(c).offset) =>
                                                        onClick(c)
+                                                   .orElse(clickAnywhere.map(_(c)))
                                                    .map: act =>
                                                      submitting
                                                        .getAndSet(true)
@@ -597,10 +603,10 @@ object AladinContainer extends AladinCommon {
 
         val isSelectable: Boolean = props.obsTargets.length > 1
 
-        // Only label the crosshair as the base position for an asterism; for a
-        // single target it coincides with the target itself.
+        // Label the crosshair as the base position for an asterism, or whenever the base is an
+        // explicit override (it may differ from a single target's own coordinates).
         val basePositionTitle: Option[String] =
-          Option.when(props.obsTargets.science.length > 1)("Base position")
+          Option.when(props.baseExplicit || props.obsTargets.science.length > 1)("Base position")
 
         val targetLabels: Map[Target.Id, String] =
           props.vizConf.foldMap(_.targetVisualization.labels)
@@ -724,8 +730,9 @@ object AladinContainer extends AladinCommon {
 
         <.div.withRef(resize.ref)(
           ExploreStyles.AladinContainerBody |+|
-            ExploreStyles.AddSkyModeInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
-            ExploreStyles.AddSkyModeCursor.when_(hoveredSlot.get.isDefined)
+            ExploreStyles.AddPositionInvalidCursor.when_(props.interactiveRegions.nonEmpty) |+|
+            ExploreStyles.AddPositionCursor.when_(hoveredSlot.get.isDefined) |+|
+            ExploreStyles.AddBasePositionCursor.when_(props.clickAnywhere.isDefined)
         )(
           // This is a bit tricky. Sometimes the height can be 0 or a very low number.
           // This happens during a second render. If we let the height to be zero, aladin

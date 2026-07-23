@@ -13,30 +13,30 @@ import japgolly.scalajs.react.Reusability
 import lucuma.core.model.Target
 import lucuma.schemas.model.SlotId
 
-// Rows for the targets table that supports showing both targets and sky positions.
+// Rows for the targets table that supports showing both targets and field positions
 enum AsterismRow derives Eq:
   case TargetRow(value: MotionCorrectedTarget)
-  case SkyRow(slot: SlotId, coords: Option[ErrorMsgOr[RegionOrCoordinatesAt]])
+  case PositionRow(slot: SlotId, coords: Option[ErrorMsgOr[RegionOrCoordinatesAt]])
 
-  // Stable id used by the table's getRowId usable for targets and sky pos
+  // Stable id used by the table's getRowId, usable for targets and positions
   def rowKey: String = this match
-    case TargetRow(mct)  => mct.id.toString
-    case SkyRow(slot, _) => s"sky-${slot.tag}"
+    case TargetRow(mct)       => mct.id.toString
+    case PositionRow(slot, _) => s"position-${slot.tag}"
 
   def location: Option[ErrorMsgOr[RegionOrCoordinatesAt]] = this match
-    case TargetRow(mct) => mct.regionOrCoords
-    case SkyRow(_, c)   => c
+    case TargetRow(mct)    => mct.regionOrCoords
+    case PositionRow(_, c) => c
 
   def toSelection: AsterismSelection = this match
-    case TargetRow(mct)  => AsterismSelection.Target(mct.id)
-    case SkyRow(slot, _) => AsterismSelection.Sky(slot)
+    case TargetRow(mct)       => AsterismSelection.Target(mct.id)
+    case PositionRow(slot, _) => AsterismSelection.Position(slot)
 
 object AsterismRow:
   given Reusability[AsterismRow] = Reusability.byEq
 
 enum AsterismSelection derives Eq:
   case Target(id: lucuma.core.model.Target.Id)
-  case Sky(slot: SlotId)
+  case Position(slot: SlotId)
 
 object AsterismSelection:
   given Reusability[AsterismSelection] = Reusability.byEq

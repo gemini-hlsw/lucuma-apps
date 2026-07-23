@@ -87,7 +87,7 @@ final case class ObservationTargetsEditorTile(
   readonly:            Boolean,
   allowEditingOngoing: Boolean,
   isStaffOrAdmin:      Boolean,
-  slotSkyPositions:    List[(SlotId, View[Option[Coordinates]])] = Nil,
+  slotPositions:       List[(SlotId, View[Option[Coordinates]])] = Nil,
   sequenceChanged:     Callback = Callback.empty,
   blindOffsetInfo:     Option[(Observation.Id, View[BlindOffset])] = None,
   backButton:          Option[VdomNode] = None
@@ -200,7 +200,12 @@ object ObservationTargetsEditorTile
                                    )
           // Leave the mode if the slot stops being assignable
           _                   <- useEffectWithDeps(skyState.canAssign): available =>
-                                   addSkyMode.set(none).unless_(available)
+                                   addSkyMode.set(none).when_(!available && !addSkyMode.get.contains(SlotId.Base))
+          _                   <- useEffectWithDeps(
+                                   skySelected.get.flatMap: slot =>
+                                     props.slotPositions.collectFirst { case (`slot`, v) => v.get }
+                                 ): coords =>
+                                   skySelected.set(None).whenA(coords.exists(_.isEmpty))
         yield
           import ctx.given
 
@@ -208,34 +213,34 @@ object ObservationTargetsEditorTile
           val obsTime: Instant = obsTimeOrNow.value
 
           val skyPositions: List[(SlotId, Coordinates)] =
-            props.slotSkyPositions.flatMap { case (slot, v) => v.get.map(slot -> _) }
+            props.slotPositions.flatMap { case (slot, v) => v.get.map(slot -> _) }
 
           val clearSkyCallbacks: SlotId => Option[Callback] = slot =>
-            props.slotSkyPositions.collectFirst { case (`slot`, v) => v.set(None) }
+            props.slotPositions.collectFirst { case (`slot`, v) => v.set(None) }
 
           // Sky selection: combines skySelected and props.focusedTargetId
           val selectedAsterismSelection: View[Option[AsterismSelection]] =
             View(
               skySelected.get
-                .map(AsterismSelection.Sky.apply)
+                .map(AsterismSelection.Position.apply)
                 .orElse(
                   props.focusedTargetId.map(AsterismSelection.Target.apply)
                 ),
               (mod, cb) =>
                 val current = skySelected.get
-                  .map(AsterismSelection.Sky.apply)
+                  .map(AsterismSelection.Position.apply)
                   .orElse(
                     props.focusedTargetId.map(AsterismSelection.Target.apply)
                   )
                 mod(current) match
-                  case Some(AsterismSelection.Target(tid)) =>
+                  case Some(AsterismSelection.Target(tid))    =>
                     skySelected.set(None) >>
                       props.setTarget(tid.some, SetRouteVia.HistoryPush) >>
                       cb(current, Some(AsterismSelection.Target(tid)))
-                  case Some(AsterismSelection.Sky(slot))   =>
+                  case Some(AsterismSelection.Position(slot)) =>
                     skySelected.set(Some(slot)) >>
-                      cb(current, Some(AsterismSelection.Sky(slot)))
-                  case None                                =>
+                      cb(current, Some(AsterismSelection.Position(slot)))
+                  case None                                   =>
                     skySelected.set(None) >>
                       props.setTarget(None, SetRouteVia.HistoryPush) >>
                       cb(current, None)
@@ -319,7 +324,8 @@ object ObservationTargetsEditorTile
                       blindOffsetInfo = props.blindOffsetInfo,
                       addSkyInfo = Option.when(skyState.configForViz.isDefined)(
                         AddSkyInfo(skyState.availableSlot, addSkyMode, skyState.canAssign)
-                      )
+                      ),
+                      addBaseInfo = AddBaseInfo(addSkyMode).some
                     )
                   ),
                   obsTimeEditor,
@@ -335,7 +341,7 @@ object ObservationTargetsEditorTile
           // Only active while the user explicitly entered "add sky" mode
           val assignSky: Option[(SlotId, Coordinates) => IO[Unit]] =
             Option.when(!editorReadonly && addSkyMode.get.isDefined): (slot, coords) =>
-              props.slotSkyPositions
+              props.slotPositions
                 .collectFirst:
                   case (`slot`, v) => v
                 .foldMap(_.set(coords.some).to[IO]) *>
@@ -343,7 +349,7 @@ object ObservationTargetsEditorTile
 
           val resetSky: Option[SlotId => IO[Unit]] =
             Option.unless(editorReadonly): slot =>
-              props.slotSkyPositions
+              props.slotPositions
                 .collectFirst { case (`slot`, v) => v }
                 .foldMap(_.set(None).to[IO])
 
@@ -362,7 +368,7 @@ object ObservationTargetsEditorTile
           val formContent: VdomNode =
             if skySelected.get.isDefined then
               skySelected.get.flatMap: slot =>
-                props.slotSkyPositions
+                props.slotPositions
                   .collectFirst:
                     case (`slot`, v) => v
                   .flatMap: view =>
@@ -370,7 +376,7 @@ object ObservationTargetsEditorTile
                       val skyCoordsView: View[Coordinates] =
                         view.zoom(getWithDefault(Coordinates.Zero))
                       <.div(LucumaPrimeStyles.FormColumnVeryCompact, ExploreStyles.TargetForm)(
-                        SkyPositionEditor(skyCoordsView, editorReadonly)
+                        PositionCoordinatesEditor(slot, skyCoordsView, editorReadonly)
                       )
             else
               (ObservationTargets.fromIdsAndTargets(targetIds, props.allTargets.get),
@@ -425,8 +431,8 @@ object ObservationTargetsEditorTile
                 editorReadonly,
                 props.blindOffsetInfo.map(_._2),
                 columnVisibility,
-                skyPositions = skyPositions,
-                clearSkyPosition = clearSkyCallbacks
+                positions = skyPositions,
+                clearPosition = clearSkyCallbacks
               ),
               // Shared-target ("this target is used in N observations") warning belongs with the
               // table, not the editor/aladin area below.

@@ -533,6 +533,12 @@ object AladinCell extends ModelOptics with AladinCommon:
             guideStar,
             assignSkyOptimistic
           )
+
+        // While the Base Position is armed, any click in the field sets it.
+        val clickAnywhere: Option[Coordinates => IO[Unit]] =
+          props.assignSky.flatMap: assign =>
+            Option.when(props.addSkySlot.contains(SlotId.Base)): (c: Coordinates) =>
+              assign(SlotId.Base, c)
         AladinContainer(
           props.obsTargets,
           props.obsTime,
@@ -545,6 +551,7 @@ object AladinCell extends ModelOptics with AladinCommon:
           coordinatesSetter,
           mouseSignal.value.value.toOption,
           interactiveRegions,
+          clickAnywhere,
           pendingSlots,
           fovSetter,
           offsetChangeInAladin.reuseAlways,
@@ -552,7 +559,8 @@ object AladinCell extends ModelOptics with AladinCommon:
           agsResults,
           props.anglesToTest,
           props.obsConf.flatMap(_.agsState).map(_.get),
-          props.isStaffOrAdmin
+          props.isStaffOrAdmin,
+          baseExplicit = props.obsConf.flatMap(_.explicitBase).isDefined
         )
 
       val renderToolbar: (AsterismVisualOptions) => VdomNode =
@@ -590,12 +598,19 @@ object AladinCell extends ModelOptics with AladinCommon:
                 )
           else EmptyVdom
 
-      val renderAddSkyModeOverlay: VdomNode =
-        if (props.addSkySlot.isDefined && props.assignSky.isDefined)
-          <.div(ExploreStyles.AddSkyModeOverlay,
-                "Click in the shaded are to set the sky pos (Esc to cancel)"
-          )
-        else EmptyVdom
+      val renderAddPositionOverlay: VdomNode =
+        // Banner for the shared "click to place" mode.
+        props.addSkySlot match
+          case Some(SlotId.Base)                    =>
+            <.div(ExploreStyles.AddPositionOverlay,
+                  "Click anywhere to set the Base Position (Esc to cancel)"
+            )
+          case Some(_) if props.assignSky.isDefined =>
+            <.div(ExploreStyles.AddPositionOverlay,
+                  "Click in the shaded area to set the sky position (Esc to cancel)"
+            )
+          case _                                    =>
+            EmptyVdom
 
       val renderBlindOffsetControl =
         (oBaseTracking.value, props.blindOffsetInfo).mapN: (bt, boInfo) =>
@@ -629,7 +644,7 @@ object AladinCell extends ModelOptics with AladinCommon:
                     React.Fragment(renderAladin(opt, tr, co),
                                    renderToolbar(opt),
                                    renderAgsOverlay(opt),
-                                   renderAddSkyModeOverlay
+                                   renderAddPositionOverlay
                     )
                   )
                 ),

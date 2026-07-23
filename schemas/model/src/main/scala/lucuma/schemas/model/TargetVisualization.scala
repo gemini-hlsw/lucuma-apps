@@ -12,6 +12,16 @@ import lucuma.core.util.Enumerated
 enum SlotId(val tag: String, val shortName: String) derives Enumerated:
   case GhostIfu1 extends SlotId("ghostIfu1", "IFU1")
   case GhostIfu2 extends SlotId("ghostIfu2", "IFU2")
+  case Base      extends SlotId("base", "Base")
+
+  def isBase: Boolean = this match
+    case Base => true
+    case _    => false
+
+  // How the position is named in the targets table and its coordinate editor.
+  def positionLabel: String = this match
+    case Base => "Base Position"
+    case _    => s"$shortName Sky"
 
 // A slot can be a science target or sky, identified by its slot id.
 enum InstrumentSlot derives Eq:

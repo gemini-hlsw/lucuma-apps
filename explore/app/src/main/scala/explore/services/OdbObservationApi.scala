@@ -59,6 +59,12 @@ trait OdbObservationApi[F[_]]:
     skyPosition: Option[Coordinates]
   ): F[Unit]
 
+  // Sets an explicit Base Position on the given observations. None resets it.
+  def updateExplicitBase(
+    obsIds:       List[Observation.Id],
+    explicitBase: Option[Coordinates]
+  ): F[Unit]
+
   def updateNotes(obsIds:                     List[Observation.Id], notes: Option[NonEmptyString]): F[Unit]
   def createObservation(programId:            Program.Id, parentId:        Option[Group.Id]): F[Observation]
   def createObservationWithTargets(programId: Program.Id, targetIds:       Set[Target.Id]): F[Observation]

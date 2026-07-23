@@ -79,7 +79,8 @@ object TargetSelectionTable:
                 _.target.some,
                 _.disposition.some,
                 _.target.name.value,
-                _.target.regionOrBaseCoords
+                _.target.regionOrBaseCoords,
+                _ => none
               )
               .AllColumns
       )

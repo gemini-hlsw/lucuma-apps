@@ -498,6 +498,14 @@ object ObsTabTiles:
                   .withOnMod: coords =>
                     ctx.odbApi.updateGhostIfu2SkyPosition(List(props.obsId), coords).runAsync
 
+          // The explicit Base Position override. Undoable, like the sky position
+          val baseView: View[Option[Coordinates]] =
+            props.observation
+              .zoom(Observation.explicitBase)
+              .undoableView(Iso.id[Option[Coordinates]].asLens)
+              .withOnMod: coords =>
+                ctx.odbApi.updateExplicitBase(List(props.obsId), coords).runAsync
+
           // Calculate the IFU mapping for ghost
           // TODO: Add support for explicit base
           val ghostIfuMapping: Option[GhostIfuMapping] =
@@ -674,7 +682,8 @@ object ObsTabTiles:
               case Some(_: GhostIfuMapping.SkyPlusTarget) => SlotId.GhostIfu1
               case _                                      => SlotId.GhostIfu2
 
-          val slotSkyPositions = ghostSkyPositionView.map(skySlot -> _).toList
+          val slotPositions =
+            ghostSkyPositionView.map(skySlot -> _).toList :+ (SlotId.Base -> baseView)
 
           val targetTile = // : Tile[?] =
             ObservationTargetsEditorTile(
@@ -702,7 +711,7 @@ object ObsTabTiles:
               props.obsIsReadonly,
               allowEditingOngoing = props.isStaffOrAdminUser,
               isStaffOrAdmin = props.isStaffOrAdminUser,
-              slotSkyPositions = slotSkyPositions,
+              slotPositions = slotPositions,
               // Any target changes invalidate the sequence
               sequenceChanged = sequenceChanged.set(pending),
               blindOffsetInfo = (props.obsId, blindOffsetView).some
