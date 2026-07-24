@@ -149,7 +149,9 @@ object TileController:
         // react-grid-layout keeps its own copy of the layout, synchronized against its children:
         // a tile that disappears from `tileDefs` is dropped from that copy, and if it comes back
         // rgl has no entry for it anymore, so it invents a collapsed 1x1 one (which then gets
-        // persisted). It only re-derives from the `layouts` prop when that prop actually changes,
+        // persisted).
+        //
+        // It only re-derives from the `layouts` prop when that prop actually changes,
         // so we restrict it to the rendered tiles: adding or removing a tile then changes the
         // prop and forces rgl to re-derive from `currentLayout`, which is authoritative.
         val renderedIds: Set[String] = props.tiles.map(_.tileProps.id.value).toSet

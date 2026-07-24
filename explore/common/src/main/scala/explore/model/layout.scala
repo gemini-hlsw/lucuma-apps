@@ -114,9 +114,7 @@ object layout {
 
   // Only the x, y, width and height are saved in user preferences.
   // A stored width below `minW` cannot come from the user: react-grid-layout enforces `minW` on
-  // resize, and minimizing a tile only changes its height. It means the tile was stored with the
-  // 1x1 size rgl invents for items it doesn't know about (see TileController), so we discard it
-  // and go back to the default width rather than to the bare minimum.
+  // resize, and minimizing a tile only changes its height.
   def mergeLayoutItems(current: LayoutItem, fromDb: LayoutItem): LayoutItem =
     current.copy(
       w = if current.minW.exists(_ > fromDb.w) then current.w else fromDb.w,
