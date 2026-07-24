@@ -28,10 +28,17 @@ import lucuma.core.math.BoundedInterval.*
 import lucuma.core.math.Declination
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
+import lucuma.core.math.units.NanometersPerPixel
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
+import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
 import lucuma.core.model.sequence.gmos.longslit.DefaultRoi
+import lucuma.core.model.sequence.gmos.mos.mosBinning
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
@@ -97,12 +104,24 @@ case class SpectroscopyModeRow(
 
   inline def hasFilter: Boolean = instrumentConfig.hasFilter
 
+  private def isSingleSlit: Boolean =
+    focalPlane === FocalPlane.SingleSlit
+
+  private def isSupportedIfu: Boolean =
+    focalPlane === FocalPlane.IFU &&
+      (instrumentConfig.instrument === Instrument.Ghost ||
+        instrumentConfig.instrument === Instrument.Gnirs)
+
+  private def isGmosMos: Boolean =
+    focalPlane === FocalPlane.MultipleSlit &&
+      (instrumentConfig.instrument === Instrument.GmosNorth ||
+        instrumentConfig.instrument === Instrument.GmosSouth)
+
+  private def isMaroonX: Boolean =
+    instrumentConfig.instrument === Instrument.MaroonX
+
   val enabled =
-    (focalPlane === FocalPlane.SingleSlit ||
-      (focalPlane === FocalPlane.IFU &&
-        (instrumentConfig.instrument === Instrument.Ghost ||
-          instrumentConfig.instrument === Instrument.Gnirs)) ||
-      instrumentConfig.instrument === Instrument.MaroonX) &&
+    (isSingleSlit || isSupportedIfu || isGmosMos || isMaroonX) &&
       SupportedInstruments.contains_(instrumentConfig.instrument)
 
   // This `should` always return a `some`, but if the row is wonky for some reason...
@@ -129,6 +148,22 @@ case class SpectroscopyModeRow(
       }
       .orElse(this.some)
 
+  private def mosCcdMode(
+    slitWidth:    Angle,
+    profiles:     NonEmptyList[SourceProfile],
+    imageQuality: ImageQuality,
+    dispersion:   Quantity[Rational, NanometersPerPixel],
+    resolution:   PosInt,
+    blaze:        Wavelength,
+    pixelScale:   Angle
+  ): GmosCcdMode =
+    val bins = profiles.map(
+      mosBinning(slitWidth, _, imageQuality, dispersion, resolution, blaze, pixelScale)
+    )
+    val xBin = bins.map(_._1).minimumBy(_.count)
+    val yBin = bins.map(_._2).minimumBy(_.count)
+    GmosCcdMode(xBin, yBin, DefaultAmpCount, DefaultAmpGain, DefaultAmpReadMode)
+
   private def withModeOverridesFor(
     wavelength:   Wavelength,
     profiles:     NonEmptyList[SourceProfile],
@@ -141,7 +176,11 @@ case class SpectroscopyModeRow(
             // In case we have no particular overrides, set ccd with binning calculated
             // from the target
             instrumentConfig match
-              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), _, _, None) =>
+              case i @ ItcInstrumentConfig
+                    .GmosNorthSpectroscopy(grating = grating,
+                                           fpu = Some(fpu),
+                                           modeOverrides = None
+                    ) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -152,7 +191,11 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), _, _, None) =>
+              case i @ ItcInstrumentConfig
+                    .GmosSouthSpectroscopy(grating = grating,
+                                           fpu = Some(fpu),
+                                           modeOverrides = None
+                    ) =>
                 i.copy(modeOverrides =
                   InstrumentOverrides
                     .GmosSpectroscopy(
@@ -163,7 +206,54 @@ case class SpectroscopyModeRow(
                     )
                     .some
                 ).some
-              case i                                                                             =>
+              // MOS rows use the custom mask's slit width.
+              case i @ ItcInstrumentConfig.GmosNorthSpectroscopy(
+                    grating = grating,
+                    fpu = None,
+                    modeOverrides = None,
+                    customSlitWidth = Some(slitWidth)
+                  ) =>
+                i.copy(modeOverrides =
+                  InstrumentOverrides
+                    .GmosSpectroscopy(
+                      cw,
+                      mosCcdMode(
+                        slitWidth,
+                        profiles,
+                        imageQuality.toImageQuality,
+                        grating.dispersion,
+                        grating.referenceResolution,
+                        grating.blazeWavelength,
+                        DefaultGmosNorthDetector.pixelSize
+                      ),
+                      DefaultRoi
+                    )
+                    .some
+                ).some
+              case i @ ItcInstrumentConfig.GmosSouthSpectroscopy(
+                    grating = grating,
+                    fpu = None,
+                    modeOverrides = None,
+                    customSlitWidth = Some(slitWidth)
+                  ) =>
+                i.copy(modeOverrides =
+                  InstrumentOverrides
+                    .GmosSpectroscopy(
+                      cw,
+                      mosCcdMode(
+                        slitWidth,
+                        profiles,
+                        imageQuality.toImageQuality,
+                        grating.dispersion,
+                        grating.referenceResolution,
+                        grating.blazeWavelength,
+                        DefaultGmosSouthDetector.pixelSize
+                      ),
+                      DefaultRoi
+                    )
+                    .some
+                ).some
+              case i =>
                 i.some
           case Instrument.Gnirs                            =>
             instrumentConfig match
@@ -323,7 +413,14 @@ object SpectroscopyModeRow {
             site,
             placeholderEtm
           )
-      .map: i =>
+      .map: j =>
+        // MOS rows have no builtin FPU baut carry the row's slit width
+        val i                          = j match
+          case g: ItcInstrumentConfig.GmosNorthSpectroscopy if g.fpu.isEmpty =>
+            g.copy(customSlitWidth = slitWidth.some)
+          case g: ItcInstrumentConfig.GmosSouthSpectroscopy if g.fpu.isEmpty =>
+            g.copy(customSlitWidth = slitWidth.some)
+          case _                                                             => j
         // TODO Maybe a mistake on the phase0 matrix.
         val effectiveSlitLength: Angle =
           if i.instrument === Instrument.MaroonX then slitWidth else slitLength

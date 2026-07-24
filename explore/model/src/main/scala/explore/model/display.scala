@@ -302,11 +302,11 @@ trait DisplayImplicits:
   given Display[ObservationWorkflowState]   = Display.byShortName(_.tag.capitalize)
 
   given Display[ItcInstrumentConfig] = Display.byShortName:
-    case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, _, _, _) =>
+    case ItcInstrumentConfig.GmosNorthSpectroscopy(grating = grating, fpu = fpu) =>
       s"GMOS-N ${grating.shortName} ${fpu.fold("Custom Mask")(_.shortName)}"
-    case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, _, _, _) =>
+    case ItcInstrumentConfig.GmosSouthSpectroscopy(grating = grating, fpu = fpu) =>
       s"GMOS-S ${grating.shortName} ${fpu.fold("Custom Mask")(_.shortName)}"
-    case _                                                                =>
+    case _                                                                       =>
       s"Unsupported configuration"
 
   // TODO This code seems to be duplicated between observe an explore, we should unify.
