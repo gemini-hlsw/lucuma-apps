@@ -157,8 +157,6 @@ object ObservingModeSubquery extends GraphQLSubquery.Typed[ObservationDB, Observ
           }
           igrins2LongSlit {
             exposureTimeMode $ExposureTimeModeSubquery
-            defaultSaveSVCImages
-            explicitSaveSVCImages
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
           }
@@ -406,8 +404,6 @@ object ObservingModeByTypeSubquery extends GraphQLSubquery.Typed[ObservationDB, 
           }
           igrins2LongSlit @include(if: $$includeIgrins2LongSlit) {
             exposureTimeMode $ExposureTimeModeSubquery
-            defaultSaveSVCImages
-            explicitSaveSVCImages
             defaultTelescopeConfigs $SlitTelescopeConfigsSubquery
             explicitTelescopeConfigs $SlitTelescopeConfigsSubquery
           }

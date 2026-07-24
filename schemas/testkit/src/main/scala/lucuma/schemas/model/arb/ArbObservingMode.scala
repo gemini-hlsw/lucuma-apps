@@ -734,14 +734,10 @@ trait ArbObservingMode {
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
       exposureTimeMode         <- arbitrary[ExposureTimeMode]
-      defaultSaveSVCImages     <- arbitrary[Boolean]
-      explicitSaveSVCImages    <- arbitrary[Option[Boolean]]
       defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
       explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
     } yield ObservingMode.Igrins2LongSlit(
       exposureTimeMode,
-      defaultSaveSVCImages,
-      explicitSaveSVCImages,
       defaultTelescopeConfigs,
       explicitTelescopeConfigs
     )
@@ -749,18 +745,11 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
-      (ExposureTimeMode,
-       Boolean,
-       Option[Boolean],
-       SlitTelescopeConfigs,
-       Option[SlitTelescopeConfigs]
-      )
+      (ExposureTimeMode, SlitTelescopeConfigs, Option[SlitTelescopeConfigs])
     ]
       .contramap(o =>
         (
           o.exposureTimeMode,
-          o.defaultSaveSVCImages,
-          o.explicitSaveSVCImages,
           o.defaultTelescopeConfigs,
           o.explicitTelescopeConfigs
         )

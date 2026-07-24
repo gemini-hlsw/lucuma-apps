@@ -796,33 +796,23 @@ object ObservingMode:
 
   case class Igrins2LongSlit(
     exposureTimeMode:         ExposureTimeMode,
-    defaultSaveSVCImages:     Boolean,
-    explicitSaveSVCImages:    Option[Boolean],
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
   ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
-    val saveSVCImages: Boolean =
-      explicitSaveSVCImages.getOrElse(defaultSaveSVCImages)
-
     val telescopeConfigs: SlitTelescopeConfigs =
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
-      explicitSaveSVCImages.exists(_ =!= defaultSaveSVCImages) ||
-        explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitSaveSVCImages = None, explicitTelescopeConfigs = None)
+      this.copy(explicitTelescopeConfigs = None)
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
 
     val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]                     =
       Focus[Igrins2LongSlit](_.exposureTimeMode)
-    val defaultSaveSVCImages: Lens[Igrins2LongSlit, Boolean]                          =
-      Focus[Igrins2LongSlit](_.defaultSaveSVCImages)
-    val explicitSaveSVCImages: Lens[Igrins2LongSlit, Option[Boolean]]                 =
-      Focus[Igrins2LongSlit](_.explicitSaveSVCImages)
     val defaultTelescopeConfigs: Lens[Igrins2LongSlit, SlitTelescopeConfigs]          =
       Focus[Igrins2LongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[Igrins2LongSlit, Option[SlitTelescopeConfigs]] =
