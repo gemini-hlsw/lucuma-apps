@@ -32,12 +32,12 @@ import lucuma.core.math.units.NanometersPerPixel
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.SourceProfile
 import lucuma.core.model.sequence.gmos.GmosCcdMode
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
+import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
 import lucuma.core.model.sequence.gmos.longslit.DefaultAmpCount
 import lucuma.core.model.sequence.gmos.longslit.DefaultAmpGain
 import lucuma.core.model.sequence.gmos.longslit.DefaultAmpReadMode
 import lucuma.core.model.sequence.gmos.longslit.DefaultRoi
-import lucuma.core.model.sequence.gmos.binning.DefaultGmosNorthDetector
-import lucuma.core.model.sequence.gmos.binning.DefaultGmosSouthDetector
 import lucuma.core.model.sequence.gmos.mos.mosBinning
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.util.Enumerated

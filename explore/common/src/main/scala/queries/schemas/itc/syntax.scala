@@ -124,9 +124,9 @@ trait syntax:
 
       row match
         case ItcInstrumentConfig
-              .GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth)     =>
-          val roi: Option[GmosRoi]         = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode]     = modeOverrides.map(_.ccdMode)
+              .GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth) =>
+          val roi: Option[GmosRoi]          = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]      = modeOverrides.map(_.ccdMode)
           val itcFpu: Option[GmosFpu.North] =
             fpu
               .map(builtinFpu => GmosFpu.North(builtinFpu.asRight))
@@ -140,9 +140,9 @@ trait syntax:
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig
-              .GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth)     =>
-          val roi: Option[GmosRoi]         = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode]     = modeOverrides.map(_.ccdMode)
+              .GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth) =>
+          val roi: Option[GmosRoi]          = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]      = modeOverrides.map(_.ccdMode)
           val itcFpu: Option[GmosFpu.South] =
             fpu
               .map(builtinFpu => GmosFpu.South(builtinFpu.asRight))
@@ -155,17 +155,17 @@ trait syntax:
                   .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm)         =>
+        case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm) =>
           InstrumentMode
             .Flamingos2Spectroscopy(etm, disperser, filter, rm, fpu)
             .rightNec
-        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                                   =>
+        case ItcInstrumentConfig.GmosNorthImaging(filter, etm)                           =>
           InstrumentMode.GmosNorthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                                   =>
+        case ItcInstrumentConfig.GmosSouthImaging(filter, etm)                           =>
           InstrumentMode.GmosSouthImaging(etm, filter, none).rightNec
-        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                                  =>
+        case ItcInstrumentConfig.Flamingos2Imaging(filter, etm)                          =>
           InstrumentMode.Flamingos2Imaging(etm, filter, Flamingos2ReadMode.Bright).rightNec
-        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm)                               =>
+        case ItcInstrumentConfig.GnirsImaging(filter, camera, etm)                       =>
           InstrumentMode
             .GnirsImaging(
               etm,
@@ -201,11 +201,11 @@ trait syntax:
                     .rightNec
                 .getOrElse(ItcQueryProblem.UnsupportedMode.leftNec)
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                        =>
+        case ItcInstrumentConfig.Igrins2Spectroscopy(etm)                                =>
           InstrumentMode.Igrins2Spectroscopy(etm).rightNec
-        case g: ItcInstrumentConfig.GhostIfu                                                     =>
+        case g: ItcInstrumentConfig.GhostIfu                                             =>
           validateGhostMode(g, targetCount)
-        case _                                                                                   =>
+        case _                                                                           =>
           ItcQueryProblem.UnsupportedMode.leftNec
 
   // We may consider adjusting this to consider small variations of RV identical for the
