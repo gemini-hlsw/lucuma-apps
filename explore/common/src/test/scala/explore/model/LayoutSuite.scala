@@ -177,4 +177,35 @@ class LayoutSuite extends FunSuite {
     val mergedMap = mergeSectionLayoutsMaps(originalMap, dbMap)
     assertEquals(mergedMap, expectedMap)
   }
+
+  // A tile that disappears from the grid and comes back can be stored with the 1x1 size
+  // react-grid-layout invents for items it doesn't know about. It must not come back collapsed.
+  test("A stored width below minW is clamped to minW") {
+    val collapsed = dbObservationMdXLayoutItem.copy(w = 1, h = 1)
+
+    val mergedLayoutItem = mergeLayoutItems(observationMdXLayoutItem, collapsed)
+
+    assertEquals(mergedLayoutItem.w, observationMdXLayoutItem.minW.get)
+    assertEquals(mergedLayoutItem.h, 1) // minimized tiles are a legit stored state
+  }
+
+  test("A stored width below minW is clamped when merging layouts") {
+    val collapsedDbLayout =
+      Layout(dbObservationMdLayout.asList.map(i => i.copy(w = 1)))
+
+    val mergedLayout = mergeLayouts(observationMdLayout, collapsedDbLayout)
+
+    assertEquals(
+      mergedLayout.asList.map(i => (i.i, i.w)),
+      List(("X", 2), ("Y", 4), ("Z", 8)) // X and Y clamped to minW, Z is not in the db layout
+    )
+  }
+
+  test("A stored width is kept when there is no minW") {
+    val noMinW = LayoutItem(i = "X", x = 0, y = 0, w = 8, h = 5)
+
+    val mergedLayoutItem = mergeLayoutItems(noMinW, noMinW.copy(w = 1))
+
+    assertEquals(mergedLayoutItem.w, 1)
+  }
 }

@@ -146,11 +146,29 @@ object TileController:
 
         val currentLayouts = currentLayout.get
 
+        // react-grid-layout keeps its own copy of the layout, synchronized against its children:
+        // a tile that disappears from `tileDefs` is dropped from that copy, and if it comes back
+        // rgl has no entry for it anymore, so it invents a collapsed 1x1 one (which then gets
+        // persisted). It only re-derives from the `layouts` prop when that prop actually changes,
+        // so we restrict it to the rendered tiles: adding or removing a tile then changes the
+        // prop and forces rgl to re-derive from `currentLayout`, which is authoritative.
+        val renderedIds: Set[String] = props.tiles.map(_.tileProps.id.value).toSet
+
+        val renderedLayouts: Map[BreakpointName, Layout] =
+          currentLayouts.view
+            .mapValues(e => Layout(e._3.asList.filter(i => renderedIds.contains(i.i))))
+            .toMap
+
+        // rgl only ever reports the tiles it renders, so merge instead of replacing, otherwise a
+        // drag or resize would drop the entries of the tiles that aren't currently rendered.
+        def mergeIntoCurrentLayout(m: Layout): Callback =
+          currentLayout.mod(breakpointLayout(breakpoint.value).modify(mergeLayouts(_, m)))
+
         ResponsiveReactGridLayout(
           width = props.gridWidth.toDouble,
           breakpoints = currentLayouts.view.mapValues(_._1).toMap,
           cols = currentLayouts.view.mapValues(_._2).toMap,
-          layouts = currentLayouts.view.mapValues(_._3).toMap,
+          layouts = renderedLayouts,
           autoSize = true,
           // Position strategy: we use react-grid-layout's default (CSS transforms).
           // rgl v1 forced us to set `useCSSTransforms = false` because a CSS transform on a grid
@@ -183,10 +201,8 @@ object TileController:
           onLayoutChange = (_: Layout, newLayouts: ResponsiveLayouts) =>
             storeLayouts(props.userId, props.section, newLayouts)
               .when_(props.storeLayout),
-          onDragStop = (m: Layout, _, _, _, _, _) =>
-            currentLayout.mod(breakpointLayout(breakpoint.value).replace(m)),
-          onResizeStop = (m: Layout, _, _, _, _, _) =>
-            currentLayout.mod(breakpointLayout(breakpoint.value).replace(m)),
+          onDragStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m),
+          onResizeStop = (m: Layout, _, _, _, _, _) => mergeIntoCurrentLayout(m),
           className = props.clazz.map(_.htmlClass).orUndefined
         )(
           tilesWithBackButton.map { tile =>

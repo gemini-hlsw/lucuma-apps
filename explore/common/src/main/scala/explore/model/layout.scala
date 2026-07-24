@@ -113,8 +113,16 @@ object layout {
   val layoutsItemHeight = layoutItems.andThen(layoutItemHeight)
 
   // Only the x, y, width and height are saved in user preferences.
+  // The stored width is clamped to `minW`: a tile that momentarily disappears from the grid can
+  // be stored with the 1x1 size react-grid-layout invents for items it doesn't know about (see
+  // TileController), and we don't want to bring back a collapsed tile.
   def mergeLayoutItems(current: LayoutItem, fromDb: LayoutItem): LayoutItem =
-    current.copy(w = fromDb.w, h = fromDb.h, x = fromDb.x, y = fromDb.y)
+    current.copy(
+      w = current.minW.fold(fromDb.w)(_.max(fromDb.w)),
+      h = fromDb.h,
+      x = fromDb.x,
+      y = fromDb.y
+    )
 
   // As with the other merges, the current Layout is expected to have all
   // of required LayoutItems since it originates with the DefaultLayout.
