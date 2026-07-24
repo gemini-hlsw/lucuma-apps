@@ -98,10 +98,11 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      Some(fpu),
                                                      filter,
                                                      _,
-                                                     Some(cw, _, _)
+                                                     Some(cw, _, _),
+                                                     _
           ) =>
         BasicConfiguration.GmosNorthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, None)
+      case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, Some(fpu), filter, _, None, _)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosNorthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)
@@ -110,10 +111,11 @@ final case class ConfigSelection private (configs: List[InstrumentConfigAndItcRe
                                                      Some(fpu),
                                                      filter,
                                                      _,
-                                                     Some(cw, _, _)
+                                                     Some(cw, _, _),
+                                                     _
           ) =>
         BasicConfiguration.GmosSouthLongSlit(grating, filter, fpu, cw).some
-      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, None)
+      case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, Some(fpu), filter, _, None, _)
           if withFallbackWavelength =>
         BasicConfiguration
           .GmosSouthLongSlit(grating, filter, fpu, ItcInstrumentConfig.GmosFallbackCW)

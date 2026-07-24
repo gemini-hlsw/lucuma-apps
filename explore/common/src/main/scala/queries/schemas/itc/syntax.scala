@@ -18,15 +18,19 @@ import explore.modes.ItcInstrumentConfig
 import explore.optics.ModelOptics.*
 import lucuma.core.enums.Flamingos2ReadMode
 import lucuma.core.enums.GhostResolutionMode
+import lucuma.core.enums.GmosCustomSlitWidth
 import lucuma.core.enums.GmosRoi
 import lucuma.core.enums.GnirsReadMode
 import lucuma.core.enums.GnirsWellDepth
+import lucuma.core.math.Angle
 import lucuma.core.math.RadialVelocity
 import lucuma.core.math.Wavelength
 import lucuma.core.model.*
 import lucuma.core.model.sequence.gmos.GmosCcdMode
 import lucuma.core.model.sequence.gnirs.GnirsFpu
+import lucuma.core.util.Enumerated
 import lucuma.itc.ItcGhostDetector
+import lucuma.itc.client.GmosCustomMask
 import lucuma.itc.client.GmosFpu
 import lucuma.itc.client.InstrumentMode
 import lucuma.itc.client.TargetInput
@@ -112,43 +116,43 @@ trait syntax:
         case ExposureTimeMode.TimeAndCountMode(t, _, _) => GnirsReadMode.forExposureTime(t)
         case _                                          => GnirsReadMode.Bright
 
+      // Custom masks don't have a real mask file at this stage but the itc doesn't care.
+      def customMaskFor(slitWidth: Angle): Option[GmosCustomMask] =
+        Enumerated[GmosCustomSlitWidth].all
+          .find(_.width === slitWidth)
+          .map(GmosCustomMask(_, "custom-mask.fits"))
+
       row match
-        case ItcInstrumentConfig.GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
-          val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
+        case ItcInstrumentConfig
+              .GmosNorthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth)     =>
+          val roi: Option[GmosRoi]         = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]     = modeOverrides.map(_.ccdMode)
+          val itcFpu: Option[GmosFpu.North] =
+            fpu
+              .map(builtinFpu => GmosFpu.North(builtinFpu.asRight))
+              .orElse(customSlitWidth.flatMap(customMaskFor).map(cm => GmosFpu.North(cm.asLeft)))
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
-              fpu.map: builtinFpu =>
+              itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosNorthSpectroscopy(
-                    etm,
-                    cw,
-                    grating,
-                    filter,
-                    GmosFpu.North(builtinFpu.asRight),
-                    ccd,
-                    roi
-                  )
+                  .GmosNorthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
-        case ItcInstrumentConfig.GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides) =>
-          val roi: Option[GmosRoi]     = modeOverrides.map(_.roi)
-          val ccd: Option[GmosCcdMode] = modeOverrides.map(_.ccdMode)
+        case ItcInstrumentConfig
+              .GmosSouthSpectroscopy(grating, fpu, filter, etm, modeOverrides, customSlitWidth)     =>
+          val roi: Option[GmosRoi]         = modeOverrides.map(_.roi)
+          val ccd: Option[GmosCcdMode]     = modeOverrides.map(_.ccdMode)
+          val itcFpu: Option[GmosFpu.South] =
+            fpu
+              .map(builtinFpu => GmosFpu.South(builtinFpu.asRight))
+              .orElse(customSlitWidth.flatMap(customMaskFor).map(cm => GmosFpu.South(cm.asLeft)))
           modeOverrides
             .map(_.centralWavelength.value)
             .flatMap: (cw: Wavelength) =>
-              fpu.map: builtinFpu =>
+              itcFpu.map: gmosFpu =>
                 InstrumentMode
-                  .GmosSouthSpectroscopy(
-                    etm,
-                    cw,
-                    grating,
-                    filter,
-                    GmosFpu.South(builtinFpu.asRight),
-                    ccd,
-                    roi
-                  )
+                  .GmosSouthSpectroscopy(etm, cw, grating, filter, gmosFpu, ccd, roi)
                   .rightNec
             .getOrElse(ItcQueryProblem.MissingWavelength.leftNec)
         case ItcInstrumentConfig.Flamingos2Spectroscopy(disperser, filter, fpu, rm, etm)         =>
