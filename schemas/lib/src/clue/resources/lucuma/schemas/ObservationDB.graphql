@@ -5275,6 +5275,9 @@ enum TimeAccountingCategory {
   """Canada"""
   CA
 
+  """Calibration"""
+  CAL
+
   """CFHT Exchange"""
   CFHT
 
@@ -5286,6 +5289,9 @@ enum TimeAccountingCategory {
 
   """Demo Science"""
   DS
+
+  """Engineering"""
+  ENG
 
   """Guaranteed Time"""
   GT
