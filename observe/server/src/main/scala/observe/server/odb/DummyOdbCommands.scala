@@ -4,6 +4,7 @@
 package observe.server.odb
 
 import cats.effect.Sync
+import cats.effect.std.Random
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosLong
 import lucuma.core.model.Observation
@@ -36,11 +37,10 @@ class DummyOdbCommands[F[_]: Sync as F] extends OdbCommands[F] {
     obsId:  Observation.Id,
     stepId: Step.Id,
     fileId: ImageFileId
-  ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] =
-    Sync[F]
-      .delay(scala.util.Random.between(1L, Long.MaxValue))
-      .map: x =>
-        RecordDatasetMutation.Data.RecordDataset.Dataset(Dataset.Id(PosLong.unsafeFrom(x)), None)
+  ): F[RecordDatasetMutation.Data.RecordDataset.Dataset] = for {
+    rand <- Random.scalaUtilRandom[F]
+    x    <- rand.betweenLong(1L, Long.MaxValue)
+  } yield RecordDatasetMutation.Data.RecordDataset.Dataset(Dataset.Id(PosLong.unsafeFrom(x)), None)
 
   override def datasetEndExposure(
     obsId:  Observation.Id,

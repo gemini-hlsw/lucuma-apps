@@ -9,6 +9,7 @@ import cats.effect.Ref
 import cats.effect.Resource
 import cats.effect.Temporal
 import cats.effect.kernel.Async
+import cats.effect.std.Random
 import cats.syntax.all.*
 import fs2.Stream
 import fs2.concurrent.SignallingRef
@@ -196,9 +197,10 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def getGuideQuality: F[GuidersQualityValues] =
     for {
-      p1Cnts <- Async[F].delay(1000 + scala.util.Random.between(-100, 100))
-      p2Cnts <- Async[F].delay(1000 + scala.util.Random.between(-100, 100))
-      oiCnts <- Async[F].delay(1000 + scala.util.Random.between(-100, 100))
+      rand   <- Random.scalaUtilRandom[F]
+      p1Cnts <- rand.betweenInt(-100, 100).map(_ + 1000)
+      p2Cnts <- rand.betweenInt(-100, 100).map(_ + 1000)
+      oiCnts <- rand.betweenInt(-100, 100).map(_ + 1000)
     } yield GuidersQualityValues(
       pwfs1 = GuiderQuality(p1Cnts, false),
       pwfs2 = GuiderQuality(p2Cnts, false),
@@ -382,36 +384,22 @@ abstract class TcsBaseControllerSim[F[_]: Async](
   override def pwfs2Sky(exposureTime: TimeSpan)(guide: GuideConfig): F[ApplyCommandResult] =
     ApplyCommandResult.Completed.pure[F]
 
-  override val pwfs1Mechs: PwfsMechanismCommands[F] = new PwfsMechanismCommands[F] {
+  override val pwfs1Mechs: PwfsMechanismCommands[F] = new PwfsMechanismCommandsImpl(p1MechRef)
+
+  override val pwfs2Mechs: PwfsMechanismCommands[F] = new PwfsMechanismCommandsImpl(p2MechRef)
+
+  private class PwfsMechanismCommandsImpl(ref: Ref[F, PwfsMechsState])
+      extends PwfsMechanismCommands[F] {
     override def filter(f: PwfsFilter): F[ApplyCommandResult] =
-      simulateMechanism(p1MechRef, Focus[PwfsMechsState](_.filter), Enumerated[PwfsFilter].all)(f)
+      simulateMechanism(ref, Focus[PwfsMechsState](_.filter), Enumerated[PwfsFilter].all)(f)
 
     override def fieldStop(fs: PwfsFieldStop): F[ApplyCommandResult] =
-      simulateMechanism(p1MechRef,
-                        Focus[PwfsMechsState](_.fieldStop),
-                        Enumerated[PwfsFieldStop].all
-      )(fs)
-  }
-  override val pwfs2Mechs: PwfsMechanismCommands[F] = new PwfsMechanismCommands[F] {
-    override def filter(f: PwfsFilter): F[ApplyCommandResult] =
-      simulateMechanism(p2MechRef, Focus[PwfsMechsState](_.filter), Enumerated[PwfsFilter].all)(f)
-
-    override def fieldStop(fs: PwfsFieldStop): F[ApplyCommandResult] =
-      simulateMechanism(p2MechRef,
-                        Focus[PwfsMechsState](_.fieldStop),
-                        Enumerated[PwfsFieldStop].all
-      )(fs)
+      simulateMechanism(ref, Focus[PwfsMechsState](_.fieldStop), Enumerated[PwfsFieldStop].all)(fs)
   }
 
-  override def getPwfs1Mechs: F[PwfsMechsState] = for {
-    flt <- p1MechRef.get.map(_.filter)
-    fld <- p1MechRef.get.map(_.fieldStop)
-  } yield PwfsMechsState(flt, fld)
+  override def getPwfs1Mechs: F[PwfsMechsState] = p1MechRef.get
 
-  override def getPwfs2Mechs: F[PwfsMechsState] = for {
-    flt <- p2MechRef.get.map(_.filter)
-    fld <- p2MechRef.get.map(_.fieldStop)
-  } yield PwfsMechsState(flt, fld)
+  override def getPwfs2Mechs: F[PwfsMechsState] = p2MechRef.get
 
   override def getBaffles: F[BafflesState] =
     BafflesState(CentralBafflePosition.Open, DeployableBafflePosition.Visible).pure[F]
@@ -429,12 +417,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
     override def windowSize(size: AcWindow): F[ApplyCommandResult] =
       ApplyCommandResult.Completed.pure[F]
 
-    override def getState: F[AcMechsState] =
-      for {
-        lns <- acMechRef.get.map(_.lens)
-        flt <- acMechRef.get.map(_.filter)
-        ndf <- acMechRef.get.map(_.ndFilter)
-      } yield AcMechsState(lns, ndf, flt)
+    override def getState: F[AcMechsState] = acMechRef.get
   }
 
   private val mechanismStepPeriod: FiniteDuration = 1.seconds
@@ -488,7 +471,7 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def getPwfs2Config: F[WfsConfiguration] = pwfs2ConfigsRef.get
 
-  override def getOiwfsConfig: F[WfsConfiguration] = pwfs2ConfigsRef.get
+  override def getOiwfsConfig: F[WfsConfiguration] = oiwfsConfigsRef.get
 
   override def pwfs1ConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
     Resource.pure(pwfs1ConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
