@@ -1,0 +1,2 @@
+-- No down migration: the deleted rows held a corrupted 1x1 size and are not worth restoring.
+-- Tiles without a stored position fall back to the default layout.
