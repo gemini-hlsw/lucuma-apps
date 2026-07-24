@@ -26,8 +26,7 @@ object TestUtil {
           .GmosNorth[IO](
             observer = none,
             overrides = SystemOverrides.AllEnabled,
-            targetEnvironment =
-              odbObs.targetEnvironment.getOrElse(observe.server.EmptyTargetEnvironment),
+            observation = odbObs,
             constraintSet = odbObs.constraintSet,
             staticCfg = staticCfg1,
             seq = seq,

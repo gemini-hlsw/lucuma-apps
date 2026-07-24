@@ -70,6 +70,21 @@ object ObsQueriesGql:
           type Asterism     = TargetWithId
           type ExplicitBase = Coordinates
 
+  // Query observations with targets.
+  @GraphQL
+  trait ObsExecutionQuery extends GraphQLOperation[ObservationDB] {
+    val document = s"""
+      query($$obsId: ObservationId!) {
+        observation(observationId: $$obsId) {
+          id
+          title
+          observationTime
+        }
+        executionConfig(observationId: $$obsId, futureLimit: 100) $ExecutionConfigSubquery
+      }
+    """
+  }
+
   // Lightweight query to determine the skipTargets parameter in the query above.
   @GraphQL
   trait ObsCalibrationRoleQuery extends GraphQLOperation[ObservationDB]:

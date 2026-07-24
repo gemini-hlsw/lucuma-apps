@@ -29,6 +29,7 @@ import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import monocle.Lens
 import mouse.all.*
+import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as OdbObservation
 import observe.model.*
 import observe.model.config.*
 import observe.model.enums.BatchExecState
@@ -511,10 +512,15 @@ object ObserveEngine {
   ): EngineHandle[F, Option[StepGen[F]]] =
     (for
         _       <- modifySequenceStatus(obsId)(_.withWaitingNextStep(true).withWaitingUserPrompt(false))
-        odbData <- EngineHandle
-                     .liftF(odb.read(obsId))
+        obsData <- EngineHandle.inspectState[F, Option[OdbObservation]](
+                     EngineState.sequenceDataAt(obsId).andThen(SequenceData.observation).getOption
+                   )
+        odbEx   <- EngineHandle
+                     .liftF(odb.readExecutionConfig(obsId))
                      .guarantee(modifySequenceStatus(obsId)(_.withWaitingNextStep(false)))
-      yield translator.nextStep(odbData, stepIdFrom)._2 // TODO Do something with warnings? (_1)
+      yield obsData.flatMap(od =>
+        translator.nextStep(OdbObservationData(od, odbEx), stepIdFrom)._2
+      ) // TODO Do something with warnings? (_1)
     ).handleErrorWith: e =>
       EngineHandle.logError(e)(
         s"Error loading step for observation [$obsId] from [$stepIdFrom]"
