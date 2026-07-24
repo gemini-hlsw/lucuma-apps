@@ -10,7 +10,6 @@ import lucuma.core.enums.GmosSouthFilter
 import lucuma.core.enums.GnirsFilter
 import lucuma.itc.SignalToNoiseAt
 import lucuma.itc.client.json.decoders.given
-import lucuma.odb.data.ItcScience
 import lucuma.schemas.model.ModeSignalToNoise
 
 trait ModeSignalToNoiseDecoders:
@@ -77,11 +76,19 @@ trait ModeSignalToNoiseDecoders:
     if c.value.isNull then Right(ModeSignalToNoise.Undefined)
     else
       c.downField("itcType")
-        .as[ItcScience.Type]
+        .as[String]
         .flatMap:
-          case ItcScience.Type.Spectroscopy      => c.as[ModeSignalToNoise.Spectroscopy]
-          case ItcScience.Type.GmosNorthImaging  => c.as[ModeSignalToNoise.GmosNorthImaging]
-          case ItcScience.Type.GmosSouthImaging  => c.as[ModeSignalToNoise.GmosSouthImaging]
-          case ItcScience.Type.Flamingos2Imaging => c.as[ModeSignalToNoise.Flamingos2Imaging]
-          case ItcScience.Type.GnirsImaging      => c.as[ModeSignalToNoise.GnirsImaging]
-          case ItcScience.Type.GhostIfu          => c.as[ModeSignalToNoise.GhostIfu]
+          case "SPECTROSCOPY" | "IGRINS_2_SPECTROSCOPY" | "GNIRS_SPECTROSCOPY" =>
+            c.as[ModeSignalToNoise.Spectroscopy]
+          case "GMOS_NORTH_IMAGING"                                            =>
+            c.as[ModeSignalToNoise.GmosNorthImaging]
+          case "GMOS_SOUTH_IMAGING"                                            =>
+            c.as[ModeSignalToNoise.GmosSouthImaging]
+          case "FLAMINGOS_2_IMAGING"                                           =>
+            c.as[ModeSignalToNoise.Flamingos2Imaging]
+          case "GNIRS_IMAGING"                                                 =>
+            c.as[ModeSignalToNoise.GnirsImaging]
+          case "GHOST_IFU"                                                     =>
+            c.as[ModeSignalToNoise.GhostIfu]
+          case other                                                           =>
+            Left(io.circe.DecodingFailure(s"Unknown itcType: $other", c.history))
