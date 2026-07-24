@@ -29,6 +29,7 @@ import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.gmos.DynamicConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.refined.given
+import lucuma.core.util.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.FirstScienceTarget
 import observe.common.test.*
@@ -61,6 +62,7 @@ import observe.server.tcs.DummyTargetKeywordsReader
 import observe.server.tcs.DummyTcsKeywordsReader
 import observe.server.tcs.TargetKeywordsReader
 
+import java.time.Instant
 import java.util.UUID
 
 class ObserveEngineSuite extends TestCommon {
@@ -109,6 +111,32 @@ class ObserveEngineSuite extends TestCommon {
     ): F[EngineState[F]] =
       executeAndWait(f, r => until.lift(r._2).getOrElse(false), tap).map(_._2)
   }
+
+  val reqConditions = ConstraintSet(
+    ImageQuality.Preset.PointTwo,
+    CloudExtinction.Preset.PointFive,
+    SkyBackground.Dark,
+    WaterVapor.Median,
+    ElevationRange.ByHourAngle.Default
+  )
+
+  val defaultObs = ODBObservation(
+    id = seqObsId1,
+    title = "Test Observation".refined,
+    Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800)).some,
+    ODBObservation.Program(
+      Program.Id(PosLong.unsafeFrom(123)),
+      None,
+      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+    ),
+    defaultTargetEnvironment
+      .copy(
+        firstScienceTarget = Some(FirstScienceTarget(Target.Id.fromLong(1).get, "proof".refined))
+      )
+      .some,
+    reqConditions,
+    ODBObservation.SchedulingConstraints(List.empty)
+  )
 
   test("ObserveEngine setOperator should set operator's name") {
     val s0 = EngineState.default[IO]
@@ -376,10 +404,13 @@ class ObserveEngineSuite extends TestCommon {
         Breakpoint.Disabled
       )
 
+    val obsData = s0.selected.gmosNorth.map(_.observation)
+
     val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
 
     (for {
-      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      odb <-
+        TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty, obsData)
       oe  <- observeEngineWithODB(odb)
       sf  <- advanceN(
                oe,
@@ -424,8 +455,11 @@ class ObserveEngineSuite extends TestCommon {
 
     val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
 
+    val obsData = s0.selected.gmosNorth.map(_.observation)
+
     (for {
-      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty)
+      odb <-
+        TestOdbProxy.buildGmosNorth[IO](seqObsId1, staticCfg1, acqAtom.some, List.empty, obsData)
       oe  <- observeEngineWithODB(odb)
       sf  <- advanceOne(
                oe,
@@ -511,8 +545,11 @@ class ObserveEngineSuite extends TestCommon {
 
     val acqAtom = Atom[DynamicConfig.GmosNorth](atomId1, none, acquisitionStep)
 
+    val obsData = s0.selected.gmosNorth.map(_.observation)
+
     (for {
-      odb <- TestOdbProxy.buildGmosNorth[IO](seqObsId2, staticCfg1, acqAtom.some, List.empty)
+      odb <-
+        TestOdbProxy.buildGmosNorth[IO](seqObsId2, staticCfg1, acqAtom.some, List.empty, obsData)
       oe  <- observeEngineWithODB(odb)
       sf  <- advanceN(
                oe,
@@ -529,13 +566,6 @@ class ObserveEngineSuite extends TestCommon {
   private def testTargetSequenceData(
     targetName: NonEmptyString
   ): (ODBObservation, NonEmptyList[Step[DynamicConfig.GmosNorth]]) = {
-    val reqConditions = ConstraintSet(
-      ImageQuality.Preset.PointTwo,
-      CloudExtinction.Preset.PointFive,
-      SkyBackground.Dark,
-      WaterVapor.Median,
-      ElevationRange.ByHourAngle.Default
-    )
 
     val stepList: NonEmptyList[Step[DynamicConfig.GmosNorth]] =
       NonEmptyList.one:
@@ -552,7 +582,7 @@ class ObserveEngineSuite extends TestCommon {
     val obs = ODBObservation(
       id = seqObsId1,
       title = "Test Observation".refined,
-      none,
+      Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800)).some,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
@@ -692,7 +722,7 @@ class ObserveEngineSuite extends TestCommon {
     val obs = ODBObservation(
       id = seqObsId1,
       title = "Test Observation".refined,
-      none,
+      Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800)).some,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,
@@ -1238,6 +1268,7 @@ class ObserveEngineSuite extends TestCommon {
           staticCfg1,
           none,
           atomIds.zipWithIndex.map((i, k) => Atom[DynamicConfig.GmosNorth](i, none, steps(2 * k))),
+          None,
           s =>
             if (addStep) {
               // Only once we add an extra setp at the beggining of the atom

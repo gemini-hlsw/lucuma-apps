@@ -57,6 +57,7 @@ import lucuma.core.model.sequence.gmos.GmosGratingConfig
 import lucuma.core.model.sequence.gmos.StaticConfig
 import lucuma.core.refined.auto.*
 import lucuma.core.util.TimeSpan
+import lucuma.core.util.Timestamp
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation as ODBObservation
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment
 import observe.common.ObsQueriesGql.ObsQuery.Data.Observation.TargetEnvironment.GuideEnvironment
@@ -87,6 +88,7 @@ import org.http4s.implicits.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
 
+import java.time.Instant
 import java.util.UUID
 import scala.concurrent.duration.*
 
@@ -350,7 +352,7 @@ object TestCommon {
     ODBObservation(
       id = id,
       title = "Test Observation".refined,
-      none,
+      Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800)).some,
       ODBObservation.Program(
         Program.Id(PosLong.unsafeFrom(123)),
         None,

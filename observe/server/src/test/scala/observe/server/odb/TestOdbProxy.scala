@@ -173,6 +173,7 @@ object TestOdbProxy {
     staticCfg:          gmos.StaticConfig.GmosNorth,
     acquisition:        Option[Atom[gmos.DynamicConfig.GmosNorth]],
     science:            List[Atom[gmos.DynamicConfig.GmosNorth]] = List.empty,
+    obsData:            Option[ODBObservation] = None,
     updateStartObserve: SequenceState => SequenceState = identity
   ): F[TestOdbProxy[F]] =
     build(
@@ -183,11 +184,13 @@ object TestOdbProxy {
           SequenceState(acquisition, science)
         )
       ),
+      obsData,
       _.updateObs(obsId)(updateStartObserve)
     )
 
   def build[F[_]: Async](
     sequences:          Map[Instrument, InstrumentState],
+    obsData:            Option[ODBObservation] = None,
     updateStartObserve: State => State = identity
   ): F[TestOdbProxy[F]] =
     Ref
@@ -216,24 +219,26 @@ object TestOdbProxy {
               val t                                             = Timestamp.fromInstantTruncatedAndBounded(Instant.ofEpochSecond(31816800))
 
               OdbObservationData(
-                Data.Observation(
-                  obsId,
-                  title = "Test Observation".refined,
-                  t.some,
-                  Data.Observation.Program(
-                    Program.Id(PosLong.unsafeFrom(1)),
-                    None,
-                    ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
-                  ),
-                  TestCommon.defaultTargetEnvironment.some,
-                  ConstraintSet(
-                    ImageQuality.Preset.TwoPointZero,
-                    CloudExtinction.Preset.TwoPointZero,
-                    SkyBackground.Bright,
-                    WaterVapor.Wet,
-                    ElevationRange.ByAirMass.Default
-                  ),
-                  ODBObservation.SchedulingConstraints(List.empty)
+                obsData.getOrElse(
+                  ODBObservation(
+                    obsId,
+                    title = "Test Observation".refined,
+                    t.some,
+                    Data.Observation.Program(
+                      Program.Id(PosLong.unsafeFrom(1)),
+                      None,
+                      ODBObservation.Program.Goa(NonNegInt.unsafeFrom(0))
+                    ),
+                    TestCommon.defaultTargetEnvironment.some,
+                    ConstraintSet(
+                      ImageQuality.Preset.TwoPointZero,
+                      CloudExtinction.Preset.TwoPointZero,
+                      SkyBackground.Bright,
+                      WaterVapor.Wet,
+                      ElevationRange.ByAirMass.Default
+                    ),
+                    ODBObservation.SchedulingConstraints(List.empty)
+                  )
                 ),
                 buildExecutionConfig(
                   i,
@@ -244,6 +249,9 @@ object TestOdbProxy {
                 )
               )
             }
+
+          override def readExecutionConfig(obsId: Observation.Id): F[InstrumentExecutionConfig] =
+            read(obsId).map(_.executionConfig)
 
           override def visitStart(obsId: Observation.Id): F[Unit] = addEvent(
             VisitStart(obsId)

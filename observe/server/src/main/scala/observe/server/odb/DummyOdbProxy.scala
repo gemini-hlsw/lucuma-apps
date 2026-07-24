@@ -6,6 +6,7 @@ package observe.server.odb
 import cats.effect.Sync
 import cats.syntax.all.*
 import lucuma.core.model.Observation
+import lucuma.core.model.sequence.InstrumentExecutionConfig
 import lucuma.core.model.sequence.Step
 import observe.model.dhs.*
 import observe.model.odb.ObsRecordedIds
@@ -16,6 +17,9 @@ class DummyOdbProxy[F[_]: Sync as F] extends OdbProxy[F] {
 
   override def read(oid: Observation.Id): F[OdbObservationData] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.read: Not implemented."))
+
+  override def readExecutionConfig(oid: Observation.Id): F[InstrumentExecutionConfig] =
+    F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.readExecutionConfig: Not implemented."))
 
   override def resetAcquisition(obsId: Observation.Id): F[Unit] =
     F.raiseError(ObserveFailure.Unexpected("TestOdbProxy.resetAcquisition: Not implemented."))
