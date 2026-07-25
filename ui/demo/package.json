@@ -15,7 +15,7 @@
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "react-grid-layout": "2.2.3",
-    "sass": "1.101.0",
+    "sass": "1.101.6",
     "ua-parser-js": "2.0.10",
     "vite": "8.1.3"
   },
