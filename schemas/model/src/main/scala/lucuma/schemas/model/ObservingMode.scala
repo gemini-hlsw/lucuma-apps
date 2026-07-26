@@ -796,6 +796,7 @@ object ObservingMode:
 
   case class Igrins2LongSlit(
     exposureTimeMode:         ExposureTimeMode,
+    svc:                      Option[Igrins2LongSlit.Svc],
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
   ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
@@ -803,20 +804,71 @@ object ObservingMode:
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
-      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        svc.exists(_.isCustomized)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitTelescopeConfigs = None)
+      this.copy(explicitTelescopeConfigs = None, svc = svc.map(_.revertCustomizations))
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
 
     val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]                     =
       Focus[Igrins2LongSlit](_.exposureTimeMode)
+    val svc: Lens[Igrins2LongSlit, Option[Svc]]                                       =
+      Focus[Igrins2LongSlit](_.svc)
     val defaultTelescopeConfigs: Lens[Igrins2LongSlit, SlitTelescopeConfigs]          =
       Focus[Igrins2LongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[Igrins2LongSlit, Option[SlitTelescopeConfigs]] =
       Focus[Igrins2LongSlit](_.explicitTelescopeConfigs)
+
+    // Slit-Viewing Camera acquisition configuration.
+    case class Svc(
+      defaultExposure:          TimeSpan,
+      explicitExposure:         Option[TimeSpan],
+      defaultTelescopeConfigs:  NonEmptyList[TelescopeConfig],
+      explicitTelescopeConfigs: Option[NonEmptyList[TelescopeConfig]]
+    ) derives Decoder,
+          Eq:
+      val exposure: TimeSpan =
+        explicitExposure.getOrElse(defaultExposure)
+
+      val telescopeConfigs: NonEmptyList[TelescopeConfig] =
+        explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+
+      def isCustomized: Boolean =
+        explicitExposure.exists(_ =!= defaultExposure) ||
+          explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+
+      def revertCustomizations: Svc =
+        copy(explicitExposure = none, explicitTelescopeConfigs = none)
+
+    object Svc:
+      val defaultExposure: Lens[Svc, TimeSpan]                                       =
+        Focus[Svc](_.defaultExposure)
+      val explicitExposure: Lens[Svc, Option[TimeSpan]]                              =
+        Focus[Svc](_.explicitExposure)
+      val defaultTelescopeConfigs: Lens[Svc, NonEmptyList[TelescopeConfig]]          =
+        Focus[Svc](_.defaultTelescopeConfigs)
+      val explicitTelescopeConfigs: Lens[Svc, Option[NonEmptyList[TelescopeConfig]]] =
+        Focus[Svc](_.explicitTelescopeConfigs)
+
+      // Client-side defaults used for the optimistic model when enabling SVC.
+      val Default: Svc =
+        val defaultSvcTelescopeConfigs: NonEmptyList[TelescopeConfig] =
+          NonEmptyList.of(
+            TelescopeConfig(Offset.Zero, StepGuideState.Enabled),
+            TelescopeConfig(
+              Offset(Offset.P(Angle.fromMicroarcseconds(5000000L)), Offset.Q.Zero),
+              StepGuideState.Enabled
+            )
+          )
+        Svc(
+          defaultExposure = TimeSpan.fromMicrosecondsBounded(3080000),
+          explicitExposure = none,
+          defaultTelescopeConfigs = defaultSvcTelescopeConfigs,
+          explicitTelescopeConfigs = none
+        )
 
   case class GnirsImaging(
     initialFilters:    NonEmptyList[GnirsImaging.ImagingFilter],
