@@ -336,6 +336,7 @@ object SequenceTile
                               config.static,
                               igrins2ExecutionView.flatAcquisition,
                               igrins2ExecutionView.flatScience,
+                              acquisitionSn,
                               scienceSn,
                               isEditEnabled,
                               props.isEditingAcquisition,

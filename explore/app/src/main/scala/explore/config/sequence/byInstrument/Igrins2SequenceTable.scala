@@ -4,7 +4,6 @@
 package explore.config.sequence.byInstrument
 
 import cats.effect.IO
-import cats.syntax.option.*
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
@@ -25,6 +24,7 @@ final case class Igrins2SequenceTable(
   staticConfig:         Igrins2StaticConfig,
   acquisition:          View[List[Atom[Igrins2DynamicConfig]]],
   science:              View[List[Atom[Igrins2DynamicConfig]]],
+  acquisitonSN:         Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
