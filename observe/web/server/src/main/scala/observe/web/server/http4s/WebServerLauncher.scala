@@ -35,6 +35,8 @@ import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.otel4s.middleware.metrics.OtelMetrics
+import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
 import org.http4s.otel4s.middleware.trace.redact.HeaderRedactor
 import org.http4s.otel4s.middleware.trace.server.ServerMiddleware as OtelServerMiddleware
 import org.http4s.otel4s.middleware.trace.server.ServerSpanDataProvider
@@ -307,20 +309,31 @@ object WebServerLauncher extends IOApp with LogInitialization {
     //     logAction = ((s: String) => Logger[F].trace(s)).some
     //   )(_)
 
+  // Wraps an http4s `Client` with OpenTelemetry client tracing. Each outbound request gets a
+  // client span and W3C `traceparent`/`tracestate` headers are injected,
+  private def tracedClient(
+    client: Client[IO]
+  )(using TracerProvider[IO]): IO[Client[IO]] =
+    ClientMiddleware
+      .builder[IO](ClientSpanDataProvider.openTelemetry(TracingMiddleware.redactor))
+      .build
+      .map(_.wrapClient(client))
+
   private def engineIO(
     conf:       ObserveConfiguration,
     httpClient: Client[IO]
-  )(using Logger[IO]): Resource[IO, ObserveEngine[IO]] =
+  )(using Logger[IO], TracerProvider[IO]): Resource[IO, ObserveEngine[IO]] =
     for {
-      caS  <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
-      sys  <- Systems.build(conf.site,
-                            httpClient,
-                            conf.observeEngine,
-                            conf.lucumaSSO,
-                            caS,
-                            conf.webServer.externalBaseUrl
-              )
-      seqE <-
+      client <- Resource.eval(tracedClient(httpClient))
+      caS    <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
+      sys    <- Systems.build(conf.site,
+                              client,
+                              conf.observeEngine,
+                              conf.lucumaSSO,
+                              caS,
+                              conf.webServer.externalBaseUrl
+                )
+      seqE   <-
         Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine, conf.environment))
     } yield seqE
 

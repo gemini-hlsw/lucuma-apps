@@ -524,6 +524,7 @@ lazy val observe_web_server = project
         Otel4sOtelJava.value ++
         Http4sOtel4sServer.value ++
         Http4sOtel4sMetrics.value ++
+        Http4sOtel4sClient.value ++
         LucumaCommonMiddleware.value ++
         PureConfig.value ++
         Logback.value ++
