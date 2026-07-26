@@ -4258,13 +4258,11 @@ span.explore-offsets-count {
   gap: 1em;
   grid-template-columns: 1fr 2fr;
 
-  // Keep the help icon on the same line as its label.
   .pl-form-field-label {
     white-space: nowrap;
   }
 }
 
-// Tablet and phone: stack the controls above the offsets editor.
 @media (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
   .explore-svc-acquisition-layout {
     grid-template-columns: 1fr;
