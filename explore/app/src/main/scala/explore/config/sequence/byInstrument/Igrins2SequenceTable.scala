@@ -24,7 +24,7 @@ final case class Igrins2SequenceTable(
   staticConfig:         Igrins2StaticConfig,
   acquisition:          View[List[Atom[Igrins2DynamicConfig]]],
   science:              View[List[Atom[Igrins2DynamicConfig]]],
-  acquisitonSN:         Option[SignalToNoiseAt],
+  acquisitionSN:        Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
@@ -36,9 +36,6 @@ final case class Igrins2SequenceTable(
 ) extends ReactFnProps(Igrins2SequenceTable.component)
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig]
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:
-
-  // The IGRINS-2 acquisition takes SVC images, so there is no signal to noise for it.
-  override val acquisitonSN = none
 
   override val toInstrumentVisits =
     case ExecutionVisits.Igrins2(visits) => visits

@@ -22,7 +22,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   staticConfig:         gmos.StaticConfig.GmosSouth,
   acquisition:          View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
   science:              View[List[Atom[gmos.DynamicConfig.GmosSouth]]],
-  acquisitonSN:         Option[SignalToNoiseAt],
+  acquisitionSN:        Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],
