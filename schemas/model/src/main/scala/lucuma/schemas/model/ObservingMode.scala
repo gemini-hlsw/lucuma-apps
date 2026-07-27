@@ -23,12 +23,12 @@ import lucuma.core.math.WavelengthDither
 import lucuma.core.model.ExposureTimeMode
 import lucuma.core.model.SlitTelescopeConfigs
 import lucuma.core.model.sequence.TelescopeConfig
-import lucuma.core.model.sequence.igrins2.SvcDefaultExposure
-import lucuma.core.model.sequence.igrins2.SvcDefaultTelescopeConfigs
 import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.defaultIfuTelescopeConfigs
+import lucuma.core.model.sequence.igrins2.SvcDefaultExposure
+import lucuma.core.model.sequence.igrins2.SvcDefaultTelescopeConfigs
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector

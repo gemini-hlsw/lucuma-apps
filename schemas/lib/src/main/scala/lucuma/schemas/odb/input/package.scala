@@ -648,8 +648,7 @@ extension (o: ObservingMode.Igrins2LongSlit)
 extension (svc: ObservingMode.Igrins2LongSlit.Svc)
   def toInput: Igrins2SvcInput = Igrins2SvcInput(
     explicitExposure = svc.explicitExposure.map(_.toInput).orUnassign,
-    explicitTelescopeConfigs =
-      svc.explicitTelescopeConfigs.map(_.toList.map(_.toInput)).orUnassign
+    explicitTelescopeConfigs = svc.explicitTelescopeConfigs.map(_.toList.map(_.toInput)).orUnassign
   )
 
 extension (a: ObservingMode.GnirsSpectroscopy.Acquisition)

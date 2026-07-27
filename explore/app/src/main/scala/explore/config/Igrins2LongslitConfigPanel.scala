@@ -38,12 +38,12 @@ import lucuma.react.primereact.Checkbox
 import lucuma.react.primereact.InputNumber
 import lucuma.react.primereact.Panel
 import lucuma.react.primereact.valueOption
+import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.ObservingMode
 import lucuma.schemas.odb.input.*
 import lucuma.ui.primereact.*
 import lucuma.ui.syntax.all.given
-import lucuma.refined.*
 
 final case class Igrins2LongslitConfigPanel(
   programId:       Program.Id,
