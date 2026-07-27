@@ -41,6 +41,7 @@ import observe.server.events.*
 import observe.server.odb.OdbObservationData
 import observe.server.odb.OdbProxy
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 
 import scala.annotation.unused
 import scala.concurrent.duration.*
@@ -558,7 +559,7 @@ object ObserveEngine {
   /**
    * Build Observe and setup epics
    */
-  def build[F[_]: {Async, Logger}](
+  def build[F[_]: {Async, Logger, Tracer}](
     site:        Site,
     systems:     Systems[F],
     conf:        ObserveEngineConfiguration,

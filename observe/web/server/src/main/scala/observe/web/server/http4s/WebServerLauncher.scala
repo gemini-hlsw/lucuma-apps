@@ -3,6 +3,7 @@
 
 package observe.web.server.http4s
 
+import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.*
 import cats.effect.syntax.all.*
@@ -31,10 +32,13 @@ import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
 import observe.web.server.otel.ObserveOtel
 import org.http4s.HttpRoutes
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.otel4s.middleware.metrics.OtelMetrics
+import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
 import org.http4s.otel4s.middleware.trace.redact.HeaderRedactor
 import org.http4s.otel4s.middleware.trace.server.ServerMiddleware as OtelServerMiddleware
 import org.http4s.otel4s.middleware.trace.server.ServerSpanDataProvider
@@ -151,6 +155,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
     oe:        ObserveEngine[F]
   ): Resource[F, Server] = {
 
+    val commandRoutes: ObserveCommandRoutes[F] = ObserveCommandRoutes(ssoClient, oe)
+
     def router(
       wsb:                      WebSocketBuilder2[F],
       events:                   Topic[F, (Option[ClientId], ClientEvent)]
@@ -158,7 +164,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       Router[F](
         "/"                   -> StaticRoutes().service,
         "/api/observe/guide"  -> GuideConfigDbRoutes(oe.systems.guideDb).service,
-        "/api/observe"        -> ObserveCommandRoutes(ssoClient, oe).service,
+        "/api/observe"        -> commandRoutes.service,
         "/api/observe/ping"   -> PingRoutes(ssoClient).service,
         "/api/observe/events" -> ObserveEventRoutes(
           conf.site,
@@ -174,18 +180,27 @@ object WebServerLauncher extends IOApp with LogInitialization {
         ).service
       )
 
+    def tracePathIds(routes: HttpRoutes[F]): HttpRoutes[F] =
+      Kleisli: (req: Request[F]) =>
+        val attributes =
+          ObserveCommandRoutes.pathAttributes(req.uri.path.segments.map(_.decoded()).toList)
+        OptionT
+          .liftF(Tracer[F].currentSpanOrNoop.flatMap(_.addAttributes(attributes*)))
+          .whenA(attributes.nonEmpty) *> routes(req)
+
     def otelMiddleware: Resource[F, HttpRoutes[F] => HttpRoutes[F]] =
       for
         metricsOps <- Resource.eval(OtelMetrics.serverMetricsOps[F]())
         spanData    = ServerSpanDataProvider
                         .openTelemetry(TracingMiddleware.redactor)
+                        .withRouteClassifier(commandRoutes.routeClassifier)
                         .optIntoHttpRequestHeaders(HeaderRedactor.default)
                         .optIntoHttpResponseHeaders(HeaderRedactor.default)
         otelSrv    <- Resource.eval(OtelServerMiddleware.builder[F](spanData).build)
       yield (routes: HttpRoutes[F]) =>
         otelSrv.asHttpRoutesMiddleware(
           TracingMiddleware.traceUser(ssoClient)(
-            MetricsMiddleware.httpMetrics(metricsOps)(routes)
+            tracePathIds(MetricsMiddleware.httpMetrics(metricsOps)(routes))
           )
         )
 
@@ -299,28 +314,30 @@ object WebServerLauncher extends IOApp with LogInitialization {
       .withTimeout(timeout)
       .withLogger(Logger[F])
       .build
-    // Uncomment the following to log HTTP requests and responses
-    // .map:
-    //   Http4sLogger(
-    //     logHeaders = true,
-    //     logBody = true,
-    //     logAction = ((s: String) => Logger[F].trace(s)).some
-    //   )(_)
+
+  private def tracedClient(
+    client: Client[IO]
+  )(using TracerProvider[IO]): IO[Client[IO]] =
+    ClientMiddleware
+      .builder[IO](ClientSpanDataProvider.openTelemetry(TracingMiddleware.redactor))
+      .build
+      .map(_.wrapClient(client))
 
   private def engineIO(
     conf:       ObserveConfiguration,
     httpClient: Client[IO]
-  )(using Logger[IO]): Resource[IO, ObserveEngine[IO]] =
+  )(using Logger[IO], Tracer[IO], TracerProvider[IO]): Resource[IO, ObserveEngine[IO]] =
     for {
-      caS  <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
-      sys  <- Systems.build(conf.site,
-                            httpClient,
-                            conf.observeEngine,
-                            conf.lucumaSSO,
-                            caS,
-                            conf.webServer.externalBaseUrl
-              )
-      seqE <-
+      client <- Resource.eval(tracedClient(httpClient))
+      caS    <- Resource.eval(CaServiceInit.caInit[IO](conf.observeEngine))
+      sys    <- Systems.build(conf.site,
+                              client,
+                              conf.observeEngine,
+                              conf.lucumaSSO,
+                              caS,
+                              conf.webServer.externalBaseUrl
+                )
+      seqE   <-
         Resource.eval(ObserveEngine.build(conf.site, sys, conf.observeEngine, conf.environment))
     } yield seqE
 

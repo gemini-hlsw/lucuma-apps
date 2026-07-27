@@ -361,3 +361,67 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
       l      <- s(Request[IO](method = Method.POST, uri = uri)).value
     yield l.map(_.status)
     assertIO(r, Some(Status.NoContent))
+
+  test("route template anonymizes ids and free-form values, keeping the command"):
+    def template(path: String): String =
+      ObserveCommandRoutes.routeTemplate(
+        Uri.unsafeFromString(path).path.segments.map(_.decoded()).toList
+      )
+
+    assertEquals(
+      template(s"/api/observe/${obsId.show}/${clientId.value}/start/telops"),
+      "/api/observe/{obsId}/{clientId}/start/{param}"
+    )
+    assertEquals(
+      template(
+        s"/api/observe/${obsId.show}/${stepId.show}/${clientId.value}/execute/Igrins2/telops"
+      ),
+      "/api/observe/{obsId}/{stepId}/{clientId}/execute/{param}/{param}"
+    )
+    assertEquals(
+      template(s"/api/observe/load/Igrins2/${obsId.show}/${clientId.value}/telops"),
+      "/api/observe/load/{param}/{obsId}/{clientId}/{param}"
+    )
+    assertEquals(
+      template(s"/api/observe/${clientId.value}/iq"),
+      "/api/observe/{clientId}/iq"
+    )
+    assertEquals(template("/api/observe/resetconditions"), "/api/observe/resetconditions")
+
+  test("route template is the same for different values of the same route"):
+    def template(path: String): String =
+      ObserveCommandRoutes.routeTemplate(
+        Uri.unsafeFromString(path).path.segments.map(_.decoded()).toList
+      )
+
+    val other = Observation.Id.fromLong(2000).get
+    assertEquals(
+      template(s"/api/observe/${obsId.show}/${clientId.value}/tcsEnabled/true"),
+      template(s"/api/observe/${other.show}/${ClientId(UUID.randomUUID()).value}/tcsEnabled/false")
+    )
+
+  test("path attributes carry the ids the route template anonymizes"):
+    def attributes(path: String): Map[String, String] =
+      ObserveCommandRoutes
+        .pathAttributes(Uri.unsafeFromString(path).path.segments.map(_.decoded()).toList)
+        .map(a => a.key.name -> a.value.toString)
+        .toMap
+
+    assertEquals(
+      attributes(
+        s"/api/observe/${obsId.show}/${stepId.show}/${clientId.value}/execute/Igrins2/Telops"
+      ),
+      Map(
+        "observe.obs.id"    -> obsId.show,
+        "observe.step.id"   -> stepId.show,
+        "observe.client.id" -> clientId.value.toString
+      )
+    )
+
+    // Free-form values (observer here) are not turned into attributes.
+    assertEquals(
+      attributes(s"/api/observe/${obsId.show}/${clientId.value}/start/Telops").keySet,
+      Set("observe.obs.id", "observe.client.id")
+    )
+
+    assertEquals(attributes("/api/observe/resetconditions"), Map.empty[String, String])

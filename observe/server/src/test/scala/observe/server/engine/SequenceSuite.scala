@@ -19,12 +19,14 @@ import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.otel4s.trace.Tracer
 
 import scala.Function.const
 
 class SequenceSuite extends munit.CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe-engine")
+  private given Tracer[IO] = Tracer.noop[IO]
 
   private val obsId = LObservation.Id(PosLong.unsafeFrom(1))
 

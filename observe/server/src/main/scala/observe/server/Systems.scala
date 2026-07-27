@@ -16,6 +16,8 @@ import clue.http4s.Http4sHttpBackend
 import clue.http4s.Http4sHttpClient
 import clue.http4s.Http4sWebSocketBackend
 import clue.http4s.Http4sWebSocketClient
+import clue.http4s.given
+import clue.otel4s.Otel4sMiddleware
 import clue.websocket.ReconnectionStrategy
 import edu.gemini.epics.acm.CaService
 import giapi.client.ghost.GhostClient
@@ -55,6 +57,7 @@ import org.http4s.client.Client
 import org.http4s.headers.Authorization
 import org.http4s.jdkhttpclient.JdkWSClient
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
@@ -71,9 +74,6 @@ case class Systems[F[_]] private[server] (
   ghost:               GhostController[F],
   igrins2:             Igrins2Controller[F],
   gnirs:               GnirsController[F],
-  //  gpi:                 GpiController[F],
-  //  niri:                NiriController[F],
-  //  nifs:                NifsController[F],
   altair:              AltairController[F],
   gems:                GemsController[F],
   guideDb:             GuideConfigDb[F],
@@ -82,8 +82,6 @@ case class Systems[F[_]] private[server] (
   gcalKeywordReader:   GcalKeywordReader[F],
   gmosKeywordReader:   GmosKeywordReader[F],
   gnirsKeywordReader:  GnirsKeywordReader[F],
-  /*  niriKeywordReader:   NiriKeywordReader[F],
-                                           nifsKeywordReader:   NifsKeywordReader[F],*/
   altairKeywordReader: AltairKeywordReader[F],
   gemsKeywordsReader:  GemsKeywordReader[F],
   gwsKeywordReader:    GwsKeywordReader[F]
@@ -97,7 +95,7 @@ object Systems {
     service:      CaService,
     tops:         Map[String, String],
     instanceName: String
-  )(using L: Logger[IO], T: Temporal[IO]) {
+  )(using Logger[IO], Temporal[IO], Tracer[IO]) {
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, reason) =>
         // Web Socket close codes: https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
@@ -120,25 +118,27 @@ object Systems {
 
     private val authHeader = Authorization(Credentials.Token(AuthScheme.Bearer, sso.serviceToken))
 
-    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom}]: F[OdbProxy[F]] =
+    def odbProxy[F[_]: {Async, Logger, Http4sHttpBackend, SecureRandom, Tracer}]: F[OdbProxy[F]] =
       for
         fetchClient                    <- // Http client used ONLY for recording events.
           Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
+        tracingFetch                    = Otel4sMiddleware(fetchClient)
         wsClient                       <- JdkWSClient.simple[F].allocated.map(_._1)
         given Http4sWebSocketBackend[F] = Http4sWebSocketBackend[F](wsClient)
         innerClient                    <-
           Http4sWebSocketClient.of[F, ObservationDB](settings.odbWs, "ODB-WS", WsReconnectStrategy)
+        tracingWS                       = Otel4sMiddleware(innerClient)
         _                              <-
-          innerClient.connect:
+          tracingWS.connect:
             Map(Authorization.name.toString -> authHeader.credentials.renderString.asJson).pure[F]
         odbCommands                    <-
           if (settings.odbNotifications)
             Ref
               .of[F, ObsRecordedIds](ObsRecordedIds.Empty)
-              .map(OdbCommandsImpl[F](_)(using fetchClient))
+              .map(OdbCommandsImpl[F](_)(using tracingFetch))
           else
             DummyOdbCommands[F].pure[F]
-      yield OdbProxy[F](odbCommands)(using innerClient)
+      yield OdbProxy[F](odbCommands)(using tracingWS)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
@@ -495,7 +495,7 @@ object Systems {
     sso:          LucumaSSOConfiguration,
     service:      CaService,
     instanceName: String
-  )(using T: Temporal[IO], L: Logger[IO]): Resource[IO, Systems[IO]] =
+  )(using Temporal[IO], Logger[IO], Tracer[IO]): Resource[IO, Systems[IO]] =
     Builder(settings, sso, service, decodeTops(settings.tops), instanceName).build(site, httpClient)
 
   def dummy[F[_]: {Async, Logger}]: F[Systems[F]] =
@@ -542,11 +542,7 @@ object Systems {
       new GmosControllerDisabled[F, GmosSite.South.type]("GMOS-S")
     private val gmosNorthDisabled: GmosNorthController[F]   =
       new GmosControllerDisabled[F, GmosSite.North.type]("GMOS-N")
-    //    private val gsaoiDisabled: GsaoiController[F]           = new GsaoiControllerDisabled[F]
-    //    private val gpiDisabled: GpiController[F]               = new GpiControllerDisabled[F](systems.gpi.statusDb)
     private val ghostDisabled: GhostController[F]           = new GhostControllerDisabled[F]
-    //    private val nifsDisabled: NifsController[F]             = new NifsControllerDisabled[F]
-    //    private val niriDisabled: NiriController[F]             = new NiriControllerDisabled[F]
     private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
 
     def tcsSouth(overrides: SystemOverrides): TcsSouthController[F] =
@@ -589,26 +585,10 @@ object Systems {
       if (overrides.isInstrumentEnabled.value) systems.igrins2
       else igrins2Disabled
 
-    //    def gsaoi(overrides: SystemOverrides): GsaoiController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.gsaoi
-    //      else gsaoiDisabled
-    //
-    //    def gpi(overrides: SystemOverrides): GpiController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.gpi
-    //      else gpiDisabled
-    //
     def ghost(overrides: SystemOverrides): GhostController[F] =
       if (overrides.isInstrumentEnabled) systems.ghost
       else ghostDisabled
-    //
-    //    def nifs(overrides: SystemOverrides): NifsController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.nifs
-    //      else nifsDisabled
-    //
-    //    def niri(overrides: SystemOverrides): NiriController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.niri
-    //      else niriDisabled
-    //
+
     def gnirs(overrides: SystemOverrides): GnirsController[F] =
       if (overrides.isInstrumentEnabled.value) systems.gnirs
       else gnirsDisabled

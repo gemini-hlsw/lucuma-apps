@@ -87,6 +87,7 @@ import org.http4s.Uri
 import org.http4s.implicits.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.noop.NoOpLogger
+import org.typelevel.otel4s.trace.Tracer
 
 import java.time.Instant
 import java.util.UUID
@@ -95,6 +96,7 @@ import scala.concurrent.duration.*
 trait TestCommon extends munit.CatsEffectSuite {
   import TestCommon.*
   given Logger[IO] = NoOpLogger.impl[IO]
+  given Tracer[IO] = Tracer.noop[IO]
 
   val defaultSystems: IO[Systems[IO]] = Systems.dummy[IO]
 
