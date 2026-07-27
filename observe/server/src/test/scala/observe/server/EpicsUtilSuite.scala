@@ -6,6 +6,7 @@ package observe.server
 import cats.effect.IO
 import edu.gemini.epics.acm.CaWindowStabilizer
 import edu.gemini.epics.acm.test.DummyAttribute
+import lucuma.core.util.RetryFlakyTests
 import lucuma.core.util.TimeSpan
 
 import java.time.Duration
@@ -13,9 +14,7 @@ import java.time.temporal.ChronoUnit
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledThreadPoolExecutor
 
-class EpicsUtilSuite extends munit.CatsEffectSuite {
-
-  override def munitFlakyOK: Boolean = true
+class EpicsUtilSuite extends munit.CatsEffectSuite with RetryFlakyTests {
 
   val executor: ScheduledExecutorService = new ScheduledThreadPoolExecutor(2)
 

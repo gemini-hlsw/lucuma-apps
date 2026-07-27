@@ -629,7 +629,8 @@ lazy val observe_server = project
         LucumaCore.value ++
         In(Test)(
           MUnit.value ++
-            Log4CatsNoop.value
+            Log4CatsNoop.value ++
+            LucumaCoreTestkit.value
         ),
     headerSources / excludeFilter := HiddenFileFilter || (file(
       "observe/server"
@@ -800,6 +801,7 @@ lazy val navigate_epics = project
         In(Test)(
           MUnit.value ++
             MUnitCatsEffect.value ++
+            LucumaCoreTestkit.value ++
             EpicsJca.value
         ),
     Test / parallelExecution := false
@@ -904,7 +906,8 @@ lazy val navigate_server = project
         Http4sClient.value ++
         In(Test)(
           MUnit.value ++
-            MUnitCatsEffect.value
+            MUnitCatsEffect.value ++
+            LucumaCoreTestkit.value
         )
   )
 
@@ -1050,13 +1053,11 @@ val navigateChangedCond: String                 =
     changedProjectCond("projectDef")
   )
 
-val herokuToken  = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
-val munitFlakyOk = "MUNIT_FLAKY_OK" -> "${{ vars.MUNIT_FLAKY_OK }}"
+val herokuToken = "HEROKU_API_KEY" -> "${{ secrets.HEROKU_API_KEY }}"
 
 ThisBuild / githubWorkflowGeneratedUploadSteps := Seq.empty
 ThisBuild / githubWorkflowSbtCommand           := "sbt -v -J-Xmx6g"
 ThisBuild / githubWorkflowEnv += herokuToken
-ThisBuild / githubWorkflowEnv += munitFlakyOk
 
 ThisBuild / githubWorkflowPermissions := Some(
   Permissions.Specify.defaultPermissive

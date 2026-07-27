@@ -5,6 +5,7 @@ package navigate.epics
 
 import cats.effect.IO
 import cats.effect.std.Dispatcher
+import lucuma.core.util.RetryFlakyTests
 import munit.CatsEffectSuite
 import navigate.epics.Channel.StreamEvent
 import navigate.epics.EpicsSystem.TelltaleChannel
@@ -14,9 +15,7 @@ import org.epics.ca.ConnectionState
 import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.FiniteDuration
 
-class VerifiedEpicsSpec extends CatsEffectSuite {
-
-  override def munitFlakyOK: Boolean = true
+class VerifiedEpicsSpec extends CatsEffectSuite with RetryFlakyTests {
 
   private val epicsService = ResourceFunFixture(EpicsService.getBuilder.build[IO])
 
