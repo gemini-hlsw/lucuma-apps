@@ -628,6 +628,7 @@ lazy val observe_server = project
         Circe.value ++
         CatsEffect.value ++
         LucumaCore.value ++
+        Otel4s.value ++
         In(Test)(
           MUnit.value ++
             Log4CatsNoop.value ++

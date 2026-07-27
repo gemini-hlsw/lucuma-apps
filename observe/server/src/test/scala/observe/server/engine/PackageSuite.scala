@@ -30,6 +30,7 @@ import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.otel4s.trace.Tracer
 
 import java.util.concurrent.atomic.AtomicInteger
 import scala.concurrent.duration.*
@@ -48,6 +49,7 @@ def user =
 class PackageSuite extends munit.CatsEffectSuite {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe-engine")
+  private given Tracer[IO] = Tracer.noop[IO]
 
   object DummyResult extends Result.RetVal
 

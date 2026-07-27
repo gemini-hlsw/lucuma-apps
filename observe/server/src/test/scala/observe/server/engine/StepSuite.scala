@@ -23,6 +23,7 @@ import observe.server.SeqEvent
 import observe.server.SequenceData
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import org.typelevel.otel4s.trace.Tracer
 
 import scala.Function.const
 import scala.concurrent.duration.*
@@ -30,6 +31,7 @@ import scala.concurrent.duration.*
 class StepSuite extends CatsEffectSuite {
 
   private given L: Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("observe")
+  private given Tracer[IO]    = Tracer.noop[IO]
 
   private val obsId = observationId(1)
 

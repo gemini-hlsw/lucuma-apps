@@ -20,6 +20,7 @@ import observe.model.SequenceStatus.*
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.{SpanContext, Tracer}
 
 import EventResult.Outcome
 import EventResult.SystemUpdate
@@ -29,9 +30,19 @@ import Result.RetVal
 import UserEvent.*
 import Handle.given
 
+/** An [[Event]] paired with the trace context that was active when it was enqueued. The engine
+  * processes events in a single background fiber started at server startup, whose ambient trace
+  * context is empty, so without this the effects (e.g. odb calls) would be emitted as root spans,
+  * disconnected from the originating request. By capturing the parent context on enqueue and
+  * restoring it (via `Tracer#childScope`) when the event is processed, odb client spans become
+  * children of the request span.
+  */
+private[engine] final case class TracedEvent[F[_]](traceParent: Option[SpanContext], event: Event[F])
+
 class Engine[F[_]: {MonadCancelThrow, Logger}] private (
-  streamQueue:  Queue[F, Stream[F, Event[F]]],
-  inputQueue:   Queue[F, Event[F]],
+  tracer:       Tracer[F],
+  streamQueue:  Queue[F, Stream[F, TracedEvent[F]]],
+  inputQueue:   Queue[F, TracedEvent[F]],
   loadNextStep: (Engine[F], Observation.Id, SequenceType, Atom.Id) => EngineHandle[F, SeqEvent]
 ) {
   val L: Logger[F] = Logger[F]
@@ -511,11 +522,16 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
       Stream
         .fromQueueUnterminated(streamQueue)
         .parJoinUnbounded
-        .evalMapAccumulate(initialState): (s, a) =>
-          f(a, s).flatMap:
+        .evalMapAccumulate(initialState): (s, te) =>
+          // Restore the trace context captured when the event was enqueued, so the effects
+          // executed in this background consumer fiber are parented to the originating request.
+          val runEvent =
+            te.traceParent.fold(f(te.event, s))(c => tracer.childScope(c)(f(te.event, s)))
+          runEvent.flatMap:
             // Optimization to avoid processing empty streams.
             case (ns, b, Stream.empty) => (ns, b).pure[F]
-            case (ns, b, st)           => streamQueue.offer(st) >> (ns, b).pure[F]
+            // Tag produced events with the same parent so their deferred effects stay parented.
+            case (ns, b, st)           => streamQueue.offer(st.map(TracedEvent(te.traceParent, _))) >> (ns, b).pure[F]
         .map(_._2)
 
   private def runE(
@@ -535,9 +551,15 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   ): Stream[F, (EventResult, EngineState[F])] =
     mapEvalState(s0, runE(onSystemEvent)(_, _))
 
-  def offer(in: Event[F]): F[Unit] = inputQueue.offer(in)
+  def offer(in: Event[F]): F[Unit] =
+    tracer.currentSpanContext.flatMap(ctx => inputQueue.offer(TracedEvent(ctx, in)))
 
-  def inject(f: F[Event[F]]): F[Unit] = streamQueue.offer(Stream.eval(f))
+  def inject(f: F[Event[F]]): F[Unit] =
+    tracer.currentSpanContext.flatMap: ctx =>
+      streamQueue.offer:
+        // `f` is evaluated when the stream is pulled (in the consumer fiber), so restore the
+        // captured parent context around it.
+        Stream.eval(ctx.fold(f)(c => tracer.childScope(c)(f))).map(TracedEvent(ctx, _))
 }
 
 object Engine {
@@ -553,9 +575,9 @@ object Engine {
 
   def build[F[_]: {Concurrent, Logger}](
     loadNextStep: (Engine[F], Observation.Id, SequenceType, Atom.Id) => EngineHandle[F, SeqEvent]
-  ): F[Engine[F]] = for {
-    sq <- Queue.unbounded[F, Stream[F, Event[F]]]
-    iq <- Queue.unbounded[F, Event[F]]
-  } yield new Engine(sq, iq, loadNextStep)
+  )(using tracer: Tracer[F]): F[Engine[F]] = for {
+    sq <- Queue.unbounded[F, Stream[F, TracedEvent[F]]]
+    iq <- Queue.unbounded[F, TracedEvent[F]]
+  } yield new Engine(tracer, sq, iq, loadNextStep)
 
 }
