@@ -369,17 +369,17 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
       )
 
     assertEquals(
-      template(s"/api/observe/${obsId.show}/${clientId.value}/start/Carlos%20Quiroz"),
+      template(s"/api/observe/${obsId.show}/${clientId.value}/start/telops"),
       "/api/observe/{obsId}/{clientId}/start/{param}"
     )
     assertEquals(
       template(
-        s"/api/observe/${obsId.show}/${stepId.show}/${clientId.value}/execute/Igrins2/Carlos%20Quiroz"
+        s"/api/observe/${obsId.show}/${stepId.show}/${clientId.value}/execute/Igrins2/telops"
       ),
       "/api/observe/{obsId}/{stepId}/{clientId}/execute/{param}/{param}"
     )
     assertEquals(
-      template(s"/api/observe/load/Igrins2/${obsId.show}/${clientId.value}/Carlos%20Quiroz"),
+      template(s"/api/observe/load/Igrins2/${obsId.show}/${clientId.value}/telops"),
       "/api/observe/load/{param}/{obsId}/{clientId}/{param}"
     )
     assertEquals(
@@ -399,3 +399,29 @@ class ObserveCommandRoutesSuite extends munit.CatsEffectSuite with TestRoutes:
       template(s"/api/observe/${obsId.show}/${clientId.value}/tcsEnabled/true"),
       template(s"/api/observe/${other.show}/${ClientId(UUID.randomUUID()).value}/tcsEnabled/false")
     )
+
+  test("path attributes carry the ids the route template anonymizes"):
+    def attributes(path: String): Map[String, String] =
+      ObserveCommandRoutes
+        .pathAttributes(Uri.unsafeFromString(path).path.segments.map(_.decoded()).toList)
+        .map(a => a.key.name -> a.value.toString)
+        .toMap
+
+    assertEquals(
+      attributes(
+        s"/api/observe/${obsId.show}/${stepId.show}/${clientId.value}/execute/Igrins2/Telops"
+      ),
+      Map(
+        "observe.obs.id"    -> obsId.show,
+        "observe.step.id"   -> stepId.show,
+        "observe.client.id" -> clientId.value.toString
+      )
+    )
+
+    // Free-form values (observer here) are not turned into attributes.
+    assertEquals(
+      attributes(s"/api/observe/${obsId.show}/${clientId.value}/start/Telops").keySet,
+      Set("observe.obs.id", "observe.client.id")
+    )
+
+    assertEquals(attributes("/api/observe/resetconditions"), Map.empty[String, String])

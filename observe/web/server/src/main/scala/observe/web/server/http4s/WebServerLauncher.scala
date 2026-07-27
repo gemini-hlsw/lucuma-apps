@@ -3,6 +3,7 @@
 
 package observe.web.server.http4s
 
+import cats.data.Kleisli
 import cats.data.OptionT
 import cats.effect.*
 import cats.effect.syntax.all.*
@@ -31,6 +32,7 @@ import observe.web.server.OcsBuildInfo
 import observe.web.server.config.*
 import observe.web.server.otel.ObserveOtel
 import org.http4s.HttpRoutes
+import org.http4s.Request
 import org.http4s.client.Client
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
@@ -178,6 +180,14 @@ object WebServerLauncher extends IOApp with LogInitialization {
         ).service
       )
 
+    def tracePathIds(routes: HttpRoutes[F]): HttpRoutes[F] =
+      Kleisli: (req: Request[F]) =>
+        val attributes =
+          ObserveCommandRoutes.pathAttributes(req.uri.path.segments.map(_.decoded()).toList)
+        OptionT
+          .liftF(Tracer[F].currentSpanOrNoop.flatMap(_.addAttributes(attributes*)))
+          .whenA(attributes.nonEmpty) *> routes(req)
+
     def otelMiddleware: Resource[F, HttpRoutes[F] => HttpRoutes[F]] =
       for
         metricsOps <- Resource.eval(OtelMetrics.serverMetricsOps[F]())
@@ -190,7 +200,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       yield (routes: HttpRoutes[F]) =>
         otelSrv.asHttpRoutesMiddleware(
           TracingMiddleware.traceUser(ssoClient)(
-            MetricsMiddleware.httpMetrics(metricsOps)(routes)
+            tracePathIds(MetricsMiddleware.httpMetrics(metricsOps)(routes))
           )
         )
 

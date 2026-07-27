@@ -508,13 +508,6 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         handleSystemEvent(se).flatMap: (r: EventResult) =>
           onSystemEvent.applyOrElse(se, (_: SystemEvent) => EngineHandle.unit).as(r)
 
-  /**
-   * Spans the handling of a [[UserEvent.ModifyState]], which is how every command that reaches the
-   * odb is submitted. Events are handled in a background fiber, so the time between a request
-   * enqueueing one and this span starting is the queue latency, and the span itself is the handler
-   * — without it both are indistinguishable in a trace. Only `ModifyState` is spanned: the other
-   * events are frequent (a `PartialResult` per exposure update) and do little.
-   */
   private def spanForEvent[A](ev: Event[F])(fa: F[A]): F[A] =
     ev match
       case Event.EventUser(ModifyState(_)) => T.span("engine-modify-state").surround(fa)

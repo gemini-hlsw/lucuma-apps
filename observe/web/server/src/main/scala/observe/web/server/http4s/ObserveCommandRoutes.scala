@@ -12,10 +12,12 @@ import lucuma.core.enums.SkyBackground
 import lucuma.core.enums.WaterVapor
 import lucuma.core.model.CloudExtinction
 import lucuma.core.model.ImageQuality
+import lucuma.core.model.Observation
 import lucuma.core.model.User
 import lucuma.core.model.sequence.Step
 import lucuma.core.refined.given
 import lucuma.sso.client.SsoClient
+import observe.model.ClientId
 import observe.model.enums.RunOverride
 import observe.server.ObserveEngine
 import org.http4s.*
@@ -23,9 +25,23 @@ import org.http4s.circe.*
 import org.http4s.dsl.*
 import org.http4s.otel4s.middleware.server.RouteClassifier
 import org.http4s.server.middleware.GZip
+import org.typelevel.otel4s.Attribute
 
 object ObserveCommandRoutes:
   private val ApiPrefix: List[String] = List("api", "observe")
+
+  /** A path segment, recognized by the same extractors the routes below use. */
+  private enum PathVar:
+    case ObsId(value:  Observation.Id)
+    case StepId(value: Step.Id)
+    case Client(value: ClientId)
+    case Other(value:  String)
+
+  private def parseSegment(segment: String): PathVar = segment match
+    case ObsIdVar(obsId)       => PathVar.ObsId(obsId)
+    case StepIdVar(stepId)     => PathVar.StepId(stepId)
+    case ClientIDVar(clientId) => PathVar.Client(clientId)
+    case other                 => PathVar.Other(other)
 
   /** See `routeClassifier`. */
   private[http4s] def routeTemplate(segments: List[String]): String =
@@ -33,13 +49,29 @@ object ObserveCommandRoutes:
     val (templated, _) =
       rest.foldLeft((List.empty[String], false)):
         case ((acc, commandSeen), segment) =>
-          segment match
-            case ObsIdVar(_)             => ("{obsId}" :: acc, commandSeen)
-            case StepIdVar(_)            => ("{stepId}" :: acc, commandSeen)
-            case ClientIDVar(_)          => ("{clientId}" :: acc, commandSeen)
-            case command if !commandSeen => (command :: acc, true)
-            case _                       => ("{param}" :: acc, commandSeen)
+          parseSegment(segment) match
+            case PathVar.ObsId(_)                 => ("{obsId}" :: acc, commandSeen)
+            case PathVar.StepId(_)                => ("{stepId}" :: acc, commandSeen)
+            case PathVar.Client(_)                => ("{clientId}" :: acc, commandSeen)
+            case PathVar.Other(c) if !commandSeen => (c :: acc, true)
+            case PathVar.Other(_)                 => ("{param}" :: acc, commandSeen)
     (prefix ++ templated.reverse).mkString("/", "/", "")
+
+  /**
+   * The ids `routeTemplate` includes as span attributes, so that a trace can be found by what it
+   * acted on — `{span.observe.obs.id = "o-5488"}` gathers every load, configure and step advance
+   * for one observation.
+   */
+  private[http4s] def pathAttributes(segments: List[String]): List[Attribute[?]] =
+    segments
+      .drop(ApiPrefix.length)
+      .flatMap: segment =>
+        parseSegment(segment) match
+          case PathVar.ObsId(obsId)     => List(Attribute("observe.obs.id", obsId.show))
+          case PathVar.StepId(stepId)   => List(Attribute("observe.step.id", stepId.show))
+          case PathVar.Client(clientId) =>
+            List(Attribute("observe.client.id", clientId.value.toString))
+          case PathVar.Other(_)         => Nil
 
 /**
  * Rest Endpoints under the /api route
