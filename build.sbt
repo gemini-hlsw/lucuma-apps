@@ -617,6 +617,7 @@ lazy val observe_server = project
         PPrint.value ++
         Clue.value ++
         ClueHttp4s.value ++
+        ClueOtel4s.value ++
         CatsParse.value ++
         Acm.value ++
         GiapiScala.value ++

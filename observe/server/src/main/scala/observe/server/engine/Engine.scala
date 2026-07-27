@@ -20,7 +20,8 @@ import observe.model.SequenceStatus.*
 import observe.server.EngineState
 import observe.server.SeqEvent
 import org.typelevel.log4cats.Logger
-import org.typelevel.otel4s.trace.{SpanContext, Tracer}
+import org.typelevel.otel4s.trace.SpanContext
+import org.typelevel.otel4s.trace.Tracer
 
 import EventResult.Outcome
 import EventResult.SystemUpdate
@@ -30,14 +31,18 @@ import Result.RetVal
 import UserEvent.*
 import Handle.given
 
-/** An [[Event]] paired with the trace context that was active when it was enqueued. The engine
-  * processes events in a single background fiber started at server startup, whose ambient trace
-  * context is empty, so without this the effects (e.g. odb calls) would be emitted as root spans,
-  * disconnected from the originating request. By capturing the parent context on enqueue and
-  * restoring it (via `Tracer#childScope`) when the event is processed, odb client spans become
-  * children of the request span.
-  */
-private[engine] final case class TracedEvent[F[_]](traceParent: Option[SpanContext], event: Event[F])
+/**
+ * An [[Event]] paired with the trace context that was active when it was enqueued. The engine
+ * processes events in a single background fiber started at server startup, whose ambient trace
+ * context is empty, so without this the effects (e.g. odb calls) would be emitted as root spans,
+ * disconnected from the originating request. By capturing the parent context on enqueue and
+ * restoring it (via `Tracer#childScope`) when the event is processed, odb client spans become
+ * children of the request span.
+ */
+private[engine] final case class TracedEvent[F[_]](
+  traceParent: Option[SpanContext],
+  event:       Event[F]
+)
 
 class Engine[F[_]: {MonadCancelThrow, Logger}] private (
   tracer:       Tracer[F],
@@ -531,7 +536,8 @@ class Engine[F[_]: {MonadCancelThrow, Logger}] private (
             // Optimization to avoid processing empty streams.
             case (ns, b, Stream.empty) => (ns, b).pure[F]
             // Tag produced events with the same parent so their deferred effects stay parented.
-            case (ns, b, st)           => streamQueue.offer(st.map(TracedEvent(te.traceParent, _))) >> (ns, b).pure[F]
+            case (ns, b, st)           =>
+              streamQueue.offer(st.map(TracedEvent(te.traceParent, _))) >> (ns, b).pure[F]
         .map(_._2)
 
   private def runE(
