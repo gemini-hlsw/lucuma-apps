@@ -334,6 +334,7 @@ object SequenceTile
                             Igrins2SequenceTable(
                               visitsViewOpt,
                               config.static,
+                              igrins2ExecutionView.flatAcquisition,
                               igrins2ExecutionView.flatScience,
                               scienceSn,
                               isEditEnabled,

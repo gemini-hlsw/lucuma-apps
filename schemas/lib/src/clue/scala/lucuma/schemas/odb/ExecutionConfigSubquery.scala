@@ -88,6 +88,11 @@ object ExecutionConfigSubquery
           saveSVCImages
           offsetMode
         }
+        acquisition {
+          nextAtom $Igrins2AtomSubquery
+          possibleFuture $Igrins2AtomSubquery
+          hasMore
+        }
         science {
           nextAtom $Igrins2AtomSubquery
           possibleFuture $Igrins2AtomSubquery

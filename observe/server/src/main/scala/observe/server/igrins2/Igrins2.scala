@@ -111,27 +111,7 @@ final case class Igrins2[F[_]: {Logger as L, MonadThrow as F, Temporal}](
 }
 
 object Igrins2:
-//  object specifics:
-//
-////    override def instrument: Instrument =
-////      Instrument.Igrins2
-//
-//    override def sfName: LightSinkName =
-//      LightSinkName.Igrins2
-
-  // TODO this could be part of the static config in core
-  val CentralWavelength: Option[Wavelength] = Wavelength.fromIntNanometers(1975)
-
-//  def build[F[_]: {MonadThrow, Temporal, Logger}](
-//    controller:      Igrins2Controller[F],
-//    dynamicConfig:   Igrins2DynamicConfig,
-//    telescopeConfig: TelescopeConfig,
-//    observeClass:    ObserveClass
-//  ): Igrins2[F] =
-//    Igrins2(controller, Igrins2Config(dynamicConfig, telescopeConfig, observeClass))
-
-  def build[F[_]: {MonadThrow, Temporal, Logger}]
-    : F[InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig]] =
+  def build[F[_]: {MonadThrow, Temporal, Logger}] =
     new InstrumentStepBuilder[F, Igrins2StaticConfig, Igrins2DynamicConfig] {
       override def build(
         systems:           Systems.OverriddenSystems[F],
