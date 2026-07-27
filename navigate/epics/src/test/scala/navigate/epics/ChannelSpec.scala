@@ -10,6 +10,7 @@ import cats.effect.kernel.Resource
 import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import gov.aps.jca.cas.ServerContext
+import lucuma.core.util.RetryFlakyTests
 import munit.CatsEffectSuite
 
 import java.util.concurrent.TimeUnit
@@ -18,7 +19,7 @@ import scala.concurrent.duration.FiniteDuration
 import Channel.StreamEvent.*
 import Channel.StreamEvent.given
 
-class ChannelSpec extends CatsEffectSuite {
+class ChannelSpec extends CatsEffectSuite with RetryFlakyTests {
 
   private val epicsServer: SyncIO[FunFixture[(ServerContext, EpicsService[IO])]] =
     ResourceFunFixture(

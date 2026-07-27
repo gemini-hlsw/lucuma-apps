@@ -25,6 +25,7 @@ import lucuma.core.math.Wavelength
 import lucuma.core.model.M1GuideConfig
 import lucuma.core.model.M2GuideConfig.M2GuideOn
 import lucuma.core.model.TelescopeGuideConfig
+import lucuma.core.util.RetryFlakyTests
 import lucuma.horizons.HorizonsClient
 import munit.CatsEffectSuite
 import navigate.model.*
@@ -40,11 +41,9 @@ import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-class NavigateEngineSpec extends CatsEffectSuite {
+class NavigateEngineSpec extends CatsEffectSuite with RetryFlakyTests {
 
   private given Logger[IO] = Slf4jLogger.getLoggerFromName[IO]("navigate-engine")
-
-  override def munitFlakyOK: Boolean = true
 
   val guideOnCfg = TelescopeGuideConfig(
     mountGuide = MountGuideOption.MountGuideOn,

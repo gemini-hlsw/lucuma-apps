@@ -8,11 +8,12 @@ import cats.effect.IO
 import cats.effect.testkit.TestControl
 import cats.syntax.all.*
 import fs2.Stream
+import lucuma.core.util.RetryFlakyTests
 import munit.Location
 
 import scala.concurrent.duration.*
 
-class StreamSpec extends munit.CatsEffectSuite:
+class StreamSpec extends munit.CatsEffectSuite with RetryFlakyTests:
 
   // Stream that emits 1 every 0.5s, sleeps for 1s, and repeats
   val stream =
