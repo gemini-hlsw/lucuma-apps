@@ -32,10 +32,10 @@ object ObserveCommandRoutes:
 
   /** A path segment, recognized by the same extractors the routes below use. */
   private enum PathVar:
-    case ObsId(value:  Observation.Id)
+    case ObsId(value: Observation.Id)
     case StepId(value: Step.Id)
     case Client(value: ClientId)
-    case Other(value:  String)
+    case Other(value: String)
 
   private def parseSegment(segment: String): PathVar = segment match
     case ObsIdVar(obsId)       => PathVar.ObsId(obsId)

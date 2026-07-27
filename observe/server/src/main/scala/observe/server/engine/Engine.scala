@@ -531,7 +531,7 @@ class Engine[F[_]: {MonadCancelThrow, Logger, Tracer as T}] private (
         .evalMapAccumulate(initialState): (s, te) =>
           // Restore the trace context captured when the event was enqueued, so the effects
           // executed in this background consumer fiber are parented to the originating request.
-          val handled = spanForEvent(te.event)(f(te.event, s))
+          val handled  = spanForEvent(te.event)(f(te.event, s))
           val runEvent =
             te.traceParent.fold(handled)(c => T.childScope(c)(handled))
           runEvent.flatMap:
