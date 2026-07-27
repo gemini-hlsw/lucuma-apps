@@ -21,7 +21,25 @@ import observe.server.ObserveEngine
 import org.http4s.*
 import org.http4s.circe.*
 import org.http4s.dsl.*
+import org.http4s.otel4s.middleware.server.RouteClassifier
 import org.http4s.server.middleware.GZip
+
+object ObserveCommandRoutes:
+  private val ApiPrefix: List[String] = List("api", "observe")
+
+  /** See `routeClassifier`. */
+  private[http4s] def routeTemplate(segments: List[String]): String =
+    val (prefix, rest) = segments.splitAt(ApiPrefix.length)
+    val (templated, _) =
+      rest.foldLeft((List.empty[String], false)):
+        case ((acc, commandSeen), segment) =>
+          segment match
+            case ObsIdVar(_)             => ("{obsId}" :: acc, commandSeen)
+            case StepIdVar(_)            => ("{stepId}" :: acc, commandSeen)
+            case ClientIDVar(_)          => ("{clientId}" :: acc, commandSeen)
+            case command if !commandSeen => (command :: acc, true)
+            case _                       => ("{param}" :: acc, commandSeen)
+    (prefix ++ templated.reverse).mkString("/", "/", "")
 
 /**
  * Rest Endpoints under the /api route
@@ -207,10 +225,16 @@ class ObserveCommandRoutes[F[_]: {Async, Compression}](
         oe.resetConditions *> NoContent()
   }
 
+  /**
+   * Supplies the `http.route` span attribute, which the otel4s server middleware uses to name spans
+   * — `POST /api/observe/{obsId}/{clientId}/start/{param}` rather than a bare `POST`.
+   */
+  val routeClassifier: RouteClassifier =
+    RouteClassifier.of[F]:
+      case req
+          if req.uri.path.segments.map(_.decoded()).startsWith(ObserveCommandRoutes.ApiPrefix) =>
+        ObserveCommandRoutes.routeTemplate(req.uri.path.segments.map(_.decoded()).toList)
+
   val service: HttpRoutes[F] =
     GZip(commandServices)
-//   val service: HttpRoutes[F] =
-//     refreshCommand <+> TokenRefresher(GZip(httpAuthentication.reqAuth(commandServices)),
-//                                       httpAuthentication
-//   )
 }

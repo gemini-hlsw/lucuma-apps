@@ -153,6 +153,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
     oe:        ObserveEngine[F]
   ): Resource[F, Server] = {
 
+    val commandRoutes: ObserveCommandRoutes[F] = ObserveCommandRoutes(ssoClient, oe)
+
     def router(
       wsb:                      WebSocketBuilder2[F],
       events:                   Topic[F, (Option[ClientId], ClientEvent)]
@@ -160,7 +162,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       Router[F](
         "/"                   -> StaticRoutes().service,
         "/api/observe/guide"  -> GuideConfigDbRoutes(oe.systems.guideDb).service,
-        "/api/observe"        -> ObserveCommandRoutes(ssoClient, oe).service,
+        "/api/observe"        -> commandRoutes.service,
         "/api/observe/ping"   -> PingRoutes(ssoClient).service,
         "/api/observe/events" -> ObserveEventRoutes(
           conf.site,
@@ -181,6 +183,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
         metricsOps <- Resource.eval(OtelMetrics.serverMetricsOps[F]())
         spanData    = ServerSpanDataProvider
                         .openTelemetry(TracingMiddleware.redactor)
+                        .withRouteClassifier(commandRoutes.routeClassifier)
                         .optIntoHttpRequestHeaders(HeaderRedactor.default)
                         .optIntoHttpResponseHeaders(HeaderRedactor.default)
         otelSrv    <- Resource.eval(OtelServerMiddleware.builder[F](spanData).build)
