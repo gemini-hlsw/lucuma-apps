@@ -28,7 +28,7 @@ final case class Flamingos2SequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.Flamingos2,
-  acquisitonSN:         Option[SignalToNoiseAt],
+  acquisitionSN:        Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,
