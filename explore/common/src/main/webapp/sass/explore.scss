@@ -4249,6 +4249,32 @@ span.explore-offsets-count {
   padding-right: 2px;
 }
 
+// SVC panel body: two columns
+// — controls (Enable SVC + Exp. Time) on the left
+// - telescope offsets editor on the right.
+.explore-svc-acquisition-layout {
+  display: grid;
+  align-items: start;
+  gap: 1em;
+  grid-template-columns: 1fr 2fr;
+
+  .pl-form-field-label {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: lucumaUICommon.$tablet-responsive-cutoff) {
+  .explore-svc-acquisition-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.explore-svc-telescope-configs-editor {
+  .telescope-config-row {
+    width: 100%;
+  }
+}
+
 .pl-form-column.explore-gnirs-config-editor {
   grid-template-columns: [label] 0.6fr [field] 1fr;
 }

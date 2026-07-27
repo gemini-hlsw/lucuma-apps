@@ -8,7 +8,7 @@ import lucuma.core.math.SignalToNoise
 import lucuma.itc.SignalToNoiseAt
 
 trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
-  def acquisitonSN: Option[SignalToNoiseAt]
+  def acquisitionSN: Option[SignalToNoiseAt]
   def scienceSN: Option[SignalToNoiseAt]
 
   private def selectSNValue(seqType: SequenceType)(snAt: SignalToNoiseAt): SignalToNoise =
@@ -21,6 +21,6 @@ trait SpectroscopySequenceTable[D](useAcquisitionCoadds: Boolean = false):
       _ =>
         val snPerClass: Option[SignalToNoiseAt] =
           seqType match
-            case SequenceType.Acquisition => acquisitonSN
+            case SequenceType.Acquisition => acquisitionSN
             case SequenceType.Science     => scienceSN
         snPerClass.map(selectSNValue(seqType))

@@ -419,6 +419,8 @@ object ExploreStyles:
   val ImagingFilterGridAction: Css         = Css("explore-imaging-filter-grid-action")
   val TelescopeConfigGeneratorOffsets: Css = Css("explore-telescope-config-generator-offsets")
   val AcquisitionCustomizationGrid: Css    = Css("explore-acquisition-customization-grid")
+  val SvcTelescopeConfigsEditor: Css       = Css("explore-svc-telescope-configs-editor")
+  val SvcAcquisitionLayout: Css            = Css("explore-svc-acquisition-layout")
   val AdvancedConfigurationButtons: Css    = Css("explore-advanced-configuration-buttons")
   val GmosLongSlitBinning: Css             = Css("explore-gmos-longslit-binning")
   val ExploreTable: Css                    = Css("explore-table")

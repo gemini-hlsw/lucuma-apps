@@ -24,7 +24,7 @@ final case class GnirsSequenceTable(
   staticConfig:         GnirsStaticConfig,
   acquisition:          View[List[Atom[GnirsDynamicConfig]]],
   science:              View[List[Atom[GnirsDynamicConfig]]],
-  acquisitonSN:         Option[SignalToNoiseAt],
+  acquisitionSN:        Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
   isEditingAcquisition: View[IsEditing],

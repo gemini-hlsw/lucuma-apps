@@ -27,7 +27,7 @@ final case class GmosSouthSpectroscopySequenceTable(
   clientMode:           ClientMode,
   obsId:                Observation.Id,
   config:               ExecutionConfig.GmosSouth,
-  acquisitonSN:         Option[SignalToNoiseAt],
+  acquisitionSN:        Option[SignalToNoiseAt],
   scienceSN:            Option[SignalToNoiseAt],
   visits:               View[Option[ExecutionVisits]],
   executionState:       ExecutionState,

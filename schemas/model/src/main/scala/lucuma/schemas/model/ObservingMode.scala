@@ -27,6 +27,8 @@ import lucuma.core.model.sequence.gnirs.GnirsAcquisitionMode
 import lucuma.core.model.sequence.gnirs.GnirsFocusMotorStepsValue
 import lucuma.core.model.sequence.gnirs.GnirsFpu
 import lucuma.core.model.sequence.gnirs.defaultIfuTelescopeConfigs
+import lucuma.core.model.sequence.igrins2.SvcDefaultExposure
+import lucuma.core.model.sequence.igrins2.SvcDefaultTelescopeConfigs
 import lucuma.core.util.Enumerated
 import lucuma.core.util.TimeSpan
 import lucuma.itc.ItcGhostDetector
@@ -796,6 +798,7 @@ object ObservingMode:
 
   case class Igrins2LongSlit(
     exposureTimeMode:         ExposureTimeMode,
+    svc:                      Option[Igrins2LongSlit.Svc],
     defaultTelescopeConfigs:  SlitTelescopeConfigs,
     explicitTelescopeConfigs: Option[SlitTelescopeConfigs]
   ) extends ObservingMode(Instrument.Igrins2.some) derives Eq:
@@ -803,20 +806,63 @@ object ObservingMode:
       explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
 
     def isCustomized: Boolean =
-      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+      explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs) ||
+        svc.exists(_.isCustomized)
 
     def revertCustomizations: Igrins2LongSlit =
-      this.copy(explicitTelescopeConfigs = None)
+      this.copy(explicitTelescopeConfigs = None, svc = svc.map(_.revertCustomizations))
 
   object Igrins2LongSlit:
     given Decoder[Igrins2LongSlit] = deriveDecoder
 
     val exposureTimeMode: Lens[Igrins2LongSlit, ExposureTimeMode]                     =
       Focus[Igrins2LongSlit](_.exposureTimeMode)
+    val svc: Lens[Igrins2LongSlit, Option[Svc]]                                       =
+      Focus[Igrins2LongSlit](_.svc)
     val defaultTelescopeConfigs: Lens[Igrins2LongSlit, SlitTelescopeConfigs]          =
       Focus[Igrins2LongSlit](_.defaultTelescopeConfigs)
     val explicitTelescopeConfigs: Lens[Igrins2LongSlit, Option[SlitTelescopeConfigs]] =
       Focus[Igrins2LongSlit](_.explicitTelescopeConfigs)
+
+    // Slit-Viewing Camera acquisition configuration.
+    case class Svc(
+      defaultExposure:          TimeSpan,
+      explicitExposure:         Option[TimeSpan],
+      defaultTelescopeConfigs:  NonEmptyList[TelescopeConfig],
+      explicitTelescopeConfigs: Option[NonEmptyList[TelescopeConfig]]
+    ) derives Decoder,
+          Eq:
+      val exposure: TimeSpan =
+        explicitExposure.getOrElse(defaultExposure)
+
+      val telescopeConfigs: NonEmptyList[TelescopeConfig] =
+        explicitTelescopeConfigs.getOrElse(defaultTelescopeConfigs)
+
+      def isCustomized: Boolean =
+        explicitExposure.exists(_ =!= defaultExposure) ||
+          explicitTelescopeConfigs.exists(_ =!= defaultTelescopeConfigs)
+
+      def revertCustomizations: Svc =
+        copy(explicitExposure = none, explicitTelescopeConfigs = none)
+
+    object Svc:
+      val defaultExposure: Lens[Svc, TimeSpan]                                       =
+        Focus[Svc](_.defaultExposure)
+      val explicitExposure: Lens[Svc, Option[TimeSpan]]                              =
+        Focus[Svc](_.explicitExposure)
+      val defaultTelescopeConfigs: Lens[Svc, NonEmptyList[TelescopeConfig]]          =
+        Focus[Svc](_.defaultTelescopeConfigs)
+      val explicitTelescopeConfigs: Lens[Svc, Option[NonEmptyList[TelescopeConfig]]] =
+        Focus[Svc](_.explicitTelescopeConfigs)
+
+      // Client-side defaults for IGRINS-2 SVC.
+      val Default: Svc =
+        Svc(
+          defaultExposure = SvcDefaultExposure,
+          explicitExposure = none,
+          defaultTelescopeConfigs = SvcDefaultTelescopeConfigs,
+          explicitTelescopeConfigs = none
+        )
 
   case class GnirsImaging(
     initialFilters:    NonEmptyList[GnirsImaging.ImagingFilter],

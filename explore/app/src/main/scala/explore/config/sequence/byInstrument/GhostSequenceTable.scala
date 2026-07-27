@@ -35,8 +35,8 @@ final case class GhostSequenceTable(
     with SpectroscopySequenceTable[GhostDynamicConfig]:
 
   // No acquisition for GHOST. It is handled by the instrument with its own utility.
-  override val acquisition  = View(List.empty, (_, _) => Callback.empty)
-  override val acquisitonSN = none
+  override val acquisition   = View(List.empty, (_, _) => Callback.empty)
+  override val acquisitionSN = none
 
   // TBD. We may get two s/n values
   override val scienceSN = none

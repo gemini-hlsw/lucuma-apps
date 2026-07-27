@@ -731,13 +731,41 @@ trait ArbObservingMode {
         )
       )
 
+  given Arbitrary[ObservingMode.Igrins2LongSlit.Svc] =
+    Arbitrary[ObservingMode.Igrins2LongSlit.Svc](
+      for {
+        defaultExposure          <- arbitrary[TimeSpan]
+        explicitExposure         <- arbitrary[Option[TimeSpan]]
+        defaultTelescopeConfigs  <- arbitrary[NonEmptyList[TelescopeConfig]]
+        explicitTelescopeConfigs <- arbitrary[Option[NonEmptyList[TelescopeConfig]]]
+      } yield ObservingMode.Igrins2LongSlit.Svc(
+        defaultExposure,
+        explicitExposure,
+        defaultTelescopeConfigs,
+        explicitTelescopeConfigs
+      )
+    )
+
+  given Cogen[ObservingMode.Igrins2LongSlit.Svc] =
+    Cogen[
+      (TimeSpan,
+       Option[TimeSpan],
+       NonEmptyList[TelescopeConfig],
+       Option[NonEmptyList[TelescopeConfig]]
+      )
+    ].contramap(s =>
+      (s.defaultExposure, s.explicitExposure, s.defaultTelescopeConfigs, s.explicitTelescopeConfigs)
+    )
+
   given Arbitrary[ObservingMode.Igrins2LongSlit] = Arbitrary[ObservingMode.Igrins2LongSlit](
     for {
       exposureTimeMode         <- arbitrary[ExposureTimeMode]
+      svc                      <- arbitrary[Option[ObservingMode.Igrins2LongSlit.Svc]]
       defaultTelescopeConfigs  <- arbitrary[SlitTelescopeConfigs]
       explicitTelescopeConfigs <- arbitrary[Option[SlitTelescopeConfigs]]
     } yield ObservingMode.Igrins2LongSlit(
       exposureTimeMode,
+      svc,
       defaultTelescopeConfigs,
       explicitTelescopeConfigs
     )
@@ -745,11 +773,18 @@ trait ArbObservingMode {
 
   given Cogen[ObservingMode.Igrins2LongSlit] =
     Cogen[
-      (ExposureTimeMode, SlitTelescopeConfigs, Option[SlitTelescopeConfigs])
+      (ExposureTimeMode,
+       Option[ObservingMode.Igrins2LongSlit.Svc],
+       SlitTelescopeConfigs,
+       Option[
+         SlitTelescopeConfigs
+       ]
+      )
     ]
       .contramap(o =>
         (
           o.exposureTimeMode,
+          o.svc,
           o.defaultTelescopeConfigs,
           o.explicitTelescopeConfigs
         )
