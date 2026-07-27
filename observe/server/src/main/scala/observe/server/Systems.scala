@@ -74,9 +74,6 @@ case class Systems[F[_]] private[server] (
   ghost:               GhostController[F],
   igrins2:             Igrins2Controller[F],
   gnirs:               GnirsController[F],
-  //  gpi:                 GpiController[F],
-  //  niri:                NiriController[F],
-  //  nifs:                NifsController[F],
   altair:              AltairController[F],
   gems:                GemsController[F],
   guideDb:             GuideConfigDb[F],
@@ -85,8 +82,6 @@ case class Systems[F[_]] private[server] (
   gcalKeywordReader:   GcalKeywordReader[F],
   gmosKeywordReader:   GmosKeywordReader[F],
   gnirsKeywordReader:  GnirsKeywordReader[F],
-  /*  niriKeywordReader:   NiriKeywordReader[F],
-                                           nifsKeywordReader:   NifsKeywordReader[F],*/
   altairKeywordReader: AltairKeywordReader[F],
   gemsKeywordsReader:  GemsKeywordReader[F],
   gwsKeywordReader:    GwsKeywordReader[F]
@@ -100,7 +95,7 @@ object Systems {
     service:      CaService,
     tops:         Map[String, String],
     instanceName: String
-  )(using L: Logger[IO], T: Temporal[IO], tracer: Tracer[IO]) {
+  )(using Logger[IO], Temporal[IO], Tracer[IO]) {
     val reconnectionStrategy: ReconnectionStrategy =
       (attempt, reason) =>
         // Web Socket close codes: https://developer.mozilla.org/en-US/docs/Web/API/CloseEvent
@@ -127,28 +122,23 @@ object Systems {
       for
         fetchClient                    <- // Http client used ONLY for recording events.
           Http4sHttpClient.of[F, ObservationDB](settings.odbHttp, "ODB", Headers(authHeader))
-        // Wrap with clue's OTel middleware: GraphQL-aware client spans (clue-request-<op>) for
-        // every mutation, with W3C trace context propagated via request headers.
-        tracedFetch                     = Otel4sMiddleware(fetchClient)
+        tracingFetch                    = Otel4sMiddleware(fetchClient)
         wsClient                       <- JdkWSClient.simple[F].allocated.map(_._1)
         given Http4sWebSocketBackend[F] = Http4sWebSocketBackend[F](wsClient)
         innerClient                    <-
           Http4sWebSocketClient.of[F, ObservationDB](settings.odbWs, "ODB-WS", WsReconnectStrategy)
-        // Wrap the WebSocket streaming client too: GraphQL-aware spans for queries/subscriptions,
-        // with W3C trace context carried in the GraphQL `extensions` payload (the only channel
-        // available over a WebSocket, since there are no HTTP headers per message).
-        tracedInner                     = Otel4sMiddleware(innerClient)
+        tracingWS                       = Otel4sMiddleware(innerClient)
         _                              <-
-          tracedInner.connect:
+          tracingWS.connect:
             Map(Authorization.name.toString -> authHeader.credentials.renderString.asJson).pure[F]
         odbCommands                    <-
           if (settings.odbNotifications)
             Ref
               .of[F, ObsRecordedIds](ObsRecordedIds.Empty)
-              .map(OdbCommandsImpl[F](_)(using tracedFetch))
+              .map(OdbCommandsImpl[F](_)(using tracingFetch))
           else
             DummyOdbCommands[F].pure[F]
-      yield OdbProxy[F](odbCommands)(using tracedInner)
+      yield OdbProxy[F](odbCommands)(using tracingWS)
 
     def dhs[F[_]: {Async, Logger}](site: Site, httpClient: Client[F]): F[DhsClientProvider[F]] =
       if (settings.systemControl.dhs.command)
@@ -505,7 +495,7 @@ object Systems {
     sso:          LucumaSSOConfiguration,
     service:      CaService,
     instanceName: String
-  )(using T: Temporal[IO], L: Logger[IO], tracer: Tracer[IO]): Resource[IO, Systems[IO]] =
+  )(using Temporal[IO], Logger[IO], Tracer[IO]): Resource[IO, Systems[IO]] =
     Builder(settings, sso, service, decodeTops(settings.tops), instanceName).build(site, httpClient)
 
   def dummy[F[_]: {Async, Logger}]: F[Systems[F]] =
@@ -552,11 +542,7 @@ object Systems {
       new GmosControllerDisabled[F, GmosSite.South.type]("GMOS-S")
     private val gmosNorthDisabled: GmosNorthController[F]   =
       new GmosControllerDisabled[F, GmosSite.North.type]("GMOS-N")
-    //    private val gsaoiDisabled: GsaoiController[F]           = new GsaoiControllerDisabled[F]
-    //    private val gpiDisabled: GpiController[F]               = new GpiControllerDisabled[F](systems.gpi.statusDb)
     private val ghostDisabled: GhostController[F]           = new GhostControllerDisabled[F]
-    //    private val nifsDisabled: NifsController[F]             = new NifsControllerDisabled[F]
-    //    private val niriDisabled: NiriController[F]             = new NiriControllerDisabled[F]
     private val gnirsDisabled: GnirsController[F]           = new GnirsControllerDisabled[F]
 
     def tcsSouth(overrides: SystemOverrides): TcsSouthController[F] =
@@ -599,26 +585,10 @@ object Systems {
       if (overrides.isInstrumentEnabled.value) systems.igrins2
       else igrins2Disabled
 
-    //    def gsaoi(overrides: SystemOverrides): GsaoiController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.gsaoi
-    //      else gsaoiDisabled
-    //
-    //    def gpi(overrides: SystemOverrides): GpiController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.gpi
-    //      else gpiDisabled
-    //
     def ghost(overrides: SystemOverrides): GhostController[F] =
       if (overrides.isInstrumentEnabled) systems.ghost
       else ghostDisabled
-    //
-    //    def nifs(overrides: SystemOverrides): NifsController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.nifs
-    //      else nifsDisabled
-    //
-    //    def niri(overrides: SystemOverrides): NiriController[F] =
-    //      if (overrides.isInstrumentEnabled) systems.niri
-    //      else niriDisabled
-    //
+
     def gnirs(overrides: SystemOverrides): GnirsController[F] =
       if (overrides.isInstrumentEnabled.value) systems.gnirs
       else gnirsDisabled

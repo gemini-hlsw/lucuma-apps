@@ -301,16 +301,7 @@ object WebServerLauncher extends IOApp with LogInitialization {
       .withTimeout(timeout)
       .withLogger(Logger[F])
       .build
-    // Uncomment the following to log HTTP requests and responses
-    // .map:
-    //   Http4sLogger(
-    //     logHeaders = true,
-    //     logBody = true,
-    //     logAction = ((s: String) => Logger[F].trace(s)).some
-    //   )(_)
 
-  // Wraps an http4s `Client` with OpenTelemetry client tracing. Each outbound request gets a
-  // client span and W3C `traceparent`/`tracestate` headers are injected,
   private def tracedClient(
     client: Client[IO]
   )(using TracerProvider[IO]): IO[Client[IO]] =
