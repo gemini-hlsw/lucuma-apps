@@ -113,8 +113,15 @@ object layout {
   val layoutsItemHeight = layoutItems.andThen(layoutItemHeight)
 
   // Only the x, y, width and height are saved in user preferences.
+  // A stored width below `minW` cannot come from the user: react-grid-layout enforces `minW` on
+  // resize, and minimizing a tile only changes its height.
   def mergeLayoutItems(current: LayoutItem, fromDb: LayoutItem): LayoutItem =
-    current.copy(w = fromDb.w, h = fromDb.h, x = fromDb.x, y = fromDb.y)
+    current.copy(
+      w = if current.minW.exists(_ > fromDb.w) then current.w else fromDb.w,
+      h = fromDb.h,
+      x = fromDb.x,
+      y = fromDb.y
+    )
 
   // As with the other merges, the current Layout is expected to have all
   // of required LayoutItems since it originates with the DefaultLayout.
