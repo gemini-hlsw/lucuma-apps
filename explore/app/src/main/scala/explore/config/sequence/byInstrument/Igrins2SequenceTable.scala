@@ -8,7 +8,6 @@ import cats.syntax.option.*
 import crystal.react.View
 import explore.config.sequence.SequenceTable
 import explore.config.sequence.SequenceTableBuilder
-import japgolly.scalajs.react.callback.Callback
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
 import lucuma.core.model.sequence.*
@@ -24,6 +23,7 @@ import lucuma.ui.sequence.byInstrument.SpectroscopySequenceTable
 final case class Igrins2SequenceTable(
   visits:               View[Option[ExecutionVisits]],
   staticConfig:         Igrins2StaticConfig,
+  acquisition:          View[List[Atom[Igrins2DynamicConfig]]],
   science:              View[List[Atom[Igrins2DynamicConfig]]],
   scienceSN:            Option[SignalToNoiseAt],
   isEditEnabled:        IsEditEnabled,
@@ -37,8 +37,7 @@ final case class Igrins2SequenceTable(
     with SequenceTable[Igrins2StaticConfig, Igrins2DynamicConfig]
     with SpectroscopySequenceTable[Igrins2DynamicConfig]:
 
-  // No acquition for Igrins 2
-  override val acquisition  = View(List.empty, (_, _) => Callback.empty)
+  // The IGRINS-2 acquisition takes SVC images, so there is no signal to noise for it.
   override val acquisitonSN = none
 
   override val toInstrumentVisits =
