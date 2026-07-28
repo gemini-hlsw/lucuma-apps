@@ -20,8 +20,8 @@ import lucuma.core.model.arb.ArbObservationReference.given
 import lucuma.core.model.arb.ArbPosAngleConstraint.given
 import lucuma.core.util.arb.ArbEnumerated.given
 import lucuma.core.util.arb.ArbGid.given
-import lucuma.schemas.model.ObservingMode
-import lucuma.schemas.model.arb.ArbObservingMode.given
+import lucuma.schemas.model.BasicConfiguration
+import lucuma.schemas.model.arb.ArbBasicConfiguration.given
 import observe.ui.model.ObsSummary
 import org.scalacheck.Arbitrary
 import org.scalacheck.Arbitrary.arbitrary
@@ -40,7 +40,7 @@ trait ArbObsSummary:
       instrument         <- arbitrary[Instrument]
       constraints        <- arbitrary[ConstraintSet]
       attachmentIds      <- arbitrary[List[Attachment.Id]]
-      observingMode      <- arbitrary[Option[ObservingMode]]
+      observingMode      <- arbitrary[Option[BasicConfiguration]]
       observationTime    <- arbitrary[Option[Instant]]
       calRole            <- arbitrary[Option[CalibrationRole]]
       posAngleConstraint <- arbitrary[PosAngleConstraint]
@@ -71,7 +71,7 @@ trait ArbObsSummary:
        Instrument,
        ConstraintSet,
        List[Attachment.Id],
-       Option[ObservingMode],
+       Option[BasicConfiguration],
        Option[Instant],
        Option[CalibrationRole],
        PosAngleConstraint,

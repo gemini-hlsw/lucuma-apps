@@ -28,7 +28,6 @@ import lucuma.core.syntax.display.*
 import lucuma.core.util.Timestamp
 import lucuma.schemas.decoders.given
 import lucuma.schemas.model.BasicConfiguration
-import lucuma.schemas.model.ObservingMode
 import lucuma.ui.display.given
 import monocle.Focus
 import org.typelevel.cats.time.*
@@ -44,7 +43,7 @@ case class ObsSummary(
   instrument:         Instrument,
   constraints:        ConstraintSet,
   attachmentIds:      SortedSet[Attachment.Id],
-  observingMode:      Option[ObservingMode],
+  observingMode:      Option[BasicConfiguration],
   observationTime:    Option[Instant],
   calibrationRole:    Option[CalibrationRole],
   posAngleConstraint: PosAngleConstraint,
@@ -55,7 +54,6 @@ case class ObsSummary(
   // See explore/model/src/main/scala/explore/model/display.scala
   lazy val configurationSummary: Option[String] =
     observingMode
-      .map(_.toBasicConfiguration)
       .flatMap:
         case BasicConfiguration.GmosNorthLongSlit(grating, _, fpu, _) =>
           s"${grating.shortName} ${fpu.shortName}".some
@@ -148,7 +146,7 @@ object ObsSummary:
       instrument         <- c.get[Option[Instrument]]("instrument")
       constraints        <- c.get[ConstraintSet]("constraintSet")
       attachmentIds      <- c.get[List[AttachmentIdWrapper]]("attachments")
-      observingMode      <- c.get[Option[ObservingMode]]("observingMode")
+      observingMode      <- c.get[Option[BasicConfiguration]]("observingMode")
       observationTime    <- c.get[Option[Timestamp]]("observationTime")
       calibrationRole    <- c.get[Option[CalibrationRole]]("calibrationRole")
       posAngleConstraint <- c.get[PosAngleConstraint]("posAngleConstraint")
