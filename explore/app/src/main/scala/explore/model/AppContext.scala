@@ -30,6 +30,8 @@ import lucuma.core.model.Program
 import lucuma.horizons.HorizonsClient
 import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
+import lucuma.ui.otel.OtelSdk
+import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import org.http4s.Uri
@@ -37,9 +39,6 @@ import org.http4s.Uri.Scheme
 import org.http4s.client.Client
 import org.http4s.dom.FetchClientBuilder
 import org.http4s.implicits.*
-import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
-import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
-import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
@@ -153,12 +152,7 @@ object AppContext:
                                   .withRequestTimeout(4.seconds)
                                   .withCache(dom.RequestCache.`no-store`)
                                   .create
-      traceMiddleware        <- ClientMiddleware
-                                  .builder[F](
-                                    ClientSpanDataProvider
-                                      .openTelemetry(new UriRedactor.OnlyRedactUserInfo {})
-                                  )
-                                  .build
+      traceMiddleware        <- OtelSdk.traceMiddleware[F]
       otelHttpClient          = traceMiddleware(httpClient)
       sedMatcher             <- SEDDataLoader.loadMatcher[F](otelHttpClient, uri"")
       simbadClient            =

@@ -63,7 +63,7 @@ import javax.net.ssl.TrustManagerFactory
 import scala.concurrent.duration.*
 
 object WebServerLauncher extends IOApp with LogInitialization {
-  val ServiceName: String = "observe"
+  val ServiceName: String = "observe-server"
 
   // Try to load configs for deployment and staging and fall back to the common one in the class path
   private def config[F[_]: {Sync, Logger}]: F[ConfigObjectSource] =
@@ -176,7 +176,8 @@ object WebServerLauncher extends IOApp with LogInitialization {
           oe,
           events,
           wsb,
-          conf.observeEngine.systemControl.toMap
+          conf.observeEngine.systemControl.toMap,
+          conf.otel.effectiveClientEndpoint
         ).service
       )
 

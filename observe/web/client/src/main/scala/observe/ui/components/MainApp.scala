@@ -11,6 +11,7 @@ import cats.syntax.all.*
 import clue.PersistentClientStatus
 import clue.js.WebSocketJsBackend
 import clue.js.WebSocketJsClient
+import clue.otel4s.Otel4sMiddleware
 import clue.websocket.ReconnectionStrategy
 import crystal.Pot
 import crystal.ViewF
@@ -18,6 +19,7 @@ import crystal.react.*
 import crystal.react.given
 import crystal.react.hooks.*
 import crystal.syntax.*
+import eu.timepit.refined.types.string.NonEmptyString
 import fs2.Pipe
 import io.circe.parser.decode
 import io.circe.syntax.*
@@ -40,6 +42,8 @@ import lucuma.schemas.ObservationDB
 import lucuma.ui.LucumaStyles
 import lucuma.ui.components.SolarProgress
 import lucuma.ui.components.state.IfLogged
+import lucuma.ui.otel.OtelSdk
+import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.sso.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.utils.showEnvironment
@@ -70,6 +74,10 @@ import org.http4s.headers.Authorization
 import org.http4s.syntax.all.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.Attributes
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import retry.*
 import typings.loglevel.mod.LogLevelDesc
 
@@ -78,6 +86,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
 
 object MainApp extends ServerEventHandler:
+  private val ServiceName: String   = "observe-client"
   private val ApiBasePath: Uri.Path = path"/api/observe/"
   private val EventWsUri: Uri       =
     Uri(
@@ -210,21 +219,36 @@ object MainApp extends ServerEventHandler:
             showEnvironment[IO](clientConfig.environment)
         _                <-
           useAsyncEffectWhenDepsReady(clientConfigPot.get) { clientConfig => // Build AppContext (4)
+            val version: NonEmptyString = AppContext.version(clientConfig.environment)
+
             val ctxResource: Resource[IO, AppContext[IO]] =
               (for
-                dispatcher                                 <- Dispatcher.parallel[IO]
-                given WebSocketJsBackend[IO]                = WebSocketJsBackend[IO](dispatcher)
-                given WebSocketJsClient[IO, ObservationDB] <-
-                  Resource.eval(
-                    WebSocketJsClient.of[IO, ObservationDB](
-                      clientConfig.odbUri.toString,
-                      "ODB",
-                      reconnectionStrategy
-                    )
+                dispatcher                             <- Dispatcher.parallel[IO]
+                given WebSocketJsBackend[IO]            = WebSocketJsBackend[IO](dispatcher)
+                otel                                   <-
+                  OtelSdk.build(
+                    clientConfig.otelEndpoint,
+                    ServiceName,
+                    version.value,
+                    clientConfig.environment,
+                    Attributes(Attribute("site", clientConfig.site.tag))
                   )
+                given Tracer[IO]                        = otel.tracer
+                given TracerProvider[IO]                = otel.tracerProvider
+                traceMiddleware                        <- Resource.eval(OtelSdk.traceMiddleware[IO])
+                odbClient                              <- Resource.eval(
+                                                            WebSocketJsClient.of[IO, ObservationDB](
+                                                              clientConfig.odbUri.toString,
+                                                              "ODB",
+                                                              reconnectionStrategy
+                                                            )
+                                                          )
+                // Propagates the trace context to the odb, so its spans join this trace.
+                given TracedWsClient[IO, ObservationDB] = Otel4sMiddleware(odbClient)
               yield AppContext[IO](
-                AppContext.version(clientConfig.environment),
+                version,
                 SSOClient(SSOConfig(clientConfig.ssoUri)),
+                traceMiddleware(fetchClient),
                 (tab: AppTab) => MainApp.routerCtl.urlFor(tab.getPage).value,
                 (tab: AppTab, via: SetRouteVia) => MainApp.routerCtl.set(tab.getPage, via),
                 toastRef
@@ -256,11 +280,11 @@ object MainApp extends ServerEventHandler:
         // Subscribe to client event stream (and initialize ClientConfig)
         apiClientOpt     <- useState(none[ApiClient])
         _                <-
-          useEffectWhenDepsReady(clientConfigPot.get): clientConfig =>
+          useEffectWhenDepsReady((clientConfigPot.get, ctxPot.value).tupled): (clientConfig, ctx) =>
             apiClientOpt
               .setState:
                 ApiClient(
-                  fetchClient,
+                  ctx.otelHttpClient,
                   ApiBasePath,
                   clientConfig.clientId,
                   authHeaderRef.getAsync,

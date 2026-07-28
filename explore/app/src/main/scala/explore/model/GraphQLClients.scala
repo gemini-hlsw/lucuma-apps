@@ -7,20 +7,17 @@ import cats.*
 import cats.effect.*
 import cats.effect.std.SecureRandom
 import cats.syntax.all.*
-import clue.PersistentStreamingClient
 import clue.js.*
 import clue.js.given
 import clue.otel4s.Otel4sMiddleware
 import clue.websocket.*
 import io.circe.Json
 import lucuma.schemas.*
+import lucuma.ui.otel.TracedWsClient
 import org.http4s.*
 import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.trace.Tracer
 import queries.schemas.*
-
-type TracedWsClient[F[_], S] =
-  PersistentStreamingClient[F, S, CloseParams, Either[Throwable, CloseParams]]
 
 case class GraphQLClients[F[_]: {Async, Parallel}] protected (
   odb:           TracedWsClient[F, ObservationDB],

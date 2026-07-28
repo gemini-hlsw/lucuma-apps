@@ -228,6 +228,7 @@ lazy val ui_lib =
       libraryDependencies ++=
         Cats.value ++
           CatsTime.value ++
+          Clue.value ++
           Kittens.value ++
           Mouse.value ++
           ScalaJsReact.value ++
@@ -239,9 +240,15 @@ lazy val ui_lib =
           Crystal.value ++
           PPrint.value ++
           Fs2Dom.value ++
+          Fs2Io.value ++
           Http4sCore.value ++
           Http4sCirce.value ++
           Http4sDom.value ++
+          Http4sOtel4sClient.value ++
+          Otel4s.value ++
+          Otel4sSdk.value ++
+          Otel4sSemconv.value ++
+          Log4Cats.value ++
           CatsRetry.value ++
           Circe.value ++
           LucumaSsoFrontendClient.value
@@ -571,6 +578,7 @@ lazy val observe_web_client = project
       Kittens.value ++
         Clue.value ++
         ClueScalaJs.value ++
+        ClueOtel4s.value ++
         Fs2.value ++
         Http4sClient.value ++
         Http4sDom.value ++
@@ -581,6 +589,7 @@ lazy val observe_web_client = project
         LucumaReact.value ++
         Monocle.value ++
         LucumaCore.value ++
+        Otel4s.value ++
         Log4CatsLogLevel.value,
     scalacOptions ~= (_.filterNot(Set("-Vtype-diffs"))),
     buildInfoKeys    := Seq[BuildInfoKey](

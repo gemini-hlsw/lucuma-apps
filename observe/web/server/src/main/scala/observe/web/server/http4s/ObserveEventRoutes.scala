@@ -50,7 +50,8 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
   engine:                     ObserveEngine[F],
   engineOutput:               Topic[F, (Option[ClientId], ClientEvent)],
   webSocketBuilder:           WebSocketBuilder2[F],
-  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy]
+  subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
+  otelEndpoint:               Option[Uri]
 )(using
   L:                          Logger[F]
 ) extends ModelLenses
@@ -82,7 +83,8 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
                 exploreBaseUri,
                 clientId,
                 Version(NonEmptyString.unsafeFrom(OcsBuildInfo.version)),
-                subsystemControlStrategies
+                subsystemControlStrategies,
+                otelEndpoint
               )
             )
           )
