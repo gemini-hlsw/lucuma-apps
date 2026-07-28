@@ -228,6 +228,7 @@ lazy val ui_lib =
       libraryDependencies ++=
         Cats.value ++
           CatsTime.value ++
+          Clue.value ++
           Kittens.value ++
           Mouse.value ++
           ScalaJsReact.value ++
@@ -577,6 +578,7 @@ lazy val observe_web_client = project
       Kittens.value ++
         Clue.value ++
         ClueScalaJs.value ++
+        ClueOtel4s.value ++
         Fs2.value ++
         Http4sClient.value ++
         Http4sDom.value ++

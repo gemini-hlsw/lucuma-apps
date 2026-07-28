@@ -11,6 +11,7 @@ import cats.syntax.all.*
 import clue.PersistentClientStatus
 import clue.js.WebSocketJsBackend
 import clue.js.WebSocketJsClient
+import clue.otel4s.Otel4sMiddleware
 import clue.websocket.ReconnectionStrategy
 import crystal.Pot
 import crystal.ViewF
@@ -42,6 +43,7 @@ import lucuma.ui.LucumaStyles
 import lucuma.ui.components.SolarProgress
 import lucuma.ui.components.state.IfLogged
 import lucuma.ui.otel.OtelSdk
+import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.sso.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.utils.showEnvironment
@@ -221,17 +223,9 @@ object MainApp extends ServerEventHandler:
 
             val ctxResource: Resource[IO, AppContext[IO]] =
               (for
-                dispatcher                                 <- Dispatcher.parallel[IO]
-                given WebSocketJsBackend[IO]                = WebSocketJsBackend[IO](dispatcher)
-                given WebSocketJsClient[IO, ObservationDB] <-
-                  Resource.eval(
-                    WebSocketJsClient.of[IO, ObservationDB](
-                      clientConfig.odbUri.toString,
-                      "ODB",
-                      reconnectionStrategy
-                    )
-                  )
-                otel                                       <-
+                dispatcher                             <- Dispatcher.parallel[IO]
+                given WebSocketJsBackend[IO]            = WebSocketJsBackend[IO](dispatcher)
+                otel                                   <-
                   OtelSdk.build(
                     clientConfig.otelEndpoint,
                     ServiceName,
@@ -239,9 +233,18 @@ object MainApp extends ServerEventHandler:
                     clientConfig.environment,
                     Attributes(Attribute("site", clientConfig.site.tag))
                   )
-                given Tracer[IO]                            = otel.tracer
-                given TracerProvider[IO]                    = otel.tracerProvider
-                traceMiddleware                            <- Resource.eval(OtelSdk.traceMiddleware[IO])
+                given Tracer[IO]                        = otel.tracer
+                given TracerProvider[IO]                = otel.tracerProvider
+                traceMiddleware                        <- Resource.eval(OtelSdk.traceMiddleware[IO])
+                odbClient                              <- Resource.eval(
+                                                            WebSocketJsClient.of[IO, ObservationDB](
+                                                              clientConfig.odbUri.toString,
+                                                              "ODB",
+                                                              reconnectionStrategy
+                                                            )
+                                                          )
+                // Propagates the trace context to the odb, so its spans join this trace.
+                given TracedWsClient[IO, ObservationDB] = Otel4sMiddleware(odbClient)
               yield AppContext[IO](
                 version,
                 SSOClient(SSOConfig(clientConfig.ssoUri)),

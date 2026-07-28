@@ -31,6 +31,7 @@ import lucuma.horizons.HorizonsClient
 import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.otel.OtelSdk
+import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import org.http4s.Uri

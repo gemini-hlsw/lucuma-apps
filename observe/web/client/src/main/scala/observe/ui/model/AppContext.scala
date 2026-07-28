@@ -6,7 +6,6 @@ package observe.ui.model
 import cats.effect.IO
 import cats.effect.kernel.Async
 import cats.syntax.all.*
-import clue.js.WebSocketJsClient
 import clue.websocket.CloseParams
 import eu.timepit.refined.types.string.NonEmptyString
 import io.circe.Json
@@ -19,6 +18,7 @@ import lucuma.react.primereact.ToastRef
 import lucuma.schemas.ObservationDB
 import lucuma.ui.format.versionDateFormatter
 import lucuma.ui.format.versionDateTimeFormatter
+import lucuma.ui.otel.TracedWsClient
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import observe.ui.BuildInfo
@@ -39,7 +39,7 @@ case class AppContext[F[_]](
 )(using
   val F:          Async[F],
   val logger:     Logger[F],
-  val odbClient:  WebSocketJsClient[F, ObservationDB],
+  val odbClient:  TracedWsClient[F, ObservationDB],
   val T:          Tracer[F]
 ):
   given ToastCtx[F] = new ToastCtx[F](toastRef)
