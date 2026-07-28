@@ -116,6 +116,10 @@ body {
 }
 
 .p-toolbar {
+  .p-toolbar-group-right {
+    gap: 0.4em;
+  }
+
   &.observe-footer {
     border-radius: unset;
     min-height: 3em;
@@ -216,7 +220,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-around;
-    align-items: center;
+    align-items: baseline;
     gap: 15px;
 
     .p-component {
@@ -241,21 +245,25 @@ body {
     .observe-image-quality-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-cloud-extinction-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-water-vapor-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-sky-background-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
   }
 
@@ -722,7 +730,8 @@ body {
 .observe-acquisition-prompt {
   height: 75px;
   padding: 10px;
-  margin-left: -20px;
+  // Cancel the cell and header-content paddings so the bar spans the full row.
+  margin-inline: -20px;
   text-align: left;
   display: flex;
   gap: 10px;
