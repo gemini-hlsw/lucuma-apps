@@ -29,6 +29,7 @@ import japgolly.scalajs.react.extra.router.*
 import log4cats.loglevel.LogLevelLogger
 import lucuma.core.model.Program
 import lucuma.react.primereact.Message
+import lucuma.ui.otel.OtelSdk
 import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.UserVault
 import lucuma.ui.utils.showEnvironment
@@ -48,6 +49,7 @@ import js.annotation.*
 
 @JSExportTopLevel("Explore", moduleID = "explore")
 object ExploreMain {
+  private val ServiceName: String = "explore"
 
   @JSExport
   def runIOApp(configJson: String): Unit =
@@ -58,12 +60,12 @@ object ExploreMain {
     LogLevelLogger.createForRoot[F]
   }
 
-  private def setupOtel(config: AppConfig): Resource[IO, OtelSdk.OtelResources] =
+  private def setupOtel(config: AppConfig)(using Logger[IO]): Resource[IO, OtelSdk.OtelResources] =
     OtelSdk.build(
-      config.otelEndpoint,
+      config.otelEndpoint.map(_.value),
+      ServiceName,
       utils.version(config.environment).value,
-      config.environment,
-      None
+      config.environment
     )
 
   def initialModel(vault: Option[UserVault]): RootModel =

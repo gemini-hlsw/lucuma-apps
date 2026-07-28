@@ -41,6 +41,7 @@ import lucuma.schemas.ObservationDB
 import lucuma.ui.LucumaStyles
 import lucuma.ui.components.SolarProgress
 import lucuma.ui.components.state.IfLogged
+import lucuma.ui.otel.OtelSdk
 import lucuma.ui.sso.*
 import lucuma.ui.syntax.all.*
 import lucuma.ui.utils.showEnvironment
@@ -50,7 +51,6 @@ import observe.model.events.ClientEvent
 import observe.queries.ObsQueriesGQL
 import observe.ui.BroadcastEvent
 import observe.ui.ObserveStyles
-import observe.ui.OtelSdk
 import observe.ui.components.services.ObservationSyncer
 import observe.ui.components.services.ServerEventHandler
 import observe.ui.model.AppContext
@@ -69,12 +69,11 @@ import org.http4s.client.websocket.middleware.Reconnect
 import org.http4s.dom.FetchClientBuilder
 import org.http4s.dom.WebSocketClient
 import org.http4s.headers.Authorization
-import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
-import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
-import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.http4s.syntax.all.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.Attribute
+import org.typelevel.otel4s.Attributes
 import org.typelevel.otel4s.trace.Tracer
 import org.typelevel.otel4s.trace.TracerProvider
 import retry.*
@@ -85,6 +84,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.duration.*
 
 object MainApp extends ServerEventHandler:
+  private val ServiceName: String   = "observe-client"
   private val ApiBasePath: Uri.Path = path"/api/observe/"
   private val EventWsUri: Uri       =
     Uri(
@@ -234,19 +234,14 @@ object MainApp extends ServerEventHandler:
                 otel                                       <-
                   OtelSdk.build(
                     clientConfig.otelEndpoint,
-                    version,
-                    clientConfig.site,
-                    clientConfig.environment
+                    ServiceName,
+                    version.value,
+                    clientConfig.environment,
+                    Attributes(Attribute("site", clientConfig.site.tag))
                   )
                 given Tracer[IO]                            = otel.tracer
                 given TracerProvider[IO]                    = otel.tracerProvider
-                traceMiddleware                            <-
-                  Resource.eval:
-                    ClientMiddleware
-                      .builder[IO](
-                        ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {})
-                      )
-                      .build
+                traceMiddleware                            <- Resource.eval(OtelSdk.traceMiddleware[IO])
               yield AppContext[IO](
                 version,
                 SSOClient(SSOConfig(clientConfig.ssoUri)),
