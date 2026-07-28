@@ -148,7 +148,7 @@ sealed trait SequenceRow[+D]:
         case Flamingos2FpuMask.Custom(_, slitWidth) => slitWidth.longName.some
         case Flamingos2FpuMask.Imaging              => "Imaging".some
     case GnirsDynamicConfig(_, _, _, _, fpu, _, _, _, _)      =>
-      fpu.fold(slit => slit.longName.some, ifu => ifu.longName.some, other => other.shortName.some)
+      fpu.fold(slit => slit.longName.some, ifu => ifu.shortName.some, other => other.shortName.some)
     case _                                                    =>
       none
 
