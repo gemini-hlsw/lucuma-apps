@@ -178,8 +178,7 @@ object Igrins2LongslitConfigPanel
                   LucumaPrimeStyles.FormColumnCompact,
                   <.div(
                     LucumaPrimeStyles.FormFieldLabel,
-                    <.label(^.htmlFor := "ig2-svc-enabled", "Enable SVC"),
-                    HelpIcon("configuration/igrins2/svc.md".refined)
+                    <.label(^.htmlFor := "ig2-svc-enabled", "Enable SVC")
                   ),
                   <.div(LucumaPrimeStyles.FormField)(
                     Checkbox(
@@ -194,8 +193,7 @@ object Igrins2LongslitConfigPanel
                       ReactFragment(
                         <.div(
                           LucumaPrimeStyles.FormFieldLabel,
-                          <.label(^.htmlFor := "ig2-svc-exposure", "Exp. Time"),
-                          HelpIcon("configuration/igrins2/svc-exposure.md".refined)
+                          <.label(^.htmlFor := "ig2-svc-exposure", "Exp. Time")
                         ),
                         <.div(LucumaPrimeStyles.FormField)(
                           InputNumber(
