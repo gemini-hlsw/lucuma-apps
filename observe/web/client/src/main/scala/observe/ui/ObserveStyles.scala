@@ -53,7 +53,8 @@ object ObserveStyles:
   val LoadButton: Css     = Css("observe-load-button")
 
   val ConfigSection: Css       = Css("observe-config-section")
-  val GuideConfigSection: Css  = Css("observe-guide-config-section")
+  val AppShell: Css            = Css("observe-app-shell")
+  val GuideBar: Css            = Css("observe-guide-bar")
   val ConditionsSection: Css   = Css("observe-conditions-section")
   val ConditionsLabel: Css     = Css("observe-conditions-label")
   val NamesSection: Css        = Css("observe-names-section")

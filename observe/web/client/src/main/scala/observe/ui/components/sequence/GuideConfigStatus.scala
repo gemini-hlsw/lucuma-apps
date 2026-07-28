@@ -4,6 +4,7 @@
 package observe.ui.components.sequence
 
 import cats.syntax.all.*
+import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.ComaOption
 import lucuma.core.enums.MountGuideOption
@@ -16,7 +17,8 @@ import lucuma.react.primereact.Tag
 import observe.ui.ObserveStyles
 
 /**
- * Read-only display of the current telescope guide configuration (Mount, M1, Tip/Tilt and Coma).
+ * Read-only display of the current telescope guide configuration (Mount, M1, Tip/Tilt and Coma) as
+ * a set of badges.
  */
 final case class GuideConfigStatus(config: TelescopeGuideConfig)
     extends ReactFnProps(GuideConfigStatus)
@@ -51,8 +53,7 @@ object GuideConfigStatus
         case M2GuideConfig.M2GuideOff               =>
           ("Off", false, "Off", false)
 
-      <.div(ObserveStyles.GuideConfigSection)(
-        <.span(ObserveStyles.ConditionsLabel)("Guide Config"),
+      React.Fragment(
         badge("Mount", mountValue, mountActive),
         badge("M1", m1Value, m1Active),
         badge("Tip/Tilt", tipTiltValue, tipTiltActive),
