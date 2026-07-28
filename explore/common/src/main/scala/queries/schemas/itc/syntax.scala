@@ -120,7 +120,7 @@ trait syntax:
       def customMaskFor(slitWidth: Angle): Option[GmosCustomMask] =
         Enumerated[GmosCustomSlitWidth].all
           .find(_.width === slitWidth)
-          .map(GmosCustomMask(_, "custom-mask.fits"))
+          .map(GmosCustomMask.apply)
 
       row match
         case ItcInstrumentConfig

@@ -33,16 +33,20 @@ import lucuma.core.math.SignalToNoise
 import lucuma.core.math.Wavelength
 import lucuma.core.math.WavelengthDelta
 import lucuma.core.model.AirMassBound
+import lucuma.core.model.Attachment
 import lucuma.core.model.CompositeTracking
 import lucuma.core.model.ConstantTracking
 import lucuma.core.model.ConstraintSet
+import lucuma.core.model.Defined
 import lucuma.core.model.ElevationRange
 import lucuma.core.model.EphemerisCoordinates
 import lucuma.core.model.EphemerisTracking
 import lucuma.core.model.HourAngleBound
+import lucuma.core.model.MaskDefinition
 import lucuma.core.model.Semester
 import lucuma.core.model.SiderealTracking
 import lucuma.core.model.Target
+import lucuma.core.model.ToBeDefined
 import lucuma.core.model.Tracking
 import lucuma.core.util.Enumerated
 import lucuma.core.util.NewType
@@ -94,7 +98,16 @@ trait CommonPicklers {
   def picklerNewType[A: Pickler](nt: NewType[A]): Pickler[nt.Type] =
     transformPickler(nt(_))(_.value)
 
-  given Pickler[Target.Id] = generatePickler
+  given targetId: Pickler[Target.Id]         = generatePickler
+  given attachmentId: Pickler[Attachment.Id] = generatePickler
+
+  given Pickler[ToBeDefined.type] = generatePickler
+  given Pickler[Defined]          = generatePickler
+
+  given Pickler[MaskDefinition] =
+    compositePickler[MaskDefinition]
+      .addConcreteType[ToBeDefined.type]
+      .addConcreteType[Defined]
 
   given picklerNonEmptyList[A: Pickler]: Pickler[NonEmptyList[A]] =
     transformPickler(NonEmptyList.fromListUnsafe[A])(_.toList)

@@ -1621,8 +1621,10 @@ input GmosCcdModeInput {
 
 """GMOS Custom Mask"""
 type GmosCustomMask {
-  """Custom Mask Filename"""
-  filename: String!
+  """
+  The MOS mask attachment id, or null if the mask has not yet been defined.
+  """
+  attachmentId: AttachmentId
 
   """Custom Slit Width"""
   slitWidth: GmosCustomSlitWidth!
@@ -1630,8 +1632,10 @@ type GmosCustomMask {
 
 """GMOS custom mask input parameters"""
 input GmosCustomMaskInput {
-  """Custom mask file name"""
-  filename: String!
+  """
+  The MOS mask attachment id, or null if the mask has not yet been defined.
+  """
+  attachmentId: AttachmentId
 
   """Custom mask slit width"""
   slitWidth: GmosCustomSlitWidth!
@@ -7413,8 +7417,10 @@ input Flamingos2FpuMaskInput {
 
 """Flamingos 2 Custom Mask"""
 type Flamingos2CustomMask {
-  """Custom Mask Filename"""
-  filename: String!
+  """
+  The MOS mask attachment id, or null if the mask has not yet been defined.
+  """
+  attachmentId: AttachmentId
 
   """Custom Slit Width"""
   slitWidth: Flamingos2CustomSlitWidth!
@@ -7422,8 +7428,10 @@ type Flamingos2CustomMask {
 
 """Flamingos 2 custom mask input parameters"""
 input Flamingos2CustomMaskInput {
-  """Custom mask file name"""
-  filename: String!
+  """
+  The MOS mask attachment id, or null if the mask has not yet been defined.
+  """
+  attachmentId: AttachmentId
 
   """Custom mask slit width"""
   slitWidth: Flamingos2CustomSlitWidth!
@@ -10727,7 +10735,10 @@ type ItcSpectroscopy implements Itc {
   spectroscopyScience: ItcResultSet!
 }
 
-"""ITC results for IGRINS-2 spectroscopy observations (no acquisition)."""
+"""
+ITC results for IGRINS-2 spectroscopy observations. IGRINS-2 has no acquisition estimate.
+SVC  acquisition sequence, when present, uses the SVC exposure time configuration.
+"""
 type ItcIgrins2Spectroscopy implements Itc {
   itcType: ItcType!
   spectroscopyScience: ItcResultSet!

@@ -159,4 +159,5 @@ React `Context` provides services to components. Both Explore and Observe define
 - **Scalafmt**: maxColumn = 100, align.preset = most, Scala 3 dialect
 - **No mutable state**: All state via `View`, `Ref`, or `IO`
 - **Components**: `ScalaFnComponent` (functional React components only). React is used via scalajs-react and `lucuma.react.common.*`, with monadic hooks.
+- **Comments**: Don't put comments directly on method or class parameters, those belong to the method or class documentation or scaladoc.
 - **UI library**: PrimeReact via lucuma-react bindings

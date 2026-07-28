@@ -64,7 +64,9 @@ object GmosNorth {
       override val builtinFpu: Getter[D, Option[FPU[GmosSite.North.type]]]  =
         DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.builtinFpu))
       override val customFpu: Getter[D, Option[String]]                     =
-        DynamicConfig.GmosNorth.fpu.asGetter.map(_.flatMap(_.customFilename.map(_.toString)))
+        // FIXME: This is a hack to get the custom mask definition to compile but it is not correct
+        DynamicConfig.GmosNorth.fpu.asGetter
+          .map(_.flatMap(_.customMaskDefinition.map(_.toString)))
       override val dtax: Getter[D, DTAX]                                    =
         DynamicConfig.GmosNorth.dtax.asGetter
       override val stageMode: Getter[S, StageMode[GmosSite.North.type]]     =

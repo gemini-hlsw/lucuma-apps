@@ -17,13 +17,13 @@ object Flamingos2DynamicConfigSubquery
   override val subquery: String = s"""
     {
       exposure $TimeSpanSubquery
-      disperser 
+      disperser
       filter
       readMode
       lyotWheel
       fpu {
         customMask {
-          filename
+          attachmentId
           slitWidth
         }
         builtin

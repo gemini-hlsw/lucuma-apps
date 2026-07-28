@@ -34,7 +34,7 @@ object GmosNorthDynamicConfigSubquery
       filter
       fpu {
         customMask {
-          filename
+          attachmentId
           slitWidth
         }
         builtin
