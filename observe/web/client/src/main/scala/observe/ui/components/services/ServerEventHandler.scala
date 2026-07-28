@@ -247,6 +247,8 @@ trait ServerEventHandler:
         ) >>
           syncStatusMod(_ => SyncStatus.Synced.some) >>
           configApiStatusMod(_ => ApiStatus.Idle)
+      case ClientEvent.GuideConfigEvent(config)                                   =>
+        rootModelDataMod(RootModelData.guideConfig.replace(config))
       case ClientEvent.ObsLoaded(instrument)                                              =>
         pushPage(AppTab.LoadedObs(instrument))
       case ClientEvent.StepComplete(_)                                                    =>

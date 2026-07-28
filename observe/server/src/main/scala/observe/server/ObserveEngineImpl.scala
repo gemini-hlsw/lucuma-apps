@@ -824,6 +824,10 @@ private class ObserveEngineImpl[F[_]: {Async, Logger}](
                         .map(LogEvent(_): TargetedClientEvent)
                         .map(_.some)
                 .unNone
+      .merge:
+        // Broadcast the current guide configuration whenever it changes.
+        systems.guideDb.discrete.map: gcs =>
+          ClientEvent.GuideConfigEvent(gcs.config): TargetedClientEvent
 
   override def eventResultStream(s0: EngineState[F]): Stream[F, (EventResult, EngineState[F])] =
     // TODO We are never using the process function. Consider removing the `process` method and just returning the stream.

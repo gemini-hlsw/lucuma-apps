@@ -19,6 +19,7 @@ import lucuma.core.enums.Site
 import observe.model.*
 import observe.model.enums.ControlStrategy
 import observe.model.events.*
+import observe.model.events.ClientEvent.GuideConfigEvent
 import observe.model.events.ClientEvent.InitialEvent
 import observe.server.ObserveEngine
 import observe.server.OcsBuildInfo
@@ -85,7 +86,11 @@ class ObserveEventRoutes[F[_]: {Async, Compression}](
               )
             )
           )
-        )
+        ) ++
+          // Send the current guide value to each client as part of the connection handshake.
+          Stream
+            .eval(engine.systems.guideDb.value)
+            .map(gcs => toFrame[ClientEvent](GuideConfigEvent(gcs.config)))
 
       // engineOutput.
       def engineEvents(clientId: ClientId): Stream[F, WebSocketFrame] =
