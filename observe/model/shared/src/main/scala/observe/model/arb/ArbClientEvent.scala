@@ -6,7 +6,9 @@ package observe.model.arb
 import eu.timepit.refined.scalacheck.string.given
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.Observation
+import lucuma.core.model.arb.ArbGuideConfig.given
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.util.arb.ArbEnumerated.given
@@ -153,6 +155,12 @@ trait ArbClientEvent:
   given Cogen[ClientEvent.SequenceFailed] =
     Cogen[(Observation.Id, String)].contramap(x => (x.obsId, x.errorMsg))
 
+  given Arbitrary[ClientEvent.GuideConfigEvent] = Arbitrary:
+    arbitrary[GuideConfig].map(ClientEvent.GuideConfigEvent(_))
+
+  given Cogen[ClientEvent.GuideConfigEvent] =
+    Cogen[GuideConfig].contramap(_.config)
+
   given Arbitrary[ClientEvent] = Arbitrary:
     Gen.oneOf(
       arbitrary[ClientEvent.InitialEvent],
@@ -168,7 +176,8 @@ trait ArbClientEvent:
       arbitrary[ClientEvent.UserNotification],
       arbitrary[ClientEvent.LogEvent],
       arbitrary[ClientEvent.SequenceComplete],
-      arbitrary[ClientEvent.SequenceFailed]
+      arbitrary[ClientEvent.SequenceFailed],
+      arbitrary[ClientEvent.GuideConfigEvent]
     )
 
   given Cogen[ClientEvent] =
@@ -202,7 +211,10 @@ trait ArbClientEvent:
                                 ClientEvent.LogEvent,
                                 Either[
                                   ClientEvent.SequenceComplete,
-                                  ClientEvent.SequenceFailed
+                                  Either[
+                                    ClientEvent.SequenceFailed,
+                                    ClientEvent.GuideConfigEvent
+                                  ]
                                 ]
                               ]
                             ]
@@ -255,7 +267,21 @@ trait ArbClientEvent:
         Right(
           Right(
             Right(
-              Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e))))))))))))
+              Right(
+                Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Left(e))))))))))))
+              )
+            )
+          )
+        )
+      case e @ ClientEvent.GuideConfigEvent(_)              =>
+        Right(
+          Right(
+            Right(
+              Right(
+                Right(
+                  Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(Right(e)))))))))))
+                )
+              )
             )
           )
         )

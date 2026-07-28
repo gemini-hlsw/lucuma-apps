@@ -1,5 +1,8 @@
 @use '/lucuma-css/lucuma-ui-common.scss' as lucumaUICommon;
 
+// Height of the always-visible guide-config footer toolbar.
+$guide-bar-height: 2.5em;
+
 html {
   font-size: 14px;
   overflow: hidden; // Avoid "spring" effect when scrolling tables beyond their top/bottom.
@@ -113,6 +116,10 @@ body {
 }
 
 .p-toolbar {
+  .p-toolbar-group-right {
+    gap: 0.4em;
+  }
+
   &.observe-footer {
     border-radius: unset;
     min-height: 3em;
@@ -213,7 +220,7 @@ body {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-around;
-    align-items: center;
+    align-items: baseline;
     gap: 15px;
 
     .p-component {
@@ -238,21 +245,25 @@ body {
     .observe-image-quality-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-cloud-extinction-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-water-vapor-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
 
     .observe-sky-background-area {
       display: flex;
       gap: 5px;
+      align-items: baseline;
     }
   }
 
@@ -280,6 +291,40 @@ body {
       align-items: center;
       gap: 5px;
     }
+  }
+}
+
+.observe-app-shell .main-grid {
+  $top-bottom-space: 36px;
+
+  grid-template:
+    'header' $top-bottom-space
+    'body' minmax(calc(100% - #{$top-bottom-space * 2} - #{$guide-bar-height}), 1fr)
+    'sidebar' #{$top-bottom-space}
+    'footer' #{$guide-bar-height}
+    / 1fr;
+
+  @media (min-width: lucumaUICommon.$tablet-responsive-cutoff) {
+    grid-template:
+      'header header' $top-bottom-space
+      'sidebar body' minmax(calc(100% - #{$top-bottom-space} - #{$guide-bar-height}), 1fr)
+      'footer footer' #{$guide-bar-height}
+      / 50px auto;
+  }
+}
+
+// Background and text color are inherited from .p-toolbar, so the guide bar matches the top bar.
+.p-toolbar.observe-guide-bar {
+  grid-area: footer;
+  align-items: center;
+  padding: 0 1rem;
+  border-radius: unset;
+  border-width: 1px 0 0;
+  overflow: hidden;
+
+  .p-toolbar-group-left,
+  .p-toolbar-group-start {
+    gap: 0.75em;
   }
 }
 
@@ -685,7 +730,7 @@ body {
 .observe-acquisition-prompt {
   height: 75px;
   padding: 10px;
-  margin-left: -20px;
+  margin-inline: -20px;
   text-align: left;
   display: flex;
   gap: 10px;

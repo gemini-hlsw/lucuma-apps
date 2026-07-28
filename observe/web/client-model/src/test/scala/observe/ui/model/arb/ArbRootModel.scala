@@ -9,7 +9,9 @@ import crystal.arb.given
 import eu.timepit.refined.scalacheck.string.given
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.math.arb.ArbRefined.given
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.Observation
+import lucuma.core.model.arb.ArbGuideConfig.given
 import lucuma.core.util.arb.ArbGid.given
 import lucuma.core.util.arb.ArbNewType.given
 import lucuma.react.table.ColumnFilters
@@ -62,6 +64,7 @@ trait ArbRootModel:
       usr   <- arbitrary[Map[Observation.Id, SelectedRowId]]
       or    <- arbitrary[Map[Observation.Id, ObservationRequests]]
       cs    <- arbitrary[CurrentConditions]
+      gc    <- arbitrary[GuideConfig]
       obs   <- arbitrary[Option[Observer]]
       op    <- arbitrary[Option[Operator]]
       usm   <- arbitrary[Option[NonEmptyString]]
@@ -80,6 +83,7 @@ trait ArbRootModel:
       usr,
       or,
       cs,
+      gc,
       obs,
       op,
       usm,
@@ -100,6 +104,7 @@ trait ArbRootModel:
       Map[Observation.Id, SelectedRowId],
       Map[Observation.Id, ObservationRequests],
       CurrentConditions,
+      GuideConfig,
       Option[Observer],
       Option[Operator],
       Option[NonEmptyString],
@@ -118,6 +123,7 @@ trait ArbRootModel:
      x.userSelectedRow,
      x.obsRequests,
      x.conditions,
+     x.guideConfig,
      x.observer,
      x.operator,
      x.userSelectionMessage,

@@ -14,6 +14,7 @@ import japgolly.scalajs.react.extra.router.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.common.*
 import lucuma.react.primereact.Toast
+import lucuma.react.primereact.Toolbar
 import lucuma.refined.*
 import lucuma.ui.components.SideTabs
 import lucuma.ui.components.SolarProgress
@@ -21,6 +22,8 @@ import lucuma.ui.enums.Theme
 import lucuma.ui.hooks.*
 import lucuma.ui.layout.LayoutStyles
 import lucuma.ui.sso.UserVault
+import observe.ui.ObserveStyles
+import observe.ui.components.sequence.GuideConfigStatus
 import observe.ui.model.AppContext
 import observe.ui.model.Page
 import observe.ui.model.RootModel
@@ -56,36 +59,45 @@ object Layout
         // Show the full-screen loader only until the first successful connection
         if (bootstrapped.value || ready)
           React.StrictMode(
-            <.div(LayoutStyles.MainGrid)(
-              props.rootModel.data
-                .zoom(RootModelData.userVault)
-                .zoom(Pot.readyPrism.some)
-                .mapValue: (userVault: View[UserVault]) =>
-                  props.rootModel.clientConfig.toOption.map: clientConfig =>
-                    TopBar(
-                      clientConfig,
-                      userVault,
-                      theme,
-                      props.rootModel.data.zoom(RootModelData.isAudioActivated),
-                      props.rootModel.data.zoom(RootModelData.userVault).set(Pot(none)).toAsync
-                    ),
-              Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(ctx.toastRef.ref),
-              SideTabs(
-                "side-tabs".refined,
-                appTabView,
-                ctx.pageUrl(_),
-                separatorAfter = {
-                  case AppTab.ObsList => true
-                  case _              => false
-                },
-                filterPred = {
-                  case AppTab.LoadedObs(instrument) =>
-                    props.rootModel.data.get.readyObsByInstrument.contains(instrument)
-                  case _                            => true
-                }
-              ),
-              <.div(LayoutStyles.MainBody)(
-                props.resolution.renderP(props.rootModel)
+            <.div(ObserveStyles.AppShell)(
+              <.div(LayoutStyles.MainGrid)(
+                props.rootModel.data
+                  .zoom(RootModelData.userVault)
+                  .zoom(Pot.readyPrism.some)
+                  .mapValue: (userVault: View[UserVault]) =>
+                    props.rootModel.clientConfig.toOption.map: clientConfig =>
+                      TopBar(
+                        clientConfig,
+                        userVault,
+                        theme,
+                        props.rootModel.data.zoom(RootModelData.isAudioActivated),
+                        props.rootModel.data.zoom(RootModelData.userVault).set(Pot(none)).toAsync
+                      ),
+                Toast(Toast.Position.BottomRight, baseZIndex = 2000).withRef(ctx.toastRef.ref),
+                SideTabs(
+                  "side-tabs".refined,
+                  appTabView,
+                  ctx.pageUrl(_),
+                  separatorAfter = {
+                    case AppTab.ObsList => true
+                    case _              => false
+                  },
+                  filterPred = {
+                    case AppTab.LoadedObs(instrument) =>
+                      props.rootModel.data.get.readyObsByInstrument.contains(instrument)
+                    case _                            => true
+                  }
+                ),
+                <.div(LayoutStyles.MainBody)(
+                  props.resolution.renderP(props.rootModel)
+                ),
+                // Always-visible guide-config toolbar pinned to the bottom of the app.
+                Toolbar(
+                  clazz = ObserveStyles.GuideBar,
+                  left = GuideConfigStatus(
+                    props.rootModel.data.zoom(RootModelData.guideConfig).get.tcsGuide
+                  )
+                )
               )
             )
           )
