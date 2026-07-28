@@ -22,6 +22,7 @@ import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 
@@ -63,6 +64,7 @@ object NavigateCommand {
   case class OiwfsFollow(enable: Boolean)                                    extends NavigateCommand
   case class OiwfsObserve(period: TimeSpan)                                  extends NavigateCommand
   case class OiwfsCircularBuffer(enable: Boolean)                            extends NavigateCommand
+  case class OiwfsQlMode(mode: QlMode)                                       extends NavigateCommand
   case class OiwfsProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class OiwfsTarget(target: Target)                                     extends NavigateCommand
   case class OriginAdjust(handsetAdjustment: HandsetAdjustment, openLoops: Boolean)
@@ -74,6 +76,7 @@ object NavigateCommand {
   case class Pwfs1Follow(enable: Boolean)                                    extends NavigateCommand
   case class Pwfs1Observe(period: TimeSpan)                                  extends NavigateCommand
   case class Pwfs1CircularBuffer(enable: Boolean)                            extends NavigateCommand
+  case class Pwfs1QlMode(mode: QlMode)                                       extends NavigateCommand
   case class Pwfs1ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs1Target(target: Target)                                     extends NavigateCommand
   case class Pwfs2FieldStop(fieldStop: PwfsFieldStop)                        extends NavigateCommand
@@ -81,6 +84,7 @@ object NavigateCommand {
   case class Pwfs2Follow(enable: Boolean)                                    extends NavigateCommand
   case class Pwfs2Observe(period: TimeSpan)                                  extends NavigateCommand
   case class Pwfs2CircularBuffer(enable: Boolean)                            extends NavigateCommand
+  case class Pwfs2QlMode(mode: QlMode)                                       extends NavigateCommand
   case class Pwfs2ProbeTracking(config: TrackingConfig)                      extends NavigateCommand
   case class Pwfs2Target(target: Target)                                     extends NavigateCommand
   case class RefreshEphemerides(date: Option[LocalDate])                     extends NavigateCommand
@@ -168,6 +172,7 @@ object NavigateCommand {
       case OiwfsFollow(enable)                                                           => s"${self.name}(enable = $enable)"
       case OiwfsObserve(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case OiwfsCircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
+      case OiwfsQlMode(mode)                                                             => s"${self.name}(mode = $mode)"
       case OiwfsProbeTracking(config)                                                    => s"${self.name}(config = $config)"
       case OiwfsTarget(target)                                                           => s"${self.name}(target = ${target.show})"
       case OriginAdjust(handsetAdjustment, openLoops)                                    =>
@@ -180,6 +185,7 @@ object NavigateCommand {
       case Pwfs1Follow(enable)                                                           => s"${self.name}(enable = $enable)"
       case Pwfs1Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case Pwfs1CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
+      case Pwfs1QlMode(mode)                                                             => s"${self.name}(mode = $mode)"
       case Pwfs1ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
       case Pwfs1Target(target: Target)                                                   => s"${self.name}(target = ${target.show})"
       case Pwfs2FieldStop(fieldStop)                                                     => s"${self.name}(fieldStop = $fieldStop)"
@@ -187,6 +193,7 @@ object NavigateCommand {
       case Pwfs2Follow(enable)                                                           => s"${self.name}(enable = $enable)"
       case Pwfs2Observe(period)                                                          => f"${self.name}(period = ${period.toSeconds.toDouble}%.3f)"
       case Pwfs2CircularBuffer(enable)                                                   => s"${self.name}(enable = $enable)"
+      case Pwfs2QlMode(mode)                                                             => s"${self.name}(mode = $mode)"
       case Pwfs2ProbeTracking(config)                                                    => s"${self.name}(config = $config)"
       case Pwfs2Target(target)                                                           => s"${self.name}(target = ${target.show})"
       case RestoreTarget(config)                                                         => s"${self.name}(config = $config)"

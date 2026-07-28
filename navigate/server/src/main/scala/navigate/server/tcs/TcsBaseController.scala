@@ -41,6 +41,7 @@ import navigate.model.enums.LightSink
 import navigate.model.enums.LightSource
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
@@ -86,12 +87,15 @@ trait TcsBaseController[F[_]] {
   def pwfs1Observe(exposureTime:        TimeSpan): F[ApplyCommandResult]
   def pwfs1StopObserve: F[ApplyCommandResult]
   def pwfs1CircularBuffer(enable:       Boolean): F[ApplyCommandResult]
+  def pwfs1QlMode(mode:                 QlMode): F[ApplyCommandResult]
   def pwfs1Sky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]
   def pwfs2Observe(exposureTime:        TimeSpan): F[ApplyCommandResult]
   def pwfs2CircularBuffer(enable:       Boolean): F[ApplyCommandResult]
+  def pwfs2QlMode(mode:                 QlMode): F[ApplyCommandResult]
   def pwfs2StopObserve: F[ApplyCommandResult]
   def pwfs2Sky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]
   def oiwfsCircularBuffer(enable:       Boolean): F[ApplyCommandResult]
+  def oiwfsQlMode(mode:                 QlMode): F[ApplyCommandResult]
   def oiwfsObserve(exposureTime:        TimeSpan): F[ApplyCommandResult]
   def oiwfsStopObserve: F[ApplyCommandResult]
   def oiwfsSky(exposureTime:            TimeSpan)(guide:        GuideConfig): F[ApplyCommandResult]

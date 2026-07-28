@@ -102,6 +102,7 @@ import navigate.model.enums.ParkStatus
 import navigate.model.enums.ParkStatus.NotParked
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server
@@ -1055,9 +1056,14 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     z2m2Proc:     Int => VerifiedEpics[F, F, ApplyCommandResult],
     wfs:          WfsCommands[F]
   )(exposureTime: TimeSpan, isQL: Boolean): F[ApplyCommandResult] =
-    stateRef.get.flatMap { st =>
+    stateRef.flatModify { st =>
+      val actualQl      = state.get(st).qlMode match {
+        case QlMode.Off  => false
+        case QlMode.On   => true
+        case QlMode.Auto => isQL
+      }
       val expTimeChange = state.get(st).period.forall(_ =!= exposureTime).option(exposureTime)
-      val qlChange      = state.get(st).configuredForQl.forall(_ =!= isQL).option(isQL)
+      val qlChange      = state.get(st).configuredForQl.forall(_ =!= actualQl).option(actualQl)
 
       val setSigProc  = expTimeChange
         .map(t => darkFileProc(darkFileName(dataFolderName, prefix, t)))
@@ -1087,29 +1093,28 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           .observe
           .label("")
           .post(ObserveCommand.CommandType.PermanentOn)
-
-      (for {
-        wfsActive <- active.map(_.map(_ === BinaryYesNo.Yes))
-        ret       <- VerifiedEpics.ifF[F, F, ApplyCommandResult](
-                       wfsActive.map(_ && qlChange.isEmpty && expTimeChange.isEmpty)
-                     ) {
-                       VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
-                     } {
-                       VerifiedEpics.ifF(wfsActive) {
-                         wfs.stop.mark
-                           .post(ObserveCommand.CommandType.PermanentOff)
-                       } {
+      (
+        (state.andThen(Focus[WfsConfigState](_.period)).replace(exposureTime.some) >>>
+          state
+            .andThen(Focus[WfsConfigState](_.configuredForQl))
+            .replace(actualQl.some))(st),
+        (for {
+          wfsActive <- active.map(_.map(_ === BinaryYesNo.Yes))
+          ret       <- VerifiedEpics.ifF[F, F, ApplyCommandResult](
+                         wfsActive.map(_ && qlChange.isEmpty && expTimeChange.isEmpty)
+                       ) {
                          VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
-                       } *>
-                         setupAndStart
-                     }
-      } yield ret).verifiedRun(ConnectionTimeout) <*
-        stateRef.update(
-          state.andThen(Focus[WfsConfigState](_.period)).replace(exposureTime.some) >>>
-            state
-              .andThen(Focus[WfsConfigState](_.configuredForQl))
-              .replace(isQL.some)
-        )
+                       } {
+                         VerifiedEpics.ifF(wfsActive) {
+                           wfs.stop.mark
+                             .post(ObserveCommand.CommandType.PermanentOff)
+                         } {
+                           VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)
+                         } *>
+                           setupAndStart
+                       }
+        } yield ret).verifiedRun(ConnectionTimeout)
+      )
     }
 
   private val WfsObserveTimeout = FiniteDuration(20, SECONDS)
@@ -1361,7 +1366,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
                      .interval(exposureTime.toSeconds.toDouble)
                      .post(ObserveCommand.CommandType.TemporarlyOn)
                      .verifiedRun(ConnectionTimeout) <* Temporal[F].sleep(postObserveDelay)
-      _         <- stateRef.update(state.replace(WfsConfigState(none, none)))
+      _         <- stateRef.update(state.modify(_.copy(period = none, configuredForQl = none)))
       _         <- observeCmd(exposureTime).whenA(wfsActive)
     } yield ret
   }
@@ -2439,6 +2444,52 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     ) && t.oiwfs.following.isFollowing)
   }
 
+  private def wfsQlMode(
+    stL:          Lens[State, WfsConfigState],
+    active:       VerifiedEpics[F, F, BinaryYesNo],
+    guideUsesWfs: (m1Guide: M1GuideConfig, m2Guide: M2GuideConfig) => Boolean,
+    setupPwfs:    (exposureTime: TimeSpan, isQL: Boolean) => F[ApplyCommandResult]
+  )(mode: QlMode): F[ApplyCommandResult] =
+    stateRef.updateAndGet(stL.andThen(Focus[WfsConfigState](_.qlMode)).replace(mode)).flatMap {
+      st =>
+        val wfsConfig = stL.get(st)
+
+        active.verifiedRun(ConnectionTimeout).map(_ === BinaryYesNo.Yes).flatMap { act =>
+          if (act) {
+            wfsConfig.period
+              .map { t =>
+                mode match {
+                  case QlMode.Off  => setupPwfs(t, false)
+                  case QlMode.On   => setupPwfs(t, true)
+                  case QlMode.Auto =>
+                    getGuideState.flatMap(g => setupPwfs(t, !guideUsesWfs(g.m1Guide, g.m2Guide)))
+                }
+              }
+              .getOrElse(ApplyCommandResult.Completed.pure[F])
+          } else ApplyCommandResult.Completed.pure[F]
+        }
+    }
+
+  override def pwfs1QlMode(mode: QlMode): F[ApplyCommandResult] =
+    wfsQlMode(Focus[State](_.pwfs1),
+              sys.tcsEpics.status.pwfs1On,
+              guideUsesPwfs1,
+              setupPwfs1Observe
+    )(mode)
+
+  override def pwfs2QlMode(mode: QlMode): F[ApplyCommandResult] =
+    wfsQlMode(Focus[State](_.pwfs2),
+              sys.tcsEpics.status.pwfs2On,
+              guideUsesPwfs2,
+              setupPwfs2Observe
+    )(mode)
+
+  override def oiwfsQlMode(mode: QlMode): F[ApplyCommandResult] =
+    wfsQlMode(Focus[State](_.oiwfs),
+              sys.tcsEpics.status.oiwfsOn,
+              guideUsesOiwfs,
+              setupOiwfsObserve
+    )(mode)
 }
 
 object TcsBaseControllerEpics {
@@ -2457,6 +2508,7 @@ object TcsBaseControllerEpics {
 
   case class WfsConfigState(
     period:          Option[TimeSpan],
+    qlMode:          QlMode,
     configuredForQl: Option[Boolean]
   )
 
@@ -2468,9 +2520,9 @@ object TcsBaseControllerEpics {
 
   object State {
     val default: State = State(
-      WfsConfigState(None, None),
-      WfsConfigState(None, None),
-      WfsConfigState(None, None)
+      WfsConfigState(None, QlMode.default, None),
+      WfsConfigState(None, QlMode.default, None),
+      WfsConfigState(None, QlMode.default, None)
     )
   }
 

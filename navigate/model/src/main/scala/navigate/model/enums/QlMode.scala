@@ -10,3 +10,7 @@ enum QlMode(val tag: String) derives Enumerated {
   case On   extends QlMode("On")
   case Auto extends QlMode("Auto")
 }
+
+object QlMode {
+  val default: QlMode = Auto
+}
