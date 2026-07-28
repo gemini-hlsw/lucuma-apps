@@ -9,6 +9,7 @@ import crystal.react.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.model.Observation
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.ObservationReference
 import lucuma.core.model.Program
 import lucuma.react.common.*
@@ -29,6 +30,7 @@ case class ObsHeader(
   observer:                   View[Option[Observer]],
   operator:                   View[Option[Operator]],
   conditions:                 View[CurrentConditions],
+  guideConfig:                View[GuideConfig],
   subsystemControlStrategies: Map[SubsystemOrServer, ControlStrategy],
   linkToExploreObs:           Either[(Program.Id, Observation.Id), ObservationReference] => VdomNode
 ) extends ReactFnProps(ObsHeader)
@@ -68,7 +70,8 @@ object ObsHeader
           props.loadedObsId.flatMap(_.toOption),
           props.observer,
           props.operator,
-          props.conditions
+          props.conditions,
+          props.guideConfig
         )
       )
     )

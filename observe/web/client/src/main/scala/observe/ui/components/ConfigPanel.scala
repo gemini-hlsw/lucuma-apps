@@ -11,6 +11,7 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.SkyBackground
 import lucuma.core.enums.WaterVapor
 import lucuma.core.model.CloudExtinction
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.ImageQuality
 import lucuma.core.model.validation.ModelValidators
 import lucuma.core.refined.given
@@ -26,14 +27,16 @@ import lucuma.ui.primereact.FormInputTextView
 import lucuma.ui.primereact.given
 import observe.model.*
 import observe.ui.ObserveStyles
+import observe.ui.components.sequence.GuideConfigStatus
 import observe.ui.model.AppContext
 import observe.ui.services.ConfigApi
 
 case class ConfigPanel(
-  obsId:      Option[Observation.Id],
-  observer:   View[Option[Observer]],
-  operator:   View[Option[Operator]],
-  conditions: View[CurrentConditions]
+  obsId:       Option[Observation.Id],
+  observer:    View[Option[Observer]],
+  operator:    View[Option[Operator]],
+  conditions:  View[CurrentConditions],
+  guideConfig: View[GuideConfig]
 ) extends ReactFnProps(ConfigPanel)
 
 object ConfigPanel
@@ -142,6 +145,9 @@ object ConfigPanel
                     .andThen(Observer.Value.reverse.option)
                 )
             )
+          ),
+          <.div(ObserveStyles.GuideConfigSection)(
+            GuideConfigStatus(props.guideConfig.get.tcsGuide)
           )
         )
     )

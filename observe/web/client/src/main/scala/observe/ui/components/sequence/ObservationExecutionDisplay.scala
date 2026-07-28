@@ -92,6 +92,7 @@ object ObservationExecutionDisplay
           props.rootModelData.zoom(RootModelData.observer),
           props.rootModelData.zoom(RootModelData.operator),
           props.rootModelData.zoom(RootModelData.conditions),
+          props.rootModelData.zoom(RootModelData.guideConfig),
           props.subsystemControlStrategies,
           props.linkToExploreObs
         ),

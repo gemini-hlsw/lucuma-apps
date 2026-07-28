@@ -134,25 +134,30 @@ object RootModelData:
       obsListColumnFilters = ColumnFilters.Empty
     )
 
-  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     = Focus[RootModelData](_.userVault)
+  val userVault: Lens[RootModelData, Pot[Option[UserVault]]]                     =
+    Focus[RootModelData](_.userVault)
   val obsList: Lens[RootModelData, Pot[List[ObsSummary]]]                        =
     Focus[RootModelData](_.obsList)
   val loadedObservations: Lens[RootModelData, LoadedObservations]                =
     Focus[RootModelData](_.loadedObservations)
   val executionState: Lens[RootModelData, Map[Observation.Id, ExecutionState]]   =
     Focus[RootModelData](_.executionState)
-  val recordedIds: Lens[RootModelData, ObsRecordedIds]                           = Focus[RootModelData](_.recordedIds)
+  val recordedIds: Lens[RootModelData, ObsRecordedIds]                           =
+    Focus[RootModelData](_.recordedIds)
   val obsProgress: Lens[RootModelData, Map[Observation.Id, StepProgress]]        =
     Focus[RootModelData](_.obsProgress)
   val userSelectedRow: Lens[RootModelData, Map[Observation.Id, SelectedRowId]]   =
     Focus[RootModelData](_.userSelectedRow)
   val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
     Focus[RootModelData](_.obsRequests)
-  val conditions: Lens[RootModelData, CurrentConditions]                         = Focus[RootModelData](_.conditions)
+  val conditions: Lens[RootModelData, CurrentConditions]                         =
+    Focus[RootModelData](_.conditions)
   val guideConfig: Lens[RootModelData, GuideConfig]                              =
     Focus[RootModelData](_.guideConfig)
-  val observer: Lens[RootModelData, Option[Observer]]                            = Focus[RootModelData](_.observer)
-  val operator: Lens[RootModelData, Option[Operator]]                            = Focus[RootModelData](_.operator)
+  val observer: Lens[RootModelData, Option[Observer]]                            =
+    Focus[RootModelData](_.observer)
+  val operator: Lens[RootModelData, Option[Operator]]                            =
+    Focus[RootModelData](_.operator)
   val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]          =
     Focus[RootModelData](_.userSelectionMessage)
   val globalLog: Lens[RootModelData, FixedLengthBuffer[LogMessage]]              =
