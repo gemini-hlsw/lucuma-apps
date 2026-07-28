@@ -255,7 +255,10 @@ trait ModesTableCommon:
                 if (showTotalTime) formatDurationHours(r.duration)
                 else s"${r.exposures} × ${formatDurationSeconds(r.exposureTime)}"
               case ItcColumns.SN        =>
-                r.snAt.map(_.total.value).foldMap(_.format)
+                // The ITC doesn't always report a S/N at the requested wavelength. Render a
+                // placeholder rather than an empty cell so it reads as "no value" and not
+                // as a cell that failed to render.
+                r.snAt.fold("-")(_.total.value.format)
 
             val (tooltip, placement) = col match
               case ItcColumns.Exposures =>
@@ -266,7 +269,9 @@ trait ModesTableCommon:
                   else formatDurationHours(r.duration)
                 tooltipContent(baseText, ccdWarnings)
               case ItcColumns.SN        =>
-                val baseText = s"${r.snAt.map(_.single.value).foldMap(_.format)} / exposure"
+                val baseText = r.snAt.fold("No S/N available at the requested wavelength")(snAt =>
+                  s"${snAt.single.value.format} / exposure"
+                )
                 tooltipContent(baseText, ccdWarnings)
 
             val node =
