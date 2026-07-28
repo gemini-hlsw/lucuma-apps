@@ -891,14 +891,23 @@ object NavigateEngine {
     override def agAllPark: F[CommandResult] =
       CommandResult.CommandFailure("Command agAllPark not yet implemented.").pure[F]
 
-    override def pwfs1QlMode(mode: QlMode): F[CommandResult] =
-      CommandResult.CommandFailure("Command pwfs1QlMode not yet implemented.").pure[F]
+    override def pwfs1QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
+      engine,
+      Pwfs1QlMode(mode),
+      systems.tcsCommon.pwfs1QlMode(mode)
+    )
 
-    override def pwfs2QlMode(mode: QlMode): F[CommandResult] =
-      CommandResult.CommandFailure("Command pwfs2QlMode not yet implemented.").pure[F]
+    override def pwfs2QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
+      engine,
+      Pwfs2QlMode(mode),
+      systems.tcsCommon.pwfs2QlMode(mode)
+    )
 
-    override def oiwfsQlMode(mode: QlMode): F[CommandResult] =
-      CommandResult.CommandFailure("Command oiwfsQlMode not yet implemented.").pure[F]
+    override def oiwfsQlMode(mode: QlMode): F[CommandResult] = simpleCommand(
+      engine,
+      OiwfsQlMode(mode),
+      systems.tcsCommon.oiwfsQlMode(mode)
+    )
   }
 
   def build[F[_]: {Temporal, Logger, Async}](

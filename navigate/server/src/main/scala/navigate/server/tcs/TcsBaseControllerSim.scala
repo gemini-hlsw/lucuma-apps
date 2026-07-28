@@ -63,6 +63,7 @@ import navigate.model.enums.LightSource
 import navigate.model.enums.ParkStatus.*
 import navigate.model.enums.PwfsFieldStop
 import navigate.model.enums.PwfsFilter
+import navigate.model.enums.QlMode
 import navigate.model.enums.ShutterMode
 import navigate.model.enums.VirtualTelescope
 import navigate.server.ApplyCommandResult
@@ -481,4 +482,13 @@ abstract class TcsBaseControllerSim[F[_]: Async](
 
   override def oiwfsConfigStream: Resource[F, Stream[F, WfsConfiguration]] =
     Resource.pure(oiwfsConfigsRef.changes.discrete.zipLeft(Stream.fixedDelay(mechanismStepPeriod)))
+
+  override def pwfs1QlMode(mode: QlMode): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def pwfs2QlMode(mode: QlMode): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
+
+  override def oiwfsQlMode(mode: QlMode): F[ApplyCommandResult] =
+    ApplyCommandResult.Completed.pure[F]
 }
