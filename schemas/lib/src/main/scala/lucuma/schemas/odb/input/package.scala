@@ -45,6 +45,7 @@ import lucuma.core.util.*
 import lucuma.itc.ItcGhostDetector
 import lucuma.schemas.ObservationDB.Enums.PartnerLinkType
 import lucuma.schemas.ObservationDB.Enums.PosAngleConstraintMode
+import lucuma.schemas.ObservationDB.Scalars.AttachmentId
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
 import lucuma.schemas.model.ImagingVariant
@@ -983,18 +984,24 @@ extension (g: GmosGratingConfig.North)
       wavelength = g.wavelength.toInput
     )
 
+extension (m: MaskDefinition)
+  def toInput: Input[AttachmentId] =
+    m match
+      case ToBeDefined => Input.unassign
+      case Defined(id) => id.assign
+
 extension (g: GmosFpuMask.Custom)
   def toInput: GmosCustomMaskInput =
     GmosCustomMaskInput(
-      filename = g.filename.value,
+      attachmentId = g.mask.toInput,
       slitWidth = g.slitWidth
     )
 
-extension (customMask: Flamingos2FpuMask.Custom)
+extension (f2: Flamingos2FpuMask.Custom)
   def toInput: Flamingos2CustomMaskInput =
     Flamingos2CustomMaskInput(
-      filename = customMask.filename.value,
-      slitWidth = customMask.slitWidth
+      attachmentId = f2.mask.toInput,
+      slitWidth = f2.slitWidth
     )
 
 extension (g: GmosFpuMask[GmosSouthFpu])
