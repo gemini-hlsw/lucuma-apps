@@ -11,6 +11,7 @@ import crystal.react.View
 import eu.timepit.refined.cats.given
 import eu.timepit.refined.types.string.NonEmptyString
 import lucuma.core.enums.Instrument
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.Observation
 import lucuma.react.table.ColumnFilters
 import lucuma.ui.sequence.SelectedRowId
@@ -38,6 +39,7 @@ case class RootModelData(
   userSelectedRow:      Map[Observation.Id, SelectedRowId],
   obsRequests:          Map[Observation.Id, ObservationRequests],
   conditions:           CurrentConditions,
+  guideConfig:          GuideConfig,
   observer:             Option[Observer],
   operator:             Option[Operator],
   userSelectionMessage: Option[NonEmptyString],
@@ -122,6 +124,7 @@ object RootModelData:
       obsRequests = Map.empty,
       userSelectedRow = Map.empty,
       conditions = CurrentConditions.Default,
+      guideConfig = GuideConfig.defaultGuideConfig,
       observer = none,
       operator = none,
       userSelectionMessage = none,
@@ -146,6 +149,8 @@ object RootModelData:
   val obsRequests: Lens[RootModelData, Map[Observation.Id, ObservationRequests]] =
     Focus[RootModelData](_.obsRequests)
   val conditions: Lens[RootModelData, CurrentConditions]                         = Focus[RootModelData](_.conditions)
+  val guideConfig: Lens[RootModelData, GuideConfig]                              =
+    Focus[RootModelData](_.guideConfig)
   val observer: Lens[RootModelData, Option[Observer]]                            = Focus[RootModelData](_.observer)
   val operator: Lens[RootModelData, Option[Operator]]                            = Focus[RootModelData](_.operator)
   val userSelectionMessage: Lens[RootModelData, Option[NonEmptyString]]          =

@@ -12,6 +12,7 @@ import io.circe.Encoder
 import io.circe.refined.*
 import lucuma.core.enums.Instrument
 import lucuma.core.enums.SequenceType
+import lucuma.core.model.GuideConfig
 import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
@@ -101,3 +102,5 @@ object ClientEvent:
 
   case class SequenceFailed(obsId: Observation.Id, errorMsg: String) extends AllClientEvent
       derives Eq
+
+  case class GuideConfigEvent(config: GuideConfig) extends AllClientEvent derives Eq
