@@ -18,6 +18,7 @@ import crystal.react.*
 import crystal.react.given
 import crystal.react.hooks.*
 import crystal.syntax.*
+import eu.timepit.refined.types.string.NonEmptyString
 import fs2.Pipe
 import io.circe.parser.decode
 import io.circe.syntax.*
@@ -49,6 +50,7 @@ import observe.model.events.ClientEvent
 import observe.queries.ObsQueriesGQL
 import observe.ui.BroadcastEvent
 import observe.ui.ObserveStyles
+import observe.ui.OtelSdk
 import observe.ui.components.services.ObservationSyncer
 import observe.ui.components.services.ServerEventHandler
 import observe.ui.model.AppContext
@@ -67,9 +69,14 @@ import org.http4s.client.websocket.middleware.Reconnect
 import org.http4s.dom.FetchClientBuilder
 import org.http4s.dom.WebSocketClient
 import org.http4s.headers.Authorization
+import org.http4s.otel4s.middleware.trace.client.ClientMiddleware
+import org.http4s.otel4s.middleware.trace.client.ClientSpanDataProvider
+import org.http4s.otel4s.middleware.trace.client.UriRedactor
 import org.http4s.syntax.all.*
 import org.scalajs.dom
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
+import org.typelevel.otel4s.trace.TracerProvider
 import retry.*
 import typings.loglevel.mod.LogLevelDesc
 
@@ -210,6 +217,8 @@ object MainApp extends ServerEventHandler:
             showEnvironment[IO](clientConfig.environment)
         _                <-
           useAsyncEffectWhenDepsReady(clientConfigPot.get) { clientConfig => // Build AppContext (4)
+            val version: NonEmptyString = AppContext.version(clientConfig.environment)
+
             val ctxResource: Resource[IO, AppContext[IO]] =
               (for
                 dispatcher                                 <- Dispatcher.parallel[IO]
@@ -222,9 +231,26 @@ object MainApp extends ServerEventHandler:
                       reconnectionStrategy
                     )
                   )
+                otel                                       <-
+                  OtelSdk.build(
+                    clientConfig.otelEndpoint,
+                    version,
+                    clientConfig.site,
+                    clientConfig.environment
+                  )
+                given Tracer[IO]                            = otel.tracer
+                given TracerProvider[IO]                    = otel.tracerProvider
+                traceMiddleware                            <-
+                  Resource.eval:
+                    ClientMiddleware
+                      .builder[IO](
+                        ClientSpanDataProvider.openTelemetry(new UriRedactor.OnlyRedactUserInfo {})
+                      )
+                      .build
               yield AppContext[IO](
-                AppContext.version(clientConfig.environment),
+                version,
                 SSOClient(SSOConfig(clientConfig.ssoUri)),
+                traceMiddleware(fetchClient),
                 (tab: AppTab) => MainApp.routerCtl.urlFor(tab.getPage).value,
                 (tab: AppTab, via: SetRouteVia) => MainApp.routerCtl.set(tab.getPage, via),
                 toastRef
@@ -256,11 +282,11 @@ object MainApp extends ServerEventHandler:
         // Subscribe to client event stream (and initialize ClientConfig)
         apiClientOpt     <- useState(none[ApiClient])
         _                <-
-          useEffectWhenDepsReady(clientConfigPot.get): clientConfig =>
+          useEffectWhenDepsReady((clientConfigPot.get, ctxPot.value).tupled): (clientConfig, ctx) =>
             apiClientOpt
               .setState:
                 ApiClient(
-                  fetchClient,
+                  ctx.otelHttpClient,
                   ApiBasePath,
                   clientConfig.clientId,
                   authHeaderRef.getAsync,

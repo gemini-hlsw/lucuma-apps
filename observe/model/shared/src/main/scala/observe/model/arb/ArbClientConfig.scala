@@ -42,6 +42,7 @@ trait ArbClientConfig:
       clientId                   <- arbitrary[ClientId]
       version                    <- arbitrary[Version]
       subsystemControlStrategies <- arbitrary[Map[SubsystemOrServer, ControlStrategy]]
+      otelEndpoint               <- arbitrary[Option[Uri]]
     yield ClientConfig(
       site,
       environment,
@@ -50,7 +51,8 @@ trait ArbClientConfig:
       exploreBaseUri,
       clientId,
       version,
-      subsystemControlStrategies
+      subsystemControlStrategies,
+      otelEndpoint
     )
 
   given Cogen[ClientConfig] =
@@ -62,7 +64,8 @@ trait ArbClientConfig:
        Uri,
        ClientId,
        Version,
-       List[(SubsystemOrServer, ControlStrategy)]
+       List[(SubsystemOrServer, ControlStrategy)],
+       Option[Uri]
       )
     ].contramap(x =>
       (x.site,
@@ -72,7 +75,8 @@ trait ArbClientConfig:
        x.exploreBaseUri,
        x.clientId,
        x.version,
-       x.subsystemControlStrategies.toList
+       x.subsystemControlStrategies.toList,
+       x.otelEndpoint
       )
     )
 

@@ -3,6 +3,7 @@
 
 package observe.web.server.otel
 
+import cats.Applicative
 import cats.effect.*
 import cats.effect.unsafe.IORuntime
 import cats.syntax.all.*
@@ -10,6 +11,7 @@ import io.opentelemetry.instrumentation.runtimetelemetry.RuntimeTelemetry
 import lucuma.core.enums.ExecutionEnvironment
 import lucuma.core.enums.Site
 import observe.model.config.OtelConfiguration
+import org.typelevel.log4cats.Logger
 import org.typelevel.otel4s.context.LocalProvider
 import org.typelevel.otel4s.instrumentation.ce.IORuntimeMetrics
 import org.typelevel.otel4s.metrics.MeterProvider
@@ -28,7 +30,27 @@ case class OtelServices[F[_]](
 
 object ObserveOtel:
 
-  def resource[F[_]: Async: LiftIO](
+  private def noop[F[_]: Applicative]: OtelServices[F] =
+    OtelServices(
+      tracer = Tracer.noop,
+      tracerProvider = TracerProvider.noop,
+      meterProvider = MeterProvider.noop
+    )
+
+  def resource[F[_]: {Async, LiftIO, Logger as L}](
+    serviceName:    String,
+    serviceVersion: String,
+    site:           Site,
+    environment:    ExecutionEnvironment,
+    config:         OtelConfiguration
+  ): Resource[F, OtelServices[F]] =
+    build(serviceName, serviceVersion, site, environment, config)
+      .handleErrorWith: (t: Throwable) =>
+        Resource
+          .eval(L.warn(t)("Error initializing telemetry, continuing without it"))
+          .as(noop)
+
+  private def build[F[_]: Async: LiftIO](
     serviceName:    String,
     serviceVersion: String,
     site:           Site,
@@ -68,10 +90,4 @@ object ObserveOtel:
                   meterProvider = otel.meterProvider
                 )
       case None                  =>
-        Resource.pure(
-          OtelServices(
-            tracer = Tracer.noop,
-            tracerProvider = TracerProvider.noop,
-            meterProvider = MeterProvider.noop
-          )
-        )
+        Resource.pure(noop)

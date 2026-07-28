@@ -572,6 +572,7 @@ lazy val observe_web_client = project
         Clue.value ++
         ClueScalaJs.value ++
         Fs2.value ++
+        Fs2Io.value ++
         Http4sClient.value ++
         Http4sDom.value ++
         Crystal.value ++
@@ -581,6 +582,10 @@ lazy val observe_web_client = project
         LucumaReact.value ++
         Monocle.value ++
         LucumaCore.value ++
+        Otel4s.value ++
+        Otel4sSdk.value ++
+        Otel4sSemconv.value ++
+        Http4sOtel4sClient.value ++
         Log4CatsLogLevel.value,
     scalacOptions ~= (_.filterNot(Set("-Vtype-diffs"))),
     buildInfoKeys    := Seq[BuildInfoKey](

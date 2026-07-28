@@ -23,20 +23,24 @@ import lucuma.ui.primereact.ToastCtx
 import lucuma.ui.sso.SSOClient
 import observe.ui.BuildInfo
 import observe.ui.model.enums.AppTab
+import org.http4s.client.Client
 import org.typelevel.log4cats.Logger
+import org.typelevel.otel4s.trace.Tracer
 
 import java.time.Instant
 
 case class AppContext[F[_]](
-  version:       NonEmptyString,
-  ssoClient:     SSOClient[F],
-  pageUrl:       AppTab => String,
-  setPageVia:    (AppTab, SetRouteVia) => Callback,
-  toastRef:      ToastRef
+  version:        NonEmptyString,
+  ssoClient:      SSOClient[F],
+  otelHttpClient: Client[F],
+  pageUrl:        AppTab => String,
+  setPageVia:     (AppTab, SetRouteVia) => Callback,
+  toastRef:       ToastRef
 )(using
-  val F:         Async[F],
-  val logger:    Logger[F],
-  val odbClient: WebSocketJsClient[F, ObservationDB]
+  val F:          Async[F],
+  val logger:     Logger[F],
+  val odbClient:  WebSocketJsClient[F, ObservationDB],
+  val T:          Tracer[F]
 ):
   given ToastCtx[F] = new ToastCtx[F](toastRef)
 
