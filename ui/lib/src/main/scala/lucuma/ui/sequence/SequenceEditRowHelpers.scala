@@ -9,10 +9,15 @@ import cats.syntax.all.*
 import crystal.react.syntax.effect.*
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Offset
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
+import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.StepEstimate
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -87,29 +92,35 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =
     stepId => atoms => extractStep(stepId)(atoms)._1
 
-  protected def cloneRow(
-    row: SequenceRow[D]
-  )(targetSeqType: SequenceType): IO[Endo[List[Atom[D]]]] =
+  // Inserts a copy of the row's step, with `modStep` applied to it, right below the row.
+  // For executed rows, which have no place in the future sequence, the copy goes at the head.
+  private def insertCopyOfRow(row: SequenceRow[D], modStep: Endo[Step[D]])(
+    targetSeqType: SequenceType
+  ): IO[Endo[List[Atom[D]]]] =
     IO.randomUUID
       .map(Step.Id.fromUuid(_))
       .map: newId =>
+        val copyStep: Endo[Step[D]] = Step.id[D].replace(newId).andThen(modStep)
+
         row match
           case SequenceRow.futureStep(fs)   =>
             insertStep(
-              Step.id.replace(newId)(fs.step),
+              copyStep(fs.step),
               nextTo = fs.stepId,
               position = Edge.Bottom
             )
           case SequenceRow.executedStep(es) =>
-            val newStep: Step[D] = Step(
-              newId,
-              es.stepRecord.instrumentConfig,
-              es.stepRecord.stepConfig,
-              es.stepRecord.telescopeConfig,
-              // TODO IS THIS WHAT WE ACTUALLY WANT?? // es.interval.foldMap(_.timeSpan),
-              StepEstimate.fromMax(List.empty, List.empty),
-              es.stepRecord.observeClass,
-              Breakpoint.Disabled
+            val newStep: Step[D] = copyStep(
+              Step(
+                newId,
+                es.stepRecord.instrumentConfig,
+                es.stepRecord.stepConfig,
+                es.stepRecord.telescopeConfig,
+                // TODO IS THIS WHAT WE ACTUALLY WANT?? // es.interval.foldMap(_.timeSpan),
+                StepEstimate.fromMax(List.empty, List.empty),
+                es.stepRecord.observeClass,
+                Breakpoint.Disabled
+              )
             )
             {
               case Nil          => Nil // There's no sequence... What to do?
@@ -121,3 +132,20 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
                 newHead :: tail
             }
           case _                            => identity
+
+  protected def cloneRow(row: SequenceRow[D]): SequenceType => IO[Endo[List[Atom[D]]]] =
+    insertCopyOfRow(row, identity[Step[D]])
+
+  // A dark doesn't guide and has no offsets.
+  private val DarkTelescopeConfig: TelescopeConfig =
+    TelescopeConfig(Offset.Zero, StepGuideState.Disabled)
+
+  protected def insertDarkRow(row: SequenceRow[D]): SequenceType => IO[Endo[List[Atom[D]]]] =
+    insertCopyOfRow(
+      row,
+      Step
+        .stepConfig[D]
+        .replace(StepConfig.Dark)
+        .andThen(Step.observeClass[D].replace(ObserveClass.DayCal))
+        .andThen(Step.telescopeConfig[D].replace(DarkTelescopeConfig))
+    )

@@ -80,6 +80,14 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
               tooltipOptions = TooltipOptions.Top
             ).mini.compact,
             Button(
+              icon = SequenceIcons.StepType.Dark,
+              clazz = SequenceStyles.InsertDarkButton,
+              onClick =
+                c.getStep.foldMap(step => handleAllSeqTypesRowEditAsync(c)(insertDarkRow(step))),
+              tooltip = "Insert Dark Step",
+              tooltipOptions = TooltipOptions.Top
+            ).mini.compact,
+            Button(
               icon = SequenceIcons.Trash,
               clazz = SequenceStyles.DeleteButton,
               onClick = c.getFutureStep.foldMap(step => handleRowEdit(c)(deleteRow(step.stepId))),
@@ -453,7 +461,7 @@ object SequenceColumns:
     // Present for editable instruments.
     private val EditColumnSizes: Map[ColumnId, ColumnSize] = Map(
       DragHandleColumnId   -> FixedSize(25.toPx),
-      EditControlsColumnId -> FixedSize(50.toPx)
+      EditControlsColumnId -> FixedSize(75.toPx)
     )
 
     // Columns present in every instrument table.
