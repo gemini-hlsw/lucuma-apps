@@ -945,7 +945,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
         s.pwfs1.period
           .flatMap(p =>
             guideUsesPwfs1(config.m1Guide, config.m2Guide)
-              .option(setupPwfs1Observe(p, false))
+              .option(setupPwfs1Observe(p, true))
           )
           .getOrElse(
             ApplyCommandResult.Completed.pure[F]
@@ -953,7 +953,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           s.pwfs2.period
             .flatMap(p =>
               guideUsesPwfs2(config.m1Guide, config.m2Guide)
-                .option(setupPwfs2Observe(p, false))
+                .option(setupPwfs2Observe(p, true))
             )
             .getOrElse(
               ApplyCommandResult.Completed.pure[F]
@@ -961,7 +961,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           s.oiwfs.period
             .flatMap(p =>
               guideUsesOiwfs(config.m1Guide, config.m2Guide)
-                .option(setupOiwfsObserve(p, false))
+                .option(setupOiwfsObserve(p, true))
             )
             .getOrElse(
               ApplyCommandResult.Completed.pure[F]
@@ -985,15 +985,15 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     .verifiedRun(ConnectionTimeout) <*
     stateRef.get.flatMap { s =>
       s.pwfs1.period
-        .map(setupPwfs1Observe(_, true))
+        .map(setupPwfs1Observe(_, false))
         .getOrElse(
           ApplyCommandResult.Completed.pure[F]
         ) *> s.pwfs2.period
-        .map(setupPwfs2Observe(_, true))
+        .map(setupPwfs2Observe(_, false))
         .getOrElse(
           ApplyCommandResult.Completed.pure[F]
         ) *> s.oiwfs.period
-        .map(setupOiwfsObserve(_, true))
+        .map(setupOiwfsObserve(_, false))
         .getOrElse(
           ApplyCommandResult.Completed.pure[F]
         )
@@ -1055,12 +1055,12 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     darkFileProc: String => VerifiedEpics[F, F, ApplyCommandResult],
     z2m2Proc:     Int => VerifiedEpics[F, F, ApplyCommandResult],
     wfs:          WfsCommands[F]
-  )(exposureTime: TimeSpan, isQL: Boolean): F[ApplyCommandResult] =
+  )(exposureTime: TimeSpan, isGuiding: Boolean): F[ApplyCommandResult] =
     stateRef.flatModify { st =>
       val actualQl      = state.get(st).qlMode match {
         case QlMode.Off  => false
         case QlMode.On   => true
-        case QlMode.Auto => isQL
+        case QlMode.Auto => !isGuiding
       }
       val expTimeChange = state.get(st).period.forall(_ =!= exposureTime).option(exposureTime)
       val qlChange      = state.get(st).configuredForQl.forall(_ =!= actualQl).option(actualQl)
@@ -1068,14 +1068,10 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
       val setSigProc  = expTimeChange
         .map(t => darkFileProc(darkFileName(dataFolderName, prefix, t)))
         .getOrElse(VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed)) *>
-        qlChange
-          .map(
-            _.fold(
-              z2m2Proc(0),
-              z2m2Proc(1)
-            )
-          )
-          .getOrElse(VerifiedEpics.pureF[F, F, ApplyCommandResult](ApplyCommandResult.Completed))
+        isGuiding.fold(
+          z2m2Proc(1),
+          z2m2Proc(0)
+        )
       val setInterval =
         (c: WfsCommands[F]) => expTimeChange.fold(c)(t => c.observe.interval(t.toSeconds.toDouble))
       val setQl       = (c: WfsCommands[F]) =>
@@ -1119,7 +1115,8 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   private val WfsObserveTimeout = FiniteDuration(20, SECONDS)
 
-  private def setupPwfs1Observe: (exposureTime: TimeSpan, isQL: Boolean) => F[ApplyCommandResult] =
+  private def setupPwfs1Observe
+    : (exposureTime: TimeSpan, isGuiding: Boolean) => F[ApplyCommandResult] =
     setupWfsObserve(
       "p1",
       Focus[State](_.pwfs1),
@@ -1132,10 +1129,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def pwfs1Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
     getGuideState.flatMap { g =>
-      setupPwfs1Observe(exposureTime, !guideUsesPwfs1(g.m1Guide, g.m2Guide))
+      setupPwfs1Observe(exposureTime, guideUsesPwfs1(g.m1Guide, g.m2Guide))
     }
 
-  private def setupPwfs2Observe: (exposureTime: TimeSpan, isQL: Boolean) => F[ApplyCommandResult] =
+  private def setupPwfs2Observe
+    : (exposureTime: TimeSpan, isGuiding: Boolean) => F[ApplyCommandResult] =
     setupWfsObserve(
       "p2",
       Focus[State](_.pwfs2),
@@ -1148,10 +1146,11 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def pwfs2Observe(exposureTime: TimeSpan): F[ApplyCommandResult] =
     getGuideState.flatMap { g =>
-      setupPwfs2Observe(exposureTime, !guideUsesPwfs2(g.m1Guide, g.m2Guide))
+      setupPwfs2Observe(exposureTime, guideUsesPwfs2(g.m1Guide, g.m2Guide))
     }
 
-  private def setupOiwfsObserve: (exposureTime: TimeSpan, isQL: Boolean) => F[ApplyCommandResult] =
+  private def setupOiwfsObserve
+    : (exposureTime: TimeSpan, isGuiding: Boolean) => F[ApplyCommandResult] =
     setupWfsObserve(
       "",
       Focus[State](_.oiwfs),
@@ -1163,7 +1162,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
 
   override def oiwfsObserve(exposureTime: TimeSpan): F[ApplyCommandResult] =
     getGuideState.flatMap { g =>
-      setupOiwfsObserve(exposureTime, !guideUsesOiwfs(g.m1Guide, g.m2Guide))
+      setupOiwfsObserve(exposureTime, guideUsesOiwfs(g.m1Guide, g.m2Guide))
     }
 
   private val WfsStopObserveTimeout = FiniteDuration(15, SECONDS)
@@ -1376,7 +1375,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.pwfs1On,
     sys.tcsEpics.startPwfs1Command,
     (fn: String) => sys.tcsEpics.startCommand(timeout).pwfs1Commands.dark.filename(fn).post,
-    t => setupPwfs1Observe(t, !guideUsesPwfs1(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    t => setupPwfs1Observe(t, guideUsesPwfs1(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
     Focus[State](_.pwfs1)
   )
 
@@ -1385,7 +1384,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.pwfs2On,
     sys.tcsEpics.startPwfs2Command,
     (fn: String) => sys.tcsEpics.startCommand(timeout).pwfs2Commands.dark.filename(fn).post,
-    t => setupPwfs2Observe(t, !guideUsesPwfs2(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    t => setupPwfs2Observe(t, guideUsesPwfs2(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
     Focus[State](_.pwfs2)
   )
 
@@ -1394,7 +1393,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
     sys.tcsEpics.status.oiwfsOn,
     sys.tcsEpics.startOiwfsCommand,
     (fn: String) => sys.oiwfs.startDarkCommand(timeout).filename(fn).post,
-    t => setupOiwfsObserve(t, !guideUsesOiwfs(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
+    t => setupOiwfsObserve(t, guideUsesOiwfs(guide.tcsGuide.m1Guide, guide.tcsGuide.m2Guide)),
     Focus[State](_.oiwfs)
   )
 
@@ -2458,12 +2457,7 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
           if (act) {
             wfsConfig.period
               .map { t =>
-                mode match {
-                  case QlMode.Off  => setupPwfs(t, false)
-                  case QlMode.On   => setupPwfs(t, true)
-                  case QlMode.Auto =>
-                    getGuideState.flatMap(g => setupPwfs(t, !guideUsesWfs(g.m1Guide, g.m2Guide)))
-                }
+                getGuideState.flatMap(g => setupPwfs(t, guideUsesWfs(g.m1Guide, g.m2Guide)))
               }
               .getOrElse(ApplyCommandResult.Completed.pure[F])
           } else ApplyCommandResult.Completed.pure[F]
