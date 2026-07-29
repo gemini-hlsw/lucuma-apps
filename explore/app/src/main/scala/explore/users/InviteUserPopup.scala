@@ -27,6 +27,7 @@ import lucuma.refined.*
 import lucuma.ui.components.CopyControl
 import lucuma.ui.primereact.*
 import lucuma.ui.primereact.given
+import lucuma.ui.reusability.given
 import lucuma.ui.syntax.all.given
 import org.typelevel.log4cats.Logger
 
@@ -35,7 +36,9 @@ case class InviteUserPopup(
   createInviteStatus: View[CreateInviteStatus],
   overlayRef:         OverlayPanelRef
 ) extends ReactFnProps(InviteUserPopup.Component):
-  val programUserId = programUser.get.id
+  val programUserId                      = programUser.get.id
+  val initialEmail: Option[EmailAddress] =
+    programUser.get.email.flatMap(EmailAddress.from(_).toOption)
 
 object InviteUserPopup:
   private val Component = ScalaFnComponent[InviteUserPopup](props =>
@@ -44,10 +47,9 @@ object InviteUserPopup:
       emailView  <- useStateView(none[EmailAddress])
       validEmail <- useState(false)
       key        <- useStateView(none[String])
-      _          <- useEffectWithDeps(props.programUser.get.email): propsEmail =>
-                      val asEmailAddress = propsEmail.flatMap(EmailAddress.from(_).toOption)
-                      emailView.set(asEmailAddress) >>
-                        validEmail.setState(asEmailAddress.isDefined)
+      _          <- useEffectWithDeps((props.programUserId, props.programUser.get.email)): _ =>
+                      emailView.set(props.initialEmail) >>
+                        validEmail.setState(props.initialEmail.isDefined)
     } yield {
       import ctx.given
 
@@ -85,7 +87,12 @@ object InviteUserPopup:
 
       OverlayPanel(
         closeOnEscape = true,
-        onHide = key.set(None) >> emailView.set(None).runAsyncAndForget
+        onHide = key.set(None) >>
+          emailView.set(props.initialEmail) >>
+          validEmail.setState(props.initialEmail.isDefined) >>
+          createInviteStatus
+            .set(CreateInviteStatus.Idle)
+            .unless_(createInviteStatus.get === CreateInviteStatus.Running)
       )(
         <.div(PrimeStyles.Dialog)(
           <.div(PrimeStyles.DialogHeader)(s"Create invitation"),
@@ -99,17 +106,19 @@ object InviteUserPopup:
                 validFormat = ExploreModelValidators.MailValidator.optional,
                 onValidChange = v => validEmail.setState(v)
               )(^.autoComplete := "off")
-            ),
-            <.div(LucumaPrimeStyles.FormColumn)(
-              <.label(
-                "An invitation email has been sent. If you wish to send the invitation another way, copy and send the key below to the invited user, it won't be displayed again."
+            ).when(key.get.isEmpty),
+            key.get.map: inviteKey =>
+              val sentTo = emailView.get.foldMap(email => s" to ${email.value.value}")
+              React.Fragment(
+                <.div(LucumaPrimeStyles.FormColumn)(
+                  <.label(
+                    s"An invitation email has been sent$sentTo. If you wish to send the invitation another way, copy and send the key below to the invited user, it won't be displayed again."
+                  )
+                ),
+                <.div(LucumaPrimeStyles.FormColumn)(
+                  CopyControl("Invite key", inviteKey)
+                )
               )
-            ).when(key.when(_.isDefined)),
-            key.get.map(key =>
-              <.div(LucumaPrimeStyles.FormColumn)(
-                CopyControl("Invite key", key)
-              )
-            )
           ),
           <.div(PrimeStyles.DialogFooter)(
             Message(

@@ -124,7 +124,7 @@ object ProgramUsersTable:
     isActive:           View[IsActive],
     overlayPanelRef:    OverlayPanelRef,
     createInviteStatus: View[CreateInviteStatus],
-    currentProgUser:    View[Option[View[ProgramUser]]]
+    currentProgUserId:  View[Option[ProgramUser.Id]]
   ):
     val userId: Option[User.Id] = mode match
       case Mode.CoIs(vault, _, _, _)                   => vault.user.id.some
@@ -287,7 +287,7 @@ object ProgramUsersTable:
       tooltip = s"Send invitation",
       tooltipOptions = TooltipOptions.Left,
       onClickE = e =>
-        tableMeta.currentProgUser.set(programUser.some) >>
+        tableMeta.currentProgUserId.set(programUser.get.id.some) >>
           tableMeta.overlayPanelRef.toggle(e)
     ).mini.compact
 
@@ -621,11 +621,7 @@ object ProgramUsersTable:
                                   case Mode.DataSharing(_) => rows.sortBy(_.get.role)
                                   case _                   => rows
         overlayPanelRef    <- useOverlayPanelRef
-        currentProgUser    <- useStateView(none[View[ProgramUser]])
-        _                  <- useEffectWithDeps(rows): rows =>
-                                // we need to set it when possible so the invite user popup
-                                // gets in the DOM. It will be re-set on button click
-                                currentProgUser.set(rows.headOption)
+        currentProgUserId  <- useStateView(none[ProgramUser.Id])
         createInviteStatus <- useStateView(CreateInviteStatus.Idle)
         tableState         <- useMemo(props.hiddenColumns): hiddenColumns =>
                                 PartialTableState(
@@ -645,20 +641,29 @@ object ProgramUsersTable:
                                     isActive,
                                     overlayPanelRef,
                                     createInviteStatus,
-                                    currentProgUser
+                                    currentProgUserId
                                   ),
                                   state = tableState
                                 )
                               )
-      } yield React.Fragment(
-        PrimeTable(
-          table,
-          striped = true,
-          compact = Compact.Very,
-          emptyMessage = "No users defined"
-        ),
-        currentProgUser.get.map(progUser =>
-          InviteUserPopup(progUser, createInviteStatus, overlayPanelRef) // : VdomNode
+      } yield
+        // Resolve the row on every render so the popup always holds a View built from the
+        // current `props.users`. Falling back to the first row keeps the popup mounted, which
+        // the overlay panel ref needs in order to be toggled from the row buttons.
+        val popupProgUser: Option[View[ProgramUser]] =
+          currentProgUserId.get
+            .flatMap(id => rows.value.find(_.get.id === id))
+            .orElse(rows.value.headOption)
+
+        React.Fragment(
+          PrimeTable(
+            table,
+            striped = true,
+            compact = Compact.Very,
+            emptyMessage = "No users defined"
+          ),
+          popupProgUser.map(progUser =>
+            InviteUserPopup(progUser, createInviteStatus, overlayPanelRef) // : VdomNode
+          )
         )
-      )
     )
