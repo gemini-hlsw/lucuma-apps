@@ -44,7 +44,6 @@ import lucuma.core.util.Timestamp
 import lucuma.react.common.ReactFnProps
 import lucuma.react.fa.FontAwesomeIcon
 import lucuma.react.primereact.Button
-import lucuma.react.primereact.Tag
 import lucuma.refined.*
 import lucuma.schemas.ObservationDB.Types.*
 import lucuma.schemas.model.BasicConfiguration
@@ -190,21 +189,39 @@ private object BasicConfigurationPanel:
           exposureTimeModeType.get =!= ExposureTimeModeType.TimeAndCount
 
         // wavelength has to be handled special for spectroscopy because you can't select a row without a wavelength.
-        val message: Option[String] =
-          if (isAlienVisitor || isExchange) none
-          else if (spectroscopyView.get.exists(_.wavelength.isEmpty))
-            "Wavelength is required for creating a configuration.".some
+        // Without an exposure time mode the ITC can't run, so no row can be accepted either.
+        val requirementsDone: Boolean =
+          !spectroscopyView.get.exists(_.wavelength.isEmpty) && etm.isDefined
+
+        val rowSelected: Boolean = props.selectedConfig.get.nonEmpty
+
+        // Why the last step can't be taken.
+        val blocker: Option[String] =
+          if (isAlienVisitor || isExchange || !requirementsDone || !rowSelected) none
           else if (
             props.selectedConfig.get.hasItcErrors || props.selectedConfig.get.isMissingSomeItc
           )
             "ITC issues must be fixed.".some
           else if (props.selectedConfig.get.hasPendingItc)
             "Waiting for ITC result...".some
-          else if (props.selectedConfig.get.isEmpty)
-            "To create a configuration, select a table row.".some
           else if (props.selectedConfig.get.isVisitor && isNotTimeAndCount)
             "Use Time and Count mode for Visitor instruments.".some
           else none
+
+        // Accepteance workflow steps
+        val steps: Option[NonEmptyList[(ConfigurationStep, Boolean)]] =
+          if (isExchange) none
+          else if (isAlienVisitor)
+            NonEmptyList
+              .of(ConfigurationStep.Details -> canAccept, ConfigurationStep.Accept -> false)
+              .some
+          else
+            NonEmptyList
+              .of(ConfigurationStep.Requirements -> requirementsDone,
+                  ConfigurationStep.SelectRow    -> rowSelected,
+                  ConfigurationStep.Accept       -> false
+              )
+              .some
 
         def switchMode(modeType: ConfigurationMode): Callback =
           modeType match
@@ -315,13 +332,13 @@ private object BasicConfigurationPanel:
             )
           ,
           <.div(ExploreStyles.BasicConfigurationButtons)(
-            message.map(Tag(_, severity = Tag.Severity.Success)),
+            steps.map(ConfigurationSteps(_, blocker)),
             Button(
               "Accept Configuration",
               icon = buttonIcon,
               disabled = creating.get.value || !canAccept,
               severity = Button.Severity.Primary,
               onClick = acceptAction.switching(creating.async, Creating(_)).runAsync
-            ).compact.small.when(isAlienVisitor || canAccept)
+            ).compact.small
           ).unless(props.readonly)
         )

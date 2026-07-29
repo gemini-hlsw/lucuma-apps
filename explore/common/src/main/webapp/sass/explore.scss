@@ -3502,6 +3502,7 @@ $help-title-height: 40px;
 .explore-basic-configuration-buttons {
   grid-area: buttons;
   display: flex;
+  align-items: center;
   justify-content: end;
   gap: 1em;
 
@@ -3525,6 +3526,73 @@ $help-title-height: 40px;
 
       @include lucumaUICommon.text-ellipsis;
     }
+  }
+}
+
+.explore-configuration-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25em 1.2em;
+  margin: 0 auto 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--pl-mini-font-size);
+  min-width: 0;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+    color: var(--site-text-color);
+    opacity: 0.55;
+  }
+
+  .explore-configuration-step-marker {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 1.6em;
+    height: 1.6em;
+    border: solid var(--site-border-color) 1px;
+    border-radius: 50%;
+  }
+
+  .explore-configuration-step-done {
+    opacity: 1;
+
+    .explore-configuration-step-marker {
+      color: var(--green-500);
+      border-color: var(--green-500);
+    }
+  }
+
+  .explore-configuration-step-current {
+    font-weight: bold;
+    opacity: 1;
+
+    .explore-configuration-step-marker {
+      color: var(--primary-color-text);
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+  }
+
+  .explore-configuration-step-blocked {
+    font-weight: bold;
+    opacity: 1;
+
+    .explore-configuration-step-marker {
+      color: var(--warning-text-color);
+      border-color: var(--warning-text-color);
+    }
+  }
+
+  .explore-configuration-step-blocker-note {
+    font-weight: normal;
+    font-style: italic;
+    color: var(--warning-text-color);
   }
 }
 
