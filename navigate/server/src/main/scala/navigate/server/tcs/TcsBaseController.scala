@@ -14,6 +14,7 @@ import lucuma.core.util.TimeSpan
 import navigate.model.AcMechsState
 import navigate.model.AcWindow
 import navigate.model.BafflesState
+import navigate.model.Distance
 import navigate.model.FocalPlaneOffset
 import navigate.model.GuideState
 import navigate.model.GuidersQualityValues
@@ -135,6 +136,21 @@ trait TcsBaseController[F[_]] {
   def pointingOffsetClearLocal: F[ApplyCommandResult]
   def pointingOffsetAbsorbGuide: F[ApplyCommandResult]
   def pointingOffsetClearGuide: F[ApplyCommandResult]
+
+  // AG commmands
+  def agScienceFoldPark: F[ApplyCommandResult]
+  def agPickoffMirrorPark: F[ApplyCommandResult]
+  def agAoFoldPark: F[ApplyCommandResult]
+  def agAllPark: F[ApplyCommandResult]
+  // ECS commands
+  def ecsEnableDome(mode:           DomeMode): F[ApplyCommandResult]
+  def ecsDisableDome: F[ApplyCommandResult]
+  def ecsEnableShutters(mode:       ShutterMode): F[ApplyCommandResult]
+  def ecsDisableShutters: F[ApplyCommandResult]
+  def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult]
+  def ecsCloseEastVentGate: F[ApplyCommandResult]
+  def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult]
+  def ecsCloseWestVentGate: F[ApplyCommandResult]
 
   val acCommands: AcCommands[F]
 

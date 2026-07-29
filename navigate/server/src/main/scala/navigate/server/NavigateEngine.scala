@@ -879,17 +879,29 @@ object NavigateEngine {
     override def pwfs2Unwrap: F[CommandResult] =
       CommandResult.CommandFailure("Command pwfs2Unwrap not yet implemented.").pure[F]
 
-    override def agScienceFoldPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agScienceFoldPark not yet implemented.").pure[F]
+    override def agScienceFoldPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgScienceFoldPark,
+      systems.tcsCommon.agScienceFoldPark
+    )
 
-    override def agPickoffMirrorPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agPickoffMirrorPark not yet implemented.").pure[F]
+    override def agPickoffMirrorPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgPickoffMirrorPark,
+      systems.tcsCommon.agPickoffMirrorPark
+    )
 
-    override def agAoFoldPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agAoFoldPark not yet implemented.").pure[F]
+    override def agAoFoldPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgAoFoldPark,
+      systems.tcsCommon.agAoFoldPark
+    )
 
-    override def agAllPark: F[CommandResult] =
-      CommandResult.CommandFailure("Command agAllPark not yet implemented.").pure[F]
+    override def agAllPark: F[CommandResult] = simpleCommand(
+      engine,
+      AgAllPark,
+      systems.tcsCommon.agAllPark
+    )
 
     override def pwfs1QlMode(mode: QlMode): F[CommandResult] = simpleCommand(
       engine,

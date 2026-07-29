@@ -2484,6 +2484,65 @@ abstract class TcsBaseControllerEpics[F[_]: {Async, Parallel, Logger}](
               guideUsesOiwfs,
               setupOiwfsObserve
     )(mode)
+
+  private val scienceFoldParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agScienceFoldPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(scienceFoldParkTimeout)
+    .scienceFoldCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val pickoffMirrorParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agPickoffMirrorPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(pickoffMirrorParkTimeout)
+    .aoFoldCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val aoFoldParkTimeout                    = FiniteDuration(60, SECONDS)
+  override def agAoFoldPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(aoFoldParkTimeout)
+    .hrwfsCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  private val agAllParkTimeout                  =
+    List(scienceFoldParkTimeout, pickoffMirrorParkTimeout, aoFoldParkTimeout).max
+  override def agAllPark: F[ApplyCommandResult] = sys.tcsEpics
+    .startCommand(agAllParkTimeout)
+    .scienceFoldCommands
+    .park
+    .mark
+    .aoFoldCommands
+    .park
+    .mark
+    .hrwfsCommands
+    .park
+    .mark
+    .post
+    .verifiedRun(ConnectionTimeout)
+
+  override def ecsEnableDome(mode: DomeMode): F[ApplyCommandResult] = ???
+
+  override def ecsDisableDome: F[ApplyCommandResult] = ???
+
+  override def ecsEnableShutters(mode: ShutterMode): F[ApplyCommandResult] = ???
+
+  override def ecsDisableShutters: F[ApplyCommandResult] = ???
+
+  override def ecsMoveEastVentGate(position: Distance): F[ApplyCommandResult] = ???
+
+  override def ecsCloseEastVentGate: F[ApplyCommandResult] = ???
+
+  override def ecsMoveWestVentGate(position: Distance): F[ApplyCommandResult] = ???
+
+  override def ecsCloseWestVentGate: F[ApplyCommandResult] = ???
 }
 
 object TcsBaseControllerEpics {

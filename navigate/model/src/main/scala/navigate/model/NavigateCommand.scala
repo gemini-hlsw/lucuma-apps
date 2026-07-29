@@ -104,6 +104,10 @@ object NavigateCommand {
   case class TcsConfigure(config: TcsConfig)                                 extends NavigateCommand
   case class WfsSky(wfs: GuideProbe, period: TimeSpan)                       extends NavigateCommand
   case object AcStopObserve                                                  extends NavigateCommand
+  case object AgAllPark                                                      extends NavigateCommand
+  case object AgAoFoldPark                                                   extends NavigateCommand
+  case object AgPickoffMirrorPark                                            extends NavigateCommand
+  case object AgScienceFoldPark                                              extends NavigateCommand
   case object AowfsPark                                                      extends NavigateCommand
   case object CrcsPark                                                       extends NavigateCommand
   case object Cwfs1Park                                                      extends NavigateCommand
