@@ -34,6 +34,7 @@ object SequenceStyles:
   val DragHandleCell: Css   = Css("lucuma-sequence-drag-handle-cell")
   val EditControlsCell: Css = Css("lucuma-sequence-edit-controls-cell")
   val CloneButton: Css      = Css("lucuma-sequence-clone-button")
+  val InsertDarkButton: Css = Css("lucuma-sequence-insert-dark-button")
   val DeleteButton: Css     = Css("lucuma-sequence-delete-button")
 
   val QaStatusEditable: Css     = Css("lucuma-sequence-qa-status-editable")
