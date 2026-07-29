@@ -292,7 +292,11 @@ object AddTargetButton
                         )
                   val baseAdd: List[Action] =
                     addBaseInfo.toList.map: info =>
-                      Action("Set Base Position", Icons.Bullseye, info.mode.set(SlotId.Base.some))
+                      Action("Set Base Position",
+                             Icons.Bullseye,
+                             info.mode.set(SlotId.Base.some),
+                             disabled = !hasScienceTargets
+                      )
                   skyAdd ++ baseAdd
 
         // The search popup-launcher action.
