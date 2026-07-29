@@ -11,10 +11,13 @@ import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
+import lucuma.core.enums.StepGuideState
+import lucuma.core.math.Offset
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.StepEstimate
+import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
@@ -133,6 +136,10 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
   protected def cloneRow(row: SequenceRow[D]): SequenceType => IO[Endo[List[Atom[D]]]] =
     insertCopyOfRow(row, identity[Step[D]])
 
+  // A dark doesn't guide and has no offsets.
+  private val DarkTelescopeConfig: TelescopeConfig =
+    TelescopeConfig(Offset.Zero, StepGuideState.Disabled)
+
   protected def insertDarkRow(row: SequenceRow[D]): SequenceType => IO[Endo[List[Atom[D]]]] =
     insertCopyOfRow(
       row,
@@ -140,4 +147,5 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         .stepConfig[D]
         .replace(StepConfig.Dark)
         .andThen(Step.observeClass[D].replace(ObserveClass.DayCal))
+        .andThen(Step.telescopeConfig[D].replace(DarkTelescopeConfig))
     )
