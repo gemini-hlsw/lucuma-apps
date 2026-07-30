@@ -65,9 +65,8 @@ object ObserveStyles:
   val WaterVaporArea: Css      = Css("observe-water-vapor-area")
   val SkyBackgroundArea: Css   = Css("observe-sky-background-area")
 
-  val ConfiguringRow: Css     = Css("observe-configuring-row")
-  val StepTable: Css          = Css("observe-step-table")
-  val StepSettingsHeader: Css = Css("observe-step-settings-header")
+  val ConfiguringRow: Css = Css("observe-configuring-row")
+  val StepTable: Css      = Css("observe-step-table")
 
   val StepRowWarning: Css        = Css("observe-step-row-warning")
   val StepRowError: Css          = Css("observe-step-row-error")

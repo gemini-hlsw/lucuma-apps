@@ -3,7 +3,6 @@
 
 package observe.model.enums
 
-import cats.Eq
 import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 
@@ -15,4 +14,3 @@ enum ObserveLogLevel(val tag: String, val label: String) derives Enumerated:
 
 object ObserveLogLevel:
   given Display[ObserveLogLevel] = Display.byShortName(_.label)
-  given Eq[ObserveLogLevel]      = Eq.fromUniversalEquals
