@@ -13,6 +13,8 @@ import cats.effect.std.Dispatcher
 import cats.syntax.all.*
 import explore.model.AppConfig
 import explore.model.boopickle.Boopickle.*
+import explore.utils.version
+import lucuma.core.enums.ExecutionEnvironment
 import lucuma.ui.otel.OtelSdk
 import org.scalajs.dom
 import org.scalajs.dom.DedicatedWorkerGlobalScope
@@ -46,9 +48,25 @@ trait WorkerServer[T: Pickler](using Monoid[IO[Unit]]):
                                    WorkerConfig
                                      .load[IO](self.location.origin, self.location.host)
                                  )
-      otel                    <- WorkerOtelSdk.build(serviceName, config)
+      otel                    <- setupOtel(serviceName, config)
       _                       <- Resource.eval(runInternal(dispatcher, self, config, otel))
     } yield ()).useForever.void
+
+  private def setupOtel(
+    serviceName: String,
+    config:      Option[AppConfig]
+  )(using Logger[IO]): Resource[IO, OtelSdk.OtelResources] =
+    val endpoint = config.flatMap(_.otelEndpoint.map(_.value))
+    Resource.eval(
+      endpoint.fold(
+        Logger[IO].warn(s"[$serviceName] No tracing endpoint configured, spans are not exported")
+      )(u => Logger[IO].info(s"[$serviceName] Tracing spans to [$u]"))
+    ) *> OtelSdk.build(
+      endpoint,
+      serviceName,
+      config.map(c => version(c.environment).value).getOrElse(""),
+      config.map(_.environment).getOrElse(ExecutionEnvironment.Development)
+    )
 
   /**
    * Provide an interface to handlers with an incoming message and a method to send responses (which
