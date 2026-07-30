@@ -49,6 +49,16 @@
     border: inherit;
     text-align: center;
   }
+
+  .lucuma-sequence-dropdown {
+    width: 100%;
+    border: inherit;
+
+    .p-dropdown-label {
+      padding: 0;
+      text-align: center;
+    }
+  }
 }
 
 .lucuma-sequence-step-guided {

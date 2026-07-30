@@ -10,6 +10,8 @@ import crystal.react.syntax.effect.*
 import eu.timepit.refined.types.numeric.PosInt
 import japgolly.scalajs.react.*
 import lucuma.core.enums.Breakpoint
+import lucuma.core.enums.GhostBinning
+import lucuma.core.enums.GhostReadMode
 import lucuma.core.enums.ObserveClass
 import lucuma.core.enums.SequenceType
 import lucuma.core.enums.StepGuideState
@@ -116,6 +118,24 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
 
   protected val ghostBlueExposureCountReplace: Step.Id => PosInt => Endo[List[Atom[D]]] =
     modifyStep(ghostBlue.andThen(detectorExposureCount).replace)
+
+  private val detectorReadMode: Lens[GhostDetector, GhostReadMode] =
+    Focus[GhostDetector](_.readMode)
+
+  private val detectorBinning: Lens[GhostDetector, GhostBinning] =
+    Focus[GhostDetector](_.binning)
+
+  protected val ghostRedReadModeReplace: Step.Id => GhostReadMode => Endo[List[Atom[D]]] =
+    modifyStep(ghostRed.andThen(detectorReadMode).replace)
+
+  protected val ghostBlueReadModeReplace: Step.Id => GhostReadMode => Endo[List[Atom[D]]] =
+    modifyStep(ghostBlue.andThen(detectorReadMode).replace)
+
+  protected val ghostRedBinningReplace: Step.Id => GhostBinning => Endo[List[Atom[D]]] =
+    modifyStep(ghostRed.andThen(detectorBinning).replace)
+
+  protected val ghostBlueBinningReplace: Step.Id => GhostBinning => Endo[List[Atom[D]]] =
+    modifyStep(ghostBlue.andThen(detectorBinning).replace)
 
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =
     stepId => atoms => extractStep(stepId)(atoms)._1
