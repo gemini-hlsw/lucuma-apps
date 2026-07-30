@@ -7,9 +7,9 @@ import boopickle.DefaultBasic.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
-import explore.model.AppConfig
 import explore.events.CatalogMessage
 import explore.events.CatalogMessage.BlindOffsetRequest
+import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import japgolly.webapputil.indexeddb.IndexedDb
 import lucuma.catalog.clients.GaiaClient

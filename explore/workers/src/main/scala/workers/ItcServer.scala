@@ -7,11 +7,11 @@ import boopickle.DefaultBasic.*
 import cats.effect.*
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
-import explore.model.AppConfig
 import explore.events.*
 import explore.itc.ITCGraphRequests
 import explore.itc.ITCRequests
 import explore.itc.ITCVersionsRequests
+import explore.model.AppConfig
 import explore.model.boopickle.ItcPicklers
 import lucuma.itc.client.ItcClient
 import lucuma.ui.otel.OtelSdk

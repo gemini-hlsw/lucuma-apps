@@ -6,8 +6,8 @@ package workers
 import boopickle.DefaultBasic.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.*
-import explore.model.AppConfig
 import explore.events.AgsMessage
+import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.ags.Ags
 import lucuma.ags.AgsAnalysis

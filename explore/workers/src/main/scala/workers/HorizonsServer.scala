@@ -7,8 +7,8 @@ import boopickle.DefaultBasic.*
 import cats.effect.*
 import cats.effect.unsafe.implicits.*
 import cats.syntax.all.*
-import explore.model.AppConfig
 import explore.events.*
+import explore.model.AppConfig
 import explore.model.Constants.HorizonsProxyMod
 import explore.model.boopickle.HorizonsPicklers
 import lucuma.horizons.HorizonsClient

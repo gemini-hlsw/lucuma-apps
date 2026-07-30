@@ -7,8 +7,8 @@ import boopickle.DefaultBasic.*
 import cats.effect.IO
 import cats.effect.unsafe.implicits.given
 import cats.syntax.all.given
-import explore.model.AppConfig
 import explore.events.PlotMessage
+import explore.model.AppConfig
 import explore.model.boopickle.CatalogPicklers.given
 import lucuma.core.enums.Site
 import lucuma.core.enums.TwilightType
