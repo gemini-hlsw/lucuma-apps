@@ -4,6 +4,7 @@
 package observe.ui.components
 
 import cats.syntax.all.*
+import crystal.react.View
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.react.SizePx
@@ -19,14 +20,18 @@ import observe.common.FixedLengthBuffer
 import observe.model.LogMessage
 import observe.model.enums.ObserveLogLevel
 import observe.ui.ObserveStyles
+import observe.ui.model.reusability.given
 
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-case class LogArea(timezone: ZoneId, globalLog: FixedLengthBuffer[LogMessage])
-    extends ReactFnProps(LogArea)
+case class LogArea(
+  timezone:     ZoneId,
+  globalLog:    FixedLengthBuffer[LogMessage],
+  displayLevel: View[ObserveLogLevel]
+) extends ReactFnProps(LogArea)
 
 object LogArea
     extends ReactFnComponent[LogArea](props =>
@@ -38,6 +43,20 @@ object LogArea
 
       val TimeStampColWidth: SizePx = 200.toPx
       val LevelColWidth: SizePx     = 100.toPx
+
+      // Verbosity rank of the *display tier* the user picked. Error is never a
+      // selectable tier: it is always shown regardless of the chosen level.
+      def tierRank(level: ObserveLogLevel): Int =
+        level match
+          case ObserveLogLevel.Warning => 0
+          case ObserveLogLevel.Info    => 1
+          case ObserveLogLevel.Debug   => 2
+          case ObserveLogLevel.Error   => Int.MaxValue
+
+      def isVisible(displayLevel: ObserveLogLevel)(msg: LogMessage): Boolean =
+        msg.level match
+          case ObserveLogLevel.Error => true
+          case other                 => tierRank(other) <= tierRank(displayLevel)
 
       for
         resizer <- useResizeDetector
@@ -68,8 +87,8 @@ object LogArea
               )
             )
         rows    <-
-          useMemo(props.globalLog.toChain.length): _ =>
-            props.globalLog.toChain.reverse.toList
+          useMemo((props.globalLog.toChain.length, props.displayLevel.get)): (_, level) =>
+            props.globalLog.toChain.reverse.toList.filter(isVisible(level))
         table   <- useReactTable(TableOptions(cols, rows))
       yield PrimeAutoHeightVirtualizedTable(
         table,

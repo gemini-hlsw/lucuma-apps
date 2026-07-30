@@ -5,6 +5,7 @@ package observe.ui.components
 
 import cats.syntax.all.*
 import crystal.Pot
+import crystal.react.hooks.*
 import japgolly.scalajs.react.*
 import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
@@ -12,8 +13,12 @@ import lucuma.core.model.Observation
 import lucuma.react.common.ReactFnComponent
 import lucuma.react.common.ReactFnProps
 import lucuma.react.primereact.*
+import lucuma.refined.*
+import lucuma.ui.primereact.FormEnumDropdownView
+import lucuma.ui.primereact.given
 import lucuma.ui.syntax.all.*
 import observe.model.ClientConfig
+import observe.model.enums.ObserveLogLevel
 import observe.ui.ObserveStyles
 import observe.ui.components.sequence.ObservationExecutionDisplay
 import observe.ui.model.AppContext
@@ -28,10 +33,11 @@ case class SequenceTab(rootModel: RootModel, instrument: Instrument)
 object SequenceTab
     extends ReactFnComponent[SequenceTab](props =>
       for
-        ctx         <- useContext(AppContext.ctx)
-        sequenceApi <- useContext(SequenceApi.ctx)
-        obsListReady = props.rootModel.data.get.obsList.void
-        _           <- // Once obs list is loaded, if the current instrument is not loaded, go to obs list.
+        ctx             <- useContext(AppContext.ctx)
+        sequenceApi     <- useContext(SequenceApi.ctx)
+        logDisplayLevel <- useStateView(ObserveLogLevel.Info)
+        obsListReady     = props.rootModel.data.get.obsList.void
+        _               <- // Once obs list is loaded, if the current instrument is not loaded, go to obs list.
           useEffectWithDeps(obsListReady.toOption):
             _.foldMap: _ =>
               ctx
@@ -63,9 +69,20 @@ object SequenceTab
               Accordion(
                 clazz = ObserveStyles.LogArea,
                 tabs = List(
-                  AccordionTab(header = "Show Log")(
+                  AccordionTab(
+                    header = <.div(ObserveStyles.LogHeaderRow)(
+                      <.span("Show Log"),
+                      <.span(^.onClick ==> (_.stopPropagationCB))(
+                        FormEnumDropdownView(
+                          id = "log-level".refined,
+                          value = logDisplayLevel,
+                          exclude = Set(ObserveLogLevel.Error)
+                        )
+                      )
+                    )
+                  )(
                     <.div(^.height := "200px")(
-                      LogArea(clientConfig.site.timezone, rootModelData.globalLog)
+                      LogArea(clientConfig.site.timezone, rootModelData.globalLog, logDisplayLevel)
                     )
                   )
                 )

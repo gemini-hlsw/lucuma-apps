@@ -1116,6 +1116,14 @@ body {
   opacity: 0.8;
 }
 
+.observe-log-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.5em;
+}
+
 .observe-log-table {
   .observe-log-warning-row {
     background-color: var(--active-row-background);

@@ -130,6 +130,7 @@ object ObserveStyles:
   val LogTable: Css      = Css("observe-log-table")
   val LogWarningRow: Css = Css("observe-log-warning-row")
   val LogErrorRow: Css   = Css("observe-log-error-row")
+  val LogHeaderRow: Css  = Css("observe-log-header-row")
 
   val ExternalLink: Css = Css("observe-external-link")
 

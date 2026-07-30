@@ -25,6 +25,7 @@ class SubscriptionAppender[F[_]](out: Topic[F, (Option[ClientId], ClientEvent)])
       case Level.ERROR => ObserveLogLevel.Error.some
       case Level.WARN  => ObserveLogLevel.Warning.some
       case Level.INFO  => ObserveLogLevel.Info.some
+      case Level.DEBUG => ObserveLogLevel.Debug.some
       case _           => none
 
   override def append(event: ILoggingEvent): Unit =

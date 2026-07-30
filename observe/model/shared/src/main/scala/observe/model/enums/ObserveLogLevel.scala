@@ -3,9 +3,16 @@
 
 package observe.model.enums
 
+import cats.Eq
+import lucuma.core.util.Display
 import lucuma.core.util.Enumerated
 
 enum ObserveLogLevel(val tag: String, val label: String) derives Enumerated:
   case Info    extends ObserveLogLevel("INFO", "INFO")
   case Warning extends ObserveLogLevel("WARNING", "WARNING")
   case Error   extends ObserveLogLevel("ERROR", "ERROR")
+  case Debug   extends ObserveLogLevel("DEBUG", "DEBUG")
+
+object ObserveLogLevel:
+  given Display[ObserveLogLevel] = Display.byShortName(_.label)
+  given Eq[ObserveLogLevel]      = Eq.fromUniversalEquals
