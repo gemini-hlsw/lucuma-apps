@@ -19,6 +19,7 @@ import lucuma.core.model.sequence.StepConfig
 import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.TelescopeConfig
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
@@ -26,6 +27,8 @@ import lucuma.core.util.TimeSpan
 import lucuma.react.pragmaticdnd.Edge
 import lucuma.react.table.*
 import lucuma.ui.table.*
+import monocle.Focus
+import monocle.Lens
 
 trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM, TF](
   getStepFromRow: T => Option[R]
@@ -45,6 +48,12 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
     protected def getFutureStep: Option[SequenceRow.FutureStep[D]] =
       cellContext.getStep.collect:
         case SequenceRow.futureStep(fs) => fs
+
+    protected def isRowEditing: Boolean =
+      (for
+        seqType <- cellContext.getStep.flatMap(_.sequenceType)
+        ctx     <- cellContext.table.options.meta.map(_.editContexts.forSequenceType(seqType))
+      yield ctx.isEditing.get.value).getOrElse(false)
 
   protected def handleSeqTypeRowEditAsync[A](
     c:       CellContextType[A],
@@ -88,6 +97,15 @@ trait SequenceEditRowHelpers[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[
         igrins2.andThen(Igrins2DynamicConfig.exposure),
         gnirs.andThen(GnirsDynamicConfig.exposure)
       )
+
+  private val detectorExposure: Lens[GhostDetector, TimeSpan] =
+    Focus[GhostDetector](_.exposureTime)
+
+  protected val ghostRedExposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]] =
+    modifyStep(ghostRed.andThen(detectorExposure).replace)
+
+  protected val ghostBlueExposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]] =
+    modifyStep(ghostBlue.andThen(detectorExposure).replace)
 
   protected val deleteRow: Step.Id => Endo[List[Atom[D]]] =
     stepId => atoms => extractStep(stepId)(atoms)._1

@@ -3,6 +3,7 @@
 
 package lucuma.ui.sequence
 
+import cats.Endo
 import cats.syntax.all.*
 import eu.timepit.refined.types.numeric.PosInt
 import eu.timepit.refined.types.string.NonEmptyString
@@ -11,6 +12,8 @@ import japgolly.scalajs.react.vdom.html_<^.*
 import lucuma.core.enums.Instrument
 import lucuma.core.math.Offset
 import lucuma.core.math.Wavelength
+import lucuma.core.model.sequence.Atom
+import lucuma.core.model.sequence.Step
 import lucuma.core.model.sequence.ghost.GhostDetector
 import lucuma.core.util.TimeSpan
 import lucuma.react.common.*
@@ -119,15 +122,10 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       _.getStep.flatMap(_.exposureTime),
       header = _ => "Exp (sec)",
       cell = c =>
-        val isEditing: Boolean  =
-          (for
-            seqType <- c.getStep.flatMap(_.sequenceType)
-            ctx     <- c.table.options.meta.map(_.editContexts.forSequenceType(seqType))
-          yield ctx.isEditing.get.value).getOrElse(false)
         val isFinished: Boolean = c.getStep.forall(_.isFinished)
         (c.value, c.getStep.flatMap(_.instrument))
           .mapN[VdomNode]: (v, i) =>
-            if isEditing && !isFinished then
+            if c.isRowEditing && !isFinished then
               React.Fragment(
                 InputNumber(
                   id = s"exposure-${c.row.index}",
@@ -277,11 +275,12 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   private def ghostDetectorCols(
-    getter:     SequenceRow[D] => Option[GhostDetector],
-    countId:    ColumnId,
-    timeId:     ColumnId,
-    readModeId: ColumnId,
-    binningId:  ColumnId
+    getter:          SequenceRow[D] => Option[GhostDetector],
+    exposureReplace: Step.Id => TimeSpan => Endo[List[Atom[D]]],
+    countId:         ColumnId,
+    timeId:          ColumnId,
+    readModeId:      ColumnId,
+    binningId:       ColumnId
   ): List[colDef.TypeFor[?]] =
     List(
       colDef(countId,
@@ -293,7 +292,21 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
         timeId,
         _.getStep.flatMap(getter(_).map(_.exposureTime)),
         header = _ => "Exptime",
-        cell = _.value.map(Instrument.Ghost.formatExposureTime(_).value).orEmpty
+        cell = c =>
+          val isFinished: Boolean = c.getStep.forall(_.isFinished)
+          c.value.map[VdomNode]: v =>
+            if c.isRowEditing && !isFinished then
+              InputNumber(
+                id = s"${timeId.value}-${c.row.index}",
+                value = v.toSeconds.toDouble,
+                maxFractionDigits = Instrument.Ghost.exposureTimeFractionDigits,
+                onValueChange = e =>
+                  handleRowValueEdit(c)(exposureReplace):
+                    e.valueOption.flatMap(d => TimeSpan.fromSeconds(BigDecimal(d)))
+                ,
+                clazz = SequenceStyles.SequenceInput
+              )
+            else Instrument.Ghost.formatExposureTime(v).value
       ),
       colDef(readModeId,
              _.getStep.flatMap(getter(_).map(_.readMode.shortName)),
@@ -313,6 +326,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       header = _ => <.span(LucumaStyles.GhostBlue)("Blue"),
       columns = ghostDetectorCols(
         _.ghostBlue,
+        ghostBlueExposureReplace,
         SequenceColumns.GhostBlueExposureCountColumnId,
         SequenceColumns.GhostBlueExposureTimeColumnId,
         SequenceColumns.GhostBlueReadModeColumnId,
@@ -326,6 +340,7 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
       header = _ => <.span(LucumaStyles.GhostRed)("Red"),
       columns = ghostDetectorCols(
         _.ghostRed,
+        ghostRedExposureReplace,
         SequenceColumns.GhostRedExposureCountColumnId,
         SequenceColumns.GhostRedExposureTimeColumnId,
         SequenceColumns.GhostRedReadModeColumnId,
