@@ -80,7 +80,7 @@ object ItcServer extends WorkerServer[ItcMessage.Request] with ItcPicklers {
         case ItcMessage.CleanCache =>
           cache.clear *> invocation.respond(())
 
-        case ItcMessage.Query(
+        case ItcMessage.ItcQuery(
               constraint,
               targets,
               customSedTimestamps,
@@ -99,7 +99,7 @@ object ItcServer extends WorkerServer[ItcMessage.Request] with ItcPicklers {
               )
           )
 
-        case ItcMessage.GraphQuery(
+        case ItcMessage.ItcGraphQuery(
               constraint,
               targets,
               customSedTimestamps,

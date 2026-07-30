@@ -85,7 +85,7 @@ case class ItcImagingQuerier(
     ): IO[EitherNec[ItcQueryProblem, ImagingResults]] =
       ItcClient[IO]
         .request:
-          ItcMessage.Query(
+          ItcMessage.ItcQuery(
             qp.constraints,
             qp.targets,
             qp.customSedTimestamps,

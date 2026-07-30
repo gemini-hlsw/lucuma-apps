@@ -8,14 +8,19 @@ package workers
  */
 trait WorkerRequest {
   type ResponseType
+
+  /** Custom span name; when empty, the case-class name (`productPrefix`) is used. */
+  def traceName: String = ""
 }
 
 object WorkerRequest:
   /**
-   * Name of a request, for span naming. Takes `Any` because servers are generic on their request
-   * type; `productPrefix` avoids reflection, which Scala.js dislikes.
+   * Name of a request, for span naming. A request may override `traceName` for a more specific
+   * name; otherwise the case-class name (`productPrefix`) is used. Takes `Any` because servers are
+   * generic on their request type, and `productPrefix` avoids reflection, which Scala.js dislikes.
    */
   def name(request: Any): String =
     request match
-      case p: Product => p.productPrefix
-      case _          => "unknown"
+      case w: WorkerRequest if w.traceName.nonEmpty => w.traceName
+      case p: Product                               => p.productPrefix
+      case _                                        => "unknown"

@@ -28,7 +28,7 @@ object ItcMessage extends ItcPicklers:
 
   // NOTE: The ItcServer returns one item per mode. So, if you have more than one mode
   // you can't use `requestSingle`. You need to use `request` and handle the stream.
-  case class Query(
+  case class ItcQuery(
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
@@ -36,7 +36,7 @@ object ItcMessage extends ItcPicklers:
   ) extends Request:
     type ResponseType = (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])
 
-  case class GraphQuery(
+  case class ItcGraphQuery(
     constraints:         ConstraintSet,
     asterism:            NonEmptyList[ItcTarget],
     customSedTimestamps: List[Timestamp],
@@ -44,9 +44,9 @@ object ItcMessage extends ItcPicklers:
   ) extends Request:
     type ResponseType = EitherNec[ItcQueryProblem, ItcAsterismGraphResults]
 
-  private given Pickler[Query] = generatePickler
+  private given Pickler[ItcQuery] = generatePickler
 
-  private given Pickler[GraphQuery] = generatePickler
+  private given Pickler[ItcGraphQuery] = generatePickler
 
   private given Pickler[Initialize.type] = generatePickler
 

@@ -324,7 +324,7 @@ trait ModesTableCommon:
     WorkerClient[F, ItcMessage.Request]
   ): Resource[F, fs2.Stream[F, (ItcRequestParams, EitherNec[ItcTargetProblem, ItcResult])]] =
     ItcClient[F].request(
-      ItcMessage.Query(
+      ItcMessage.ItcQuery(
         constraints,
         asterism,
         customSedTimestamps,

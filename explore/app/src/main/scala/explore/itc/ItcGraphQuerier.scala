@@ -92,7 +92,7 @@ case class ItcGraphQuerier(
     ): IO[EitherNec[ItcTargetProblem, (ItcAsterismGraphResults, ItcInstrumentConfig)]] =
       ItcClient[IO]
         .requestSingle:
-          ItcMessage.GraphQuery(
+          ItcMessage.ItcGraphQuery(
             qp.constraints,
             qp.targets,
             qp.customSedTimestamps,
