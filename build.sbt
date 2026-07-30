@@ -166,7 +166,7 @@ lazy val schemas_lib =
           (Compile / crossProjectBaseDirectory).value / "../../navigate/web/server/src/main/resources/navigate.graphql"
         val semVerWithPrerelease: String = // Just keep X.Y.Z from the latest tag
           gitDescribedVersion.value.getOrElse("0.0.0").takeWhile(c => c != '+' && c != '-') +
-            "-" + version.value
+            "-" + (version.value.dropWhile(c => c != '+' && c != '-'))
 
         IO.write(
           npmDir / "package.json",
@@ -195,7 +195,7 @@ lazy val schemas_lib =
           )
           .replace(
             "from \"lucuma/schemas/ObservationDB.graphql\"",
-            "from \"@gemini-hlsw/lucuma-schemas/odb\""
+            "from \"@gemini-hlsw/lucuma-odb-schemas/odb\""
           )
         IO.write(
           npmDir / navigateSchemaFile.getName,
