@@ -8,6 +8,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
@@ -47,5 +48,11 @@ trait OdbSequenceApi[F[_]]:
     sequenceType: SequenceType,
     atoms:        List[Atom[GnirsDynamicConfig]]
   ): F[List[Atom[GnirsDynamicConfig]]]
+
+  def replaceGhostSequence(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    atoms:        List[Atom[GhostDynamicConfig]]
+  ): F[List[Atom[GhostDynamicConfig]]]
 
   def deleteSequence(obsId: Observation.Id): F[Unit]

@@ -13,6 +13,7 @@ import lucuma.core.model.Observation
 import lucuma.core.model.sequence.Atom
 import lucuma.core.model.sequence.StepEstimate
 import lucuma.core.model.sequence.flamingos2.Flamingos2DynamicConfig
+import lucuma.core.model.sequence.ghost.GhostDynamicConfig
 import lucuma.core.model.sequence.gmos
 import lucuma.core.model.sequence.gnirs.GnirsDynamicConfig
 import lucuma.core.model.sequence.igrins2.Igrins2DynamicConfig
@@ -91,6 +92,16 @@ trait OdbSequenceApiImpl[F[_]: MonadThrow](using FetchClient[F, ObservationDB])
       .execute(obsId, sequenceType, atoms.map(_.toInput))
       .raiseGraphQLErrors
       .map(_.replaceGnirsSequence.sequence)
+
+  def replaceGhostSequence(
+    obsId:        Observation.Id,
+    sequenceType: SequenceType,
+    atoms:        List[Atom[GhostDynamicConfig]]
+  ): F[List[Atom[GhostDynamicConfig]]] =
+    ReplaceGhostSequence[F]
+      .execute(obsId, sequenceType, atoms.map(_.toInput))
+      .raiseGraphQLErrors
+      .map(_.replaceGhostSequence.sequence)
 
   def deleteSequence(obsId: Observation.Id): F[Unit] =
     DeleteSequence[F]
