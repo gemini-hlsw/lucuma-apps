@@ -59,7 +59,7 @@ object LogArea
       for
         resizer <- useResizeDetector
         cols    <-
-          useMemo(resizer.width.orEmpty): areaWidth =>
+          useMemo((resizer.width.orEmpty, props.timezone)): (areaWidth, timezone) =>
             List(
               ColDef(
                 TimeStampColId,
@@ -67,7 +67,7 @@ object LogArea
                 size = TimeStampColWidth,
                 cell = cell =>
                   val ldt: LocalDateTime =
-                    ZonedDateTime.ofInstant(cell.value, props.timezone).toLocalDateTime
+                    ZonedDateTime.ofInstant(cell.value, timezone).toLocalDateTime
                   DateTimeFormatter.ISO_LOCAL_DATE.format(ldt) + " " +
                     DateTimeFormatter.ISO_LOCAL_TIME.format(ldt)
               ),
