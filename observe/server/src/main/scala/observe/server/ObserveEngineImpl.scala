@@ -322,12 +322,13 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     clientId:    ClientId,
     runOverride: RunOverride
   ): F[Unit] =
-    executeEngine.offer:
-      Event.modifyState[F](
-        setObserver(obsId, observer) *>
-          clearObsCmd(obsId) *>
-          startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
-      )
+    logInfoEvent(s"Sequence $obsId: Start requested by ${user.displayName}") *>
+      executeEngine.offer:
+        Event.modifyState[F](
+          setObserver(obsId, observer) *>
+            clearObsCmd(obsId) *>
+            startChecks(executeEngine.startLoadedStep(obsId), obsId, clientId, none, runOverride)
+        )
 
   override def proceedAfterPrompt(
     id:       Observation.Id,
@@ -358,7 +359,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.pause(obsId, user))
 
   override def requestCancelPause(
@@ -366,7 +368,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(Event.cancelPause(obsId, user))
 
   override def setBreakpoints(
@@ -507,6 +510,9 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
 
   private def logDebugEvent(msg: String): F[Unit] =
     Event.logDebugMsgF(msg).flatMap(executeEngine.offer)
+
+  private def logInfoEvent(msg: String): F[Unit] =
+    Event.logInfoMsgF(msg).flatMap(executeEngine.offer)
 
   private def logDebugEvent(msg: String, user: User, clientId: ClientId): F[Unit] =
     Event
@@ -750,6 +756,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
             Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Warning, ts, m)))
           case UserEvent.LogError(m, ts)          =>
             Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Error, ts, m)))
+          case UserEvent.LogDebug(m, ts)          =>
+            Stream.emit(LogEvent(LogMessage(ObserveLogLevel.Debug, ts, m)))
           case _                                  => Stream.empty
       case SystemUpdate(se, _)             =>
         se match
@@ -837,7 +845,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User,
     graceful: Boolean
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Stop requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer(
         Event.getState: engineState =>
           EngineState
@@ -859,7 +868,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Abort requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.actionStop(obsId, translator.abortObserve(obsId))
 
@@ -869,7 +879,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     user:     User,
     graceful: Boolean
   ): F[Unit] =
-    setObserver(obsId, user, observer) *>
+    logInfoEvent(s"Sequence $obsId: Pause requested by ${user.displayName}") *>
+      setObserver(obsId, user, observer) *>
       executeEngine
         .offer:
           Event.modifyState(setObsCmd(obsId, PauseGracefully))
@@ -882,7 +893,8 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
     observer: Observer,
     user:     User
   ): F[Unit] =
-    executeEngine.offer(Event.modifyState(clearObsCmd(obsId))) *>
+    logInfoEvent(s"Sequence $obsId: Continue requested by ${user.displayName}") *>
+      executeEngine.offer(Event.modifyState(clearObsCmd(obsId))) *>
       setObserver(obsId, user, observer) *>
       executeEngine.offer:
         Event.getState(translator.resumePaused(obsId))

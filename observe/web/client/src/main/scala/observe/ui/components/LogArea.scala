@@ -44,9 +44,7 @@ object LogArea
       val TimeStampColWidth: SizePx = 200.toPx
       val LevelColWidth: SizePx     = 100.toPx
 
-      // Verbosity rank of the *display tier* the user picked. Error is never a
-      // selectable tier: it is always shown regardless of the chosen level.
-      def tierRank(level: ObserveLogLevel): Int =
+      def logLeverRank(level: ObserveLogLevel): Int =
         level match
           case ObserveLogLevel.Warning => 0
           case ObserveLogLevel.Info    => 1
@@ -56,7 +54,7 @@ object LogArea
       def isVisible(displayLevel: ObserveLogLevel)(msg: LogMessage): Boolean =
         msg.level match
           case ObserveLogLevel.Error => true
-          case other                 => tierRank(other) <= tierRank(displayLevel)
+          case other                 => logLeverRank(other) <= logLeverRank(displayLevel)
 
       for
         resizer <- useResizeDetector
