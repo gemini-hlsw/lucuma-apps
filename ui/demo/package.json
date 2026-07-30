@@ -10,7 +10,7 @@
     "@tanstack/react-virtual": "3.14.8",
     "@vitejs/plugin-react": "6.0.4",
     "loglevel": "1.9.2",
-    "primeicons": "7.0.0",
+    "primeicons": "8.0.0",
     "primereact": "10.9.8",
     "react": "19.2.8",
     "react-dom": "19.2.8",
