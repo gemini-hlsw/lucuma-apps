@@ -391,7 +391,13 @@ class SequenceColumns[D, T, R <: SequenceRow[D], TM <: SequenceTableMeta[D], CM,
     )
 
   lazy val ForGhost: List[colDef.Type] =
-    List[colDef.Type](indexAndTypeCol, guideStateCol, pOffsetCol, qOffsetCol) ++
+    List[colDef.Type](dragHandleCol,
+                      editControlsCol,
+                      indexAndTypeCol,
+                      guideStateCol,
+                      pOffsetCol,
+                      qOffsetCol
+    ) ++
       List(ghostBlueGroupCol, ghostRedGroupCol)
 
   lazy val ForGnirs: List[colDef.TypeFor[?]] =
