@@ -5,18 +5,18 @@ import { buildClientSchema, getIntrospectionQuery, printSchema } from 'graphql';
 //
 // fetchGQLSchema.mjs
 //
-// Usage: fetchGQLSchema.mjs [local|dev|staging] [odb|resource]?
+// Usage: fetchGQLSchema.mjs [local|dev|staging] [odb|sso]?
 //
-// Fetches the current version of either the ODB or Resource schema from either a 'local'
+// Fetches the current version of either the ODB or SSO schema from either a 'local'
 // instance running on localhost, or else from the 'dev' or 'staging' server.  Places it
-// in the proper place in `lucuma-schemas` for use in generating code.
+// in the proper place in the repo for use in generating code.
 //
 
 const RED = '\x1b[0;31m';
 const NC = '\x1b[0m';
 
 function usage() {
-  console.error(`${RED}Usage: ${process.argv[1]} [local|dev|staging] [odb|resource]?${NC}`);
+  console.error(`${RED}Usage: ${process.argv[1]} [local|dev|staging] [odb|sso]?${NC}`);
   process.exit(1);
 }
 
@@ -26,16 +26,16 @@ const endpoints = {
     dev: 'https://lucuma-postgres-odb-dev.herokuapp.com/odb',
     staging: 'https://lucuma-postgres-odb-staging.herokuapp.com/odb',
   },
-  resource: {
-    local: 'http://localhost:8484/resource/graphql',
-    dev: 'https://lucuma-resource-dev.lucuma.xyz/resource/graphql',
-    staging: 'https://lucuma-resource-staging.lucuma.xyz/resource/graphql',
+  sso: {
+    local: 'http://localhost:8080/graphql',
+    dev: 'https://sso-dev.gpp.lucuma.xyz/graphql',
+    staging: 'https://lucuma-sso-staging.herokuapp.com/graphql',
   },
 };
 
 const outFiles = {
   odb: 'lib/src/clue/resources/lucuma/schemas/ObservationDB.graphql',
-  resource: 'lib/src/clue/resources/lucuma/schemas/resource.graphql',
+  sso: '../explore/app/src/clue/resources/SSO.graphql',
 };
 
 const server = process.argv[3] ?? 'odb';
@@ -60,7 +60,7 @@ const response = await fetch(new URL(url), {
 
 if (!response.ok) {
   throw new Error(
-    `Failed to fetch introspection query: ${response.statusText}\n${await response.text()}`,
+    `Failed to fetch introspection query: ${response.status} ${response.statusText}\n${await response.text()}`,
   );
 }
 
