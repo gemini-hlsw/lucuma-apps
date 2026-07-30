@@ -508,17 +508,12 @@ private class ObserveEngineImpl[F[_]: {Async, Logger as L}](
           )
     )
 
-  private def logDebugEvent(msg: String): F[Unit] =
-    Event.logDebugMsgF(msg).flatMap(executeEngine.offer)
+  private def logDebugEvent(msg: String): F[Unit] = L.debug(msg)
 
-  private def logInfoEvent(msg: String): F[Unit] =
-    Event.logInfoMsgF(msg).flatMap(executeEngine.offer)
+  private def logInfoEvent(msg: String): F[Unit] = L.info(msg)
 
   private def logDebugEvent(msg: String, user: User, clientId: ClientId): F[Unit] =
-    Event
-      .logDebugMsgF:
-        s"$msg, by ${user.displayName} from client $clientId"
-      .flatMap(executeEngine.offer)
+    L.debug(s"$msg, by ${user.displayName} from client $clientId")
 
   override def clearLoadedSequences(user: User): F[Unit] =
     logDebugEvent("ObserveEngine: Updating loaded sequences") *>
